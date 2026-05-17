@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "savedAt": "2026-05-17T12:24:22.978Z",
+  "kr": [
+    {
+      "code": "000150",
+      "name": "두산",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779016742929
+    },
+    {
+      "code": "009150",
+      "name": "삼성전기",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779012435898
+    },
+    {
+      "code": "005930",
+      "name": "삼성전자",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779012342567
+    },
+    {
+      "code": "000660",
+      "name": "SK하이닉스",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779012318285
+    }
+  ],
+  "us": [],
+  "coin": []
+}
