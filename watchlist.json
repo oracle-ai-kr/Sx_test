@@ -1,0 +1,640 @@
+{
+  "version": 2,
+  "savedAt": "2026-05-19T04:00:53.821Z",
+  "kr": [
+    {
+      "code": "001440",
+      "name": "대한전선",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779161284696
+    },
+    {
+      "code": "454910",
+      "name": "두산로보틱스",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779161203866
+    },
+    {
+      "code": "016360",
+      "name": "삼성증권",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779160951797
+    },
+    {
+      "code": "000720",
+      "name": "현대건설",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779160907607
+    },
+    {
+      "code": "000810",
+      "name": "삼성화재",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779160876096
+    },
+    {
+      "code": "272210",
+      "name": "한화시스템",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779160857829
+    },
+    {
+      "code": "096770",
+      "name": "SK이노베이션",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779160830502
+    },
+    {
+      "code": "064350",
+      "name": "현대로템",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779160030436
+    },
+    {
+      "code": "066570",
+      "name": "LG전자",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779159991300
+    },
+    {
+      "code": "010140",
+      "name": "삼성중공업",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779159968735
+    },
+    {
+      "code": "015760",
+      "name": "한국전력",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779159946131
+    },
+    {
+      "code": "009540",
+      "name": "HD한국조선해양",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779159915044
+    },
+    {
+      "code": "010130",
+      "name": "고려아연",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779159882923
+    },
+    {
+      "code": "042660",
+      "name": "한화오션",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779158336214
+    },
+    {
+      "code": "298040",
+      "name": "효성중공업",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156755723
+    },
+    {
+      "code": "005490",
+      "name": "POSCO홀딩스",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156721692
+    },
+    {
+      "code": "006800",
+      "name": "미래에셋증권",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156640038
+    },
+    {
+      "code": "055550",
+      "name": "신한지주",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156615787
+    },
+    {
+      "code": "010120",
+      "name": "LS ELECTRIC",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156594330
+    },
+    {
+      "code": "267260",
+      "name": "HD현대일렉트릭",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156571010
+    },
+    {
+      "code": "006400",
+      "name": "삼성SDI",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156547197
+    },
+    {
+      "code": "032830",
+      "name": "삼성생명",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156525621
+    },
+    {
+      "code": "105560",
+      "name": "KB금융",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156487045
+    },
+    {
+      "code": "012450",
+      "name": "한화에어로스페이스",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156457183
+    },
+    {
+      "code": "009150",
+      "name": "삼성전기",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156391571
+    },
+    {
+      "code": "329180",
+      "name": "HD현대중공업",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156359941
+    },
+    {
+      "code": "034020",
+      "name": "두산에너빌리티",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156324589
+    },
+    {
+      "code": "005380",
+      "name": "현대차",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156292206
+    },
+    {
+      "code": "000660",
+      "name": "SK하이닉스",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156273136
+    },
+    {
+      "code": "005930",
+      "name": "삼성전자",
+      "market": "kr",
+      "marketLabel": "KOSPI",
+      "ts": 1779156252210
+    }
+  ],
+  "us": [
+    {
+      "code": "ADBE",
+      "name": "Adobe Inc.",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779162552413
+    },
+    {
+      "code": "EQIX",
+      "name": "Equinix",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779162532600
+    },
+    {
+      "code": "SBUX",
+      "name": "Starbucks",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779162443148
+    },
+    {
+      "code": "WDC",
+      "name": "Western Digital",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779162343127
+    },
+    {
+      "code": "STX",
+      "name": "Seagate Technology",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779162279028
+    },
+    {
+      "code": "SNDK",
+      "name": "Sandisk",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779162256314
+    },
+    {
+      "code": "ADI",
+      "name": "Analog Devices",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779162214871
+    },
+    {
+      "code": "QCOM",
+      "name": "Qualcomm",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779162157849
+    },
+    {
+      "code": "TXN",
+      "name": "Texas Instruments",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779162110801
+    },
+    {
+      "code": "AMAT",
+      "name": "Applied Materials",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779162076596
+    },
+    {
+      "code": "NFLX",
+      "name": "Netflix",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779161929964
+    },
+    {
+      "code": "CSCO",
+      "name": "Cisco",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161911371
+    },
+    {
+      "code": "COST",
+      "name": "Costco",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779161888620
+    },
+    {
+      "code": "ASML",
+      "name": "ASML Holding",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161868219
+    },
+    {
+      "code": "WMT",
+      "name": "Walmart",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161847011
+    },
+    {
+      "code": "GS",
+      "name": "Goldman Sachs",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779161799199
+    },
+    {
+      "code": "MS",
+      "name": "Morgan Stanley",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779161779687
+    },
+    {
+      "code": "BAC",
+      "name": "Bank of America",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779161755282
+    },
+    {
+      "code": "MU",
+      "name": "Micron Technology",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161730876
+    },
+    {
+      "code": "AVGO",
+      "name": "Broadcom",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161705011
+    },
+    {
+      "code": "AMD",
+      "name": "Advanced Micro Devices",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161679768
+    },
+    {
+      "code": "INTC",
+      "name": "Intel",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161646946
+    },
+    {
+      "code": "PLTR",
+      "name": "Palantir Technologies",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779161600532
+    },
+    {
+      "code": "AMZN",
+      "name": "Amazon",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161566364
+    },
+    {
+      "code": "META",
+      "name": "Meta Platforms",
+      "market": "us",
+      "marketLabel": "SP500",
+      "ts": 1779161541022
+    },
+    {
+      "code": "GOOGL",
+      "name": "Alphabet Inc. (Class A)",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161513926
+    },
+    {
+      "code": "TSLA",
+      "name": "Tesla, Inc.",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161491160
+    },
+    {
+      "code": "MSFT",
+      "name": "Microsoft",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161439103
+    },
+    {
+      "code": "AAPL",
+      "name": "Apple Inc.",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161408815
+    },
+    {
+      "code": "NVDA",
+      "name": "Nvidia",
+      "market": "us",
+      "marketLabel": "NASDAQ100",
+      "ts": 1779161372968
+    }
+  ],
+  "coin": [
+    {
+      "code": "IP",
+      "name": "스토리",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779163226362
+    },
+    {
+      "code": "PENDLE",
+      "name": "펜들",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779163176809
+    },
+    {
+      "code": "VIRTUAL",
+      "name": "버추얼프로토콜",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779163145052
+    },
+    {
+      "code": "PENGU",
+      "name": "펏지펭귄",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779163126932
+    },
+    {
+      "code": "WLD",
+      "name": "월드코인",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779163108080
+    },
+    {
+      "code": "ATOM",
+      "name": "코스모스",
+      "market": "coin",
+      "marketLabel": "KRW",
+      "ts": 1779163092843
+    },
+    {
+      "code": "ENA",
+      "name": "에테나",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779163068411
+    },
+    {
+      "code": "AAVE",
+      "name": "에이브",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779163056035
+    },
+    {
+      "code": "PEPE",
+      "name": "페페",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779163043823
+    },
+    {
+      "code": "ICP",
+      "name": "인터넷컴퓨터",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779163028624
+    },
+    {
+      "code": "ONDO",
+      "name": "온도파이낸스",
+      "market": "coin",
+      "marketLabel": "KRW",
+      "ts": 1779163010500
+    },
+    {
+      "code": "WLFI",
+      "name": "월드리버티파이낸셜",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162993823
+    },
+    {
+      "code": "MNT",
+      "name": "맨틀",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162982959
+    },
+    {
+      "code": "DOT",
+      "name": "폴카닷",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162969291
+    },
+    {
+      "code": "XAUT",
+      "name": "테더골드",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162937779
+    },
+    {
+      "code": "TAO",
+      "name": "비트텐서",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162924711
+    },
+    {
+      "code": "CRO",
+      "name": "크로노스",
+      "market": "coin",
+      "marketLabel": "KRW",
+      "ts": 1779162909648
+    },
+    {
+      "code": "HBAR",
+      "name": "헤데라",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162892636
+    },
+    {
+      "code": "SUI",
+      "name": "수이",
+      "market": "coin",
+      "marketLabel": "KRW",
+      "ts": 1779162878062
+    },
+    {
+      "code": "AVAX",
+      "name": "아발란체",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162866027
+    },
+    {
+      "code": "XLM",
+      "name": "스텔라루멘",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162852091
+    },
+    {
+      "code": "LINK",
+      "name": "체인링크",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162838313
+    },
+    {
+      "code": "ADA",
+      "name": "에이다",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162807523
+    },
+    {
+      "code": "DOGE",
+      "name": "도지코인",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162795388
+    },
+    {
+      "code": "TRX",
+      "name": "트론",
+      "market": "coin",
+      "marketLabel": "KRW",
+      "ts": 1779162782400
+    },
+    {
+      "code": "SOL",
+      "name": "솔라나",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162770112
+    },
+    {
+      "code": "XRP",
+      "name": "엑스알피(리플)",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162755883
+    },
+    {
+      "code": "USDT",
+      "name": "테더",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162749265
+    },
+    {
+      "code": "ETH",
+      "name": "이더리움",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162704161
+    },
+    {
+      "code": "BTC",
+      "name": "비트코인",
+      "market": "coin",
+      "marketLabel": "UPBIT_KRW",
+      "ts": 1779162590553
+    }
+  ]
+}
