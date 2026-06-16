@@ -1,0 +1,596 @@
+{
+  "kr": {
+    "ranks": [
+      {
+        "id": "opt_1780966806652_kyr8",
+        "market": "kr",
+        "tf": "day",
+        "regime": "OFF",
+        "mode": "safe",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 14,
+          "bbMult": 1.9,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 30,
+          "sellTh": 20,
+          "tpMult": 5.5,
+          "slMult": 0.5
+        },
+        "score": 104.38839825390431,
+        "winRate": 59.5,
+        "totalPnl": 404.21,
+        "totalTrades": 37,
+        "mdd": 8.23,
+        "profitFactor": 7.81,
+        "tfs": [
+          "day"
+        ],
+        "code": "005930",
+        "ts": 1780966813199,
+        "filter": null
+      },
+      {
+        "id": "opt_1780963060463_lfeh",
+        "market": "kr",
+        "tf": "day",
+        "regime": "OFF",
+        "mode": "balanced",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 14,
+          "bbMult": 1.9,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 30,
+          "sellTh": 20,
+          "tpMult": 5.5,
+          "slMult": 1
+        },
+        "score": 102.40036333521128,
+        "winRate": 64.8,
+        "totalPnl": 225.97,
+        "totalTrades": 54,
+        "mdd": 7.56,
+        "profitFactor": 4.68,
+        "tfs": [
+          "day"
+        ],
+        "code": "005930",
+        "ts": 1780963086645,
+        "filter": null
+      },
+      {
+        "id": "opt_1780963501036_byfp",
+        "market": "kr",
+        "tf": "day",
+        "regime": "ON",
+        "mode": "balanced",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 14,
+          "bbMult": 1.9,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 30,
+          "sellTh": 20,
+          "tpMult": 11,
+          "slMult": 1
+        },
+        "score": 102.37683341961527,
+        "winRate": 64.2,
+        "totalPnl": 219.2,
+        "totalTrades": 53,
+        "mdd": 7.38,
+        "profitFactor": 4.73,
+        "tfs": [
+          "day"
+        ],
+        "code": "005930",
+        "ts": 1780963579348,
+        "filter": null
+      },
+      {
+        "id": "opt_1780966436902_pois",
+        "market": "kr",
+        "tf": "day",
+        "regime": "ON",
+        "mode": "safe",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 14,
+          "bbMult": 1.9,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 35,
+          "sellTh": 20,
+          "tpMult": 15.5,
+          "slMult": 0.5
+        },
+        "score": 101.68227158349147,
+        "winRate": 54.8,
+        "totalPnl": 423.69,
+        "totalTrades": 31,
+        "mdd": 9.06,
+        "profitFactor": 8.18,
+        "tfs": [
+          "day"
+        ],
+        "code": "005930",
+        "ts": 1780966514740,
+        "filter": null
+      },
+      {
+        "id": "opt_1780962459572_r40e",
+        "market": "kr",
+        "tf": "day",
+        "regime": "ON",
+        "mode": "profit",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 14,
+          "bbMult": 1.9,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 30,
+          "sellTh": 20,
+          "tpMult": 5,
+          "slMult": 0.5
+        },
+        "score": 99.55780860891718,
+        "winRate": 55.4,
+        "totalPnl": 213.99,
+        "totalTrades": 83,
+        "mdd": 9.19,
+        "profitFactor": 3.2,
+        "tfs": [
+          "day"
+        ],
+        "code": "005930",
+        "ts": 1780962546034,
+        "filter": null
+      },
+      {
+        "id": "opt_1780962589524_kcxi",
+        "market": "kr",
+        "tf": "day",
+        "regime": "OFF",
+        "mode": "profit",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 14,
+          "bbMult": 1.9,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 30,
+          "sellTh": 20,
+          "tpMult": 4.5,
+          "slMult": 0.5
+        },
+        "score": 98.57493188035237,
+        "winRate": 54.8,
+        "totalPnl": 219.12,
+        "totalTrades": 84,
+        "mdd": 9.02,
+        "profitFactor": 3.23,
+        "tfs": [
+          "day"
+        ],
+        "code": "005930",
+        "ts": 1780962676563,
+        "filter": null
+      }
+    ],
+    "representOnId": null,
+    "representOffId": null
+  },
+  "us": {
+    "ranks": [
+      {
+        "id": "opt_1780967566798_umhm",
+        "market": "us",
+        "tf": "day",
+        "regime": "ON",
+        "mode": "balanced",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 20,
+          "bbMult": 2,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 35,
+          "sellTh": 20,
+          "tpMult": 3.5,
+          "slMult": 0.5
+        },
+        "score": 94.09440628945755,
+        "winRate": 49.2,
+        "totalPnl": 115.69,
+        "totalTrades": 65,
+        "mdd": 7.17,
+        "profitFactor": 2.49,
+        "tfs": [
+          "day"
+        ],
+        "code": "NVDA",
+        "ts": 1780967593118,
+        "filter": null
+      },
+      {
+        "id": "opt_1780967727397_iq9a",
+        "market": "us",
+        "tf": "day",
+        "regime": "OFF",
+        "mode": "balanced",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 20,
+          "bbMult": 2,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 40,
+          "sellTh": 20,
+          "tpMult": 3.5,
+          "slMult": 0.5
+        },
+        "score": 93.05360361151662,
+        "winRate": 49.1,
+        "totalPnl": 97.55,
+        "totalTrades": 57,
+        "mdd": 9.41,
+        "profitFactor": 2.58,
+        "tfs": [
+          "day"
+        ],
+        "code": "NVDA",
+        "ts": 1780967744876,
+        "filter": null
+      },
+      {
+        "id": "opt_1780968041714_y14m",
+        "market": "us",
+        "tf": "day",
+        "regime": "ON",
+        "mode": "safe",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 20,
+          "bbMult": 2,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 45,
+          "sellTh": 25,
+          "tpMult": 3.5,
+          "slMult": 0.5
+        },
+        "score": 92.39932098213214,
+        "winRate": 47.2,
+        "totalPnl": 82.81,
+        "totalTrades": 36,
+        "mdd": 9.35,
+        "profitFactor": 2.79,
+        "tfs": [
+          "day"
+        ],
+        "code": "NVDA",
+        "ts": 1780968150052,
+        "filter": null
+      },
+      {
+        "id": "opt_1780967246869_r1ts",
+        "market": "us",
+        "tf": "day",
+        "regime": "ON",
+        "mode": "profit",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 20,
+          "bbMult": 2,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 35,
+          "sellTh": 20,
+          "tpMult": 4.5,
+          "slMult": 0.5
+        },
+        "score": 87.69024346572313,
+        "winRate": 50,
+        "totalPnl": 82.25,
+        "totalTrades": 74,
+        "mdd": 8,
+        "profitFactor": 2.09,
+        "tfs": [
+          "day"
+        ],
+        "code": "NVDA",
+        "ts": 1780967275853,
+        "filter": null
+      },
+      {
+        "id": "opt_1780968164497_fo1j",
+        "market": "us",
+        "tf": "day",
+        "regime": "OFF",
+        "mode": "safe",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 20,
+          "bbMult": 2,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 45,
+          "sellTh": 25,
+          "tpMult": 3.5,
+          "slMult": 0.5
+        },
+        "score": 87.19003446842926,
+        "winRate": 41,
+        "totalPnl": 75.71,
+        "totalTrades": 39,
+        "mdd": 10.52,
+        "profitFactor": 2.5,
+        "tfs": [
+          "day"
+        ],
+        "code": "NVDA",
+        "ts": 1780968271139,
+        "filter": null
+      },
+      {
+        "id": "opt_1780967367816_zrn0",
+        "market": "us",
+        "tf": "day",
+        "regime": "OFF",
+        "mode": "profit",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 20,
+          "bbMult": 2,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 40,
+          "sellTh": 20,
+          "tpMult": 4.5,
+          "slMult": 0.5
+        },
+        "score": 86.70214723973277,
+        "winRate": 50,
+        "totalPnl": 74.64,
+        "totalTrades": 66,
+        "mdd": 5.92,
+        "profitFactor": 2.21,
+        "tfs": [
+          "day"
+        ],
+        "code": "NVDA",
+        "ts": 1780967476695,
+        "filter": null
+      }
+    ],
+    "representOnId": null,
+    "representOffId": null
+  },
+  "crypto": {
+    "ranks": [
+      {
+        "id": "opt_1780968591141_vycm",
+        "market": "crypto",
+        "tf": "day",
+        "regime": "ON",
+        "mode": "balanced",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 9,
+          "bbMult": 2.1,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 25,
+          "sellTh": 20,
+          "tpMult": 5.5,
+          "slMult": 0.5
+        },
+        "score": 82.66538952687634,
+        "winRate": 53.7,
+        "totalPnl": 43.91,
+        "totalTrades": 41,
+        "mdd": 6.4,
+        "profitFactor": 2.62,
+        "tfs": [
+          "day"
+        ],
+        "code": "BTC",
+        "ts": 1780968707804,
+        "filter": null
+      },
+      {
+        "id": "opt_1780968931752_0ydp",
+        "market": "crypto",
+        "tf": "day",
+        "regime": "OFF",
+        "mode": "balanced",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 9,
+          "bbMult": 2.1,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 25,
+          "sellTh": 20,
+          "tpMult": 5.5,
+          "slMult": 2.5
+        },
+        "score": 82.61378067878071,
+        "winRate": 59.5,
+        "totalPnl": 36.52,
+        "totalTrades": 37,
+        "mdd": 7.31,
+        "profitFactor": 2.2,
+        "tfs": [
+          "day"
+        ],
+        "code": "BTC",
+        "ts": 1780969030470,
+        "filter": null
+      },
+      {
+        "id": "opt_1780968459084_sbrq",
+        "market": "crypto",
+        "tf": "day",
+        "regime": "OFF",
+        "mode": "profit",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 9,
+          "bbMult": 2.1,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 20,
+          "sellTh": 20,
+          "tpMult": 3.5,
+          "slMult": 0.5
+        },
+        "score": 75.46785808391732,
+        "winRate": 50,
+        "totalPnl": 39.04,
+        "totalTrades": 52,
+        "mdd": 6.67,
+        "profitFactor": 2.13,
+        "tfs": [
+          "day"
+        ],
+        "code": "BTC",
+        "ts": 1780968574760,
+        "filter": null
+      },
+      {
+        "id": "opt_1780968329788_m6ce",
+        "market": "crypto",
+        "tf": "day",
+        "regime": "ON",
+        "mode": "profit",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 9,
+          "bbMult": 2.1,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 20,
+          "sellTh": 20,
+          "tpMult": 3.5,
+          "slMult": 0.5
+        },
+        "score": 73.44492849718692,
+        "winRate": 49.1,
+        "totalPnl": 37.83,
+        "totalTrades": 53,
+        "mdd": 6.4,
+        "profitFactor": 2.07,
+        "tfs": [
+          "day"
+        ],
+        "code": "BTC",
+        "ts": 1780968446108,
+        "filter": null
+      },
+      {
+        "id": "opt_1780969082149_pr0a",
+        "market": "crypto",
+        "tf": "day",
+        "regime": "ON",
+        "mode": "safe",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 9,
+          "bbMult": 2.1,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 45,
+          "sellTh": 20,
+          "tpMult": 2,
+          "slMult": 0.5
+        },
+        "score": 52.31710852329331,
+        "winRate": 36.1,
+        "totalPnl": 18.29,
+        "totalTrades": 36,
+        "mdd": 7.85,
+        "profitFactor": 1.56,
+        "tfs": [
+          "day"
+        ],
+        "code": "BTC",
+        "ts": 1780969204545,
+        "filter": null
+      },
+      {
+        "id": "opt_1780969317422_p4vd",
+        "market": "crypto",
+        "tf": "day",
+        "regime": "OFF",
+        "mode": "safe",
+        "params": {
+          "rsiLen": 14,
+          "bbLen": 9,
+          "bbMult": 2.1,
+          "maShort": 5,
+          "maMid": 20,
+          "maLong": 60,
+          "atrLen": 14,
+          "buyTh": 40,
+          "sellTh": 30,
+          "tpMult": 2,
+          "slMult": 0.5
+        },
+        "score": 50.278237904119784,
+        "winRate": 35.9,
+        "totalPnl": 17.38,
+        "totalTrades": 39,
+        "mdd": 7.66,
+        "profitFactor": 1.5,
+        "tfs": [
+          "day"
+        ],
+        "code": "BTC",
+        "ts": 1780969431596,
+        "filter": null
+      }
+    ],
+    "representOnId": null,
+    "representOffId": null
+  }
+}
