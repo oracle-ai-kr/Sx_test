@@ -1,0 +1,10 @@
+{
+  "kind": "sx_snap_manifest",
+  "latest": {
+    "kr": "snap_kr_20260702.json",
+    "us": "snap_us_20260702.json",
+    "coin": "snap_coin_20260702.json"
+  },
+  "updated": "2026-07-02",
+  "note": "📦 생성 파일명과 다르면(기준일 차이) latest 값을 실제 파일명으로 수정"
+}
