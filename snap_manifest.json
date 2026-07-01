@@ -1,10 +1,10 @@
 {
   "kind": "sx_snap_manifest",
   "latest": {
-    "kr": "snap_kr_20260702.json",
-    "us": "snap_us_20260702.json",
-    "coin": "snap_coin_20260702.json"
+    "kr": "snap_kr.json",
+    "us": "snap_us.json",
+    "coin": "snap_coin.json"
   },
   "updated": "2026-07-02",
-  "note": "📦 생성 파일명과 다르면(기준일 차이) latest 값을 실제 파일명으로 수정"
+  "note": "고정 파일명 규약 — vintage 갱신 = 같은 이름으로 덮어쓰기 커밋(manifest 수정 불필요). 기준일은 파일 내 baseDate·로드 배지·빔서치 JSON snap.date로 추적. 과거 vintage는 git 히스토리에서 복원."
 }
