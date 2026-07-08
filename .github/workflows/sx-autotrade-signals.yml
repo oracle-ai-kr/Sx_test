@@ -1,0 +1,41 @@
+# [S930] SX 자동매매 ① 신호 push — 실엔진 headless(오프라인 하네스 계보)를 스케줄/스냅커밋/수동으로 실행
+#  결과: 신호원장 → Worker /sx/autotrade/signals (shared secret) → KV at:signals:{mkt} → sx_autotrade.html 점등
+#  필요 시크릿: SX_WORKER_BASE, SX_AT_KEY (= Worker env AT_KEY 와 동일값)
+#  필요 커밋파일: offline/at_signals_push.sh, offline/sx_offline_shim.js, offline/sig_runner_s927.js,
+#                sx_analysis_engine.js, sx_project_c.js, sx_recipe_core.js, sx_verdict_val.js, snap_{kr,us,coin}.json
+name: SX Autotrade Signals
+
+on:
+  schedule:
+    # 평일 06:30 UTC = 15:30 KST (KR 장마감 후). ※ 스냅 최신성은 커밋에 의존.
+    - cron: '30 6 * * 1-5'
+  push:
+    # 스냅 갱신 커밋 시 즉시 재생성
+    paths:
+      - 'snap_kr.json'
+      - 'snap_us.json'
+      - 'snap_coin.json'
+  workflow_dispatch: {}
+
+concurrency:
+  group: sx-autotrade-signals
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  push-signals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build engine + generate signals + push to KV
+        env:
+          WORKER_BASE: ${{ secrets.SX_WORKER_BASE }}
+          AT_KEY: ${{ secrets.SX_AT_KEY }}
+          SRC: .
+          OFF_DIR: offline
+        run: bash offline/at_signals_push.sh
