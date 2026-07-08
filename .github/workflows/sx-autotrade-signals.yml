@@ -2,12 +2,13 @@
 #  결과: 신호원장 → Worker /sx/autotrade/signals (shared secret) → KV at:signals:{mkt} → sx_autotrade.html 점등
 #  필요 시크릿: SX_WORKER_BASE, SX_AT_KEY (= Worker env AT_KEY 와 동일값)
 #  필요 커밋파일: offline/at_signals_push.sh, offline/sx_offline_shim.js, offline/sig_runner_s927.js,
+#                offline/snap_builder_s940.js,  # [S940] 스냅 자동갱신(런타임 네이버 fetch)
 #                sx_analysis_engine.js, sx_project_c.js, sx_recipe_core.js, sx_verdict_val.js, snap_{kr,us,coin}.json
 name: SX Autotrade Signals
 
 on:
   schedule:
-    # 평일 06:30 UTC = 15:30 KST (KR 장마감 후). ※ 스냅 최신성은 커밋에 의존.
+    # 평일 06:30 UTC = 15:30 KST (KR 장마감 후). [S940] 스냅은 실행 시 네이버서 최신 일봉으로 자동 리빌드(런타임).
     - cron: '30 6 * * 1-5'
   push:
     # 스냅 갱신 커밋 시 즉시 재생성
