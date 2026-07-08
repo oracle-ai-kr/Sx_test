@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SIGNAL X — 자동매매</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   SIGNAL X 자동매매 (시즌2) — 스켈레톤 [S914]
+   테마 토큰은 index.html과 동일 SSOT 값 복사 (SX_MODE 연동)
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#28282e; --surface:#333339; --surface2:#3e3e45; --surface3:#4a4a52;
+  --accent:#2563eb; --accent2:#3b82f6; --accent-glow:rgba(37,99,235,.12);
+  --text:#f0f0f3; --text2:#a0a0a8; --text3:#6e6e78;
+  --border:rgba(255,255,255,.07);
+  --buy:#22c55e; --buy-bg:rgba(34,197,94,.1); --buy-border:rgba(34,197,94,.25);
+  --hold:#f59e0b; --hold-bg:rgba(245,158,11,.1); --hold-border:rgba(245,158,11,.25);
+  --sell:#ef4444; --sell-bg:rgba(239,68,68,.1); --sell-border:rgba(239,68,68,.25);
+  --radius:14px; --radius-sm:10px;
+}
+body.sx-black{
+  --bg:#000000;--surface:#0a0a0a;--surface2:#141414;--surface3:#1e1e1e;
+  --text:#f5f5f5;--text2:#a0a0a8;--text3:#6a6a72;
+  --border:rgba(255,255,255,.08);
+  --buy-bg:rgba(34,197,94,.08);--buy-border:rgba(34,197,94,.2);
+  --hold-bg:rgba(245,158,11,.08);--hold-border:rgba(245,158,11,.2);
+  --sell-bg:rgba(239,68,68,.08);--sell-border:rgba(239,68,68,.2);
+}
+body.sx-cream{
+  --bg:#e8dfcf;--surface:#f2ebe0;--surface2:#ddd4c4;--surface3:#d0c5b3;
+  --text:#12100c;--text2:#46403a;--text3:#706458;
+  --border:rgba(0,0,0,.06);
+  --accent-glow:rgba(37,99,235,.06);
+  --buy-bg:rgba(34,197,94,.06);--buy-border:rgba(34,197,94,.18);
+  --hold-bg:rgba(245,158,11,.06);--hold-border:rgba(245,158,11,.18);
+  --sell-bg:rgba(239,68,68,.06);--sell-border:rgba(239,68,68,.18);
+}
+body.sx-white{
+  --bg:#f3f4f6;--surface:#ffffff;--surface2:#f0f1f4;--surface3:#e6e8ec;
+  --text:#0a0f1a;--text2:#4b5563;--text3:#6b7280;
+  --border:rgba(0,0,0,.06);
+  --accent-glow:rgba(37,99,235,.06);
+  --buy-bg:rgba(34,197,94,.06);--buy-border:rgba(34,197,94,.18);
+  --hold-bg:rgba(245,158,11,.06);--hold-border:rgba(245,158,11,.18);
+  --sell-bg:rgba(239,68,68,.06);--sell-border:rgba(239,68,68,.18);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent;}
+#app{display:flex;flex-direction:column;min-height:100%;max-width:480px;margin:0 auto;}
+
+/* ── Top Bar ── */
+.top-bar{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:10px 16px;
+  background:var(--bg);border-bottom:1px solid var(--border);
+}
+.tb-left{display:flex;align-items:center;gap:10px;min-width:0;}
+.tb-back{
+  background:var(--surface2);border:none;color:var(--text2);
+  width:30px;height:30px;border-radius:8px;cursor:pointer;flex-shrink:0;
+  font-size:15px;line-height:1;font-family:inherit;
+}
+.tb-title{font-family:'Outfit','Noto Sans KR';font-size:16px;font-weight:800;letter-spacing:.5px;white-space:nowrap;}
+.tb-title .s2{color:var(--accent2);}
+.tb-build{font-size:10px;color:var(--text3);font-weight:600;flex-shrink:0;}
+
+.scroll-area{flex:1;padding:14px 14px 40px;}
+
+/* ── 카드 공통 ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px;margin-bottom:12px;
+}
+.card-title{font-size:12.5px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.card-title .tag{font-size:9.5px;font-weight:600;color:var(--text3);background:var(--surface2);padding:2px 7px;border-radius:20px;}
+
+/* ── 파이프라인 스트립 (시그니처) ──
+   시즌2의 본질 = 연구→신호→실행→검증→실전 흐름.
+   각 노드는 로드맵 단계와 대응, 추후 KV 상태로 점등. */
+.pipe-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0 6px;}
+.pipe{display:flex;align-items:center;gap:0;min-width:max-content;}
+.pipe-node{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  min-width:64px;padding:0 2px;
+}
+.pipe-dot{
+  width:11px;height:11px;border-radius:50%;
+  background:var(--surface3);border:2px solid var(--surface3);
+}
+.pipe-node.on .pipe-dot{background:var(--accent);border-color:var(--accent2);box-shadow:0 0 8px var(--accent-glow);}
+.pipe-node .pn-name{font-size:10px;font-weight:700;color:var(--text2);white-space:nowrap;}
+.pipe-node.on .pn-name{color:var(--accent2);}
+.pipe-node .pn-sub{font-size:8.5px;color:var(--text3);white-space:nowrap;}
+.pipe-link{width:22px;height:2px;background:var(--surface3);flex-shrink:0;margin-bottom:26px;}
+
+/* ── 상태 행 ── */
+.st-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.st-row:last-child{border-bottom:none;}
+.st-row .k{color:var(--text2);}
+.st-row .v{font-weight:600;color:var(--text3);}
+.st-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;color:var(--hold);
+  background:var(--hold-bg);border:1px solid var(--hold-border);
+  padding:4px 10px;border-radius:20px;
+}
+
+/* ── 원칙/목록 항목 ── */
+.li{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.55;}
+.li:last-child{border-bottom:none;}
+.li .n{flex-shrink:0;font-family:'Outfit';font-size:11px;font-weight:800;color:var(--accent2);width:16px;text-align:center;padding-top:1px;}
+.li b{font-weight:700;}
+.li .d{color:var(--text2);}
+.li .d .hl{color:var(--text);font-weight:600;}
+
+/* 이식 후보 */
+.cand{padding:8px 10px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:7px;font-size:12px;line-height:1.5;}
+.cand:last-child{margin-bottom:0;}
+.cand .cn{font-weight:700;}
+.cand .cs{color:var(--text2);font-size:11px;display:block;margin-top:2px;}
+.warn{
+  margin-top:10px;padding:9px 10px;font-size:11.5px;line-height:1.55;
+  background:var(--sell-bg);border:1px solid var(--sell-border);
+  border-radius:var(--radius-sm);color:var(--text2);
+}
+.warn b{color:var(--sell);}
+.epis{font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5;}
+
+/* 로드맵 */
+.rm{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.5;}
+.rm:last-child{border-bottom:none;}
+.rm .rn{
+  flex-shrink:0;width:22px;height:22px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Outfit';font-size:11px;font-weight:800;
+  background:var(--surface2);color:var(--text3);
+}
+.rm.now .rn{background:var(--accent);color:#fff;}
+.rm .rt b{font-weight:700;}
+.rm .rt .d{color:var(--text2);display:block;font-size:11px;margin-top:1px;}
+
+.foot{padding:6px 4px 0;font-size:10px;color:var(--text3);text-align:center;}
+</style>
+</head>
+<body>
+<!-- FOUC prevention — index.html과 동일 로직 (SX_MODE 연동) [S914] -->
+<script>
+(function(){
+  var m=localStorage.getItem('SX_MODE')||'white';
+  if(m==='light')m='white';
+  if(m==='dark')m='charcoal';
+  if(m==='black')document.body.classList.add('sx-black');
+  else if(m==='cream')document.body.classList.add('sx-cream');
+  else if(m==='white')document.body.classList.add('sx-white');
+})();
+</script>
+
+<div id="app">
+  <!-- [S932] 로그인 게이트 (서버 비번·세션) -->
+  <div id="atAuthGate" style="position:fixed;inset:0;background:var(--bg);z-index:2000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:10px;">🔒</div>
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">자동매매 잠금</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:22px;">비밀번호를 입력하세요</div>
+    <input type="password" id="atPw" placeholder="비밀번호" autocomplete="off" onkeydown="if(event.key==='Enter')atLogin()" style="max-width:280px;width:100%;box-sizing:border-box;padding:12px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;font-family:var(--mono);outline:none;"/>
+    <div id="atAuthMsg" style="color:var(--sell);font-size:12px;min-height:16px;margin:10px 0;"></div>
+    <button type="button" onclick="atLogin()" style="max-width:280px;width:100%;padding:12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;">로그인</button>
+    <div onclick="atShowSetup()" style="margin-top:20px;font-size:11px;color:var(--text3);text-decoration:underline;cursor:pointer;">비밀번호 설정 / 재설정</div>
+    <div onclick="goHome()" style="margin-top:12px;font-size:11px;color:var(--text3);cursor:pointer;">← 홈으로</div>
+  </div>
+  <div class="top-bar">
+    <div class="tb-left">
+      <button type="button" class="tb-back" onclick="goHome()">←</button>
+      <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
+    </div>
+    <div class="tb-build">S914</div>
+  </div>
+
+  <div class="scroll-area">
+
+    <!-- ═══ 파이프라인 스트립 ═══ -->
+    <div class="card">
+      <div class="card-title">🛰️ 파이프라인 <span class="tag">각 노드 = 로드맵 단계 · 추후 상태 점등</span></div>
+      <div class="pipe-wrap">
+        <div class="pipe">
+          <div class="pipe-node on" id="pnResearch">
+            <div class="pipe-dot"></div>
+            <div class="pn-name">SX 연구</div>
+            <div class="pn-sub">시즌1 · 가동중</div>
+          </div>
+          <div class="pipe-link"></div>
+          <div class="pipe-node" id="pnSignal">
+            <div class="pipe-dot"></div>
+            <div class="pn-name">신호 생성</div>
+            <div class="pn-sub">SX엔진 headless</div>
+          </div>
+          <div class="pipe-link"></div>
+          <div class="pipe-node" id="pnExec">
+            <div class="pipe-dot"></div>
+            <div class="pn-name">실행</div>
+            <div class="pn-sub">Workers cron</div>
+          </div>
+          <div class="pipe-link"></div>
+          <div class="pipe-node" id="pnPaper">
+            <div class="pipe-dot"></div>
+            <div class="pn-name">Paper</div>
+            <div class="pn-sub">KIS 모의투자</div>
+          </div>
+          <div class="pipe-link"></div>
+          <div class="pipe-node" id="pnGate">
+            <div class="pipe-dot"></div>
+            <div class="pn-name">승격 게이트</div>
+            <div class="pn-sub">guardrail</div>
+          </div>
+          <div class="pipe-link"></div>
+          <div class="pipe-node" id="pnLive">
+            <div class="pipe-dot"></div>
+            <div class="pn-name">LIVE</div>
+            <div class="pn-sub">하드게이트</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 상태보드 (연동 대기 자리) ═══ -->
+    <div class="card">
+      <div class="card-title">📡 상태보드 <span class="tag">제어 연동 · S929</span></div>
+      <div style="margin-bottom:8px;"><span class="st-badge" id="atState">🔌 파이프라인 미연결</span></div>
+      <div class="st-row"><span class="k">데이터 소스</span><span class="v" id="atSrc">— (예정: Workers KV)</span></div>
+      <div class="st-row"><span class="k">모드</span><span class="v" id="atMode">—</span></div>
+      <div class="st-row"><span class="k">포지션</span><span class="v" id="atPos">—</span></div>
+      <div class="st-row"><span class="k">마지막 신호</span><span class="v" id="atLastSig">—</span></div>
+      <div class="st-row"><span class="k">마지막 갱신</span><span class="v" id="atUpdated">—</span></div>
+      <div class="st-row"><span class="k">최근 주문</span><span class="v" id="atOrders">—</span></div>
+    </div>
+
+    <!-- ═══ [S929] 제어 (Workers KV ↔ 페이지) ═══ -->
+    <div class="card" id="atControlCard">
+      <div class="card-title">🎛 제어 <span class="tag">KV 명령 채널 · S929</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button type="button" id="atBtnPower" onclick="atTogglePower()" style="flex:1;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:var(--accent-glow);color:var(--accent2);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">▶ 가동</button>
+        <button type="button" id="atBtnHalt" onclick="atHalt()" style="flex:1;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--sell-border);background:var(--sell-bg);color:var(--sell);font-weight:800;font-family:inherit;font-size:13px;cursor:pointer;">⛔ 긴급정지</button>
+      </div>
+      <div class="st-row">
+        <span class="k">모드</span>
+        <span class="v" style="display:flex;gap:6px;">
+          <button type="button" id="atModeSig" onclick="atSetMode('signal_only')" style="padding:6px 11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:var(--accent);color:#fff;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;">signal-only</button>
+          <button type="button" id="atModePaper" onclick="atSetMode('paper')" style="padding:6px 11px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;">paper</button>
+        </span>
+      </div>
+      <button type="button" id="atBtnExec" onclick="atExecNow()" style="width:100%;margin-top:10px;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:transparent;color:var(--accent2);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">⚡ 지금 실행 (신호→판정)</button>
+      <div style="font-size:11px;color:var(--text3);margin-top:9px;line-height:1.5;">live는 하드게이트(로드맵 4) 통과 전 차단 · 긴급정지 최우선 · 명령은 Workers KV에 저장</div>
+      <div style="text-align:right;margin-top:10px;"><span onclick="atLogout()" style="font-size:11px;color:var(--text3);text-decoration:underline;cursor:pointer;">🚪 로그아웃</span></div>
+    </div>
+
+    <!-- ═══ 설계 원칙 ═══ -->
+    <div class="card">
+      <div class="card-title">📐 설계 원칙 <span class="tag">SX스타일 재구성 · 코드는 자체 제작</span></div>
+      <div class="li"><span class="n">1</span><span class="d"><b>신호 = SX 엔진·레시피 그대로.</b> Node/Workers에서 headless 실행(오프라인 하네스 계보) — <span class="hl">타 언어 재구현 금지</span>(미러 이중구현 = 검증 무효화 위험).</span></div>
+      <div class="li"><span class="n">2</span><span class="d"><b>실행 = Cloudflare Workers cron + KIS REST.</b> 일봉 기반 종가 판정과 정합. 모의투자 도메인 우선, 상시 서버 없음.</span></div>
+      <div class="li"><span class="n">3</span><span class="d"><b>상태·제어 = Workers KV ↔ 이 페이지.</b> 모니터·ON/OFF·긴급정지를 모바일에서.</span></div>
+      <div class="li"><span class="n">4</span><span class="d"><b>규율 = 승격 게이트.</b> 백테스트 → paper(signal-only) → full paper → live 하드게이트. 판정 기준 사전 선언 + guardrail. <span class="hl">참고 리포(quant_trader)에선 규율만 차용, 코드는 비차용.</span></span></div>
+    </div>
+
+    <!-- ═══ 이식 후보 ═══ -->
+    <div class="card">
+      <div class="card-title">🧬 이식 후보 <span class="tag">시즌1 검증분</span></div>
+      <div class="cand"><span class="cn">정배 눌림목 발동수 사다리</span><span class="cs">N10 진짜비율: 1–2개 61% · 3개 62% · 4개+ 68%</span></div>
+      <div class="cand"><span class="cn">역배 겹침 (N15 기준)</span><span class="cs">3+ 68% · 4+ 72% — N10에선 무효, 시간축 주의</span></div>
+      <div class="cand"><span class="cn">C 2.0 사다리</span><span class="cs">p≥4 매수 / 3 관심 / 2 관망 / ≤1 회피 + 안전필터 캡</span></div>
+      <div class="cand"><span class="cn">가짜 신호 게이트</span><span class="cs">fake 시그널 = 방향 판별의 실질 edge 축</span></div>
+      <div class="warn"><b>⚠ 미해결 — kr 매수 복권 구조:</b> 평균 +8.56% / 중앙 −0.39% / 승률 46.7% (발굴풀 h15). 전형 케이스는 손실, 소수 대박이 평균 견인 → 진입·포지션 사이징 설계에서 반드시 다뤄야 함.</div>
+      <div class="epis">※ 수치는 전부 "현 기준하 보인 것" (in-sample · 0701 발굴풀/당시 풀 기준). 이식 전 out-of-sample 관문 통과 필수.</div>
+    </div>
+
+    <!-- ═══ 로드맵 ═══ -->
+    <div class="card">
+      <div class="card-title">🗺️ 로드맵</div>
+      <div class="rm now"><span class="rn">0</span><span class="rt"><b>스켈레톤</b><span class="d">진입점·설계 박제 (지금 여기)</span></span></div>
+      <div class="rm"><span class="rn">1</span><span class="rt"><b>연동 계약 설계</b><span class="d">상태 push 스키마 · 명령 채널 · KIS 토큰 관리(KV) · 신호 headless 실행 방식 확정</span></span></div>
+      <div class="rm"><span class="rn">2</span><span class="rt"><b>Paper 파이프라인</b><span class="d">모의투자 도메인 · signal-only부터 · 상태보드 점등</span></span></div>
+      <div class="rm"><span class="rn">3</span><span class="rt"><b>Guardrail + 승격 게이트</b><span class="d">판정 기준 사전 선언 · evidence 적립 · 원장 루틴 연동</span></span></div>
+      <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
+    </div>
+
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S914</div>
+  </div>
+</div>
+
+<script>
+// ═══ 자동매매 스켈레톤 스크립트 [S914] ═══
+// 상태보드 연동(1단계 이후)을 위한 id 앵커: atState/atSrc/atMode/atPos/atLastSig/atUpdated
+// 파이프라인 노드 앵커: pnResearch/pnSignal/pnExec/pnPaper/pnGate/pnLive (class 'on'으로 점등)
+function goHome(){
+  try{ if(navigator.vibrate) navigator.vibrate(15); }catch(_){}
+  location.href='index.html';
+}
+
+// ═══ [S929] 상태·명령 연동 (Workers KV ↔ 이 페이지) — 로드맵 ①②단계 제어면 ═══
+const AT_WORKER_BASE = (typeof window!=='undefined' && window.WORKER_BASE) ? window.WORKER_BASE : 'https://stock-signal-proxy.cheaheechang.workers.dev';
+let _atCmd = { power:'off', halt:false, mode:'signal_only' };
+let _atToken='';
+function atAuthHeaders(extra){ const h=Object.assign({}, extra||{}); if(_atToken) h['x-at-auth']=_atToken; return h; }
+function atShowGate(){ const g=_$('atAuthGate'); if(g) g.style.display='flex'; }
+function atHideGate(){ const g=_$('atAuthGate'); if(g) g.style.display='none'; }
+function _$(id){ return document.getElementById(id); }
+function _atNode(id,on){ const e=_$(id); if(e) e.classList.toggle('on',!!on); }
+function atRel(ts){
+  if(!ts) return '—';
+  const s = Math.floor((Date.now()-ts)/1000);
+  if(s<60) return s+'초 전'; if(s<3600) return Math.floor(s/60)+'분 전';
+  if(s<86400) return Math.floor(s/3600)+'시간 전'; return Math.floor(s/86400)+'일 전';
+}
+async function atFetchState(){
+  try{
+    const r = await fetch(AT_WORKER_BASE + '/sx/autotrade/state', { headers: atAuthHeaders(), signal: AbortSignal.timeout(10000) });
+    if(r.status===401) return {__needAuth:true};
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(_){ return null; }
+}
+function atRender(d){
+  if(!d || !d.ok){
+    _$('atState').textContent = '🔌 파이프라인 미연결';
+    _$('atSrc').textContent = '— (Workers 응답 없음)';
+    return;
+  }
+  _atCmd = d.command || _atCmd;
+  const cmd = _atCmd, st = d.state || {};
+  let badge;
+  if(cmd.halt) badge = '⛔ 긴급정지';
+  else if(cmd.power === 'on') badge = '🟢 가동 · ' + (cmd.mode==='paper'?'paper':'signal-only');
+  else badge = '⏸ 정지 (명령 대기)';
+  _$('atState').textContent = badge;
+  _$('atSrc').textContent = 'Workers KV';
+  _$('atMode').textContent = cmd.mode==='paper' ? 'paper' : 'signal-only';
+  _$('atPos').textContent = (st.position && st.position.count!=null) ? (st.position.count + '종목 보유') : '—';
+  if(d.signal && d.signal.asof){
+    const s = d.signal.summary || {};
+    _$('atLastSig').textContent = String(d.signal.asof).slice(0,10) + ' · BUY ' + (s.BUY!=null?s.BUY:0);
+  } else _$('atLastSig').textContent = '—';
+  _$('atUpdated').textContent = atRel(st.updatedAt || cmd.at);
+  if(d.orders && d.orders.count){
+    const r = d.orders.recent && d.orders.recent[0];
+    _$('atOrders').textContent = d.orders.count + '건' + (r ? (' · ' + r.code + ' ' + r.side + ' [' + r.status + ']') : '');
+  } else _$('atOrders').textContent = '—';
+  // 파이프라인 노드는 실제 파이프 상태 기반(정직): 신호 KV 있으면 pnSignal, exec 상태 있으면 pnExec
+  _atNode('pnSignal', !!(d.signal && d.signal.asof));
+  _atNode('pnExec', !!(st.updatedAt));
+  atSyncButtons();
+}
+function atSyncButtons(){
+  const bp = _$('atBtnPower');
+  if(bp) bp.textContent = (_atCmd.power==='on') ? '⏸ 정지' : '▶ 가동';
+  const ms = _$('atModeSig'), mp = _$('atModePaper');
+  if(ms && mp){
+    const sig = _atCmd.mode !== 'paper';
+    ms.style.background = sig ? 'var(--accent)' : 'transparent';
+    ms.style.color = sig ? '#fff' : 'var(--text2)';
+    ms.style.borderColor = sig ? 'var(--accent)' : 'var(--border)';
+    mp.style.background = !sig ? 'var(--accent)' : 'transparent';
+    mp.style.color = !sig ? '#fff' : 'var(--text2)';
+    mp.style.borderColor = !sig ? 'var(--accent)' : 'var(--border)';
+  }
+}
+async function atPost(patch){
+  try{
+    const r = await fetch(AT_WORKER_BASE + '/sx/autotrade/command', {
+      method:'POST', headers: atAuthHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify(Object.assign({ by:'page' }, patch)), signal: AbortSignal.timeout(10000)
+    });
+    if(r.status===401){ atShowGate(); return; }
+    let d = null; try{ d = await r.json(); }catch(_){}
+    if(d && d.command) _atCmd = d.command;
+    if(!r.ok) alert((d && d.error) || ('명령 실패 ('+r.status+')'));
+  }catch(e){ alert('명령 실패: ' + (e.message||e)); }
+  atRefresh();
+}
+function _atBuzz(){ try{ if(navigator.vibrate) navigator.vibrate(10); }catch(_){} }
+function atTogglePower(){ _atBuzz(); atPost({ power: (_atCmd.power==='on') ? 'off' : 'on' }); }
+function atSetMode(m){ _atBuzz(); atPost({ mode: m }); }
+async function atExecNow(){
+  if(_atCmd.power!=='on'){ alert('먼저 ▶가동을 눌러주세요'); return; }
+  _atBuzz();
+  const btn=_$('atBtnExec'); if(btn){ btn.disabled=true; btn.textContent='실행 중...'; }
+  try{
+    const r = await fetch(AT_WORKER_BASE+'/sx/autotrade/exec', { method:'POST', headers: atAuthHeaders(), signal: AbortSignal.timeout(15000) });
+    if(r.status===401){ atShowGate(); return; }
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) alert((d&&d.error)||('실행 실패 ('+r.status+')'));
+  }catch(e){ alert('실행 실패: '+(e.message||e)); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent='⚡ 지금 실행 (신호→판정)'; } }
+  atRefresh();
+}
+function atHalt(){
+  if(!confirm('긴급정지하시겠습니까? 모든 가동이 즉시 멈춥니다.')) return;
+  _atBuzz(); atPost({ halt: true });
+}
+async function atExec(){
+  _atBuzz();
+  const btn=_$('atBtnExec'); if(btn){ btn.disabled=true; btn.textContent='실행 중...'; }
+  try{
+    const r = await fetch(AT_WORKER_BASE + '/sx/autotrade/exec', { method:'POST', headers: atAuthHeaders(), signal: AbortSignal.timeout(15000) });
+    if(r.status===401){ atShowGate(); }
+    else if(!r.ok){ const d=await r.json().catch(()=>({})); alert((d&&d.error)||('실행 실패 ('+r.status+')')); }
+  }catch(e){ alert('실행 실패: '+(e.message||e)); }
+  if(btn){ btn.disabled=false; btn.textContent='⚡ 지금 실행 (신호→판정)'; }
+  atRefresh();
+}
+async function atRefresh(){
+  const d = await atFetchState();
+  if(d && d.__needAuth){ _atToken=''; try{localStorage.removeItem('at_session');}catch(_){} atShowGate(); return; }
+  if(d && d.ok) atHideGate();
+  atRender(d);
+}
+function atLogout(){
+  _atToken=''; try{localStorage.removeItem('at_session');}catch(_){}
+  atShowGate();
+}
+// ── [S932] 로그인/설정 ──
+async function atLogin(){
+  const el=_$('atPw'), msg=_$('atAuthMsg');
+  const pw = el?el.value:'';
+  if(!pw){ if(msg)msg.textContent='비밀번호를 입력하세요'; return; }
+  if(msg)msg.textContent='확인 중...';
+  try{
+    const r = await fetch(AT_WORKER_BASE+'/sx/autotrade/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'login', password:pw}), signal:AbortSignal.timeout(10000) });
+    const d = await r.json().catch(()=>({}));
+    if(d && d.ok && d.token){ _atToken=d.token; try{localStorage.setItem('at_session',d.token);}catch(_){} if(el)el.value=''; if(msg)msg.textContent=''; atHideGate(); atRefresh(); }
+    else if(d && d.needSetup){ if(msg)msg.textContent='비밀번호 미설정 — 아래 "설정"을 먼저 누르세요'; }
+    else { if(msg)msg.textContent=(d&&d.error)||'로그인 실패'; }
+  }catch(e){ if(msg)msg.textContent='연결 실패: '+(e.message||e); }
+}
+async function atShowSetup(){
+  const msg=_$('atAuthMsg');
+  const atKey = prompt('AT_KEY 입력\n(Cloudflare Worker / GitHub Secret에 넣은 값):');
+  if(!atKey) return;
+  const pw = prompt('새 비밀번호 (4자 이상):');
+  if(!pw) return;
+  if(msg)msg.textContent='설정 중...';
+  try{
+    const r = await fetch(AT_WORKER_BASE+'/sx/autotrade/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'set', atKey, password:pw}), signal:AbortSignal.timeout(10000) });
+    const d = await r.json().catch(()=>({}));
+    if(d && d.ok){ if(msg)msg.textContent='✅ 설정 완료 — 이제 로그인하세요'; }
+    else { if(msg)msg.textContent=(d&&d.error)||'설정 실패'; }
+  }catch(e){ if(msg)msg.textContent='연결 실패: '+(e.message||e); }
+}
+// 진입: 토큰 있으면 폴링, 없으면 로그인 게이트
+_atToken = (function(){ try{ return localStorage.getItem('at_session')||''; }catch(_){ return ''; } })();
+if(_atToken){ atRefresh(); } else { atShowGate(); }
+try{ setInterval(()=>{ if(_atToken) atRefresh(); }, 12000); }catch(_){}
+</script>
+</body>
+</html>
