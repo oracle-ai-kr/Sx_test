@@ -179,7 +179,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S949</div>
+    <div class="tb-build">S950</div>
   </div>
 
   <div class="scroll-area">
@@ -284,7 +284,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
     <!-- ═══ [S949] 청산 설정 (이중ATR + MA/N일) ═══ -->
     <div class="card" id="atExitCard">
-      <div class="card-title">🎯 청산 설정 <span class="tag">이중ATR + MA/N일 · S949</span></div>
+      <div class="card-title">🎯 청산 설정 <span class="tag">이중ATR + MA/N일 · S949</span><span onclick="atExitReset()" title="기본값(2×/3×/MA5×20)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
       <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레시피 votes≥1 · 청산=초기ATR손절 + ATR트레일 + (MA5×20 <b>또는</b> N일). 값 변경 후 저장.</div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">초기 손절 (×ATR)<input id="exAtrInit" type="number" step="0.5" min="0.5" max="6" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
@@ -347,7 +347,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S949</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S950</div>
   </div>
 </div>
 
@@ -771,15 +771,23 @@ async function atShowSetup(){
 }
 // 진입: 토큰 있으면 폴링, 없으면 로그인 게이트
 // ── [S949] 청산 설정 UI (exit_config ↔ /state·/sx/autotrade/exit-config) ──
-let _exMode='days';
+let _exMode='ma'; // [S950] 기본 최대보유=MA5×20
 function _exTabStyle(btn,on){ if(!btn)return; btn.style.borderColor=on?'var(--accent)':'var(--border)'; btn.style.background=on?'var(--accent)':'transparent'; btn.style.color=on?'#fff':'var(--text2)'; }
 function atExitMode(m){ _exMode=(m==='ma')?'ma':'days'; _exTabStyle(_$('exModeMa'),_exMode==='ma'); _exTabStyle(_$('exModeDays'),_exMode==='days'); const dr=_$('exDaysRow'); if(dr) dr.style.opacity=(_exMode==='days')?'1':'0.4'; }
-function atRenderExitConfig(cfg){
+let _exLoaded=false;
+function atRenderExitConfig(cfg, force){
   if(!cfg) return;
+  if(_exLoaded && !force) return; // [S950] 최초 1회만 로드 → atRefresh(12s)가 편집/저장값 덮어쓰기 방지
+  _exLoaded=true;
   const set=(id,v)=>{ const e=_$(id); if(e && v!=null) e.value=v; };
   set('exAtrInit', cfg.atrInitMult); set('exAtrTrail', cfg.atrTrailMult); set('exMaxHoldDays', cfg.maxHoldDays);
   const on=_$('exMaxHoldOn'); if(on) on.checked=(cfg.maxHoldOn!==false);
   atExitMode(cfg.maxHoldMode==='ma'?'ma':'days');
+}
+// [S950] 청산 임계값 기본으로 초기화 (↻) — 입력칸을 기본값으로 채우고 즉시 저장(persist).
+function atExitReset(){
+  atRenderExitConfig({ atrInitMult:2, atrTrailMult:3, maxHoldMode:'ma', maxHoldDays:30, maxHoldOn:true }, true);
+  atSaveExitConfig();
 }
 async function atSaveExitConfig(){
   const msg=_$('exMsg'), btn=_$('exSaveBtn');
@@ -789,7 +797,7 @@ async function atSaveExitConfig(){
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/exit-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
     const d=await r.json();
-    if(d && d.ok){ atRenderExitConfig(d.exitConfig); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · '+_exSummary(d.exitConfig); } }
+    if(d && d.ok){ atRenderExitConfig(d.exitConfig, true); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · '+_exSummary(d.exitConfig); } }
     else if(d && d.needAuth){ _atToken=''; atShowGate(); }
     else if(msg){ msg.style.color='var(--sell)'; msg.textContent='저장 실패: '+((d&&d.error)||'알수없음'); }
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
