@@ -179,7 +179,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S943</div>
+    <div class="tb-build">S945</div>
   </div>
 
   <div class="scroll-area">
@@ -252,7 +252,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
     <!-- ═══ [S943] 주문 피드 (체결/신호/거절 카드) ═══ -->
     <div class="card" id="atOrderFeedCard" style="display:none;">
-      <div class="card-title">🧾 주문 피드 <span class="tag">체결·신호·거절 · S943</span></div>
+      <div class="card-title" style="display:flex;align-items:center;">🧾 주문 피드 <span class="tag">체결·신호·거절 · S945</span><button onclick="atReset()" style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--text2);font-size:11px;font-weight:600;padding:4px 9px;border-radius:7px;cursor:pointer;">🧹 초기화</button></div>
       <div id="atOrderFeed"></div>
     </div>
 
@@ -319,7 +319,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S943</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S945</div>
   </div>
 </div>
 
@@ -362,7 +362,7 @@ function atRender(d){
     const _mb=_$('atMktBadge'); if(_mb) _mb.innerHTML='';
     const _bd=_$('atSigBreakdown'); if(_bd) _bd.innerHTML='';
     atRenderPortfolio(null);
-    atRenderOrders(null);
+    atRenderOrders(null, null);
     atRenderEvents(null);
     return;
   }
@@ -400,7 +400,7 @@ function atRender(d){
     else mb.innerHTML='';
   }
   atRenderBreakdown(d.signal && d.signal.summary); // [S943] 액션/등급 브레이크다운
-  atRenderOrders(d.orders);                        // [S943] 주문 피드
+  atRenderOrders(d.orders, d.portfolio);           // [S945] 주문 피드(+포지션 조인)
   atRenderEvents(d.events);                        // [S943] 활동 로그
   // 파이프라인 노드는 실제 파이프 상태 기반(정직): 신호 KV 있으면 pnSignal, exec 상태 있으면 pnExec, paper 모드면 pnPaper
   _atNode('pnSignal', !!(d.signal && d.signal.asof));
@@ -431,39 +431,80 @@ function atRenderBreakdown(sum){
   x+='</div>';
   el.innerHTML=x;
 }
-// ── [S943] 주문 피드 (체결/신호/거절 카드·신규 주문 플래시) ──
+// ── [S943→S945] 주문 피드 (종목명·클릭 상세·포지션 조인 손익·신규 플래시) ──
 let _atSeenOrders=new Set();
+let _atOpenOrder=null;               // [S945] 펼친 주문 key
+let _atCacheOrders=null, _atCachePf=null; // [S945] 클릭 즉시 재렌더용
 function _atOrderKey(o){ return (o.code||'')+':'+(o.side||'')+':'+(o.asof||'')+':'+(o.at||''); }
-function atRenderOrders(orders){
+function _atPfFind(pf, code){ if(!pf||!pf.holdings) return null; return pf.holdings.find(h=>String(h.code)===String(code))||null; }
+function atToggleOrder(key){ _atBuzz(); _atOpenOrder=(_atOpenOrder===key)?null:key; atRenderOrders(_atCacheOrders, _atCachePf); }
+function _atFullTime(ts){ if(!ts) return '—'; const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return (d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+function _atODRow(k,v,c){ return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;"><span style="color:var(--text3);">'+k+'</span><span style="font-weight:600;'+(c?('color:'+c+';'):'')+'">'+v+'</span></div>'; }
+function _atOrderDetail(o, portfolio){
+  const hold=_atPfFind(portfolio,o.code);
+  const filled=(o.status==='paper'||o.status==='live');
+  let d='<div style="border-top:1px solid var(--border);padding:9px 10px 10px;background:var(--surface2);border-radius:0 0 8px 8px;">';
+  d+=_atODRow('방향', o.side==='BUY'?'매수':'매도');
+  d+=_atODRow('수량', o.qty+'주');
+  d+=_atODRow('시각', _atFullTime(o.at));
+  d+=_atODRow('상태', o.status==='paper'?'체결(모의)':(o.status==='live'?'체결(live)':(o.status==='signal'?'신호 기록':(o.status==='error'?'거절':_esc(o.status)))), o.status==='error'?'var(--sell)':(filled?'var(--buy)':null));
+  if(o.grade!=null) d+=_atODRow('등급 · 스코어', _esc(o.grade)+(o.score!=null?(' · '+o.score):''));
+  if(o.status==='error'&&o.error) d+='<div style="font-size:10.5px;color:var(--sell);margin-top:4px;line-height:1.5;">⚠ '+_esc(o.error)+'</div>';
+  if(hold){
+    d+='<div style="border-top:1px dashed var(--border);margin-top:7px;padding-top:7px;">';
+    d+='<div style="font-size:10px;color:var(--text3);margin-bottom:3px;">현재 보유 (KIS 잔고 기준)</div>';
+    d+=_atODRow('평단(체결가)', _atWon(hold.avgPrice));
+    d+=_atODRow('현재가', _atWon(hold.curPrice));
+    d+=_atODRow('사용금액', _atWon(hold.purchaseAmt||(hold.avgPrice*hold.qty)));
+    d+=_atODRow('평가손익', _atPl(hold.plAmt)+' ('+_atPct(hold.plRate)+')', _atPlCol(hold.plAmt));
+    d+='</div>';
+  } else {
+    let msg='';
+    if(o.status==='signal') msg='신호 기록입니다 — 실제 주문·체결이 없어 체결가·손익이 없어요 (evidence).';
+    else if(o.status==='error') msg='거절되어 체결이 없습니다 — 체결가·손익 없음.';
+    else if(filled) msg='이 종목을 현재 보유하고 있지 않아요 (매도됨 또는 잔고 미반영). 손익은 포트폴리오에서 확인.';
+    if(msg) d+='<div style="border-top:1px dashed var(--border);margin-top:7px;padding-top:7px;font-size:10.5px;color:var(--text3);line-height:1.5;">'+msg+'</div>';
+  }
+  d+='</div>';
+  return d;
+}
+function atRenderOrders(orders, portfolio){
+  _atCacheOrders=orders; _atCachePf=portfolio; // [S945] 클릭 재렌더 캐시
   const card=_$('atOrderFeedCard'), body=_$('atOrderFeed'); if(!body) return;
   const recent=(orders&&orders.recent)||[];
   if(!recent.length){ if(card) card.style.display='none'; _atSeenOrders=new Set(); return; }
   if(card) card.style.display='';
   const nowSeen=new Set();
-  const first=_atSeenOrders.size>0; // 첫 렌더엔 플래시 안 함(전부 새것으로 반짝이지 않게)
+  const first=_atSeenOrders.size>0;
   let x='';
   for(const o of recent){
     const key=_atOrderKey(o); nowSeen.add(key);
     const isNew=first && !_atSeenOrders.has(key);
+    const open=(_atOpenOrder===key);
     const buy=o.side==='BUY';
     const filled=(o.status==='paper'||o.status==='live');
     const stCol=o.status==='error'?'var(--sell)':(filled?'var(--buy)':'var(--text2)');
     const stTxt=o.status==='paper'?'체결':(o.status==='live'?'체결·live':(o.status==='signal'?'신호':(o.status==='error'?'거절':_esc(o.status))));
     const sideCol=buy?'var(--buy)':'var(--sell)', sideBg=buy?'var(--buy-bg)':'var(--sell-bg)', sideBd=buy?'var(--buy-border)':'var(--sell-border)';
+    const nm=o.name || (_atPfFind(portfolio,o.code)||{}).name || ''; // [S945] 종목명(신호 승계 또는 잔고 조인)
     const err=(o.status==='error'&&o.error);
     const sub=err?('⚠ '+_esc(o.error)):(atRel(o.at)+(o.price?(' · 체결 '+_atWon(o.price)):''));
-    x+='<div class="'+(isNew?'at-flash':'')+'" style="display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">';
+    x+='<div class="'+(isNew?'at-flash':'')+'" onclick="atToggleOrder(\''+key+'\')" style="border:1px solid '+(open?'var(--accent)':'var(--border)')+';border-radius:8px;margin-bottom:6px;cursor:pointer;">';
+    x+='<div style="display:flex;align-items:center;gap:9px;padding:9px 10px;">';
     x+='<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;color:'+sideCol+';background:'+sideBg+';border:1px solid '+sideBd+';flex-shrink:0;">'+(buy?'매수':'매도')+'</span>';
-    x+='<div style="flex:1;min-width:0;line-height:1.35;"><div style="font-size:12px;font-weight:600;">'+_esc(o.code)+' · '+o.qty+'주</div>';
+    x+='<div style="flex:1;min-width:0;line-height:1.35;"><div style="font-size:12px;font-weight:600;">'+(nm?(_esc(nm)+' <span style=\"color:var(--text3);font-weight:400;font-size:10px;\">'+_esc(o.code)+'</span>'):_esc(o.code))+' · '+o.qty+'주</div>';
     x+='<div style="font-size:10px;color:'+(err?'var(--sell)':'var(--text3)')+';">'+sub+'</div></div>';
     x+='<span style="font-size:11px;font-weight:700;color:'+stCol+';flex-shrink:0;">'+stTxt+'</span>';
+    x+='<span style="color:var(--text3);font-size:10px;flex-shrink:0;">'+(open?'▲':'▼')+'</span>';
+    x+='</div>';
+    if(open) x+=_atOrderDetail(o, portfolio);
     x+='</div>';
   }
   body.innerHTML=x;
   _atSeenOrders=nowSeen;
 }
 // ── [S943] 활동 로그 (무인 동작 이력) ──
-function _atEvIcon(k){ return ({power:'🎛',halt:'⛔',mode:'🎚',signal:'📡',order:'✅',error:'⚠'})[k]||'•'; }
+function _atEvIcon(k){ return ({power:'🎛',halt:'⛔',mode:'🎚',signal:'📡',order:'✅',error:'⚠',reset:'🧹'})[k]||'•'; }
 function atRenderEvents(events){
   const card=_$('atEventCard'), body=_$('atEventLog'); if(!body) return;
   const evs=events||[];
@@ -595,6 +636,18 @@ async function atPost(patch){
 function _atBuzz(){ try{ if(navigator.vibrate) navigator.vibrate(10); }catch(_){} }
 function atTogglePower(){ _atBuzz(); if(_atCmd.halt){ atPost({ halt:false, power:'on' }); return; } atPost({ power: (_atCmd.power==='on') ? 'off' : 'on' }); }  // [S938] halt 중이면 해제+가동 (백엔드가 halt:false 지원)
 function atSetMode(m){ _atBuzz(); atPost({ mode: m }); }
+// [S944] 테스트 매매이력 초기화 (주문·포지션·활동로그) — 신호·KIS잔고는 유지
+async function atReset(){
+  if(!confirm('주문 피드 · 포지션 · 활동 로그를 모두 초기화합니다.\n(오늘 신호 · KIS 잔고는 유지됩니다)\n\n되돌릴 수 없어요. 계속할까요?')) return;
+  _atBuzz();
+  try{
+    const r = await fetch(AT_WORKER_BASE + '/sx/autotrade/reset', { method:'POST', headers: atAuthHeaders(), signal: AbortSignal.timeout(12000) });
+    if(r.status===401){ atShowGate(); return; }
+    if(!r.ok){ const d=await r.json().catch(()=>({})); alert((d&&d.error)||('초기화 실패 ('+r.status+')')); return; }
+    _atSeenOrders=new Set(); // 플래시 상태도 리셋(재렌더 때 전부 새것으로 반짝이지 않게)
+    atRefresh();
+  }catch(e){ alert('초기화 실패: '+(e.message||e)); }
+}
 async function atExecNow(){
   if(_atCmd.power!=='on'){ alert('먼저 ▶가동을 눌러주세요'); return; }
   _atBuzz();
