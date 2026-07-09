@@ -9,8 +9,12 @@ name: SX Autotrade Signals
 on:
   schedule:
     # 평일 06:30 UTC = 15:30 KST (KR 장마감 후). [S940] 스냅은 실행 시 네이버서 최신 일봉으로 자동 리빌드(런타임).
+    # ※ 스케줄은 GitHub 규칙상 "기본 브랜치"에서만 실행됨 → main = 검증본. [S946]
     - cron: '30 6 * * 1-5'
   push:
+    # [S946] main 한정 — 실험 브랜치(recipe-lab)의 스냅 커밋이 신호를 밀지 않게. (기본 브랜치명이 다르면 여기 맞출 것)
+    branches:
+      - main
     # 스냅 갱신 커밋 시 즉시 재생성
     paths:
       - 'snap_kr.json'
