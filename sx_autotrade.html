@@ -179,7 +179,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S945</div>
+    <div class="tb-build">S947</div>
   </div>
 
   <div class="scroll-area">
@@ -282,6 +282,13 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div style="text-align:right;margin-top:10px;"><span onclick="atLogout()" style="font-size:11px;color:var(--text3);text-decoration:underline;cursor:pointer;">🚪 로그아웃</span></div>
     </div>
 
+    <!-- ═══ [S947] 신호 진단 (레시피 측정 스냅샷) ═══ -->
+    <div class="card" id="atMeasureCard">
+      <div class="card-title">🔬 신호 진단 <span class="tag">레시피 측정 · S947</span></div>
+      <div id="atMeasInner"></div>
+      <div id="atMeasMeta" style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.6;"></div>
+    </div>
+
     <!-- ═══ [S934] 미검증 체크리스트 ═══ -->
     <div class="card" id="atChecklistCard">
       <div class="card-title">📋 미검증 체크리스트 <span class="tag">보류·시간要 · S934</span><span onclick="atClAdd()" style="float:right;font-size:12px;color:var(--accent2);cursor:pointer;user-select:none;font-weight:700;">＋ 추가</span></div>
@@ -319,7 +326,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S945</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S947</div>
   </div>
 </div>
 
@@ -741,7 +748,57 @@ async function atShowSetup(){
   }catch(e){ if(msg)msg.textContent='연결 실패: '+(e.message||e); }
 }
 // 진입: 토큰 있으면 폴링, 없으면 로그인 게이트
+// ── [S947] 신호 진단 (레시피 측정 스냅샷·정적 데이터·오프라인 롤링 측정 결과) ──
+const SX_MEASURE = {"kr":{"pool":"발굴풀(대형)","nStocks":63,"nObs":26460,"range":["20240807","20260602"],"measuredAt":"2026-07-09","dist":{"매수":1.39,"관심":6.62,"관망":52.73,"회피":39.26},"fwd":{"5":{"매수":{"n":367,"mean":2.08,"win":51},"관심":{"n":1752,"mean":1.94,"win":52.2},"관망":{"n":13953,"mean":1.76,"win":51.8},"회피":{"n":10388,"mean":1.38,"win":53.3}},"10":{"매수":{"n":367,"mean":4.55,"win":54.2},"관심":{"n":1752,"mean":4.02,"win":51.4},"관망":{"n":13953,"mean":3.61,"win":53.7},"회피":{"n":10388,"mean":2.79,"win":55.8}},"20":{"매수":{"n":367,"mean":8.3,"win":58},"관심":{"n":1752,"mean":7.32,"win":54.1},"관망":{"n":13953,"mean":7.46,"win":56.4},"회피":{"n":10388,"mean":5.22,"win":56.3}}}},"us":{"pool":"발굴풀(대형)","nStocks":33,"nObs":13860,"range":["2024-09-27T13:30:00.000Z","2026-06-02T13:30:00.000Z"],"measuredAt":"2026-07-09","dist":{"매수":1.05,"관심":4.05,"관망":51.51,"회피":43.38},"fwd":{"5":{"매수":{"n":146,"mean":-0.18,"win":49.3},"관심":{"n":562,"mean":0.61,"win":49.1},"관망":{"n":7139,"mean":0.4,"win":50.9},"회피":{"n":6013,"mean":0.67,"win":54.9}},"10":{"매수":{"n":146,"mean":-0.27,"win":53.4},"관심":{"n":562,"mean":1.3,"win":50.7},"관망":{"n":7139,"mean":0.91,"win":52.3},"회피":{"n":6013,"mean":1.15,"win":55.7}},"20":{"매수":{"n":146,"mean":-0.05,"win":47.9},"관심":{"n":562,"mean":1.3,"win":47.9},"관망":{"n":7139,"mean":1.87,"win":52.5},"회피":{"n":6013,"mean":2.38,"win":55.5}}}},"coin":{"pool":"발굴풀(대형)","nStocks":18,"nObs":7556,"range":["2025-04-18T09:00:00","2026-06-11T09:00:00"],"measuredAt":"2026-07-09","dist":{"매수":0.25,"관심":1.47,"관망":24.93,"회피":73.35},"fwd":{"5":{"매수":{"n":19,"mean":-0.59,"win":15.8},"관심":{"n":111,"mean":-1.67,"win":36},"관망":{"n":1884,"mean":-0.67,"win":41.1},"회피":{"n":5542,"mean":-0.55,"win":41.4}},"10":{"매수":{"n":19,"mean":-3.67,"win":21.1},"관심":{"n":111,"mean":-0.61,"win":40.5},"관망":{"n":1884,"mean":-1.2,"win":40.9},"회피":{"n":5542,"mean":-1.42,"win":40.1}},"20":{"매수":{"n":19,"mean":-3.39,"win":26.3},"관심":{"n":111,"mean":-2.54,"win":38.7},"관망":{"n":1884,"mean":-2.85,"win":36.3},"회피":{"n":5542,"mean":-2.96,"win":35.6}}}}};
+let _atMeasMkt='kr', _atMeasHz=10;
+function atMeasSet(m){ _atMeasMkt=m; atRenderMeasure(); }
+function atMeasHz(h){ _atMeasHz=h; atRenderMeasure(); }
+function _mColor(g){ return ({'매수':'var(--buy)','관심':'#4a9ed8','관망':'var(--text3)','회피':'var(--sell)'})[g]||'var(--text3)'; }
+function _mTab(on,label,onclick){ return '<button onclick="'+onclick+'" style="flex:1;padding:6px 0;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;border:1px solid '+(on?'var(--accent)':'var(--border)')+';background:'+(on?'var(--accent)':'transparent')+';color:'+(on?'#fff':'var(--text2)')+';">'+label+'</button>'; }
+function atRenderMeasure(){
+  const el=_$('atMeasInner'); if(!el) return;
+  const d=SX_MEASURE[_atMeasMkt]; if(!d){ el.innerHTML='<div style="font-size:11px;color:var(--text3);">측정 데이터 없음</div>'; return; }
+  const G=['매수','관심','관망','회피'], hz=_atMeasHz;
+  let x='<div style="display:flex;gap:6px;margin-bottom:10px;">';
+  [['kr','KR'],['us','US'],['coin','COIN']].forEach(([k,l])=>{ x+=_mTab(_atMeasMkt===k,l,"atMeasSet('"+k+"')"); });
+  x+='</div>';
+  x+='<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">등급 분포 (발동 빈도)</div>';
+  x+='<div style="display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--surface2);">';
+  G.forEach(g=>{ const p=d.dist[g]||0; if(p>0) x+='<div style="width:'+p+'%;background:'+_mColor(g)+';"></div>'; });
+  x+='</div><div style="display:flex;gap:8px;margin-top:6px;font-size:10px;flex-wrap:wrap;">';
+  G.forEach(g=>{ x+='<span style="color:'+_mColor(g)+';font-weight:700;">'+g+' '+(d.dist[g]||0)+'%</span>'; });
+  x+='</div>';
+  x+='<div style="display:flex;gap:6px;margin:12px 0 6px;align-items:center;"><span style="font-size:10px;color:var(--text3);">forward 수익(보유일):</span>';
+  [5,10,20].forEach(h=>{ const on=hz===h; x+='<button onclick="atMeasHz('+h+')" style="padding:3px 9px;font-size:10px;font-weight:700;border-radius:6px;cursor:pointer;border:1px solid '+(on?'var(--accent)':'var(--border)')+';background:'+(on?'var(--accent)':'transparent')+';color:'+(on?'#fff':'var(--text2)')+';">+'+h+'d</button>'; });
+  x+='</div>';
+  x+='<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">';
+  x+='<div style="display:flex;font-size:9.5px;color:var(--text3);background:var(--surface2);padding:5px 9px;font-weight:700;"><span style="flex:1;">등급</span><span style="width:66px;text-align:right;">평균</span><span style="width:52px;text-align:right;">승률</span><span style="width:46px;text-align:right;">n</span></div>';
+  G.forEach(g=>{ const a=d.fwd[hz]&&d.fwd[hz][g]; if(!a) return;
+    const mc=a.mean>0?'var(--buy)':(a.mean<0?'var(--sell)':'var(--text2)'), sm=a.n<30;
+    x+='<div style="display:flex;font-size:11px;padding:6px 9px;border-top:1px solid var(--border);'+(g==='매수'?'background:var(--buy-bg);':'')+'align-items:baseline;">';
+    x+='<span style="flex:1;font-weight:'+(g==='매수'?'800':'600')+';color:'+_mColor(g)+';">'+g+'</span>';
+    x+='<span style="width:66px;text-align:right;font-weight:700;color:'+mc+';">'+(a.mean>0?'+':'')+a.mean+'%</span>';
+    x+='<span style="width:52px;text-align:right;color:var(--text2);">'+a.win+'%</span>';
+    x+='<span style="width:46px;text-align:right;color:var(--text3);font-size:10px;">'+(sm?'⚠':'')+a.n+'</span></div>';
+  });
+  x+='</div>';
+  const b=d.fwd[hz]&&d.fwd[hz]['매수'], base=d.fwd[hz]&&d.fwd[hz]['관망'];
+  if(b&&base){
+    const dM=+(b.mean-base.mean).toFixed(2), dW=+(b.win-base.win).toFixed(1);
+    const tier=(dM>=2&&dW>=2)?'good':(dM>0?'weak':'bad');
+    const tCol=tier==='good'?'var(--buy)':(tier==='weak'?'var(--hold)':'var(--sell)');
+    const tMsg=tier==='good'?'뚜렷한 우위 ✅':(tier==='weak'?'평균엔 미세 엣지·폭 작음 → 복권형(승률 미분리)':'분리 없음/역전 ⚠');
+    x+='<div style="margin-top:9px;padding:8px 10px;border-radius:8px;background:var(--surface2);font-size:10.5px;line-height:1.6;">';
+    x+='<b style="color:'+tCol+';">매수 분리도</b> (vs 관망 기준선): 평균 '+(dM>0?'+':'')+dM+'%p · 승률 '+(dW>0?'+':'')+dW+'%p<br>';
+    x+='<span style="color:var(--text3);">'+tMsg+'</span></div>';
+  }
+  el.innerHTML=x;
+  const meta=_$('atMeasMeta');
+  if(meta) meta.innerHTML='측정 스냅샷 · '+d.pool+' '+d.nStocks+'종목 · '+(d.nObs||0).toLocaleString()+'관측 · '+d.range[0]+'~'+d.range[1]+' · 300봉 롤링 · <b>단일 빈티지</b>라 절대수익은 국면 반영, 등급 간 <b>분리</b>가 핵심 지표 · 현 기준하 보인 것(OOS 미검증) · '+d.measuredAt+' 측정';
+}
+
 _atToken = (function(){ try{ return localStorage.getItem('at_session')||''; }catch(_){ return ''; } })();
+try{ atRenderMeasure(); }catch(_){} // [S947] 정적 카드 — 로그인 무관 렌더
 if(_atToken){ atRefresh(); atLoadChecklist(); } else { atShowGate(); }
 try{ setInterval(()=>{ if(_atToken) atRefresh(); }, 12000); }catch(_){}
 </script>
