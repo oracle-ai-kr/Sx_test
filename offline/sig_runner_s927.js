@@ -62,7 +62,7 @@ codes.forEach((c,i)=>{
   try{ sig=latestSignal(rows); }catch(e){ errs.push(c+':'+(e&&e.message)); return; }
   const {grade, rawScore, dck, dcf, lt}=sig;
   const P=policy(mk, grade, rawScore, dck, dcf);
-  signals.push({ code:c, grade, rawScore, dck, dcf, lt, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null });
+  signals.push({ code:c, name:(snap.stocks[c]&&snap.stocks[c].name)||c, grade, rawScore, dck, dcf, lt, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null }); // [S945] name 추가
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
