@@ -145,6 +145,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .rm .rt .d{color:var(--text2);display:block;font-size:11px;margin-top:1px;}
 
 .foot{padding:6px 4px 0;font-size:10px;color:var(--text3);text-align:center;}
+@keyframes atflash{0%{background:var(--accent-glow);}100%{background:transparent;}}
+.at-flash{animation:atflash 1.8s ease-out;}
 </style>
 </head>
 <body>
@@ -177,7 +179,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S914</div>
+    <div class="tb-build">S943</div>
   </div>
 
   <div class="scroll-area">
@@ -229,11 +231,12 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <!-- ═══ 상태보드 (연동 대기 자리) ═══ -->
     <div class="card">
       <div class="card-title">📡 상태보드 <span class="tag">제어 연동 · S929</span></div>
-      <div style="margin-bottom:8px;"><span class="st-badge" id="atState">🔌 파이프라인 미연결</span></div>
+      <div style="margin-bottom:8px;"><span class="st-badge" id="atState">🔌 파이프라인 미연결</span><span id="atMktBadge" style="margin-left:8px;font-size:11px;font-weight:700;"></span></div>
       <div class="st-row"><span class="k">데이터 소스</span><span class="v" id="atSrc">— (예정: Workers KV)</span></div>
       <div class="st-row"><span class="k">모드</span><span class="v" id="atMode">—</span></div>
       <div class="st-row"><span class="k">포지션</span><span class="v" id="atPos">—</span></div>
       <div class="st-row"><span class="k">마지막 신호</span><span class="v" id="atLastSig">—</span></div>
+      <div id="atSigBreakdown"></div>
       <div class="st-row"><span class="k">마지막 갱신</span><span class="v" id="atUpdated">—</span></div>
       <div class="st-row"><span class="k">최근 주문</span><span class="v" id="atOrders">—</span></div>
       <div id="atOrderErr"></div>
@@ -245,6 +248,19 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="st-row" style="font-weight:700;"><span class="k">총 평가손익</span><span class="v" id="atPfTotalV">—</span></div>
       <div id="atKisTestOut"></div>
       <div id="atPfBody" style="margin-top:8px;font-size:12px;color:var(--text3);line-height:1.5;">paper 모드 + KIS 모의 credentials 설정 시 표시됩니다. (평단은 KIS 잔고 기준 = 체결 실가)</div>
+    </div>
+
+    <!-- ═══ [S943] 주문 피드 (체결/신호/거절 카드) ═══ -->
+    <div class="card" id="atOrderFeedCard" style="display:none;">
+      <div class="card-title">🧾 주문 피드 <span class="tag">체결·신호·거절 · S943</span></div>
+      <div id="atOrderFeed"></div>
+    </div>
+
+    <!-- ═══ [S943] 활동 로그 (무인 동작 이력) ═══ -->
+    <div class="card" id="atEventCard" style="display:none;">
+      <div class="card-title">📜 활동 로그 <span class="tag">무인 동작 이력 · S943</span></div>
+      <div id="atEventLog"></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5;">가동·정지·모드변경·신호수신·주문/거절 이력(최근 15) · KV 영속 · 밤새 무슨 일이 있었는지 여기서 확인</div>
     </div>
 
     <!-- ═══ [S929] 제어 (Workers KV ↔ 페이지) ═══ -->
@@ -303,7 +319,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S939</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S943</div>
   </div>
 </div>
 
@@ -343,7 +359,11 @@ function atRender(d){
   if(!d || !d.ok){
     _$('atState').textContent = '🔌 파이프라인 미연결';
     _$('atSrc').textContent = '— (Workers 응답 없음)';
+    const _mb=_$('atMktBadge'); if(_mb) _mb.innerHTML='';
+    const _bd=_$('atSigBreakdown'); if(_bd) _bd.innerHTML='';
     atRenderPortfolio(null);
+    atRenderOrders(null);
+    atRenderEvents(null);
     return;
   }
   _atCmd = d.command || _atCmd;
@@ -372,11 +392,92 @@ function atRender(d){
     _oe.innerHTML = _err ? ('<div style="border:1px solid var(--sell-border);background:var(--sell-bg);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:var(--sell);line-height:1.55;">⚠ 주문 거절 ('+_esc(_err.code)+' '+_esc(_err.side)+'): '+_esc(_err.error)+'</div>') : '';
   }
   atRenderPortfolio(d.portfolio);  // [S933] KIS 잔고/손익 패널
+  // [S943] 장중 배지(서버 계산 marketOpen·공휴일 반영)
+  const mb=_$('atMktBadge');
+  if(mb){
+    if(d.marketOpen===true) mb.innerHTML='<span style="color:var(--buy);">🟢 장중</span>';
+    else if(d.marketOpen===false) mb.innerHTML='<span style="color:var(--text3);">🌙 장마감</span>';
+    else mb.innerHTML='';
+  }
+  atRenderBreakdown(d.signal && d.signal.summary); // [S943] 액션/등급 브레이크다운
+  atRenderOrders(d.orders);                        // [S943] 주문 피드
+  atRenderEvents(d.events);                        // [S943] 활동 로그
   // 파이프라인 노드는 실제 파이프 상태 기반(정직): 신호 KV 있으면 pnSignal, exec 상태 있으면 pnExec, paper 모드면 pnPaper
   _atNode('pnSignal', !!(d.signal && d.signal.asof));
   _atNode('pnExec', !!(st.updatedAt));
   _atNode('pnPaper', cmd.mode==='paper');
   atSyncButtons();
+}
+// ── [S943] 액션/등급 브레이크다운 (오늘의 신호가 왜 이런지) ──
+function atRenderBreakdown(sum){
+  const el=_$('atSigBreakdown'); if(!el) return;
+  if(!sum){ el.innerHTML=''; return; }
+  const b=sum.BUY||0, h=sum.HOLD||0, s=sum.SELL||0, tot=b+h+s;
+  if(!tot){ el.innerHTML=''; return; }
+  const pct=n=>(n/tot*100).toFixed(1)+'%';
+  const g=sum.grade||{};
+  let x='<div style="margin:2px 0 10px;">';
+  x+='<div style="display:flex;height:8px;border-radius:5px;overflow:hidden;background:var(--surface2);">';
+  if(b) x+='<div style="width:'+pct(b)+';background:var(--buy);"></div>';
+  if(h) x+='<div style="width:'+pct(h)+';background:var(--hold);"></div>';
+  if(s) x+='<div style="width:'+pct(s)+';background:var(--sell);"></div>';
+  x+='</div>';
+  x+='<div style="display:flex;gap:8px;margin-top:7px;font-size:11px;font-weight:700;align-items:baseline;">';
+  x+='<span style="color:var(--buy);">BUY '+b+'</span><span style="color:var(--hold);">HOLD '+h+'</span><span style="color:var(--sell);">SELL '+s+'</span>';
+  x+='<span style="color:var(--text3);font-weight:400;margin-left:auto;">'+tot+'종목</span></div>';
+  if(g.매수!=null||g.관심!=null||g.관망!=null||g.회피!=null){
+    x+='<div style="font-size:10.5px;color:var(--text3);margin-top:5px;">등급 · 매수 '+(g.매수||0)+' · 관심 '+(g.관심||0)+' · 관망 '+(g.관망||0)+' · 회피 '+(g.회피||0)+'</div>';
+  }
+  x+='</div>';
+  el.innerHTML=x;
+}
+// ── [S943] 주문 피드 (체결/신호/거절 카드·신규 주문 플래시) ──
+let _atSeenOrders=new Set();
+function _atOrderKey(o){ return (o.code||'')+':'+(o.side||'')+':'+(o.asof||'')+':'+(o.at||''); }
+function atRenderOrders(orders){
+  const card=_$('atOrderFeedCard'), body=_$('atOrderFeed'); if(!body) return;
+  const recent=(orders&&orders.recent)||[];
+  if(!recent.length){ if(card) card.style.display='none'; _atSeenOrders=new Set(); return; }
+  if(card) card.style.display='';
+  const nowSeen=new Set();
+  const first=_atSeenOrders.size>0; // 첫 렌더엔 플래시 안 함(전부 새것으로 반짝이지 않게)
+  let x='';
+  for(const o of recent){
+    const key=_atOrderKey(o); nowSeen.add(key);
+    const isNew=first && !_atSeenOrders.has(key);
+    const buy=o.side==='BUY';
+    const filled=(o.status==='paper'||o.status==='live');
+    const stCol=o.status==='error'?'var(--sell)':(filled?'var(--buy)':'var(--text2)');
+    const stTxt=o.status==='paper'?'체결':(o.status==='live'?'체결·live':(o.status==='signal'?'신호':(o.status==='error'?'거절':_esc(o.status))));
+    const sideCol=buy?'var(--buy)':'var(--sell)', sideBg=buy?'var(--buy-bg)':'var(--sell-bg)', sideBd=buy?'var(--buy-border)':'var(--sell-border)';
+    const err=(o.status==='error'&&o.error);
+    const sub=err?('⚠ '+_esc(o.error)):(atRel(o.at)+(o.price?(' · 체결 '+_atWon(o.price)):''));
+    x+='<div class="'+(isNew?'at-flash':'')+'" style="display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">';
+    x+='<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;color:'+sideCol+';background:'+sideBg+';border:1px solid '+sideBd+';flex-shrink:0;">'+(buy?'매수':'매도')+'</span>';
+    x+='<div style="flex:1;min-width:0;line-height:1.35;"><div style="font-size:12px;font-weight:600;">'+_esc(o.code)+' · '+o.qty+'주</div>';
+    x+='<div style="font-size:10px;color:'+(err?'var(--sell)':'var(--text3)')+';">'+sub+'</div></div>';
+    x+='<span style="font-size:11px;font-weight:700;color:'+stCol+';flex-shrink:0;">'+stTxt+'</span>';
+    x+='</div>';
+  }
+  body.innerHTML=x;
+  _atSeenOrders=nowSeen;
+}
+// ── [S943] 활동 로그 (무인 동작 이력) ──
+function _atEvIcon(k){ return ({power:'🎛',halt:'⛔',mode:'🎚',signal:'📡',order:'✅',error:'⚠'})[k]||'•'; }
+function atRenderEvents(events){
+  const card=_$('atEventCard'), body=_$('atEventLog'); if(!body) return;
+  const evs=events||[];
+  if(!evs.length){ if(card) card.style.display='none'; return; }
+  if(card) card.style.display='';
+  let x='';
+  for(const e of evs){
+    const col=e.kind==='error'?'var(--sell)':(e.kind==='order'?'var(--buy)':'var(--text2)');
+    x+='<div style="display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;">';
+    x+='<span style="flex-shrink:0;line-height:1.3;">'+_atEvIcon(e.kind)+'</span>';
+    x+='<span style="flex:1;color:'+col+';line-height:1.4;">'+_esc(e.msg||'')+'</span>';
+    x+='<span style="flex-shrink:0;color:var(--text3);font-size:10px;">'+atRel(e.at)+'</span></div>';
+  }
+  body.innerHTML=x;
 }
 // ── [S933] 포트폴리오(KIS 잔고/손익) 렌더 ──
 function _atWon(n){ if(n==null||!isFinite(n)) return '—'; return '₩'+Math.round(n).toLocaleString(); }
@@ -547,17 +648,6 @@ async function atKisTest(){
 function atHalt(){
   if(!confirm('긴급정지하시겠습니까? 모든 가동이 즉시 멈춥니다.')) return;
   _atBuzz(); atPost({ halt: true });
-}
-async function atExec(){
-  _atBuzz();
-  const btn=_$('atBtnExec'); if(btn){ btn.disabled=true; btn.textContent='실행 중...'; }
-  try{
-    const r = await fetch(AT_WORKER_BASE + '/sx/autotrade/exec', { method:'POST', headers: atAuthHeaders(), signal: AbortSignal.timeout(15000) });
-    if(r.status===401){ atShowGate(); }
-    else if(!r.ok){ const d=await r.json().catch(()=>({})); alert((d&&d.error)||('실행 실패 ('+r.status+')')); }
-  }catch(e){ alert('실행 실패: '+(e.message||e)); }
-  if(btn){ btn.disabled=false; btn.textContent='⚡ 지금 실행 (신호→판정)'; }
-  atRefresh();
 }
 async function atRefresh(){
   const d = await atFetchState();
