@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 -->
+<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -326,13 +326,12 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 }
 .fm-sub{font-size:9.5px;color:var(--text3);font-weight:500;}
 
-/* 공포탐욕지수 5단계 (S132c v5.0: 한국+코인 통일 두 글자 체계 · [S961] 공포 보라→회색)
-   0~14   공포 → ⚪ 회색 (완전침체·사망 · 심리 극단 하단)
-   15~24  경계 → 🔵 파랑 (공포 진입 전 경고 · 약한침체)
-   25~74  중립 → 🟢 녹색 (평상 구간, 50칸)
-   75~84  과열 → 🟠 주황 (탐욕 진입 전 경고)
-   85~100 탐욕 → 🔴 빨강 (심리 극단 상단)
-   ※ CSS 클래스명은 기존 5단계 색상 시맨틱 유지 (fg-extreme-fear/fear/neutral/greed/extreme-greed) */
+/* fg-* = 색 5-티어 (냉→열). [S962] 라벨은 문맥별로 다름 — 클래스는 색만 담당:
+   fg-extreme-fear  → ⚪ 회색  (코인 극단공포 0~24 · KOSPI 침체권 · 완전침체/사망)
+   fg-fear          → 🔵 파랑  (코인 공포 25~44 · KOSPI 약세권 · 약한침체)
+   fg-neutral       → 🟢 녹색  (코인 중립 45~55 · KOSPI 중립권)
+   fg-greed         → 🟠 주황  (코인 탐욕 56~74 · KOSPI 강세권)
+   fg-extreme-greed → 🔴 빨강  (코인 극단탐욕 75~ · KOSPI 과열권) */
 .fear-mini.fg-extreme-fear { background:rgba(100,116,139,.08);  border-color:rgba(100,116,139,.35); }  /* [S961] 공포/침체권 보라→회색(완전침체·사망) */
 .fear-mini.fg-extreme-fear .fm-status{ background:rgba(100,116,139,.2);  color:var(--c-gray); }
 .fear-mini.fg-fear         { background:rgba(59,130,246,.07);  border-color:rgba(59,130,246,.3); }
@@ -4120,16 +4119,17 @@ const SX={
   // S127: 공포지수 상태 헬퍼
   // ═══════════════════════════════════════════════════════════════
   // 코인 F&G (0~100, 높을수록 탐욕)
-  // ── 공포탐욕지수 5단계 매핑 (S132c v5.0: 한국+코인 통일)
-  //    0~14 공포 / 15~24 경계 / 25~74 중립 / 75~84 과열 / 85~100 탐욕
-  //    CSS 클래스명은 기존 색상 시맨틱 유지 (fg-extreme-fear → [S961] 회색 = 공포/완전침체)
+  // ── 공포탐욕지수 5단계 매핑 ([S962] 모달 범례·표준 alternative.me와 정합)
+  //    0~24 극단공포 / 25~44 공포 / 45~55 중립 / 56~74 탐욕 / 75~100 극단탐욕
+  //    (기존 14/24/74/84·공포/경계/중립/과열/탐욕 = 범례와 불일치 버그 → 수정)
+  //    CSS 클래스명은 기존 색상 시맨틱 유지 (fg-extreme-fear → [S961] 회색 = 극단공포/완전침체)
   _getCryptoFGStatus(val){
     if(val == null) return { label:'—', cls:'', kor:'—' };
-    if(val <= 14)   return { label:'Fear',          cls:'fg-extreme-fear',  kor:'공포' };
-    if(val <= 24)   return { label:'Caution',       cls:'fg-fear',          kor:'경계' };
-    if(val <= 74)   return { label:'Neutral',       cls:'fg-neutral',       kor:'중립' };
-    if(val <= 84)   return { label:'Heat',          cls:'fg-greed',         kor:'과열' };
-    return                { label:'Greed',         cls:'fg-extreme-greed', kor:'탐욕' };
+    if(val <= 24)   return { label:'Extreme Fear', cls:'fg-extreme-fear',  kor:'극단공포' };
+    if(val <= 44)   return { label:'Fear',         cls:'fg-fear',          kor:'공포' };
+    if(val <= 55)   return { label:'Neutral',      cls:'fg-neutral',       kor:'중립' };
+    if(val <= 74)   return { label:'Greed',        cls:'fg-greed',         kor:'탐욕' };
+    return                { label:'Extreme Greed', cls:'fg-extreme-greed', kor:'극단탐욕' };
   },
 
   // 한국 VKOSPI (VIX와 유사 스케일)
@@ -4176,13 +4176,22 @@ const SX={
     if(pctl >= 35)   return '#ca8a04';  // 노랑 (보통)
     return                  '#16a34a';  // 녹색 (안정)
   },
+  // [S963] KOSPI 변동성 Pctl → 상태 라벨+색클래스 (미니카드 배지용)
+  //   색맵(_getKospiVolPctlColor)과 동일 경계 · k-* 클래스로 배지+수치색 동기화
+  _getKospiVolStatus(volPctl){
+    if(volPctl == null) return { label:'—',     cls:'' };
+    if(volPctl >= 85)   return { label:'고변동', cls:'k-danger' };   // 빨강
+    if(volPctl >= 65)   return { label:'불안',   cls:'k-warning' };  // 주황
+    if(volPctl >= 35)   return { label:'보통',   cls:'k-caution' };  // 노랑
+    return                    { label:'안정',   cls:'k-calm' };     // 녹색
+  },
 
   // [S251] BTC 도미넌스 5단계 해석 (객관적 시장 상태 묘사 — 가치 판단 없음)
   //   알트 시즌(낮음) ↔ BTC 독주(높음)
   //   color는 KOSPI 추세와 같은 5색 시스템 (보라/파랑/녹색/주황/빨강)이지만 의미는 다름
   _getBtcDominanceStatus(dom){
     if(dom == null) return { label:'—', color:'var(--text2)' };
-    if(dom < 40)    return { label:'알트 시즌', color:'#9333ea' };  // 보라
+    if(dom < 40)    return { label:'알트 시즌', color:'#64748b' };  // [S962] 보라→회색(범례칩 정합·보라는 혼조 전용)
     if(dom < 50)    return { label:'알트 우위', color:'#2563eb' };  // 파랑
     if(dom < 60)    return { label:'균형',      color:'#16a34a' };  // 녹색
     if(dom < 70)    return { label:'BTC 우위',  color:'#ea580c' };  // 주황
@@ -4204,24 +4213,32 @@ const SX={
     const kFG = extra.koreaFG;
     if(korCard){
       const comp = kFG?.components;
-      if(comp && comp.momentumPct != null){
-        const momNum = parseFloat(comp.momentumPct);
-        const momStr = (momNum >= 0 ? '+' : '') + comp.momentumPct + '%';
-        const pctl = comp.momentumPctl;
-        const st = this._getKospiPctlStatus(pctl);
+      if(comp && comp.volPctl != null){
+        // [S963] 변동성 앞세우기 — 침체권 착시 해소(역대 불장인데 괴리Pctl 낮아 침체권 오표기).
+        //   큰 수치=변동성 Pctl(상위%), 배지=변동성 상태(불안 등), 괴리는 sub로 강등.
+        const volPctl = comp.volPctl;
+        const st = this._getKospiVolStatus(volPctl);
         korCard.className = `fear-mini ${st.cls}`;
-        if(korValue) korValue.textContent = momStr;
+        if(korValue) korValue.innerHTML = `<span style="font-size:12px;font-weight:600;color:var(--text2);margin-right:4px">변동성</span>${_sxEsc(volPctl)}%`;
         if(korStatus) korStatus.textContent = st.label;
         if(korSub){
-          korSub.textContent = (pctl != null)
-            ? `125일 괴리율 · 상위 ${pctl}%`
-            : '125일 괴리율';
+          const momPct = comp.momentumPct;
+          if(momPct != null){
+            const momNum = parseFloat(momPct);
+            const momStr = (momNum >= 0 ? '+' : '') + momPct + '%';
+            const momPctl = comp.momentumPctl;
+            korSub.textContent = (momPctl != null)
+              ? `125일 평균 대비 ${momStr} · 상위 ${momPctl}%`
+              : `125일 평균 대비 ${momStr}`;
+          } else {
+            korSub.textContent = '125일 평균 대비 괴리';
+          }
         }
       } else {
         korCard.className = 'fear-mini';
         if(korValue) korValue.textContent = '—';
         if(korStatus) korStatus.textContent = '—';
-        if(korSub) korSub.textContent = '125일 괴리율';
+        if(korSub) korSub.textContent = 'KOSPI 변동성';
       }
     }
 
@@ -4238,7 +4255,16 @@ const SX={
         // [S225] 일관성 차원 escape (숫자라 안전하지만 defense in depth)
         if(coinValue) coinValue.innerHTML = `${_sxEsc(fg.value)}<span class="fm-scale">/100</span>`;
         if(coinStatus) coinStatus.textContent = st.kor;
-        if(coinSub) coinSub.textContent = 'Fear & Greed';
+        if(coinSub){
+          // [S963] 도미넌스 배지 추가 — 알트/BTC 어느 쪽 강세인지. sub의 'Fear & Greed'를 도미넌스 칩으로 대체.
+          const dom = extra.btcDominance;
+          const domSt = (dom != null) ? this._getBtcDominanceStatus(dom) : null;
+          if(domSt){
+            coinSub.innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:8px;font-size:9.5px;font-weight:700;line-height:1.6;color:${domSt.color};background:${domSt.color}1a;border:1px solid ${domSt.color}55">₿ ${_sxEsc(domSt.label)} ${_sxEsc(dom.toFixed(1))}%</span>`;
+          } else {
+            coinSub.textContent = 'Fear & Greed';
+          }
+        }
       } else {
         coinCard.className = 'fear-mini';
         if(coinValue) coinValue.textContent = '—';
@@ -4710,7 +4736,7 @@ const SX={
           <span class="fmd-chip s-danger">85%~ 고변동</span>
         </div>
       </div>
-      <div class="fmd-note">💡 미니카드 상태 표시(과열권/강세권/중립권/약세권/침체권)는 추세 Pctl 기준이며, 변동성이 높으면 시장 불안을 의미합니다</div>
+      <div class="fmd-note">💡 [S963] 미니카드 배지는 <b>변동성 Pctl 기준</b>(안정/보통/불안/고변동)입니다 — 역대 불장에도 괴리Pctl은 낮게 나와 '침체권' 착시를 줘서 변동성으로 변경. 큰 수치=변동성 상위%, 작은 글씨=125일 괴리 위치(상위%)</div>
     `;
   },
 
