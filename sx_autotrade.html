@@ -78,6 +78,9 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 }
 .card-title{font-size:12.5px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 .card-title .tag{font-size:9.5px;font-weight:600;color:var(--text3);background:var(--surface2);padding:2px 7px;border-radius:20px;}
+.card.collapsed > *:not(.card-title){display:none !important;}
+.card.collapsed > .card-title{margin-bottom:0;}
+.card-cc{cursor:pointer;user-select:none;font-size:11px;color:var(--text3);padding:3px 7px 3px 0;flex:0 0 auto;line-height:1;}
 
 /* ── 파이프라인 스트립 (시그니처) ──
    시즌2의 본질 = 연구→신호→실행→검증→실전 흐름.
@@ -179,7 +182,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S953</div>
+    <div class="tb-build">S954</div>
   </div>
 
   <div class="scroll-area">
@@ -362,7 +365,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S953</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S954</div>
   </div>
 </div>
 
@@ -934,6 +937,30 @@ function atRenderMeasure(){
   const meta=_$('atMeasMeta');
   if(meta) meta.innerHTML='측정 스냅샷 · '+d.pool+' '+d.nStocks+'종목 · '+(d.nObs||0).toLocaleString()+'관측 · '+d.range[0]+'~'+d.range[1]+' · 300봉 롤링 · <b>단일 빈티지</b>라 절대수익은 국면 반영, 등급 간 <b>분리</b>가 핵심 지표 · 현 기준하 보인 것(OOS 미검증) · '+d.measuredAt+' 측정';
 }
+
+// ── [S954] 카드 접기/펼치기 (상태 localStorage 유지) — 화면 길어 하단 접근성↑ ──
+let _atCollapsed = (function(){ try{ return JSON.parse(localStorage.getItem('at_collapsed')||'{}')||{}; }catch(_){ return {}; } })();
+function atToggleCollapse(key){
+  const card=document.querySelector('.card[data-cc="'+key+'"]'); if(!card) return;
+  const on=!card.classList.contains('collapsed');
+  card.classList.toggle('collapsed', on);
+  const btn=card.querySelector('.card-cc'); if(btn) btn.textContent = on ? '▸' : '▾';
+  _atCollapsed[key]=on;
+  try{ localStorage.setItem('at_collapsed', JSON.stringify(_atCollapsed)); }catch(_){}
+}
+function atInitCollapse(){
+  document.querySelectorAll('.card').forEach(function(card,i){
+    const title=card.querySelector('.card-title'); if(!title||title.querySelector('.card-cc')) return;
+    const key=card.id||('card'+i); card.setAttribute('data-cc', key);
+    const collapsed=!!_atCollapsed[key];
+    const btn=document.createElement('span'); btn.className='card-cc'; btn.textContent = collapsed ? '▸' : '▾';
+    btn.setAttribute('title','접기/펼치기');
+    btn.onclick=function(e){ e.stopPropagation(); atToggleCollapse(key); };
+    title.insertBefore(btn, title.firstChild);
+    if(collapsed) card.classList.add('collapsed');
+  });
+}
+try{ atInitCollapse(); }catch(_){}
 
 _atToken = (function(){ try{ return localStorage.getItem('at_session')||''; }catch(_){ return ''; } })();
 try{ atRenderMeasure(); }catch(_){} // [S947] 정적 카드 — 로그인 무관 렌더
