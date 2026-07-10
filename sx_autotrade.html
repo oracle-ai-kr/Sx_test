@@ -182,7 +182,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S954</div>
+    <div class="tb-build">S959</div>
   </div>
 
   <div class="scroll-area">
@@ -302,7 +302,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
     <!-- ═══ [S949] 청산 설정 (이중ATR + MA/N일) ═══ -->
     <div class="card" id="atExitCard">
-      <div class="card-title">🎯 청산 설정 <span class="tag">이중ATR + MA/N일 · S949</span><span onclick="atExitReset()" title="기본값(2×/3×/MA5×20)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
+      <div class="card-title">🎯 청산 설정 <span class="tag">이중ATR + MA/N일 · S949</span><span onclick="atExitReset()" title="기본값(2×/3×/MA5×20/유예10일)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
       <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레시피 votes≥1 · 청산=초기ATR손절 + ATR트레일 + (MA5×20 <b>또는</b> N일). 값 변경 후 저장.</div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">초기 손절 (×ATR)<input id="exAtrInit" type="number" step="0.5" min="0.5" max="6" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
@@ -312,6 +312,10 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div style="display:flex;gap:6px;margin-bottom:11px;">
         <button type="button" id="exModeMa" onclick="atExitMode('ma')" style="flex:1;padding:7px 0;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);">MA5×20 데드</button>
         <button type="button" id="exModeDays" onclick="atExitMode('days')" style="flex:1;padding:7px 0;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);">N일</button>
+      </div>
+      <div id="exMaRow" style="display:flex;gap:14px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+        <label style="font-size:11px;color:var(--text2);display:inline-flex;align-items:center;gap:5px;">진입 후 유예 <input id="exMaGrace" type="number" step="1" min="0" max="20" style="width:52px;font-size:13px;padding:6px;box-sizing:border-box;"/>일</label>
+        <span style="font-size:9.5px;color:var(--text3);">유예 중엔 MA청산 OFF(자기모순 방지)·ATR손절은 상시</span>
       </div>
       <div id="exDaysRow" style="display:flex;gap:14px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
         <label style="font-size:11px;color:var(--text2);display:inline-flex;align-items:center;gap:5px;"><input type="checkbox" id="exMaxHoldOn" style="width:16px;height:16px;"/> N일 상한 사용</label>
@@ -365,7 +369,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S954</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S959</div>
   </div>
 </div>
 
@@ -857,26 +861,26 @@ function atRenderBuyPreview(sig){
 // ── [S949] 청산 설정 UI (exit_config ↔ /state·/sx/autotrade/exit-config) ──
 let _exMode='ma'; // [S950] 기본 최대보유=MA5×20
 function _exTabStyle(btn,on){ if(!btn)return; btn.style.borderColor=on?'var(--accent)':'var(--border)'; btn.style.background=on?'var(--accent)':'transparent'; btn.style.color=on?'#fff':'var(--text2)'; }
-function atExitMode(m){ _exMode=(m==='ma')?'ma':'days'; _exTabStyle(_$('exModeMa'),_exMode==='ma'); _exTabStyle(_$('exModeDays'),_exMode==='days'); const dr=_$('exDaysRow'); if(dr) dr.style.opacity=(_exMode==='days')?'1':'0.4'; }
+function atExitMode(m){ _exMode=(m==='ma')?'ma':'days'; _exTabStyle(_$('exModeMa'),_exMode==='ma'); _exTabStyle(_$('exModeDays'),_exMode==='days'); const dr=_$('exDaysRow'); if(dr) dr.style.opacity=(_exMode==='days')?'1':'0.4'; const mr=_$('exMaRow'); if(mr) mr.style.opacity=(_exMode==='ma')?'1':'0.4'; }
 let _exLoaded=false;
 function atRenderExitConfig(cfg, force){
   if(!cfg) return;
   if(_exLoaded && !force) return; // [S950] 최초 1회만 로드 → atRefresh(12s)가 편집/저장값 덮어쓰기 방지
   _exLoaded=true;
   const set=(id,v)=>{ const e=_$(id); if(e && v!=null) e.value=v; };
-  set('exAtrInit', cfg.atrInitMult); set('exAtrTrail', cfg.atrTrailMult); set('exMaxHoldDays', cfg.maxHoldDays);
+  set('exAtrInit', cfg.atrInitMult); set('exAtrTrail', cfg.atrTrailMult); set('exMaxHoldDays', cfg.maxHoldDays); set('exMaGrace', cfg.maGraceDays!=null?cfg.maGraceDays:10);
   const on=_$('exMaxHoldOn'); if(on) on.checked=(cfg.maxHoldOn!==false);
   atExitMode(cfg.maxHoldMode==='ma'?'ma':'days');
 }
 // [S950] 청산 임계값 기본으로 초기화 (↻) — 입력칸을 기본값으로 채우고 즉시 저장(persist).
 function atExitReset(){
-  atRenderExitConfig({ atrInitMult:2, atrTrailMult:3, maxHoldMode:'ma', maxHoldDays:30, maxHoldOn:true }, true);
+  atRenderExitConfig({ atrInitMult:2, atrTrailMult:3, maxHoldMode:'ma', maxHoldDays:30, maxHoldOn:true, maGraceDays:10 }, true);
   atSaveExitConfig();
 }
 async function atSaveExitConfig(){
   const msg=_$('exMsg'), btn=_$('exSaveBtn');
   const num=(id)=>{ const e=_$(id); return e?parseFloat(e.value):null; };
-  const body={ atrInitMult:num('exAtrInit'), atrTrailMult:num('exAtrTrail'), maxHoldMode:_exMode, maxHoldDays:num('exMaxHoldDays'), maxHoldOn:!!(_$('exMaxHoldOn')&&_$('exMaxHoldOn').checked) };
+  const body={ atrInitMult:num('exAtrInit'), atrTrailMult:num('exAtrTrail'), maxHoldMode:_exMode, maxHoldDays:num('exMaxHoldDays'), maxHoldOn:!!(_$('exMaxHoldOn')&&_$('exMaxHoldOn').checked), maGraceDays:num('exMaGrace') };
   if(btn){ btn.disabled=true; btn.textContent='저장 중…'; }
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/exit-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
@@ -887,7 +891,7 @@ async function atSaveExitConfig(){
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
   if(btn){ btn.disabled=false; btn.textContent='💾 청산 설정 저장'; }
 }
-function _exSummary(c){ if(!c)return''; const mh=(c.maxHoldMode==='ma')?'MA5×20 데드':(c.maxHoldOn!==false?(c.maxHoldDays+'일'):'상한없음'); return '초기'+c.atrInitMult+'×/트레일'+c.atrTrailMult+'× · 최대보유 '+mh; }
+function _exSummary(c){ if(!c)return''; const mh=(c.maxHoldMode==='ma')?'MA5×20 데드':(c.maxHoldOn!==false?(c.maxHoldDays+'일'):'상한없음'); return '초기'+c.atrInitMult+'×/트레일'+c.atrTrailMult+'× · 최대보유 '+mh+(c.maxHoldMode==='ma'&&c.maGraceDays!=null?(' · 유예'+c.maGraceDays+'일'):''); }
 
 // ── [S947] 신호 진단 (레시피 측정 스냅샷·정적 데이터·오프라인 롤링 측정 결과) ──
 const SX_MEASURE = {"kr":{"pool":"발굴풀(대형)","nStocks":63,"nObs":26460,"range":["20240807","20260602"],"measuredAt":"2026-07-09","dist":{"매수":1.39,"관심":6.62,"관망":52.73,"회피":39.26},"fwd":{"5":{"매수":{"n":367,"mean":2.08,"win":51},"관심":{"n":1752,"mean":1.94,"win":52.2},"관망":{"n":13953,"mean":1.76,"win":51.8},"회피":{"n":10388,"mean":1.38,"win":53.3}},"10":{"매수":{"n":367,"mean":4.55,"win":54.2},"관심":{"n":1752,"mean":4.02,"win":51.4},"관망":{"n":13953,"mean":3.61,"win":53.7},"회피":{"n":10388,"mean":2.79,"win":55.8}},"20":{"매수":{"n":367,"mean":8.3,"win":58},"관심":{"n":1752,"mean":7.32,"win":54.1},"관망":{"n":13953,"mean":7.46,"win":56.4},"회피":{"n":10388,"mean":5.22,"win":56.3}}}},"us":{"pool":"발굴풀(대형)","nStocks":33,"nObs":13860,"range":["2024-09-27T13:30:00.000Z","2026-06-02T13:30:00.000Z"],"measuredAt":"2026-07-09","dist":{"매수":1.05,"관심":4.05,"관망":51.51,"회피":43.38},"fwd":{"5":{"매수":{"n":146,"mean":-0.18,"win":49.3},"관심":{"n":562,"mean":0.61,"win":49.1},"관망":{"n":7139,"mean":0.4,"win":50.9},"회피":{"n":6013,"mean":0.67,"win":54.9}},"10":{"매수":{"n":146,"mean":-0.27,"win":53.4},"관심":{"n":562,"mean":1.3,"win":50.7},"관망":{"n":7139,"mean":0.91,"win":52.3},"회피":{"n":6013,"mean":1.15,"win":55.7}},"20":{"매수":{"n":146,"mean":-0.05,"win":47.9},"관심":{"n":562,"mean":1.3,"win":47.9},"관망":{"n":7139,"mean":1.87,"win":52.5},"회피":{"n":6013,"mean":2.38,"win":55.5}}}},"coin":{"pool":"발굴풀(대형)","nStocks":18,"nObs":7556,"range":["2025-04-18T09:00:00","2026-06-11T09:00:00"],"measuredAt":"2026-07-09","dist":{"매수":0.25,"관심":1.47,"관망":24.93,"회피":73.35},"fwd":{"5":{"매수":{"n":19,"mean":-0.59,"win":15.8},"관심":{"n":111,"mean":-1.67,"win":36},"관망":{"n":1884,"mean":-0.67,"win":41.1},"회피":{"n":5542,"mean":-0.55,"win":41.4}},"10":{"매수":{"n":19,"mean":-3.67,"win":21.1},"관심":{"n":111,"mean":-0.61,"win":40.5},"관망":{"n":1884,"mean":-1.2,"win":40.9},"회피":{"n":5542,"mean":-1.42,"win":40.1}},"20":{"매수":{"n":19,"mean":-3.39,"win":26.3},"관심":{"n":111,"mean":-2.54,"win":38.7},"관망":{"n":1884,"mean":-2.85,"win":36.3},"회피":{"n":5542,"mean":-2.96,"win":35.6}}}}};
