@@ -1,5 +1,6 @@
 // ════════════════════════════════════════════════════════════
-//  SIGNAL X — Render Engine v7.10  [S845 · build 20260701-0930 cache-bust]
+//  SIGNAL X — Render Engine v7.10  [S968 · build 20260711 cache-bust]
+//  [S968] 실패분석·전략 라이프사이클 fold를 카드2 → 단일검증 탭(sx_bt.js)으로 이관 (순수 UI·엔진/판정 무변경)
 // ════════════════════════════════════════════════════════════
 const BT_SUPPORTED_TF = {
   kr:   ['30m','60m','day','week','month'],   // 30분은 KIS 한정
@@ -8019,7 +8020,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S967';
+  window.SX_BUILD='S968';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -13512,188 +13513,6 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
         // ═══════════════════════════════════════════════════════════════
         return '';
       })()}
-      <div class="anal-fold" style="margin-top:12px">
-        <div class="anal-fold-hdr" onclick="_sxVib(8);this.parentElement.classList.toggle('fold-open')"><span class="anal-fold-arrow">▶</span> 실패 분석 · 전략 라이프사이클</div>
-        <div class="anal-fold-body">
-      ${(()=>{
-        // S70: 실패 분석 (Failure Analysis)
-        if(typeof SXI==='undefined' || !SXI.failureAnalysis) return '';
-        const _btD = _getBtData(stock);
-        if(!_btD || !_btD.trades || !_btD.trades.length) return '';
-        const fa = SXI.failureAnalysis(_btD, indicators, qs, _analTF);
-        if(!fa) return '';
-        const faId = 'fa_' + Math.random().toString(36).slice(2,8);
-        const riskColor = fa.riskProfile.level==='danger'?'var(--sell)':fa.riskProfile.level==='warning'?'#ff8c00':fa.riskProfile.level==='bullish'?'var(--buy)':'var(--text2)';
-        let faHTML = `<div class="anal-section" style="margin-top:8px">
-          <div class="itp-toggle-inline" onclick="_sxVib(8);const c=document.getElementById('${faId}');c.classList.toggle('show');this.querySelector('.sb-arrow').textContent=c.classList.contains('show')?'▼':'▶'" style="font-size:11px;color:var(--accent);cursor:pointer;font-weight:700"><span class="sb-arrow">▶</span> 실패 분석 <span style="font-size:9px;font-weight:600;color:${riskColor};margin-left:4px">${fa.riskProfile.label}</span></div>
-          <div class="itp-card" id="${faId}" style="white-space:normal;margin-top:4px">`;
-
-        // 요약
-        faHTML += `<div style="font-size:11px;color:var(--text);margin-bottom:10px;line-height:1.6">${fa.summary}</div>`;
-
-        // 승패 통계 비교
-        if(fa.stats){
-          const st = fa.stats;
-          faHTML += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-            <div style="padding:6px 8px;background:var(--buy-bg);border-radius:6px;text-align:center">
-              <div style="font-size:9px;color:var(--text3)">이익 거래</div>
-              <div style="font-size:13px;font-weight:700;color:var(--buy)">${st.winCount}건</div>
-              <div style="font-size:9px;color:var(--text3)">평균 +${st.avgWin}% / ${st.avgWinBars}봉</div>
-            </div>
-            <div style="padding:6px 8px;background:rgba(255,59,48,.06);border-radius:6px;text-align:center">
-              <div style="font-size:9px;color:var(--text3)">손실 거래</div>
-              <div style="font-size:13px;font-weight:700;color:var(--sell)">${st.lossCount}건</div>
-              <div style="font-size:9px;color:var(--text3)">평균 -${st.avgLoss}% / ${st.avgLossBars}봉</div>
-            </div>
-          </div>`;
-        }
-
-        // 손실 패턴
-        if(fa.lossPatterns.length){
-          faHTML += `<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:6px">손실 패턴</div>`;
-          fa.lossPatterns.forEach(p => {
-            faHTML += `<div style="padding:8px;background:var(--surface2);border-radius:6px;margin-bottom:6px;border-left:3px solid var(--sell)">
-              <div style="font-size:10px;font-weight:700;color:var(--sell);margin-bottom:3px">${p.title} (${p.count}건, ${p.ratio}%)</div>
-              <div style="font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:4px">${p.detail}</div>
-              <div style="font-size:10px;color:var(--accent);line-height:1.5">-> ${p.suggestion}</div>
-            </div>`;
-          });
-        }
-
-        // 최악의 거래
-        if(fa.worstTrade){
-          faHTML += `<div style="padding:8px;background:rgba(255,59,48,.06);border-radius:6px;margin-bottom:8px">
-            <div style="font-size:10px;font-weight:700;color:var(--sell);margin-bottom:3px">최대 손실 거래</div>
-            <div style="font-size:10px;color:var(--text2);line-height:1.5">${fa.worstTrade.detail}</div>
-          </div>`;
-        }
-
-        // 연속 손실
-        if(fa.streakAnalysis){
-          const sa = fa.streakAnalysis;
-          faHTML += `<div style="padding:8px;background:rgba(255,140,0,.06);border-radius:6px;margin-bottom:8px">
-            <div style="font-size:10px;font-weight:700;color:#ff8c00;margin-bottom:3px">연속 손실 분석</div>
-            <div style="font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:4px">${sa.detail}</div>
-            <div style="font-size:10px;color:var(--text2);line-height:1.5">${sa.interpretation}</div>
-          </div>`;
-        }
-
-        // MDD 맥락
-        if(fa.mddContext){
-          const mc = fa.mddContext;
-          const mddColor = mc.severity==='위험'?'var(--sell)':mc.severity==='주의'?'#ff8c00':mc.severity==='보통'?'var(--text2)':'var(--buy)';
-          faHTML += `<div style="padding:8px;background:var(--surface2);border-radius:6px;margin-bottom:8px">
-            <div style="font-size:10px;font-weight:700;color:${mddColor};margin-bottom:3px">MDD ${mc.mdd.toFixed(1)}% — ${mc.severity}</div>
-            <div style="font-size:10px;color:var(--text2);line-height:1.5">${mc.advice}</div>
-          </div>`;
-        }
-
-        // 개선 제안
-        if(fa.improvements.length){
-          faHTML += `<div style="font-size:10px;font-weight:700;color:var(--text);margin:8px 0 6px">개선 제안</div>`;
-          fa.improvements.forEach(imp => {
-            const prioColor = imp.priority==='high'?'var(--sell)':imp.priority==='mid'?'#ff8c00':'var(--text3)';
-            const prioLabel = imp.priority==='high'?'중요':imp.priority==='mid'?'권장':'참고';
-            faHTML += `<div style="padding:8px;background:var(--surface2);border-radius:6px;margin-bottom:6px">
-              <div style="font-size:9px;font-weight:700;color:${prioColor};margin-bottom:2px">${prioLabel} — ${imp.area}</div>
-              <div style="font-size:10px;color:var(--text2);line-height:1.5">${imp.text}</div>
-            </div>`;
-          });
-        }
-
-        faHTML += `</div></div>`;
-        return faHTML;
-      })()}
-      ${(()=>{
-        // S72: 전략 라이프사이클 (Strategy Lifecycle)
-        if(typeof SXE==='undefined' || !SXE.strategyLifecycle) return '';
-        if(typeof SXI==='undefined' || !SXI.lifecycleGuide) return '';
-        const _btD = _getBtData(stock);
-        if(!_btD || !_btD.trades || _btD.trades.filter(t=>t.type==='WIN'||t.type==='LOSS').length < 6) return '';
-        const regime = qs?.regime || null;
-        const lc = SXE.strategyLifecycle(_btD, regime);
-        if(!lc) return '';
-        const guide = SXI.lifecycleGuide(lc);
-        if(!guide) return '';
-        const lcId = 'lc_' + Math.random().toString(36).slice(2,8);
-        const phaseColor = {'growth':'var(--buy)','mature':'var(--accent)','decline':'#ff8c00','decay':'var(--sell)','early':'var(--text3)','unstable':'#ff8c00'}[lc.phase]||'var(--text2)';
-        const gradeColor = {'A':'var(--buy)','B':'var(--accent)','C':'var(--text2)','D':'#ff8c00','F':'var(--sell)'}[lc.health.grade]||'var(--text2)';
-        let lcHTML = `<div class="anal-section" style="margin-top:8px">
-          <div class="itp-toggle-inline" onclick="_sxVib(8);const c=document.getElementById('${lcId}');c.classList.toggle('show');this.querySelector('.sb-arrow').textContent=c.classList.contains('show')?'▼':'▶'" style="font-size:11px;color:var(--accent);cursor:pointer;font-weight:700"><span class="sb-arrow">▶</span> 전략 라이프사이클 <span style="font-size:9px;font-weight:600;color:${phaseColor};margin-left:4px">${guide.title.replace('전략 상태: ','')}</span> <span style="font-size:9px;font-weight:600;color:${gradeColor};margin-left:4px">${lc.health.grade}</span></div>
-          <div class="itp-card" id="${lcId}" style="white-space:normal;margin-top:4px">`;
-
-        // 건강도 + 단계 배지
-        lcHTML += `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-          <div style="padding:4px 10px;border-radius:12px;background:${phaseColor};color:#fff;font-size:10px;font-weight:700">${lc.phaseLabel}</div>
-          <div style="font-size:12px;font-weight:700;color:${gradeColor}">${guide.healthText}</div>
-        </div>`;
-
-        // 요약
-        lcHTML += `<div style="font-size:11px;color:var(--text);margin-bottom:10px;line-height:1.6">${guide.summary}</div>`;
-
-        // 구간별 추이 차트 (텍스트 기반 바)
-        if(lc.quarters && lc.quarters.length >= 2){
-          lcHTML += `<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:6px">구간별 성과 추이</div>`;
-          lcHTML += `<div style="display:grid;grid-template-columns:repeat(${lc.quarters.length},1fr);gap:4px;margin-bottom:8px">`;
-          lc.quarters.forEach(q => {
-            const barH = Math.max(4, Math.min(40, q.winRate * 0.6));
-            const qColor = q.winRate >= 55 ? 'var(--buy)' : q.winRate >= 45 ? 'var(--accent)' : q.winRate >= 35 ? '#ff8c00' : 'var(--sell)';
-            lcHTML += `<div style="text-align:center">
-              <div style="font-size:9px;color:var(--text3);margin-bottom:2px">${q.label}</div>
-              <div style="margin:0 auto;width:24px;height:${barH}px;background:${qColor};border-radius:3px"></div>
-              <div style="font-size:9px;color:var(--text2);margin-top:2px">${q.winRate}%</div>
-              <div style="font-size:8px;color:var(--text3)">PF${q.pf}</div>
-            </div>`;
-          });
-          lcHTML += `</div>`;
-          // 추이 텍스트
-          guide.quarterTexts.forEach(qt => {
-            lcHTML += `<div style="font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:3px;padding-left:8px;border-left:2px solid var(--accent)">· ${qt}</div>`;
-          });
-        }
-
-        // 퇴화 신호
-        if(guide.decayTexts.length){
-          lcHTML += `<div style="font-size:10px;font-weight:700;color:var(--sell);margin:10px 0 6px">퇴화 신호</div>`;
-          guide.decayTexts.forEach(dt => {
-            const isHigh = dt.startsWith('[심각]');
-            lcHTML += `<div style="padding:6px 8px;background:rgba(255,59,48,.06);border-radius:6px;margin-bottom:4px;border-left:3px solid ${isHigh?'var(--sell)':'#ff8c00'}">
-              <div style="font-size:10px;color:var(--text2);line-height:1.5">${dt}</div>
-            </div>`;
-          });
-        }
-
-        // 유효기간 추정
-        if(lc.validityEstimate){
-          const ve = lc.validityEstimate;
-          const urgColor = ve.urgency==='immediate'?'var(--sell)':ve.urgency==='soon'?'#ff8c00':'var(--text2)';
-          lcHTML += `<div style="padding:8px;background:rgba(255,140,0,.06);border-radius:6px;margin:8px 0;border-left:3px solid ${urgColor}">
-            <div style="font-size:10px;font-weight:700;color:${urgColor};margin-bottom:2px">전략 유효기간 추정</div>
-            <div style="font-size:10px;color:var(--text2);line-height:1.5">${ve.text}</div>
-          </div>`;
-        }
-
-        // 레짐 연동
-        if(guide.regimeText){
-          lcHTML += `<div style="padding:8px;background:var(--surface2);border-radius:6px;margin:8px 0">
-            <div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:2px">레짐 연동 분석</div>
-            <div style="font-size:10px;color:var(--text2);line-height:1.5">${guide.regimeText}</div>
-          </div>`;
-        }
-
-        // 행동 제안
-        if(guide.actions.length){
-          lcHTML += `<div style="font-size:10px;font-weight:700;color:var(--text);margin:8px 0 6px">단계별 행동 제안</div>`;
-          guide.actions.forEach((a, i) => {
-            lcHTML += `<div style="display:flex;gap:6px;margin-bottom:4px;font-size:10px;line-height:1.6;color:var(--text2)"><span style="flex-shrink:0;width:16px;height:16px;border-radius:50%;background:${phaseColor};color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><span>${a}</span></div>`;
-          });
-        }
-
-        lcHTML += `</div></div>`;
-        return lcHTML;
-      })()}
-        </div>
-      </div>
       </div>
       ${(()=>{
         // S69: 초보자 실전 가이드
