@@ -1,9 +1,10 @@
 // ════════════════════════════════════════════════════════════
-//  SIGNAL X — Render Engine v7.10  [S970 · build 20260711 cache-bust]
-//  [S968] 실패분석·전략 라이프사이클 fold를 카드2 → 단일검증 탭(sx_bt.js)으로 이관 (순수 UI·엔진/판정 무변경)
-//  [S969] 점수축 카드2(threeStageReport 판정 ~1000줄) + S69 실전가이드 → "레시피 해석 카드"로 대체.
-//  [S970] 레시피 해석 카드에 완전 초보자용 쉬운 설명 레이어 추가 (①②③ 각 평이한 말 + 레시피란 안내 + 용어 풀이 토글). 측정 사실 풀이만·예측 아님.
-//         (외부 _pgShared/_swapVerdictHTML 계산 블록·orphan 핸들러는 무해 잔존 — 후속 정리 예정)
+//  SIGNAL X — Render Engine v7.10  [S971 · build 20260711 cache-bust]
+//  [S969] 점수축 카드2 + S69 실전가이드 → "레시피 해석 카드"로 대체.
+//  [S970] 레시피 해석 카드에 완전 초보자용 쉬운 설명 레이어 추가.
+//  [S971] 추세 라벨 SSOT `_trendLabel` 신설 — 단기(5/20/60)/장기(60/120/200) 3×3 + 60MA 기울기(천장권/바닥권).
+//         "정배열/역배열" 2정의 충돌 해소(같은 종목이 정배열이자 역배열). 레시피 카드 배지/헤드라인/①구도를 이 SSOT로 전환(차트 정합·MA카드와 일치).
+//         (외부 _pgShared 등 orphan 잔존·다른 카드들 SSOT 통일은 후속 — 카드별 실측 정렬 진행 중)
 // ════════════════════════════════════════════════════════════
 const BT_SUPPORTED_TF = {
   kr:   ['30m','60m','day','week','month'],   // 30분은 KIS 한정
@@ -3982,6 +3983,42 @@ function _cv2TrendPosition(ind, rows, idx){
     var score=Math.max(0,Math.min(100,Math.round(base+adj)));
     return { lt:lt, cellLabel:cellLabel, disp:disp, q:q, qLabel:qLabel, score:score, base:base, adj:adj };
   }catch(e){ return null; }
+}
+
+// [S971] 추세 라벨 SSOT — 단기(5/20/60)/장기(60/120/200) 3-state × 3-state + 60MA 기울기 플래그.
+//   〔용어 통일〕 단기 정배열=강세·역배열=약세·혼조=중립 / 장기 정배열=상승장·역배열=하락장·혼조=횡보장.
+//   〔근거〕 "정배열/역배열" 2정의 충돌(같은 종목이 정배열이자 역배열) 해소. 두 차원 다 ind에 이미 존재(maAlign 5/20/60 · maAlignLT 60/120/200).
+//   〔플래그〕 순서는 유지되나 60MA가 꺾이는 중 = 천장권(상승장+하락기울기)/바닥권(하락장+상승기울기) — 60/120/200 래깅 보정.
+//   〔전 카드 SSOT〕 이 함수 라벨을 모든 카드가 공유 → 정배열/역배열 표기 불일치 제거. (사용자 확정 3×3+기울기)
+var _TREND_MATRIX = {
+  bull:  { bull:'상승 추세',   bear:'하락 중 반등',  mixed:'횡보 상단 돌파 시도' },
+  bear:  { bull:'상승 중 눌림', bear:'하락 추세',     mixed:'횡보 하단 이탈 시도' },
+  mixed: { bull:'상승 숨고르기', bear:'하락 숨고르기', mixed:'완전 횡보' }
+};
+function _ma60Slope(closes, lookback){
+  // 60MA 기울기(%) = (sma60[now] − sma60[now−lookback]) / sma60[now−lookback] × 100
+  try{
+    lookback = lookback || 10;
+    if(!Array.isArray(closes) || closes.length < 60+lookback) return null;
+    var sma=function(end,p){ if(end<p) return null; var s=0; for(var j=end-p;j<end;j++) s+=closes[j]; return s/p; };
+    var now=sma(closes.length,60), prev=sma(closes.length-lookback,60);
+    if(now==null||prev==null||!(prev>0)) return null;
+    return (now-prev)/prev*100;
+  }catch(e){ return null; }
+}
+function _trendLabel(maAlign, maAlignLT, ma60Slope){
+  var s = maAlign ? (maAlign.bullish ? 'bull' : maAlign.bearish ? 'bear' : 'mixed') : 'mixed';         // 단기 5/20/60
+  var l = (maAlignLT && maAlignLT.gateOn) ? (maAlignLT.bullish ? 'bull' : maAlignLT.bearish ? 'bear' : 'mixed') : 'mixed'; // 장기 60/120/200
+  var shortLabel = s==='bull' ? '강세' : s==='bear' ? '약세' : '중립';
+  var longLabel  = l==='bull' ? '상승장' : l==='bear' ? '하락장' : '횡보장';
+  var trend = (_TREND_MATRIX[s] && _TREND_MATRIX[s][l]) ? _TREND_MATRIX[s][l] : '방향 미정';
+  var slopeFlag = null;
+  var TH = 0.5; // 60MA 기울기 임계(%/10봉) — 미세 흔들림 제외
+  if(ma60Slope != null){
+    if(l==='bull' && ma60Slope < -TH) slopeFlag = '천장권';
+    else if(l==='bear' && ma60Slope > TH) slopeFlag = '바닥권';
+  }
+  return { short:s, long:l, shortLabel:shortLabel, longLabel:longLabel, trend:trend, slopeFlag:slopeFlag, ma60Slope:ma60Slope };
 }
 
 // ★시제품 API — 순수 함수. adv(=_advanced, calcAllScreener 결과)만 공급하면 동일 판정. 그 풀×종류 레시피 중 하나라도 재료충족 + 풀일치 = 발동. 반환: {inPool, fired, matchCount, total, matched, def}
@@ -8023,7 +8060,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S970';
+  window.SX_BUILD='S971';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -12541,11 +12578,15 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           const _gid = 'rg' + Math.random().toString(36).slice(2,7);
 
           // ── 4요소 헬퍼 (전부 기존 SSOT) ──
-          const _pos   = (typeof _cv2TrendPosition==='function') ? _cv2TrendPosition(_ind, _rows, _idx) : null;   // ①구도(말)
+          const _pos   = (typeof _cv2TrendPosition==='function') ? _cv2TrendPosition(_ind, _rows, _idx) : null;   // 이격도(disp/qLabel)
           const _votes = (typeof _sxRecipeVotesCore==='function') ? _sxRecipeVotesCore(_mk, _ind, _rows, _idx) : null; // 발동/겹침
           const _ing   = (typeof _sxRecipeIngCore==='function')   ? _sxRecipeIngCore(_mk, _ind, _rows, _idx)   : null; // 재료 불켜짐
-          const _lt    = _ing ? _ing.lt : (_pos ? _pos.lt : null);
-          const _recipeScope = (_lt==='bull' || _lt==='bear');   // 레시피 적용 레짐 (mixed/off = 범위 밖)
+          const _lt    = _ing ? _ing.lt : (_pos ? _pos.lt : null);   // 레시피 레짐(②③ 맥락용·maAlignLT)
+          // [S971] 추세 표시 = SSOT _trendLabel (단기 5/20/60 + 장기 60/120/200 + 60MA 기울기) — 차트 기준. 레시피 레짐과 별개.
+          const _tlClose = _rows.map(function(r){ return (r && typeof r.close==='number') ? r.close : 0; });
+          const _tlSlope = (typeof _ma60Slope==='function') ? _ma60Slope(_tlClose, 10) : null;
+          const _tl = (typeof _trendLabel==='function') ? _trendLabel(_ind.maAlign, _ind.maAlignLT, _tlSlope) : null;
+          const _recipeScope = !!_ing;   // 레시피 적용(maAlignLT 정/역) — 횡보/데이터부족이면 ②③ 생략
           const _conf  = (_votes && _recipeScope && typeof _cv2Confidence==='function') ? _cv2Confidence(_lt, _votes.realK, _votes.pure) : null; // ④맥락
 
           // ── 발동 상태 분류 ──
@@ -12557,35 +12598,30 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           // ── 8색 팔레트 (S961-966 SSOT) ──
           const C = { blue:'#2563eb', green:'#16a34a', orange:'#ea580c', red:'#dc2626', gray:'#64748b', purple:'#9333ea', yellow:'#ca8a04' };
 
-          // ── 배지 + 헤드라인 (구도 서술 · 판정 아님) ──
-          let _badge, _badgeC, _headline, _headC, _eHead;
-          if(!_recipeScope){
-            _badge='혼조·범위 밖'; _badgeC=C.purple;
-            _headline='장기 배열 혼조 (60/120/200 미정렬) — 레시피 측정 범위 밖'; _headC=C.purple;
-            _eHead='장기 평균선들이 뒤섞여 큰 방향이 뚜렷하지 않은 상태라, 이 분석(오름세 눌림·내림세 반등)의 대상이 아니에요.';
-          } else if(_lt==='bear'){
-            if(_fired){ _badge='역배 데드캣'; _badgeC=C.orange; _headline='하락 추세 속 기술적 반등 시도 구도 (역배 데드캣 · 주의)'; _headC=C.orange;
-              _eHead='내리던 종목이 잠깐 튀어오를 조건이 보여요. 다만 큰 흐름은 아직 하락이라, 반등이 짧게 끝나고 다시 빠질 수 있어요(위험).'; }
-            else if(_fakeOnly){ _badge='가짜 반등 경보'; _badgeC=C.red; _headline='가짜 반등 신호 — 반등 실패 후 재하락 우세 구도'; _headC=C.red;
-              _eHead='반등하는 척하다 다시 빠지는 "가짜 반등" 유형의 신호가 켜졌어요. 매수는 조심해야 해요.'; }
-            else if(_mixed){ _badge='역배 혼재'; _badgeC=C.yellow; _headline='하락 추세 · real·fake 혼재 = 중립 구도'; _headC=C.yellow;
-              _eHead='살 만한 신호와 위험 신호가 섞여 있어 방향이 애매해요.'; }
-            else if(_ripe){ _badge='역배 익는 중'; _badgeC=C.blue; _headline='하락 추세 · 반등 재료 익는 중 (아직 미발동)'; _headC=C.blue;
-              _eHead='반등에 필요한 조건이 조금씩 갖춰지는 중이지만, 아직 신호가 켜질 만큼은 아니에요.'; }
-            else { _badge='역배 무발동'; _badgeC=C.gray; _headline='하락 추세 · 반등 재료 미형성'; _headC=C.gray;
-              _eHead='내림세가 이어지는 중이고, 반등할 만한 신호는 아직 없어요.'; }
-          } else { // bull
-            if(_fired){ _badge='정배 눌림'; _badgeC=C.green; _headline='강세 속 단기 눌림 — 레시피 발동 구도'; _headC=C.green;
-              _eHead='오르던 종목이 잠깐 쉬어가는(눌림) 자리예요. 다시 오를 만한 조건이 여러 개 갖춰졌어요.'; }
-            else if(_fakeOnly){ _badge='되돌림 경보'; _badgeC=C.red; _headline='가짜 눌림목 — 상승 지속 실패 우세 구도'; _headC=C.red;
-              _eHead='눌림처럼 보이지만 상승을 이어가지 못하고 되돌아갈 가능성이 큰 유형이에요.'; }
-            else if(_mixed){ _badge='정배 혼재'; _badgeC=C.yellow; _headline='강세 눌림 · real·fake 혼재 = 중립 구도'; _headC=C.yellow;
-              _eHead='살 만한 신호와 위험 신호가 섞여 방향이 애매해요.'; }
-            else if(_ripe){ _badge='정배 익는 중'; _badgeC=C.blue; _headline='강세 눌림 재료 익는 중 (아직 미발동)'; _headC=C.blue;
-              _eHead='눌림 매수에 필요한 조건이 조금씩 갖춰지는 중이지만, 아직 신호가 켜질 만큼은 아니에요.'; }
-            else { _badge='강세 지속'; _badgeC=C.gray; _headline='강세 지속 · 눌림 없음 · 진입 재료 미형성'; _headC=C.gray;
-              _eHead='지금은 계속 오르는 흐름이라, 저가에 살 만한 "조정(눌림)" 자리가 아직 아니에요. 강한 종목일수록 이렇게 신호가 안 뜨는 게 정상이에요.'; }
-          }
+          // ── 배지 + 헤드라인 = 추세(_trendLabel SSOT · 차트 기준) ──
+          //   [S971] 배지/헤드라인 = 추세(단기×장기×기울기) — MA카드와 동일 기준. 신호 발동 여부는 ②로 분리(레시피에 과의존 방지).
+          const _TREND_DESC = {
+            '상승 추세':        { c:C.green,  hl:'장기 상승장 · 단기 강세 — 상승 추세 진행', ez:'큰 흐름도 위쪽이고 단기도 힘이 실린, 전형적인 상승 추세예요.' },
+            '상승 중 눌림':      { c:C.blue,   hl:'장기 상승 구조에서 단기 눌림 (조정)', ez:'큰 흐름은 위쪽인데 단기적으로 잠깐 쉬어가는(눌림) 자리예요.' },
+            '하락 중 반등':      { c:C.orange, hl:'하락장 속 단기 반등 시도 (기술적 반등 · 주의)', ez:'큰 흐름은 아래쪽인데 단기적으로 잠깐 튀어오르는 중이에요. 짧게 끝날 수 있어 주의가 필요해요.' },
+            '하락 추세':        { c:C.gray,   hl:'장기 하락장 · 단기 약세 — 하락 추세 진행', ez:'큰 흐름도 아래쪽이고 단기도 약해, 전형적인 하락 추세예요.' },
+            '횡보 상단 돌파 시도': { c:C.yellow, hl:'횡보장 · 단기 강세 — 상단 돌파 시도', ez:'큰 흐름은 옆으로 횡보인데 단기적으로 위로 뚫으려는 시도예요.' },
+            '횡보 하단 이탈 시도': { c:C.orange, hl:'횡보장 · 단기 약세 — 하단 이탈 시도', ez:'큰 흐름은 횡보인데 단기적으로 아래로 빠지려는 움직임이에요.' },
+            '상승 숨고르기':      { c:C.blue,   hl:'장기 상승장 · 단기 뒤섞임 — 숨고르기', ez:'큰 흐름은 위쪽인데 단기 이평선이 뒤섞여 잠깐 방향을 고르는 중이에요.' },
+            '하락 숨고르기':      { c:C.gray,   hl:'장기 하락장 · 단기 뒤섞임 — 숨고르기', ez:'큰 흐름은 아래쪽인데 단기가 뒤섞여 잠깐 방향을 고르는 중이에요.' },
+            '완전 횡보':         { c:C.purple, hl:'장·단기 모두 뒤섞임 — 방향 없는 횡보', ez:'큰 흐름도 단기도 뚜렷한 방향이 없어 옆으로 횡보하는 구간이에요.' }
+          };
+          const _td = (_tl && _TREND_DESC[_tl.trend]) ? _TREND_DESC[_tl.trend] : { c:C.gray, hl:(_tl?_tl.trend:'분석 대기'), ez:'' };
+          let _badgeC = _td.c, _headC = _td.c;
+          if(_tl && _tl.slopeFlag==='천장권'){ _badgeC=C.red; _headC=C.red; }
+          else if(_tl && _tl.slopeFlag==='바닥권'){ _badgeC=C.blue; }
+          const _badge = _tl ? (_tl.trend + (_tl.slopeFlag ? ' '+(_tl.slopeFlag==='천장권'?'⚠️':'🔼')+_tl.slopeFlag : '')) : '분석 대기';
+          let _headline = _td.hl;
+          if(_tl && _tl.slopeFlag==='천장권') _headline += ' · ⚠️60MA 꺾여 하락 전환 조짐';
+          else if(_tl && _tl.slopeFlag==='바닥권') _headline += ' · 🔼60MA 다지는 바닥권';
+          let _eHead = _td.ez;
+          if(_tl && _tl.slopeFlag==='천장권') _eHead += ' 60MA가 꺾이기 시작해 상승 구조가 무너지는 신호라 하락 전환에 주의하세요.';
+          else if(_tl && _tl.slopeFlag==='바닥권') _eHead += ' 60MA가 살아나며 바닥을 다지는 신호도 함께 보여요.';
 
           // ── 헤더 + 레시피란? 안내(초보) + 헤드라인 ──
           let h = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
@@ -12602,22 +12638,29 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
             <span style="color:var(--text2)"><b style="color:var(--text)">${label}</b>&nbsp; ${body}</span>
           </div>` + (easy ? `<div style="font-size:9.5px;color:var(--text3);line-height:1.5;margin:0 0 9px 25px">${easy}</div>` : '');
 
-          // ① 구도 (말 — _cv2TrendPosition) + 초보 설명
-          if(_pos){
-            const _dispTxt = (_pos.disp!=null) ? ` · 이격도 ${_pos.disp.toFixed(0)} (${_pos.qLabel})` : '';
-            // 초보: 정배열/역배열/전환 + 이격도 분위 풀이
-            const _arr = (_pos.lt==='bull') ? '장기 이동평균선이 상승 순서로 정렬(정배열)돼 <b>큰 추세는 위쪽</b>이에요.'
-              : (_pos.lt==='bear') ? '장기 이동평균선이 하락 순서로 정렬(역배열)돼 <b>큰 추세는 아래쪽</b>이에요.'
-              : (_pos.lt==='upT') ? '큰 추세가 <b>상승으로 바뀌는 전환</b> 구간이에요.'
-              : (_pos.lt==='dnT') ? '큰 추세가 <b>하락으로 바뀌는 전환</b> 구간이에요.'
-              : '장기 흐름이 뒤섞여 방향이 뚜렷하지 않아요.';
-            const _iq = _pos.qLabel || '';
-            const _ideg = (_iq.indexOf('침체')>=0) ? ' 현재가가 평균보다 많이 낮아(과매도) <b>반등 여지</b>가 있는 위치예요.'
-              : (_iq==='저') ? ' 현재가가 평균보다 살짝 낮은 위치예요.'
-              : (_iq==='중') ? ' 현재가가 평균 근처라 싸지도 비싸지도 않아요.'
-              : (_iq==='고') ? ' 현재가가 평균보다 높아 <b>추격 매수는 조심</b>할 위치예요.'
-              : (_iq.indexOf('과열')>=0) ? ' 현재가가 평균보다 크게 높아(과열) <b>고점 추격은 위험</b>한 위치예요.' : '';
-            h += _unit('①', C.blue, '구도', `${_pos.cellLabel}${_dispTxt}`, _arr + _ideg);
+          // ① 구도 (추세 = _trendLabel: 단기/장기/기울기 + 이격도) + 초보 설명
+          if(_tl){
+            const _flagTxt = _tl.slopeFlag ? ` · <b style="color:${_tl.slopeFlag==='천장권'?C.red:C.blue}">${_tl.slopeFlag==='천장권'?'⚠️천장권':'🔼바닥권'}</b>` : '';
+            const _dispTxt = (_pos && _pos.disp!=null) ? ` · 이격도 ${_pos.disp.toFixed(0)} (${_pos.qLabel})` : '';
+            const _gudoBody = `단기 <b>${_tl.shortLabel}</b> · 장기 <b>${_tl.longLabel}</b>${_flagTxt}${_dispTxt}`;
+            const _eShort = _tl.short==='bull' ? '단기 이평선(5·20·60)이 상승 순서라 지금 힘이 실려요(강세).'
+              : _tl.short==='bear' ? '단기 이평선(5·20·60)이 하락 순서라 지금 힘이 빠졌어요(약세).'
+              : '단기 이평선이 뒤섞여 방향이 애매해요(중립).';
+            const _eLong = _tl.long==='bull' ? ' 장기선(60·120·200)은 아직 상승 순서(상승장)예요.'
+              : _tl.long==='bear' ? ' 장기선(60·120·200)도 하락 순서(하락장)예요.'
+              : ' 장기선도 뒤섞여 큰 방향이 없어요(횡보장).';
+            const _eFlag = _tl.slopeFlag==='천장권' ? ' 다만 60MA가 꺾이기 시작해 상승 구조가 무너지는 <b>천장권</b>이에요.'
+              : _tl.slopeFlag==='바닥권' ? ' 다만 60MA가 살아나며 <b>바닥을 다지는</b> 신호도 있어요.' : '';
+            const _iq = _pos ? (_pos.qLabel||'') : '';
+            const _eDeg = (_iq.indexOf('침체')>=0) ? ' 현재가가 평균보다 많이 낮아(과매도) 반등 여지가 있는 위치예요.'
+              : (_iq==='고'||_iq.indexOf('과열')>=0) ? ' 현재가가 평균보다 높아 추격은 조심할 위치예요.' : '';
+            h += _unit('①', C.blue, '구도', _gudoBody, _eShort + _eLong + _eFlag + _eDeg);
+          }
+
+          // ② 레시피 범위 밖 안내 (횡보/전환 — 레시피는 상승 눌림·하락 반등에서만 작동)
+          if(!_recipeScope){
+            h += _unit('②', C.gray, '레시피 신호', `이 구간은 측정 대상 밖 <span style="color:var(--text3);font-size:9px">(상승 눌림·하락 반등에서만 작동)</span>`,
+              '레시피는 "오름세 눌림"이나 "내림세 반등"일 때만 신호를 내요. 지금은 큰 흐름이 뒤섞인 횡보/전환 구간이라 판단할 신호가 없어요.');
           }
 
           // ② 발동 (겹침 강도 — _sxRecipeVotesCore) + 초보 설명
