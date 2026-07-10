@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SIGNAL X App v3.7d -->
+<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -28,6 +28,11 @@
   --buy:#22c55e;--buy-bg:rgba(34,197,94,.1);--buy-border:rgba(34,197,94,.25);
   --hold:#f59e0b;--hold-bg:rgba(245,158,11,.1);--hold-border:rgba(245,158,11,.25);
   --sell:#ef4444;--sell-bg:rgba(239,68,68,.1);--sell-border:rgba(239,68,68,.25);
+  /* [S961] SX 색상 팔레트 SSOT — 8색 의미체계 (인덱스+시즌1 공용)
+     빨강=경고/위험·BT손실·시세상승·탐욕 · 주황=주의·과열 · 노랑=변동성중간
+     녹색=안정/이익·BT수익·중립 · 파랑=침체/하락/준비·시세하락·경계
+     보라=혼조(전용) · 핑크=필터배지(안전필터 등) · 회색=회피/중립·공포/침체권(완전침체·사망) */
+  --c-red:#dc2626;--c-orange:#ea580c;--c-yellow:#ca8a04;--c-green:#16a34a;--c-blue:#2563eb;--c-purple:#9333ea;--c-pink:#ec4899;--c-gray:#64748b;
   --risk-low:#22c55e;--risk-mid:#f59e0b;--risk-high:#ef4444;
   --radius:14px;--radius-sm:10px;
   --bottom-h:60px;
@@ -275,6 +280,13 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .vix-main.panic   { background:rgba(220,38,38,.12);   border-color:rgba(220,38,38,.6);
                     animation:vixPanic 1.5s ease-in-out infinite; }
 .vix-main.panic   .vix-status{ background:rgba(220,38,38,.3); color:#fff; font-weight:800; }
+/* [S961] VIX 큰 수치색 = 배지 상태색 동기화 (변동성 바 색계열 유지) */
+.vix-main.calm    .vix-value{ color:#16a34a; }
+.vix-main.normal  .vix-value{ color:#65a30d; }
+.vix-main.caution .vix-value{ color:var(--c-yellow); }
+.vix-main.warning .vix-value{ color:var(--c-orange); }
+.vix-main.danger  .vix-value{ color:var(--c-red); }
+.vix-main.panic   .vix-value{ color:var(--c-red); }
 @keyframes vixPanic{
   0%,100%{box-shadow:0 1px 3px rgba(220,38,38,.2);}
   50%{box-shadow:0 2px 12px rgba(220,38,38,.4);}
@@ -314,15 +326,15 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 }
 .fm-sub{font-size:9.5px;color:var(--text3);font-weight:500;}
 
-/* 공포탐욕지수 5단계 (S132c v5.0: 한국+코인 통일 두 글자 체계)
-   0~14   공포 → 🟣 보라 (심리 극단 하단)
-   15~24  경계 → 🔵 파랑 (공포 진입 전 경고)
+/* 공포탐욕지수 5단계 (S132c v5.0: 한국+코인 통일 두 글자 체계 · [S961] 공포 보라→회색)
+   0~14   공포 → ⚪ 회색 (완전침체·사망 · 심리 극단 하단)
+   15~24  경계 → 🔵 파랑 (공포 진입 전 경고 · 약한침체)
    25~74  중립 → 🟢 녹색 (평상 구간, 50칸)
    75~84  과열 → 🟠 주황 (탐욕 진입 전 경고)
    85~100 탐욕 → 🔴 빨강 (심리 극단 상단)
    ※ CSS 클래스명은 기존 5단계 색상 시맨틱 유지 (fg-extreme-fear/fear/neutral/greed/extreme-greed) */
-.fear-mini.fg-extreme-fear { background:rgba(147,51,234,.08);  border-color:rgba(147,51,234,.35); }
-.fear-mini.fg-extreme-fear .fm-status{ background:rgba(147,51,234,.2);  color:#9333ea; }
+.fear-mini.fg-extreme-fear { background:rgba(100,116,139,.08);  border-color:rgba(100,116,139,.35); }  /* [S961] 공포/침체권 보라→회색(완전침체·사망) */
+.fear-mini.fg-extreme-fear .fm-status{ background:rgba(100,116,139,.2);  color:var(--c-gray); }
 .fear-mini.fg-fear         { background:rgba(59,130,246,.07);  border-color:rgba(59,130,246,.3); }
 .fear-mini.fg-fear         .fm-status{ background:rgba(59,130,246,.2);  color:#2563eb; }
 .fear-mini.fg-neutral      { background:rgba(34,197,94,.07);   border-color:rgba(34,197,94,.3); }
@@ -345,6 +357,18 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .fear-mini.k-danger  .fm-status{ background:rgba(239,68,68,.22);  color:#dc2626; }
 .fear-mini.k-panic   { background:rgba(220,38,38,.1);    border-color:rgba(220,38,38,.5); }
 .fear-mini.k-panic   .fm-status{ background:rgba(220,38,38,.3);   color:#fff; }
+/* [S961] 카드 큰 수치색 = 배지 상태색 동기화 (수치가 배지랑 따로 놀던 문제) */
+.fear-mini.fg-extreme-fear  .fm-value{ color:var(--c-gray); }
+.fear-mini.fg-fear          .fm-value{ color:var(--c-blue); }
+.fear-mini.fg-neutral       .fm-value{ color:var(--c-green); }
+.fear-mini.fg-greed         .fm-value{ color:var(--c-orange); }
+.fear-mini.fg-extreme-greed .fm-value{ color:var(--c-red); }
+.fear-mini.k-calm    .fm-value{ color:#16a34a; }
+.fear-mini.k-normal  .fm-value{ color:#65a30d; }
+.fear-mini.k-caution .fm-value{ color:var(--c-yellow); }
+.fear-mini.k-warning .fm-value{ color:var(--c-orange); }
+.fear-mini.k-danger  .fm-value{ color:var(--c-red); }
+.fear-mini.k-panic   .fm-value{ color:var(--c-red); }
 
 /* 🔥 오늘의 핫픽 (S126: 하단 배치 · 섹터 전용) */
 .hotpick-wrap{
@@ -372,8 +396,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .hotpick-chip .hp-emo{font-size:13px;line-height:1;}
 .hotpick-chip .hp-name{font-weight:700;}
 .hotpick-chip .hp-chg{font-family:'Outfit',monospace;font-weight:700;margin-left:2px;}
-.hotpick-chip .hp-chg.up{color:var(--buy);}
-.hotpick-chip .hp-chg.dn{color:var(--sell);}
+.hotpick-chip .hp-chg.up{color:var(--c-red);}   /* [S961] 시세 상승=빨강(한국식) */
+.hotpick-chip .hp-chg.dn{color:var(--c-blue);}  /* 하락=파랑 */
 
 /* 🔥 (옛 상단 바 — S126에서 미사용, 하위 호환 위해 숨김 유지) */
 .hot-strip{display:none !important;}
@@ -501,8 +525,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
   overflow:hidden;
   min-width:0;
 }
-.dc-summary .up{color:var(--buy);font-weight:600;}
-.dc-summary .dn{color:var(--sell);font-weight:600;}
+.dc-summary .up{color:var(--c-red);font-weight:600;}   /* [S961] 시세 상승=빨강(한국식) */
+.dc-summary .dn{color:var(--c-blue);font-weight:600;}  /* 하락=파랑 */
 .dc-summary .mut{color:var(--text3);}
 .dc-summary.err{color:var(--text3);font-style:italic;}
 
@@ -542,36 +566,12 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .dm-name{color:var(--text);flex:1;font-weight:500;}
 .dm-val{color:var(--text);font-family:'Outfit',monospace;font-weight:600;text-align:right;min-width:70px;}
 .dm-chg{font-family:'Outfit',monospace;font-weight:700;text-align:right;min-width:62px;font-size:12px;}
-.dm-chg.up{color:var(--buy);}
-.dm-chg.dn{color:var(--sell);}
+.dm-chg.up{color:var(--c-red);}   /* [S961] 시세 상승=빨강(한국식) */
+.dm-chg.dn{color:var(--c-blue);}  /* 하락=파랑 */
 .dm-chg.mut{color:var(--text3);}
 
-/* [S291] B 그룹 (원자재/매크로) — 한국 컨벤션: 상승=빨강, 하락=파랑 */
-/* A 그룹 (지수/섹터/코인)은 글로벌 표준: 상승=녹색, 하락=빨강 (기본값 유지) */
-.dash-card[data-cat="macro"]      .dc-summary .up,
-.dash-card[data-cat="energy"]     .dc-summary .up,
-.dash-card[data-cat="metal"]      .dc-summary .up,
-.dash-card[data-cat="industrial"] .dc-summary .up,
-.dash-card[data-cat="agri"]       .dc-summary .up { color: var(--sell) !important; }
-
-.dash-card[data-cat="macro"]      .dc-summary .dn,
-.dash-card[data-cat="energy"]     .dc-summary .dn,
-.dash-card[data-cat="metal"]      .dc-summary .dn,
-.dash-card[data-cat="industrial"] .dc-summary .dn,
-.dash-card[data-cat="agri"]       .dc-summary .dn { color: #3b82f6 !important; }
-
-/* 모달 본문 — openDashModal()에서 #dashModal에 data-cat 설정 */
-.dash-modal[data-cat="macro"]      .dm-chg.up,
-.dash-modal[data-cat="energy"]     .dm-chg.up,
-.dash-modal[data-cat="metal"]      .dm-chg.up,
-.dash-modal[data-cat="industrial"] .dm-chg.up,
-.dash-modal[data-cat="agri"]       .dm-chg.up { color: var(--sell) !important; }
-
-.dash-modal[data-cat="macro"]      .dm-chg.dn,
-.dash-modal[data-cat="energy"]     .dm-chg.dn,
-.dash-modal[data-cat="metal"]      .dm-chg.dn,
-.dash-modal[data-cat="industrial"] .dm-chg.dn,
-.dash-modal[data-cat="agri"]       .dm-chg.dn { color: #3b82f6 !important; }
+/* [S961] S291 A/B 이중 컨벤션 폐기 — 시세 전면 한국식(상승=빨강/하락=파랑)으로 통일.
+   base 규칙(.dc-summary/.dm-chg의 .up=빨강/.dn=파랑)이 곧 한국식이라, 기존 원자재/매크로 오버라이드는 불필요 → 제거. */
 .dm-section{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;padding:10px 4px 4px;letter-spacing:.5px;}
 .dm-empty{padding:40px 20px;text-align:center;font-size:12px;color:var(--text3);}
 .dm-note{font-size:10px;color:var(--text3);padding:8px 4px;line-height:1.5;}
@@ -639,7 +639,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .fmd-chip.s-danger { background:rgba(220,38,38,.12); color:#dc2626; border-color:rgba(220,38,38,.3); }
 .fmd-chip.s-panic  { background:rgba(220,38,38,.2);  color:#991b1b; border-color:rgba(220,38,38,.45); font-weight:700; }
 /* F&G 5단계 색상 (양방향) */
-.fmd-chip.fg-extreme-fear  { background:rgba(147,51,234,.1); color:#9333ea; border-color:rgba(147,51,234,.3); }
+.fmd-chip.fg-extreme-fear  { background:rgba(100,116,139,.1); color:var(--c-gray); border-color:rgba(100,116,139,.3); }  /* [S961] 보라→회색 */
 .fmd-chip.fg-fear          { background:rgba(59,130,246,.1); color:#2563eb; border-color:rgba(59,130,246,.3); }
 .fmd-chip.fg-neutral       { background:rgba(34,197,94,.1);  color:#16a34a; border-color:rgba(34,197,94,.3); }
 .fmd-chip.fg-greed         { background:rgba(249,115,22,.1); color:#ea580c; border-color:rgba(249,115,22,.3); }
@@ -4122,7 +4122,7 @@ const SX={
   // 코인 F&G (0~100, 높을수록 탐욕)
   // ── 공포탐욕지수 5단계 매핑 (S132c v5.0: 한국+코인 통일)
   //    0~14 공포 / 15~24 경계 / 25~74 중립 / 75~84 과열 / 85~100 탐욕
-  //    CSS 클래스명은 기존 색상 시맨틱 유지 (fg-extreme-fear → 보라 = 공포)
+  //    CSS 클래스명은 기존 색상 시맨틱 유지 (fg-extreme-fear → [S961] 회색 = 공포/완전침체)
   _getCryptoFGStatus(val){
     if(val == null) return { label:'—', cls:'', kor:'—' };
     if(val <= 14)   return { label:'Fear',          cls:'fg-extreme-fear',  kor:'공포' };
@@ -4153,7 +4153,7 @@ const SX={
     if(pctl >= 65)    return { label:'강세권', cls:'fg-greed' };          // 주황
     if(pctl >= 35)    return { label:'중립권', cls:'fg-neutral' };        // 녹색
     if(pctl >= 15)    return { label:'약세권', cls:'fg-fear' };           // 파랑
-    return                  { label:'침체권', cls:'fg-extreme-fear' };   // 보라
+    return                  { label:'침체권', cls:'fg-extreme-fear' };   // [S961] 회색(완전침체)
   },
 
   // [S240] 모달 백분위 강조용 색상 헬퍼
@@ -4166,7 +4166,7 @@ const SX={
     if(pctl >= 65)   return '#ea580c';  // 주황 (강세권)
     if(pctl >= 35)   return '#16a34a';  // 녹색 (중립권)
     if(pctl >= 15)   return '#2563eb';  // 파랑 (약세권)
-    return                  '#9333ea';  // 보라 (침체권)
+    return                  '#64748b';  // [S961] 회색 (침체권·완전침체)
   },
   // [S240] 변동성용 (단방향: 낮을수록 안정)
   _getKospiVolPctlColor(pctl){
