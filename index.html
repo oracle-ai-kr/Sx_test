@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 -->
+<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 --><!-- [S964] KOSPI 큰수치=변동성 원자료·상위%제거 · 코인 도미넌스 칩 우측배치 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -314,6 +314,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 }
 /* S134b: sub를 value 다음 줄로 (가로 flex → 세로 flex) — 우측 쏠림 해소 + 높이 축소 */
 .fm-body{display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+/* [S964] 코인 카드만 body 가로 — 좌:23/100, 우:도미넌스 칩(극단공포 배지 아래 정렬) */
+#fearCoin .fm-body{flex-direction:row;align-items:center;justify-content:space-between;gap:6px;}
 .fm-value{
   font-family:'Outfit','Noto Sans KR',sans-serif;
   font-size:22px;font-weight:800;line-height:1;letter-spacing:-.5px;
@@ -4214,22 +4216,19 @@ const SX={
     if(korCard){
       const comp = kFG?.components;
       if(comp && comp.volPctl != null){
-        // [S963] 변동성 앞세우기 — 침체권 착시 해소(역대 불장인데 괴리Pctl 낮아 침체권 오표기).
-        //   큰 수치=변동성 Pctl(상위%), 배지=변동성 상태(불안 등), 괴리는 sub로 강등.
+        // [S963→S964] 변동성 앞세우기 — 침체권 착시 해소(역대 불장인데 괴리Pctl 낮아 침체권 오표기).
+        //   큰 수치=변동성 원자료(volPct·연율화%), 배지=변동성 상태(Pctl 기준·불안 등), 괴리는 sub로 강등. 상위% 표기 제거.
         const volPctl = comp.volPctl;
         const st = this._getKospiVolStatus(volPctl);
         korCard.className = `fear-mini ${st.cls}`;
-        if(korValue) korValue.innerHTML = `<span style="font-size:12px;font-weight:600;color:var(--text2);margin-right:4px">변동성</span>${_sxEsc(volPctl)}%`;
+        if(korValue) korValue.innerHTML = `<span style="font-size:12px;font-weight:600;color:var(--text2);margin-right:4px">변동성</span>${_sxEsc(comp.volPct)}%`;
         if(korStatus) korStatus.textContent = st.label;
         if(korSub){
           const momPct = comp.momentumPct;
           if(momPct != null){
             const momNum = parseFloat(momPct);
             const momStr = (momNum >= 0 ? '+' : '') + momPct + '%';
-            const momPctl = comp.momentumPctl;
-            korSub.textContent = (momPctl != null)
-              ? `125일 평균 대비 ${momStr} · 상위 ${momPctl}%`
-              : `125일 평균 대비 ${momStr}`;
+            korSub.textContent = `125일 평균 대비 ${momStr}`;
           } else {
             korSub.textContent = '125일 평균 대비 괴리';
           }
