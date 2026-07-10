@@ -7,7 +7,7 @@
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
 <script src="sx_analysis_engine.js?v=42"></script>
 <script src="sx_recipe_core.js?v=4"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
-<script src="sx_interpret.js?v=41"></script>
+<script src="sx_interpret.js?v=42"></script>
 <script src="sx_chart.js?v=19"></script>
 <script src="sx_conditions.js?v=18"></script>
 <script src="sx_oracle.js?v=1"></script>
@@ -49,7 +49,7 @@
 <script src="sx_project_c.js?v=10"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=323"></script>
+<script src="sx_render.js?v=324"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1007,7 +1007,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .itp-label.neutral{background:var(--hold-bg);color:var(--hold);border:1px solid var(--hold-border)}
 .itp-label.warning{background:rgba(255,140,0,.1);color:#ff8c00;border:1px solid rgba(255,140,0,.2)}
 .itp-label.danger{background:var(--sell-bg);color:#d32f2f;border:1px solid rgba(211,47,47,.2)}
-.itp-label.mixed{background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.25)}
+.itp-label.mixed{background:rgba(147,51,234,.1);color:#9333ea;border:1px solid rgba(147,51,234,.25)} /* [S965] 혼조/mixed = 보라 팔레트 통일(#a855f7→#9333ea) */
 /* S56: 공시 배지 */
 .disc-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:8px;font-weight:700;margin:1px 2px;letter-spacing:-.2px}
 .disc-badge.danger{background:rgba(211,47,47,.15);color:#d32f2f;border:1px solid rgba(211,47,47,.25)}
