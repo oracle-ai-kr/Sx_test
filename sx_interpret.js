@@ -246,7 +246,7 @@ SXI.ma = function(arrangement){
   if(!arrangement) return null;
   if(arrangement==='bullish') return {label:'정배열',tone:'bullish',text:'단기 이평선이 장기 위에 정렬된 상승 추세입니다. 눌림목 매수 전략에 적합하며, MA20 부근 지지 시 재진입 구간이 됩니다. MA20 이탈 시 눌림 해석이 약화됩니다.'};
   if(arrangement==='bearish') return {label:'역배열',tone:'bearish',text:'단기 이평선이 장기 아래에 정렬된 하락 추세입니다. 반등이 나와도 이평선이 저항으로 작용하므로, 추세 전환 확인 전 매수는 위험합니다.'};
-  return {label:'혼조',tone:'neutral',text:'이평선이 뒤엉켜 있어 추세 전환기일 수 있습니다. 방향이 정리될 때까지 관망이 유리합니다.'};
+  return {label:'혼조',tone:'mixed',text:'이평선이 뒤엉켜 있어 추세 전환기일 수 있습니다. 방향이 정리될 때까지 관망이 유리합니다.'};  // [S965] neutral→mixed(보라)
 };
 
 SXI.atr = function(ratio){
@@ -1419,7 +1419,7 @@ SXI.maAlignment = function(ind){
   if(ma20&&last>ma20){const d=((last-ma20)/ma20)*100;if(d<2) srNote=`현재가 MA20 바로 위(${d.toFixed(1)}%) — 지지 테스트 중`;}
   else if(ma20&&last<ma20){const d=((ma20-last)/last)*100;if(d<2) srNote=`현재가 MA20 바로 아래(${d.toFixed(1)}%) — 저항 테스트 중`;}
   const arr=fullBull?'완전 정배열 (5>20>60>120)':fullBear?'완전 역배열':bull?'정배열 (5>20>60)':bear?'역배열':'혼조';
-  const tone=fullBull||bull?'bullish':fullBear||bear?'bearish':'neutral';
+  const tone=fullBull||bull?'bullish':fullBear||bear?'bearish':'mixed';  // [S965] 혼조 케이스 neutral→mixed(보라). 정배열/역배열 불변.
   let text=`【${arr}】\n`;
   lines.forEach(l=>{text+=`${l.n}: ${(+l.v).toLocaleString()} — 현재가 ${l.ab?'위':'아래'} (${l.d}%)\n`;});
   if(gcDc) text+=gcDc+'\n';
@@ -4324,7 +4324,7 @@ SXI.sectorRadarGuide = function(radarData) {
   const momMap = {
     strong_bull: { label: '강한 상승', color: '#f44336' },
     bull: { label: '상승 우위', color: '#ff5722' },
-    neutral: { label: '혼조', color: '#9e9e9e' },
+    neutral: { label: '혼조', color: '#9333ea' },
     bear: { label: '하락 우위', color: '#2196f3' },
     strong_bear: { label: '강한 하락', color: '#1565c0' }
   };
