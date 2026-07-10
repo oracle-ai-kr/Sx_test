@@ -179,7 +179,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S950</div>
+    <div class="tb-build">S952</div>
   </div>
 
   <div class="scroll-area">
@@ -240,6 +240,20 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="st-row"><span class="k">마지막 갱신</span><span class="v" id="atUpdated">—</span></div>
       <div class="st-row"><span class="k">최근 주문</span><span class="v" id="atOrders">—</span></div>
       <div id="atOrderErr"></div>
+    </div>
+
+    <!-- ═══ [S951] 오늘의 매수 후보 (다음 장중 cron에 시장가 매수될 종목 미리보기) ═══ -->
+    <div class="card" id="atBuyPreviewCard" style="display:none;">
+      <div class="card-title">🛒 오늘의 매수 후보 <span class="tag" id="atBuyCount">·</span></div>
+      <div id="atBuyList"></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">votes≥1 레시피 발동 종목 · 다음 장중 cron(09:05~15:05)에 <b>시장가</b> 매수 · 이미 보유분·매수완료분은 자동 제외</div>
+    </div>
+
+    <!-- ═══ [S952] 차단 목록 (매수취소/강제청산) ═══ -->
+    <div class="card" id="atBlockCard" style="display:none;">
+      <div class="card-title">🚫 차단 목록 <span class="tag" id="atBlockCount">·</span></div>
+      <div id="atBlockList"></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">차단 종목 = <b>매수 안 함 + 보유 시 강제 청산</b>(다음 장중 cron 또는 ⚡ 지금 실행 시) · 재허용하면 해제</div>
     </div>
 
     <!-- ═══ [S933] 포트폴리오 (KIS 잔고/손익) ═══ -->
@@ -347,7 +361,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S950</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S952</div>
   </div>
 </div>
 
@@ -408,6 +422,8 @@ function atRender(d){
     const s = d.signal.summary || {};
     _$('atLastSig').textContent = String(d.signal.asof).slice(0,10) + ' · BUY ' + (s.BUY!=null?s.BUY:0);
   } else _$('atLastSig').textContent = '—';
+  atRenderBuyPreview(d.signal); // [S951] 오늘의 매수 후보
+  _atBlocklist = d.blocklist || []; atRenderBlocklist(); // [S952] 차단 목록
   _$('atUpdated').textContent = atRel(st.updatedAt || cmd.at);
   if(d.orders && d.orders.count){
     const r = d.orders.recent && d.orders.recent[0];
@@ -574,8 +590,15 @@ function atRenderPortfolio(pf){
     h+='<div style="text-align:right;">'+_atWon(x.avgPrice)+'</div>';
     h+='<div style="text-align:right;">'+_atWon(x.curPrice)+'</div>';
     h+='<div style="text-align:right;color:'+c+';line-height:1.3;">'+_atPl(x.plAmt)+'<br><span style="font-size:9.5px;">'+_atPct(x.plRate)+'</span></div>';
+    if(x.name) _atNameMap[x.code]=x.name; // [S952] 코드→이름
   }
   h+='</div>';
+  // [S952] 보유 종목 즉시 청산 버튼 (차단 → 다음 cron/⚡에 강제 매도)
+  if(hs.length){
+    h+='<div style="margin-top:11px;padding-top:9px;border-top:1px solid var(--border);"><div style="font-size:10px;color:var(--text3);margin-bottom:6px;">🚨 즉시 청산 (악재/공시 대응)</div><div style="display:flex;flex-wrap:wrap;gap:6px;">';
+    for(const x of hs){ h+='<button onclick="atBlock(\''+_esc(x.code)+'\',\''+_esc((x.name||x.code)).replace(/\x27/g,"")+'\',true)" style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid var(--sell-border);background:var(--sell-bg);color:var(--sell);cursor:pointer;">🚨 '+_esc(x.name||x.code)+' 청산</button>'; }
+    h+='</div></div>';
+  }
   if(t.cash) h+='<div style="font-size:10.5px;color:var(--text3);margin-top:8px;">예수금 '+_atWon(t.cash)+(t.netAsset?(' · 순자산 '+_atWon(t.netAsset)):'')+'</div>';
   if(pf.refreshedAt) h+='<div style="text-align:right;font-size:10px;color:var(--text3);margin-top:4px;">갱신 '+atRel(pf.refreshedAt)+'</div>';
   body.innerHTML=h;
@@ -770,6 +793,57 @@ async function atShowSetup(){
   }catch(e){ if(msg)msg.textContent='연결 실패: '+(e.message||e); }
 }
 // 진입: 토큰 있으면 폴링, 없으면 로그인 게이트
+// ── [S952] 차단 목록 (매수취소 + 강제청산) ──
+let _atBlocklist=[], _atNameMap={};
+async function atBlock(code, name, isHeld){
+  const nm=name||code;
+  const msg = isHeld ? ('🚨 보유 중인 "'+nm+'"을(를) 차단·청산합니다.\n\n다음 장중 cron(또는 ⚡ 지금 실행)에 시장가 강제 매도됩니다.\n계속할까요?')
+                     : ('"'+nm+'"을(를) 매수 후보에서 제외합니다.\n(차단 중엔 매수 안 함) 계속할까요?');
+  if(!confirm(msg)) return;
+  await _atBlockCall('add', code);
+}
+async function atUnblock(code){ if(!confirm('"'+(_atNameMap[code]||code)+'" 차단을 해제(재허용)할까요?')) return; await _atBlockCall('remove', code); }
+async function _atBlockCall(action, code){
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/blocklist',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify({action,code}), signal:AbortSignal.timeout(12000) });
+    const d=await r.json();
+    if(d && d.ok){ _atBlocklist=d.blocklist||[]; atRenderBlocklist(); atRefresh(); }
+    else if(d && d.needAuth){ _atToken=''; atShowGate(); }
+    else alert('실패: '+((d&&d.error)||'알수없음'));
+  }catch(e){ alert('오류: '+(e&&e.message)); }
+}
+function atRenderBlocklist(){
+  const card=_$('atBlockCard'), list=_$('atBlockList'), cnt=_$('atBlockCount');
+  if(!card||!list) return;
+  const b=_atBlocklist||[];
+  if(!b.length){ card.style.display='none'; return; }
+  card.style.display='';
+  if(cnt) cnt.textContent=b.length+'종목';
+  list.innerHTML=b.map(code=>'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="flex:1;font-weight:600;font-size:12px;">'+_esc(_atNameMap[code]||code)+' <span style="font-size:10px;color:var(--text3);font-weight:400;">'+_esc(code)+'</span></span><button onclick="atUnblock(\''+_esc(code)+'\')" style="font-size:11px;font-weight:600;padding:4px 11px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--accent2);cursor:pointer;">재허용</button></div>').join('');
+}
+
+// ── [S951] 오늘의 매수 후보 (buyList → 카드) ──
+function atRenderBuyPreview(sig){
+  const card=_$('atBuyPreviewCard'), list=_$('atBuyList'), cnt=_$('atBuyCount');
+  if(!card||!list) return;
+  const buys=(sig&&sig.buyList)||[];
+  if(!buys.length){ card.style.display='none'; return; }
+  card.style.display='';
+  if(cnt) cnt.textContent=buys.length+'종목';
+  list.innerHTML=buys.map(b=>{
+    if(b.name) _atNameMap[b.code]=b.name; // [S952] 코드→이름
+    const vc = b.votes>=4?'var(--buy)':(b.votes>=2?'var(--accent2)':'var(--text2)');
+    const nm = _esc(b.name||b.code);
+    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">'+nm+'</span> <span style="font-size:10px;color:var(--text3);">'+_esc(b.code)+'</span>'
+      +(b.provisional?' <span style="font-size:9px;color:var(--hold);border:1px solid var(--hold);border-radius:4px;padding:1px 4px;">OOS미확정</span>':'')+'</div>'
+      +'<div style="text-align:right;"><span style="font-size:12px;font-weight:800;color:'+vc+';">votes '+b.votes+'</span>'
+      +(b.realK?'<span style="font-size:9px;color:var(--text3);display:block;">겹침 '+b.realK+'</span>':'')+'</div>'
+      +'<button onclick="atBlock(\''+_esc(b.code)+'\',\''+nm.replace(/\x27/g,"")+'\',false)" title="매수 제외" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;line-height:1;">🚫</button>'
+      +'</div>';
+  }).join('');
+}
+
 // ── [S949] 청산 설정 UI (exit_config ↔ /state·/sx/autotrade/exit-config) ──
 let _exMode='ma'; // [S950] 기본 최대보유=MA5×20
 function _exTabStyle(btn,on){ if(!btn)return; btn.style.borderColor=on?'var(--accent)':'var(--border)'; btn.style.background=on?'var(--accent)':'transparent'; btn.style.color=on?'#fff':'var(--text2)'; }
