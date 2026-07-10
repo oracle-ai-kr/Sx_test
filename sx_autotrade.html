@@ -179,7 +179,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S952</div>
+    <div class="tb-build">S953</div>
   </div>
 
   <div class="scroll-area">
@@ -292,6 +292,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         </span>
       </div>
       <button type="button" id="atBtnExec" onclick="atExecNow()" style="width:100%;margin-top:10px;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:transparent;color:var(--accent2);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">⚡ 지금 실행 (신호→판정)</button>
+      <div id="atCtrlLiquidate"></div>
       <div style="font-size:11px;color:var(--text3);margin-top:9px;line-height:1.5;">live는 하드게이트(로드맵 4) 통과 전 차단 · 긴급정지 최우선 · 명령은 Workers KV에 저장</div>
       <div style="text-align:right;margin-top:10px;"><span onclick="atLogout()" style="font-size:11px;color:var(--text3);text-decoration:underline;cursor:pointer;">🚪 로그아웃</span></div>
     </div>
@@ -361,7 +362,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S952</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S953</div>
   </div>
 </div>
 
@@ -422,7 +423,9 @@ function atRender(d){
     const s = d.signal.summary || {};
     _$('atLastSig').textContent = String(d.signal.asof).slice(0,10) + ' · BUY ' + (s.BUY!=null?s.BUY:0);
   } else _$('atLastSig').textContent = '—';
-  atRenderBuyPreview(d.signal); // [S951] 오늘의 매수 후보
+  _atHeldCodes = new Set(((d.portfolio && d.portfolio.holdings) || []).map(h=>String(h.code))); // [S953] 보유코드(후보 필터)
+  atRenderBuyPreview(d.signal); // [S951] 오늘의 매수 후보 (보유분 제외)
+  atRenderControlLiquidate(d.portfolio); // [S953] 제어 카드 청산 버튼
   _atBlocklist = d.blocklist || []; atRenderBlocklist(); // [S952] 차단 목록
   _$('atUpdated').textContent = atRel(st.updatedAt || cmd.at);
   if(d.orders && d.orders.count){
@@ -593,12 +596,6 @@ function atRenderPortfolio(pf){
     if(x.name) _atNameMap[x.code]=x.name; // [S952] 코드→이름
   }
   h+='</div>';
-  // [S952] 보유 종목 즉시 청산 버튼 (차단 → 다음 cron/⚡에 강제 매도)
-  if(hs.length){
-    h+='<div style="margin-top:11px;padding-top:9px;border-top:1px solid var(--border);"><div style="font-size:10px;color:var(--text3);margin-bottom:6px;">🚨 즉시 청산 (악재/공시 대응)</div><div style="display:flex;flex-wrap:wrap;gap:6px;">';
-    for(const x of hs){ h+='<button onclick="atBlock(\''+_esc(x.code)+'\',\''+_esc((x.name||x.code)).replace(/\x27/g,"")+'\',true)" style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid var(--sell-border);background:var(--sell-bg);color:var(--sell);cursor:pointer;">🚨 '+_esc(x.name||x.code)+' 청산</button>'; }
-    h+='</div></div>';
-  }
   if(t.cash) h+='<div style="font-size:10.5px;color:var(--text3);margin-top:8px;">예수금 '+_atWon(t.cash)+(t.netAsset?(' · 순자산 '+_atWon(t.netAsset)):'')+'</div>';
   if(pf.refreshedAt) h+='<div style="text-align:right;font-size:10px;color:var(--text3);margin-top:4px;">갱신 '+atRel(pf.refreshedAt)+'</div>';
   body.innerHTML=h;
@@ -794,7 +791,17 @@ async function atShowSetup(){
 }
 // 진입: 토큰 있으면 폴링, 없으면 로그인 게이트
 // ── [S952] 차단 목록 (매수취소 + 강제청산) ──
-let _atBlocklist=[], _atNameMap={};
+let _atBlocklist=[], _atNameMap={}, _atHeldCodes=new Set();
+// [S953] 제어 카드 청산 버튼 — 보유 종목 즉시 청산(악재/공시). 매매 제어를 제어 카드로 일원화.
+function atRenderControlLiquidate(pf){
+  const box=_$('atCtrlLiquidate'); if(!box) return;
+  const hs=(pf&&pf.holdings)||[];
+  if(!hs.length){ box.innerHTML=''; return; }
+  let h='<div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--border);"><div style="font-size:10.5px;color:var(--text3);margin-bottom:7px;">🚨 즉시 청산 (악재/공시 대응 · 보유 종목만 강제 매도)</div><div style="display:flex;flex-wrap:wrap;gap:6px;">';
+  for(const x of hs){ h+='<button onclick="atBlock(\''+_esc(x.code)+'\',\''+_esc((x.name||x.code)).replace(/\x27/g,"")+'\',true)" style="font-size:11px;font-weight:700;padding:6px 11px;border-radius:7px;border:1px solid var(--sell-border);background:var(--sell-bg);color:var(--sell);cursor:pointer;">🚨 '+_esc(x.name||x.code)+' 청산</button>'; }
+  h+='</div></div>';
+  box.innerHTML=h;
+}
 async function atBlock(code, name, isHeld){
   const nm=name||code;
   const msg = isHeld ? ('🚨 보유 중인 "'+nm+'"을(를) 차단·청산합니다.\n\n다음 장중 cron(또는 ⚡ 지금 실행)에 시장가 강제 매도됩니다.\n계속할까요?')
@@ -826,7 +833,7 @@ function atRenderBlocklist(){
 function atRenderBuyPreview(sig){
   const card=_$('atBuyPreviewCard'), list=_$('atBuyList'), cnt=_$('atBuyCount');
   if(!card||!list) return;
-  const buys=(sig&&sig.buyList)||[];
+  const buys=((sig&&sig.buyList)||[]).filter(b=>!_atHeldCodes.has(String(b.code))); // [S953] 보유 종목 제외(미보유만)
   if(!buys.length){ card.style.display='none'; return; }
   card.style.display='';
   if(cnt) cnt.textContent=buys.length+'종목';
