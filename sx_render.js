@@ -8019,7 +8019,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S966';
+  window.SX_BUILD='S967';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -12516,6 +12516,9 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       ${currentMarket==='kr' ? '<div id="sxInvestorRow" style="margin-top:5px;min-height:0"></div>' : ''}
       <div id="discBadgeArea" style="margin-top:4px;min-height:0"></div>
       ${scanTimeStr||analTimeStr?`<div style="font-size:8px;color:var(--text3);margin-top:4px">${scanTimeStr?'검색 '+scanTimeStr:''}${scanTimeStr&&analTimeStr?' · ':''}${analTimeStr?'분석 '+analTimeStr:''}</div>`:''}
+    </div>
+    <div class="anal-header-card" style="margin-top:10px">
+      <!-- [S967] ↑헤드카드(식별·시세·밸류·수급) 종료 / ↓점수축 카드 분리 — 반등전환/추세방향/추가상승+엔진판단검증 상세. (해석 재프레임은 후속 단계) -->
       <!-- [업종표시] 위치 이동: 종목코드 바로 아래로 옮김 (anal-stock-code 다음 라인 참조) -->
       ${(()=>{
         const _analSc = qs ? (qs.readyScore ?? qs.score) : scores.total; // S95: 소형 배지
