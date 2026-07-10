@@ -3815,7 +3815,7 @@ function _buildReboundCycleCard(stock, indicators){
     if(_dom === 'flat'){
       var _absSum = 0; for(_j=1;_j<pts.length;_j++) _absSum += Math.abs(_rcAngDelta(pts[_j-1].ang, pts[_j].ang));
       if(_absSum < 25){ _ico='•'; _col='var(--text3)'; _txt='최근 '+_span+'봉 제자리 — '+_oP.emoji+_oP.ko+' 권역'; }
-      else { _ico='↔'; _col='#d97706'; _txt='왕복(혼조) — '+_oP.emoji+_oP.ko+' 권역'+(_hasRev?' · ⚠역행 구간':''); }
+      else { _ico='↔'; _col='#9333ea'; _txt='왕복(혼조) — '+_oP.emoji+_oP.ko+' 권역'+(_hasRev?' · ⚠역행 구간':''); }  /* [S965] 혼조→보라 */
     }
     else {
       _ico = (_dom==='fwd') ? '↻' : '↺';
@@ -8019,7 +8019,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S918';
+  window.SX_BUILD='S965';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } };
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11342,7 +11342,7 @@ function _sxbHTML(){
     if(_svB.length){
       // [S476→S477] 안전필터 배지 — 색(보라)·모양·라벨 통일. 원천이 '안전필터'임을 한눈에 식별.
       //   강등(capReason=진입보류) vs 위반만 구분은 라벨에서 빼고 클릭 토스트(_sxbSafetyWhy 헤더)에서 안내.
-      const _SC = '#a855f7';                                             // 보라 통일
+      const _SC = '#ec4899';                                             // [S965] 안전필터 보라→핑크(보라는 혼조 전용)
       const _label = `🔒 안전필터 ${_svB.length}건 감지`;
       _safetyBadge = `<span class="sxb-badge" style="color:${_SC};background:${_SC}1A;border:1px solid ${_SC};cursor:pointer" onclick="event.stopPropagation();_sxbSafetyWhy && _sxbSafetyWhy()">${_label}</span>`;
     }
@@ -11350,7 +11350,7 @@ function _sxbHTML(){
   // [S456] 매수신호 혼조 배지 — A(분석엔진)와 B(BT)가 당일/최근2봉에 반대로 행동. 주황색, 클릭 시 사유 토스트.
   let _mixBadge = '';
   if(B.mixWarn && B.mixWarn.on){
-    const _MC='#f59e0b';
+    const _MC='#9333ea';   // [S965] 매수신호 혼조 주황→보라
     _mixBadge = `<span class="sxb-badge" style="color:${_MC};background:${_MC}1A;border:1px solid ${_MC};cursor:pointer" onclick="event.stopPropagation();_sxbMixWhy && _sxbMixWhy()">🔀 매수신호 혼조</span>`;
   }
   // [S361→S595] 헤드 큰 서클 점수 색 — 5분류 방향 기준(정규화 distDir, 라벨과 톤 일치)
@@ -11485,7 +11485,7 @@ function _classifyBoardDist(groups){
   let distDir, dot, label, color;
   if(ndiff >= 4){       distDir='strongUp';   dot='🟢'; label='강한상승'; color='var(--buy)'; }
   else if(ndiff >= 2){  distDir='up';         dot='🔵'; label='약한상승'; color='var(--accent)'; }
-  else if(ndiff >= -1){ distDir='flat';       dot='⚪'; label='방향혼조'; color='#94a3b8'; }
+  else if(ndiff >= -1){ distDir='flat';       dot='🟣'; label='방향혼조'; color='#9333ea'; }  /* [S965] 혼조→보라 */
   else if(ndiff >= -3){ distDir='down';       dot='🟠'; label='약한하락'; color='#f59e0b'; }
   else {                distDir='strongDown'; dot='🔴'; label='강한하락'; color='var(--sell)'; }
   return { greens, reds, diff, ndiff, nContrib, distDir, dot, label, color };
