@@ -1,6 +1,9 @@
 // ════════════════════════════════════════════════════════════
-//  SIGNAL X — Render Engine v7.10  [S968 · build 20260711 cache-bust]
+//  SIGNAL X — Render Engine v7.10  [S969 · build 20260711 cache-bust]
 //  [S968] 실패분석·전략 라이프사이클 fold를 카드2 → 단일검증 탭(sx_bt.js)으로 이관 (순수 UI·엔진/판정 무변경)
+//  [S969] 점수축 카드2(threeStageReport 판정 ~1000줄) + S69 실전가이드 → "레시피 해석 카드"로 대체.
+//         시즌1 판정→해석 전환(설계: SIGNALX_시즌1_해석전환_설계.md). 4요소 헬퍼 재조립, 판정숫자 제거, 이중ATR 참고.
+//         (외부 _pgShared/_swapVerdictHTML 계산 블록·orphan 핸들러는 무해 잔존 — S970 후속 정리 예정)
 // ════════════════════════════════════════════════════════════
 const BT_SUPPORTED_TF = {
   kr:   ['30m','60m','day','week','month'],   // 30분은 KIS 한정
@@ -8020,7 +8023,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S968';
+  window.SX_BUILD='S969';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -12519,1028 +12522,147 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       ${scanTimeStr||analTimeStr?`<div style="font-size:8px;color:var(--text3);margin-top:4px">${scanTimeStr?'검색 '+scanTimeStr:''}${scanTimeStr&&analTimeStr?' · ':''}${analTimeStr?'분석 '+analTimeStr:''}</div>`:''}
     </div>
     <div class="anal-header-card" style="margin-top:10px">
-      <!-- [S967] ↑헤드카드(식별·시세·밸류·수급) 종료 / ↓점수축 카드 분리 — 반등전환/추세방향/추가상승+엔진판단검증 상세. (해석 재프레임은 후속 단계) -->
-      <!-- [업종표시] 위치 이동: 종목코드 바로 아래로 옮김 (anal-stock-code 다음 라인 참조) -->
+      <!-- [S969] 레시피 해석 카드 — 구 점수축 카드2(threeStageReport 판정) + S69 실전가이드(_pgShared) 대체.
+           설계: SIGNALX_시즌1_해석전환_설계.md. 시즌1 = "레시피의 구도적 해석기"(판정 아님).
+           4요소: ①구도(_cv2TrendPosition·말) ②발동(_sxRecipeVotesCore·겹침) ③재료(_sxRecipeIngCore·해석단위 그룹) ④맥락(_cv2Confidence·겹침 base rate). Q1: 이중ATR 청산=행동 참고.
+           원칙: 판정숫자 없음 · 지어낸 서사 없음 · 측정된 재료/겹침/base rate만 · "현 기준하 보임". -->
       ${(()=>{
-        const _analSc = qs ? (qs.readyScore ?? qs.score) : scores.total; // S95: 소형 배지
-        const _btData = _getBtData(stock);
-        const _btScRaw = calcBtScore(_btData, stock);
-        const _btTrades2 = _getBtTotalTrades(stock);
-        const _btMkt = stock._mkt || stock.market || currentMarket;
-        const _btTfOk = _isBtSupportedTF(_btMkt, _analTF);
-        const _btNoData = !_btTfOk || _btScRaw == null;
-        const _btSc = _btNoData ? null : _btScRaw;
-        let _btReliLabel = '', _btReliColor = '';
-        if(!_btNoData){
-          if(_btTrades2 < BT_MIN_TRADES){ _btReliLabel='부족'; _btReliColor='var(--sell)'; }
-          else if(_btTrades2 < 30){ _btReliLabel='충족'; _btReliColor='var(--accent)'; }
-          else { _btReliLabel='충분'; _btReliColor='var(--buy)'; }
-        }
+        try{
+          // ── 데이터 소싱 (카드2 스코프: qs·indicators·stock·currentMarket) ──
+          const _rows = (indicators && indicators._advanced && Array.isArray(indicators._advanced.rows)) ? indicators._advanced.rows : null;
+          const _ind  = qs ? qs.ind : null;
+          const _mk   = (typeof currentMarket!=='undefined') ? currentMarket : 'kr';
+          if(!_rows || !_rows.length || !_ind){
+            return '<div style="font-size:11px;color:var(--text3);padding:4px 2px">🔍 레시피 해석 — 분석 데이터 대기 중 (일봉 재분석 시 표시)</div>';
+          }
+          const _idx = _rows.length - 1;
+          const _px  = (typeof stock.price==='number' && stock.price>0) ? stock.price : (_rows[_idx] ? _rows[_idx].close : 0);
 
-        const _mom = stock._scoreMomentum;
-        // S103-fix7 Phase3-B-4f.4: _momArrow 제거 — 버튼 내부에서 "xx 전이 N%"로 교체되어 더 이상 참조되지 않음.
-        //   3단리포트 ready/entry 섹션의 델타 표시는 _deltaTag(_readyDelta/_entryDelta/_trendDelta) 헬퍼가 담당 (중복 제거)
+          // ── 4요소 헬퍼 (전부 기존 SSOT) ──
+          const _pos   = (typeof _cv2TrendPosition==='function') ? _cv2TrendPosition(_ind, _rows, _idx) : null;   // ②구도(말)
+          const _votes = (typeof _sxRecipeVotesCore==='function') ? _sxRecipeVotesCore(_mk, _ind, _rows, _idx) : null; // 발동/겹침
+          const _ing   = (typeof _sxRecipeIngCore==='function')   ? _sxRecipeIngCore(_mk, _ind, _rows, _idx)   : null; // 재료 불켜짐
+          const _lt    = _ing ? _ing.lt : (_pos ? _pos.lt : null);
+          const _recipeScope = (_lt==='bull' || _lt==='bear');   // 레시피 적용 레짐 (mixed/off = 범위 밖)
+          const _conf  = (_votes && _recipeScope && typeof _cv2Confidence==='function') ? _cv2Confidence(_lt, _votes.realK, _votes.pure) : null; // ④맥락
 
-        const _3stageId = 'stage3_' + Math.random().toString(36).slice(2,8);
-        // S103-fix7 Phase3-B-4f.4: _analCls 제거 — 버튼 색상이 _timingBtnClr(polarity 기반)로 대체됨
-        const _btCls = _btSc!=null?(_btSc>=60?'buy':_btSc>=40?'hold':'sell'):'text3';
+          // ── 발동 상태 분류 ──
+          const _fired    = !!(_votes && _votes.pure && (_votes.votes|0) > 0);
+          const _mixed    = !!(_votes && _votes.mixed);
+          const _fakeOnly = !!(_votes && !_votes.pure && !_votes.mixed && (_votes.fakeK|0) > 0);
+          const _ripe     = !!(_ing && !_fired && !_mixed && (_votes ? (_votes.realK|0)===0 : true) && _ing.on >= 5); // 익는중
 
-        // S103-fix7 Phase3-B-4f.4: 타이밍 라벨을 C 판정 기반으로 산출 (v3.0 3.4 표, 9종 전체 커버)
-        //   이전: _mom.delta <= 0 → 매도 검토 / 아니면 진입 검토 (모멘텀만 기반, C와 괴리 가능)
-        //   신규: SXC.getTimingButtonLabel(svVerdict.action) — 보유 5종 중 매도완료 제외 → 매도 검토, 나머지 → 진입 검토
-        const _svAction4f = stock._svVerdict ? stock._svVerdict.action : null;
-        const _timingLabel = SXC.getTimingButtonLabel(_svAction4f);
+          // ── 8색 팔레트 (S961-966 SSOT) ──
+          const C = { blue:'#2563eb', green:'#16a34a', orange:'#ea580c', red:'#dc2626', gray:'#64748b', purple:'#9333ea', yellow:'#ca8a04' };
 
-        // S127: C 전이 확률(_transition) 계산 제거 — 버튼 문구를 "추세 N · 레벨"로 교체하며 불필요해짐
-        //   [제거된 계산] const _svRr4f = SXE.calcTpSlRr(...).rr
-        //                 const _transition = SXC.calcVerdictTransition(_svAction4f, _analSc, _mom, _svRr4f, stock._btState)
-        //   [보존] SXC.calcVerdictTransition 함수 자체는 sx_project_c.js에 유지 (다른 호출부 없음, 향후 복원 시 사용 가능)
-        //   [효과] 매 분석탭 렌더 시 calcTpSlRr + calcVerdictTransition 2회 호출 절약
+          // ── 배지 + 헤드라인 (구도 서술 · 판정 아님) ──
+          let _badge, _badgeC, _headline, _headC;
+          if(!_recipeScope){
+            _badge='혼조·범위 밖'; _badgeC=C.purple;
+            _headline='장기 배열 혼조 (60/120/200 미정렬) — 레시피 측정 범위 밖'; _headC=C.purple;
+          } else if(_lt==='bear'){
+            if(_fired){ _badge='역배 데드캣'; _badgeC=C.orange; _headline='하락 추세 속 기술적 반등 시도 구도 (역배 데드캣 · 주의)'; _headC=C.orange; }
+            else if(_fakeOnly){ _badge='가짜 반등 경보'; _badgeC=C.red; _headline='가짜 반등 신호 — 반등 실패 후 재하락 우세 구도'; _headC=C.red; }
+            else if(_mixed){ _badge='역배 혼재'; _badgeC=C.yellow; _headline='하락 추세 · real·fake 혼재 = 중립 구도'; _headC=C.yellow; }
+            else if(_ripe){ _badge='역배 익는 중'; _badgeC=C.blue; _headline='하락 추세 · 반등 재료 익는 중 (아직 미발동)'; _headC=C.blue; }
+            else { _badge='역배 무발동'; _badgeC=C.gray; _headline='하락 추세 · 반등 재료 미형성'; _headC=C.gray; }
+          } else { // bull
+            if(_fired){ _badge='정배 눌림'; _badgeC=C.green; _headline='강세 속 단기 눌림 — 레시피 발동 구도'; _headC=C.green; }
+            else if(_fakeOnly){ _badge='되돌림 경보'; _badgeC=C.red; _headline='가짜 눌림목 — 상승 지속 실패 우세 구도'; _headC=C.red; }
+            else if(_mixed){ _badge='정배 혼재'; _badgeC=C.yellow; _headline='강세 눌림 · real·fake 혼재 = 중립 구도'; _headC=C.yellow; }
+            else if(_ripe){ _badge='정배 익는 중'; _badgeC=C.blue; _headline='강세 눌림 재료 익는 중 (아직 미발동)'; _headC=C.blue; }
+            else { _badge='강세 지속'; _badgeC=C.gray; _headline='강세 지속 · 눌림 없음 · 진입 재료 미형성'; _headC=C.gray; }
+          }
 
-        // [S293] 엔진판단 검증 버튼 색상 — btScore 기반 (BT신뢰도 점수 바와 동일 기준으로 통일)
-        //   ≥70 녹색 / ≥50 파랑 / ≥30 주황 / <30 빨강 / 미실행 회색
-        let _entryEvalClr;
-        if(_btSc == null){
-          _entryEvalClr = '#94a3b8'; // BT 미실행 — 회색
-        } else if(_btSc >= 70){ _entryEvalClr = '#22c55e';  // 녹색 (우수)
-        } else if(_btSc >= 50){ _entryEvalClr = '#3b82f6';  // 파랑 (양호)
-        } else if(_btSc >= 30){ _entryEvalClr = '#f97316';  // 주황 (주의)
-        } else               { _entryEvalClr = '#e8365a';   // 빨강 (위험)
-        }
+          // ── 헤더 + 헤드라인 ──
+          let h = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:9px">
+            <span style="font-size:13px;font-weight:800;color:var(--text)">🔍 레시피 해석</span>
+            <span style="font-size:9px;font-weight:800;color:#fff;background:${_badgeC};border-radius:9px;padding:2px 9px">${_badge}</span>
+          </div>`;
+          h += `<div style="font-size:12px;font-weight:800;color:${_headC};margin-bottom:11px;line-height:1.5">${_headline}</div>`;
 
-        // S127 fix3: 진입/매도 검토 버튼 색상 — 배너 C 판정 색을 그대로 상속
-        //   [이전 v7.9] switch(action) 수동 매핑 — 9종 중 5종만 case 분기, 나머지(보유 유지/관망/회피)는 default 회색
-        //     → 한화 케이스(보유 유지=배너 녹색)에서 버튼만 회색 → 시각 분리 모순 발견
-        //   [신규 v7.10] _svVerdict.color 직접 참조 — SXC.unifiedVerdict 반환 색을 single source of truth로 사용
-        //     → 배너와 버튼이 모든 9종 상태에서 100% 색상 동기화
-        //     → SXC 쪽 색상 변경 시 자동 반영(수동 매핑 누락 가능성 원천 제거)
-        //   현재 SXC 매핑(sx_project_c.js L142~183): 매수 #22c55e / 관심 #3b82f6 / 보유 유지 #22c55e /
-        //     청산 준비 #f59e0b / 청산 검토 #ff8c00 / 즉시 청산 #e8365a / 매도 완료 #e8365a /
-        //     관망 #f59e0b / 회피 #9e9e9e
-        //   폴백: _svVerdict 없거나 color 누락 시 중립 회색 #94a3b8
-        // [S450][S451] 분석신호검토 버튼 = A(진입타이밍 = scrQuickScore.score) 전용. 라벨·색·배지 모두 A 점수 기준.
-        //   [S451] A/B 동그라미 배지색 = 각 텍스트색과 통일(A=_timingBtnClr, B=_entryEvalClr). C(보라)는 혼합이라 고정.
-        //   C verdict는 활용가이드(Ⓒ)·엔진시뮬 배지가 담당 → A/B/C 영역 1:1 명확 구분.
-        const _aScore = qs ? (qs.score ?? 0) : 0;
-        const _timingBtnClr = _aScore >= 70 ? '#22c55e' : _aScore >= 50 ? '#3b82f6' : _aScore >= 30 ? '#f97316' : '#e8365a';
+          // ── 번호 해석 단위 헬퍼 (단일 라인용) ──
+          const _unit = (n, nc, label, body) => `<div style="display:flex;gap:7px;margin-bottom:8px;font-size:11px;line-height:1.55">
+            <span style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:${nc};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${n}</span>
+            <span style="color:var(--text2)"><b style="color:var(--text)">${label}</b>&nbsp; ${body}</span>
+          </div>`;
 
-        // S127: 버튼 미리보기용 추세 점수 — 펼침 영역 Layer 4(추세, C) 요약을 버튼에 선노출
-        //   펼치기 전에도 "추세가 양호한지/약한지" 즉시 파악 가능 → 버튼=펼침 요약 관계 성립
-        //   qs.trendScore 우선, 없으면 qs.score 폴백 (scrQuickScore 출력 구조 보호)
-        //   S127-fix1: level 경계를 sx_interpret.js _report.trend.level(3324줄)과 1:1 동기화
-        //     [이전] 70/50/30 임의 경계 → 펼침 내부 "하락"인데 버튼은 "약세" 불일치 발생
-        //     [신규] 70/60/50/40 경계 (강세/양호/중립/약세/하락) — A 엔진 출력과 완전 동일
-        //   [v1.7] 용어 리네이밍 — "강세/약세" 혼동 제거 (추세 등급 vs entryScore 점수명)
-        //     · 이전: 강세/양호/중립/약세/하락 ← "강세"가 entryScore 점수명과 이름 충돌
-        //     · 신규: 강추세/중추세+/중추세/약추세/하락추세 ← 접미 "추세"로 trend 등급임을 명시
-        const _btnTrendScore = qs ? (qs.trendScore ?? qs.score ?? 0) : 0;
-        const _btnTrendLevel = _btnTrendScore >= 70 ? '강추세'
-                             : _btnTrendScore >= 60 ? '중추세+'
-                             : _btnTrendScore >= 50 ? '중추세'
-                             : _btnTrendScore >= 40 ? '약추세'
-                             : '하락추세';
-        // [S450] 분석신호검토 버튼 라벨 = 진입타이밍 점수(A). C verdict는 활용가이드(Ⓒ)로 이동.
-        const _btnVerdictTxt = `진입타이밍 ${_aScore}`;
+          // ① 구도 (말 — _cv2TrendPosition)
+          if(_pos){
+            const _dispTxt = (_pos.disp!=null) ? ` · 이격도 ${_pos.disp.toFixed(0)} (${_pos.qLabel})` : '';
+            h += _unit('①', C.blue, '구도', `${_pos.cellLabel}${_dispTxt}`);
+          }
 
-        // S103-fix6c Phase1: 양방향 3단 구조 — 모멘텀 기반 매도 모드 감지 (3단리포트 내부 라벨용)
-        //   _entryLabel은 entry 섹션 헤더 + 강세/약세 추이 차트 제목에서 사용
-        // S127: _r2eLabel / _e2tLabel 제거 — 전이 박스 삭제로 더 이상 불필요
-        // [v1.7] 강세/약세 동적 표기 폐지 → "반등 신호"로 통일
-        //   이유: entryScore는 "반등이 실제로 시작됐나"를 보는 지표인데 "강세/약세"는
-        //         상승/하락 어느 쪽이든 발생하는 신호라 방향성을 붙이면 오해 소지.
-        //         특히 헤더 "약추세" 라벨과 entry 섹션 헤더 "약세"가 공존하면 같은 단어로
-        //         다른 것을 가리키는 문제 발생 → 용어 "반등 신호" 단일화
-        // [v1.8] entryScore 라벨 "반등 신호" → "반등 강도"
-        //   이유: ready 라벨이 "반등 신호"로 이동(눌림→반등 포착 단계). entry는 실제 반등이
-        //         시작된 후의 모멘텀 강도(RSI반등+MACD전환+양봉 등)를 보는 지표라 "강도"가 정확.
-        const _isSellMode = (_mom && _mom.delta != null && _mom.delta <= 0);
-        const _entryLabel = '반등 전환';
-        const _stratBtnClr = '#ff9900';
+          // ② 발동 (겹침 강도 — _sxRecipeVotesCore)
+          if(_recipeScope){
+            let _fireTxt, _fireC;
+            if(_fired){ _fireC=C.green; _fireTxt=`<span style="color:${C.green};font-weight:800">발동</span> · 순수 겹침 ${_votes.realK} · votes ${_votes.votes|0}`; }
+            else if(_mixed){ _fireC=C.yellow; _fireTxt=`<span style="color:${C.yellow};font-weight:700">혼재</span> real ${_votes.realK} · fake ${_votes.fakeK} (중립)`; }
+            else if(_fakeOnly){ _fireC=C.red; _fireTxt=`<span style="color:${C.red};font-weight:700">가짜 ${_votes.fakeK}개 발동</span> (재하락 우세)`; }
+            else if(_ripe){ _fireC=C.blue; _fireTxt=`<span style="color:${C.blue};font-weight:700">익는 중</span> 재료 ${_ing.on}/${_ing.total} (완성 시 발동)`; }
+            else { _fireC=C.gray; _fireTxt=`<span style="color:${C.gray}">무발동</span> — 재료 ${_ing?_ing.on:0}/${_ing?_ing.total:0} 진행`; }
+            h += _unit('②', _fireC, '발동', _fireTxt);
+          }
 
-        // S103-fix6c Phase2: 감독관 통합판정 기반 행동 배지 — 진입 검토 버튼 위 왼쪽 정렬
-        //   유력(실선진한색): 매수→반등유력 / 즉시청산·매도완료→하락유력 (차트마커 ▲▼과 동기화)
-        //   조짐(실선연한색): 관심→반등조짐 / 청산준비·검토→하락조짐 (예고 단계)
-        //   그 외(보유유지·관망·회피): 배지 없음 (회피=비보유 진입안함이라 경고 표시 불필요)
-        // S103-fix7 Phase3-A-2: '매도 완료'에 하락유력 배지 추가 (▼ 차트마커와 쌍), '회피'는 배지 제거 (비보유 상태)
-        // S103-fix7 Phase3-B-7: 인라인 switch 로직 → SXC.getVerdictBadge() 호출로 교체 (sx_project_c.js로 이전)
-        // [S598] 매도완료 손익 분리 — isWin 전달(익절청산/손절청산). 즉시청산은 하락유력 유지.
-        const _verdictBadgeTop = SXC.getVerdictBadge(stock._svVerdict?.action, stock._svVerdict?.isWin);
-        // [S515] A 타이밍 배지 — 좌측(A 버튼 위). C 판정배지(_verdictBadgeTop)는 BT 매도와 짝이라 우측(B 버튼 위)으로 이동.
-        //   qs.aTimingOn(=rawScore≥buyTh+15, S514) 기준: 강발화→'진입 신호'(녹색) / 미발화→'진입대기'(중립, "아직 기다려") / 데이터없음→배지없음.
-        //   A=홀서빙(타이밍) 발언권 시각화. C 매수 게이트와 동일 신호라, 4축 OK인데 '진입대기'면 그게 바로 매수 보류 사유.
-        const _aTimingOn = qs ? qs.aTimingOn : undefined;
-        // [S882] A pill 보조화 — C 게이트 차단(역배+비정배 & 레시피 재입장 없음) 중엔 A '진입 신호'를 참고용 회색으로(모순 표시 해소 — 하스 사례). A=타이밍 센서, C=최종 권한.
-        const _svS482 = stock._svScores4 || null;
-        const _aBlocked82 = !!( _svS482 && _svS482.ltAlign === 'bear' && !_svS482.maAlignBull
-          && !( _svS482.recipeSig && ((_svS482.recipeSig.votes|0) > 0) ) );
-        const _aTimingBadge = (_aTimingOn === true)  ? ( _aBlocked82
-                                ? '<span class="tx-badge" style="color:var(--text3);border:1px solid var(--border);background:var(--surface2)">진입 신호 · 참고(C 차단 중)</span>'
-                                : '<span class="tx-badge up">진입 신호</span>' )
-                            : (_aTimingOn === false) ? '<span class="tx-badge wait">진입대기</span>'
-                            : '';
-        // [S528] 추가하락 배지 — qs.bearCont.n>0(약세 지속 패턴 감지=rawScore 차감 발동)일 때 표시. 차감을 눈에 보이게(진입대기의 직접 사유).
-        const _bearBadge = (qs && qs.bearCont && qs.bearCont.n > 0) ? '<span class="tx-badge bear">추가하락</span>' : '';
-        // [S515][S516][S517][S528] 상단 배지 행 — [진입대기(A)][추가하락(A)][하락유력(C)]를 A 버튼 왼쪽 끝에 함께 묶음.
-        //   〔순서/이유〕 진입대기 → (사유)추가하락 → 하락유력(C). 한곳에 모으면 "기다림 ← 추가하락 ← C하락" 인과로 읽힘(S516 좌우분리 폐기).
-        //   각 배지 margin-left:4px라 사이 간격 자동. 하나만 있어도 그대로 노출, 전부 없으면 행 생략.
-        // [S879] 🍳 레시피 재입장 사유 — rebound 판정에 레시피 기여 시각화(votes>0 & 경로=rebound). 재입장(진입급)/발동(관심급) 구분.
-        const _v79 = stock._svVerdict || null;
-        const _rsB79 = (stock._svScores4 && stock._svScores4.recipeSig) || null;
-        const _rcpTag79 = (_v79 && _v79.passPath === 'rebound' && _rsB79 && (_rsB79.votes|0) > 0)
-          ? '<span class="tx-badge" style="color:#16a34a;border:1px solid #16a34a66;background:#16a34a14">🍳 레시피 '+(((_rsB79.votes|0)>=3)?'재입장':'발동')+' · 겹침'+_rsB79.realK+'</span>'
-          : '';
-        const _topBadgeRow = (_aTimingBadge || _bearBadge || _verdictBadgeTop || _rcpTag79)
-          ? `<div style="display:flex;justify-content:flex-start;align-items:center;margin-top:8px;margin-bottom:-2px">${_aTimingBadge}${_bearBadge}${_verdictBadgeTop}${_rcpTag79}</div>`
-          : '';
-
-        // S95: 소형 인라인 배지 — 근거용 (탭→전이상세) — S100: 교차 토글
-        // S127: 버튼 내부 문구 교체 — 전이 확률 → 추세 점수/레벨 미리보기
-        //   [이전] ${_transition.label} ${_transition.value}% (예: "관망 강등 70%")
-        //     → 종합평에 중복 노출되고 의미 전달이 어려움("강등"이라는 표현 모호)
-        //   [신규] 추세 ${score} · ${level} (예: "추세 47 · 약세")
-        //     → 펼침 Layer 4(추세, C) 요약 = 버튼=미리보기 관계 성립
-        //     → 펼치기 전에도 추세 방향성 즉시 파악 가능
-        return `${_topBadgeRow}<div style="display:flex;align-items:center;gap:6px;margin-top:6px">
-          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:4px 10px;border-radius:6px;background:var(--surface2);border:1.5px solid ${_timingBtnClr};cursor:pointer" onclick="_sxVib(10);var el=document.getElementById('${_3stageId}'),s=document.getElementById('${_stratDetailId}');if(s&&s.style.display!=='none'){s.style.display='none';if(currentAnalStock)currentAnalStock._engineVerifyOpen=false;}var willOpen=el.style.display==='none';el.style.display=willOpen?'block':'none';if(currentAnalStock){currentAnalStock._3stageOpen=willOpen;}">
-            <span style="font-size:9px;color:${_timingBtnClr};font-weight:700"><span style="display:inline-block;width:13px;height:13px;line-height:13px;text-align:center;border-radius:50%;background:${_timingBtnClr};color:#fff;font-size:8px;font-weight:800;margin-right:3px">A</span>분석신호 검토 <span style="font-size:7px">▶</span></span>
-            <span style="font-size:11px;font-weight:800;color:${_timingBtnClr};line-height:1.2">${_btnVerdictTxt}</span>
-          </div>
-          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:4px 10px;border-radius:6px;background:var(--surface2);border:1.5px solid ${_entryEvalClr};cursor:pointer" onclick="_sxVib(10);var el=document.getElementById('${_stratDetailId}'),t=document.getElementById('${_3stageId}');if(t&&t.style.display!=='none'){t.style.display='none';if(currentAnalStock)currentAnalStock._3stageOpen=false;}var willOpen=el.style.display==='none';el.style.display=willOpen?'block':'none';if(currentAnalStock){currentAnalStock._engineVerifyOpen=willOpen;}/* S119 fix2: 자동 실행 완료 후 재클릭 시 재실행 방지 — 이미 BT 결과 있으면 토글만 */if(willOpen&&currentAnalStock&&!currentAnalStock._btResult)_runEngineVerify(currentAnalStock);">
-            <span style="font-size:9px;color:${_entryEvalClr};font-weight:700"><span style="display:inline-block;width:13px;height:13px;line-height:13px;text-align:center;border-radius:50%;background:${_entryEvalClr};color:#fff;font-size:8px;font-weight:800;margin-right:3px">B</span>엔진판단 검증 <span style="font-size:7px">▶</span></span>
-            <span style="font-size:11px;font-weight:800;color:${_entryEvalClr};line-height:1.2">${stock._btResult && stock._btResult.totalTrades ? `거래 ${stock._btResult.totalTrades} 승률 ${(stock._btResult.winRate||0).toFixed(0)}%` : '거래 ?? 승률 ??'}</span>
-          </div>
-        </div>
-
-        <div id="${_3stageId}" style="display:${stock._3stageOpen ? 'block' : 'none'};margin-top:8px;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
-        ${(()=>{
-          // S81→S82→S99-2: 3단 리포트 렌더링 (verdictAction 전달)
-          if(typeof SXI==='undefined' || !SXI.threeStageReport) return '<div style="font-size:10px;color:var(--text3)">해석 엔진 미연결</div>';
-
-          const _lastDate = (indicators && indicators._advanced && indicators._advanced.rows) ? indicators._advanced.rows[indicators._advanced.rows.length-1]?.date : null;
-          const _verdictAction = _svVerdict ? _svVerdict.action : null;
-          // [S262] market 인자 전달 — 미국/코인 시장 staleness label 정확도 향상
-          //   〔이력〕 이전: market 미전달 → _estimateStaleness 내부에서 모든 일봉을 KST 15:30으로 해석.
-          //     미국 일봉(EST 16:00)은 약 14.5h, 코인(UTC 00:00)은 6.5h 어긋남 → label 부정확 (수정됨)
-          //   효과: 'kr'=KST 15:30, 'us'=EST 16:00, 'coin'=UTC 00:00 종가로 정확 해석.
-          const _3stageMkt = stock._mkt || stock.market || currentMarket;
-          // S103-fix7 Phase3-A-3: btStateObj 전달 — _buildVerdict에서 매도 pnl/isWin/진입가 맥락 활용
-          const _report = SXI.threeStageReport(qs, _mom, stock._btResult, _btSc, _lastDate, stock._btTransitionStats, _verdictAction, stock._btState, _3stageMkt);
-          // [S896] 2b-3 — cv2 접지 점수를 메인 축에 (SX_CV2_AXES ON · bear/bull에서만 cv2 present). trend는 게이트라 유지. breakdown=신재료(재료 X/K·발동 겹침·품질).
-          try{
-            var _c2r = ((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES) ? (stock._svScores4 && stock._svScores4.cv2) : null;
-            // [S904] 추이 정합용 cv2 히스토리(lazy·분석시각 캐시) — 아래 차트 4종 공유
-            var _c2h=null;
-            try{
-              if(_c2r){
-                var _rowsH=(indicators&&indicators._advanced&&indicators._advanced.rows)||null;
-                var _lb904=(stock._scoreMomentum&&stock._scoreMomentum.lookback)||5;
-                if(_rowsH&&_rowsH.length){
-                  if(stock._cv2Hist904 && stock._cv2Hist904.t===analTime){ _c2h=stock._cv2Hist904.h; }
-                  else { _c2h=_cv2HistBuild(((typeof currentMarket!=='undefined')?currentMarket:'kr'), _rowsH, _rowsH.length-1, _lb904, _c2r, qs&&qs.ind); stock._cv2Hist904={t:analTime, h:_c2h}; }
-                }
+          // ③ 켜진 재료 (해석 단위로 그룹 — _sxRecipeIngCore.litKeys + _cv2IngLabel)
+          if(_recipeScope && _ing && _ing.litKeys && _ing.litKeys.length && typeof _cv2IngLabel==='function'){
+            const _ING_GROUPS = [
+              ['과매도',     ['rsi_lt','stochK_lt','cci_lt','mfi_lt','vr_lt']],
+              ['지지·저평가', ['bbPctB_lt','dev20_lt','dev60_lt','dev120_lt','dev200_lt','nearSup','settle20']],
+              ['전환 조짐',   ['gx5_9','gx5_20','gx5_60','ma5slope_gt','macdGc','macdHistUp','obvUp']],
+              ['거래량',      ['volOsc_gt','volBreak']],
+              ['다이버전스',  ['rsiDiv','obvDiv']],
+              ['변동성',      ['squeeze','adx_gt']]
+            ];
+            const _used = {};
+            let _grpHTML = '';
+            _ING_GROUPS.forEach(function(g){
+              const hit = _ing.litKeys.filter(function(k){ return g[1].indexOf(k)>=0; });
+              hit.forEach(function(k){ _used[k]=1; });
+              if(hit.length){
+                _grpHTML += `<div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.5"><b style="color:var(--text)">${g[0]}</b>&nbsp; ${hit.map(_cv2IngLabel).join(' · ')}</div>`;
               }
-            }catch(_eH){}
-            if(_c2r && _report && _report.ready && _report.entry){
-              _report.ready.score = _c2r.ready;
-              _report.ready.level = (_c2r.ready>=60?'익음':(_c2r.ready>=40?'진행':'초기'));
-              _report.ready.progress = '재료 '+_c2r.on+'/'+_c2r.total;
-              _report.ready.summary = '재료 '+_c2r.on+'/'+_c2r.total+' 익음 (완성률 '+_c2r.ready+'%) — 높을수록 발동 임박 예고 (진입 아님)';
-              _report.ready.met = (_c2r.litKeys&&_c2r.litKeys.length)?_c2r.litKeys.map(_cv2IngLabel):[];
-              _report.ready.unmet = (_c2r.allKeys&&_c2r.allKeys.length)?_c2r.allKeys.filter(function(k){return _c2r.litKeys.indexOf(k)<0;}).map(_cv2IngLabel):[];
-              _report.ready.metW = []; _report.ready.unmetW = [];
-              _report.entry.score = _c2r.entry;
-              _report.entry.level = (_c2r.entry>=60?'강':(_c2r.entry>=40?'보통':'약'));
-              var _trTxt2 = (_c2r.trState==='fresh')?' · 전이 관찰개시':(_c2r.trState==='holding'?' · 전이 진행중':'');
-              _report.entry.summary = _c2r.pureFired ? ('발동 · 겹침 '+_c2r.realK+(_c2r.avgN10!=null?' · 품질 '+Math.round(_c2r.avgN10*100)+'%':'')+_trTxt2) : '미발동 — 재료 익는 중 (전환 대기)';
-              _report.entry.met = _c2r.pureFired?['발동 · 겹침 '+_c2r.realK+(_c2r.avgN10!=null?' · 품질 '+Math.round(_c2r.avgN10*100)+'%':'')]:[];
-              _report.entry.unmet = _c2r.pureFired?[]:['미발동 — 재료 '+_c2r.on+'/'+_c2r.total+' 익음, 완성 시 발동'];
-              _report.entry.metW = []; _report.entry.unmetW = []; _report.entry.signals=[]; _report.entry.warnings=[]; _report.ready.signals=[]; _report.ready.warnings=[];   // [S899] 구 엔진 [+]/[-] 항목 제거(cv2 정합)
-              if(_c2r.upside!=null && _report.upside){ _report.upside.score = _c2r.upside; _report.upside.summary = '눌림목 재료 '+_c2r.on+'/'+_c2r.total+' 익음 (완성률 '+_c2r.upside+'%)'; _report.upside.met=(_c2r.litKeys&&_c2r.litKeys.length)?_c2r.litKeys.map(_cv2IngLabel):[]; _report.upside.unmet=(_c2r.allKeys&&_c2r.allKeys.length)?_c2r.allKeys.filter(function(k){return _c2r.litKeys.indexOf(k)<0;}).map(_cv2IngLabel):[]; _report.upside.metW=[]; _report.upside.unmetW=[]; }
-            }
-          }catch(_eC2r){}
-          // [S901] 추세방향 = 위치 점수(격자셀×이격도). 전 레짐. 엔진 조건 대체.
-          try{
-            var _tp2=((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES)?(stock._svScores4&&stock._svScores4.trendPos):null;
-            if(_tp2 && _report.trend){
-              _report.trend.score=_tp2.score;
-              _report.trend.level=(_tp2.score>=60?'유리 위치':(_tp2.score>=45?'중립':'불리 위치'));
-              _report.trend.position='격자 <b>'+_tp2.cellLabel+'</b> · 이격도 <b>'+_tp2.disp.toFixed(0)+'</b> ('+_tp2.qLabel+') → 위치 점수 '+_tp2.score+' <span style="font-size:8px;color:var(--text3)">(배열 '+_tp2.base+' '+(_tp2.adj>=0?'+':'')+_tp2.adj+' 이격도)</span>';
-              _report.trend.metW=[]; _report.trend.unmetW=[]; _report.trend.met=[]; _report.trend.unmet=[]; _report.trend.signals=[]; _report.trend.warnings=[]; _report.trend.breakdown=null;
-              _report.trend._cv2tp=_tp2;
-            }
-          }catch(_eTp2){}
-          if(!_report) return '<div style="font-size:10px;color:var(--text3)">데이터 부족</div>';
-
-          let html = '';
-          // [S727] 구조 위험(역배열 regime) — 점수카드 상단 배지띠(A). 점수 글자색은 보존 · 좌측 테두리는 return에서(B).
-          var _sr4 = stock._svScores4 || {};
-          var _sr4Lt = _sr4.ltAlign || 'off', _sr4Bull = !!_sr4.maAlignBull;
-          // [S880] 전이형 구멍 메꿈 — lt='mixed'(3선 미정렬)+단기 비정배 = 게이트·레시피 범위 밖인데 하락 위험 실재(KCTC 사례: 60<120이나 120>200 미완성 상태로 -35%). 정의 확장 대신 명시적 표시(측정 모집단 보존).
-          var _sr4Tier = (_sr4Lt === 'bear') ? (_sr4Bull ? 'rebound' : 'dead') : ((_sr4Lt === 'mixed' && !_sr4Bull) ? 'transit' : ((_sr4Lt === 'bull' && !_sr4Bull) ? 'pull' : ''));   // [S904] pull=정배열+단기조정(눌림목 구간)
-          var _sr4Col = (_sr4Tier === 'dead') ? '#dc2626' : (_sr4Tier === 'rebound') ? '#f59e0b' : (_sr4Tier === 'transit') ? '#ca8a04' : '';
-          if(_sr4Tier){
-            // [S879] 배너 하이브리드 인지 — S868 이후 데드캣 구간은 "무조건 차단"이 아니라 레시피 선별 재입장(부채 청산).
-            //   recipeSig=_svScores4 경유(일봉·주입 시). 미주입(비일봉 등)=레거시 문구 유지. 상태 5분기: 재입장(진입급)/발동(관심급)/혼재/가짜경보/무발동.
-            var _rs4 = _sr4.recipeSig || null;
-            var _sr4Txt, _sr4ColX = _sr4Col;
-            if(_sr4Tier === 'dead' && _rs4){
-              if(_rs4.pure && (_rs4.votes|0) >= 3){ _sr4ColX='#16a34a'; _sr4Txt='🟢 데드캣 구간 — 레시피 재입장 · 순수 겹침 '+_rs4.realK+' (진입급) · 게이트 해제'; }
-              else if(_rs4.pure && (_rs4.votes|0) > 0){ _sr4ColX='#d97706'; _sr4Txt='🔶 데드캣 구간 — 레시피 발동 · 순수 겹침 '+_rs4.realK+' (관심급) · 선별 심사'; }
-              else if(_rs4.mixed){ _sr4Txt='⚖️ 데드캣 구간 — real·fake 혼재('+_rs4.realK+'·'+_rs4.fakeK+') = 중립 · 차단 유지'; }
-              else if((_rs4.fakeK|0) > 0){ _sr4Txt='🔴 가짜반등 경보 — fake '+_rs4.fakeK+'개 발동 · 반등 실패 → 재하락 우세 · C 매수 차단'; }   // [S884] 문구 데이터 기반 강화(S883 측정: 역배 순수 fake t+15 하락 base 대비 +7~17p·정배 가짜눌림목 +13~16p) — 수동 '차단'→능동 '재하락 신호'. 하드 투표 아님(경보/리스크 축).
-              else { _sr4Txt='🔴 데드캣 위험 — 역배열+단기약세 · 레시피 무발동 · C 매수 차단'; }
-            } else if(_sr4Tier === 'pull'){
-              // [S904] 눌림목 배너 — 발동/혼재/되돌림(fake)만 표시, 무발동 정배는 기본 상태라 배너 생략(노이즈 방지). 되돌림 근거: S883 정배 가짜눌림목=최강 fake 신호(us+16p·kr/coin+13p).
-              if(_rs4 && _rs4.pure && (_rs4.votes|0) >= 3){ _sr4ColX='#16a34a'; _sr4Txt='🟢 눌림목 — 레시피 발동 · 순수 겹침 '+_rs4.realK+' (진입급)'; }
-              else if(_rs4 && _rs4.pure && (_rs4.votes|0) > 0){ _sr4ColX='#d97706'; _sr4Txt='🔶 눌림목 — 레시피 발동 · 순수 겹침 '+_rs4.realK+' (관심급)'; }
-              else if(_rs4 && _rs4.mixed){ _sr4ColX='#d97706'; _sr4Txt='⚖️ 눌림목 — real·fake 혼재('+_rs4.realK+'·'+_rs4.fakeK+') = 중립'; }
-              else if(_rs4 && (_rs4.fakeK|0) > 0){ _sr4ColX='#dc2626'; _sr4Txt='🔴 되돌림 경보 — 가짜 눌림목 fake '+_rs4.fakeK+'개 발동 · 상승 지속 실패 우세'; }
-              else { _sr4Txt=null; }
-            } else if(_sr4Tier === 'transit'){
-              _sr4Txt = '🟡 전이형 — 장기배열 혼조(60/120/200 미정렬) + 단기 약세 · 게이트·레시피 범위 밖 (미측정 구간 주의)';   // [S880]
-            } else {
-              _sr4Txt = (_sr4Tier === 'dead')
-                ? '🔴 데드캣 위험 — 역배열+단기약세 · C 매수 차단 구간'
-                : '🟠 역배열·단기반등 — 장기 하락 중 단기정배열 · 조건부';
-            }
-            try{ window._sxbBanner903={ tier:_sr4Tier, rs:(_rs4||null) }; }catch(_eBn){}   // [S903] 설명팝업 상태분기용 stash
-            if(_sr4Txt) html += '<div onclick="_sxVib(8);window._sxbStructRiskWhy&&_sxbStructRiskWhy()" style="cursor:pointer;font-size:10px;font-weight:800;color:'+_sr4ColX+';background:'+_sr4ColX+'14;border:2px solid '+_sr4ColX+'88;border-radius:7px;padding:6px 9px;margin-bottom:9px;line-height:1.4">'+_sr4Txt+'</div>';
-          }
-          // ════ [S882] C 2.0 반등 3축 스트립 — 🔶준비(익는중)/🟢전환(발동)/⏳전이(관찰창). 일봉·lt∈{bear,bull}·recipeSig 산출 시만.
-          //   근거: 준비=불5+&미발동→3봉내 발동 46%(S873, 투표0) / 전환=votes(S862·유일 투표자) / 전이=발동 후 3봉 ±2%(S876, 투표0·물타기 금지).
-          try{
-            var _rsX = (stock._svScores4 ? stock._svScores4.recipeSig : undefined);
-            var _rows82 = (indicators && indicators._advanced && Array.isArray(indicators._advanced.rows)) ? indicators._advanced.rows : null;
-            if(_rsX !== undefined && _rsX !== null && _rows82 && qs && qs.ind){
-              var _mk82 = (typeof currentMarket!=='undefined') ? currentMarket : 'kr';
-              var _idx82 = _rows82.length - 1;
-              var _ing82 = (typeof _sxRecipeIngCore==='function') ? _sxRecipeIngCore(_mk82, qs.ind, _rows82, _idx82) : null;
-              if(_ing82){   // lt bear/bull에서만 — mixed는 S880 배너가 커버
-                var T3s='var(--text3)';
-                // 준비 세그
-                var _fired82 = _rsX.pure && (_rsX.votes|0) > 0;
-                var _ripe = (!_fired82 && !_rsX.mixed && (_rsX.realK|0)===0 && _ing82.on >= 5);   // 익는중=완전 미발동만(혼재/실발동 제외)
-                var _segReady = _ripe
-                  ? '<span style="font-weight:800;color:#d97706">🔶 익는 중 '+_ing82.on+'/'+_ing82.total+'</span>'
-                  : '<span style="color:'+T3s+'">재료 '+_ing82.on+'/'+_ing82.total+'</span>';
-                // 전환 세그
-                var _segFire;
-                if(_fired82) _segFire='<span style="font-weight:800;color:#16a34a">🟢 발동 · 겹침'+_rsX.realK+' · v'+(_rsX.votes|0)+'</span>';
-                else if(_rsX.mixed) _segFire='<span style="font-weight:700;color:#d97706">⚖️ 혼재 '+_rsX.realK+'·'+_rsX.fakeK+'</span>';
-                else if((_rsX.fakeK|0)>0) _segFire='<span style="font-weight:700;color:#dc2626">🔴 fake '+_rsX.fakeK+'</span>';
-                else _segFire='<span style="color:'+T3s+'">무발동</span>';
-                // 전이 세그 — 현재봉 발동=관찰 시작 / 아니면 직전 1~5봉 순수발동 역탐색(배지 관찰창 0-5봉 정합·calcAllScreener 재계산 최대 5회) [S890]
-                var _segTr='<span style="color:'+T3s+'">—</span>', _trState82='none', _trRet82=null;
-                if(_fired82){ _segTr='<span style="font-weight:700;color:#0d9488">⏳ 관찰 시작(0봉)</span>'; _trState82='fresh'; }
-                else if(window.SXE && SXE.calcAllScreener && typeof _sxRecipeVotesCore==='function'){
-                  for(var _j82=1;_j82<=5;_j82++){
-                    var _bi82=_idx82-_j82; if(_bi82<250) break;
-                    var _ind2=null; try{ _ind2=SXE.calcAllScreener(_rows82.slice(0,_bi82+1)); }catch(_eI){}
-                    if(!_ind2) continue;
-                    var _sg2=null; try{ _sg2=_sxRecipeVotesCore(_mk82, _ind2, _rows82, _bi82); }catch(_eS){}
-                    if(_sg2 && _sg2.pure && (_sg2.votes|0)>0){
-                      var _ep82=_rows82[_bi82].close, _cu82=_rows82[_idx82].close;
-                      if(_ep82>0 && _cu82>0){
-                        var _cm82=_cu82/_ep82-1, _pct82=(_cm82>=0?'+':'')+(_cm82*100).toFixed(1)+'%';
-                        _trState82='holding'; _trRet82=_cm82;
-                        if(_cm82>=0.02) _segTr='<span style="font-weight:800;color:#16a34a">⏳ 전이 '+_j82+'봉째 '+_pct82+' · 확정 진행</span>';
-                        else if(_cm82<=-0.02) _segTr='<span style="font-weight:800;color:#dc2626">⏳ 전이 '+_j82+'봉째 '+_pct82+' · 실패 전이 — 포기 신호·물타기 금지</span>';
-                        else _segTr='<span style="font-weight:700;color:#d97706">⏳ 전이 '+_j82+'봉째 '+_pct82+' · 관찰중</span>';
-                      }
-                      break;
-                    }
-                  }
-                }
-                html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px;font-size:9.5px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 9px;margin-bottom:9px;line-height:1.5">'
-                  +'<span style="font-size:8.5px;font-weight:800;color:'+T3s+'">🎯 레시피 3축</span>'
-                  +_segReady+'<span style="color:var(--border)">|</span>'+_segFire+'<span style="color:var(--border)">|</span>'+_segTr
-                  +'</div>'
-                  + (function(){
-                      var _pk82=(_ing82.lt==='bear')?'bottom':(_ing82.lt==='bull')?'pullback':null, _avgN10=null;
-                      if(_pk82 && typeof _sxBadgeEval==='function' && indicators && indicators._advanced){ try{ var _be82=_sxBadgeEval(_pk82, indicators._advanced); if(_be82 && _be82.matched && _be82.matched.length){ var _s82=0,_c82=0; _be82.matched.forEach(function(r){ if(r.src && r.src.n10>0){_s82+=r.src.n10;_c82++;} }); if(_c82) _avgN10=_s82/_c82; } }catch(_eB82){} }
-                      var _rdSc82=_cv2ReadyScore(_ing82.on,_ing82.total), _enSc82=_cv2EntryScore(_fired82,_rsX.realK|0,_avgN10), _trSc82=_cv2TransitScore(_trState82,_trRet82), _cSc82=_cv2Aggregate(_rdSc82,_enSc82,_trSc82);
-                      var _qTxt=(_avgN10!=null)?' <span style="color:var(--text3);font-size:8px">(품질 '+Math.round(_avgN10*100)+'%)</span>':'';
-                      return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:8.5px;color:'+T3s+';margin:-4px 0 9px;padding:2px 9px 4px"><span style="font-weight:800;color:#7c3aed">🧪 점수(검증)</span> 준비 <b style="color:var(--text2)">'+_rdSc82+'</b> · 전환 <b style="color:var(--text2)">'+_enSc82+'</b>'+_qTxt+' · 전이 <b style="color:var(--text2)">'+(_trSc82==null?'—':_trSc82)+'</b> <span style="color:var(--border)">→</span> C종합 <b style="color:#7c3aed;font-size:10.5px">'+_cSc82+'</b> <span class="cv2TogBtn" onclick="_sxVib(10);window._cv2ToggleBtn&&_cv2ToggleBtn()" style="cursor:pointer;font-weight:800;font-size:8px;border-radius:8px;padding:1px 6px;margin-left:2px;border:1px solid '+(((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES)?'#16a34a66':'var(--border)')+';color:'+(((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES)?'#16a34a':'var(--text3)')+'">'+(((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES)?'🟢 레시피판정 ON':'⚪ 판정=엔진')+'</span> <span style="font-size:7.5px;color:var(--text3)">(탭→TF전환=반영)</span></div>';
-                    })();
-              }
-            }
-          }catch(_e82){}
-          // S86: 변화량 표시 헬퍼
-          const _deltaTag = function(d){ if(d==null||isNaN(d)) return ''; var s=d>0?'+'+d:d===0?'0':''+d; var c=d>0?'var(--buy)':d<0?'var(--sell)':'var(--text3)'; return ' <span style="font-size:9px;color:'+c+';font-weight:700">'+s+'</span>'; };
-          let _readyDelta = _mom ? _mom.delta : null;
-          let _entryDelta = _mom ? _mom.entryDelta : null;
-          let _trendDelta = _mom ? _mom.trendDelta : null;
-          let _upsideDelta = _mom ? _mom.upsideDelta : null; // [S357]
-          // [S906] 델타 cv2 정합 — 카드 점수·추이(S904)와 같은 자(cv2 마지막 두 봉 차). 미산출 봉은 엔진 델타 폴백. (사용자 발견: 전환 67·추이 64→67인데 델타 −6 = 엔진 기준 잔재)
-          try{
-            if(typeof _c2h!=='undefined' && _c2h && _c2h.length>=2){
-              var _dCur=_c2h[_c2h.length-1], _dPrev=_c2h[_c2h.length-2];
-              if(_dCur&&_dPrev){
-                if(_dCur.ready!=null&&_dPrev.ready!=null) _readyDelta=_dCur.ready-_dPrev.ready;
-                if(_dCur.entry!=null&&_dPrev.entry!=null) _entryDelta=_dCur.entry-_dPrev.entry;
-                if(_dCur.upside!=null&&_dPrev.upside!=null) _upsideDelta=_dCur.upside-_dPrev.upside;
-                if(_dCur.tp&&_dPrev.tp&&_dCur.tp.score!=null&&_dPrev.tp.score!=null) _trendDelta=_dCur.tp.score-_dPrev.tp.score;
-              }
-            }
-          }catch(_eD){}
-
-          // [S357] ⓐ 채택 경로 판별 → 카드 활성/비활성 배경
-          //   반등 경로(rebound): 반등준비+반등전환+추세방향 활성 / 추세 경로(trend): 추세방향+추가상승 활성
-          //   [S511] 추세방향은 양쪽 공통 축 → 두 경로 모두 강조
-          // [S694] 재계산 폐지 — 권위 판정 _svVerdict.passPath 직접 사용(line 6520 _pgPath와 동일 소스).
-          //   〔이력〕 기존: SXC.passPathOf(_ppScores, _momDir) 재계산했으나 entryGate 미전달 → 항상 게이트.
-          //     S693 off-rebound 게이트는 비보유 진입에만 적용인데 보유 종목 카드도 게이트돼 활성축이
-          //     실제 C 판정(rebound 유지)과 어긋남. _svVerdict는 unifiedVerdictV2가 !isHolding 반영 산출 → 정합.
-          var _passPath = (stock._svVerdict && stock._svVerdict.passPath) ? stock._svVerdict.passPath : 'none';
-          // [S729] 활성 경로 카드만 표시(기본 ON) — 비활성 카드+차트 숨김. '전체 4축 보기' 토글(window._sxAxisActiveOnly=false)로 비활성 카드 텍스트 노출.
-          var _activeOnly = true; // [S729] 활성 경로만 표시(기본). '전체 4축 보기' 토글은 CSS로 비활성 카드 텍스트만 노출(차트 제외).
-          var _zoneActive = function(zone){
-            if(_passPath === 'rebound') return (zone==='ready'||zone==='entry'||zone==='transit'||zone==='trend');   // [S900] 게이트1(바닥반등): 준비·전환·전이·추세
-            if(_passPath === 'trend')   return (zone==='upside'||zone==='entry'||zone==='transit'||zone==='trend'); // [S900] 게이트2(눌림목): 추가상승·전환·전이·추세
-            return true; // none·예상외 → 4카드 모두 표시(안전)
-          };
-          var _zoneHidden = function(zone){ return _activeOnly && _passPath !== 'none' && !_zoneActive(zone); };
-          var _zoneCls = function(zone){ return _zoneHidden(zone) ? ' class="sxInactiveAxisCard"' : ''; };
-          // zone: 'ready'|'entry'|'trend'|'upside' → wrapper style 반환
-          var _zoneStyle = function(zone){
-            if(_zoneHidden(zone)) return 'display:none;'; // [S729] 비활성 카드 숨김(토글로 노출)
-            if(_passPath === 'none') return ''; // 매수 경로 없음 → 4카드 중립
-            // [S511] 추세방향(trend)은 양쪽 경로 공통 축(반등 trend≥50 / 추세 trend≥55)이라 두 경로 모두 강조.
-            //   반등 경로: 반등준비+반등전환+추세방향 / 추세 경로: 추세방향+추가상승
-            if(_zoneActive(zone)) return 'padding:8px 10px 4px;border-left:4px solid #f5b301;background:rgba(245,197,24,.16);border-radius:0 6px 6px 0;'; // [S357] 활성 경로만 연노랑 강조
-            return ''; // 비활성(전체보기 시)·중립 — 기본 표시
-          };
-          // [S729] 전체 4축 보기 토글 — 비활성 카드가 있을 때만. 클릭 시 비활성 카드 텍스트 노출(CSS·차트 제외).
-          var _hasHiddenAxis = _passPath !== 'none' && (!_zoneActive('ready') || !_zoneActive('entry') || !_zoneActive('trend') || !_zoneActive('upside'));
-          if(_hasHiddenAxis){
-            html += '<div onclick="_sxVib(8);window._sxToggleAxisCards&&_sxToggleAxisCards(this)" data-show="0" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:9px;font-weight:700;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px 9px;margin-bottom:8px">🎯 '+(_passPath==='rebound'?'바닥반등 게이트':'눌림목 게이트')+' 카드만 · <span style="color:var(--accent)">전체 4축 ▾</span></div>';
-          }
-
-          // 준비 섹션 — S82: 체크박스 시각화
-          // [v1.7] 헤더 라벨 "신호" → "바닥 신호" (readyScore = 바닥 조건 축적도)
-          // [v1.8] 헤더 라벨 "바닥 신호" → "반등 신호" (눌림 후 반등 신호 포착 단계)
-          const rCls = _report.ready.score>=60?'buy':_report.ready.score>=40?'hold':'sell';
-          html += '<div'+_zoneCls('ready')+' style="margin-bottom:10px;'+_zoneStyle('ready')+'">';
-          html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:11px;font-weight:800;color:var(--text)">반등 준비</span><span style="font-size:14px;font-weight:800;color:var(--'+rCls+')">'+_report.ready.score+_deltaTag(_readyDelta)+'</span><span style="font-size:9px;color:var(--text3)">'+_report.ready.level+' · '+_report.ready.progress+'</span>'+((typeof _c2r!=='undefined'&&_c2r)?'<span style="font-size:7.5px;font-weight:700;color:#0891b2;background:#0891b214;border:1px solid #0891b233;border-radius:8px;padding:1px 5px;margin-left:auto">🔬 완성↑→발동 예고</span>':'')+'</div>';
-          html += '<div style="font-size:10px;color:var(--text2);line-height:1.6;margin-bottom:4px">'+_report.ready.summary+'</div>';
-          // S82→S87: 조건 체크박스 — met만 표시, unmet은 토글로 숨김
-          if(_report.ready.met.length || _report.ready.unmet.length) {
-            var _mw = _report.ready.metW || [];
-            var _uw = _report.ready.unmetW || [];
-            var _rUnmetId = 'ru_' + Math.random().toString(36).slice(2,8);
-            html += '<div style="display:flex;flex-wrap:wrap;gap:3px 6px;margin-bottom:4px">';
-            if(_mw.length) {
-              _mw.forEach(function(c){ html += '<span style="font-size:8px;color:var(--buy);white-space:nowrap">[v] '+c.name+' <span style="font-size:7px;opacity:.6">+'+c.weight+'</span></span>'; });
-            } else {
-              _report.ready.met.forEach(function(c){ html += '<span style="font-size:8px;color:var(--buy);white-space:nowrap">[v] '+c+'</span>'; });
-            }
-            html += '</div>';
-            var _hasRU = _uw.length ? _uw.length : _report.ready.unmet.length;
-            if(_hasRU) {
-              html += '<div onclick="_sxVib(8);var u=document.getElementById(\''+_rUnmetId+'\');u.style.display=u.style.display===\'none\'?\'flex\':\'none\';this.querySelector(\'span\').textContent=u.style.display===\'none\'?\'▶\':\'▼\'" style="font-size:8px;color:var(--text3);cursor:pointer;margin-bottom:3px"><span>▶</span> 미충족 조건 '+_hasRU+'개</div>';
-              html += '<div id="'+_rUnmetId+'" style="display:none;flex-wrap:wrap;gap:3px 6px;margin-bottom:4px">';
-              if(_uw.length) {
-                _uw.forEach(function(c){ html += '<span style="font-size:8px;color:var(--text3);white-space:nowrap;opacity:.6">[ ] '+c.name+' <span style="font-size:7px">+'+c.weight+'</span></span>'; });
-              } else {
-                _report.ready.unmet.forEach(function(c){ html += '<span style="font-size:8px;color:var(--text3);white-space:nowrap;opacity:.6">[ ] '+c+'</span>'; });
-              }
-              html += '</div>';
-            }
-          }
-          // S127: ready 섹션 내부 전이 박스(_r2eLabel) 제거
-          //   [이유] 버튼("관망 강등 70%")에 이미 동일 정보 표시 + 종합평에서 C가 재언급
-          //         → 3중 노출 방지, 정보 계층 명확화
-          
-
-          // S127: 진입 검토 추이 차트 — Layer 2(ready, A) 섹션 바로 뒤로 이동
-          //   [이전 위치] 구간분포 추이 다음 (맨 아래쪽) → 문맥 단절
-          //   [신규 위치] ready 섹션 직후 → "검토 13점"의 최근 5봉 변화를 바로 확인 가능
-          //   차트 ID는 _3stageId + '_dbc' 그대로 유지 (다른 호출부 없음, 충돌 無)
-          if(!_zoneHidden('ready') && _mom && _mom.history.length >= 3){
-            const _dbCanvasId = _3stageId + '_dbc';
-            const rev = _mom.history.slice().reverse();
-            if(typeof _c2h!=='undefined' && _c2h && rev.length){ for(var _hi=0;_hi<rev.length;_hi++){ var _cb=_c2h[_c2h.length-rev.length+_hi]; if(_cb&&_cb.ready!=null) rev[_hi]=Object.assign({}, rev[_hi], {score:_cb.ready}); } } else if(typeof _c2r!=='undefined' && _c2r && rev.length){ rev[rev.length-1]=Object.assign({}, rev[rev.length-1], {score:_c2r.ready}); }   // [S897→S904] 전 봉 cv2 시리즈 정합(단차 해소)·폴백=현재봉
-            html += '<div style="margin-bottom:10px">';
-            html += '<div style="font-size:8.5px;font-weight:700;color:var(--text3);margin:2px 0 2px">추이 '+_mom.lookback+'봉</div>';
-            html += '<canvas id="'+_dbCanvasId+'" style="width:100%;height:26px;display:block"></canvas>';
-            html += '</div>';
-            (window._sxTrackedTimeout || setTimeout)(function(){ if(typeof SXChart!=='undefined' && SXChart.drawDeltaBar) SXChart.drawDeltaBar(_dbCanvasId, rev, _mom.lookback); }, 60);
-          }
-          html += '</div>';   // [S904] 카드 닫기 지연 — 추이 차트 카드 내장
-
-          // 진입 섹션
-          const eCls = _report.entry.score>=60?'buy':_report.entry.score>=40?'hold':'sell';
-          html += '<div'+_zoneCls('entry')+' style="margin-bottom:10px;'+_zoneStyle('entry')+'">';
-          html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:11px;font-weight:800;color:var(--text)">'+_entryLabel+'</span><span style="font-size:14px;font-weight:800;color:var(--'+eCls+')">'+_report.entry.score+_deltaTag(_entryDelta)+'</span><span style="font-size:9px;color:var(--text3)">'+_report.entry.level+'</span>'+((typeof _c2r!=='undefined'&&_c2r)?(function(){ var _cf=_cv2Confidence(_c2r.lt,_c2r.realK,_c2r.pureFired); return _cf?'<span style="font-size:7.5px;font-weight:700;color:#16a34a;background:#16a34a14;border:1px solid #16a34a33;border-radius:8px;padding:1px 5px;margin-left:auto">🔬 '+_cf.pct+'% '+_cf.label+'</span>':''; })():'')+'</div>';
-          html += '<div style="font-size:10px;color:var(--text2);line-height:1.6;margin-bottom:4px">'+_report.entry.summary+'</div>';
-          // S84→S87: 진입(강세) 조건별 가중치 — met만 표시, unmet 토글 숨김
-          if((_report.entry.met && _report.entry.met.length) || (_report.entry.unmet && _report.entry.unmet.length)) {
-            var _emw = _report.entry.metW || [];
-            var _euw = _report.entry.unmetW || [];
-            var _eUnmetId = 'eu_' + Math.random().toString(36).slice(2,8);
-            html += '<div style="display:flex;flex-wrap:wrap;gap:3px 6px;margin-bottom:4px">';
-            if(_emw.length) {
-              _emw.forEach(function(c){ html += '<span style="font-size:8px;color:var(--buy);white-space:nowrap">[v] '+c.name+' <span style="font-size:7px;opacity:.6">+'+c.weight+'</span></span>'; });
-            } else {
-              (_report.entry.met||[]).forEach(function(c){ html += '<span style="font-size:8px;color:var(--buy);white-space:nowrap">[v] '+c+'</span>'; });
-            }
-            html += '</div>';
-            var _hasEU = _euw.length ? _euw.length : (_report.entry.unmet||[]).length;
-            if(_hasEU) {
-              html += '<div onclick="_sxVib(8);var u=document.getElementById(\''+_eUnmetId+'\');u.style.display=u.style.display===\'none\'?\'flex\':\'none\';this.querySelector(\'span\').textContent=u.style.display===\'none\'?\'▶\':\'▼\'" style="font-size:8px;color:var(--text3);cursor:pointer;margin-bottom:3px"><span>▶</span> 미충족 조건 '+_hasEU+'개</div>';
-              html += '<div id="'+_eUnmetId+'" style="display:none;flex-wrap:wrap;gap:3px 6px;margin-bottom:4px">';
-              if(_euw.length) {
-                _euw.forEach(function(c){ html += '<span style="font-size:8px;color:var(--text3);white-space:nowrap;opacity:.6">[ ] '+c.name+' <span style="font-size:7px">+'+c.weight+'</span></span>'; });
-              } else {
-                (_report.entry.unmet||[]).forEach(function(c){ html += '<span style="font-size:8px;color:var(--text3);white-space:nowrap;opacity:.6">[ ] '+c+'</span>'; });
-              }
-              html += '</div>';
-            }
-          }
-          if(_report.entry.signals.length) html += '<div style="font-size:9px;color:var(--buy);line-height:1.5;margin-bottom:2px">'+_report.entry.signals.map(function(n){return '[+] '+n}).join('<br>')+'</div>';
-          if(_report.entry.warnings.length) html += '<div style="font-size:9px;color:var(--sell);line-height:1.5">'+_report.entry.warnings.map(function(n){return '[-] '+n}).join('<br>')+'</div>';
-          // S127: entry 섹션 내부 전이 박스(_e2tLabel) 제거
-          //   [이유] ready 박스 제거와 동일 논리 — 정보 중복 배제, Layer 3은 A 엔진 점수 + 조건에 집중
-          
-
-          // S88: 반등전환 추이 → SXChart.drawDeltaBar 캔버스 (v1.8: 반등신호→반등강도 · S724: →반등전환)
-          if(!_zoneHidden('entry') && _mom && _mom.history.length >= 3){
-            const _ebCanvasId = _3stageId + '_ebc';
-            const _eRev = _mom.history.slice().reverse().map(function(h){ return {score: h.entryScore || 0}; });
-            if(typeof _c2h!=='undefined' && _c2h && _eRev.length){ for(var _hi2=0;_hi2<_eRev.length;_hi2++){ var _cb2=_c2h[_c2h.length-_eRev.length+_hi2]; if(_cb2&&_cb2.entry!=null) _eRev[_hi2]=Object.assign({}, _eRev[_hi2], {score:_cb2.entry}); } } else if(typeof _c2r!=='undefined' && _c2r && _eRev.length){ _eRev[_eRev.length-1].score=_c2r.entry; }   // [S897→S904] 시리즈 정합·폴백
-            html += '<div style="margin-bottom:10px">';
-            html += '<div style="font-size:8.5px;font-weight:700;color:var(--text3);margin:2px 0 2px">추이 '+_mom.lookback+'봉</div>';
-            html += '<canvas id="'+_ebCanvasId+'" style="width:100%;height:26px;display:block"></canvas>';
-            html += '</div>';
-            (window._sxTrackedTimeout || setTimeout)(function(){ if(typeof SXChart!=='undefined' && SXChart.drawDeltaBar) SXChart.drawDeltaBar(_ebCanvasId, _eRev, _mom.lookback); }, 70);
-          }
-          html += '</div>';   // [S904] 카드 닫기 지연 — 추이 차트 카드 내장
-
-          // 추세 섹션 — S127: Layer 4(C) 시각 테마 적용
-          //   [이유] A(검토/강세)와 C(추세) 섹션을 시각적으로 구분 — "추세는 판단의 본론"
-          //   [스타일] 좌측 4px accent border + 약한 accent-glow 배경 + "추세" 라벨 accent 색상
-          //     --accent(파랑 #2563eb) + --accent-glow(rgba blue, 라이트/다크 자동 대응) 사용
-          //     하드코딩 색상 금지 — 테마 변수만으로 일관성 유지
-          // [v1.7] 헤더 라벨 "추세" → "추세 강도" (헤더 버튼 "강/중/약추세" 등급과 호응)
-          // [v1.8] 헤더 라벨 "추세 강도" → "추세 방향"
-          //   이유: 시장 레짐 섹션의 "추세강도(ADX)" 표현과 단어 충돌 → 의미 분리
-          //         ADX는 추세의 '세기', trendScore는 종합 점수 (방향성 포함)
-          // [S900] 반등 전이 카드 — 발동 후 유지/관찰(조기감지). cv2 활성(bear/bull)에서만. 깔때기: 준비→전환→전이.
-          if(typeof _c2r!=='undefined' && _c2r){
-            var _trSc=_c2r.transit, _trState=_c2r.trState;
-            var _trCls=(_trSc==null)?'hold':(_trSc>=60?'buy':(_trSc>=40?'hold':'sell'));
-            var _trLbl=(_trState==='fresh')?'관찰 개시':(_trState==='holding'?(_trSc>=50?'진짜 유지':'가짜 이탈'):'무발동');
-            var _trSum=(_trState==='none')?'미발동 — 발동 후 진짜/가짜 확정을 관찰':((_trState==='fresh')?'발동 직후(0봉) — t+1/2 확정 대기':('발동 후 궤적: '+(_trSc>=50?'진입가 위 유지(진짜 쪽)':'진입가 이탈(가짜 쪽)')));
-            html += '<div'+_zoneCls('transit')+' style="margin-bottom:10px;'+_zoneStyle('transit')+'">';
-            html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:11px;font-weight:800;color:var(--text)">반등 전이</span><span style="font-size:14px;font-weight:800;color:var(--'+_trCls+')">'+(_trSc==null?'—':_trSc)+'</span><span style="font-size:9px;color:var(--text3)">'+_trLbl+'</span><span style="font-size:7.5px;font-weight:700;color:#0891b2;background:#0891b214;border:1px solid #0891b233;border-radius:8px;padding:1px 5px;margin-left:auto">🔬 조기감지 검증</span></div>';
-            html += '<div style="font-size:10px;color:var(--text2);line-height:1.6;margin-bottom:4px">'+_trSum+'</div>';
-            // [S905] 관찰창 시각화 — 경과 도트(0~5봉) + 누적수익 ±2% 게이지(S876 확정/실패 임계). 발동 상태(fresh/holding)만.
-            try{
-              if(_trState!=='none' && _c2r){
-                var _tj=(_c2r.trJ==null)?0:(_c2r.trJ|0), _trt=(_c2r.trRet==null)?0:_c2r.trRet;
-                var _dots=''; for(var _dk=0;_dk<=5;_dk++){ _dots+='<span style="width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:3px;background:'+(_dk<=_tj?'#0d9488':'var(--border)')+'"></span>'; }
-                var _pctTxt=((_trt>=0?'+':'')+(_trt*100).toFixed(1)+'%');
-                var _pos=Math.max(0, Math.min(100, ( _trt + 0.03 ) / 0.06 * 100));   // −3%~+3% 클램프
-                var _gCol=(_trt>=0.02)?'#16a34a':((_trt<=-0.02)?'#dc2626':'#d97706');
-                html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px"><span style="font-size:8px;color:var(--text3)">관찰창</span><span style="display:inline-flex;align-items:center">'+_dots+'</span><span style="font-size:8.5px;font-weight:700;color:var(--text2)">'+_tj+'/5봉</span><span style="font-size:9px;font-weight:800;color:'+_gCol+';margin-left:auto">누적 '+_pctTxt+'</span></div>';
-                html += '<div style="position:relative;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;margin-bottom:2px">'
-                  +'<div style="position:absolute;left:16.67%;top:0;bottom:0;width:1px;background:#dc262666"></div>'
-                  +'<div style="position:absolute;left:83.33%;top:0;bottom:0;width:1px;background:#16a34a66"></div>'
-                  +'<div style="position:absolute;left:'+_pos.toFixed(1)+'%;top:1px;bottom:1px;width:8px;margin-left:-4px;border-radius:4px;background:'+_gCol+'"></div>'
-                  +'</div>';
-                html += '<div style="display:flex;justify-content:space-between;font-size:7.5px;color:var(--text3)"><span>−2% 실패 전이</span><span>관찰</span><span>확정 진행 +2%</span></div>';
-              }
-            }catch(_e905){}
-            html += '</div>';
-          }
-          const tCls = _report.trend.score>=60?'buy':_report.trend.score>=40?'hold':'sell';
-          html += '<div'+_zoneCls('trend')+' style="margin-bottom:10px;'+_zoneStyle('trend')+'">';
-          html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:11px;font-weight:800;color:var(--accent)">추세 방향</span><span style="font-size:14px;font-weight:800;color:var(--'+tCls+')">'+_report.trend.score+_deltaTag(_trendDelta)+'</span><span style="font-size:9px;color:var(--text3)">'+_report.trend.level+'</span>'+(_report.trend._cv2tp?('<span style="font-size:7.5px;font-weight:700;border-radius:8px;padding:1px 5px;margin-left:auto;'+(_report.trend._cv2tp.q<=1?'color:#2563eb;background:#2563eb14;border:1px solid #2563eb44':(_report.trend._cv2tp.q>=3?'color:#dc2626;background:#dc262614;border:1px solid #dc262644':'color:var(--text2);background:var(--surface2);border:1px solid var(--border)'))+'">🌡️ 이격도 '+_report.trend._cv2tp.disp.toFixed(0)+'% '+_report.trend._cv2tp.qLabel+'</span>'):(_passPath!=='none'?'<span style="font-size:7.5px;font-weight:700;color:#7c3aed;background:#7c3aed14;border:1px solid #7c3aed33;border-radius:8px;padding:1px 5px;margin-left:auto">🚪 '+(_passPath==='rebound'?'바닥반등 게이트':'눌림목 게이트')+'</span>':''))+'</div>';
-          // [S404] 추세방향 설명 중 '추가 상승 신호' 문구를 추가상승 점수 색으로 동기화 — 시선 유도(작은 문구 가독성↑)
-          var _posHtml = _report.trend.position || '';
-          if(_report.upside && /추가 상승 신호/.test(_posHtml)){
-            var _upCls2 = _report.upside.score>=60?'buy':_report.upside.score>=40?'hold':'sell';
-            _posHtml = _posHtml.replace(/추가 상승 신호/g, '<span style="color:var(--'+_upCls2+');font-weight:800">추가 상승</span> 신호');
-          }
-          html += '<div style="font-size:10px;color:var(--text2);line-height:1.6;margin-bottom:4px">'+_posHtml+'</div>';
-          if(_report.trend._cv2tp){ var _tpg=_report.trend._cv2tp, _gL=['침체','저','중','고','과열']; html += '<div style="display:flex;gap:2px;margin-bottom:6px">'; for(var _gi=0;_gi<5;_gi++){ var _gOn=(_gi===_tpg.q), _gC=(_gi<=1?'#2563eb':(_gi>=3?'#dc2626':'#94a3b8')); html += '<div style="flex:1;text-align:center;font-size:7.5px;font-weight:'+(_gOn?'800':'500')+';color:'+(_gOn?_gC:'var(--text3)')+';background:'+(_gOn?_gC+'22':'var(--surface2)')+';border:1px solid '+(_gOn?_gC+'66':'var(--border)')+';border-radius:4px;padding:2px 0">'+_gL[_gi]+(_gOn?' ●':'')+'</div>'; } html += '</div>'; }
-          // S85→S87: 추세 조건별 가중치 — met만 표시, unmet 토글 숨김
-          if((_report.trend.metW && _report.trend.metW.length) || (_report.trend.unmetW && _report.trend.unmetW.length)) {
-            var _tmw = _report.trend.metW || [];
-            var _tuw = _report.trend.unmetW || [];
-            var _tUnmetId = 'tu_' + Math.random().toString(36).slice(2,8);
-            html += '<div style="display:flex;flex-wrap:wrap;gap:3px 6px;margin-bottom:4px">';
-            _tmw.forEach(function(c){
-              var gTag = c.group==='ref'?' [참고]':'';
-              html += '<span style="font-size:8px;color:var(--buy);white-space:nowrap" title="최대 '+c.maxW+' / '+c.group+'">[+] '+c.name+' <span style="font-size:7px;opacity:.6">'+c.weight+gTag+'</span></span>';
             });
-            html += '</div>';
-            if(_tuw.length) {
-              html += '<div onclick="_sxVib(8);var u=document.getElementById(\''+_tUnmetId+'\');u.style.display=u.style.display===\'none\'?\'flex\':\'none\';this.querySelector(\'span\').textContent=u.style.display===\'none\'?\'▶\':\'▼\'" style="font-size:8px;color:var(--text3);cursor:pointer;margin-bottom:3px"><span>▶</span> 미충족 조건 '+_tuw.length+'개</div>';
-              html += '<div id="'+_tUnmetId+'" style="display:none;flex-wrap:wrap;gap:3px 6px;margin-bottom:4px">';
-              _tuw.forEach(function(c){
-                var gTag = c.group==='ref'?' [참고]':'';
-                html += '<span style="font-size:8px;color:var(--sell);white-space:nowrap;opacity:.7" title="최대 '+c.maxW+' / '+c.group+'">[-] '+c.name+' <span style="font-size:7px">'+c.weight+gTag+'</span></span>';
-              });
-              html += '</div>';
+            const _rest = _ing.litKeys.filter(function(k){ return !_used[k]; });
+            if(_rest.length){
+              _grpHTML += `<div style="font-size:10px;color:var(--text3);margin-top:3px;line-height:1.5"><b>기타 맥락</b>&nbsp; ${_rest.map(_cv2IngLabel).join(' · ')}</div>`;
             }
-          }
-          // [S402] 추세 분해 요약 — trendPure parts 기반 (헤더 trendScore와 일치)
-          if(_report.trend.breakdown) {
-            var bd = _report.trend.breakdown;
-            html += '<div style="font-size:8px;color:var(--text3);line-height:1.5;margin-bottom:4px">';
-            if(bd.parts && bd.parts.length){
-              html += bd.parts.map(function(p){ return p.name+' '+(p.w>=0?'+':'')+p.w; }).join(' · ') + ' → 종합 ' + bd.combined;
-            } else {
-              html += '종합 ' + (bd.combined!=null?bd.combined:'-');
-            }
-            html += '</div>';
-          }
-          
-
-          // S88: 추세 방향 추이 → SXChart.drawDeltaBar 캔버스 (v1.8: 추세강도→추세방향)
-          if(!_zoneHidden('trend') && _mom && _mom.history.length >= 3){
-            const _tbCanvasId = _3stageId + '_tbc';
-            const _tRev = _mom.history.slice().reverse().map(function(h){ return {score: h.trendScore || 0}; });
-            if(typeof _c2h!=='undefined' && _c2h && _tRev.length){ for(var _hi4=0;_hi4<_tRev.length;_hi4++){ var _cb4=_c2h[_c2h.length-_tRev.length+_hi4]; if(_cb4&&_cb4.tp&&_cb4.tp.score!=null) _tRev[_hi4]={score:_cb4.tp.score}; } } else if(_report.trend._cv2tp && _tRev.length){ _tRev[_tRev.length-1].score=_report.trend._cv2tp.score; }   // [S902→S904] 위치점수 시리즈 정합·폴백
-            html += '<div style="margin-bottom:10px">';
-            html += '<div style="font-size:8.5px;font-weight:700;color:var(--text3);margin:2px 0 2px">추이 '+_mom.lookback+'봉</div>';
-            html += '<canvas id="'+_tbCanvasId+'" style="width:100%;height:26px;display:block"></canvas>';
-            html += '</div>';
-            (window._sxTrackedTimeout || setTimeout)(function(){ if(typeof SXChart!=='undefined' && SXChart.drawDeltaBar) SXChart.drawDeltaBar(_tbCanvasId, _tRev, _mom.lookback); }, 80);
-          }
-          html += '</div>';   // [S904] 카드 닫기 지연 — 추이 차트 카드 내장
-
-          // [S357] 추가 상승 섹션 — 순추세 추격 (ⓐ 채택 경로에 따라 활성/비활성 배경)
-          if(_report.upside){
-            const uCls = _report.upside.score>=60?'buy':_report.upside.score>=40?'hold':'sell';
-            html += '<div'+_zoneCls('upside')+' style="margin-bottom:10px;'+_zoneStyle('upside')+'">';
-            html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:11px;font-weight:800;color:var(--text)">추가 상승</span><span style="font-size:14px;font-weight:800;color:var(--'+uCls+')">'+_report.upside.score+_deltaTag(_upsideDelta)+'</span><span style="font-size:9px;color:var(--text3)">'+_report.upside.level+' · '+_report.upside.progress+'</span>'+((typeof _c2r!=='undefined'&&_c2r&&_c2r.upside!=null)?'<span style="font-size:7.5px;font-weight:700;color:#0891b2;background:#0891b214;border:1px solid #0891b233;border-radius:8px;padding:1px 5px;margin-left:auto">🔬 완성↑→발동 예고</span>':'')+'</div>';
-            // [S404] 추가상승 설명 중 '추세 방향' 문구를 추세방향 점수 색으로 동기화 — 추세↔추가상승 상호 시선 유도
-            var _upSumHtml = _report.upside.summary || '';
-            if(_report.trend && /추세 방향/.test(_upSumHtml)){
-              var _trCls2 = _report.trend.score>=60?'buy':_report.trend.score>=40?'hold':'sell';
-              _upSumHtml = _upSumHtml.replace(/추세 방향/g, '<span style="color:var(--'+_trCls2+');font-weight:800">추세 방향</span>');
-            }
-            html += '<div style="font-size:10px;color:var(--text2);line-height:1.6;margin-bottom:4px">'+_upSumHtml+'</div>';
-            if(_report.upside.met.length || _report.upside.unmet.length){
-              var _umw = _report.upside.metW || [];
-              var _uuw = _report.upside.unmetW || [];
-              var _uUnmetId = 'uu_' + Math.random().toString(36).slice(2,8);
-              html += '<div style="display:flex;flex-wrap:wrap;gap:3px 6px;margin-bottom:4px">';
-              if(_umw.length){
-                _umw.forEach(function(c){ html += '<span style="font-size:8px;color:var(--buy);white-space:nowrap">[v] '+c.name+' <span style="font-size:7px;opacity:.6">+'+c.weight+'</span></span>'; });
-              } else {
-                _report.upside.met.forEach(function(c){ html += '<span style="font-size:8px;color:var(--buy);white-space:nowrap">[v] '+c+'</span>'; });
-              }
-              html += '</div>';
-              var _hasUU = _uuw.length ? _uuw.length : _report.upside.unmet.length;
-              if(_hasUU){
-                html += '<div onclick="_sxVib(8);var u=document.getElementById(\''+_uUnmetId+'\');u.style.display=u.style.display===\'none\'?\'flex\':\'none\';this.querySelector(\'span\').textContent=u.style.display===\'none\'?\'▶\':\'▼\'" style="font-size:8px;color:var(--text3);cursor:pointer;margin-bottom:3px"><span>▶</span> 미충족 조건 '+_hasUU+'개</div>';
-                html += '<div id="'+_uUnmetId+'" style="display:none;flex-wrap:wrap;gap:3px 6px;margin-bottom:4px">';
-                if(_uuw.length){
-                  _uuw.forEach(function(c){ html += '<span style="font-size:8px;color:var(--text3);white-space:nowrap;opacity:.6">[ ] '+c.name+' <span style="font-size:7px">+'+c.weight+'</span></span>'; });
-                } else {
-                  _report.upside.unmet.forEach(function(c){ html += '<span style="font-size:8px;color:var(--text3);white-space:nowrap;opacity:.6">[ ] '+c+'</span>'; });
-                }
-                html += '</div>';
-              }
-            }
-            if(_report.upside.warnings && _report.upside.warnings.length) html += '<div style="font-size:9px;color:var(--sell);line-height:1.5">'+_report.upside.warnings.map(function(n){return '[-] '+n}).join('<br>')+'</div>';
-            
-
-            // 추가 상승 추이
-            if(!_zoneHidden('upside') && _mom && _mom.history.length >= 3){
-              const _ubCanvasId = _3stageId + '_ubc';
-              const _uRev = _mom.history.slice().reverse().map(function(h){ return {score: h.upsideScore || 0}; });
-              if(typeof _c2h!=='undefined' && _c2h && _uRev.length){ for(var _hi3=0;_hi3<_uRev.length;_hi3++){ var _cb3=_c2h[_c2h.length-_uRev.length+_hi3]; if(_cb3&&_cb3.upside!=null) _uRev[_hi3]=Object.assign({}, _uRev[_hi3], {score:_cb3.upside}); } } else if(typeof _c2r!=='undefined' && _c2r && _c2r.upside!=null && _uRev.length){ _uRev[_uRev.length-1].score=_c2r.upside; }   // [S897→S904] 시리즈 정합·폴백
-              html += '<div style="margin-bottom:10px">';
-              html += '<div style="font-size:8.5px;font-weight:700;color:var(--text3);margin:2px 0 2px">추이 '+_mom.lookback+'봉</div>';
-              html += '<canvas id="'+_ubCanvasId+'" style="width:100%;height:26px;display:block"></canvas>';
-              html += '</div>';
-              (window._sxTrackedTimeout || setTimeout)(function(){ if(typeof SXChart!=='undefined' && SXChart.drawDeltaBar) SXChart.drawDeltaBar(_ubCanvasId, _uRev, _mom.lookback); }, 90);
-            }
-          html += '</div>';   // [S904] 카드 닫기 지연 — 추이 차트 카드 내장
+            h += `<div style="display:flex;gap:7px;margin-bottom:8px">
+              <span style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:${C.orange};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">③</span>
+              <div style="flex:1;font-size:11px"><b style="color:var(--text)">켜진 재료 ${_ing.on}/${_ing.total}</b>${_grpHTML}</div>
+            </div>`;
+          } else if(_recipeScope){
+            h += _unit('③', C.gray, '켜진 재료', `없음 — 저가/전환 재료 미점등 (${_ing?_ing.on:0}/${_ing?_ing.total:0})`);
           }
 
-          // S87: 구간 분포 추이 → SXChart.drawScoreSpark 캔버스
-          if(stock._btTransitionStats && stock._btTransitionStats.timeline && stock._btTransitionStats.timeline.length >= 3) {
-            const tl = stock._btTransitionStats.timeline;
-            const _tlDetailId = _3stageId + '_tld';
-            const _tlCanvasId = _3stageId + '_tlc';
-            html += '<div style="margin-bottom:10px">';
-            html += '<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px">구간 분포 추이 ('+tl.length+'포인트) <span style="font-size:7px;color:var(--text3);font-weight:400">bar 클릭=상세</span></div>';
-            html += '<canvas id="'+_tlCanvasId+'" style="width:100%;height:50px;display:block;cursor:pointer"></canvas>';
-            html += '<div id="'+_tlDetailId+'" style="display:none;margin-top:4px;padding:4px 8px;background:var(--surface);border-radius:6px;font-size:8px;color:var(--text2);line-height:1.5"></div>';
-            html += '</div>';
-            // 렌더 후 그리기 (setTimeout으로 DOM 삽입 대기)
-            (window._sxTrackedTimeout || setTimeout)(function(){ if(typeof SXChart!=='undefined' && SXChart.drawScoreSpark) SXChart.drawScoreSpark(_tlCanvasId, tl, _tlDetailId); }, 50);
-          }
-
-          // S127: 진입 검토 추이 차트는 Layer 2(ready) 섹션 바로 뒤로 이동 — 여기서는 제거
-          //   이전 위치(구간분포 추이 다음)는 이미 A→A→C 레이어가 끝난 뒤라 문맥 부정합
-
-          // 데이터 지연 판정
-          if(_report.staleness.warning){
-            html += '<div style="padding:6px 8px;background:rgba(255,140,0,.08);border-radius:6px;font-size:9px;line-height:1.5;color:var(--text2)">';
-            html += '<span style="font-weight:700;color:#ff8c00">데이터 시점: '+_report.staleness.label+'</span><br>'+_report.staleness.warning;
-            html += '</div>';
-          }
-
-          // [S420] 최종 판정 카드 → _swapVerdictHTML로 stash (BT 활용토글로 이동). 이 자리엔 "현재 지표 상태 요약" 렌더.
-          //   폴백: _pgShared 없음(verdictAction 없음=BT 거래수 부족/미지원 TF) → swap 불가 → verdict를 원래대로 C패널에 표시.
-          (function(){
-            var _vHTML = '<div style="margin-top:8px;padding:8px 10px;background:var(--surface);border-radius:8px;border:1px solid var(--border)">';
-            _vHTML += '<div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:4px">'+_report.verdict.label+'</div>';
-            _vHTML += '<div style="font-size:10px;color:var(--text2);line-height:1.6;white-space:pre-line">'+_report.verdict.text+'</div>';
-            // [S403] 종합점수(상태) 1단계 제동/가속 — 판정·라벨·색(_svVerdict)은 그대로, UI 해석만 보정
-            //   상태 점수가 verdict 방향과 어긋나면(긍정판정+낮은상태 / 부정판정+높은상태) 한 단계 신중·경계 단서 표시
-            var _bTot = (window._sxBoard && window._sxBoard._total != null) ? window._sxBoard._total : null;
-            var _vLbl = _report.verdict.label || '';
-            if(_bTot != null && (_vLbl==='매수'||_vLbl==='관심'||_vLbl==='보유 유지') && _bTot < 50){
-              _vHTML += '<div style="font-size:9px;color:var(--sell);margin-top:6px;line-height:1.5;padding-top:6px;border-top:1px dashed var(--border)">⚠️ 종합점수 '+_bTot+'('+_sxbGrade(_bTot)+'등급) — 종목 상태가 약화 구간입니다. 판정보다 한 단계 신중하게(손절·익절 기준 점검) 접근하세요.</div>';
-            } else if(_bTot != null && (_vLbl==='청산 검토'||_vLbl==='즉시 청산'||_vLbl==='회피'||_vLbl==='매도 완료') && _bTot >= 65){
-              _vHTML += '<div style="font-size:9px;color:var(--buy);margin-top:6px;line-height:1.5;padding-top:6px;border-top:1px dashed var(--border)">ℹ️ 종합점수 '+_bTot+'('+_sxbGrade(_bTot)+'등급) — 상태는 견조한 편이니 과도한 비관은 경계하세요.</div>';
-            }
-            _vHTML += '</div>';
-
-            if(_pgShared && _pgShared.title){
-              // swap 모드: verdict는 BT 활용토글로 보내고(stash), 이 자리엔 현재 지표 상태 요약
-              _swapVerdictHTML = _vHTML;
-              if(_pgShared.extras && _pgShared.extras.length){
-                html += '<div style="margin-top:8px;padding:8px 10px;background:var(--surface);border-radius:8px;border:1px solid var(--border)">';
-                html += '<div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:6px">현재 지표 상태 요약</div>';
-                _pgShared.extras.forEach(function(e){ html += '<div style="font-size:10px;color:var(--text2);margin-bottom:3px;line-height:1.5;padding-left:8px;border-left:2px solid var(--accent)">· '+e+'</div>'; });
-                html += '</div>';
-              }
-            } else {
-              // 폴백: pg 없음 → swap 안 함, verdict 원래대로 C패널 유지
-              html += _vHTML;
-              _swapVerdictHTML = '';
-            }
-          })();
-
-          return _sr4Tier ? '<div style="border-left:3px solid '+_sr4Col+';background:'+_sr4Col+'08;border-radius:0 8px 8px 0;padding:3px 0 3px 9px">'+html+'</div>' : html;
-        })()}
-        </div>`;
-      })()}
-      <div id="${_stratDetailId}" style="display:${stock._engineVerifyOpen ? 'block' : 'none'};margin-top:8px">
-      ${(()=>{
-        // S114: "매수 근거 평가" 카드 → "엔진판단 검증 결과" 6칸 카드로 교체
-        //   [이전 문제] calcEntryEvaluation이 C 판정과 독립 계산 → 청산/즉시청산 상태에서도 "양호한 매수 60점" 표시 (역행 이슈)
-        //     · S112에서 발견된 미래에셋증권 사례: 반등조짐 ⬇ / 전이 20% ⬇ / 매수근거 60점 ⬆ (모순)
-        //     · 수학적 재현: 즉시청산 상태 + analScore=45/RR=1.2/BT=75 → "보통 매수 45점" (완전 모순)
-        //   [S114 해결] 계산된 점수 대신 "실제 BT 결과"를 표시 → 검증된 데이터이므로 C와 독립이어도 사실
-        //     · 프로젝트 C v3.0 원칙 ⑧ "검증가능성" 준수
-        //   [레이아웃] 6칸 (승률/손익비/수익률/거래수/MDD/평균이익) — 단일검증 탭과 연동
-        //   [데이터 없음 시] "▶ 엔진판단 검증 버튼을 눌러 백테스트를 실행하세요" 안내
-        //   [복원 필요 시] 이전 매수 근거 평가 카드 코드는 git 히스토리 또는 s113 백업 참조
-        const _btR = stock._btResult;
-        if(!_btR || _btR.error || !_btR.totalTrades){
-          return `
-      <div style="margin-top:10px;padding:14px 12px;background:var(--surface2);border-radius:10px;border-left:3px solid var(--text3);text-align:center">
-        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:6px">📊 엔진판단 검증 결과</div>
-        <div style="font-size:10.5px;color:var(--text3);line-height:1.5">백테스트 결과 없음<br>위 <b>엔진판단 검증 ▶</b> 버튼 클릭 시 실행됩니다</div>
-      </div>`;
-        }
-        // BT 결과 6칸: 승률/손익비/수익률 / 거래수/MDD/기댓값
-        const _wr = _btR.winRate ?? 0;
-        const _pnl = _btR.totalPnl ?? 0;
-        const _tr = _btR.totalTrades ?? 0;
-        const _mdd = Math.abs(_btR.mdd ?? 0);
-        const _avgP = _btR.avgWin ?? (_btR.avgProfit > 0 ? _btR.avgProfit : 0);
-        const _avgL = _btR.avgLoss ?? (_btR.avgProfit < 0 ? Math.abs(_btR.avgProfit) : 0);
-        // 손익비 (profit factor 우선, 없으면 avgWin/avgLoss)
-        let _rr = _btR.profitFactor ?? 0;
-        if(!_rr && _avgP > 0 && _avgL > 0) _rr = _avgP / _avgL;
-        const _rrStr = _rr > 0 ? _rr.toFixed(2) : '—';
-        // [S292] 기댓값 = (승률 × 평균이익) - (패율 × 평균손실)
-        //   단일검증 탭과 동일 공식 사용 — 전략 기대수익 직관적 표현
-        const _ev = (_tr > 0 && (_avgP > 0 || _avgL > 0))
-          ? ((_wr / 100) * _avgP) - ((1 - _wr / 100) * _avgL)
-          : 0;
-        const _evStr = _tr > 0 ? (_ev >= 0 ? '+' : '') + _ev.toFixed(2) + '%' : '—';
-        // S116: 데이터 충족/부족/충분 라벨 (기존 하단 "매매전략" 배너에서 이관)
-        //   거래수 기준: < BT_MIN_TRADES(10) = 부족 / < 30 = 충족 / >= 30 = 충분
-        let _dataLabel, _dataClr;
-        if(_tr < BT_MIN_TRADES){ _dataLabel = '데이터 부족'; _dataClr = '#e8365a'; }
-        else if(_tr < 30){ _dataLabel = '데이터 충족'; _dataClr = '#3b82f6'; }
-        else { _dataLabel = '데이터 충분'; _dataClr = '#22c55e'; }
-        //   승률, 수익률, 기댓값 — 음수 빨강 / 양수 녹색 (간단 2단계)
-        //   손익비, MDD — 기본 검정 (var(--text))
-        //   거래수 — 데이터 충족 라벨과 동일 색 (부족=빨강/충족=파랑/충분=녹색)
-        const _posColor = '#22c55e';  // 녹색 (양수)
-        const _negColor = '#e8365a';  // 빨강 (음수)
-        // [S292] 승률 4단계: 60%↑녹색 / 40~59%파랑 / 20~39%주황 / 0~19%빨강
-        const _wrClr = _wr >= 60 ? _posColor : _wr >= 40 ? '#3b82f6' : _wr >= 20 ? '#f97316' : _negColor;
-        // [S295] 총수익률 4단계: ≥100% 녹색 / 50~99.9% 파랑 / 0~49.9% 주황 / <0 빨강
-        const _pnlClr = _pnl >= 100 ? _posColor : _pnl >= 50 ? '#3b82f6' : _pnl >= 0 ? '#f97316' : _negColor;
-        const _evClr = _ev >= 1.0 ? _posColor : _ev >= 0 ? '#f97316' : _negColor; // [S293] 3단계
-        // [S293] 손익비 4단계: ≥2.0 녹색 / 1.5~1.99 파랑 / 1.0~1.49 주황 / <1.0 빨강
-        const _rrClr = _rr >= 2.0 ? _posColor : _rr >= 1.5 ? '#3b82f6' : _rr >= 1.0 ? '#f97316' : _negColor;
-        // [S294] MDD 3단계: <10% 파랑 / 10~19.9% 보라 / ≥20% 빨강
-        const _mddClr = _mdd >= 20 ? _negColor : _mdd >= 10 ? '#8b5cf6' : '#3b82f6';
-        const _trClr = _dataClr;       // 거래수는 데이터 충족 라벨과 동일색
-        // 봉수 표시 (투명성)
-        const _rowsLen = _btR.rowsLength || 0;
-        const _rowsBadge = _rowsLen >= 600 ? '🟢' : _rowsLen >= 400 ? '🔵' : _rowsLen > 0 ? '🔴' : '';
-        // S120-2: 강건성 배지 (🌱 신뢰 / ⚠️ 불안)
-        //   200봉 vs 600봉 수익률 편차 기반 — 구간 의존성(과적합) 탐지
-        //   stock._robustness.show=true일 때만 렌더 (봉수/거래수 조건 충족 시)
-        let _robBadge = '';
-        if(stock._robustness && stock._robustness.show){
-          const _rob = stock._robustness;
-          const _robIcon = _rob.label === 'trust' ? '🌱' : '⚠️';
-          const _robText = _rob.label === 'trust' ? '강건성 신뢰' : '강건성 불안';  // [S398] 라벨 명시 — BT 종합점수와 다른 축
-          const _robColor = _rob.label === 'trust' ? '#22c55e' : '#f59e0b';
-          const _robBg = _rob.label === 'trust' ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)';
-          const _robTitle = `200봉 ${_rob.pnl200.toFixed(1)}% vs 600봉 ${_rob.pnl600.toFixed(1)}% · 편차 ${(_rob.deviation*100).toFixed(0)}%`;
-          _robBadge = `<span title="${_robTitle}" style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;background:${_robBg};border-radius:10px;font-size:10px;font-weight:800;color:${_robColor};margin-left:6px">${_robIcon} ${_robText}</span>`;
-        }
-        return `
-      <div style="margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border-left:3px solid ${
-        (()=>{ const sc=calcBtScore(_btR, stock); return sc==null?'#94a3b8':sc>=70?'#22c55e':sc>=50?'#3b82f6':sc>=30?'#f97316':'#e8365a'; })()
-      }">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:4px">
-          <div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:-.3px">📊 엔진판단 검증 결과${_robBadge}</div>
-          <div style="font-size:10px;color:var(--text3);white-space:nowrap">${_rowsBadge} ${_rowsLen}봉</div>
-        </div>
-        ${(()=>{
-          // [S425] 진입 기준 배지 — 타이틀 줄 아래 별도 줄로 표기 (현재 설정이 아닌 결과 산출 모드 기준).
-          const _m = _btR.entryMode || 'close';
-          const _g = _btR.gapGuard;
-          const _t = _m === 'nextOpen' ? ('다음봉 시가 기준' + (_g ? ' ·갭가드' : '')) : '신호봉 종가 기준';
-          const _c = _m === 'nextOpen' ? 'var(--accent)' : 'var(--text3)';
-          return `<div style="margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="display:inline-flex;align-items:center;padding:2px 8px;background:var(--surface);border:1px solid ${_c};border-radius:10px;font-size:9.5px;font-weight:700;color:${_c};white-space:nowrap">${_t}</span><span style="font-size:9px;color:var(--text3)">※ 현재 보유중 매수건은 제외 (확정 매매 기준)</span></div>`;
-        })()}
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-          <div style="text-align:center;padding:6px 2px;background:var(--surface);border-radius:6px">
-            <div style="font-size:14px;font-weight:800;color:${_wrClr};line-height:1.2">${_wr.toFixed(1)}%</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:1px">승률</div>
-          </div>
-          <div style="text-align:center;padding:6px 2px;background:var(--surface);border-radius:6px">
-            <div style="font-size:14px;font-weight:800;color:${_rrClr};line-height:1.2">${_rrStr}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:1px">손익비</div>
-          </div>
-          <div style="text-align:center;padding:6px 2px;background:var(--surface);border-radius:6px">
-            <div style="font-size:14px;font-weight:800;color:${_pnlClr};line-height:1.2">${_pnl>=0?'+':''}${_pnl.toFixed(1)}%</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:1px">수익률</div>
-          </div>
-          <div style="text-align:center;padding:6px 2px;background:var(--surface);border-radius:6px">
-            <div style="font-size:14px;font-weight:800;color:${_trClr};line-height:1.2">${_tr}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:1px">거래수</div>
-          </div>
-          <div style="text-align:center;padding:6px 2px;background:var(--surface);border-radius:6px">
-            <div style="font-size:14px;font-weight:800;color:${_mddClr};line-height:1.2">${_mdd.toFixed(1)}%</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:1px">MDD</div>
-          </div>
-          <div style="text-align:center;padding:6px 2px;background:var(--surface);border-radius:6px">
-            <div style="font-size:14px;font-weight:800;color:${_evClr};line-height:1.2">${_evStr}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:1px">기댓값</div>
-          </div>
-        </div>
-        ${(()=>{
-          // [S293] BT신뢰도 점수 + B(엔진시뮬) 상태 — 6카드 그리드 아래 배치
-          //   · BT신뢰도: 기존 "데이터 충족/부족/충분" 텍스트 → btScore 점수로 대체
-          //   · B상태(진입가/목표가/손절가): 배너 중심부에서 이곳으로 이동
-          const _btSc = stock._btScore != null ? stock._btScore : (_analBtScore != null ? _analBtScore : null);
-          const _btStHere = stock._btState || _analBtState;
-          const _svVHere  = stock._svVerdict || null;
-
-          // BT 종합점수 바 + 메타 (표본/강건성/과최적 사유 투명화)
-          let _reliabilityHTML = '';
-          if(_btSc != null){
-            const _reliClr = _btSc >= 70 ? '#22c55e' : _btSc >= 50 ? '#3b82f6' : _btSc >= 30 ? '#f97316' : '#e8365a';
-            // [S398] 점수 캡 사유 한 줄 — calcBtScore의 거래수 캡/과최적 캡(S396)과 동일 조건으로 카드에서 재계산.
-            //   표본 부족(<20) / 강건성 불안(stock._robustness) / 과최적 의심((승률≥85 OR PF≥4) AND 거래<30)
-            const _mTrades = _btR.totalTrades || 0, _mWr = _btR.winRate || 0, _mPf = _btR.profitFactor || 0;
-            const _metaParts = [`표본 ${_mTrades}건${_mTrades < 20 ? ' <span style="color:#f59e0b">부족</span>' : ''}`];
-            if(stock._robustness && stock._robustness.show)
-              _metaParts.push(`강건성 ${stock._robustness.label === 'trust' ? '<span style="color:#22c55e">신뢰</span>' : '<span style="color:#f59e0b">불안</span>'}`);
-            if((_mWr >= 85 || _mPf >= 4) && _mTrades < 30)
-              _metaParts.push('<span style="color:#f59e0b">과최적 의심</span>');
-            // [S464] 코어(조기청산 제외) 베이스라인 한 줄 — 조기청산 ON일 때만 표시(_coreDiag.show)
-            let _coreLine = '';
-            if(stock._coreDiag && stock._coreDiag.show){
-              const _cr = stock._coreDiag.rob;
-              const _crTxt = _cr === 'trust' ? '<span style="color:#22c55e">강건성 신뢰</span>'
-                          : _cr === 'fragile' ? '<span style="color:#f59e0b">강건성 불안</span>'
-                          : '강건성 –';
-              const _coTxt = stock._coreDiag.overfit ? '<span style="color:#f59e0b">과최적 의심</span>' : '<span style="color:#22c55e">과최적 없음</span>';
-              _coreLine = `<div style="font-size:9px;color:var(--text3);margin-top:3px;letter-spacing:-.2px">🧩 코어(조기청산 제외): ${_crTxt} · ${_coTxt}</div>`;
-            }
-            _reliabilityHTML = `<div style="margin-top:8px;padding:6px 8px;background:var(--surface);border-radius:6px">
-              <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-size:10px;color:var(--text3);font-weight:700;white-space:nowrap">BT 종합점수</span>
-                <div style="flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden">
-                  <div style="height:100%;width:${_btSc}%;background:${_reliClr};border-radius:3px;transition:width .4s"></div>
-                </div>
-                <span style="font-size:11px;font-weight:800;color:${_reliClr};min-width:28px;text-align:right">${_btSc}점</span>
-              </div>
-              <div style="font-size:9px;color:var(--text3);margin-top:4px;letter-spacing:-.2px">${_metaParts.join(' · ')}</div>${_coreLine}
+          // ── 측정 맥락 callout (④ — _cv2Confidence 겹침 base rate) ──
+          if(_conf){
+            const _nH = (_lt==='bear') ? 'N15' : 'N10';
+            const _nNote = (_lt==='bear') ? ' 역배는 늦게 무너져 N10 아닌 N15로 봄.' : '';
+            h += `<div style="font-size:10px;padding:7px 9px;background:var(--surface2);border-radius:7px;margin:9px 0 6px;line-height:1.55">
+              <b style="color:var(--text)">측정 맥락</b>&nbsp; 이 구도(${_conf.label})는 과거 ${_nH} <b style="color:${_headC}">~${_conf.pct}%</b> 반등.${_nNote}<br>
+              <span style="color:var(--text3)">개별 레시피 적중률 아님 — 겹침 base rate. 현 기준하 보임 (단일 빈티지 표본).</span>
+            </div>`;
+          } else if(_recipeScope){
+            h += `<div style="font-size:10px;padding:7px 9px;background:var(--surface2);border-radius:7px;margin:9px 0 6px;line-height:1.55;color:var(--text3)">
+              <b style="color:var(--text2)">측정 맥락</b>&nbsp; 발동 없어 base rate 없음 (순수 겹침 0). "신호 없음"이 정상 — 진입 대상 아닌 관찰 대상.
             </div>`;
           }
 
-          // B상태 (엔진시뮬 포지션)
-          const _bSimHTML = (typeof _buildSimPositionLine === 'function' && _btStHere)
-            ? _buildSimPositionLine(stock, _btStHere, _svVHere)
-            : '';
-
-          // [S305] 변동성 타깃팅 적용 상태 박스 — _btResult.volTarget 메타 기반
-          //   목적: 사용자가 분석탭에서 BT 결과의 posScale/추정 ATR%를 즉시 확인.
-          //         설정탭 미리보기와 다른 점: 실제 BT 결과의 평균 + 범위 표시 (사후 측정값).
-          //   표시 조건: volTarget.active === true (변동성 타깃팅 활성 상태로 BT 실행됨)
-          //         OFF로 BT 돌린 경우는 박스 자체를 숨김 (UI 노이즈 최소화).
-          //   [S306] 헤더 클릭 시 서술식 상세 안내 펼침 — 사용자가 숫자 의미 즉시 이해
-          //   [S307] ATR 실측 통계 + BT 정확도 섹션 추가 — 종목별 BT 신뢰도 가늠 지표
-          let _vtBoxHTML = '';
-          const _vtMeta = stock._btResult && stock._btResult.volTarget;
-          if(_vtMeta && _vtMeta.active && _vtMeta.scaleAvg != null){
-            const _vtMarketLabel = (_vtMeta.market === 'coin' || _vtMeta.market === 'crypto') ? '🪙 COIN'
-              : (_vtMeta.market === 'us') ? '🇺🇸 US' : '🇰🇷 KR';
-            // [S307] 종목 ATR — 실측(atrActualAvg) 우선, 누락 시 역산(target/scaleAvg) 폴백
-            const _atrActual = _vtMeta.atrActualAvg;  // BT 직접 측정 (산술평균, 가장 정확)
-            const _atrInferred = (_vtMeta.scaleAvg > 0) ? (_vtMeta.targetPct / _vtMeta.scaleAvg) : null;  // 역산 (조화평균)
-            const _atrDisplay = _atrActual != null ? _atrActual : _atrInferred;
-            // [S307] 오차율 — 실측과 역산의 차이로 BT 정확도 가늠
-            const _atrErr = (_atrActual != null && _atrInferred != null && _atrActual > 0)
-              ? Math.abs(_atrActual - _atrInferred) / _atrActual * 100
-              : null;
-            const _scaleClr = _vtMeta.scaleAvg >= 1.0 ? '#22c55e' : '#f59e0b';  // 1.0 이상=초록(증가), 미만=주황(감소)
-            const _rangeText = (_vtMeta.scaleMin != null && _vtMeta.scaleMax != null && _vtMeta.scaleMin !== _vtMeta.scaleMax)
-              ? `<span style="color:var(--text3);font-size:9px"> (${_vtMeta.scaleMin.toFixed(2)}~${_vtMeta.scaleMax.toFixed(2)})</span>` : '';
-            // [S306] 펼침 영역용 고유 ID
-            const _vtId = 'vt_' + Math.random().toString(36).slice(2,8);
-            // [S307] 실전 미러 진입금 계산 예시 (자산 흐름 카드와 동일한 100만원 기준)
-            const _seedKRW = 1000000;
-            const _entryKRW = Math.round(_seedKRW * _vtMeta.scaleAvg).toLocaleString();
-            // [S306] 자본 비율 (%) 표기 — scaleAvg × 100
-            const _capPct = (_vtMeta.scaleAvg * 100).toFixed(0);
-            // [S306] clamp 끝점 도달 여부 — ATR 추정 정확도 안내용
-            const _clampHit = (_vtMeta.scaleMin <= _vtMeta.clampMin + 0.01) || (_vtMeta.scaleMax >= _vtMeta.clampMax - 0.01);
-            // [S307] BT 정확도 판정 — 오차율 기준 색상 + 라벨
-            let _accuracyClr, _accuracyLabel, _accuracyDesc;
-            if(_atrErr == null){
-              _accuracyClr = '#9ca3af'; _accuracyLabel = '측정 불가'; _accuracyDesc = '실측 또는 역산 데이터 누락';
-            } else if(_atrErr < 5){
-              _accuracyClr = '#22c55e'; _accuracyLabel = 'BT 매우 정확'; _accuracyDesc = '변동성 일관 · 실측과 역산 거의 일치';
-            } else if(_atrErr < 15){
-              _accuracyClr = '#f59e0b'; _accuracyLabel = 'BT 양호'; _accuracyDesc = '시기별 변동성 차이 있음 · Clamp 영향 가능';
-            } else {
-              _accuracyClr = '#ef4444'; _accuracyLabel = 'BT 주의'; _accuracyDesc = 'ATR 산포 큼 또는 Clamp 발동 — 결과 신뢰도 ↓';
-            }
-            // [S307] 표준편차 표기 (실측 평균 ± 표준편차)
-            const _atrStdText = (_vtMeta.atrActualStd != null && _vtMeta.atrActualAvg != null)
-              ? ` <span style="color:var(--text3);font-size:9px">±${_vtMeta.atrActualStd.toFixed(2)}</span>` : '';
-
-            _vtBoxHTML = `<div style="margin-top:8px;padding:8px 10px;background:rgba(245,158,11,0.06);border-left:3px solid #f59e0b;border-radius:6px;cursor:pointer"
-                onclick="if(typeof _sxVib==='function')_sxVib(8);const c=document.getElementById('${_vtId}');c.style.display=c.style.display==='none'?'block':'none';this.querySelector('.vt-arrow').textContent=c.style.display==='block'?'▼':'▶'">
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <span style="font-size:10px;color:#f59e0b;font-weight:800;white-space:nowrap">🎯 변동성 타깃팅</span>
-                <span style="font-size:10px;color:var(--text2);font-weight:600">${_vtMarketLabel} 목표 ${_vtMeta.targetPct}%</span>
-                ${_atrDisplay != null ? `<span style="font-size:10px;color:var(--text3)">· 종목 ATR ${_atrDisplay.toFixed(2)}%${_atrStdText}</span>` : ''}
-                <span class="vt-arrow" style="margin-left:auto;font-size:10px;color:var(--text3);font-weight:700">▶</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:10px;color:var(--text2)">
-                <span style="white-space:nowrap">포지션 평균</span>
-                <span style="font-weight:800;font-size:13px;color:${_scaleClr}">${_vtMeta.scaleAvg.toFixed(2)}x</span>
-                ${_rangeText}
-                ${_atrErr != null ? `<span style="font-size:9px;padding:1px 6px;background:${_accuracyClr};color:#fff;border-radius:3px;font-weight:700;margin-left:4px">${_accuracyLabel}</span>` : ''}
-                <span style="margin-left:auto;font-size:9px;color:var(--text3)">${_vtMeta.sampleCount}거래</span>
-              </div>
-            </div>
-            <!-- [S306] 서술식 상세 안내 (펼침) -->
-            <div id="${_vtId}" style="display:none;margin-top:6px;padding:10px 12px;background:var(--surface);border:1px solid rgba(245,158,11,0.3);border-radius:6px;font-size:11px;color:var(--text2);line-height:1.7">
-              <div style="font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:8px">📊 이 숫자의 의미</div>
-              <div style="margin-bottom:10px;padding:8px;background:var(--surface2);border-radius:4px">
-                <div style="font-weight:600;color:var(--text);margin-bottom:4px">포지션 평균 <span style="color:${_scaleClr};font-size:13px">${_vtMeta.scaleAvg.toFixed(2)}x</span> = 자본의 <b style="color:${_scaleClr}">${_capPct}%</b> 진입</div>
-                <div style="font-size:10px;color:var(--text3);line-height:1.6">
-                  · <b>1.00x</b> = 자본 100% 진입 (기존 BT 동일)<br>
-                  · <b>&lt;1.00x</b> = 변동성 큰 종목 → 보수적 진입 (주황)<br>
-                  · <b>&gt;1.00x</b> = 변동성 작은 종목 → 적극적 진입 (초록, 레버리지/추가자금)
-                </div>
-                <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:10px;color:var(--text2)">
-                  💰 <b>실전 미러 예시</b>: 종자돈 1,000,000원이면 → <b style="color:${_scaleClr}">${_entryKRW}원</b> 진입 <span style="color:var(--text3);font-size:9px">(자산 흐름 카드와 동일 기준)</span>
-                </div>
-              </div>
-              ${(_vtMeta.scaleMin != null && _vtMeta.scaleMax != null && _vtMeta.scaleMin !== _vtMeta.scaleMax) ? `
-              <div style="margin-bottom:10px;padding:8px;background:var(--surface2);border-radius:4px">
-                <div style="font-weight:600;color:var(--text);margin-bottom:4px">범위 <span style="color:var(--text2)">${_vtMeta.scaleMin.toFixed(2)}x ~ ${_vtMeta.scaleMax.toFixed(2)}x</span></div>
-                <div style="font-size:10px;color:var(--text3);line-height:1.6">
-                  거래마다 진입 시점의 ATR%가 다르기 때문에 포지션도 거래마다 달라져요.<br>
-                  · 범위 좁음 = 변동성 일정<br>
-                  · 범위 넓음 = 시기별 변동성 차이 큼
-                </div>
-              </div>` : ''}
-              ${(_atrActual != null && _atrInferred != null) ? `
-              <!-- [S307] BT 정확도 섹션 — 실측 vs 역산 비교로 BT 신뢰도 가늠 -->
-              <div style="margin-bottom:10px;padding:8px;background:var(--surface2);border-radius:4px;border-left:3px solid ${_accuracyClr}">
-                <div style="font-weight:600;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px">
-                  📐 BT 정확도
-                  <span style="font-size:9px;padding:1px 6px;background:${_accuracyClr};color:#fff;border-radius:3px;font-weight:700">${_accuracyLabel}</span>
-                </div>
-                <div style="font-size:10px;color:var(--text2);line-height:1.7;font-family:'SF Mono',Consolas,monospace">
-                  <div style="display:flex;justify-content:space-between;padding:2px 0">
-                    <span style="color:var(--text3)">실측 ATR (BT 직접 측정)</span>
-                    <span style="font-weight:700;color:var(--text)">${_atrActual.toFixed(2)}%${_vtMeta.atrActualStd != null ? ` ± ${_vtMeta.atrActualStd.toFixed(2)}%` : ''}</span>
-                  </div>
-                  ${(_vtMeta.atrActualMin != null && _vtMeta.atrActualMax != null) ? `
-                  <div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--text3);font-size:9px">
-                    <span>최소 ~ 최대</span>
-                    <span>${_vtMeta.atrActualMin.toFixed(2)}% ~ ${_vtMeta.atrActualMax.toFixed(2)}%</span>
-                  </div>` : ''}
-                  <div style="display:flex;justify-content:space-between;padding:2px 0;border-top:1px dashed var(--border);margin-top:2px;padding-top:4px">
-                    <span style="color:var(--text3)">역산 ATR (목표 ÷ 평균)</span>
-                    <span style="font-weight:700;color:var(--text)">${_atrInferred.toFixed(2)}%</span>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;padding:2px 0">
-                    <span style="color:var(--text3)">오차율</span>
-                    <span style="font-weight:800;color:${_accuracyClr}">${_atrErr.toFixed(1)}%</span>
-                  </div>
-                </div>
-                <div style="margin-top:6px;font-size:9px;color:var(--text3);line-height:1.5">
-                  ${_accuracyDesc}
-                </div>
-                <div style="margin-top:6px;font-size:9px;color:var(--text3);line-height:1.5;padding-top:6px;border-top:1px dashed var(--border)">
-                  <b>판정 기준</b>: <span style="color:#22c55e">&lt;5% 매우 정확</span> · <span style="color:#f59e0b">5~15% 양호</span> · <span style="color:#ef4444">&gt;15% 주의</span>
-                </div>
-              </div>` : (_atrInferred != null ? `
-              <div style="margin-bottom:10px;padding:8px;background:var(--surface2);border-radius:4px">
-                <div style="font-weight:600;color:var(--text);margin-bottom:4px">종목 ATR 추정 <span style="color:var(--text2)">≈ ${_atrInferred.toFixed(2)}%</span></div>
-                <div style="font-size:10px;color:var(--text3);line-height:1.6">
-                  역산 추정: 목표 ATR ÷ 평균 비율 = ${_vtMeta.targetPct}% ÷ ${_vtMeta.scaleAvg.toFixed(2)} = ${_atrInferred.toFixed(2)}%${_clampHit ? '<br><span style="color:#f59e0b">⚠ Clamp 끝점 도달 → 추정 부정확</span>' : ''}
-                </div>
-              </div>` : '')}
-              <div style="padding:8px;background:rgba(34,197,94,0.06);border-radius:4px">
-                <div style="font-weight:600;color:var(--text);margin-bottom:4px">🎯 효과</div>
-                <div style="font-size:10px;color:var(--text3);line-height:1.6">
-                  · 변동성 <b style="color:#f59e0b">큰 종목</b> → 작게 (주황) 보수적 진입<br>
-                  · 변동성 <b style="color:#22c55e">작은 종목</b> → 크게 (초록) 적극적 진입<br>
-                  · 종목 간 자본 손실 폭 균등화 → <b>MDD 격차 평탄화</b><br>
-                  · 같은 파라미터로 여러 종목 비교 시 일관성 확보
-                </div>
-              </div>
-              <div style="margin-top:8px;padding:6px 8px;background:var(--surface2);border-radius:4px;font-size:9px;color:var(--text3);line-height:1.5">
-                ⚙ 설정 변경: 설정탭 → 변동성 타깃팅 → [설정] → 시장별 목표 ATR% 조정 후 BT 재실행
-              </div>
+          // ── 행동 참고 callout (Q1 이중ATR · 판정 아님) ──
+          if(_px > 0 && indicators.atr && indicators.atr.atr > 0){
+            const _atr = indicators.atr.atr;
+            const _initStop = Math.round(_px - 2*_atr);
+            h += `<div style="font-size:10px;padding:7px 9px;background:var(--buy-bg);border-radius:7px;margin-bottom:2px;line-height:1.55">
+              <b style="color:var(--buy)">행동한다면</b> <span style="color:var(--text3);font-size:9px">(참고 · 판정 아님)</span><br>
+              <span style="color:var(--text2)">초기손절 <b>${_initStop.toLocaleString()}</b> (현재가−2×ATR) · 트레일 최고−3×ATR · MA5×20 데드+유예10일 · 최대보유 상한 — 시즌2 이중ATR 청산과 동일 규칙.</span>
             </div>`;
           }
 
-          if(!_reliabilityHTML && !_bSimHTML && !_vtBoxHTML) return '';
-          return _reliabilityHTML + _vtBoxHTML + _bSimHTML;
-        })()}
-      </div>`;
-      })()}
-      ${(()=>{
-        // ═══════════════════════════════════════════════════════════════
-        // S116: "매매 근거 상세" 카드 + "_buildBtBanner" 하단 배너 완전 제거
-        //   [삭제 대상 1] 매매 근거 상세 카드 (SXE.calcEntryPrice + SXE.calcTpSlRr + SXI.advTpSl)
-        //     · ATR/피봇 수치 → 이미 "지표 분석" 섹션에 존재 (기술적 지표: ATR, 피벗 라인)
-        //     · "보수적 접근 필요", "파라미터 조정 검토" 등 판단 문구 → SXI/SXE Layer 1 독자 판단
-        //     · "목표가/손절가 산출 근거", "진입가 산출 근거" → SXE 독자 추천
-        //     → 모든 텍스트가 프로젝트 C v3.0 원칙 ①(독자판정금지), ②(C의 단일성) 위반
-        //   [삭제 대상 2] _buildBtBanner(stock, qs) — 하단 "매매전략 — 데이터 충족" 배너
-        //     · 상단 "엔진판단 검증 결과" 6칸 카드와 내용 중복 (승률/수익/거래/MDD/손익비)
-        //     · "데이터 충족" 라벨만 엔진판단 검증 결과 카드 타이틀 옆으로 이관 (S116 수정 1)
-        //   [유지] 지표 분석 섹션 (ATR, 피벗, ADX 등 원시 측정값) — 판단이 아닌 측정값
-        //   [복원 필요 시] S115 이전 sx_render.js 또는 s115_continuity.html 참조
-        //
-        //   프로젝트 C v3.0 원칙:
-        //     · 원칙 ① "독자판정금지": SXE/SXI Layer 1 독자 판단 텍스트 전부 제거
-        //     · 원칙 ② "C의 단일성": 판단은 SXC.supervisorJudge(C)만 담당
-        //     · 원칙 ⑤ "정합 우선": 상단 6칸 카드(BT 결과)와 중복 제거
-        //     · 원칙 ⑦ "UI 역할 분리": 측정값=지표 분석, 판정=C 배너, 검증=BT 6칸 카드
-        // ═══════════════════════════════════════════════════════════════
-        return '';
-      })()}
-      </div>
-      ${(()=>{
-        // S69: 초보자 실전 가이드
-        // S103-fix7 Phase3-B-1: practicalGuide 입력 _btAction → _svVerdict.action로 교체 (C 직접 소비)
-        //   프로젝트 C 원칙 ② "C의 단일성" 준수 — 감독관 판정(_svVerdict) 9종 직접 전달
-        // [S420] practicalGuide는 outer에서 1회 계산(_pgShared) → 여기선 재사용 (steps/title/nextAction 등).
-        //   〔이력〕 이전: 이 IIFE 안에서 _pgMkt~_pgMom 계산 후 SXI.practicalGuide 재호출 → C패널 현재지표요약 이동 위해 outer로 단일화.
-        const pg = _pgShared;
-        if(!pg || !pg.title) return '';
-        const pgId = 'pg_' + Math.random().toString(36).slice(2,8);
-        let pgHTML = `<div class="anal-section" style="margin-top:8px">
-          <div class="itp-toggle-inline" onclick="_sxVib(8);const c=document.getElementById('${pgId}');c.classList.toggle('show');this.querySelector('.sb-arrow').textContent=c.classList.contains('show')?'▼':'▶'" style="font-size:11px;color:var(--accent);cursor:pointer;font-weight:700"><span class="sb-arrow">▶</span> <span style="display:inline-block;width:13px;height:13px;line-height:13px;text-align:center;border-radius:50%;background:#a855f7;color:#fff;font-size:8px;font-weight:800;margin-right:2px">C</span>이 결과를 어떻게 활용할까요?</div>
-          <div class="itp-card" id="${pgId}" style="white-space:normal;margin-top:4px">
-            <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px">${pg.title}</div>`;
-        pg.steps.forEach((st,i)=>{
-          pgHTML += `<div style="display:flex;gap:6px;margin-bottom:6px;font-size:10px;line-height:1.6;color:var(--text2)"><span style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><span>${st}</span></div>`;
-        });
-        if(pg.nextAction) pgHTML += `<div style="font-size:10px;padding:6px 8px;background:var(--buy-bg);border-radius:6px;margin:6px 0;line-height:1.55"><span style="font-weight:700;color:var(--buy)">다음 행동</span><br><span style="color:var(--text2)">${pg.nextAction}</span></div>`;
-        if(pg.caution) pgHTML += `<div style="font-size:10px;padding:6px 8px;background:rgba(255,140,0,.06);border-radius:6px;margin-bottom:4px;line-height:1.55"><span style="font-weight:700;color:#ff8c00">주의</span><br><span style="color:var(--text2)">${pg.caution}</span></div>`;
-        if(pg.crossCheck) pgHTML += `<div style="font-size:10px;padding:6px 8px;background:var(--surface2);border-radius:6px;margin-bottom:4px;line-height:1.55"><span style="font-weight:700;color:var(--text)">함께 확인하세요</span><br><span style="color:var(--text2)">${pg.crossCheck}</span></div>`;
-        // [S420] 구 "현재 지표 상태 요약" 자리 → "최종 판정"(보유유지 등 9종) 카드. C IIFE가 stash한 _swapVerdictHTML 소비.
-        //   (현재 지표 상태 요약은 C패널 최종판정 자리로 이동함) · _swapVerdictHTML 빈 문자열이면 폴백 모드라 미표시.
-        //   라벨("최종 판정")은 제거 — verdict 카드 자체에 판정명(보유 유지 등) 헤더가 이미 있어 중복.
-        if(_swapVerdictHTML){
-          pgHTML += `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">${_swapVerdictHTML}</div>`;
+          return h;
+        }catch(_eRI){
+          return '<div style="font-size:11px;color:var(--text3);padding:4px 2px">🔍 레시피 해석 — 생성 오류 (폴백). 재분석해 주세요.</div>';
         }
-        pgHTML += `</div></div>`;
-        return pgHTML;
       })()}
     </div>
 
