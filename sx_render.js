@@ -1,9 +1,9 @@
 // ════════════════════════════════════════════════════════════
-//  SIGNAL X — Render Engine v7.10  [S969 · build 20260711 cache-bust]
+//  SIGNAL X — Render Engine v7.10  [S970 · build 20260711 cache-bust]
 //  [S968] 실패분석·전략 라이프사이클 fold를 카드2 → 단일검증 탭(sx_bt.js)으로 이관 (순수 UI·엔진/판정 무변경)
 //  [S969] 점수축 카드2(threeStageReport 판정 ~1000줄) + S69 실전가이드 → "레시피 해석 카드"로 대체.
-//         시즌1 판정→해석 전환(설계: SIGNALX_시즌1_해석전환_설계.md). 4요소 헬퍼 재조립, 판정숫자 제거, 이중ATR 참고.
-//         (외부 _pgShared/_swapVerdictHTML 계산 블록·orphan 핸들러는 무해 잔존 — S970 후속 정리 예정)
+//  [S970] 레시피 해석 카드에 완전 초보자용 쉬운 설명 레이어 추가 (①②③ 각 평이한 말 + 레시피란 안내 + 용어 풀이 토글). 측정 사실 풀이만·예측 아님.
+//         (외부 _pgShared/_swapVerdictHTML 계산 블록·orphan 핸들러는 무해 잔존 — 후속 정리 예정)
 // ════════════════════════════════════════════════════════════
 const BT_SUPPORTED_TF = {
   kr:   ['30m','60m','day','week','month'],   // 30분은 KIS 한정
@@ -8023,7 +8023,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S969';
+  window.SX_BUILD='S970';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -12522,9 +12522,10 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       ${scanTimeStr||analTimeStr?`<div style="font-size:8px;color:var(--text3);margin-top:4px">${scanTimeStr?'검색 '+scanTimeStr:''}${scanTimeStr&&analTimeStr?' · ':''}${analTimeStr?'분석 '+analTimeStr:''}</div>`:''}
     </div>
     <div class="anal-header-card" style="margin-top:10px">
-      <!-- [S969] 레시피 해석 카드 — 구 점수축 카드2(threeStageReport 판정) + S69 실전가이드(_pgShared) 대체.
+      <!-- [S969→S970] 레시피 해석 카드 — 구 점수축 카드2(threeStageReport 판정) + S69 실전가이드(_pgShared) 대체.
            설계: SIGNALX_시즌1_해석전환_설계.md. 시즌1 = "레시피의 구도적 해석기"(판정 아님).
            4요소: ①구도(_cv2TrendPosition·말) ②발동(_sxRecipeVotesCore·겹침) ③재료(_sxRecipeIngCore·해석단위 그룹) ④맥락(_cv2Confidence·겹침 base rate). Q1: 이중ATR 청산=행동 참고.
+           [S970] 완전 초보자용 쉬운 설명 레이어 추가 — 각 항목 아래 평이한 말(무슨 뜻인지) + 용어 풀이 토글. 지어낸 예측 아님·측정 사실을 풀어 설명만.
            원칙: 판정숫자 없음 · 지어낸 서사 없음 · 측정된 재료/겹침/base rate만 · "현 기준하 보임". -->
       ${(()=>{
         try{
@@ -12537,9 +12538,10 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           }
           const _idx = _rows.length - 1;
           const _px  = (typeof stock.price==='number' && stock.price>0) ? stock.price : (_rows[_idx] ? _rows[_idx].close : 0);
+          const _gid = 'rg' + Math.random().toString(36).slice(2,7);
 
           // ── 4요소 헬퍼 (전부 기존 SSOT) ──
-          const _pos   = (typeof _cv2TrendPosition==='function') ? _cv2TrendPosition(_ind, _rows, _idx) : null;   // ②구도(말)
+          const _pos   = (typeof _cv2TrendPosition==='function') ? _cv2TrendPosition(_ind, _rows, _idx) : null;   // ①구도(말)
           const _votes = (typeof _sxRecipeVotesCore==='function') ? _sxRecipeVotesCore(_mk, _ind, _rows, _idx) : null; // 발동/겹침
           const _ing   = (typeof _sxRecipeIngCore==='function')   ? _sxRecipeIngCore(_mk, _ind, _rows, _idx)   : null; // 재료 불켜짐
           const _lt    = _ing ? _ing.lt : (_pos ? _pos.lt : null);
@@ -12556,55 +12558,86 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           const C = { blue:'#2563eb', green:'#16a34a', orange:'#ea580c', red:'#dc2626', gray:'#64748b', purple:'#9333ea', yellow:'#ca8a04' };
 
           // ── 배지 + 헤드라인 (구도 서술 · 판정 아님) ──
-          let _badge, _badgeC, _headline, _headC;
+          let _badge, _badgeC, _headline, _headC, _eHead;
           if(!_recipeScope){
             _badge='혼조·범위 밖'; _badgeC=C.purple;
             _headline='장기 배열 혼조 (60/120/200 미정렬) — 레시피 측정 범위 밖'; _headC=C.purple;
+            _eHead='장기 평균선들이 뒤섞여 큰 방향이 뚜렷하지 않은 상태라, 이 분석(오름세 눌림·내림세 반등)의 대상이 아니에요.';
           } else if(_lt==='bear'){
-            if(_fired){ _badge='역배 데드캣'; _badgeC=C.orange; _headline='하락 추세 속 기술적 반등 시도 구도 (역배 데드캣 · 주의)'; _headC=C.orange; }
-            else if(_fakeOnly){ _badge='가짜 반등 경보'; _badgeC=C.red; _headline='가짜 반등 신호 — 반등 실패 후 재하락 우세 구도'; _headC=C.red; }
-            else if(_mixed){ _badge='역배 혼재'; _badgeC=C.yellow; _headline='하락 추세 · real·fake 혼재 = 중립 구도'; _headC=C.yellow; }
-            else if(_ripe){ _badge='역배 익는 중'; _badgeC=C.blue; _headline='하락 추세 · 반등 재료 익는 중 (아직 미발동)'; _headC=C.blue; }
-            else { _badge='역배 무발동'; _badgeC=C.gray; _headline='하락 추세 · 반등 재료 미형성'; _headC=C.gray; }
+            if(_fired){ _badge='역배 데드캣'; _badgeC=C.orange; _headline='하락 추세 속 기술적 반등 시도 구도 (역배 데드캣 · 주의)'; _headC=C.orange;
+              _eHead='내리던 종목이 잠깐 튀어오를 조건이 보여요. 다만 큰 흐름은 아직 하락이라, 반등이 짧게 끝나고 다시 빠질 수 있어요(위험).'; }
+            else if(_fakeOnly){ _badge='가짜 반등 경보'; _badgeC=C.red; _headline='가짜 반등 신호 — 반등 실패 후 재하락 우세 구도'; _headC=C.red;
+              _eHead='반등하는 척하다 다시 빠지는 "가짜 반등" 유형의 신호가 켜졌어요. 매수는 조심해야 해요.'; }
+            else if(_mixed){ _badge='역배 혼재'; _badgeC=C.yellow; _headline='하락 추세 · real·fake 혼재 = 중립 구도'; _headC=C.yellow;
+              _eHead='살 만한 신호와 위험 신호가 섞여 있어 방향이 애매해요.'; }
+            else if(_ripe){ _badge='역배 익는 중'; _badgeC=C.blue; _headline='하락 추세 · 반등 재료 익는 중 (아직 미발동)'; _headC=C.blue;
+              _eHead='반등에 필요한 조건이 조금씩 갖춰지는 중이지만, 아직 신호가 켜질 만큼은 아니에요.'; }
+            else { _badge='역배 무발동'; _badgeC=C.gray; _headline='하락 추세 · 반등 재료 미형성'; _headC=C.gray;
+              _eHead='내림세가 이어지는 중이고, 반등할 만한 신호는 아직 없어요.'; }
           } else { // bull
-            if(_fired){ _badge='정배 눌림'; _badgeC=C.green; _headline='강세 속 단기 눌림 — 레시피 발동 구도'; _headC=C.green; }
-            else if(_fakeOnly){ _badge='되돌림 경보'; _badgeC=C.red; _headline='가짜 눌림목 — 상승 지속 실패 우세 구도'; _headC=C.red; }
-            else if(_mixed){ _badge='정배 혼재'; _badgeC=C.yellow; _headline='강세 눌림 · real·fake 혼재 = 중립 구도'; _headC=C.yellow; }
-            else if(_ripe){ _badge='정배 익는 중'; _badgeC=C.blue; _headline='강세 눌림 재료 익는 중 (아직 미발동)'; _headC=C.blue; }
-            else { _badge='강세 지속'; _badgeC=C.gray; _headline='강세 지속 · 눌림 없음 · 진입 재료 미형성'; _headC=C.gray; }
+            if(_fired){ _badge='정배 눌림'; _badgeC=C.green; _headline='강세 속 단기 눌림 — 레시피 발동 구도'; _headC=C.green;
+              _eHead='오르던 종목이 잠깐 쉬어가는(눌림) 자리예요. 다시 오를 만한 조건이 여러 개 갖춰졌어요.'; }
+            else if(_fakeOnly){ _badge='되돌림 경보'; _badgeC=C.red; _headline='가짜 눌림목 — 상승 지속 실패 우세 구도'; _headC=C.red;
+              _eHead='눌림처럼 보이지만 상승을 이어가지 못하고 되돌아갈 가능성이 큰 유형이에요.'; }
+            else if(_mixed){ _badge='정배 혼재'; _badgeC=C.yellow; _headline='강세 눌림 · real·fake 혼재 = 중립 구도'; _headC=C.yellow;
+              _eHead='살 만한 신호와 위험 신호가 섞여 방향이 애매해요.'; }
+            else if(_ripe){ _badge='정배 익는 중'; _badgeC=C.blue; _headline='강세 눌림 재료 익는 중 (아직 미발동)'; _headC=C.blue;
+              _eHead='눌림 매수에 필요한 조건이 조금씩 갖춰지는 중이지만, 아직 신호가 켜질 만큼은 아니에요.'; }
+            else { _badge='강세 지속'; _badgeC=C.gray; _headline='강세 지속 · 눌림 없음 · 진입 재료 미형성'; _headC=C.gray;
+              _eHead='지금은 계속 오르는 흐름이라, 저가에 살 만한 "조정(눌림)" 자리가 아직 아니에요. 강한 종목일수록 이렇게 신호가 안 뜨는 게 정상이에요.'; }
           }
 
-          // ── 헤더 + 헤드라인 ──
-          let h = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:9px">
+          // ── 헤더 + 레시피란? 안내(초보) + 헤드라인 ──
+          let h = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
             <span style="font-size:13px;font-weight:800;color:var(--text)">🔍 레시피 해석</span>
             <span style="font-size:9px;font-weight:800;color:#fff;background:${_badgeC};border-radius:9px;padding:2px 9px">${_badge}</span>
           </div>`;
-          h += `<div style="font-size:12px;font-weight:800;color:${_headC};margin-bottom:11px;line-height:1.5">${_headline}</div>`;
+          h += `<div style="font-size:9.5px;color:var(--text3);line-height:1.55;margin:0 0 10px;padding:6px 9px;background:var(--surface2);border-radius:7px">💡 <b>'레시피'</b>란 차트 지표 여러 개를 묶은 <b>매수 조건 세트</b>예요. 지금 이 종목 차트가 살 만한 자리인지, 과거에 비슷했던 상황들과 비교해 아래에 풀어놨어요. 위에서부터 순서대로 보면 돼요.</div>`;
+          h += `<div style="font-size:12px;font-weight:800;color:${_headC};margin-bottom:5px;line-height:1.5">${_headline}</div>`;
+          if(_eHead) h += `<div style="font-size:10.5px;color:var(--text2);line-height:1.6;margin:0 0 12px">${_eHead}</div>`;
 
-          // ── 번호 해석 단위 헬퍼 (단일 라인용) ──
-          const _unit = (n, nc, label, body) => `<div style="display:flex;gap:7px;margin-bottom:8px;font-size:11px;line-height:1.55">
+          // ── 번호 해석 단위 헬퍼 (본문 + 초보 설명 서브라인) ──
+          const _unit = (n, nc, label, body, easy) => `<div style="display:flex;gap:7px;margin-bottom:${easy?'2px':'8px'};font-size:11px;line-height:1.55">
             <span style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:${nc};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${n}</span>
             <span style="color:var(--text2)"><b style="color:var(--text)">${label}</b>&nbsp; ${body}</span>
-          </div>`;
+          </div>` + (easy ? `<div style="font-size:9.5px;color:var(--text3);line-height:1.5;margin:0 0 9px 25px">${easy}</div>` : '');
 
-          // ① 구도 (말 — _cv2TrendPosition)
+          // ① 구도 (말 — _cv2TrendPosition) + 초보 설명
           if(_pos){
             const _dispTxt = (_pos.disp!=null) ? ` · 이격도 ${_pos.disp.toFixed(0)} (${_pos.qLabel})` : '';
-            h += _unit('①', C.blue, '구도', `${_pos.cellLabel}${_dispTxt}`);
+            // 초보: 정배열/역배열/전환 + 이격도 분위 풀이
+            const _arr = (_pos.lt==='bull') ? '장기 이동평균선이 상승 순서로 정렬(정배열)돼 <b>큰 추세는 위쪽</b>이에요.'
+              : (_pos.lt==='bear') ? '장기 이동평균선이 하락 순서로 정렬(역배열)돼 <b>큰 추세는 아래쪽</b>이에요.'
+              : (_pos.lt==='upT') ? '큰 추세가 <b>상승으로 바뀌는 전환</b> 구간이에요.'
+              : (_pos.lt==='dnT') ? '큰 추세가 <b>하락으로 바뀌는 전환</b> 구간이에요.'
+              : '장기 흐름이 뒤섞여 방향이 뚜렷하지 않아요.';
+            const _iq = _pos.qLabel || '';
+            const _ideg = (_iq.indexOf('침체')>=0) ? ' 현재가가 평균보다 많이 낮아(과매도) <b>반등 여지</b>가 있는 위치예요.'
+              : (_iq==='저') ? ' 현재가가 평균보다 살짝 낮은 위치예요.'
+              : (_iq==='중') ? ' 현재가가 평균 근처라 싸지도 비싸지도 않아요.'
+              : (_iq==='고') ? ' 현재가가 평균보다 높아 <b>추격 매수는 조심</b>할 위치예요.'
+              : (_iq.indexOf('과열')>=0) ? ' 현재가가 평균보다 크게 높아(과열) <b>고점 추격은 위험</b>한 위치예요.' : '';
+            h += _unit('①', C.blue, '구도', `${_pos.cellLabel}${_dispTxt}`, _arr + _ideg);
           }
 
-          // ② 발동 (겹침 강도 — _sxRecipeVotesCore)
+          // ② 발동 (겹침 강도 — _sxRecipeVotesCore) + 초보 설명
           if(_recipeScope){
-            let _fireTxt, _fireC;
-            if(_fired){ _fireC=C.green; _fireTxt=`<span style="color:${C.green};font-weight:800">발동</span> · 순수 겹침 ${_votes.realK} · votes ${_votes.votes|0}`; }
-            else if(_mixed){ _fireC=C.yellow; _fireTxt=`<span style="color:${C.yellow};font-weight:700">혼재</span> real ${_votes.realK} · fake ${_votes.fakeK} (중립)`; }
-            else if(_fakeOnly){ _fireC=C.red; _fireTxt=`<span style="color:${C.red};font-weight:700">가짜 ${_votes.fakeK}개 발동</span> (재하락 우세)`; }
-            else if(_ripe){ _fireC=C.blue; _fireTxt=`<span style="color:${C.blue};font-weight:700">익는 중</span> 재료 ${_ing.on}/${_ing.total} (완성 시 발동)`; }
-            else { _fireC=C.gray; _fireTxt=`<span style="color:${C.gray}">무발동</span> — 재료 ${_ing?_ing.on:0}/${_ing?_ing.total:0} 진행`; }
-            h += _unit('②', _fireC, '발동', _fireTxt);
+            let _fireTxt, _fireC, _eBal;
+            if(_fired){ _fireC=C.green; _fireTxt=`<span style="color:${C.green};font-weight:800">발동</span> · 순수 겹침 ${_votes.realK} · votes ${_votes.votes|0}`;
+              _eBal=`'매수하기 좋다'는 조건들이 동시에 <b>${_votes.realK}개 겹쳐서</b> 신호가 켜졌어요. 겹친 개수가 많을수록 근거가 탄탄해요.`; }
+            else if(_mixed){ _fireC=C.yellow; _fireTxt=`<span style="color:${C.yellow};font-weight:700">혼재</span> real ${_votes.realK} · fake ${_votes.fakeK} (중립)`;
+              _eBal='좋은 신호와 위험 신호가 같이 켜져서, 지금은 어느 쪽도 확실하지 않아요.'; }
+            else if(_fakeOnly){ _fireC=C.red; _fireTxt=`<span style="color:${C.red};font-weight:700">가짜 ${_votes.fakeK}개 발동</span> (재하락 우세)`;
+              _eBal='반등하는 척하다 다시 빠지기 쉬운 "가짜" 유형 신호만 켜졌어요. 매수 근거로 삼으면 위험해요.'; }
+            else if(_ripe){ _fireC=C.blue; _fireTxt=`<span style="color:${C.blue};font-weight:700">익는 중</span> 재료 ${_ing.on}/${_ing.total} (완성 시 발동)`;
+              _eBal=`매수 신호는 아직이에요. 필요한 조건 ${_ing.total}개 중 ${_ing.on}개가 채워졌고, 더 모이면 신호가 켜져요.`; }
+            else { _fireC=C.gray; _fireTxt=`<span style="color:${C.gray}">무발동</span> — 재료 ${_ing?_ing.on:0}/${_ing?_ing.total:0} 진행`;
+              _eBal=`'지금 사도 좋다'는 신호는 아직 없어요. 필요한 조건 ${_ing?_ing.total:0}개 중 ${_ing?_ing.on:0}개만 채워져서 부족하거든요.`; }
+            h += _unit('②', _fireC, '발동', _fireTxt, _eBal);
           }
 
-          // ③ 켜진 재료 (해석 단위로 그룹 — _sxRecipeIngCore.litKeys + _cv2IngLabel)
+          // ③ 켜진 재료 (해석 단위로 그룹 — _sxRecipeIngCore.litKeys + _cv2IngLabel) + 초보 설명
+          const _GRP_HINT = { '과매도':'너무 많이 팔려 싼 구간', '지지·저평가':'바닥/저평가 근처', '전환 조짐':'방향이 바뀔 조짐', '거래량':'거래가 늘어남', '다이버전스':'가격과 지표가 엇갈림', '변동성':'출렁임 정도' };
           if(_recipeScope && _ing && _ing.litKeys && _ing.litKeys.length && typeof _cv2IngLabel==='function'){
             const _ING_GROUPS = [
               ['과매도',     ['rsi_lt','stochK_lt','cci_lt','mfi_lt','vr_lt']],
@@ -12615,37 +12648,46 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
               ['변동성',      ['squeeze','adx_gt']]
             ];
             const _used = {};
-            let _grpHTML = '';
+            let _grpHTML = '', _posGrps = [];
             _ING_GROUPS.forEach(function(g){
               const hit = _ing.litKeys.filter(function(k){ return g[1].indexOf(k)>=0; });
               hit.forEach(function(k){ _used[k]=1; });
               if(hit.length){
-                _grpHTML += `<div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.5"><b style="color:var(--text)">${g[0]}</b>&nbsp; ${hit.map(_cv2IngLabel).join(' · ')}</div>`;
+                _posGrps.push(g[0]);
+                const _hint = _GRP_HINT[g[0]] ? `<span style="color:var(--text3);font-size:8.5px">(${_GRP_HINT[g[0]]})</span>` : '';
+                _grpHTML += `<div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.5"><b style="color:var(--text)">${g[0]}</b> ${_hint}&nbsp; ${hit.map(_cv2IngLabel).join(' · ')}</div>`;
               }
             });
             const _rest = _ing.litKeys.filter(function(k){ return !_used[k]; });
             if(_rest.length){
-              _grpHTML += `<div style="font-size:10px;color:var(--text3);margin-top:3px;line-height:1.5"><b>기타 맥락</b>&nbsp; ${_rest.map(_cv2IngLabel).join(' · ')}</div>`;
+              _grpHTML += `<div style="font-size:10px;color:var(--text3);margin-top:3px;line-height:1.5"><b>기타 맥락</b> <span style="font-size:8.5px">(단기 힘 빠짐 신호)</span>&nbsp; ${_rest.map(_cv2IngLabel).join(' · ')}</div>`;
             }
-            h += `<div style="display:flex;gap:7px;margin-bottom:8px">
+            // 초보 설명: 켜진 게 긍정군인지 약세맥락뿐인지로 톤 분기
+            const _eJae = (_posGrps.length>0)
+              ? `'재료'는 반등에 필요한 개별 조건들이에요(총 ${_ing.total}개). 지금 <b>${_posGrps.join('·')}</b> 쪽이 켜졌어요 — 매수에 도움 되는 신호예요.`
+              : `'재료'는 반등에 필요한 조건들이에요(총 ${_ing.total}개). 지금 켜진 건 '단기 힘 빠짐'을 뜻하는 조건뿐이라, <b>저가 매수 근거로는 약해요</b>.`;
+            h += `<div style="display:flex;gap:7px;margin-bottom:2px">
               <span style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:${C.orange};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">③</span>
               <div style="flex:1;font-size:11px"><b style="color:var(--text)">켜진 재료 ${_ing.on}/${_ing.total}</b>${_grpHTML}</div>
             </div>`;
+            h += `<div style="font-size:9.5px;color:var(--text3);line-height:1.5;margin:0 0 9px 25px">${_eJae}</div>`;
           } else if(_recipeScope){
-            h += _unit('③', C.gray, '켜진 재료', `없음 — 저가/전환 재료 미점등 (${_ing?_ing.on:0}/${_ing?_ing.total:0})`);
+            h += _unit('③', C.gray, '켜진 재료', `없음 — 저가/전환 재료 미점등 (${_ing?_ing.on:0}/${_ing?_ing.total:0})`,
+              `아직 충족된 매수 조건이 거의 없어요. 반등 재료가 쌓이면 여기에 표시돼요.`);
           }
 
           // ── 측정 맥락 callout (④ — _cv2Confidence 겹침 base rate) ──
           if(_conf){
             const _nH = (_lt==='bear') ? 'N15' : 'N10';
-            const _nNote = (_lt==='bear') ? ' 역배는 늦게 무너져 N10 아닌 N15로 봄.' : '';
+            const _nDays = (_lt==='bear') ? '15거래일' : '10거래일';
+            const _nNote = (_lt==='bear') ? ' 하락 종목은 천천히 바닥을 다져서 조금 더 길게(N15) 봐요.' : '';
             h += `<div style="font-size:10px;padding:7px 9px;background:var(--surface2);border-radius:7px;margin:9px 0 6px;line-height:1.55">
-              <b style="color:var(--text)">측정 맥락</b>&nbsp; 이 구도(${_conf.label})는 과거 ${_nH} <b style="color:${_headC}">~${_conf.pct}%</b> 반등.${_nNote}<br>
-              <span style="color:var(--text3)">개별 레시피 적중률 아님 — 겹침 base rate. 현 기준하 보임 (단일 빈티지 표본).</span>
+              <b style="color:var(--text)">측정 맥락</b>&nbsp; 이 구도(${_conf.label})는 과거 같은 상황에서 ${_nDays}(${_nH}) 뒤 <b style="color:${_headC}">~${_conf.pct}%</b> 확률로 올랐어요.${_nNote}<br>
+              <span style="color:var(--text3)">※ 개별 지표 하나의 적중률이 아니라 '조건이 여러 개 겹쳤을 때'의 과거 확률이에요. 미래를 보장하진 않아요(단일 기간 표본 · 현 기준하 보임).</span>
             </div>`;
           } else if(_recipeScope){
             h += `<div style="font-size:10px;padding:7px 9px;background:var(--surface2);border-radius:7px;margin:9px 0 6px;line-height:1.55;color:var(--text3)">
-              <b style="color:var(--text2)">측정 맥락</b>&nbsp; 발동 없어 base rate 없음 (순수 겹침 0). "신호 없음"이 정상 — 진입 대상 아닌 관찰 대상.
+              <b style="color:var(--text2)">측정 맥락</b>&nbsp; 지금은 신호가 없어서 과거 확률을 계산할 근거도 없어요. <b>신호가 없는 게 정상</b>이고, 이런 종목은 사기보다 지켜보는 자리예요.
             </div>`;
           }
 
@@ -12655,9 +12697,24 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
             const _initStop = Math.round(_px - 2*_atr);
             h += `<div style="font-size:10px;padding:7px 9px;background:var(--buy-bg);border-radius:7px;margin-bottom:2px;line-height:1.55">
               <b style="color:var(--buy)">행동한다면</b> <span style="color:var(--text3);font-size:9px">(참고 · 판정 아님)</span><br>
-              <span style="color:var(--text2)">초기손절 <b>${_initStop.toLocaleString()}</b> (현재가−2×ATR) · 트레일 최고−3×ATR · MA5×20 데드+유예10일 · 최대보유 상한 — 시즌2 이중ATR 청산과 동일 규칙.</span>
+              <span style="color:var(--text2)">혹시 산다면 손절선은 <b>${_initStop.toLocaleString()}원</b> 근처예요 — 현재가에서 하루 평균 출렁임 폭(ATR)의 2배 아래. 오르면 손절선도 따라 올리고(트레일), 흐름이 꺾이면(MA5×20 데드) 정리하는 방식이에요. 시즌2 자동매매와 같은 규칙이고, '지금 사라'는 뜻은 아니에요.</span>
             </div>`;
           }
+
+          // ── 용어 풀이 토글 (초보) ──
+          h += `<div style="margin-top:9px;border-top:1px solid var(--border);padding-top:7px">
+            <div onclick="_sxVib&&_sxVib(6);var c=document.getElementById('${_gid}');c.style.display=c.style.display==='none'?'block':'none';this.querySelector('.rgArrow').textContent=c.style.display==='none'?'▶':'▼'" style="font-size:10px;color:var(--accent);cursor:pointer;font-weight:700"><span class="rgArrow">▶</span> 🔰 용어가 낯설다면 (탭해서 열기)</div>
+            <div id="${_gid}" style="display:none;margin-top:6px;font-size:9.5px;color:var(--text3);line-height:1.65">
+              <b style="color:var(--text2)">정배열/역배열</b> — 여러 기간의 평균 가격선(이동평균선)이 상승/하락 순서로 정렬된 것. 큰 추세 방향을 뜻해요.<br>
+              <b style="color:var(--text2)">이격도</b> — 현재가가 평균선에서 얼마나 떨어졌는지. 100이 평균, 낮으면 싼 편·높으면 비싼 편.<br>
+              <b style="color:var(--text2)">발동 / 겹침</b> — 매수 조건들이 동시에 충족돼 신호가 켜진 것. 겹친 개수가 많을수록 근거가 탄탄해요.<br>
+              <b style="color:var(--text2)">데드캣</b> — 내리던 주식이 잠깐 튀어오르는 반등. 오래 못 가는 경우가 많아 조심해야 해요.<br>
+              <b style="color:var(--text2)">RSI·스토캐스틱·CCI·MFI</b> — 너무 많이 오르거나 내렸는지 재는 지표. '과매도'는 너무 팔려 싼 구간이에요.<br>
+              <b style="color:var(--text2)">MACD</b> — 상승/하락하는 힘(모멘텀)을 재는 지표. 0선 아래면 힘이 약한 편.<br>
+              <b style="color:var(--text2)">SAR</b> — 추세 방향을 점으로 표시하는 지표.<br>
+              <b style="color:var(--text2)">ATR</b> — 하루 평균 가격 출렁임 폭. 손절 간격을 정할 때 써요.
+            </div>
+          </div>`;
 
           return h;
         }catch(_eRI){
