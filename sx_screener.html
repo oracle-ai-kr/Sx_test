@@ -49,7 +49,7 @@
 <script src="sx_project_c.js?v=10"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=324"></script>
+<script src="sx_render.js?v=325"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -71,6 +71,10 @@
   --buy:#22c55e;--buy-bg:rgba(34,197,94,.1);--buy-border:rgba(34,197,94,.25);
   --hold:#f59e0b;--hold-bg:rgba(245,158,11,.1);--hold-border:rgba(245,158,11,.25);
   --sell:#ef4444;--sell-bg:rgba(239,68,68,.1);--sell-border:rgba(239,68,68,.25);
+  /* [S965] SX 색상 팔레트 SSOT — 인덱스와 동일 8색 (시즌1 공용)
+     빨강=경고/BT손실/시세상승/탐욕 · 주황=주의/과열 · 노랑=변동성중간 · 녹색=안정/BT수익/중립
+     파랑=침체/하락/준비/시세하락/경계 · 보라=혼조 · 핑크=필터배지 · 회색=회피/공포(사망) */
+  --c-red:#dc2626;--c-orange:#ea580c;--c-yellow:#ca8a04;--c-green:#16a34a;--c-blue:#2563eb;--c-purple:#9333ea;--c-pink:#ec4899;--c-gray:#64748b;
   --radius:14px;--radius-sm:10px;
   --top-h:48px;--tab-h:52px;--bottom-safe:env(safe-area-inset-bottom,0px);
 }
@@ -419,8 +423,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .stock-row .sr-col{width:58px;text-align:right;flex-shrink:0}
 .stock-row .sr-price{font-size:10px;font-weight:600;font-family:'Outfit'}
 .stock-row .sr-change{font-size:9px;font-family:'Outfit';font-weight:500}
-.sr-change.up{color:var(--buy)}
-.sr-change.down{color:var(--sell)}
+.sr-change.up{color:var(--c-red)}   /* [S965] 결과탭 시세 상승=빨강(한국식·인덱스 통일) */
+.sr-change.down{color:var(--c-blue)} /* 하락=파랑 */
 .sr-change.flat{color:var(--text3)}
 .stock-row .sr-vol{font-size:9px;color:var(--text2);font-family:'Outfit';font-weight:500}
 .stock-row .sr-arrow{color:var(--text3);font-size:10px;margin-left:1px;flex-shrink:0;align-self:center}
@@ -1166,7 +1170,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="tb-logo-mark">SX</div>
       <div class="tb-logo-text">조건검색<span></span></div>
     </div>
-    <span class="tb-ver">v3.9</span>
+    <span class="tb-ver" id="tbVer" title="배포 시리얼">v3.9</span>
   </div>
   <div class="tb-right"></div>
 </div>
