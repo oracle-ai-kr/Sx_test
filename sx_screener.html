@@ -49,7 +49,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=352"></script>
+<script src="sx_render.js?v=354"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1646,17 +1646,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5">R: 레시피·ATR 마커 — 레시피 진입▲ · 이중ATR/MA청산▼ (자동매매 정합) · S: 단기추세 골든/데드크로스. MA기간은 분석탭 카드에서 설정. [S992]</div>
       </div>
     </div>
-    <!-- S83: 전이 구간 임계값 -->
-    <div class="setting-group">
-      <div class="setting-group-title">전이 구간 임계값 <span style="font-size:8px;color:var(--text3);font-weight:400">BT 전이 통계 구간 기준</span></div>
-      <div class="param-row"><span class="p-label">준비→진입 경계</span><input type="range" id="tzReadyMax" min="35" max="60" value="50" oninput="this.nextElementSibling.textContent=this.value"><span class="p-val">50</span></div>
-      <div class="param-row"><span class="p-label">진입→추세 경계</span><input type="range" id="tzEntryMax" min="55" max="80" value="65" oninput="this.nextElementSibling.textContent=this.value"><span class="p-val">65</span></div>
-      <div style="display:flex;gap:6px;margin-top:6px;padding:0 12px 8px">
-        <button onclick="_sxVib(15);saveTransZoneTh()" style="flex:1;padding:6px;border-radius:6px;background:var(--accent);color:#fff;border:none;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">저장</button>
-        <button onclick="_sxVib(12);resetTransZoneTh()" style="flex:1;padding:6px;border-radius:6px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">초기화</button>
-      </div>
-      <div style="font-size:9px;color:var(--text3);padding:0 12px 8px;line-height:1.5">Ready &lt; 준비→진입 경계 / Entry = 경계~추세경계 / Trend &ge; 추세경계<br>변경 시 다음 스캔부터 적용됩니다.</div>
-    </div>
+    <!-- [S993] 전이 구간 임계값 설정 UI 삭제 — BT 전이통계(5축) 제거. -->
     <div class="setting-group">
       <div class="setting-group-title">스캔 성능</div>
       <div class="sound-setting">
@@ -2776,6 +2766,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
               <button onclick="_sxVib(12);window._btDiscrimRun&&_btDiscrimRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧪 변별력</button>
               <button onclick="_sxVib(12);window._btDiscrimRunAll&&_btDiscrimRunAll()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed;color:#fff;border:1px solid #7c3aed">🧪 확장풀 변별력</button>
               <button onclick="_sxVib(12);window._btDiscrimRunMega&&_btDiscrimRunMega()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e7490;color:#fff;border:1px solid #0e7490">🌍 발굴풀 변별력</button>
+              <button onclick="_sxVib(12);window._riskMeasureUI&&_riskMeasureUI('all')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#ef444414;color:#ef4444;border:1px solid #ef444466">🛡️ 위험필터</button>
               <button onclick="_sxVib(12);window._btThreshRun&&_btThreshRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">📏 임계값</button>
               <button onclick="_sxVib(12);window._btEnsembleRun&&_btEnsembleRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧬 앙상블</button>
               <button onclick="_sxVib(12);window._btBuilderRun&&_btBuilderRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🛠️ 빌더</button>
@@ -3139,7 +3130,7 @@ const STORAGE_KEYS = Object.freeze({
   REGIME_ON_MIGRATED:  'SX_REGIME_ON_MIGRATED',    // 레짐 ON 마이그레이션 플래그
   CUSTOM_THRESHOLDS:   'SX_CUSTOM_THRESHOLDS',     // 사용자 커스텀 임계값
   SAFETY_FILTERS:      'SX_SAFETY_FILTERS',        // 안전필터 11종 ON/OFF
-  TRANS_ZONE_TH:       'SX_TRANS_ZONE_TH',         // 전이 구간 임계값
+  // [S993] TRANS_ZONE_TH 키 삭제 (전이 구간 임계값).
 
   // ─── BT / 조기청산 / 진입게이트 ───
   BT_EARLY_EXIT:       'SX_BT_EARLY_EXIT',         // 조기청산 설정
@@ -3880,7 +3871,7 @@ function init(){
   loadRegimeAdaptSetting(); // S71: 레짐 적응형 토글 로드
   _loadPresetMode(); // S92: 3모드 프리셋 상태 로드
   if(typeof _syncParamModeButtons === 'function') _syncParamModeButtons(); // S99-5: 설정탭 모드버튼 동기화
-  loadTransZoneTh(); // S83: 전이 구간 임계값 로드
+  // [S993] loadTransZoneTh 호출 삭제.
   // [S307] 시작 시 옵티마이저 모드 → 조기청산 자동 동기화
   // [S333] currentMarket까지 함께 전달 → 9칸 매트릭스 시장별 정확 적용
   //   배경: _optSyncEarlyExitToMode는 모드 변경/대표 선정 시에만 호출 — 페이지 새로고침 시점에는
@@ -5291,9 +5282,7 @@ function _buildScanConfig(){
     finReportType: localStorage.getItem('SX_FIN_REPORT')||'annual',
     discPeriodDays: discDaysMap[discPeriod]||90,
     customDiscKw,
-    // S83: 전이 구간 임계값 (사용자 설정 가능)
-    // S138 [FIX-#1]: 손상된 JSON 방어 — 파싱 실패 시 null 반환하여 scanPayload 생성 차단 방지
-    transZoneTh: (function(){ try { return JSON.parse(localStorage.getItem('SX_TRANS_ZONE_TH')||'null'); } catch(_){ return null; } })(),
+    // [S993] transZoneTh scanPayload 주입 삭제.
     parallelEnabled: localStorage.getItem('SX_PARALLEL_FETCH')==='1',
     safetyFlags,
     // S165: 분석엔진 진입 게이트 (BT 게이트와 대칭 적용)
@@ -5444,7 +5433,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=15');
+    _scanWorker = new Worker('sx_scan_worker.js?v=16');
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -12081,33 +12070,7 @@ function getParallelCount(poolSize){
   return 5;
 }
 
-// S83: 전이 구간 임계값 저장/초기화/로드
-function saveTransZoneTh(){
-  var rMax = parseInt(document.getElementById('tzReadyMax').value)||50;
-  var eMax = parseInt(document.getElementById('tzEntryMax').value)||65;
-  if(rMax >= eMax){ toast('준비→진입 경계는 진입→추세보다 작아야 합니다'); return; }
-  _sxVib(15); // S103: 전이구간 저장
-  try { localStorage.setItem('SX_TRANS_ZONE_TH', JSON.stringify({readyMax:rMax, entryMax:eMax})); } catch(_){} // S138 [FIX-#5]
-  toast('전이 구간 임계값 저장: Ready<'+rMax+' / Entry<'+eMax+' / Trend>='+eMax);
-}
-function resetTransZoneTh(){
-  _sxVib(15); // S103: 전이구간 초기화
-  try { localStorage.removeItem('SX_TRANS_ZONE_TH'); } catch(_){} // S138 [FIX-#5]
-  var el1=document.getElementById('tzReadyMax'), el2=document.getElementById('tzEntryMax');
-  if(el1){el1.value=50; el1.nextElementSibling.textContent='50';}
-  if(el2){el2.value=65; el2.nextElementSibling.textContent='65';}
-  toast('전이 구간 임계값 초기화 (50/65)');
-}
-function loadTransZoneTh(){
-  try{
-    var saved = JSON.parse(localStorage.getItem('SX_TRANS_ZONE_TH'));
-    if(saved){
-      var el1=document.getElementById('tzReadyMax'), el2=document.getElementById('tzEntryMax');
-      if(el1){el1.value=saved.readyMax||50; el1.nextElementSibling.textContent=saved.readyMax||50;}
-      if(el2){el2.value=saved.entryMax||65; el2.nextElementSibling.textContent=saved.entryMax||65;}
-    }
-  }catch(_){}
-}
+// [S993] saveTransZoneTh/resetTransZoneTh/loadTransZoneTh 삭제 — 전이 구간 임계값 UI 제거.
 
 // ════════════════════════════════════════════════════════════
 //  S210: 조기청산 (Early Exit) 모달 핸들러
