@@ -7,7 +7,7 @@
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
 <script src="sx_analysis_engine.js?v=42"></script>
 <script src="sx_recipe_core.js?v=4"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
-<script src="sx_interpret.js?v=42"></script>
+<script src="sx_interpret.js?v=43"></script>
 <script src="sx_chart.js?v=19"></script>
 <script src="sx_conditions.js?v=18"></script>
 <script src="sx_oracle.js?v=1"></script>
@@ -49,7 +49,7 @@
 <script src="sx_project_c.js?v=10"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=332"></script>
+<script src="sx_render.js?v=339"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -2753,105 +2753,97 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
           <div style="display:flex;align-items:center;gap:6px;margin:0 0 10px">
             <!-- [S780] 데드캣→가짜반등 명칭 통일 -->
             <span style="font-size:9px;font-weight:700;color:var(--text3);flex-shrink:0">검증 풀</span>
-            <button id="dcPoolChipDead" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('deadcat')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:800;line-height:1.25;cursor:pointer;background:#dc26261F;color:#dc2626;border:1px solid #dc2626">🔴 가짜반등 <span style="font-weight:500;font-size:8.5px">하락장·약세</span></button>
-            <button id="dcPoolChipPull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('pullback')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🔵 눌림목 <span style="font-weight:500;font-size:8.5px">상승장·조정</span></button>
+            <button id="dcPoolChipDead" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('deadcat')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:800;line-height:1.25;cursor:pointer;background:#dc26261F;color:#dc2626;border:1px solid #dc2626">🔴 바닥확인 <span style="font-weight:500;font-size:8.5px">하락장·약세</span></button>
+            <button id="dcPoolChipPull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('pullback')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🔵 눌림목 <span style="font-weight:500;font-size:8.5px">상승장·약세</span></button>
           </div>
-          <div id="dcAuditDesc" style="font-size:8.5px;color:var(--text3);line-height:1.45;margin-bottom:10px">하락장·단기약세 진입에서 <b>진짜반등 vs 가짜반등</b>을 가르는 재료를 찾는 측정 묶음. <b style="color:#16a34a">BT 무관 — 풀 조건 만족 모든 봉을 순수 데이터로 측정</b>.</div>
-          <div style="font-size:9.5px;font-weight:800;color:#0d9488;margin:0 0 6px">🚪 게이트 검증 <span style="color:var(--text3);font-weight:500">· maAlignBull이 가짜반등 거르나</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px">
-            <button onclick="_sxVib(12);window._btGateAuditRun&&_btGateAuditRun('n10')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0d948814;color:#0d9488;border:1px solid #0d948866">🚪 약세 vs 강세 N10</button>
-            <button onclick="_sxVib(12);window._btGateAuditRun&&_btGateAuditRun('hz')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#d9770614;color:#d97706;border:1px solid #d9770666">📏 N15·N20 확장</button>
-            <button onclick="_sxVib(12);window._btGateAuditRun&&_btGateAuditRun('combo')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🔬 ×거래량OSC</button>
-          </div>
-          <div id="btGateAuditResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
-          <div style="font-size:9.5px;font-weight:800;color:#16a34a;margin:0 0 6px">🎯 레시피 발동 <span style="color:var(--text3);font-weight:500">· real 동시발동 수↑면 N10 진짜비율↑?</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px">
-            <button onclick="_sxVib(14);window._recipeSuiteRun&&_recipeSuiteRun()" style="display:inline-flex;align-items:center;padding:7px 14px;border-radius:14px;font-size:11.5px;font-weight:800;line-height:1.2;cursor:pointer;background:#7c3aed;color:#fff;border:1px solid #7c3aed">🔬 레시피 종합검증 (11종 일괄)</button><!-- [S863] -->
-            <button onclick="_sxVib(8);var r=document.getElementById('rcpIndivRow');if(r)r.style.display=(r.style.display==='none'?'flex':'none')" style="display:inline-flex;align-items:center;padding:7px 10px;border-radius:14px;font-size:10px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text3);border:1px solid var(--border)">개별 ▾</button><!-- [S863] -->
-          </div>
-          <div id="rcpIndivRow" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:5px"><!-- [S863] 개별 실행(접힘) -->
-            <button onclick="_sxVib(12);window._recipeOverlapRun&&_recipeOverlapRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#16a34a14;color:#16a34a;border:1px solid #16a34a66">🎯 발동수별 N10 진짜비율</button>
-            <button onclick="_sxVib(12);window._recipeProfileRun&&_recipeProfileRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e749014;color:#0e7490;border:1px solid #0e749066">⏱ 발동 후 t+k 유력시점</button><!-- [S856] -->
-            <button onclick="_sxVib(12);window._recipeContamRun&&_recipeContamRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧪 real×fake 오염</button><!-- [S857] -->
-            <button onclick="_sxVib(12);window._recipeMixDirRun&&_recipeMixDirRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#d9770614;color:#d97706;border:1px solid #d9770666">⚖️ 혼재 방향</button><!-- [S858] -->
-            <button onclick="_sxVib(12);window._recipeCompanionRun&&_recipeCompanionRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0369a114;color:#0369a1;border:1px solid #0369a166">🧩 동반조건</button>
-            <button onclick="_sxVib(12);window._recipeIngRun&&_recipeIngRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#ca8a0414;color:#ca8a04;border:1px solid #ca8a0466">💡 재료 불켜짐</button><!-- [S873] -->
-            <button onclick="_sxVib(12);window._recipeTransitRun&&_recipeTransitRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0d948814;color:#0d9488;border:1px solid #0d948866">⏳ 전이 확정력</button><!-- [S876] -->
-            <button onclick="_sxVib(12);window._recipeApprRun&&_recipeApprRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#4f46e514;color:#4f46e5;border:1px solid #4f46e566">🧭 접근방향</button><!-- [S881] --><!-- [S861] -->
-            <button onclick="_sxVib(12);window._recipeFakeDownRun&&_recipeFakeDownRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">🔴 가짜반등 하락</button><!-- [S883] -->
-            <button onclick="_sxVib(12);window._recipeTransitRiskRun&&_recipeTransitRiskRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#ca8a0414;color:#ca8a04;border:1px solid #ca8a0466">🟡 전이형 위험</button><!-- [S885] -->
-            <button onclick="_sxVib(12);window._recipeTransitGridRun&&_recipeTransitGridRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#47556914;color:#475569;border:1px solid #47556966">🔲 전이형 격자</button><!-- [S886] -->
-            <button onclick="_sxVib(12);window._maCrossFitRun&&_maCrossFitRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#db277714;color:#db2777;border:1px solid #db277766">🎚️ MA크로스 적합성</button><!-- [S887] -->
-            <button onclick="_sxVib(12);window._dispRegimeRun&&_dispRegimeRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0891b214;color:#0891b2;border:1px solid #0891b266">📊 시장평균·이격도</button><!-- [S888] -->
-          </div>
-          <div id="recipeOverlapResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
-          <div id="recipeProfileResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S856] -->
-          <div id="recipeContamResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S857] -->
-          <div id="recipeMixDirResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S858] -->
-          <div id="recipeCompanionResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S861] -->
-          <div id="recipeIngResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S873] -->
-          <div id="recipeTransitResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S876] -->
-          <div id="recipeApprResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S881] -->
-          <div id="recipeFakeResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S883] -->
-          <div id="recipeTransitRiskResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S885] -->
-          <div id="recipeTransitGridResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S886] -->
-          <div id="maCrossFitResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S887] -->
-          <div id="dispRegimeResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S888] -->
-          <div style="font-size:9.5px;font-weight:800;color:#0891b2;margin:0 0 6px">🌊 종목 변동성 <span style="color:var(--text3);font-weight:500">· 변동성 낮을수록 진짜반등↑? (종목 성격 가설)</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px">
-            <button onclick="_sxVib(12);window._volRegimeRun&&_volRegimeRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0891b214;color:#0891b2;border:1px solid #0891b266">🌊 변동성별 N10 진짜비율</button>
-            <button onclick="_sxVib(12);window._volPoolShow&&_volPoolShow()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#64748b14;color:#64748b;border:1px solid #64748b66">📋 측정 풀 보기</button>
-          </div>
-          <div id="volPoolResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
-          <div id="volRegimeResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
-          <div style="font-size:9.5px;font-weight:800;color:#dc2626;margin:0 0 6px">🚫 데드캣 단기쪼개기 <span style="color:var(--text3);font-weight:500">· (하,하) 진입 차단 가치? (S731 재검)</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px">
-            <button onclick="_sxVib(12);window._deadcatShortRun&&_deadcatShortRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">🚫 (하,하) vs (하,혼조) N10</button>
-          </div>
-          <div id="deadcatShortResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
-          <div style="font-size:9.5px;font-weight:800;color:#dc2626;margin:0 0 6px">📉 진입 후 궤적 <span style="color:var(--text3);font-weight:500">· 진짜vs가짜 언제 갈리나 (조기 손절)</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px">
-            <button onclick="_sxVib(12);window._deadcatTrajRun&&_deadcatTrajRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">📉 진입 후 진짜/가짜 궤적</button>
-          </div>
-          <div id="deadcatTrajResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
-          <div style="font-size:9.5px;font-weight:800;color:#16a34a;margin:0 0 6px">🎯 확인 후 진입 <span style="color:var(--text3);font-weight:500">· 즉시 vs t+1·t+2 확인 — N10 수익 비교</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px">
-            <button onclick="_sxVib(12);window._deadcatConfirmRun&&_deadcatConfirmRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#16a34a14;color:#16a34a;border:1px solid #16a34a66">🎯 즉시 vs 확인 진입 N10</button>
-          </div>
-          <div id="deadcatConfirmResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
-          <div style="font-size:9.5px;font-weight:800;color:#2563eb;margin:10px 0 6px;border-top:2px solid var(--border);padding-top:10px">🔵 상승장 측정 <span style="color:var(--text3);font-weight:500">· pullback-real 통합 전 검증</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px">
-            <button onclick="_sxVib(12);window._pullbackBaseRun&&_pullbackBaseRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">🔵 상승장 base·발동</button>
-            <button onclick="_sxVib(12);window._pullbackBaseRun&&_pullbackBaseRun('deadcat')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">🔴 하락장 base·발동</button>
-            <button onclick="_sxVib(12);window._deadcatHzRun&&_deadcatHzRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc2626;color:#fff;border:1px solid #dc2626">🔴 하락장 발동 N10/15/20</button>
-            <button onclick="_sxVib(12);window._deadcatHzBtRun&&_deadcatHzBtRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#991b1b;color:#fff;border:1px solid #991b1b">🔴 하락장 발동 BT (실전)</button>
-            <button onclick="_sxVib(12);window._deadcatConfirmRun&&_deadcatConfirmRun('pullback')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">🎯 손절 4방식</button>
-            <button onclick="_sxVib(12);window._deadcatTrajRun&&_deadcatTrajRun('pullback')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">📉 진입 후 궤적</button>
-            <button onclick="_sxVib(12);window._wtDiagRun&&_wtDiagRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0891b214;color:#0891b2;border:1px solid #0891b266">🌊 물타기 신호 진단</button>
-          </div>
-          <div id="pullbackBaseResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
-          <div id="deadcatBaseResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
-          <div id="deadcatHzResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
-          <div id="deadcatHzBtResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
-          <div id="pullbackConfirmResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
-          <div id="pullbackTrajResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
-          <div id="wtDiagOut" style="margin-top:4px;margin-bottom:12px"></div>
-          <div style="font-size:9.5px;font-weight:800;color:#7c3aed;margin:0 0 6px">🧪 재료 측정 <span style="color:var(--text3);font-weight:500">· 🧪 변별력부터 실행</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">
-            <button onclick="_sxVib(12);window._btDiscrimRun&&_btDiscrimRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧪 변별력</button>
-            <button onclick="_sxVib(12);window._btDiscrimRunAll&&_btDiscrimRunAll()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed;color:#fff;border:1px solid #7c3aed">🧪 확장풀 변별력</button>
-            <button onclick="_sxVib(12);window._btDiscrimRunMega&&_btDiscrimRunMega()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e7490;color:#fff;border:1px solid #0e7490">🌍 발굴풀 변별력</button>
-            <button onclick="_sxVib(12);window._snapCreate&&_snapCreate()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e749014;color:#0e7490;border:1px solid #0e749066">📦 스냅샷 생성</button>
-            <button onclick="_sxVib(12);window._snapToggle&&_snapToggle()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:transparent;color:#0e7490;border:1px dashed #0e7490">📂 스냅샷 모드</button>
-            <span id="snapModeBadge" style="display:none;align-items:center;padding:6px 10px;border-radius:14px;font-size:10px;font-weight:800;color:#0e7490;background:#0e749014;border:1px dashed #0e7490"></span>
-            <button onclick="_sxVib(12);window._btThreshRun&&_btThreshRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">📏 임계값</button>
-            <button onclick="_sxVib(12);window._btEnsembleRun&&_btEnsembleRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧬 앙상블</button>
-            <button onclick="_sxVib(12);window._btBuilderRun&&_btBuilderRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🛠️ 빌더</button>
-          </div>
-          <div id="btDiscrimResult" style="display:none;margin-top:8px"></div>
-          <div id="btThreshResult" style="display:none;margin-top:8px"></div>
-          <div id="btEnsembleResult" style="display:none;margin-top:8px"></div>
-          <div id="btBuilderResult" style="display:none;margin-top:8px"></div>
+          <div id="dcAuditDesc" style="font-size:8.5px;color:var(--text3);line-height:1.45;margin-bottom:10px">바닥확인(하락장·약세) 진입에서 <b>진짜반등 vs 가짜반등</b>을 가르는 재료를 찾는 측정 묶음. <b style="color:#16a34a">BT 무관 — 풀 조건 만족 모든 봉을 순수 데이터로 측정</b>.</div>
+            <!-- [S975] 측정 도구 재구성 — 4그룹 + 탐색 아카이브(접힘). 버튼/함수/result-div 전부 보존. -->
+            <div style="font-size:9.5px;font-weight:800;color:#2563eb;margin:4px 0 6px;">🎯 발동 & 품질 <span style="color:var(--text3);font-weight:500">· 확정 측정</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+              <button onclick="_sxVib(14);window._recipeSuiteRun&&_recipeSuiteRun()" style="display:inline-flex;align-items:center;padding:7px 14px;border-radius:14px;font-size:11.5px;font-weight:800;line-height:1.2;cursor:pointer;background:#7c3aed;color:#fff;border:1px solid #7c3aed">🔬 레시피 종합검증 (11종 일괄)</button><!-- [S863] -->
+              <button onclick="_sxVib(12);window._recipeOverlapRun&&_recipeOverlapRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#16a34a14;color:#16a34a;border:1px solid #16a34a66">🎯 발동수별 N10 진짜비율</button>
+              <button onclick="_sxVib(12);window._pullbackBaseRun&&_pullbackBaseRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">🔵 상승장 base·발동</button>
+              <button onclick="_sxVib(12);window._pullbackBaseRun&&_pullbackBaseRun('deadcat')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">🔴 하락장 base·발동</button>
+              <button onclick="_sxVib(12);window._deadcatHzRun&&_deadcatHzRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc2626;color:#fff;border:1px solid #dc2626">🔴 하락장 발동 N10/15/20</button>
+              <button onclick="_sxVib(12);window._deadcatHzBtRun&&_deadcatHzBtRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#991b1b;color:#fff;border:1px solid #991b1b">🔴 하락장 발동 BT (실전)</button>
+            </div>
+            <div style="font-size:9.5px;font-weight:800;color:#0d9488;margin:8px 0 6px;border-top:1px solid var(--border);padding-top:8px;">🚀 진입 & 청산 <span style="color:var(--text3);font-weight:500">· 실전 판단</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+              <button onclick="_sxVib(12);window._recipeProfileRun&&_recipeProfileRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e749014;color:#0e7490;border:1px solid #0e749066">⏱ 발동 후 t+k 유력시점</button><!-- [S856] -->
+              <button onclick="_sxVib(12);window._deadcatTrajRun&&_deadcatTrajRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">📉 진입 후 진짜/가짜 궤적</button>
+              <button onclick="_sxVib(12);window._deadcatConfirmRun&&_deadcatConfirmRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#16a34a14;color:#16a34a;border:1px solid #16a34a66">🎯 즉시 vs 확인 진입 N10</button>
+              <button onclick="_sxVib(12);window._deadcatConfirmRun&&_deadcatConfirmRun('pullback')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">🎯 손절 4방식</button>
+              <button onclick="_sxVib(12);window._deadcatTrajRun&&_deadcatTrajRun('pullback')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">📉 진입 후 궤적</button>
+              <button onclick="_sxVib(12);window._wtDiagRun&&_wtDiagRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0891b214;color:#0891b2;border:1px solid #0891b266">🌊 물타기 신호 진단</button>
+            </div>
+            <div style="font-size:9.5px;font-weight:800;color:#7c3aed;margin:8px 0 6px;border-top:1px solid var(--border);padding-top:8px;">🧪 재료 발굴 <span style="color:var(--text3);font-weight:500">· discovery</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+              <button onclick="_sxVib(12);window._recipeIngRun&&_recipeIngRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#ca8a0414;color:#ca8a04;border:1px solid #ca8a0466">💡 재료 불켜짐</button><!-- [S873] -->
+              <button onclick="_sxVib(12);window._btDiscrimRun&&_btDiscrimRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧪 변별력</button>
+              <button onclick="_sxVib(12);window._btDiscrimRunAll&&_btDiscrimRunAll()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed;color:#fff;border:1px solid #7c3aed">🧪 확장풀 변별력</button>
+              <button onclick="_sxVib(12);window._btDiscrimRunMega&&_btDiscrimRunMega()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e7490;color:#fff;border:1px solid #0e7490">🌍 발굴풀 변별력</button>
+              <button onclick="_sxVib(12);window._btThreshRun&&_btThreshRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">📏 임계값</button>
+              <button onclick="_sxVib(12);window._btEnsembleRun&&_btEnsembleRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧬 앙상블</button>
+              <button onclick="_sxVib(12);window._btBuilderRun&&_btBuilderRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🛠️ 빌더</button>
+            </div>
+            <div style="font-size:9.5px;font-weight:800;color:#64748b;margin:8px 0 6px;border-top:1px solid var(--border);padding-top:8px;">📦 데이터 <span style="color:var(--text3);font-weight:500"></span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+              <button onclick="_sxVib(12);window._snapCreate&&_snapCreate()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e749014;color:#0e7490;border:1px solid #0e749066">📦 스냅샷 생성</button>
+              <button onclick="_sxVib(12);window._snapToggle&&_snapToggle()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:transparent;color:#0e7490;border:1px dashed #0e7490">📂 스냅샷 모드</button>
+            </div>
+            <div style="margin:8px 0 0;border-top:1px solid var(--border);padding-top:8px">
+              <div onclick="_sxVib(6);var c=document.getElementById('dcArchiveBody');c.style.display=(c.style.display==='none')?'flex':'none';this.querySelector('.arcArr').textContent=(c.style.display==='none')?'▶':'▼'" style="font-size:9.5px;font-weight:700;color:var(--text3);cursor:pointer">🗄 탐색 아카이브 <span style="font-weight:500">· 일회성 실험 16종 (탭해서 열기)</span> <span class="arcArr" style="float:right">▶</span></div>
+              <div id="dcArchiveBody" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px">
+                <button onclick="_sxVib(12);window._btGateAuditRun&&_btGateAuditRun('n10')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0d948814;color:#0d9488;border:1px solid #0d948866">🚪 약세 vs 강세 N10</button>
+                <button onclick="_sxVib(12);window._btGateAuditRun&&_btGateAuditRun('hz')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#d9770614;color:#d97706;border:1px solid #d9770666">📏 N15·N20 확장</button>
+                <button onclick="_sxVib(12);window._btGateAuditRun&&_btGateAuditRun('combo')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🔬 ×거래량OSC</button>
+                <button onclick="_sxVib(12);window._recipeContamRun&&_recipeContamRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧪 real×fake 오염</button><!-- [S857] -->
+                <button onclick="_sxVib(12);window._recipeMixDirRun&&_recipeMixDirRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#d9770614;color:#d97706;border:1px solid #d9770666">⚖️ 혼재 방향</button><!-- [S858] -->
+                <button onclick="_sxVib(12);window._recipeCompanionRun&&_recipeCompanionRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0369a114;color:#0369a1;border:1px solid #0369a166">🧩 동반조건</button>
+                <button onclick="_sxVib(12);window._recipeTransitRun&&_recipeTransitRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0d948814;color:#0d9488;border:1px solid #0d948866">⏳ 전이 확정력</button><!-- [S876] -->
+                <button onclick="_sxVib(12);window._recipeApprRun&&_recipeApprRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#4f46e514;color:#4f46e5;border:1px solid #4f46e566">🧭 접근방향</button><!-- [S881] --><!-- [S861] -->
+                <button onclick="_sxVib(12);window._recipeFakeDownRun&&_recipeFakeDownRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">🔴 가짜반등 하락</button><!-- [S883] -->
+                <button onclick="_sxVib(12);window._recipeTransitRiskRun&&_recipeTransitRiskRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#ca8a0414;color:#ca8a04;border:1px solid #ca8a0466">🟡 전이형 위험</button><!-- [S885] -->
+                <button onclick="_sxVib(12);window._recipeTransitGridRun&&_recipeTransitGridRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#47556914;color:#475569;border:1px solid #47556966">🔲 전이형 격자</button><!-- [S886] -->
+                <button onclick="_sxVib(12);window._maCrossFitRun&&_maCrossFitRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#db277714;color:#db2777;border:1px solid #db277766">🎚️ MA크로스 적합성</button><!-- [S887] -->
+                <button onclick="_sxVib(12);window._dispRegimeRun&&_dispRegimeRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0891b214;color:#0891b2;border:1px solid #0891b266">📊 시장평균·이격도</button><!-- [S888] -->
+                <button onclick="_sxVib(12);window._volRegimeRun&&_volRegimeRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0891b214;color:#0891b2;border:1px solid #0891b266">🌊 변동성별 N10 진짜비율</button>
+                <button onclick="_sxVib(12);window._volPoolShow&&_volPoolShow()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#64748b14;color:#64748b;border:1px solid #64748b66">📋 측정 풀 보기</button>
+                <button onclick="_sxVib(12);window._deadcatShortRun&&_deadcatShortRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">🚫 (하,하) vs (하,혼조) N10</button>
+              </div>
+            </div>
+            <div style="margin-top:10px">
+              <!-- 측정 결과 출력 존 (버튼 실행 시 해당 result-div에 표시) -->
+              <div id="btGateAuditResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
+              <div id="recipeOverlapResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
+              <div id="recipeProfileResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S856] -->
+              <div id="recipeContamResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S857] -->
+              <div id="recipeMixDirResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S858] -->
+              <div id="recipeCompanionResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S861] -->
+              <div id="recipeIngResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S873] -->
+              <div id="recipeTransitResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S876] -->
+              <div id="recipeApprResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S881] -->
+              <div id="recipeFakeResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S883] -->
+              <div id="recipeTransitRiskResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S885] -->
+              <div id="recipeTransitGridResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S886] -->
+              <div id="maCrossFitResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S887] -->
+              <div id="dispRegimeResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S888] -->
+              <div id="volPoolResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
+              <div id="volRegimeResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
+              <div id="deadcatShortResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
+              <div id="deadcatTrajResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
+              <div id="deadcatConfirmResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
+              <div id="pullbackBaseResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
+              <div id="deadcatBaseResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
+              <div id="deadcatHzResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
+              <div id="deadcatHzBtResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
+              <div id="pullbackConfirmResult" style="display:none;margin-top:4px;margin-bottom:8px"></div>
+              <div id="pullbackTrajResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
+              <div id="btDiscrimResult" style="display:none;margin-top:8px"></div>
+              <div id="btThreshResult" style="display:none;margin-top:8px"></div>
+              <div id="btEnsembleResult" style="display:none;margin-top:8px"></div>
+              <div id="btBuilderResult" style="display:none;margin-top:8px"></div>
+            </div>
         </div><!-- /dcAuditBody -->
       </div><!-- /🔬 데드캣 검증 도구 카드 [S749] -->
       <div class="bt-section-title">관심종목 교차 백테스트</div>
