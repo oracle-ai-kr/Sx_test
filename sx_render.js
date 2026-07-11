@@ -8135,7 +8135,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S989';
+  window.SX_BUILD='S990';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -10454,7 +10454,7 @@ function _sxbTri(d, inverse){
 }
 // [S385] 분석엔진 파라미터(RSI/BB/ATR/MA) 영향 점수항목 — 이름 보라색 표기(참고용)
 //   추세방향/추세신호/이평선배열/골든·데드크로스←MA · 변동성←ATR · 가격모멘텀←RSI · 볼린저%B←BB · 반등준비/강도/눌림목←RSI·BB
-const _SXB_PARAM = new Set(['추세방향','추세신호','변동성','가격모멘텀','반등준비','반등전환','눌림신호','볼린저%B','크로스신호','추격여력','MTF','방향전이']);
+const _SXB_PARAM = new Set(['추세신호','변동성','가격모멘텀','눌림신호','볼린저%B','크로스신호','MTF','방향전이']); // [S990] 5축 라벨(추세방향/반등준비/반등전환/추격여력) 제거 — S989로 board서 사라져 매칭 불가
 function _sxbCircle(score, label, big, neutral, delta, inverse, byValue, signal, param, colorOverride){
   const r = big?28:18, sw = big?6:5, box=(r+sw)*2;   // [S416] big 32→28/sw 7→6: 헤더 텍스트(상태·등급·▲▼) 한 줄 확보
   const circ = 2*Math.PI*r;
@@ -10804,12 +10804,7 @@ function _sxbBuildWhyMsg(it){
     const note = n < 2 ? '\n(2개↑부터 색 표시 · 현재 1개라 중립)' : '';
     return `${icon} 크로스신호 ${v}점 · ${dir} ${n}개: ${fired.join(', ')}${note}`;
   }
-  // [S361] 추가상승 (순추세 추격 여력)
-  if(k === '추격여력'){
-    const lv = v>=70?'강함':v>=50?'보통':v>=30?'약함':'미흡';
-    const txt = v>=65?'순추세 추격 유효':v<=35?'추세 추격 부적합':'중립';
-    return `🚀 추격여력 ${v}점 — ${lv} · ${txt}`;
-  }
+  // [S990] 추격여력 툴팁 삭제 — S989로 board '추격여력' 항목 제거되어 이 가지 도달 불가(k는 이제 '추격여력'이 될 수 없음).
   // 단방향 GC (signal='up')
   if(it.signal === 'up'){
     const fired = (it.fired || []).filter(x=>x);
@@ -11630,13 +11625,8 @@ function _computeBoardInputs(stock, indicators, scores, scoreMom, tf){
   }
   let _boardDeltas = {}, _boardExtras = {};
   try {
-    const _mom357 = scoreMom;
-    // [S358] 4축은 기존 전이(3봉 평균 대비 delta) 재사용 — 이미 검증된 모멘텀 값
-    if(_mom357){
-      if(_mom357.delta!=null)      _boardDeltas.readyScore = _mom357.delta;       // 반등준비
-      if(_mom357.entryDelta!=null) _boardDeltas.entryScore = _mom357.entryDelta;  // 반등전환
-      if(_mom357.trendDelta!=null) _boardDeltas.trendScore = _mom357.trendDelta;  // 추세방향
-    }
+    // [S990] 5축 board delta 삭제(S989로 고아) — readyScore/entryScore/trendScore delta는 제거된 반등준비/반등전환/추세방향 push 전용이었음.
+    //   _boardDeltas 객체는 남은 항목(추세신호·가격모멘텀·눌림신호·거래량 등)의 delta로 계속 사용됨.
     // [S362] 추가 항목 현재값 — 추세강도(ADX)/A/D/EOM/Chaikin (방향 상태→점수 매핑 70/50/30)
     let _gcW = 0, _dcW = 0; // [S367/S369] 골든크로스·데드크로스 가중치 합 (각 만점 18)
     const _gcFired = [], _dcFired = []; // [S375] 발동된 시그널 라벨 — 토스트 표시용
@@ -11792,8 +11782,7 @@ function _computeBoardInputs(stock, indicators, scores, scoreMom, tf){
     }
     _csV = Math.max(0, Math.min(100, _csV));
     _boardExtras.crosssig = {v: _csV, _fired: _csFired, _dir: _csDir, _gcN: _gcN, _dcN: _dcN};
-    // [S361] 추가상승 — scoreMomentum 현재봉 upside (= qs.upsideScore와 동일 소스)
-    _boardExtras.upside = {v: (scoreMom && scoreMom.history && scoreMom.history[0] ? (scoreMom.history[0].upsideScore ?? 0) : 0)};
+    // [S990] _boardExtras.upside 삭제 — S989로 추격여력 push 제거되어 고아. (upsideScore 원본은 verdict 게이트·스크리너 필터가 계속 사용.)
     // [S415] 방향전이 — 추세점수(trendPure)의 3봉평균 대비 변화(trendDelta)를 50 기준 점수화. 강화중=녹/약화중=빨/변화없음=50.
     //   x2.5 스케일: trendDelta ±14 → ~85/~15. byValue(점수색)로 모멘텀·진입 그룹에 편입 → 카운터·종합점수 자동 반영.
     if(scoreMom && scoreMom.trendDelta!=null)
