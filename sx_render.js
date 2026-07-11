@@ -8074,7 +8074,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S982';
+  window.SX_BUILD='S983';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -12893,8 +12893,9 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
 
     ${(()=>{
       // [S981] 종합해석 = 구조적 위치 지도 — 현재가 vs 각 MA(5/20/60/120) 이격·기울기·배열. 순수 좌표(판정·저항지지·레시피·행동 없음. 저항/지지는 미검증이라 뺌).
-      const _i = qs ? qs.ind : null;
+      const _i = indicators;   // [S983] 가격·MA값·closes는 indicators(엔진 전체출력)에 있음
       if(!_i || _i.last==null) return '';
+      const _maSrc = (qs && qs.ind) ? qs.ind : null;   // maAlign은 qs.ind에만 있음
       const _px = _i.last;
       const _cl = Array.isArray(_i.closes) ? _i.closes : null;
       function _slp(period){ if(!_cl || _cl.length < period+10) return null; var sma=function(end,p){var s=0;for(var j=end-p;j<end;j++)s+=_cl[j];return s/p;}; var now=sma(_cl.length,period), prev=sma(_cl.length-10,period); return (prev>0)?(now-prev)/prev*100:null; }
@@ -12911,7 +12912,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
         : (valid&&above===valid) ? '모든 이동평균선 <b>위</b> — 평균을 상회하는 상단권'
         : (below>above ? '단기선 근처, 중장기선 <b>아래</b>' : '단기선 <b>위</b>, 장기선 부근');
       if(d60!=null && Math.abs(d60)>=20) _sumTxt += ' (60일선 '+(d60>=0?'+':'')+d60.toFixed(0)+'%)';
-      var _sa = _i.maAlign ? (_i.maAlign.bullish?'정배열 (강세)':_i.maAlign.bearish?'역배열 (약세)':'혼조') : '—';
+      var _sa = (_maSrc && _maSrc.maAlign) ? (_maSrc.maAlign.bullish?'정배열 (강세)':_maSrc.maAlign.bearish?'역배열 (약세)':'혼조') : '—';
       var _spread = (_i.ma5!=null&&_i.ma60!=null&&_px>0) ? Math.abs(_i.ma5-_i.ma60)/_px*100 : null;
       var _sp = _spread==null?'':_spread>=8?' 발산':_spread<=3?' 수렴':'';
       return `<div class="itp-card show unified-narrative-card" style="margin:0 0 12px;padding:12px 14px;border-left:4px solid #64748b;background:#64748b0F;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.03)">
