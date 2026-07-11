@@ -8074,7 +8074,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S983';
+  window.SX_BUILD='S984';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -12237,14 +12237,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       ${itpRow('OBV 방향', ind.obv.trend==='up'?'상승':ind.obv.trend==='down'?'하락':'횡보', ind.obv.trend==='up'?'bullish':ind.obv.trend==='down'?'bearish':'neutral', itp.obv)}
       ${itpRow('SAR', ind.psar.trend==='up'?'상승추세':'하락추세', ind.psar.trend==='up'?'bullish':'bearish', itp.sar)}
     </div>
-    <div class="anal-section">
-      <div class="anal-section-title">이동평균선</div>
-      ${ind.ma5?itpRow('MA5', (+ind.ma5.toFixed(0)).toLocaleString(), ind.last>ind.ma5?'bullish':'bearish'):''}
-      ${ind.ma20?itpRow('MA20', (+ind.ma20.toFixed(0)).toLocaleString(), ind.last>ind.ma20?'bullish':'bearish'):''}
-      ${ind.ma60?itpRow('MA60', (+ind.ma60.toFixed(0)).toLocaleString(), ind.last>ind.ma60?'bullish':'bearish'):''}
-      ${ind.ma120?itpRow('MA120', (+ind.ma120.toFixed(0)).toLocaleString(), ind.last>ind.ma120?'bullish':'bearish'):''}
-      ${maAlignItp?`<div class="itp-card show" style="margin-top:4px;white-space:pre-line"><span class="itp-label ${maAlignItp.tone}">${maAlignItp.label}</span><div>${maAlignItp.text}</div></div>`:(itp.ma?`<div class="itp-card show" style="margin-top:4px"><span class="itp-label ${itp.ma.tone}">${itp.ma.label}</span><div>${itp.ma.text}</div></div>`:'')}
-    </div>
+    <!-- [S984] 이동평균선 카드 제거 — 종합해석 'MA 지도'와 완전 중복(같은 MA5/20/60/120·이격). "MA20·60서 막힘"은 미검증 저항 예측이라 제거. -->
     ${ind.patterns.basic.length||ind.patterns.reversal.length||ind.patterns.continuation.length?`
     <div class="anal-section">
       <div class="anal-section-title">캔들 패턴${_ko?'<span class="kis-off-badge" style="margin-left:6px">비활성</span>':''}</div>
@@ -12915,6 +12908,17 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       var _sa = (_maSrc && _maSrc.maAlign) ? (_maSrc.maAlign.bullish?'정배열 (강세)':_maSrc.maAlign.bearish?'역배열 (약세)':'혼조') : '—';
       var _spread = (_i.ma5!=null&&_i.ma60!=null&&_px>0) ? Math.abs(_i.ma5-_i.ma60)/_px*100 : null;
       var _sp = _spread==null?'':_spread>=8?' 발산':_spread<=3?' 수렴':'';
+      // [S984] 서술 문장 (저항/지지 예측 없이 사실만: 60MA 기울기·배열·위쪽 평균선 위치)
+      var _sl60=_slp(60);
+      var _n1 = _sl60==null?'':(_sl60<-0.5?'60일선이 <b>하락 기울기</b>라 상승 구조가 꺾이는 중이고, ':_sl60>0.5?'60일선이 <b>상승 기울기</b>라 상승 구조가 살아있고, ':'60일선은 <b>평탄</b>하고, ');
+      var _n2 = (_sa.indexOf('역배열')>=0?'5·20·60선이 위→아래로 <b>역배열</b>':_sa.indexOf('정배열')>=0?'5·20·60선이 아래→위로 <b>정배열</b>':'5·20·60선이 <b>혼조</b>') + (_sp.indexOf('발산')>=0?' 발산 중이에요.':_sp.indexOf('수렴')>=0?' 수렴 중이에요.':'이에요.');
+      var _aboveMAs = MAS.filter(function(m){return m.v!=null && _px<m.v;}).sort(function(a,b){return a.v-b.v;});
+      var _belowMAs = MAS.filter(function(m){return m.v!=null && _px>=m.v;}).sort(function(a,b){return b.v-a.v;});
+      var _n3 = '';
+      if(_aboveMAs.length>=2){ _n3=' 현재가 위로는 '+_aboveMAs.slice(0,2).map(function(m){return m.n+'('+(+m.v.toFixed(0)).toLocaleString()+')';}).join('·')+' 등 평균선들이 자리해 있어요.'; }
+      else if(_aboveMAs.length===0){ _n3=' 현재가가 모든 평균선 위에 있어요.'; }
+      else if(_belowMAs.length>=2){ _n3=' 현재가 아래로는 '+_belowMAs.slice(0,2).map(function(m){return m.n+'('+(+m.v.toFixed(0)).toLocaleString()+')';}).join('·')+' 평균선이 있어요.'; }
+      var _narrTxt = _n1 + _n2 + _n3;
       return `<div class="itp-card show unified-narrative-card" style="margin:0 0 12px;padding:12px 14px;border-left:4px solid #64748b;background:#64748b0F;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.03)">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
           <span style="font-size:11px;font-weight:800;color:#475569">📊 종합해석</span>
@@ -12925,6 +12929,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           <tr style="background:var(--surface2)"><td style="padding:4px 8px;font-size:8px;color:var(--text3)">이평선</td><td style="padding:4px 8px;text-align:right;font-size:8px;color:var(--text3)">값</td><td style="padding:4px 8px;text-align:right;font-size:8px;color:var(--text3)">이격</td><td style="padding:4px 8px;text-align:center;font-size:8px;color:var(--text3)">기울기</td></tr>
           ${_trows}
         </table>
+        <div style="font-size:11.5px;line-height:1.6;color:var(--text);margin-top:8px">${_narrTxt}</div>
         <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);font-size:9.5px;color:var(--text3)">단기(5·20·60) <b>${_sa}</b>${_sp} · 이격=현재가와 각 평균선 거리 · 기울기=최근 10봉 방향 — 측정된 위치만 (판정·저항지지 아님)</div>
       </div>`;
     })()}
