@@ -5036,7 +5036,8 @@ async function _riskMeasureBracket(mk, source, onProgress){
       var r10=(rr[j10]&&typeof rr[j10].close==='number')?(rr[j10].close/ep-1):null;
       var r5=(rr[j5]&&typeof rr[j5].close==='number')?(rr[j5].close/ep-1):null;
       if(r10==null) continue;
-      entries.push({ c:conds, r10:r10, r5:r5 });
+      var feats=(window.SXFeatureLib)?SXFeatureLib.evalCont(ind, rr, bi):null;   // [S999] 통합 라이브러리 연속재료 값
+      entries.push({ c:conds, f:feats, r10:r10, r5:r5 });
       _used=true;
       if((bi&31)===0) await _trendBatchSleep(0);
     }
@@ -5062,7 +5063,25 @@ function _riskMeasureAgg(entries){
     out.push({ key:k, label:(_RISK_LABELS[k]||k), n:n, mean:mean, win:win, crash:crash, worst:worst, lift:mean-baseMean, crashLift:crash-baseCrash });
   }
   out.sort(function(a,b){ return a.lift-b.lift; });   // 음수 lift 상위 = 나쁜 걸 잘 걸러냄
-  return { ok:true, base:{mean:baseMean,crash:baseCrash,win:baseWin,n:N}, rows:out };
+  // [S999] 연속재료 crash-IC — 재료값 vs r10 순위상관(Spearman). 음수 IC=재료↑→수익↓(위험). + 상위20% 폭락률.
+  var ic=[];
+  if(window.SXFeatureLib && entries.length && entries[0].f){
+    var _rank=function(arr){ var idx=arr.map(function(v,k){return [v,k];}).sort(function(x,y){return x[0]-y[0];}); var r=new Array(arr.length); for(var q=0;q<idx.length;q++) r[idx[q][1]]=q; return r; };
+    var _spear=function(xs, ys){ var n=xs.length; if(n<30) return null; var rx=_rank(xs), ry=_rank(ys); var mx=(n-1)/2, sxy=0,sxx=0,syy=0; for(var q=0;q<n;q++){ var a=rx[q]-mx, b=ry[q]-mx; sxy+=a*b; sxx+=a*a; syy+=b*b; } return (sxx>0&&syy>0)?sxy/Math.sqrt(sxx*syy):null; };
+    SXFeatureLib.contIds.forEach(function(id){
+      var xs=[], ys=[];
+      for(var q=0;q<entries.length;q++){ var v=entries[q].f?entries[q].f[id]:null; if(v!=null && isFinite(v)){ xs.push(v); ys.push(entries[q].r10); } }
+      if(xs.length<100) return;
+      var icv=_spear(xs, ys);
+      // 상위20% 재료값 봉의 폭락률
+      var pairs=xs.map(function(v,k){return [v,ys[k]];}).sort(function(a,b){return b[0]-a[0];});
+      var topN=Math.max(20, Math.floor(pairs.length*0.2)), tc=0; for(var q=0;q<topN;q++){ if(pairs[q][1]<=-0.10) tc++; }
+      var f=SXFeatureLib.byId[id];
+      ic.push({ id:id, label:(f?f.label:id), n:xs.length, ic:icv, topCrash:tc/topN, crashLift:(tc/topN)-baseCrash });
+    });
+    ic.sort(function(a,b){ return (a.ic==null?9:a.ic)-(b.ic==null?9:b.ic); });   // IC 오름차순(음수=위험 상위)
+  }
+  return { ok:true, base:{mean:baseMean,crash:baseCrash,win:baseWin,n:N}, rows:out, ic:ic };
 }
 function _riskMeasureRender(res, meta){
   if(!res||!res.ok) return '<div style="font-size:11px;color:#dc2626;padding:8px 2px">측정 불가 — '+((res&&res.reason)||'?')+'</div>';
@@ -5083,8 +5102,26 @@ function _riskMeasureRender(res, meta){
       +'</div>';
   }).join('');
   var thead='<div style="display:flex;font-size:8px;color:var(--text3);font-weight:700;padding:2px 0;border-bottom:2px solid var(--border)">'
-    +'<span style="flex:1.6">조건</span><span style="flex:.5;text-align:right">n</span><span style="flex:.8;text-align:right">lift</span><span style="flex:.7;text-align:right">평균N10</span><span style="flex:.6;text-align:right">승률</span><span style="flex:.7;text-align:right">폭락%</span></div>';
-  return '<div style="padding:9px 10px;background:var(--surface);border-radius:9px;border:1px solid var(--border)">'+head+thead+rows+'</div>';
+    +'<span style="flex:1.6">조건(이진)</span><span style="flex:.5;text-align:right">n</span><span style="flex:.8;text-align:right">lift</span><span style="flex:.7;text-align:right">평균N10</span><span style="flex:.6;text-align:right">승률</span><span style="flex:.7;text-align:right">폭락%</span></div>';
+  // [S999] 연속재료 crash-IC 섹션 (통합 라이브러리)
+  var icHtml='';
+  if(res.ic && res.ic.length){
+    var icRows=res.ic.map(function(r){
+      var col=(r.ic!=null&&r.ic<-0.03)?'#ef4444':((r.ic!=null&&r.ic>0.03)?'#16a34a':'var(--text3)');
+      var bold=(r.ic!=null&&Math.abs(r.ic)>=0.10)?'800':'500';
+      return '<div style="display:flex;align-items:center;font-size:10px;padding:4px 0;border-bottom:1px solid var(--border)">'
+        +'<span style="flex:1.6;font-weight:600;color:var(--text)">'+r.label+'</span>'
+        +'<span style="flex:.5;text-align:right;color:var(--text3)">'+r.n+'</span>'
+        +'<span style="flex:.8;text-align:right;color:'+col+';font-weight:'+bold+'">'+(r.ic==null?'—':(r.ic>0?'+':'')+r.ic.toFixed(2))+'</span>'
+        +'<span style="flex:.7;text-align:right;color:'+(r.crashLift>0.01?'#ef4444':'var(--text3)')+'">'+(r.topCrash*100).toFixed(1)+'%</span>'
+        +'<span style="flex:.7;text-align:right;color:'+(r.crashLift>0.01?'#ef4444':(r.crashLift<-0.01?'#16a34a':'var(--text3)'))+'">'+(r.crashLift>0?'+':'')+(r.crashLift*100).toFixed(1)+'%</span>'
+        +'</div>';
+    }).join('');
+    var icHead='<div style="display:flex;font-size:8px;color:var(--text3);font-weight:700;padding:2px 0;border-bottom:2px solid var(--border)">'
+      +'<span style="flex:1.6">재료(연속)</span><span style="flex:.5;text-align:right">n</span><span style="flex:.8;text-align:right">IC</span><span style="flex:.7;text-align:right">상위20%폭락</span><span style="flex:.7;text-align:right">폭락lift</span></div>';
+    icHtml='<div style="margin-top:12px;font-size:9.5px;font-weight:800;color:#7c3aed">🧬 연속재료 crash-IC <span style="font-weight:500;font-size:8px;color:var(--text3)">— IC 음수=재료↑→수익↓(위험) · |IC|≥0.10 유의(굵게) · 상위20%=재료 최고 20% 봉의 폭락률</span></div>'+icHead+icRows;
+  }
+  return '<div style="padding:9px 10px;background:var(--surface);border-radius:9px;border:1px solid var(--border)">'+head+thead+rows+icHtml+'</div>';
 }
 async function _riskMeasureUI(src){
   var el=document.getElementById('btDiscrimResult'); if(!el) return; el.style.display='block';
@@ -5098,7 +5135,7 @@ async function _riskMeasureUI(src){
   try{ res=await _riskMeasureBracket(mk, source, function(i,t,n){ var e=document.getElementById('btDiscrimResult'); if(e) e.innerHTML='<div style="text-align:center;padding:14px;color:#ef4444;font-size:12px;font-weight:700">🛡️ 측정 중 '+i+'/'+t+'<div style="font-size:10px;color:#94a3b8;margin-top:3px">'+(n||'')+'</div></div>'; }); }
   catch(e){ res={ok:false, reason:String(e&&e.message||e)}; }
   var agg=(res&&res.ok)?_riskMeasureAgg(res.entries):res;
-  try{ if(agg&&agg.ok&&typeof _sxMeasStash==='function') _sxMeasStash('risk_'+mk+'_'+source+'_'+(_snapOn?'snap':'live'), { pool:srcLabel, snap:_snapOn, base:agg.base, rows:agg.rows }); }catch(_){}   // [S997] 공용 📋 JSON 측정결과에 합류 (스냅/라이브 키 분리→한 파일 OOS 비교)
+  try{ if(agg&&agg.ok&&typeof _sxMeasStash==='function') _sxMeasStash('risk_'+mk+'_'+source+'_'+(_snapOn?'snap':'live'), { pool:srcLabel, snap:_snapOn, base:agg.base, rows:agg.rows, ic:agg.ic }); }catch(_){}   // [S997] 공용 📋 JSON 측정결과에 합류 (스냅/라이브 키 분리→한 파일 OOS 비교)
   el.innerHTML=_riskMeasureRender(agg, mk.toUpperCase()+' · '+srcLabel+(res&&res.stocksUsed?' '+res.stocksUsed+'종':''));
 }
 if(typeof window!=='undefined'){ window._riskMeasureUI=_riskMeasureUI; }
@@ -8169,7 +8206,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S998';
+  window.SX_BUILD='S999';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
