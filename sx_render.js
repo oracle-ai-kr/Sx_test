@@ -8135,7 +8135,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S991';
+  window.SX_BUILD='S992';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -10454,7 +10454,7 @@ function _sxbTri(d, inverse){
 }
 // [S385] 분석엔진 파라미터(RSI/BB/ATR/MA) 영향 점수항목 — 이름 보라색 표기(참고용)
 //   추세방향/추세신호/이평선배열/골든·데드크로스←MA · 변동성←ATR · 가격모멘텀←RSI · 볼린저%B←BB · 반등준비/강도/눌림목←RSI·BB
-const _SXB_PARAM = new Set(['추세신호','변동성','가격모멘텀','눌림신호','볼린저%B','크로스신호','MTF','방향전이']); // [S990] 5축 라벨(추세방향/반등준비/반등전환/추격여력) 제거 — S989로 board서 사라져 매칭 불가
+const _SXB_PARAM = new Set(['추세신호','변동성','가격모멘텀','눌림신호','볼린저%B','크로스신호','MTF']); // [S990] 5축 라벨(추세방향/반등준비/반등전환/추격여력) 제거 — S989로 board서 사라져 매칭 불가
 function _sxbCircle(score, label, big, neutral, delta, inverse, byValue, signal, param, colorOverride){
   const r = big?28:18, sw = big?6:5, box=(r+sw)*2;   // [S416] big 32→28/sw 7→6: 헤더 텍스트(상태·등급·▲▼) 한 줄 확보
   const circ = 2*Math.PI*r;
@@ -10727,12 +10727,7 @@ function _sxbBuildWhyMsg(it){
     const lv = v>=80?'강한 상승 정합':v>=60?'상승 우세':v>40?'혼조':v>=20?'하락 우세':'강한 하락 정합';
     return `📊 MTF ${v}점 — 일·주·월 ${lv} (상위TF 가중)`;
   }
-  if(k === '방향전이'){   // [S415] 추세점수(trendPure)의 최근 3봉 평균 대비 변화
-    const td = (typeof it._td==='number') ? it._td : null;
-    const lv = v>=65?'추세 강화 중 (상승 동력 ↑)':v<=35?'추세 약화 중 (동력 ↓)':'추세 유지 (큰 변화 없음)';
-    const tdTxt = td!=null ? ` · 추세점수 3봉평균 대비 ${td>0?'+':''}${td}` : '';
-    return `🧭 방향전이 ${v}점 — ${lv}${tdTxt}`;
-  }
+  // [S992] 방향전이 툴팁 삭제 — board 항목 제거로 도달 불가.
   if(k === '투자자수급'){
     const lv = v>=65?'외국인·기관 매수세':v<=35?'외국인·기관 매도세':'중립';
     return `💰 투자자수급 ${v}점 — 연속 순매수 기준 ${lv}`;
@@ -11533,7 +11528,7 @@ function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   // [S989] 5축 배제 — '반등준비'(sv4.readyScore) 제거. 눌림/반등 해석=3×3 SSOT + 눌림신호(pbScore).
   // [S989] 5축 배제 — '반등전환'(sv4.entryScore) 제거. 진입 신호=레시피 votes(도넛과 별개로 섬).
   if(pbScore!=null) g2.push({k:'눌림신호', v:pbScore, d:D.pb});
-  if(extras && extras.trans && extras.trans.v!=null) g2.push({k:'방향전이', v:extras.trans.v, byValue:true, _td:extras.trans._td});  // [S415] 추세 전이(trendPure 3봉평균 대비) — 점수색, 카운터·종합 자동 반영
+  // [S992] 방향전이 board push 삭제 — 5축(readyScore/trendScore) 모멘텀 파생이라 배제. 도넛 g2 평균서 빠짐.
   // ③ 수급·거래량
   if(scores && scores.volume!=null) g3.push({k:'거래량', v:scores.volume, d:D.volume});
   if(extras.ad && extras.ad.v!=null) g3.push({k:'A/D', v:extras.ad.v, d:extras.ad.d, byValue:true});                // [S362/S364] 상태 값 기준 분포
@@ -11783,10 +11778,7 @@ function _computeBoardInputs(stock, indicators, scores, scoreMom, tf){
     _csV = Math.max(0, Math.min(100, _csV));
     _boardExtras.crosssig = {v: _csV, _fired: _csFired, _dir: _csDir, _gcN: _gcN, _dcN: _dcN};
     // [S990] _boardExtras.upside 삭제 — S989로 추격여력 push 제거되어 고아. (upsideScore 원본은 verdict 게이트·스크리너 필터가 계속 사용.)
-    // [S415] 방향전이 — 추세점수(trendPure)의 3봉평균 대비 변화(trendDelta)를 50 기준 점수화. 강화중=녹/약화중=빨/변화없음=50.
-    //   x2.5 스케일: trendDelta ±14 → ~85/~15. byValue(점수색)로 모멘텀·진입 그룹에 편입 → 카운터·종합점수 자동 반영.
-    if(scoreMom && scoreMom.trendDelta!=null)
-      _boardExtras.trans = {v: Math.max(0, Math.min(100, Math.round(50 + scoreMom.trendDelta * 2.5))), _td: scoreMom.trendDelta};
+    // [S992] 방향전이 board 피더(_boardExtras.trans) 삭제 — 방향전이 항목 제거로 고아(5축 파생 trendDelta).
   } catch(_e357){ /* 전이 계산 실패 시 삼각형 없이 진행 (안전) */ }
 
   // [S359/S376] 휩소 신뢰도 — 추세 약함(ADX<25) or 변동성 큼(ATR%≥5) or 횡보(VHF ranging)
