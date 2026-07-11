@@ -1341,11 +1341,10 @@ async function runAnalysis(stock){
 //   교차선택: 보라는 A 또는 C 하나만. 녹/적(B/S)은 sx_chart.js가 SX_CHART_GREENRED로 별도 게이팅.
 //   주의: 결과탭 재진입 카드는 _svChartMarker 미저장 → A 선택 시 방어적으로 _svVerdict(C) 사용(드물게).
 function _resolvePurpleSv(stock){
-  if(!stock) return null;
-  var mode = 'C';
-  try { if(typeof localStorage!=='undefined' && localStorage.getItem('SX_CHART_PURPLE')==='A') mode='A'; } catch(_){}
-  if(mode === 'A') return stock._svChartMarker || stock._svVerdict || null;
-  return stock._svVerdict || stock._svChartMarker || null;
+  // [S987] 차트 보라 마커(4축 판정 C / qs.action A) 제거 — 차트는 단기추세(S)+레시피·이중ATR(Season2) 2종만.
+  //   null 반환 → 미니/풀 모든 차트 경로에서 보라 ▲▼ 미표시. sx_chart.js는 svVerdict null 가드 있음.
+  //   _svVerdict 객체 자체는 유지(결과탭 칩·하단버튼·전광판이 소비) · 스캔 리스트 ▲ 필터는 별개(worker _purpleMarkerMode).
+  return null;
 }
 if(typeof window!=='undefined') window._resolvePurpleSv = _resolvePurpleSv;
 // S95: trades 전달 시 drawMiniWithTrades 사용
@@ -8074,7 +8073,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S986';
+  window.SX_BUILD='S987';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
