@@ -5019,14 +5019,14 @@ async function _riskMeasureBracket(mk, source, onProgress){
   if(!list.length) return { ok:false, reason:'풀 비어있음('+mk+')' };
   var CAP=(source==='all')?130:(source==='mega'?220:20), use=list.slice(0,CAP);
   var _tgt=(typeof _btTargetBars==='function')?_btTargetBars(mk,'day'):600, _floor=Math.floor(_tgt*0.95);
-  var entries=[], stocksUsed=0, _OUT=15;
+  var entries=[], stocksUsed=0, _OUT=15, _STEP=(source==='mega')?2:1;   // [S995] 발굴풀(220종)은 격봉 샘플로 시간 절반 — 표본 여전히 수만(부호 판별 충분)
   for(var i=0;i<use.length;i++){
     var s=use[i]; if(onProgress) onProgress(i+1, use.length, s.name);
     await _trendBatchSleep(0);
     var rr=null; try{ rr=await SXCandleBT.fetchRows600(mk,'day',s.code); }catch(e){}
     if(!Array.isArray(rr)||rr.length<_floor){ await _trendBatchSleep(6); continue; }
     var _used=false;
-    for(var bi=250; bi<rr.length-_OUT; bi++){
+    for(var bi=250; bi<rr.length-_OUT; bi+=_STEP){
       var slice, ind;
       try { slice=rr.slice(Math.max(0,bi-249), bi+1); ind=SXE.calcAllScreener(slice,'day'); } catch(_e){ continue; }
       if(!ind) continue;
@@ -5090,13 +5090,15 @@ async function _riskMeasureUI(src){
   var el=document.getElementById('btDiscrimResult'); if(!el) return; el.style.display='block';
   var mk=(typeof _sxTrendCtx!=='undefined'&&window._sxTrendCtx)?window._sxTrendCtx.market:(typeof currentMarket!=='undefined'?currentMarket:'kr');
   var source=src||'all';
-  var srcLabel=source==='mega'?'발굴풀':(source==='all'?'확장풀':'대표풀');
+  var _snapOn=!!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode());
+  var srcLabel=(source==='mega'?'발굴풀':(source==='all'?'확장풀':'대표풀'))+(_snapOn?'·📦스냅샷':'·🔴라이브');   // [S996] OOS 비교용 냉동/라이브 표기
   el.innerHTML='<div style="text-align:center;padding:14px;color:#ef4444;font-size:12px;font-weight:800">🛡️ 위험필터 측정 시작… <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+srcLabel+' 전수 · 봉별 지표계산이라 시간 걸림</div></div>';
   await new Promise(function(r){ setTimeout(r, 30); });
   var res;
   try{ res=await _riskMeasureBracket(mk, source, function(i,t,n){ var e=document.getElementById('btDiscrimResult'); if(e) e.innerHTML='<div style="text-align:center;padding:14px;color:#ef4444;font-size:12px;font-weight:700">🛡️ 측정 중 '+i+'/'+t+'<div style="font-size:10px;color:#94a3b8;margin-top:3px">'+(n||'')+'</div></div>'; }); }
   catch(e){ res={ok:false, reason:String(e&&e.message||e)}; }
   var agg=(res&&res.ok)?_riskMeasureAgg(res.entries):res;
+  try{ if(agg&&agg.ok&&typeof _sxMeasStash==='function') _sxMeasStash('risk_'+mk+'_'+source+'_'+(_snapOn?'snap':'live'), { pool:srcLabel, snap:_snapOn, base:agg.base, rows:agg.rows }); }catch(_){}   // [S997] 공용 📋 JSON 측정결과에 합류 (스냅/라이브 키 분리→한 파일 OOS 비교)
   el.innerHTML=_riskMeasureRender(agg, mk.toUpperCase()+' · '+srcLabel+(res&&res.stocksUsed?' '+res.stocksUsed+'종':''));
 }
 if(typeof window!=='undefined'){ window._riskMeasureUI=_riskMeasureUI; }
@@ -8167,7 +8169,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S994';
+  window.SX_BUILD='S997';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
