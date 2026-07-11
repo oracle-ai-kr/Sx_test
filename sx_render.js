@@ -2150,6 +2150,66 @@ function _trendBtRecipe(rows, fire){
   return { winRate, pf, totalPnl, totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, lastClose:close[n-1],
     predHit:null, predFires:0, predDcHit:null, predDcFires:0, predDday:null, predDdayProb:null, predDdayType:null, predExitNow:false, _recipe:true };
 }
+// ═══════════ [S988] Season2 정합 마커 엔진 — 레시피 진입 + 이중ATR 청산 (자동매매 추적 관찰용) ═══════════
+//   진입=레시피 real 발동(pullbackSignalBars) · 청산=초기ATR손절 + ATR트레일(래칫) + MA5×20데드(유예N). 유예중 MA청산 OFF·ATR손절 상시.
+//   cfg 기본=autotrade 기본값(초기2×/트레일3×/유예10·sx_autotrade.html S950). 동일 로직 → 차트에서 자동매매 신호 추적관찰.
+function _season2Bt(rows, realFires, cfg){
+  cfg = cfg||{}; const initMult=cfg.initMult??2, trailMult=cfg.trailMult??3, grace=cfg.graceDays??10, maOn=cfg.maCross!==false;
+  const n=rows.length; if(!n) return {trades:[],open:null};
+  const close=rows.map(r=>+(r.close!=null?r.close:r.c));
+  const high =rows.map(r=>+(r.high!=null?r.high:(r.h!=null?r.h:(r.close!=null?r.close:r.c))));
+  const low  =rows.map(r=>+(r.low !=null?r.low :(r.l!=null?r.l:(r.close!=null?r.close:r.c))));
+  const tr=new Array(n).fill(null);
+  for(let i=0;i<n;i++){ if(i===0){tr[i]=high[i]-low[i];continue;} const pc=close[i-1]; tr[i]=Math.max(high[i]-low[i], Math.abs(high[i]-pc), Math.abs(low[i]-pc)); }
+  const atr=_trSma(tr,14), ma5=_trSma(close,5), ma20=_trSma(close,20);
+  const trades=[]; let pos=null;
+  for(let i=0;i<n;i++){
+    if(!pos){
+      if(realFires[i] && close[i]>0 && atr[i]!=null){ pos={entry:close[i], entryIdx:i, hi:high[i], stop:close[i]-initMult*atr[i]}; }
+    } else {
+      pos.hi=Math.max(pos.hi, high[i]);
+      if(atr[i]!=null){ const ts=pos.hi-trailMult*atr[i]; if(ts>pos.stop) pos.stop=ts; } // 래칫: 트레일스톱은 위로만
+      let exit=null, reason=''; const held=i-pos.entryIdx;
+      if(low[i]<=pos.stop){ exit=pos.stop; reason=(pos.stop>pos.entry?'trail':'atrStop'); }        // 초기ATR손절/트레일 — 상시
+      else if(maOn && held>grace && ma5[i]!=null && ma20[i]!=null && ma5[i]<ma20[i] && ma5[i-1]>=ma20[i-1]){ exit=close[i]; reason='maDead'; } // MA5×20 데드 — 유예 후만
+      if(exit!=null){
+        trades.push({ entry:pos.entry, exit, pnl:+((exit/pos.entry-1)*100).toFixed(2), bars:held, entryIdx:pos.entryIdx, exitIdx:i, reason, type:'CLOSE',
+          entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'', exitDate:(rows[i]&&(rows[i].date||rows[i].t))||'' });
+        pos=null;
+      }
+    }
+  }
+  let open=null;
+  if(pos){ const last=close[n-1]; open={ entry:pos.entry, cur:last, pnl:+((last/pos.entry-1)*100).toFixed(2), bars:(n-1)-pos.entryIdx, entryIdx:pos.entryIdx, type:'OPEN',
+    entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'' }; }
+  return {trades, open};
+}
+// [S988] 차트 녹/적 모드 판독(render측) — 'R'(레시피·ATR Season2) | 'S'(단기추세). sx_chart.js _chartGreenRedMode와 동기.
+function _chartGRMode(){ try{ return (typeof localStorage!=='undefined' && localStorage.getItem('SX_CHART_GREENRED')==='R') ? 'R' : 'S'; }catch(_){ return 'S'; } }
+// [S988] 차트에 넘길 trades 선택 — R모드는 Season2 캐시(없으면 null=마커없음, async 후 채움) · S모드는 null(인라인 MA크로스라 trades 무시).
+function _chartTradesFor(stock){ try{ return (_chartGRMode()==='R') ? ((stock&&stock._season2Trades)||null) : null; }catch(_){ return null; } }
+// [S988] Season2 trades 지연계산+캐시 — R모드에서만. 레시피 real 발동(async·풀히스토리 rows≥260) → _season2Bt → stock._season2Trades. 완료 시 현재 미니차트 재그림.
+function _ensureSeason2Trades(stock, rows, sym){
+  try{
+    if(_chartGRMode()!=='R' || !stock || !rows || rows.length<260) return;
+    if(stock._season2Trades || stock._season2Pending) return;
+    if(!(window.SXRecipeSignal && SXRecipeSignal.pullbackSignalBars)) return;
+    stock._season2Pending = true;
+    SXRecipeSignal.pullbackSignalBars(sym||stock.code||stock.name||'', rows).then(function(fire){
+      try{
+        const real = rows.map(function(_,i){ return !!(fire && fire.real && fire.real[i]); });
+        const res = _season2Bt(rows, real, { initMult:2, trailMult:3, graceDays:10, maCross:true });
+        stock._season2Trades = res.trades || [];
+        stock._season2Open = res.open || null;
+        stock._season2Pending = false;
+        if(typeof _currentAnalRows!=='undefined' && _currentAnalRows===rows && typeof _drawMiniCandleChart==='function'){
+          _currentAnalTrades = stock._season2Trades;
+          _drawMiniCandleChart(rows, stock._season2Trades, null);
+        }
+      }catch(_){ stock._season2Pending=false; }
+    }).catch(function(){ stock._season2Pending=false; });
+  }catch(_){}
+}
 function _trendBt(rows,cfg,bbP){
   if(_trendEngine==='recipe'){
     const key=_trendRcpKey(), fire=(window._trendRcpFireCache||{})[key];
@@ -2662,6 +2722,8 @@ function _trendRedrawChart(){
   // [S562] 단기추세 카드 MA 변경/리셋 → 미니차트 단기추세 마커 즉시 갱신
   try{
     if(typeof SXChart==='undefined' || typeof _currentAnalRows==='undefined' || !_currentAnalRows) return;
+    // [S988] R모드면 Season2 trades 확보(async 완료 시 재그림) + 현재 trades를 모드에 맞게 선택
+    try{ if(typeof currentAnalStock!=='undefined' && currentAnalStock){ _ensureSeason2Trades(currentAnalStock, _currentAnalRows, currentAnalStock.code||currentAnalStock.name); _currentAnalTrades = _chartTradesFor(currentAnalStock); } }catch(_){}
     var _sv=(typeof currentAnalStock!=='undefined' && currentAnalStock) ? _resolvePurpleSv(currentAnalStock) : null; // [S578] A/C 토글 반영
     if(typeof _currentAnalTrades!=='undefined' && _currentAnalTrades && _currentAnalTrades.length && SXChart.drawMiniWithTrades){
       SXChart.drawMiniWithTrades('miniCandleChart', _currentAnalRows, _currentAnalTrades, _sv);
@@ -8073,7 +8135,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S987';
+  window.SX_BUILD='S988';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11911,7 +11973,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     if(window._sxMaAlignDiag.length > 10) window._sxMaAlignDiag.shift();
   } catch(_){}
   // S99: 차트 마커는 통합판정 기준으로 전달 (trades + svVerdict)
-  _currentAnalTrades = stock._btResult?.trades || null;
+  _currentAnalTrades = _chartTradesFor(stock); // [S988] R=Season2 캐시(async 후 채움)·S=null(인라인 MA크로스). BT trades는 차트 미사용.
   const body = document.getElementById('analBody');
   const gradeColor = {A:'grade-A',B:'grade-B',C:'grade-C',D:'grade-D',F:'grade-F'};
   const analTimeStr = analTime ? fmtTime(analTime) : '';
@@ -13378,7 +13440,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
   `;
   // S31: 미니 캔들차트 그리기
   if(indicators?._advanced?.rows){
-    (window._sxTrackedTimeout || setTimeout)(()=>_drawMiniCandleChart(indicators._advanced.rows, stock._btResult?.trades, _resolvePurpleSv(stock)), 50); // [S578] A/C 토글 반영
+    (window._sxTrackedTimeout || setTimeout)(()=>{ _ensureSeason2Trades(stock, indicators._advanced.rows, stock.code||stock.name); _drawMiniCandleChart(indicators._advanced.rows, _chartTradesFor(stock), _resolvePurpleSv(stock)); }, 50); // [S988] R=Season2(async)·S=인라인
   }
   // S57: 재무 바차트 그리기
   // [S321] SEC 출처도 활성화 — 3년치 데이터 동일하게 보유 (sec / sec+naver 둘 다)
