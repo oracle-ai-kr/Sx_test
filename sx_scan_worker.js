@@ -54,7 +54,7 @@ let _finReportType = 'annual';
 let _discPeriodDays = 90;
 let _customDiscKw = [];
 // S83: 전이 구간 임계값 (사용자 조정 가능)
-let _transZoneTh = { readyMax: 50, entryMax: 65 }; // Ready<readyMax, Entry=readyMax~entryMax-1, Trend>=entryMax
+// [S993] _transZoneTh 삭제 — 전이통계 제거로 고아.
 let _parallelEnabled = false;
 let _safetyFlags = {};
 let _regimeAdaptEnabled = false;
@@ -2141,157 +2141,7 @@ function btGetCurrentState(btResult, currentPrice){
   };
 }
 
-// S82: BT 점수 히스토리 기반 전이 통계 산출
-// scores 배열에서 Ready→Entry→Trend 단계 전이가 실제로 몇 번 일어났는지 계산
-function _calcTransitionStats(scores, trades, scores3) {
-  if (!scores || scores.length < 20) return null;
-  // S83: 구간 임계값 설정 가능 (기본 Ready<50, Entry<65, Trend>=65)
-  var rMax = _transZoneTh.readyMax, eMax = _transZoneTh.entryMax;
-  var r2eAttempts = 0, r2eSuccess = 0;
-  var e2tAttempts = 0, e2tSuccess = 0;
-  var r2eBars = [], e2tBars = []; // 전이에 걸린 봉 수
-  var prevZone = scores[0] < rMax ? 'ready' : scores[0] < eMax ? 'entry' : 'trend';
-  var zoneStart = 0;
-  for (var si = 1; si < scores.length; si++) {
-    var sc = scores[si];
-    var zone = sc < rMax ? 'ready' : sc < eMax ? 'entry' : 'trend';
-    if (zone !== prevZone) {
-      var duration = si - zoneStart;
-      if (prevZone === 'ready' && zone === 'entry') { r2eAttempts++; r2eSuccess++; r2eBars.push(duration); }
-      else if (prevZone === 'ready' && zone === 'trend') { r2eAttempts++; r2eSuccess++; e2tAttempts++; e2tSuccess++; r2eBars.push(duration); e2tBars.push(1); }
-      else if (prevZone === 'entry' && zone === 'trend') { e2tAttempts++; e2tSuccess++; e2tBars.push(duration); }
-      else if (prevZone === 'entry' && zone === 'ready') { e2tAttempts++; } // entry에서 후퇴 = 추세 전이 실패
-      // [BUGFIX] dead code 제거 — `prevZone === 'ready' && zone === 'ready'` 케이스는 도달 불가
-      //   zone이 3개뿐(ready/entry/trend)이고 위 `if (zone !== prevZone)` 가드로 진입하므로
-      //   ready→ready는 불가능 → 정리 완료
-      zoneStart = si;
-      prevZone = zone;
-    }
-  }
-  // 마지막 구간이 ready면 진행 중 시도로 카운트
-  if (prevZone === 'ready' && scores.length - zoneStart > 5) r2eAttempts++;
-  if (prevZone === 'entry' && scores.length - zoneStart > 5) e2tAttempts++;
-  var r2eRate = r2eAttempts > 0 ? Math.round(r2eSuccess / r2eAttempts * 100) : 0;
-  var e2tRate = e2tAttempts > 0 ? Math.round(e2tSuccess / e2tAttempts * 100) : 0;
-  var r2eAvgBars = r2eBars.length > 0 ? Math.round(r2eBars.reduce(function(a,b){return a+b},0) / r2eBars.length) : 0;
-  var e2tAvgBars = e2tBars.length > 0 ? Math.round(e2tBars.reduce(function(a,b){return a+b},0) / e2tBars.length) : 0;
-  // 매매 성공률 (전이와 연결)
-  var winAfterEntry = 0, totalAfterEntry = 0;
-  if (trades && trades.length) {
-    for (var ti = 0; ti < trades.length; ti++) {
-      if (trades[ti].type === 'WIN' || trades[ti].type === 'LOSS') {
-        totalAfterEntry++;
-        if (trades[ti].type === 'WIN') winAfterEntry++;
-      }
-    }
-  }
-  return {
-    r2e: { attempts: r2eAttempts, success: r2eSuccess, rate: r2eRate, avgBars: r2eAvgBars },
-    e2t: { attempts: e2tAttempts, success: e2tSuccess, rate: e2tRate, avgBars: e2tAvgBars },
-    tradeWinRate: totalAfterEntry > 0 ? Math.round(winAfterEntry / totalAfterEntry * 100) : 0,
-    totalSamples: scores.length,
-    // S83: 롤링 전이확률 추이 (10봉 윈도우)
-    timeline: _calcTransitionTimeline(scores, scores3)
-  };
-}
-
-// S83: 10봉 롤링 윈도우로 전이확률 추이 산출, S84: 전이 발생 시점 마커 추가
-// S86: scores3 ({t,r,e} 배열) 기반 봉별 3단 평균 점수 추가
-function _calcTransitionTimeline(scores, scores3) {
-  if (!scores || scores.length < 20) return null;
-  var WIN = 10;
-  var rMax = _transZoneTh.readyMax, eMax = _transZoneTh.entryMax;
-  var step = Math.max(1, Math.floor(scores.length / 30)); // 최대 ~30 포인트
-
-  // S84: 전이 발생 봉 수집 (zone 변경 시점)
-  var transEvents = []; // {bar, from, to}
-  var prevZone = scores[0] < rMax ? 'ready' : scores[0] < eMax ? 'entry' : 'trend';
-  for (var te = 1; te < scores.length; te++) {
-    var curZone = scores[te] < rMax ? 'ready' : scores[te] < eMax ? 'entry' : 'trend';
-    if (curZone !== prevZone) {
-      transEvents.push({bar: te, from: prevZone, to: curZone});
-      prevZone = curZone;
-    }
-  }
-
-  var has3 = scores3 && scores3.length === scores.length;
-  var points = [];
-  for (var i = WIN; i <= scores.length; i += step) {
-    var slice = scores.slice(Math.max(0, i - WIN), i);
-    var rCnt = 0, eCnt = 0, tCnt = 0;
-    for (var j = 0; j < slice.length; j++) {
-      if (slice[j] < rMax) rCnt++;
-      else if (slice[j] < eMax) eCnt++;
-      else tCnt++;
-    }
-    // 구간별 비율을 전이 가능성의 프록시로 사용
-    var total = slice.length;
-    // S84: 해당 포인트 구간 내 전이 이벤트 수 계산
-    var rangeStart = Math.max(0, i - step);
-    var evtCnt = 0;
-    var evtType = null; // 가장 최근 전이 방향
-    for (var ek = 0; ek < transEvents.length; ek++) {
-      if (transEvents[ek].bar >= rangeStart && transEvents[ek].bar < i) {
-        evtCnt++;
-        evtType = transEvents[ek];
-      }
-    }
-    // S86: 3단 점수 평균 (봉별 R/E/T)
-    var avgR = 0, avgE = 0, avgT = 0;
-    if (has3) {
-      var s3slice = scores3.slice(Math.max(0, i - WIN), i);
-      var sumR = 0, sumE = 0, sumT = 0;
-      for (var si = 0; si < s3slice.length; si++) { sumR += s3slice[si].r; sumE += s3slice[si].e; sumT += s3slice[si].t; }
-      avgR = Math.round(sumR / s3slice.length);
-      avgE = Math.round(sumE / s3slice.length);
-      avgT = Math.round(sumT / s3slice.length);
-    }
-    points.push({
-      bar: i,
-      readyPct: Math.round(rCnt / total * 100),
-      entryPct: Math.round(eCnt / total * 100),
-      trendPct: Math.round(tCnt / total * 100),
-      transEvt: evtCnt > 0 ? {count: evtCnt, from: evtType.from, to: evtType.to} : null,
-      avgR: avgR, avgE: avgE, avgT: avgT // S86
-    });
-  }
-  return points;
-}
-
-async function fetchDisclosureKeywords(code) {
-  if (!code || currentMarket !== 'kr') return [];
-  const cacheKey = 'DISC_' + code;
-  if (_discCache[cacheKey] && Date.now() - _discCache[cacheKey].ts < DISCLOSURE_TTL) return _discCache[cacheKey].keywords || [];
-  try {
-    const bgnDate = new Date(Date.now() - _discPeriodDays * 86400000);
-    const bgnDe = bgnDate.toISOString().slice(0, 10).replace(/-/g, '');
-    const res = await fetch(`${WORKER_BASE}/dart/disclosure?stock_code=${code}&page_count=50&bgn_de=${bgnDe}`, { signal: AbortSignal.timeout(12000) });
-    if (!res.ok) return [];
-    const data = await res.json();
-    let disclosures = data.disclosures || [];
-    disclosures = disclosures.filter(d => !d.rcept_dt || d.rcept_dt >= bgnDe);
-    if (!disclosures.length) { _discCache[cacheKey] = { ts: Date.now(), keywords: [] }; return []; }
-    const keywords = (typeof SXE !== 'undefined' && SXE.matchDisclosureKeywords) ? SXE.matchDisclosureKeywords(disclosures, _customDiscKw) : [];
-    _discCache[cacheKey] = { ts: Date.now(), keywords };
-    return keywords;
-  } catch (_) { return []; }
-}
-
-async function filterByDisclosure(results, progressCb) {
-  const filtered = [];
-  for (let i = 0; i < results.length; i++) {
-    const s = results[i];
-    if (progressCb) progressCb(i + 1, results.length);
-    try {
-      const kws = await fetchDisclosureKeywords(s.code);
-      s._disclosureKw = kws;
-      if (kws.some(k => k.grade === 'CRITICAL') || kws.some(k => k.grade === 'SEVERE')) continue;
-      filtered.push(s);
-    } catch (_) { filtered.push(s); }
-  }
-  return filtered;
-}
-
+// [S993] _calcTransitionStats + _calcTransitionTimeline 삭제 — BT 전이통계(5축 Ready/Entry/Trend 전이 측정). render측 표시 클러스터도 제거됨.
 // ═══════════════════════════════════════════════════════════════
 //  postMessage용 슬림 변환 — 순환참조/거대객체 제거
 // ═══════════════════════════════════════════════════════════════
@@ -2336,7 +2186,7 @@ function _slimResults(arr) {
       profitFactor: s._btResult.profitFactor, avgWin: s._btResult.avgWin,
       avgLoss: s._btResult.avgLoss, maxConsecLoss: s._btResult.maxConsecLoss
     } : null,
-    _btTransitionStats: s._btTransitionStats || null,
+    // [S993] _btTransitionStats payload 삭제.
     _scanResult: s._scanResult ? {
       score: s._scanResult.score, action: s._scanResult.action,
       reasons: s._scanResult.reasons,
@@ -2455,7 +2305,7 @@ async function startScan(config) {
   _discPeriodDays = config.discPeriodDays || 90;
   _customDiscKw = config.customDiscKw || [];
   // S83: 전이 구간 임계값 수신
-  if (config.transZoneTh) _transZoneTh = config.transZoneTh;
+  // [S993] transZoneTh 주입 삭제 — 전이통계 제거로 불필요.
   _parallelEnabled = config.parallelEnabled || false;
   _safetyFlags = config.safetyFlags || {};
   _regimeAdaptEnabled = config.regimeAdaptEnabled || false;
@@ -2950,10 +2800,7 @@ async function startScan(config) {
               if (btResult && !btResult.error) {
                 s._btResult = btResult;
                 s._btScore = calcBtScore(btResult, s);
-                // S82: BT 점수 히스토리 기반 전이 통계 산출
-                if (btResult.scores && btResult.scores.length >= 20) {
-                  s._btTransitionStats = _calcTransitionStats(btResult.scores, btResult.trades, btResult.scores3);
-                }
+                // [S993] BT 전이통계 계산 삭제 — _calcTransitionStats 제거(5축 기반·표시측 죽음).
                 // [v2.0] 4축 룰 + 모멘텀 보정 — scan_worker도 분석탭과 동일 입력 사용
                 //   v1.x supervisorJudge/unifiedVerdict 폐기 → unifiedVerdictV2 직접 호출
                 //   목적: 스캔 시점 판정과 분석탭 재판정의 정합성 보장
