@@ -248,8 +248,6 @@ const SX_CONDITIONS = [
       {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
       {id:'_pullback_score',name:'눌림목 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'눌림목 매수 적합도 - 상승추세 중 일시 조정 종목 발견',recommend:'50↑ (눌림목 후보) / 70↑ (강력 눌림목)'},
       {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
-      {axis4:true,id:'_dir_mom',name:'방향 전이',type:'select',options:['설정안함','상승 전이중','하락 전이중','횡보'],default:'설정안함',source:'calc_candle',desc:'A분석 모멘텀 방향 - 상승 전이중=함정 진입 방어 효과'},
-      {axis4:'buy',id:'_c_buy_marker',name:'매수마커 ▲',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'보라 마커 ▲ — 설정탭 차트마커 교차선택(보라 A/C)을 따름. A=진입타이밍(qs.action=BUY) / C=감독관 안전제동 판정. 분석탭 차트 보라 ▲와 동일(S591). 안전필터 🔒 위반 시 자동 제외(깨끗한 매수만).',recommend:'매수마커 있음 → 분석엔진 매수 후보 (안전필터 통과)'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
       {id:'trend_cross',name:'단기추세 신호 (MA 크로스)',type:'trend_cross',source:'calc_candle',desc:'단기 MA × 장기 MA 크로스 직접 탐색. 매수=골든크로스 / 매도=데드크로스, 각각 단기×장기 봉수 입력 (분석탭 단기추세매매와 맞춤). 기본 5×9'},
@@ -445,8 +443,6 @@ const COIN_CONDITIONS = [
       {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
       {id:'_pullback_score',name:'눌림목 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'눌림목 매수 적합도 - 상승추세 중 일시 조정 종목 발견',recommend:'50↑ (눌림목 후보) / 70↑ (강력 눌림목)'},
       {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
-      {axis4:true,id:'_dir_mom',name:'방향 전이',type:'select',options:['설정안함','상승 전이중','하락 전이중','횡보'],default:'설정안함',source:'calc_candle',desc:'A분석 모멘텀 방향 - 상승 전이중=함정 진입 방어 효과'},
-      {axis4:'buy',id:'_c_buy_marker',name:'매수마커 ▲',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'보라 마커 ▲ — 설정탭 차트마커 교차선택(보라 A/C)을 따름. A=진입타이밍(qs.action=BUY) / C=감독관 안전제동 판정. 분석탭 차트 보라 ▲와 동일(S591). 안전필터 🔒 위반 시 자동 제외(깨끗한 매수만).',recommend:'매수마커 있음 → 분석엔진 매수 후보 (안전필터 통과)'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
       {id:'trend_cross',name:'단기추세 신호 (MA 크로스)',type:'trend_cross',source:'calc_candle',desc:'단기 MA × 장기 MA 크로스 직접 탐색. 매수=골든크로스 / 매도=데드크로스, 각각 단기×장기 봉수 입력 (분석탭 단기추세매매와 맞춤). 기본 5×9'},
@@ -639,8 +635,6 @@ const US_CONDITIONS = [
       {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
       {id:'_pullback_score',name:'눌림목 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'눌림목 매수 적합도 - 상승추세 중 일시 조정 종목 발견',recommend:'50↑ (눌림목 후보) / 70↑ (강력 눌림목)'},
       {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
-      {axis4:true,id:'_dir_mom',name:'방향 전이',type:'select',options:['설정안함','상승 전이중','하락 전이중','횡보'],default:'설정안함',source:'calc_candle',desc:'A분석 모멘텀 방향 - 상승 전이중=함정 진입 방어 효과'},
-      {axis4:'buy',id:'_c_buy_marker',name:'매수마커 ▲',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'보라 마커 ▲ — 설정탭 차트마커 교차선택(보라 A/C)을 따름. A=진입타이밍(qs.action=BUY) / C=감독관 안전제동 판정. 분석탭 차트 보라 ▲와 동일(S591). 안전필터 🔒 위반 시 자동 제외(깨끗한 매수만).',recommend:'매수마커 있음 → 분석엔진 매수 후보 (안전필터 통과)'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
       {id:'trend_cross',name:'단기추세 신호 (MA 크로스)',type:'trend_cross',source:'calc_candle',desc:'단기 MA × 장기 MA 크로스 직접 탐색. 매수=골든크로스 / 매도=데드크로스, 각각 단기×장기 봉수 입력 (분석탭 단기추세매매와 맞춤). 기본 5×9'},
