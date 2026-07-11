@@ -26,7 +26,7 @@ let WORKER_BASE = '';
 let currentMarket = 'kr';
 let currentTrendMa = { s:5, l:9 }; // [S634] 분석탭 단기추세매매 MA(config.trendMa) — kNN 디데이 동기화
 let currentTF = 'day';
-let _purpleMarkerMode = 'C'; // [S591] 매수마커 ▲ 보라 소스(A/C) — config.purpleMarkerMode(SX_CHART_PURPLE) 주입. 기본 C(안전제동).
+// [S992] _purpleMarkerMode 삭제 — 매수마커 ▲ 필터 제거로 고아(유일 소비처였음).
 let scanMarket = '전체';
 let activeFilters = [];
 let _kisEnabled = false;
@@ -2431,7 +2431,6 @@ async function startScan(config) {
   currentMarket = config.currentMarket;
   currentTF = config.currentTF;
   currentTrendMa = (config.trendMa && +config.trendMa.s>=1 && +config.trendMa.l>+config.trendMa.s) ? { s:+config.trendMa.s, l:+config.trendMa.l } : { s:5, l:9 }; // [S634]
-  _purpleMarkerMode = (config.purpleMarkerMode === 'A') ? 'A' : 'C'; // [S591] 매수마커 ▲ 보라 교차선택(A/C) 주입
   // [S440/S442] RS용 지수 시계열 — 스캔당 1회만 fetch해 sym별 캐시(일봉만). 국내는 코스피·코스닥 둘 다. 실패해도 스캔 계속.
   _wkrIndexCache = {};
   if(currentTF === 'day'){
@@ -3099,30 +3098,7 @@ async function startScan(config) {
             const _verdictVal = (s._svVerdict && s._svVerdict.action) || s._btAction;
             if (!_verdictVal || _verdictVal !== _btActF.value) continue;
           }
-          // [v1.9] 방향 전이 필터 — _scoreMomentum.direction과 매칭
-          //   배너의 "— 상승 전이중/하락 전이중/횡보" 텍스트와 동일 소스 (render.js 1874행)
-          //   매수/관심 프리셋에 자동 결합 → 신호여도 모멘텀 방향이 맞을 때만 통과 (함정 한 번 더 차단)
-          const _dirMomF = getFilter('_dir_mom');
-          if (_dirMomF && _dirMomF.value && _dirMomF.value !== '설정안함') {
-            const _mom = s._scoreMomentum;
-            if (!_mom || !_mom.direction) continue;
-            const _dirLabel = _mom.direction === 'up' ? '상승 전이중'
-                            : _mom.direction === 'down' ? '하락 전이중'
-                            : '횡보';
-            if (_dirLabel !== _dirMomF.value) continue;
-          }
-          // [S591] 매수마커 ▲ 필터 — 설정탭 차트마커 교차선택(보라 A/C, _purpleMarkerMode)에 맞춰 A/C 교차사용 = 차트 보라 ▲(_resolvePurpleSv)와 정합.
-          //   〔이력〕 S474=C(svVerdict.chartMarker) → S513=A 단독 확정 → S591=A/C 교차사용(설정탭 토글 SX_CHART_PURPLE 추종).
-          //   A=진입타이밍(s._action==='BUY', 안전필터 통과한 깨끗한 A매수, 🔒 강등 시 action='HOLD'라 자동 제외)
-          //   C=감독관 안전제동(s._svVerdict.chartMarker==='buy'). 둘 다 차트 보라 ▲와 1:1 일치.
-          const _cBuyMarkerF = getFilter('_c_buy_marker');
-          if (_cBuyMarkerF && _cBuyMarkerF.value && _cBuyMarkerF.value !== '설정안함') {
-            if (_purpleMarkerMode === 'A') {
-              if (s._action !== 'BUY') continue;
-            } else {
-              if (!(s._svVerdict && s._svVerdict.chartMarker === 'buy')) continue;
-            }
-          }
+          // [S992] 방향전이(_dir_mom)+매수마커 ▲(_c_buy_marker) 필터 매칭 삭제 — 5축 파생 방향전이·보라마커 스캔필터 배제. 조건정의(sx_conditions)·board(render)도 함께 제거.
           // [S452] 매도마커 ▼(_c_sell_marker) 조건 삭제 — 사용자 요청. 매수마커 ▲(C 보라)만 유지.
           // [S293 fix] BT 매수마커 필터 — state=holding (포지션 유지 중 전체, 어제 진입 포함)
           //   [이전 버그] _isBuySignal=true → 오늘 진입만 통과, 어제 진입 보유중 누락
