@@ -8074,7 +8074,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S979';
+  window.SX_BUILD='S982';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11136,9 +11136,9 @@ function _computeMtfScore(){
   const spread = _sc.length ? (Math.max(..._sc) - Math.min(..._sc)) : 0;
   const htfOver = !!((_det.week && _det.week.overheat) || (_det.month && _det.month.overheat));
   const flags = {
-    align:     allBull && !anyBear && spread <= 35,                      // 🔥 3TF 정배열 정합
+    align:     allBull && !anyBear && spread <= 35,                      // 🔥 3TF 상승 정합
     overheat:  htfOver,                                                  // ⚠️ 상위TF 과열
-    divergent: anyBear || spread > 35                                    // 🔀 3TF 역배열 불일치
+    divergent: anyBear || spread > 35                                    // 🔀 3TF 엇갈림
   };
   return { v, _n:n, det:_det, flags };
 }
@@ -11297,8 +11297,8 @@ function _sxbHTML(){
       const _f = _mtf.flags || {};
       if(window._sxBoard) window._sxBoard._mtf = _mtf;                  // [S477] 과열 토스트(_sxbMtfWhy)용 det 저장
       const _mk = (txt, col, fn) => `<span class="sxb-badge" style="color:${col};background:${col}1A;border:1px solid ${col}${fn?';cursor:pointer':''}"${fn?` onclick="event.stopPropagation();${fn}&&${fn}()"`:''}>${txt}</span>`;
-      if(_f.align)     _mtfBadge += _mk('🔥 3TF 정배열 정합', '#3b82f6');   // 정합 — 파랑(자명, 클릭 없음)
-      if(_f.divergent) _mtfBadge += _mk('🔀 3TF 역배열 불일치', '#94a3b8'); // 불일치 — 회색(자명, 클릭 없음)
+      if(_f.align)     _mtfBadge += _mk('🔥 3TF 상승 정합', '#3b82f6');   // 정합 — 파랑(자명, 클릭 없음)
+      if(_f.divergent) _mtfBadge += _mk('🔀 3TF 엇갈림', '#94a3b8'); // 불일치 — 회색(자명, 클릭 없음)
       if(_f.overheat)  _mtfBadge += _mk('⚠️ 상위TF 과열', '#0ea5e9', '_sxbMtfWhy'); // 과열 — 하늘, 클릭 시 사유 토스트
     }
   }
@@ -11342,8 +11342,17 @@ function _sxbHTML(){
   // [S357] 5분류 — _classifyBoardDist 단일소스 (dot=컬러동그라미 / 칩 배지와 동일)
   const distDir = _dist.distDir, bi = _dist.dot, bl = _dist.label, bc = _dist.color;
   const tone = _sxbTone(_displayTotal); // [S472] 표시 종합점수 기준
-  // [S357] 전이 방향 배지 (5분류 컬러동그라미 + 라벨)
-  const transBadge = `<span class="sxb-badge" style="color:${bc};background:${bc}1A;border:1px solid ${bc}">${bi} ${bl}</span>`;
+  // [S982] SSOT 트렌드가 있으면 헤드 메인 라벨 = 3×3 트렌드(차트 기준). 방향 배지도 단기 강세/약세로(축 count "방향혼조" 대체). 없으면 점수 tone/count 폴백.
+  const _sxTl = (window._sxBoard && window._sxBoard.trendLabel) || null;
+  const _headTone = _sxTl ? {
+    t: _sxTl.trend + (_sxTl.slopeFlag ? ' '+(_sxTl.slopeFlag==='천장권'?'⚠️':'🔼')+_sxTl.slopeFlag : '') + (_sxTl.sigType?' ['+_sxTl.sigType+'형]':''),
+    c: _sxTl.slopeFlag==='천장권'?'#dc2626':_sxTl.slopeFlag==='바닥권'?'#2563eb':_sxTl.trend==='추가상승'?'#16a34a':_sxTl.trend==='눌림목'?'#2563eb':_sxTl.trend==='기술적반등'?'#ea580c':_sxTl.trend==='바닥확인'?'#64748b':_sxTl.long==='mixed'?'#9333ea':'#64748b'
+  } : tone;
+  const _dirLbl = _sxTl ? ('단기 '+_sxTl.shortLabel) : bl;
+  const _dirCol = _sxTl ? (_sxTl.short==='bull'?'#ea580c':_sxTl.short==='bear'?'#2563eb':'#64748b') : bc;
+  const _dirDot = _sxTl ? (_sxTl.short==='bull'?'🟠':_sxTl.short==='bear'?'🔵':'⚪') : bi;
+  // [S357] 전이 방향 배지 (5분류 컬러동그라미 + 라벨) — [S982] SSOT면 단기 방향
+  const transBadge = `<span class="sxb-badge" style="color:${_dirCol};background:${_dirCol}1A;border:1px solid ${_dirCol}">${_dirDot} ${_dirLbl}</span>`;
   // [S596] 도넛 전이 배지 — 어제 대비 도넛 점수가 집단적으로 개선/악화 중인지(방향성).
   //   대상: delta(d) 의미 있는 도넛(_sxbAvgDelta와 동일 기준 — !neutral & d 숫자). |Δ|>2를 상승/하락 전이로 카운트(기존 삼각마커 임계와 통일).
   //   5분류(현재 위치)와 직교 정보 → 별도 배지. 예: '강한상승 + 전이 악화' = 고점 둔화 경고가 한 라벨에 묻히지 않음.
@@ -11426,7 +11435,7 @@ function _sxbHTML(){
     +   `<div class="sxb-head-main">`
     +     `<span onclick="event.stopPropagation();_sxbScoreWhy&&_sxbScoreWhy()" style="cursor:pointer">` + _sxbCircle(_displayTotal, '', true, false, headColorDelta, false, false, null, false, bc) + `</span>`   // [S417] colorOverride=bc(dist5 색): 도넛=배지=TF점 [S472] 표시 종합점수 [S473] 클릭→안전필터 위험 토스트
     +     `<div class="sxb-head-txt">`
-    +       `<div class="sxb-head-tone" style="color:${tone.c}">${tone.t}</div>`
+    +       `<div class="sxb-head-tone" style="color:${_headTone.c}">${_headTone.t}</div>`
     +       `<div class="sxb-head-sub">상태 ${_displayTotal} · ${_sxbGrade(_displayTotal)}등급 · ${_cnt}개 지표 · <span style="color:#16a34a;font-weight:700">▲${greens}</span> <span style="color:#ef4444;font-weight:700">▼${reds}</span></div>`
     +       `<div style="font-size:9px;color:var(--text3);margin-top:2px;letter-spacing:-.2px">종목 상태 점수 · 매매 타이밍은 아래 검토영역 참고</div>`
     +     `</div>`
@@ -11791,7 +11800,7 @@ function _computeDist5(stock, indicators, qs, scoreMom, btScore, tf){
 
 function _buildScoreBoard(scores, sv4, structPos, pbScore, D, verdict, lowConf, extras){
   extras = extras || {};
-  window._sxBoard = { verdict: verdict||null, lowConf: !!lowConf, lowConfReasons: (extras && extras._lowConfReasons) || [], dumpWarn: (extras && extras.dumpWarn) || null, mixWarn: (extras && extras.mixWarn) || null, groups: _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras), _structRisk: { lt: (sv4 && sv4.ltAlign) || 'off', maBull: !!(sv4 && sv4.maAlignBull) } }; // [S727] 구조 위험 배지용(역배열/단기약세)
+  window._sxBoard = { verdict: verdict||null, trendLabel: (extras && extras.trendLabel) || null, lowConf: !!lowConf, lowConfReasons: (extras && extras._lowConfReasons) || [], dumpWarn: (extras && extras.dumpWarn) || null, mixWarn: (extras && extras.mixWarn) || null, groups: _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras), _structRisk: { lt: (sv4 && sv4.ltAlign) || 'off', maBull: !!(sv4 && sv4.maAlignBull) } }; // [S727] 구조 위험 배지용(역배열/단기약세) [S982] trendLabel=SSOT 헤드용
   return `<div class="sxb" id="sxScoreBoard">${_sxbHTML()}</div>`;
 }
 
@@ -12354,6 +12363,15 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     _boardExtras = _bi357.extras;
     _lowConf     = _bi357.lowConf;
   }
+  // [S982] 대시보드 헤드 SSOT 트렌드 — _trendLabel을 board로 전달(헤드 메인 라벨/방향 배지용). 계산 무변경·표시만.
+  try {
+    const _ti982 = qs ? qs.ind : null;
+    const _tr982 = (indicators && indicators._advanced && Array.isArray(indicators._advanced.rows)) ? indicators._advanced.rows : null;
+    if(_ti982 && _tr982 && _tr982.length && typeof _trendLabel==='function' && typeof _ma60Slope==='function'){
+      const _tcl982 = _tr982.map(x => Array.isArray(x)?x[4]:(x && x.close!=null?x.close:(x?x.c:0)));
+      _boardExtras.trendLabel = _trendLabel(_ti982.maAlign, _ti982.maAlignLT, _ma60Slope(_tcl982, 10));
+    }
+  } catch(_e982){}
   // [S456] 매수신호 혼조 — A(qs.action)와 B(btState)가 당일/최근2봉에 반대로 행동.
   //   A매수▲ + B 매도신호 = 혼조 / A강등(HOLD&🔒)▼ + B 매수신호 = 혼조(과열 추격 케이스: BT는 진입, A는 막음).
   try {
@@ -12874,44 +12892,39 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     })()}
 
     ${(()=>{
-      // [S57] 종합해석 가이드 — 4축 판정 ↔ 부문별 점수 충돌/일치를 화해시키는 카드
-      //   [위치] 참고사항/공시 카드 직후, 부문별 점수 헤더 직전 (접기 바깥, 항상 표시)
-      //   사용자가 "점수 좋은데 왜 매도?" "점수 나쁜데 왜 매수?" 헷갈리는 케이스 해결
-      //   메인 결론 카드 역할이라 접기 안에 숨기지 않고 노출
-      if(typeof SXI==='undefined' || !SXI.unifiedNarrative) return '';
-      const _v = stock._svVerdict;
-      const _s4 = stock._svScores4;
-      if(!_v || !_s4) return '';
-      const nar = SXI.unifiedNarrative(_v, scores, _s4, indicators, stock);
-      if(!nar) return '';
-      // 톤별 색상 매핑 — itp-card 컨벤션 따름
-      const toneColor = nar.tone==='bullish'?'#22c55e':nar.tone==='bearish'?'#e8365a':nar.tone==='warning'?'#f59e0b':'#6b7280';
-      const toneBg    = nar.tone==='bullish'?'#22c55e0F':nar.tone==='bearish'?'#e8365a0F':nar.tone==='warning'?'#f59e0b0F':'#6b72800F';
-      // 충돌 케이스 라벨
-      const conflictLbl = nar.conflictType==='sell_with_good_score'?'⚠ 신호 충돌 — 점수 양호 / 판정 매도'
-                        : nar.conflictType==='buy_with_bad_score'?'⚠ 신호 충돌 — 점수 부진 / 판정 매수'
-                        : nar.conflictType==='aligned_bull'?'✓ 신호 정합 — 매수 우위'
-                        : nar.conflictType==='aligned_bear'?'✓ 신호 정합 — 매도 우위'
-                        : '— 중립 구간';
-      const reasonsHTML = nar.realMessage && nar.realMessage.length
-        ? `<ul style="margin:6px 0 8px;padding-left:18px;font-size:11px;line-height:1.55;color:var(--text2)">${nar.realMessage.map(r=>`<li>${r}</li>`).join('')}</ul>`
-        : '';
-      const reconcileHTML = nar.reconcile
-        ? `<div style="margin-top:8px;padding:6px 8px;background:var(--bg2,#f5f5f7);border-radius:6px;font-size:10px;line-height:1.5;color:var(--text3)">${nar.reconcile}</div>`
-        : '';
-      // 접기 바깥 노출용 — 다른 메인 카드(참고사항/공시)들과 시각 위계 맞추기 위해 margin/padding 살짝 키움
-      return `<div class="itp-card show unified-narrative-card" style="margin:0 0 12px;padding:12px 14px;border-left:4px solid ${toneColor};background:${toneBg};border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.03)">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap">
-          <span style="font-size:11px;font-weight:800;color:${toneColor};letter-spacing:-.2px">📊 종합해석 가이드</span>
-          <span style="font-size:9px;color:var(--text3)">· ${conflictLbl}</span>
+      // [S981] 종합해석 = 구조적 위치 지도 — 현재가 vs 각 MA(5/20/60/120) 이격·기울기·배열. 순수 좌표(판정·저항지지·레시피·행동 없음. 저항/지지는 미검증이라 뺌).
+      const _i = qs ? qs.ind : null;
+      if(!_i || _i.last==null) return '';
+      const _px = _i.last;
+      const _cl = Array.isArray(_i.closes) ? _i.closes : null;
+      function _slp(period){ if(!_cl || _cl.length < period+10) return null; var sma=function(end,p){var s=0;for(var j=end-p;j<end;j++)s+=_cl[j];return s/p;}; var now=sma(_cl.length,period), prev=sma(_cl.length-10,period); return (prev>0)?(now-prev)/prev*100:null; }
+      function _arrow(sl){ return sl==null?'—':sl>0.5?'<span style="color:#dc2626">↑</span>':sl<-0.5?'<span style="color:#2563eb">↓</span>':'<span style="color:#64748b">→</span>'; }
+      const MAS = [ {n:'5일', v:_i.ma5, p:5}, {n:'20일', v:_i.ma20, p:20}, {n:'60일', v:_i.ma60, p:60}, {n:'120일', v:_i.ma120, p:120} ];
+      const _trows = MAS.filter(m=>m.v!=null).map(function(m){
+        var disp=(_px/m.v-1)*100, sl=_slp(m.p), dc=Math.abs(disp)<1?'#64748b':disp>0?'#dc2626':'#2563eb';
+        return '<tr><td style="padding:4px 8px;font-size:10px;color:var(--text2)">'+m.n+'</td><td style="padding:4px 8px;text-align:right;font-size:10px;color:var(--text)">'+(+m.v.toFixed(0)).toLocaleString()+'</td><td style="padding:4px 8px;text-align:right;font-size:10.5px;font-weight:700;color:'+dc+'">'+(disp>=0?'+':'')+disp.toFixed(1)+'%</td><td style="padding:4px 8px;text-align:center;font-size:11px">'+_arrow(sl)+'</td></tr>';
+      }).join('');
+      var above=0, valid=0;
+      MAS.forEach(function(m){ if(m.v!=null){ valid++; if(_px>=m.v) above++; } });
+      var below=valid-above, d60=(_i.ma60!=null)?(_px/_i.ma60-1)*100:null;
+      var _sumTxt = (valid&&below===valid) ? '모든 이동평균선 <b>아래</b> — 중장기 평균에서 크게 이탈한 저점권'
+        : (valid&&above===valid) ? '모든 이동평균선 <b>위</b> — 평균을 상회하는 상단권'
+        : (below>above ? '단기선 근처, 중장기선 <b>아래</b>' : '단기선 <b>위</b>, 장기선 부근');
+      if(d60!=null && Math.abs(d60)>=20) _sumTxt += ' (60일선 '+(d60>=0?'+':'')+d60.toFixed(0)+'%)';
+      var _sa = _i.maAlign ? (_i.maAlign.bullish?'정배열 (강세)':_i.maAlign.bearish?'역배열 (약세)':'혼조') : '—';
+      var _spread = (_i.ma5!=null&&_i.ma60!=null&&_px>0) ? Math.abs(_i.ma5-_i.ma60)/_px*100 : null;
+      var _sp = _spread==null?'':_spread>=8?' 발산':_spread<=3?' 수렴':'';
+      return `<div class="itp-card show unified-narrative-card" style="margin:0 0 12px;padding:12px 14px;border-left:4px solid #64748b;background:#64748b0F;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.03)">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:800;color:#475569">📊 종합해석</span>
+          <span style="font-size:9px;color:var(--text3)">· 구조적 위치 (MA 지도)</span>
         </div>
-        <div style="font-size:14px;font-weight:800;color:var(--text);margin:2px 0 7px;line-height:1.35">${nar.headline}</div>
-        ${reasonsHTML}
-        <div style="font-size:11.5px;line-height:1.6;color:var(--text)">${nar.guide}</div>
-        ${reconcileHTML}
-        <div style="margin-top:9px;padding-top:6px;border-top:1px dashed var(--border);font-size:9px;color:var(--text3)">
-          판정 ${nar.action} (4축 ${nar.passCount}/4) · 부문 평균 ${nar.avgSector}점
-        </div>
+        <div style="font-size:11.5px;line-height:1.55;color:var(--text);margin-bottom:7px">현재가 <b>${(+_px.toFixed(0)).toLocaleString()}원</b> — ${_sumTxt}.</div>
+        <table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <tr style="background:var(--surface2)"><td style="padding:4px 8px;font-size:8px;color:var(--text3)">이평선</td><td style="padding:4px 8px;text-align:right;font-size:8px;color:var(--text3)">값</td><td style="padding:4px 8px;text-align:right;font-size:8px;color:var(--text3)">이격</td><td style="padding:4px 8px;text-align:center;font-size:8px;color:var(--text3)">기울기</td></tr>
+          ${_trows}
+        </table>
+        <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);font-size:9.5px;color:var(--text3)">단기(5·20·60) <b>${_sa}</b>${_sp} · 이격=현재가와 각 평균선 거리 · 기울기=최근 10봉 방향 — 측정된 위치만 (판정·저항지지 아님)</div>
       </div>`;
     })()}
 
