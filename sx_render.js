@@ -8135,7 +8135,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S988';
+  window.SX_BUILD='S989';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11527,7 +11527,7 @@ function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   D = D || {}; extras = extras || {};
   const g1=[], g2=[], g3=[], g4=[], g5=[];
   // ① 추세·구조
-  if(sv4 && sv4.trendScore!=null) g1.push({k:'추세방향', v:sv4.trendScore, d:D.trendScore});
+  // [S989] 5축 배제 — '추세방향'(sv4.trendScore) 제거. 추세는 추세신호(scores.trend)+추세강도(ADX)가 커버 · 기술적 판단=3×3 SSOT.
   if(scores && scores.trend!=null) g1.push({k:'추세신호', v:scores.trend, d:D.trend});
   if(extras.adx && extras.adx.v!=null) g1.push({k:'추세강도', v:extras.adx.v, d:extras.adx.d, byValue:true});      // [S362/S364] ADX 값 기준 분포
   if(structPos!=null) g1.push({k:'구조위치', v:structPos, neutral:true, inverse:true, d:D.struct});                // [S362] 인버스 색(과열 빨/안정 녹)
@@ -11535,8 +11535,8 @@ function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   if(extras.rs && extras.rs.v!=null) g1.push({k:'상대강도', v:extras.rs.v, byValue:true});                         // [S438] RS — 시장(지수) 대비 강도. 점수색·분포 카운트 포함
   // ② 모멘텀·진입
   if(scores && scores.momentum!=null) g2.push({k:'가격모멘텀', v:scores.momentum, d:D.momentum});
-  if(sv4 && sv4.readyScore!=null) g2.push({k:'반등준비', v:sv4.readyScore, d:D.readyScore});
-  if(sv4 && sv4.entryScore!=null) g2.push({k:'반등전환', v:sv4.entryScore, d:D.entryScore});
+  // [S989] 5축 배제 — '반등준비'(sv4.readyScore) 제거. 눌림/반등 해석=3×3 SSOT + 눌림신호(pbScore).
+  // [S989] 5축 배제 — '반등전환'(sv4.entryScore) 제거. 진입 신호=레시피 votes(도넛과 별개로 섬).
   if(pbScore!=null) g2.push({k:'눌림신호', v:pbScore, d:D.pb});
   if(extras && extras.trans && extras.trans.v!=null) g2.push({k:'방향전이', v:extras.trans.v, byValue:true, _td:extras.trans._td});  // [S415] 추세 전이(trendPure 3봉평균 대비) — 점수색, 카운터·종합 자동 반영
   // ③ 수급·거래량
@@ -11560,7 +11560,7 @@ function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   if(extras.bb && extras.bb.v!=null) g5.push({k:'볼린저%B', v:extras.bb.v, neutral:true, inverse:true});            // [S366] 동상
   // [S361] 골든/데드 2칸 → 양방향 크로스신호 1칸 + 추가상승 1칸
   if(extras.crosssig && extras.crosssig.v!=null) g5.push({k:'크로스신호', v:extras.crosssig.v, byValue:true, fired:extras.crosssig._fired||[]});
-  if(extras.upside && extras.upside.v!=null) g5.push({k:'추격여력', v:extras.upside.v, byValue:true});
+  // [S989] 5축 배제 — '추격여력'(upsideScore) 제거. 추세 강도=추세강도(ADX)+이평선배열이 커버. (피더 _boardExtras.upside 11796·툴팁 10807은 고아=무해, 다음 정리)
   return [
     {id:'trend', title:'추세·구조', items:g1},
     {id:'mom',   title:'모멘텀·진입', items:g2},
