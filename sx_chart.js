@@ -495,7 +495,7 @@ function _drawFullCandle(id, data, closes, bb, H, fullLen, trades, svVerdict, fu
       ctx.restore();
     }
 
-    if(lastTr && _gr === 'B'){
+    if(lastTr && _gr === 'R'){
       // ── ① BT 마커 (녹/적, 날짜 라벨) — [S578] greenRed='B'일 때만 ──
       if(lastTr.type === 'OPEN' && lastTr.entryIdx != null){
         _drawBuyMarker(lastTr.entryIdx, lastTr.entryDate, false);
@@ -515,7 +515,7 @@ function _drawFullCandle(id, data, closes, bb, H, fullLen, trades, svVerdict, fu
     }
     // 범례 — [S578] BT 마커(녹/적)는 'B'에서만, 보라(현재 A/C)는 항상
     ctx.font='8px Outfit,sans-serif'; ctx.textAlign='right';
-    if(_gr === 'B'){
+    if(_gr === 'R'){
       ctx.fillStyle=BUY_C; ctx.fillText('▲BT매수', W-pad.r-72, 10);
       ctx.fillStyle=SELL_C; ctx.fillText('▼BT매도', W-pad.r-38, 10);
     }
@@ -1069,7 +1069,7 @@ function drawScoreGauge(canvasId, score, label){
    마커 없음 = 그 외
    ════════════════════════════════════════════════════════════ */
 // [S578] 녹/적 마커 그룹 선택 — 'B'(백테스트) | 'S'(단기추세). 기본 S. 보라(A/C)와 교차선택, 한 화면에 보라1+녹적1.
-function _chartGreenRedMode(){ try{ return (typeof localStorage!=='undefined' && localStorage.getItem('SX_CHART_GREENRED')==='B') ? 'B' : 'S'; }catch(_){ return 'S'; } }
+function _chartGreenRedMode(){ try{ return (typeof localStorage!=='undefined' && localStorage.getItem('SX_CHART_GREENRED')==='R') ? 'R' : 'S'; }catch(_){ return 'S'; } } // [S988] 'R'=레시피·ATR(Season2 trades) / 'S'=단기추세 인라인
 // [S562] 단기추세 MA 크로스 마커 — 매수(골든) ▲ / 매도(데드) ▼ + 날짜 라벨.
 //   기간은 단기추세매매 카드 설정(SX_TREND_{market}) 따라감(기본 5×9). 화면 내 가장 최근 골든/데드 1개씩.
 //   [S578] 색을 녹/적(BT와 동일)으로 통일 — B/S 교차선택이라 한 번에 하나만 떠서 충돌 없음(범례 텍스트로 구분).
@@ -1318,7 +1318,7 @@ function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
     // ── ① BT 마커 (기존 녹/적, 날짜 라벨 포함) — [S578] greenRed='B'일 때만 ──
     //   lastTr가 OPEN(보유중): ▲ entry만
     //   lastTr가 WIN/LOSS(청산됨): ▲ entry + ▼ exit 쌍
-    if(_gr === 'B'){
+    if(_gr === 'R'){
       if(lastTr.type === 'OPEN' && lastTr.entryIdx != null){
         _drawBuyMini(lastTr.entryIdx, lastTr.entryDate, false);
       } else if(lastTr.type !== 'OPEN' && lastTr.exitIdx != null && lastTr.entryIdx != null){
@@ -1341,7 +1341,7 @@ function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
   // 마커 범례 — [S578] BT 마커(녹/적)는 'B'에서만, 보라(현재 A/C)는 항상
   ctx.font = '7px Outfit,sans-serif';
   ctx.textAlign = 'right';
-  if(_gr === 'B'){
+  if(_gr === 'R'){
     ctx.fillStyle = BUY_CLR; ctx.fillText('▲BT매수', W-pad.r-72, 10);
     ctx.fillStyle = SELL_CLR; ctx.fillText('▼BT매도', W-pad.r-38, 10);
   }
