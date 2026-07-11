@@ -9,7 +9,7 @@
 <script src="sx_recipe_core.js?v=4"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
 <script src="sx_interpret.js?v=45"></script>
 <script src="sx_chart.js?v=20"></script>
-<script src="sx_conditions.js?v=18"></script>
+<script src="sx_conditions.js?v=19"></script>
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
 <script src="sx_storage.js?v=2"></script>
@@ -49,7 +49,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=350"></script>
+<script src="sx_render.js?v=351"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -5450,7 +5450,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=13');
+    _scanWorker = new Worker('sx_scan_worker.js?v=14');
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -5945,13 +5945,7 @@ async function _startScanLegacy(){
           if(s._action !== _sigFilter.value) continue; // 액션 불일치 → 스킵
         }
         // S48: 진입타이밍 점수 범위 필터
-        const _scoreFilter = activeFilters.find(f=>f.id==='score_range');
-        if(_scoreFilter && _scoreFilter.value){
-          const sc = s._score;
-          if(sc==null) continue;
-          if(_scoreFilter.value.min!==null && sc<_scoreFilter.value.min) continue;
-          if(_scoreFilter.value.max!==null && sc>_scoreFilter.value.max) continue;
-        }
+        // [S991] 5축 '추세 방향 점수'(score_range) 매칭 삭제 — 엔진 판정 5축 필터 배제. 정의(sx_conditions)·워커 매칭도 함께 제거.
 
         // S65: 엔진 확장 필터 (Phase 3)
         {
@@ -9146,7 +9140,6 @@ function checkTechConditions(ind, techFilters, getFilter){
 
       // S48: 종합 판정 — 스캔 루프에서 처리하므로 여기서는 스킵
       case '_signal_action': break;
-      case 'score_range': break;
       // S65: 엔진 확장 + BT 필터 (스캔 루프에서 별도 처리)
       case '_safety_clean': break;
       case '_dump_warn': break;
