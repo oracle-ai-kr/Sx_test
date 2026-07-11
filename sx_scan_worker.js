@@ -3022,20 +3022,7 @@ async function startScan(config) {
         //   저장된 옛 프리셋의 하위 호환을 위해 필터 로직은 유지 — 새 프리셋은 이 값 미사용.
         const _sigFilter = activeFilters.find(f => f.id === '_signal_action');
         if (_sigFilter && _sigFilter.value && _sigFilter.value !== '설정안함') { if (!s._action) continue; if (s._action !== _sigFilter.value) continue; }
-        const _scoreFilter = activeFilters.find(f => f.id === 'score_range');
-        // [S406] '추세 방향 점수' = trendScore(trendPure) 평가. (A-1 이전엔 score=trendScore=rawScore라 s._score로 무방했으나,
-        //   A-1[S401]에서 추세방향이 trendPure로 분리됨 → s._score(rawScore=진입)가 아닌 trendScore를 평가해야 분석탭 '추세 방향'과 일치)
-        if (_scoreFilter && _scoreFilter.value) { const sc = (s._scanResult && s._scanResult.trendScore != null) ? s._scanResult.trendScore : s._score; if (sc == null) continue; if (_scoreFilter.value.min !== null && sc < _scoreFilter.value.min) continue; if (_scoreFilter.value.max !== null && sc > _scoreFilter.value.max) continue; }
-        // S80: 3단 점수 필터
-        const _readyF = getFilter('_ready_score');
-        if (_readyF && _readyF.value && s._scanResult) { const rs = s._scanResult.readyScore ?? 0; if (_readyF.value.min !== null && rs < _readyF.value.min) continue; if (_readyF.value.max !== null && rs > _readyF.value.max) continue; }
-        const _entryF = getFilter('_entry_score');
-        if (_entryF && _entryF.value && s._scanResult) { const es = s._scanResult.entryScore ?? 0; if (_entryF.value.min !== null && es < _entryF.value.min) continue; if (_entryF.value.max !== null && es > _entryF.value.max) continue; }
-        // [S406] 추가 상승 점수(upsideScore) 평가 — 4축 중 4번째 축
-        const _upsideF = getFilter('_upside_score');
-        if (_upsideF && _upsideF.value && s._scanResult) { const us = s._scanResult.upsideScore ?? 0; if (_upsideF.value.min !== null && us < _upsideF.value.min) continue; if (_upsideF.value.max !== null && us > _upsideF.value.max) continue; }
-        const _trendF = getFilter('_trend_score');
-        if (_trendF && _trendF.value && s._scanResult) { const ts = s._scanResult.trendScore ?? 0; if (_trendF.value.min !== null && ts < _trendF.value.min) continue; if (_trendF.value.max !== null && ts > _trendF.value.max) continue; }
+        // [S991] 5축 점수 필터 매칭 삭제 — score_range/_ready_score/_entry_score/_upside_score/_trend_score 제거(엔진 판정 5축 배제). 조건정의도 sx_conditions.js서 제거. 저장 프리셋 해당 조건은 조용히 무시(크래시 없음).
         // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — s._indicators(=분석탭 indicators, RS 주입 포함)에서 도넛과 동일 공식으로 평가.
         //   추세강도=round(ADX) · 구조위치=round(struct.pos×100) · 상대강도=clamp(0~100, round(50+rs20×2.5)).
         //   값 미가용(캔들 부족/비일봉 RS 등) 시 해당 조건 사용하면 제외(continue) — 검증 불가 종목은 통과시키지 않음.
