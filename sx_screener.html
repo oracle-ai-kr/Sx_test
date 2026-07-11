@@ -49,7 +49,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=346"></script>
+<script src="sx_render.js?v=347"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1635,14 +1635,14 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
     <!-- [S578] 차트 마커 — 보라(A/C) + 녹/적(B/S) 교차 선택. 한 화면에 보라1 + 녹적1. -->
     <div class="setting-group">
-      <div class="setting-group-title">차트 마커 <span style="font-size:8px;color:var(--text3);font-weight:400">교차 선택 · 보라 1 + 녹/적 1</span></div>
+      <div class="setting-group-title">차트/스캔 마커 <span style="font-size:8px;color:var(--text3);font-weight:400">녹·적 = 차트(2종) · ▲ = 스캔 리스트</span></div>
       <div class="sound-setting">
-        <div style="font-size:11px;font-weight:700;color:var(--text)">🟣 보라 마커</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text)">🔺 스캔 리스트 ▲ 마커</div>
         <div id="chartPurpleSeg" style="display:flex;gap:6px;margin-top:6px">
           <span class="cm-seg" data-v="A" onclick="setChartMarker('purple','A')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">진입타이밍 A</span>
           <span class="cm-seg" data-v="C" onclick="setChartMarker('purple','C')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">안전제동 C</span>
         </div>
-        <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5">A: 진입 타이밍(A로직 매수신호) · C: 감독관 안전제동 판정</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5">스캔 리스트 ▲ 매수마커 표시 기준 · A=진입타이밍(A로직) / C=감독관 판정. <b>차트 보라마커는 S987서 제거</b> — 차트는 단기추세+레시피(이중ATR) 2종만.</div>
 
         <div style="font-size:11px;font-weight:700;color:var(--text);margin-top:12px">🟢🔴 녹/적 마커</div>
         <div id="chartGreenRedSeg" style="display:flex;gap:6px;margin-top:6px">
