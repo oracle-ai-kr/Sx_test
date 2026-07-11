@@ -1,10 +1,7 @@
 // ════════════════════════════════════════════════════════════
-//  SIGNAL X — Render Engine v7.10  [S971 · build 20260711 cache-bust]
-//  [S969] 점수축 카드2 + S69 실전가이드 → "레시피 해석 카드"로 대체.
-//  [S970] 레시피 해석 카드에 완전 초보자용 쉬운 설명 레이어 추가.
-//  [S971] 추세 라벨 SSOT `_trendLabel` 신설 — 단기(5/20/60)/장기(60/120/200) 3×3 + 60MA 기울기(천장권/바닥권).
-//         "정배열/역배열" 2정의 충돌 해소(같은 종목이 정배열이자 역배열). 레시피 카드 배지/헤드라인/①구도를 이 SSOT로 전환(차트 정합·MA카드와 일치).
-//         (외부 _pgShared 등 orphan 잔존·다른 카드들 SSOT 통일은 후속 — 카드별 실측 정렬 진행 중)
+//  SIGNAL X — Render Engine v7.10  [S972 · build 20260711 cache-bust]
+//  [S971] 추세 라벨 SSOT `_trendLabel` 신설 (단기 5/20/60 강세·약세 / 장기 60/120/200 상승장·하락장 / 천장권·바닥권). 레시피 해석 카드 전환.
+//  [S972] SSOT 용어 통일 A단계 — 교차검증 실험카드 + 측정 도구 결과 헤더의 레짐 라벨(정배/역배→상승장/하락장) 전환. 표기만·로직 무변경. MA순서 표기·서술문장·세부분류는 보존.
 // ════════════════════════════════════════════════════════════
 const BT_SUPPORTED_TF = {
   kr:   ['30m','60m','day','week','month'],   // 30분은 KIS 한정
@@ -5829,8 +5826,8 @@ function _recipeMixDirRender(res, mk, poolLbl){
   };
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:8px">⚖️ <b>혼재 봉</b>(real·fake 동시발동 onset)만 모아 <b>순차 net=realK−fakeK</b> 버킷별 <b>상승률</b> — 혼재일 때도 다수결이 방향을 정하나. <b>R우세</b>(net&gt;0)·균형(0)·<b>F우세</b>(net&lt;0). 전 열 상승 기준(하락 쏠림=낮은 %로 표시). 판정=전구간 평균 Δ(R−F) ±10%p → 반등사이클 가로축(realK−fakeK)의 t+k 근거. ⚠ n&lt;15 · 측정전용 · '+_esc2(poolLbl||'')+' '+(res.stocksUsed||0)+'종목</div>';
   return head
-    +_side('bear','🟢 역배열 혼재 — 순차가 방향 정하나?','#16a34a')
-    +_side('bull','🔵 정배열 혼재 — 순차가 방향 정하나?','#2563eb');
+    +_side('bear','🟢 하락장 혼재 — 순차가 방향 정하나?','#16a34a')
+    +_side('bull','🔵 상승장 혼재 — 순차가 방향 정하나?','#2563eb');
 }
 // ════════ [S861] 순수발동 동반조건 — S859 A/B에서 진입급 붕괴(n 54→1)의 원인 규명: 레시피표의 나머지 2표(trend≥50·mom↑)가 역배 레시피와 레짐 모순인가. 순수발동(real·fake 무동반) onset을 4조합(무동반/trend만/mom만/둘다)으로 쪼개 동시율 + t+10·15 성과 비교 → 표 재설계 근거. tp/md=[S861] profileScan 이벤트 필드(md=C momDir 충실재현·측정전용 복제). 표본 병기(S806)·측정전용. ════════
 async function _recipeCompanionBracket(mk, sources, onProgress){
@@ -5947,8 +5944,8 @@ function _recipeCompanionRender(res, mk, poolLbl){
   };
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:8px">🧩 <b>순수발동</b>(real·fake 무동반 onset) 봉을 동반조건 4조합으로 분해 — S859 레시피표의 나머지 2표(<b>trend≥50</b>·<b>mom↑</b>=C momDir 재현)가 이 레짐에서 실제로 성립·기여하나. 동시율 낮음=구조 모순(진입급 굶주림 원인) · t+15 조합별 비교=표 가치. 판정 근거 → S862 표 재설계. ⚠ 측정전용 · '+_esc2(poolLbl||'')+' '+(res.stocksUsed||0)+'종목</div>';
   return head
-    +_side('bear','🟢 역배열 순수발동 — trend·mom표 성립하나?','#16a34a')
-    +_side('bull','🔵 정배열 순수발동 — trend·mom표 성립하나?','#2563eb');
+    +_side('bear','🟢 하락장 순수발동 — trend·mom표 성립하나?','#16a34a')
+    +_side('bull','🔵 상승장 순수발동 — trend·mom표 성립하나?','#2563eb');
 }
 // ════════ [S863] 레시피 종합검증 — 검증 5종(발동수별 S809 · t+k S856 · 오염 S857 · 혼재 S858 · 동반 S861)을 1버튼 순차 일괄 실행.
 //   통합 비용≈0: fetchRows600('mkt|tf|code')·_scanStock(sym,rows) 캐시를 5도구가 공유 → 첫 도구가 스캔, 나머지는 캐시 히트+매칭만.
@@ -6106,8 +6103,8 @@ function _recipeIngRender(res, mk, poolLbl){
   };
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:8px">💡 real 레시피를 <b>단일재료</b>로 분해(같은 지표·방향=가장 느슨한 임계로 통합) — 봉별 <b>불켜짐 수</b>의 세 질문. <b>A</b>: t+15↑가 불 수에 단조인가(방향성) · <b>C</b>: Δ결합=같은 불 수에서 발동−미발동(AND 부가가치, n각15↑만) · <b>B</b>: 전이3=미발동 봉이 3봉 내 발동할 확률(익어감 예고력). 레짐 일치 봉만·t+15 완성. 측정전용 · '+_esc(poolLbl||'')+' '+(res.stocksUsed||0)+'종목</div>';
   return head
-    +_side('bear','🟢 역배열 — 바닥반등 재료','#16a34a')
-    +_side('bull','🔵 정배열 — 눌림목 재료','#2563eb');
+    +_side('bear','🟢 하락장 — 바닥반등 재료','#16a34a')
+    +_side('bull','🔵 상승장 — 눌림목 재료','#2563eb');
 }
 // ════════ [S876] ⏳ 전이 확정력 — 발동(전환) 후 조기 궤적(t+3 누적)이 최종 결과(시장 지평 t+7/10/15)를 가르는가. C 2.0 반등전이 축(확정/포기 판정)의 근거 + 조기 손절 규칙 데이터. 모집단=순수 real onset(xk=0·매수 후보와 동일). profileScan 재사용(모듈 무변경)·겹침3+ 병기(강신호의 조기하락 회복력)·미리보기 지원·측정전용. ════════
 async function _recipeTransitBracket(mk, sources, onProgress){
@@ -6225,8 +6222,8 @@ function _recipeTransitRender(res, mk, poolLbl){
   };
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:8px">⏳ <b>순수발동(전환) 후 조기 궤적</b>(t+3 누적)별 <b>최종 적중</b>(t+7/10/15) — 조기 상태가 결과를 가르면 <b>전이 판정</b>(확정/포기·조기 손절)의 근거. 겹침3+ 병기=강신호의 조기하락 회복력(물타기 질문). 스프레드 20%p↑=유효 · 10↑=중간 · 미만=무정보. 측정전용 · '+_esc(poolLbl||'')+' '+(res.stocksUsed||0)+'종목</div>';
   return head
-    +_side('bear','🟢 역배열 — 발동 후 전이','#16a34a')
-    +_side('bull','🔵 정배열 — 발동 후 전이','#2563eb');
+    +_side('bear','🟢 하락장 — 발동 후 전이','#16a34a')
+    +_side('bull','🔵 상승장 — 발동 후 전이','#2563eb');
 }
 // ════════ [S881] 🧭 임계 접근방향 — 수치 재료의 방향맹 보완(사용자 발견: 임계는 스냅샷, 위에서 내려온/밑에서 올라온 구분 부재). 순수 real onset의 발동 재료들을 전봉 대비 Δf 부호로 분해 — A 이벤트 종합(상승접근 비율 3버킷 t+k) + B 재료별(계열×접근 성과 → 빔서치 2.1 방향조건 근거). profileScan.ap 소비·미리보기 지원·측정전용. ════════
 async function _recipeApprBracket(mk, sources, onProgress){
@@ -6357,8 +6354,8 @@ function _recipeApprRender(res, mk, poolLbl){
   };
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:8px">🧭 <b>임계 접근방향</b> — 순수 real onset의 발동 재료(수치 조건)를 전봉 대비 Δf 부호로 분해. <b>lt+상승=회복형</b>(밑에서 올라옴)·lt+하강=낙하형 / gt+상승=점화형·gt+하강=소진형. A: 이벤트의 상승접근 비율 3버킷(&lt;40%/40~60%/&gt;60%) t+k · B: 재료 계열별 상승vs하강 접근 성과(Δ≥8p 초록=회복형 재료·≤−8p 보라=낙하형도 동력). 판정=양끝 t+15 격차 ±10%p. bin 재료(GC 등)는 태생 방향형이라 제외. 측정전용 · '+_esc(poolLbl||'')+' '+(res.stocksUsed||0)+'종목</div>';
   return head
-    +_side('bear','🟢 역배열 — 바닥반등 접근방향','#16a34a')
-    +_side('bull','🔵 정배열 — 눌림목 접근방향','#2563eb');
+    +_side('bear','🟢 하락장 — 바닥반등 접근방향','#16a34a')
+    +_side('bull','🔵 상승장 — 눌림목 접근방향','#2563eb');
 }
 // ════════ [S883] 🔴 가짜반등(fake) 하락신호 본검증 — fake는 현재 real 순수성 판별자(혼재→votes0)+가짜반등 경보 배너일 뿐. 독립 "하락 판정" 신호로 승격 가능한가. profileScan의 fake 이벤트를 순수발동(xk=0)으로 재집계 3측정: ①순수 프로파일 t+k 하락적중(cum<0) vs base 하락률=리프트 ②겹침(fakeK) 사다리 단조 ③조기궤적(t+3 이탈이 하락 확정 앞당기나·전이의 거울상). 씨앗(S865 신세트·0701 in-sample): kr 역배 t+15 58%(+12p)·us 정배 t+7 63%(+16p). 판정 후 프레임 합의(청산경보 vs C 하락 투표자). 미리보기 세트 지원(_R() 경유)·측정전용. ════════
 async function _recipeFakeDownBracket(mk, sources, onProgress){
@@ -6498,11 +6495,11 @@ function _recipeFakeDownRender(res, mk, poolLbl){
   };
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:8px">🔴 <b>가짜반등(fake) 하락신호 본검증</b> — fake 순수발동(real 무동반) 후 <b>하락적중</b>(cum&lt;0)이 <b>base 하락률</b>(레짐 전체 봉)을 넘으면 fake 고유의 하락 예측력. ①지평별 리프트(≥10p 유효·5~10 약함) ②겹침 사다리 단조(3+ vs 1 ≥8p) ③조기궤적(조기 −2% 이탈=확정 앞당김 ±10p). ⚠<b>in-sample</b>(0701 렌즈채굴 지반)·표본 n&lt;15~20 주의 · '+_esc(poolLbl||'')+' '+(res.stocksUsed||0)+'종목</div>';
   return head
-    +_side('bear','🔴 역배열 — fake 가짜반등→하락','#dc2626')
-    +_side('bull','🔵 정배열 — fake 가짜눌림목→하락','#2563eb');
+    +_side('bear','🔴 하락장 — fake 가짜반등→하락','#dc2626')
+    +_side('bull','🔵 상승장 — fake 가짜눌림목→하락','#2563eb');
 }
 
-// ════════ [S885] 🟡 전이형(transition-bear) 위험 측정 — S880 발견(lt='mixed'&단기비정배 = 게이트·레시피 범위 밖인데 KCTC −35% 실재)을 정량화. 정의 확장 금지(발굴풀 모집단 보존) 대신 별도 측정: baseRateScan 전 봉(발동 무관)을 4버킷 분류(bull/bear/transit/상승전이) → ①빈도(transit 봉 비율 ≥10%=실질) ②base 위험도(transit N10 상승률·평균수익 vs 역배 base — 같거나 낮으면 bear급 위험 확정). 결과 갈림: 위험 확인 → S886 transit 발굴+③재료변별(deadcat 불켜짐, 봉별 f 필요→signal측) / 희소·안전 → 🟡 배너 유지로 종결. window-only(baseRateScan 노출)·미리보기 지원·측정전용. ════════
+// ════════ [S885] 🟡 전이형(transition-bear) 위험 측정 — S880 발견(lt='mixed'&단기비정배 = 게이트·레시피 범위 밖인데 KCTC −35% 실재)을 정량화. 정의 확장 금지(발굴풀 모집단 보존) 대신 별도 측정: baseRateScan 전 봉(발동 무관)을 4버킷 분류(bull/bear/transit/상승전이) → ①빈도(transit 봉 비율 ≥10%=실질) ②base 위험도(transit N10 상승률·평균수익 vs 하락장 base — 같거나 낮으면 bear급 위험 확정). 결과 갈림: 위험 확인 → S886 transit 발굴+③재료변별(deadcat 불켜짐, 봉별 f 필요→signal측) / 희소·안전 → 🟡 배너 유지로 종결. window-only(baseRateScan 노출)·미리보기 지원·측정전용. ════════
 async function _recipeTransitRiskBracket(mk, sources, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
   if(!(window.SXRecipeSignal&&SXRecipeSignal.baseRateScan)) return { ok:false, reason:'레시피 모듈 구버전(baseRateScan 없음) — 새로고침' };
@@ -6578,7 +6575,7 @@ function _recipeTransitRiskRender(res, mk, poolLbl){
   var pctUp=function(q){ return q.n?q.up/q.n*100:null; };
   var avg=function(q){ return q.n?q.sret/q.n*100:null; };
   var freq=function(q){ return regime?q.total/regime*100:null; };
-  var ROWS=[['bull','🔵 정배열',T2],['bear','🔴 역배열',RED],['transit','🟡 전이형(하락)',YEL],['uptransit','🟢 상승전이',GRN]];
+  var ROWS=[['bull','🔵 상승장',T2],['bear','🔴 하락장',RED],['transit','🟡 전이형(하락)',YEL],['uptransit','🟢 상승전이',GRN]];
   var rowsH='';
   for(var i=0;i<ROWS.length;i++){
     var q=b[ROWS[i][0]], fr=freq(q), pu=pctUp(q), av=avg(q);
@@ -6696,7 +6693,7 @@ function _recipeTransitGridRender(res, mk, poolLbl){
   var pctUp=function(q){ return q.n?q.up/q.n*100:null; };
   var avg=function(q){ return q.n?q.sret/q.n*100:null; };
   var freq=function(q){ return regime?q.total/regime*100:null; };
-  var ROWS=[['bull','🔵 정배열',T2],['upT_st','🟢 상승전이·단기정배',GRN],['upT_wk','🟩 상승전이·단기약세','#4d7c0f'],['dnT_st','🟧 하락전이·단기정배',ORG],['dnT_wk','🟥 하락전이·단기약세(KCTC)',RED],['bear','🔴 역배열',RED]];
+  var ROWS=[['bull','🔵 상승장',T2],['upT_st','🟢 상승전이·단기정배',GRN],['upT_wk','🟩 상승전이·단기약세','#4d7c0f'],['dnT_st','🟧 하락전이·단기정배',ORG],['dnT_wk','🟥 하락전이·단기약세(KCTC)',RED],['bear','🔴 하락장',RED]];
   if(c.mixEtc.total>0) ROWS.push(['mixEtc','◽ mixed 기타(동률)',T3]);
   var rowsH='';
   for(var i=0;i<ROWS.length;i++){
@@ -7088,7 +7085,7 @@ async function _volRegimeBracket(mk, onProgress){
     if(_u) stocksUsed++;
     await _trendBatchSleep(10);
   }
-  if(bars.length<20) return { ok:false, reason:'역배 발동·확정 표본 20 미만 (n='+bars.length+')' };
+  if(bars.length<20) return { ok:false, reason:'하락장 발동·확정 표본 20 미만 (n='+bars.length+')' };
   return { ok:true, bars:bars, stocksUsed:stocksUsed };
 }
 async function _volRegimeRun(){
@@ -7126,7 +7123,7 @@ function _volRegimeRender(res, mk){
   var verdict = mono
     ? '<span style="color:'+GRN+'">✅ 변동성 낮을수록 진짜반등↑ (단조) — <b>종목 성격이 데드캣 변별자</b>. "고변동주 역배열 과대낙폭은 데드캣"</span>'
     : '<span style="color:'+AMB+'">단조 아님 — 변동성으로도 진짜/데드캣 깔끔히 못 가름</span>';
-  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:7px">역배열 deadcat-real 발동봉을 <b>종목 일간변동성</b>(최근120봉 수익률 표준편차)으로 3분위 → N10 진짜비율. 대표+관심+<b>저변동보강 10종</b> 합산(변동성 축 왼쪽 채움). <b style="color:'+GRN+'">변동성 낮을수록 진짜비율↑</b>이면 종목 성격=변별자(=관심풀 84%vs33% 격차의 정체). 표본='+res.bars.length+'봉·'+(res.stocksUsed||0)+'종목.</div>';
+  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:7px">하락장 deadcat-real 발동봉을 <b>종목 일간변동성</b>(최근120봉 수익률 표준편차)으로 3분위 → N10 진짜비율. 대표+관심+<b>저변동보강 10종</b> 합산(변동성 축 왼쪽 채움). <b style="color:'+GRN+'">변동성 낮을수록 진짜비율↑</b>이면 종목 성격=변별자(=관심풀 84%vs33% 격차의 정체). 표본='+res.bars.length+'봉·'+(res.stocksUsed||0)+'종목.</div>';
   return head
     +'<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">'+rows+'</table>'
     +'<div style="font-size:9.5px;margin-top:6px;line-height:1.45">'+verdict+'</div>';
@@ -7258,7 +7255,7 @@ function _deadcatShortRender(res, mk){
     else if(lift<=3) v2='<span style="color:'+RED+'">⚠️ (하,하) 발동 '+b.rate.toFixed(0)+'% ≈ 시장 base '+bAll.rate.toFixed(0)+'% (Δ+'+lift.toFixed(0)+'%p) — <b>거의 불장빨</b>. 발동의 진짜 변별력 미미</span>';
     else v2='<span style="color:'+AMB+'">(하,하) 발동 '+b.rate.toFixed(0)+'% vs 시장 base '+bAll.rate.toFixed(0)+'% = +'+lift.toFixed(0)+'%p — 약한 우위(불장빨 일부 포함)</span>';
   }
-  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:7px">역배열 <b>deadcat-real 발동봉</b>을 단기 정렬로 쪼갬: <b style="color:'+RED+'">(하,하)</b>=장기(60·120·200)+단기(5·20·60) 모두 역배 · <b style="color:'+AMB+'">(하,혼조)</b>=장기 역배·단기 혼조. 아래 회색=<b>발동 무관 base rate</b>(불장 기준선). 발동률이 base보다 충분히 높아야 진짜 신호. 대표+관심+<b>거래대금 top100</b> 합산(중복 자동제거·표본 확보)·발동표본='+(res.both.length+res.mixed.length)+'봉·'+(res.stocksUsed||0)+'종목.</div>';
+  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:7px">하락장 <b>deadcat-real 발동봉</b>을 단기 정렬로 쪼갬: <b style="color:'+RED+'">(하,하)</b>=장기(60·120·200)+단기(5·20·60) 모두 역배 · <b style="color:'+AMB+'">(하,혼조)</b>=장기 역배·단기 혼조. 아래 회색=<b>발동 무관 base rate</b>(불장 기준선). 발동률이 base보다 충분히 높아야 진짜 신호. 대표+관심+<b>거래대금 top100</b> 합산(중복 자동제거·표본 확보)·발동표본='+(res.both.length+res.mixed.length)+'봉·'+(res.stocksUsed||0)+'종목.</div>';
   return head
     +'<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">'
     +'<tr style="background:var(--surface2)"><td style="padding:5px 8px;font-size:8px;color:'+T3+'">레짐</td><td style="padding:5px 8px;text-align:right;font-size:8px;color:'+T3+'">진짜비율</td><td style="padding:5px 8px;text-align:right;font-size:8px;color:'+T3+'">평균N10</td><td style="padding:5px 8px;text-align:right;font-size:8px;color:'+T3+'">표본</td></tr>'
@@ -7348,9 +7345,9 @@ function _deadcatTrajRender(res, mk, pool){
   else if(splitBar<=3) v='<span style="color:'+GRN+'">✅ <b>t+'+splitBar+'에서 이미 갈림</b>(라벨 독립 구간) — <b>진입 후 '+splitBar+'봉 손절 룰로 가짜 조기 탈출 가능</b>. 역배 첫 실거리</span>';
   else if(splitBar<=5) v='<span style="color:'+AMB+'">t+'+splitBar+'에서 갈림 — 다소 늦지만 독립 구간(t+1~5) 내. 조기 손절 여지 있음</span>';
   else v='<span style="color:'+RED+'">t+'+splitBar+'에서야 갈림 — N10 라벨 구간(t+6~)이라 <b>순환(당연한 갈림)</b>. 독립 구간(t+1~5)선 못 가름 = 조기 감지도 어려움</span>';
-  var sigTxt=isPb?'pullback-real(정배 눌림목)':'deadcat-real(역배)';
+  var sigTxt=isPb?'pullback-real(상승장 눌림목)':'deadcat-real(역배)';
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:7px">'+sigTxt+' 발동(진입) 후 <b>봉별 누적수익</b>을 N10 결과로 <b style="color:'+GRN+'">진짜</b>/<b style="color:'+RED+'">가짜</b> 분리. <b>언제 갈라지나</b>=조기 손절 지점. <b>t+1~5=라벨 독립</b>(진짜 조기감지)·t+6~10=라벨이 이 구간 결과라 순환(흐림·반투명). 진짜 n='+res.rN+'·가짜 n='+res.fN+'·'+(res.stocksUsed||0)+'종목.</div>';
-  var sigBadge='<div style="font-size:9px;font-weight:800;margin-bottom:5px;color:'+(isPb?GRN:RED)+'">'+(isPb?'🔵 정배 눌림목 — fake가 t+1에 일찍 빠지면 빠른 손절이 고점 물림 방어':'🔴 역배 바닥권')+'</div>';
+  var sigBadge='<div style="font-size:9px;font-weight:800;margin-bottom:5px;color:'+(isPb?GRN:RED)+'">'+(isPb?'🔵 상승장 눌림목 — fake가 t+1에 일찍 빠지면 빠른 손절이 고점 물림 방어':'🔴 역배 바닥권')+'</div>';
   // [S828] ★실전 조기감지 검증 — 각 시점 종가가 진입가 위/아래로 나눠 N10 진짜비율(평균 착시 아닌 개별 판단)
   var obsRows='', obsLbl=['t+1','t+2','t+3'], t1gap=null;
   if(res.obs){
@@ -7476,7 +7473,7 @@ function _deadcatConfirmRender(res, mk, pool){
     v2='<span style="color:'+(win==='즉시+손절'?GRN:(win==='관찰진입'?BLU:AMB))+'">★ <b>즉시+손절 '+IS.avg.toFixed(1)+'% vs 관찰진입 '+C1.avg.toFixed(1)+'%</b> → '+(win==='비슷'?'수익 비슷':'<b>'+win+' 우세</b>')+mddCmp+'</span>';
   }
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:7px"><b>손절 포함 공정 비교</b>. <b>즉시+보유</b>=손절없이 N10 · <b style="color:'+GRN+'">즉시+t+1손절</b>=t+1 빠지면 손절(가짜 작게 끊음) · <b>t+1확인</b>=살아남은 것만 진입 · <b>확인+손절</b>=조합. <b style="color:var(--text2)">평균N10</b>=수익(손절손실 반영) · <b style="color:'+RED+'">MDD</b>=거래별 진입후 평균 최저점 · <b style="color:'+BLU+'">조정</b>=수익÷|MDD|(클수록 위험대비 좋음). '+_measPoolLbl()+'·'+(res.stocksUsed||0)+'종목.</div>';
-  var sigBadge='<div style="font-size:9px;font-weight:800;margin-bottom:5px;color:'+(isPb?GRN:RED)+'">'+(isPb?'🔵 pullback-real · 정배 눌림목 (고점 물림 위험 — fake면 천장 반락)':'🔴 deadcat-real · 역배 (바닥권)')+'</div>';
+  var sigBadge='<div style="font-size:9px;font-weight:800;margin-bottom:5px;color:'+(isPb?GRN:RED)+'">'+(isPb?'🔵 pullback-real · 상승장 눌림목 (고점 물림 위험 — fake면 천장 반락)':'🔴 deadcat-real · 역배 (바닥권)')+'</div>';
   return sigBadge+head
     +'<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">'
     +'<tr style="background:var(--surface2)"><td style="padding:5px 7px;font-size:8px;color:'+T3+'">방식</td><td style="padding:5px 4px;text-align:right;font-size:8px;color:'+T3+'">n</td><td style="padding:5px 4px;text-align:right;font-size:8px;color:'+T2+'">평균N10</td><td style="padding:5px 4px;text-align:right;font-size:8px;color:'+RED+'">MDD</td><td style="padding:5px 7px;text-align:right;font-size:8px;color:'+BLU+'">조정</td></tr>'
@@ -7484,7 +7481,7 @@ function _deadcatConfirmRender(res, mk, pool){
     +(v1?'<div style="font-size:9.5px;margin-top:7px;line-height:1.45">'+v1+'</div>':'')
     +(v2?'<div style="font-size:9.5px;margin-top:5px;line-height:1.45">'+v2+'</div>':'');
 }
-// ════════ [S831] 🔵 정배 base rate 분해 — pullback-real 발동 진짜비율(57→82%)이 진짜 신호 힘인가 불장빨인가. 시장 base + 정배 레짐 base 대비 순수 lift. 통합 전 마지막 안전장치(거래량OSC n22 교훈). ════════
+// ════════ [S831] 🔵 상승장 base rate 분해 — pullback-real 발동 진짜비율(57→82%)이 진짜 신호 힘인가 불장빨인가. 시장 base + 상승장 레짐 base 대비 순수 lift. 통합 전 마지막 안전장치(거래량OSC n22 교훈). ════════
 async function _pullbackBaseBracket(mk, onProgress, pool){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
   if(!(window.SXRecipeSignal&&SXRecipeSignal.baseRateScan&&SXRecipeSignal.overlapScan)) return { ok:false, reason:'레시피 모듈 미로드' };
@@ -7526,7 +7523,7 @@ async function _pullbackBaseRun(pool){
   var el=document.getElementById(isPb?'pullbackBaseResult':'deadcatBaseResult'); if(!el) return;
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
   el.style.display='block';
-  el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">'+(isPb?'🔵':'🔴')+' '+(isPb?'정배':'역배')+' base rate 측정 중...</div>';
+  el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">'+(isPb?'🔵':'🔴')+' '+(isPb?'상승장':'하락장')+' base rate 측정 중...</div>';
   var res;
   try{ res=await _pullbackBaseBracket(mk,function(i,t,n){ el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">'+(isPb?'🔵':'🔴')+' 스캔 '+i+'/'+t+' · '+(n||'')+'</div>'; }, P); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
   el.innerHTML=_pullbackBaseRender(res, mk);
@@ -7545,7 +7542,7 @@ function _pullbackBaseRender(res, mk){
     var col=(rate==null)?T3:T2;
     return '<tr style="background:var(--surface2)"><td style="padding:5px 8px;font-weight:'+(strong?'800':'700')+';color:var(--text);font-size:9.5px">'+nm+'</td><td style="padding:5px 6px;text-align:right;color:'+T3+';font-size:9px">n='+n+'</td><td style="padding:5px 8px;text-align:right;font-weight:700;color:'+col+';font-size:11px">'+(rate!=null?rate.toFixed(0)+'%':'—')+'</td><td style="padding:5px 8px;text-align:right;color:'+T3+';font-size:9px">기준선</td></tr>';
   }
-  // 발동 3행 — lift는 정배 레짐 base 대비(발동 순수 기여)
+  // 발동 3행 — lift는 상승장 레짐 base 대비(발동 순수 기여)
   function ovRow(nm, st){
     var small=st.n<15;
     var lift=(st.rate!=null&&baseBull!=null)?(st.rate-baseBull):null;
@@ -7561,14 +7558,14 @@ function _pullbackBaseRender(res, mk){
   if(O4.rate!=null && baseBull!=null){
     var l4=O4.rate-baseBull, lAll=(baseAll!=null)?(O4.rate-baseAll):null;
     if(l4>=10) v='<span style="color:'+GRN+'">✅ <b>발동 4+가 '+regNm+' 레짐 base보다 +'+l4.toFixed(0)+'%p</b> — 발동이 진짜 신호 힘(불장빨 너머). 하드코딩 안심'+(lAll!=null?' (시장 대비 +'+lAll.toFixed(0)+'%p)':'')+'</span>';
-    else if(l4<=4) v='<span style="color:'+RED+'">⚠️ <b>발동 4+가 '+regNm+' 레짐 base보다 +'+l4.toFixed(0)+'%p뿐</b> — 대부분 레짐+불장빨. '+(isPb?'하드코딩 수치는 <b>약세장에서 무너질 위험</b>':'<b>역배 발동 무의미 재확인(확인사살)</b>')+'</span>';
+    else if(l4<=4) v='<span style="color:'+RED+'">⚠️ <b>발동 4+가 '+regNm+' 레짐 base보다 +'+l4.toFixed(0)+'%p뿐</b> — 대부분 레짐+불장빨. '+(isPb?'하드코딩 수치는 <b>약세장에서 무너질 위험</b>':'<b>하락장 발동 무의미 재확인(확인사살)</b>')+'</span>';
     else v='<span style="color:'+AMB+'">발동 4+의 '+regNm+' 레짐 대비 lift +'+l4.toFixed(0)+'%p — 중간. 발동이 약간 기여하나 상당부분 레짐/불장</span>';
   }
   // 단조성 체크
   var mono='';
   if(O12.rate!=null&&O3.rate!=null&&O4.rate!=null){
     var up=(O3.rate>=O12.rate-1)&&(O4.rate>=O3.rate-1);
-    mono='<div style="font-size:9px;margin-top:5px;color:'+(up?GRN:AMB)+'">'+(up?'✓ 발동 늘수록 진짜비율 단조 상승 유지'+(isPb?'(정배의 핵심 패턴 재확인)':'(역배에서도?!)'):'⚠ 단조 상승 깨짐 — 발동 수와 진짜비율 비례 약함'+(isPb?'':' (역배 발동 무의미 재확인)'))+'</div>';
+    mono='<div style="font-size:9px;margin-top:5px;color:'+(up?GRN:AMB)+'">'+(up?'✓ 발동 늘수록 진짜비율 단조 상승 유지'+(isPb?'(정배의 핵심 패턴 재확인)':'(역배에서도?!)'):'⚠ 단조 상승 깨짐 — 발동 수와 진짜비율 비례 약함'+(isPb?'':' (하락장 발동 무의미 재확인)'))+'</div>';
   }
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:7px"><b>'+regNm+' 발동이 진짜 신호인가 불장빨인가</b>. <b>시장 base</b>=전체 봉 N10 상승% · <b style="color:var(--text2)">'+regNm+' 레짐 base</b>=발동 무관 기준선. <b>발동</b>='+sigNm+' 동시발동 수별 진짜비율. <b style="color:'+AC+'">lift</b>=발동 − '+regNm+' 레짐 base. lift 크면 진짜 신호, 작으면 레짐+불장빨. 현재 시장 세트 기준·'+_measPoolLbl()+'·'+(res.stocksUsed||0)+'종목.</div>';
   return head
@@ -7578,7 +7575,7 @@ function _pullbackBaseRender(res, mk){
     +(v?'<div style="font-size:9.5px;margin-top:7px;line-height:1.45">'+v+'</div>':'')
     +mono;
 }
-// ════════ [S837] 🔴 역배 데드캣-real 발동 × 다호라이즌(N10/N15/N20) — 최종 검증. "역배는 느리게 반응"(침체 종목 관심밖) 가설 → N10 단조 깨짐(62→61→71)이 긴 horizon서 살아나나? 각 horizon lift로 불장빨 배제. 엔진 무변경·event study. ════════
+// ════════ [S837] 🔴 하락장 데드캣-real 발동 × 다호라이즌(N10/N15/N20) — 최종 검증. "역배는 느리게 반응"(침체 종목 관심밖) 가설 → N10 단조 깨짐(62→61→71)이 긴 horizon서 살아나나? 각 horizon lift로 불장빨 배제. 엔진 무변경·event study. ════════
 async function _deadcatHzBracket(mk, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
   if(!(window.SXRecipeSignal&&SXRecipeSignal.deadcatOverlapHzScan)) return { ok:false, reason:'레시피 모듈 미로드' };
@@ -7617,7 +7614,7 @@ async function _deadcatHzRun(){
   var el=document.getElementById('deadcatHzResult'); if(!el) return;
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
   el.style.display='block';
-  el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">🔴 역배 발동 다호라이즌 측정 중...</div>';
+  el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">🔴 하락장 발동 다호라이즌 측정 중...</div>';
   var res;
   try{ res=await _deadcatHzBracket(mk,function(i,t,n){ el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">🔴 스캔 '+i+'/'+t+' · '+(n||'')+'</div>'; }); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
   el.innerHTML=_deadcatHzRender(res, mk);
@@ -7645,7 +7642,7 @@ function _deadcatHzRender(res, mk){
   }
   var rows='';
   // base 행
-  rows+='<tr style="background:var(--surface2)"><td style="padding:6px 7px;font-weight:700;color:var(--text);font-size:9.5px">역배 base</td>';
+  rows+='<tr style="background:var(--surface2)"><td style="padding:6px 7px;font-weight:700;color:var(--text);font-size:9.5px">하락장 base</td>';
   for(var hb=0;hb<3;hb++){ var br=baseRate(hb); rows+='<td style="padding:6px 5px;text-align:right;color:'+T2+';font-size:10px">'+(br!=null?br.toFixed(0)+'%':'—')+'</td>'; }
   rows+='</tr>';
   // 발동 행 3개
@@ -7662,17 +7659,17 @@ function _deadcatHzRender(res, mk){
     if(r12==null||r3==null||r4==null||b==null) continue;
     var mono=(r3>=r12-1)&&(r4>=r3-1), l4=r4-b;
     var ok=mono&&l4>=10;
-    verdicts+='<div style="font-size:9px;margin-top:3px;color:'+(ok?GRN:(mono?AMB:T3))+'"><b>'+HZL[hv]+'</b>: '+(mono?'단조✓':'단조✗')+' · 4+ lift '+(l4>=0?'+':'')+l4.toFixed(0)+'%p '+(ok?'→ <b>역배 발동 유효!</b>':(mono&&l4>=4?'(약함)':'→ 무의미'))+'</div>';
+    verdicts+='<div style="font-size:9px;margin-top:3px;color:'+(ok?GRN:(mono?AMB:T3))+'"><b>'+HZL[hv]+'</b>: '+(mono?'단조✓':'단조✗')+' · 4+ lift '+(l4>=0?'+':'')+l4.toFixed(0)+'%p '+(ok?'→ <b>하락장 발동 유효!</b>':(mono&&l4>=4?'(약함)':'→ 무의미'))+'</div>';
   }
   var anyOk=/유효/.test(verdicts);
   var concl='<div style="font-size:9.5px;margin-top:7px;padding:7px;border-radius:7px;background:'+(anyOk?GRN+'14':RED+'0d')+';color:'+(anyOk?GRN:RED)+';line-height:1.45">'
-    +(anyOk?'✅ <b>긴 horizon에서 역배 발동 단조+lift 살아남</b> — "역배는 느리게 반응"(침체 종목) 가설 데이터 확인. 역배 발동 배지 가능(해당 horizon)':'⚠️ <b>어느 horizon에서도 단조+lift 동시 불충족</b> — 역배 발동은 길게 봐도 무의미. N10 결론 유지·역배 발동 배지 불가. 서사는 매력적이나 데이터가 기각')+'</div>';
-  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:7px"><b>역배 데드캣-real 발동 × N10/N15/N20</b>. 셀=진짜비율(<b style="color:'+T2+'">작은수=lift</b>=그 horizon 역배 base 대비). <b>N10은 이미 단조 깨짐</b>(62→61→71) — 긴 horizon서 <b>단조(발동↑=진짜↑) + 4+ lift≥10%p</b> 살아나면 "역배는 느림" 가설 확인. 현재 시장 deadcat-real 세트·'+_measPoolLbl()+'·'+(res.stocksUsed||0)+'종목.</div>';
+    +(anyOk?'✅ <b>긴 horizon에서 하락장 발동 단조+lift 살아남</b> — "역배는 느리게 반응"(침체 종목) 가설 데이터 확인. 하락장 발동 배지 가능(해당 horizon)':'⚠️ <b>어느 horizon에서도 단조+lift 동시 불충족</b> — 하락장 발동은 길게 봐도 무의미. N10 결론 유지·하락장 발동 배지 불가. 서사는 매력적이나 데이터가 기각')+'</div>';
+  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:7px"><b>하락장 데드캣-real 발동 × N10/N15/N20</b>. 셀=진짜비율(<b style="color:'+T2+'">작은수=lift</b>=그 horizon 하락장 base 대비). <b>N10은 이미 단조 깨짐</b>(62→61→71) — 긴 horizon서 <b>단조(발동↑=진짜↑) + 4+ lift≥10%p</b> 살아나면 "역배는 느림" 가설 확인. 현재 시장 deadcat-real 세트·'+_measPoolLbl()+'·'+(res.stocksUsed||0)+'종목.</div>';
   return head
     +'<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">'+thead+rows+'</table>'
     +'<div style="margin-top:7px">'+verdicts+'</div>'+concl;
 }
-// ════════ [S838] 🔴 역배 발동 3+ BT — N15/N20 유효 통계(68→72%)가 실전 총수익/MDD로 이어지나. "긴 호흡 단서" 검증: 2~3주 보유 수익·낙폭·시간당수익. 발동3+ 진입→hz봉 보유 청산·복리 자산곡선. ════════
+// ════════ [S838] 🔴 하락장 발동 3+ BT — N15/N20 유효 통계(68→72%)가 실전 총수익/MDD로 이어지나. "긴 호흡 단서" 검증: 2~3주 보유 수익·낙폭·시간당수익. 발동3+ 진입→hz봉 보유 청산·복리 자산곡선. ════════
 async function _deadcatHzBtBracket(mk, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
   if(!(window.SXRecipeSignal&&SXRecipeSignal.deadcatHzBtScan)) return { ok:false, reason:'레시피 모듈 미로드' };
@@ -7713,7 +7710,7 @@ async function _deadcatHzBtRun(){
   var el=document.getElementById('deadcatHzBtResult'); if(!el) return;
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
   el.style.display='block';
-  el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">🔴 역배 발동 BT 실행 중...</div>';
+  el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">🔴 하락장 발동 BT 실행 중...</div>';
   var res;
   try{ res=await _deadcatHzBtBracket(mk,function(i,t,n){ el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">🔴 BT '+i+'/'+t+' · '+(n||'')+'</div>'; }); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
   el.innerHTML=_deadcatHzBtRender(res, mk);
@@ -8060,7 +8057,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S971';
+  window.SX_BUILD='S972';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
