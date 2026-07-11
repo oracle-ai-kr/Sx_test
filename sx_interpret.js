@@ -841,9 +841,15 @@ SXI.compositeSynergy = function(ind){
   if(macdG && eomV!=null && eomV>0 && abT==='bullish' && vhfT!=='trending')
     notes.push({tone:'bullish',icon:'[~]',title:'3중 전환 신호 (MACD+EOM+AB)',text:'MACD 골든크로스 + EOM 양수 전환 + AB Ratio 매수 우위 — 모멘텀·수급·장중 매수세가 동시에 전환되고 있습니다. 추세 형성 초기 신호로, VHF 상승 확인 시 본격 진입이 유효합니다.'});
 
-  // 8. BB 확대 + VHF 추세 형성: 변동성 확장 확인
-  if(vhfT==='trending' && bbW!=null && bbW>0.1 && adxV>=25)
-    notes.push({tone:'bullish',icon:'📢',title:'변동성 확장 + 추세 형성',text:`VHF 추세장 + BB 폭 ${(bbW*100).toFixed(1)}% + ADX ${Math.round(adxV)} — BB 스퀴즈가 풀리며 본격적인 추세가 시작되었습니다. 방향이 정해진 뒤의 초기 구간으로, 추세 추종 진입에 적합합니다.`});
+  // 8. BB 확대 + VHF 추세 형성: 변동성 확장 확인 — [S979] maArr 방향 가드 (하락 추세에 "추종 적합" 오표기 수정)
+  if(vhfT==='trending' && bbW!=null && bbW>0.1 && adxV>=25){
+    if(maArr==='bear')
+      notes.push({tone:'danger',icon:'📢',title:'변동성 확장 + 하락 추세',text:`VHF 추세장 + BB 폭 ${(bbW*100).toFixed(1)}% + ADX ${Math.round(adxV)} — BB 스퀴즈가 풀리며 본격 추세가 시작됐는데 방향이 하락(역배열)이에요. 추세 추종은 곧 매도 방향이라 신규 매수는 부적합합니다.`});
+    else if(maArr==='bull')
+      notes.push({tone:'bullish',icon:'📢',title:'변동성 확장 + 상승 추세',text:`VHF 추세장 + BB 폭 ${(bbW*100).toFixed(1)}% + ADX ${Math.round(adxV)} — BB 스퀴즈가 풀리며 본격 상승 추세가 시작됐어요. 방향이 정해진 초기 구간으로, 추세 추종(매수) 진입에 적합합니다.`});
+    else
+      notes.push({tone:'neutral',icon:'📢',title:'변동성 확장 + 추세 형성',text:`VHF 추세장 + BB 폭 ${(bbW*100).toFixed(1)}% + ADX ${Math.round(adxV)} — BB 스퀴즈가 풀리며 추세가 형성 중이나 방향(정/역배열)이 아직 뚜렷하지 않아요. 방향 확인 후 대응하세요.`});
+  }
 
   return notes;
 };
@@ -1321,7 +1327,11 @@ SXI.unifiedNarrative = function(verdict, scores, scores4, ind, stock){
       const r4=scores4.readyScore||0, e4=scores4.entryScore||0, t4=scores4.trendScore||0;
       const e4Lbl = e4>=60?'양호':e4>=45?'보통':'약함';
       const t4Lbl = t4>=60?'상승':t4>=45?'중립':'약추세/하락';
-      reasons.push(`반등 전환 ${e4} (${e4Lbl}), 추세 방향 ${t4} (${t4Lbl}) → 동력 ${e4>=55?'살아있음':'미흡'}`);
+      // [S979] 동력 판정에 추세방향 반영 — 반등전환 높아도 추세 하락이면 "반등 여지"지 "동력"이 아님(하락주 오표기 수정)
+      const _momTxt = (e4>=55 && t4>=45) ? '동력 살아있음'
+        : (e4>=55 && t4<45) ? '반등 여지 있으나 추세는 하락 (지속 동력 아님)'
+        : '동력 미흡';
+      reasons.push(`반등 전환 ${e4} (${e4Lbl}), 추세 방향 ${t4} (${t4Lbl}) → ${_momTxt}`);
     }
   }
 
