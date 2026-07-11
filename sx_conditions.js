@@ -236,10 +236,6 @@ const SX_CONDITIONS = [
   // ── Phase 3: 검증 분석 ──
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
-      {axis4:true,id:'score_range',name:'추세 방향 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세 방향 0~100 (분석탭 "추세 방향") - 50↑=상승, 70↑=강한 상승',recommend:'50↑ (상승 추세) / 70↑ (강한 상승)'},
-      {axis4:true,id:'_ready_score',name:'반등 준비 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'반등 준비 0~100 (과매도+수축+눌림) - 50↑=신호 발현 시작',recommend:'50↑ (반등 준비) / 70↑ (강한 신호)'},
-      {axis4:true,id:'_entry_score',name:'반등 전환 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'반등 전환 0~100 (RSI반등+MACD전환) - 진입 타이밍 판단',recommend:'50↑ (진입 가능) / 70↑ (강력 진입)'},
-      {axis4:true,id:'_upside_score',name:'추가 상승 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추가 상승 0~100 (정배열+돌파+수급) - 추세 추격 여력, 50↑=여력, 70↑=강한 추격',recommend:'50↑ (추격 여력) / 70↑ (강한 추격)'},
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
       {id:'_adx_score',name:'추세강도(ADX)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세강도 0~100 (분석탭 "추세강도" 도넛 = ADX값) - 25↑=추세 형성, 40↑=매우 강한 추세. 횡보(낮음)에선 추세추종 비효율',recommend:'25↑ (추세 형성) / 40↑ (강한 추세)'},
       {id:'_struct_pos',name:'구조위치',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'구조위치 0~100 (분석탭 "구조위치" 도넛 = 최근 고/저점 구간 내 현재가 위치) - 낮을수록 저점 근접(눌림 후보), 높을수록 고점 근접(과열 주의)',recommend:'~35 (저점 근접·눌림) / 40~70 (추세 중단)'},
@@ -437,10 +433,6 @@ const COIN_CONDITIONS = [
   // ── Phase 3 ──
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
-      {axis4:true,id:'score_range',name:'추세 방향 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세 방향 0~100 (분석탭 "추세 방향") - 50↑=상승, 70↑=강한 상승',recommend:'50↑ (상승 추세) / 70↑ (강한 상승)'},
-      {axis4:true,id:'_ready_score',name:'반등 준비 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'반등 준비 0~100 (과매도+수축+눌림) - 50↑=신호 발현 시작',recommend:'50↑ (반등 준비) / 70↑ (강한 신호)'},
-      {axis4:true,id:'_entry_score',name:'반등 전환 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'반등 전환 0~100 (RSI반등+MACD전환) - 진입 타이밍 판단',recommend:'50↑ (진입 가능) / 70↑ (강력 진입)'},
-      {axis4:true,id:'_upside_score',name:'추가 상승 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추가 상승 0~100 (정배열+돌파+수급) - 추세 추격 여력, 50↑=여력, 70↑=강한 추격',recommend:'50↑ (추격 여력) / 70↑ (강한 추격)'},
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
       {id:'_adx_score',name:'추세강도(ADX)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세강도 0~100 (분석탭 "추세강도" 도넛 = ADX값) - 25↑=추세 형성, 40↑=매우 강한 추세. 횡보(낮음)에선 추세추종 비효율',recommend:'25↑ (추세 형성) / 40↑ (강한 추세)'},
       {id:'_struct_pos',name:'구조위치',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'구조위치 0~100 (분석탭 "구조위치" 도넛 = 최근 고/저점 구간 내 현재가 위치) - 낮을수록 저점 근접(눌림 후보), 높을수록 고점 근접(과열 주의)',recommend:'~35 (저점 근접·눌림) / 40~70 (추세 중단)'},
@@ -635,10 +627,6 @@ const US_CONDITIONS = [
   // ── Phase 3 ──
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
-      {axis4:true,id:'score_range',name:'추세 방향 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세 방향 0~100 (분석탭 "추세 방향") - 50↑=상승, 70↑=강한 상승',recommend:'50↑ (상승 추세) / 70↑ (강한 상승)'},
-      {axis4:true,id:'_ready_score',name:'반등 준비 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'반등 준비 0~100 (과매도+수축+눌림) - 50↑=신호 발현 시작',recommend:'50↑ (반등 준비) / 70↑ (강한 신호)'},
-      {axis4:true,id:'_entry_score',name:'반등 전환 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'반등 전환 0~100 (RSI반등+MACD전환) - 진입 타이밍 판단',recommend:'50↑ (진입 가능) / 70↑ (강력 진입)'},
-      {axis4:true,id:'_upside_score',name:'추가 상승 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추가 상승 0~100 (정배열+돌파+수급) - 추세 추격 여력, 50↑=여력, 70↑=강한 추격',recommend:'50↑ (추격 여력) / 70↑ (강한 추격)'},
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
       {id:'_adx_score',name:'추세강도(ADX)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세강도 0~100 (분석탭 "추세강도" 도넛 = ADX값) - 25↑=추세 형성, 40↑=매우 강한 추세. 횡보(낮음)에선 추세추종 비효율',recommend:'25↑ (추세 형성) / 40↑ (강한 추세)'},
       {id:'_struct_pos',name:'구조위치',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'구조위치 0~100 (분석탭 "구조위치" 도넛 = 최근 고/저점 구간 내 현재가 위치) - 낮을수록 저점 근접(눌림 후보), 높을수록 고점 근접(과열 주의)',recommend:'~35 (저점 근접·눌림) / 40~70 (추세 중단)'},
