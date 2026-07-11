@@ -709,34 +709,7 @@
     }
   }
 
-  // S103-fix6c Phase2: 감독관 통합판정 기반 행동 배지 (진입타이밍 버튼 위 좌측 정렬)
-  //   유력(실선 진한색): 매수→반등유력 / 즉시 청산·매도 완료→하락유력 (차트마커 ▲▼과 동기화)
-  //   조짐(실선 연한색): 관심→반등조짐 / 청산 준비·청산 검토→하락조짐 (예고 단계)
-  //   그 외(보유 유지·관망·회피): 배지 없음 (회피=비보유 진입안함이라 경고 표시 불필요)
-  // S103-fix7 Phase3-A-2 → [S598] '매도 완료'를 손익으로 분리. 위험감지 조기청산(즉시 청산)만 '하락유력' 유지.
-  //   · 즉시 청산(보유중 4축 0개=위험 확정) → 하락유력(빨강)
-  //   · 매도 완료(BT 오늘 청산) → 익절청산(녹·이득) / 손절청산(빨·손실) / isWin 불명 시 하락유력 폴백
-  //   → 반환: HTML string (빈 문자열이면 배지 없음). isWin은 render에서 stock._svVerdict.isWin 전달.
-  function getVerdictBadge(verdictAction, isWin){
-    if(!verdictAction) return '';
-    switch(verdictAction){
-      case '매수':
-        return '<span class="tx-badge up">반등유력</span>';
-      case '관심':
-        return '<span class="tx-badge up-soft">반등조짐</span>';
-      case '청산 준비':
-      case '청산 검토':
-        return '<span class="tx-badge down-soft">하락조짐</span>';
-      case '즉시 청산':
-        return '<span class="tx-badge down">하락유력</span>';
-      case '매도 완료':
-        if(isWin === true)  return '<span class="tx-badge up">익절청산</span>';
-        if(isWin === false) return '<span class="tx-badge down">손절청산</span>';
-        return '<span class="tx-badge down">하락유력</span>';
-      default:
-        return '';
-    }
-  }
+  // [S985] getVerdictBadge 삭제 — 정의+export만 존재하고 실제 호출 0(死코드).
 
   // 9종 → 결과탭 배지 그룹 조회 (buy/interest/hold/watch/avoid/sell)
   //   미매칭 시 'none' 반환
@@ -1440,7 +1413,6 @@
 
     // Layer 3: UI 헬퍼
     mapVerdictToBtAction: mapVerdictToBtAction,
-    getVerdictBadge: getVerdictBadge,
     getVerdictGroup: getVerdictGroup,
     isHolding: isHolding,
 
