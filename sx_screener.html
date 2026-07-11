@@ -49,7 +49,7 @@
 <script src="sx_project_c.js?v=10"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=331"></script>
+<script src="sx_render.js?v=332"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -2753,10 +2753,10 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
           <div style="display:flex;align-items:center;gap:6px;margin:0 0 10px">
             <!-- [S780] 데드캣→가짜반등 명칭 통일 -->
             <span style="font-size:9px;font-weight:700;color:var(--text3);flex-shrink:0">검증 풀</span>
-            <button id="dcPoolChipDead" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('deadcat')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:800;line-height:1.25;cursor:pointer;background:#dc26261F;color:#dc2626;border:1px solid #dc2626">🔴 가짜반등 <span style="font-weight:500;font-size:8.5px">역배열+약세</span></button>
-            <button id="dcPoolChipPull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('pullback')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🔵 눌림목 <span style="font-weight:500;font-size:8.5px">정배열+조정</span></button>
+            <button id="dcPoolChipDead" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('deadcat')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:800;line-height:1.25;cursor:pointer;background:#dc26261F;color:#dc2626;border:1px solid #dc2626">🔴 가짜반등 <span style="font-weight:500;font-size:8.5px">하락장·약세</span></button>
+            <button id="dcPoolChipPull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('pullback')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🔵 눌림목 <span style="font-weight:500;font-size:8.5px">상승장·조정</span></button>
           </div>
-          <div id="dcAuditDesc" style="font-size:8.5px;color:var(--text3);line-height:1.45;margin-bottom:10px">역배열+단기약세 진입에서 <b>진짜반등 vs 가짜반등</b>을 가르는 재료를 찾는 측정 묶음. <b style="color:#16a34a">BT 무관 — 풀 조건 만족 모든 봉을 순수 데이터로 측정</b>.</div>
+          <div id="dcAuditDesc" style="font-size:8.5px;color:var(--text3);line-height:1.45;margin-bottom:10px">하락장·단기약세 진입에서 <b>진짜반등 vs 가짜반등</b>을 가르는 재료를 찾는 측정 묶음. <b style="color:#16a34a">BT 무관 — 풀 조건 만족 모든 봉을 순수 데이터로 측정</b>.</div>
           <div style="font-size:9.5px;font-weight:800;color:#0d9488;margin:0 0 6px">🚪 게이트 검증 <span style="color:var(--text3);font-weight:500">· maAlignBull이 가짜반등 거르나</span></div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px">
             <button onclick="_sxVib(12);window._btGateAuditRun&&_btGateAuditRun('n10')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0d948814;color:#0d9488;border:1px solid #0d948866">🚪 약세 vs 강세 N10</button>
@@ -2819,12 +2819,12 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
             <button onclick="_sxVib(12);window._deadcatConfirmRun&&_deadcatConfirmRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#16a34a14;color:#16a34a;border:1px solid #16a34a66">🎯 즉시 vs 확인 진입 N10</button>
           </div>
           <div id="deadcatConfirmResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
-          <div style="font-size:9.5px;font-weight:800;color:#2563eb;margin:10px 0 6px;border-top:2px solid var(--border);padding-top:10px">🔵 정배열 측정 <span style="color:var(--text3);font-weight:500">· pullback-real 통합 전 검증</span></div>
+          <div style="font-size:9.5px;font-weight:800;color:#2563eb;margin:10px 0 6px;border-top:2px solid var(--border);padding-top:10px">🔵 상승장 측정 <span style="color:var(--text3);font-weight:500">· pullback-real 통합 전 검증</span></div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px">
-            <button onclick="_sxVib(12);window._pullbackBaseRun&&_pullbackBaseRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">🔵 정배 base·발동</button>
-            <button onclick="_sxVib(12);window._pullbackBaseRun&&_pullbackBaseRun('deadcat')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">🔴 역배 base·발동</button>
-            <button onclick="_sxVib(12);window._deadcatHzRun&&_deadcatHzRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc2626;color:#fff;border:1px solid #dc2626">🔴 역배 발동 N10/15/20</button>
-            <button onclick="_sxVib(12);window._deadcatHzBtRun&&_deadcatHzBtRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#991b1b;color:#fff;border:1px solid #991b1b">🔴 역배 발동 BT (실전)</button>
+            <button onclick="_sxVib(12);window._pullbackBaseRun&&_pullbackBaseRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">🔵 상승장 base·발동</button>
+            <button onclick="_sxVib(12);window._pullbackBaseRun&&_pullbackBaseRun('deadcat')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">🔴 하락장 base·발동</button>
+            <button onclick="_sxVib(12);window._deadcatHzRun&&_deadcatHzRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc2626;color:#fff;border:1px solid #dc2626">🔴 하락장 발동 N10/15/20</button>
+            <button onclick="_sxVib(12);window._deadcatHzBtRun&&_deadcatHzBtRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#991b1b;color:#fff;border:1px solid #991b1b">🔴 하락장 발동 BT (실전)</button>
             <button onclick="_sxVib(12);window._deadcatConfirmRun&&_deadcatConfirmRun('pullback')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">🎯 손절 4방식</button>
             <button onclick="_sxVib(12);window._deadcatTrajRun&&_deadcatTrajRun('pullback')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">📉 진입 후 궤적</button>
             <button onclick="_sxVib(12);window._wtDiagRun&&_wtDiagRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0891b214;color:#0891b2;border:1px solid #0891b266">🌊 물타기 신호 진단</button>
