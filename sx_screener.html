@@ -9,7 +9,7 @@
 <script src="sx_recipe_core.js?v=4"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
 <script src="sx_interpret.js?v=45"></script>
 <script src="sx_chart.js?v=20"></script>
-<script src="sx_conditions.js?v=19"></script>
+<script src="sx_conditions.js?v=20"></script>
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
 <script src="sx_storage.js?v=2"></script>
@@ -49,7 +49,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=351"></script>
+<script src="sx_render.js?v=352"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1635,21 +1635,15 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
     <!-- [S578] 차트 마커 — 보라(A/C) + 녹/적(B/S) 교차 선택. 한 화면에 보라1 + 녹적1. -->
     <div class="setting-group">
-      <div class="setting-group-title">차트/스캔 마커 <span style="font-size:8px;color:var(--text3);font-weight:400">녹·적 = 차트(2종) · ▲ = 스캔 리스트</span></div>
+      <div class="setting-group-title">차트 마커 <span style="font-size:8px;color:var(--text3);font-weight:400">녹·적 = 차트(2종)</span></div>
       <div class="sound-setting">
-        <div style="font-size:11px;font-weight:700;color:var(--text)">🔺 스캔 리스트 ▲ 마커</div>
-        <div id="chartPurpleSeg" style="display:flex;gap:6px;margin-top:6px">
-          <span class="cm-seg" data-v="A" onclick="setChartMarker('purple','A')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">진입타이밍 A</span>
-          <span class="cm-seg" data-v="C" onclick="setChartMarker('purple','C')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">안전제동 C</span>
-        </div>
-        <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5">스캔 리스트 ▲ 매수마커 표시 기준 · A=진입타이밍(A로직) / C=감독관 판정. <b>차트 보라마커는 S987서 제거</b> — 차트는 단기추세+레시피(이중ATR) 2종만.</div>
-
+        <!-- [S992] 스캔 리스트 ▲ 마커 토글 삭제 — 매수마커 ▲ 필터 제거로 고아. 녹/적(차트 S/R)만 유지. -->
         <div style="font-size:11px;font-weight:700;color:var(--text);margin-top:12px">🟢🔴 녹/적 마커</div>
         <div id="chartGreenRedSeg" style="display:flex;gap:6px;margin-top:6px">
           <span class="cm-seg" data-v="R" onclick="setChartMarker('greenred','R')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">레시피·ATR R</span>
           <span class="cm-seg" data-v="S" onclick="setChartMarker('greenred','S')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">단기추세 S</span>
         </div>
-        <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5">B: 백테스트 매매 마커(녹/적) · S: 단기추세매매 골든/데드크로스(녹/적). 단기추세 MA기간은 분석탭 카드에서 설정.</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5">R: 레시피·ATR 마커 — 레시피 진입▲ · 이중ATR/MA청산▼ (자동매매 정합) · S: 단기추세 골든/데드크로스. MA기간은 분석탭 카드에서 설정. [S992]</div>
       </div>
     </div>
     <!-- S83: 전이 구간 임계값 -->
@@ -4691,7 +4685,7 @@ function renderFilterList(){
     const phTag = phInfo ? `<span class="preset-phase-tag ${ph}" style="font-size:7px;padding:1px 4px;margin-right:3px">P${ph.charAt(1)}</span>` : '';
     // S79: BT 필터 비지원 TF → 비활성 표시
     // [v1.9] _dir_mom도 BT 게이트 안에서 평가되므로 동일하게 비활성 표시
-    const _isBtFilter = f.id && (f.id.startsWith('_bt_') || f.id === '_dir_mom');
+    const _isBtFilter = f.id && (f.id.startsWith('_bt_'));
     const _btOff = _isBtFilter && typeof _isBtSupportedTF==='function' && !_isBtSupportedTF(currentMarket, currentTF);
     const _disabledStyle = _btOff ? 'opacity:0.4;' : '';
     const _disabledTag = _btOff ? '<span style="font-size:8px;color:var(--sell);font-weight:600;margin-left:4px">(비활성)</span>' : '';
@@ -5337,7 +5331,7 @@ function _buildScanConfig(){
     // [v3.11] 종목 추적 코드 — 진단 모달에서 입력 → window._scanTraceCode에 저장
     traceCode: (typeof window._scanTraceCode === 'string' && window._scanTraceCode.trim()) ? window._scanTraceCode.trim() : null,
     // [S591] 매수마커 ▲ 필터가 설정탭 차트마커 교차선택(보라 A/C)을 추종 — 워커는 localStorage 미접근이라 명시적 동봉. 기본 C(안전제동).
-    purpleMarkerMode: (function(){ try { return localStorage.getItem('SX_CHART_PURPLE')==='A' ? 'A' : 'C'; } catch(_){ return 'C'; } })(),
+    // [S992] purpleMarkerMode 워커 주입 삭제 — 매수마커 ▲ 필터 제거로 불필요.
   };
 }
 
@@ -5450,7 +5444,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=14');
+    _scanWorker = new Worker('sx_scan_worker.js?v=15');
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -12820,7 +12814,7 @@ function _getChartMarkerCfg(){
 }
 function _renderChartMarkerSeg(){
   var c=_getChartMarkerCfg();
-  [['purple','chartPurpleSeg'],['greenred','chartGreenRedSeg']].forEach(function(pair){
+  [['greenred','chartGreenRedSeg']].forEach(function(pair){
     var box=document.getElementById(pair[1]); if(!box) return;
     var cur=c[pair[0]];
     Array.prototype.forEach.call(box.querySelectorAll('.cm-seg'), function(el){
