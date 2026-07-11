@@ -8,7 +8,7 @@
 <script src="sx_analysis_engine.js?v=42"></script>
 <script src="sx_recipe_core.js?v=4"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
 <script src="sx_interpret.js?v=45"></script>
-<script src="sx_chart.js?v=19"></script>
+<script src="sx_chart.js?v=20"></script>
 <script src="sx_conditions.js?v=18"></script>
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
@@ -49,7 +49,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=347"></script>
+<script src="sx_render.js?v=348"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1646,7 +1646,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
         <div style="font-size:11px;font-weight:700;color:var(--text);margin-top:12px">🟢🔴 녹/적 마커</div>
         <div id="chartGreenRedSeg" style="display:flex;gap:6px;margin-top:6px">
-          <span class="cm-seg" data-v="B" onclick="setChartMarker('greenred','B')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">백테스트 B</span>
+          <span class="cm-seg" data-v="R" onclick="setChartMarker('greenred','R')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">레시피·ATR R</span>
           <span class="cm-seg" data-v="S" onclick="setChartMarker('greenred','S')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">단기추세 S</span>
         </div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5">B: 백테스트 매매 마커(녹/적) · S: 단기추세매매 골든/데드크로스(녹/적). 단기추세 MA기간은 분석탭 카드에서 설정.</div>
@@ -12816,13 +12816,13 @@ async function resetEarlyExit(){
 // ════════════════════════════════════════════════════════════
 //  [S578] 차트 마커 교차 선택 — 보라(A/C) + 녹/적(B/S)
 //    SX_CHART_PURPLE  : 'A'(진입타이밍, render.js _resolvePurpleSv) | 'C'(안전제동). 기본 C.
-//    SX_CHART_GREENRED: 'B'(백테스트, sx_chart.js BT마커) | 'S'(단기추세 크로스). 기본 S.
+//    SX_CHART_GREENRED: 'R'(레시피·ATR Season2 마커, render _season2Bt) | 'S'(단기추세 MA크로스). 기본 S. [S988]
 //    한 화면에 보라 1 + 녹/적 1만 표시. 토글은 전역(시장 공통).
 // ════════════════════════════════════════════════════════════
 function _getChartMarkerCfg(){
   var p='C', g='S';
   try { if(localStorage.getItem('SX_CHART_PURPLE')==='A')   p='A'; } catch(_){}
-  try { if(localStorage.getItem('SX_CHART_GREENRED')==='B') g='B'; } catch(_){}
+  try { if(localStorage.getItem('SX_CHART_GREENRED')==='R') g='R'; } catch(_){}
   return { purple:p, greenred:g };
 }
 function _renderChartMarkerSeg(){
@@ -12843,12 +12843,12 @@ function setChartMarker(group, val){
   _sxVib(8);
   try {
     if(group==='purple')   localStorage.setItem('SX_CHART_PURPLE',   val==='A' ? 'A' : 'C');
-    else                   localStorage.setItem('SX_CHART_GREENRED', val==='B' ? 'B' : 'S');
+    else                   localStorage.setItem('SX_CHART_GREENRED', val==='R' ? 'R' : 'S');
   } catch(_){}
   _renderChartMarkerSeg();
   // 현재 분석탭 미니차트 즉시 갱신 (풀차트는 다음 openFull에서 반영). 차트 없으면 가드로 noop.
   try { if(typeof _trendRedrawChart==='function') _trendRedrawChart(); } catch(_){}
-  var lbl={ purple:{A:'진입타이밍 A', C:'안전제동 C'}, greenred:{B:'백테스트 B', S:'단기추세 S'} };
+  var lbl={ purple:{A:'진입타이밍 A', C:'안전제동 C'}, greenred:{R:'레시피·ATR R', S:'단기추세 S'} };
   toast('차트 마커: '+(group==='purple'?'보라':'녹/적')+' → '+(lbl[group][val]||val));
 }
 if(typeof window!=='undefined'){ window.setChartMarker=setChartMarker; window._renderChartMarkerSeg=_renderChartMarkerSeg; }
