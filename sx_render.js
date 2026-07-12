@@ -5136,11 +5136,139 @@ async function _riskMeasureUI(src){
   var res;
   try{ res=await _riskMeasureBracket(mk, source, function(i,t,n){ var e=document.getElementById('btDiscrimResult'); if(e) e.innerHTML='<div style="text-align:center;padding:14px;color:#ef4444;font-size:12px;font-weight:700">🛡️ 측정 중 '+i+'/'+t+'<div style="font-size:10px;color:#94a3b8;margin-top:3px">'+(n||'')+'</div></div>'; }); }
   catch(e){ res={ok:false, reason:String(e&&e.message||e)}; }
+  if(res&&res.ok){ window._sxRiskEntries={ mk:mk, source:source, snap:_snapOn, ts:Date.now(), stocksUsed:res.stocksUsed, entries:res.entries }; }   // [S1001] 조합 측정용 세션캐시 — _riskComboUI가 재fetch 없이 사용
   var agg=(res&&res.ok)?_riskMeasureAgg(res.entries):res;
   try{ if(agg&&agg.ok&&typeof _sxMeasStash==='function') _sxMeasStash('risk_'+mk+'_'+source+'_'+(_snapOn?'snap':'live'), { pool:srcLabel, snap:_snapOn, base:agg.base, rows:agg.rows, ic:agg.ic }); }catch(_){}   // [S997] 공용 📋 JSON 측정결과에 합류 (스냅/라이브 키 분리→한 파일 OOS 비교)
-  el.innerHTML=_riskMeasureRender(agg, mk.toUpperCase()+' · '+srcLabel+(res&&res.stocksUsed?' '+res.stocksUsed+'종':''));
+  el.innerHTML=_riskMeasureRender(agg, mk.toUpperCase()+' · '+srcLabel+(res&&res.stocksUsed?' '+res.stocksUsed+'종':''))
+    +((res&&res.ok)?'<div style="font-size:9px;color:#7c3aed;margin-top:6px;font-weight:600">🧪 entries '+res.entries.length+'봉 세션캐시 완료 → 🧪 위험조합 버튼으로 즉시 조합 측정 (재fetch 없음)</div>':'');   // [S1001]
 }
 if(typeof window!=='undefined'){ window._riskMeasureUI=_riskMeasureUI; }
+
+// ═══════════ [S1001] 위험 조합 측정 — 위험필터의 "레시피" (entries 세션캐시 기반·재fetch 없음) ═══════════
+// 사전 선언 판정 기준: ①타겟=폭락lift(조합 발동봉 폭락비율−baseline · S1000서 표본외 20/20 재현된 축)
+// ②농축Δ=조합 폭락%−단독 최대치 — 양수=AND가 단독 어느 쪽보다 폭락을 더 골라냄(진짜 조합 효과)
+// ③평균lift 병기 — 강양수면 대박도 같이 버리는 필터(과열군 함정 그대로) ④n<20 제외·20~29 ⚠·판정은 n≥30
+// ⑤전수 페어=다중비교 → 채택은 표본외(확장↔발굴·📦스냅↔🔴라이브) 부호 일치 후에만. "현 기준하 보임" 화법.
+var _RISK_NEG_ATOMS={ nHighProx95:{base:'highProx95',label:'¬고점95%근접'}, nMa60resist:{base:'ma60resist',label:'¬MA60저항'}, nAdxLt15:{base:'adxLt15',label:'¬ADX<15'} };
+var _RISK_SIB_PAIRS={ 'maDisp20+maDisp8':1, 'macdNeg3+macdNeg5':1, 'bbPctB90+bbTouch':1, 'stochK80+stochRsiCombo':1 };   // 겹침 형제쌍 — AND=더 좁은 임계와 동일(퇴화)라 제외
+var _RISK_HYP_PAIRS=(function(){   // ★사전 선언 가설: 과열 앵커 × 폭락뒤집기 모디파이어 (S1000 결론에서 도출)
+  var A=['atrHard10','maDisp20','maDisp8','recentHigh20','rsi70','gapUp3'], M=['volDry50','macdNeg3','macdNeg5','nHighProx95'], out={};
+  A.forEach(function(a){ M.forEach(function(m){ out[[a,m].sort().join('+')]=1; }); }); return out;
+})();
+function _riskComboLabel(k){ if(_RISK_NEG_ATOMS[k]) return _RISK_NEG_ATOMS[k].label; return (_RISK_LABELS[k]||k).replace(/\s*\[겹[A-Z]\]/,''); }
+function _riskAtomFired(e, a){ var neg=_RISK_NEG_ATOMS[a]; var v=!!(e.c&&e.c[neg?neg.base:a]); return neg?!v:v; }
+function _riskComboAgg(entries){
+  var N=entries.length; if(!N) return { ok:false, reason:'entries 없음' };
+  var baseMean=0, baseCrashN=0;
+  for(var i=0;i<N;i++){ baseMean+=entries[i].r10; if(entries[i].r10<=-0.10) baseCrashN++; }
+  baseMean/=N; var baseCrash=baseCrashN/N;
+  // 원자 fire 벡터 (Uint8) — 이진 위험조건 전부 + 안전조건 부정 3종
+  var keys={}; entries.forEach(function(e){ for(var k in e.c) keys[k]=1; });
+  var atomIds=Object.keys(keys);
+  for(var nk in _RISK_NEG_ATOMS){ if(keys[_RISK_NEG_ATOMS[nk].base]) atomIds.push(nk); }
+  var fire={};
+  atomIds.forEach(function(a){ var arr=new Uint8Array(N); for(var q=0;q<N;q++) arr[q]=_riskAtomFired(entries[q],a)?1:0; fire[a]=arr; });
+  // 단독 폭락% (농축Δ 비교 기준)
+  var single={};
+  atomIds.forEach(function(a){ var arr=fire[a], n=0,c=0; for(var q=0;q<N;q++) if(arr[q]){ n++; if(entries[q].r10<=-0.10) c++; } single[a]={ n:n, crash:n?c/n:0 }; });
+  // 전수 페어 스캔
+  var rows=[];
+  for(var x=0;x<atomIds.length;x++){
+    for(var y=x+1;y<atomIds.length;y++){
+      var a=atomIds[x], b=atomIds[y];
+      if(_RISK_NEG_ATOMS[a]&&_RISK_NEG_ATOMS[a].base===b) continue;   // 자기부정 페어(항상 공집합) 제외
+      if(_RISK_NEG_ATOMS[b]&&_RISK_NEG_ATOMS[b].base===a) continue;
+      var key=[a,b].sort().join('+');
+      if(_RISK_SIB_PAIRS[key]) continue;
+      var fa=fire[a], fb=fire[b], n=0, sum=0, win=0, crash=0, worst=0;
+      for(var q=0;q<N;q++) if(fa[q]&&fb[q]){ var r=entries[q].r10; n++; sum+=r; if(r>0)win++; if(r<=-0.10)crash++; if(r<worst)worst=r; }
+      if(n<20) continue;
+      var mean=sum/n, cr=crash/n;
+      rows.push({ a:a, b:b, key:key, label:_riskComboLabel(a)+' ∧ '+_riskComboLabel(b), n:n, mean:mean, win:win/n, crash:cr, worst:worst,
+        lift:mean-baseMean, crashLift:cr-baseCrash, conc:cr-Math.max(single[a].crash, single[b].crash), hyp:!!_RISK_HYP_PAIRS[key] });
+    }
+  }
+  rows.sort(function(p,q){ return q.crashLift-p.crashLift; });   // 폭락 집중 내림차순
+  return { ok:true, base:{ mean:baseMean, crash:baseCrash, n:N }, rows:rows, single:single, atoms:atomIds.length };
+}
+function _riskComboRegime(entries, rows, topK){
+  // 레짐 분해: 전체 / 정배(단기 st=1) / 역배(장기 lt='bear') — 값은 그 레짐 자체 baseline 대비(base rate 차 보정 — 역배가 원래 폭락 많은 건 당연하므로)
+  var N=entries.length;
+  var inReg=function(e,id){ return id==='all' || (id==='st1' ? e.st===1 : e.lt==='bear'); };
+  var ids=['all','st1','bear'], base={};
+  ids.forEach(function(id){ var n=0,c=0; for(var q=0;q<N;q++){ var e=entries[q]; if(inReg(e,id)){ n++; if(e.r10<=-0.10)c++; } } base[id]={ n:n, crash:n?c/n:0 }; });
+  var use=rows.filter(function(r){ return r.n>=30; }).slice(0, topK||8);
+  var out=use.map(function(r){
+    var cells={};
+    ids.forEach(function(id){ var n=0,c=0; for(var q=0;q<N;q++){ var e=entries[q]; if(inReg(e,id)&&_riskAtomFired(e,r.a)&&_riskAtomFired(e,r.b)){ n++; if(e.r10<=-0.10)c++; } } cells[id]={ n:n, crash:n?c/n:null, rel:(n?(c/n-base[id].crash):null) }; });
+    return { label:r.label, key:r.key, hyp:r.hyp, cells:cells };
+  });
+  return { base:base, rows:out };
+}
+function _riskComboRender(res, reg, meta){
+  if(!res||!res.ok) return '<div style="font-size:11px;color:#dc2626;padding:8px 2px">조합 측정 불가 — '+((res&&res.reason)||'?')+'</div>';
+  var pct=function(v){ return (v*100).toFixed(0)+'%'; };
+  var sp=function(v){ return (v>0?'+':'')+(v*100).toFixed(1)+'%'; };
+  var b=res.base;
+  var head='<div style="font-size:11px;font-weight:800;color:#7c3aed;margin-bottom:5px">🧪 위험 조합 측정 · '+(meta||'')+'</div>'
+    +'<div style="font-size:9px;color:var(--text3);margin-bottom:6px;line-height:1.55">baseline('+b.n+'봉): 평균 <b>'+sp(b.mean)+'</b> · 폭락(≤-10%) <b>'+pct(b.crash)+'</b> · 원자 '+res.atoms+'개(이진+부정3) 전수 페어<br><b style="color:#ef4444">폭락lift</b>=조합 발동봉 폭락률−baseline(타겟) · <b>농축Δ</b>=조합 폭락%−단독 최대(양수=AND가 단독보다 더 골라냄) · 평균lift 강양수=대박도 같이 버림 · <span style="color:#f59e0b">★=사전가설(과열∧뒤집기)</span> · n&lt;30 ⚠</div>';
+  var mkRow=function(r){
+    var nWarn=r.n<30;
+    return '<div style="display:flex;align-items:center;font-size:9.5px;padding:4px 0;border-bottom:1px solid var(--border)">'
+      +'<span style="flex:2.1;font-weight:600;color:var(--text)">'+(r.hyp?'<span style="color:#f59e0b">★</span>':'')+r.label+'</span>'
+      +'<span style="flex:.5;text-align:right;color:'+(nWarn?'#f59e0b':'var(--text3)')+'">'+r.n+(nWarn?'⚠':'')+'</span>'
+      +'<span style="flex:.75;text-align:right;color:'+(r.crashLift>0.01?'#ef4444':(r.crashLift<-0.01?'#16a34a':'var(--text3)'))+';font-weight:800">'+sp(r.crashLift)+'</span>'
+      +'<span style="flex:.6;text-align:right;color:var(--text2)">'+pct(r.crash)+'</span>'
+      +'<span style="flex:.7;text-align:right;color:'+(r.conc>0.01?'#ef4444':(r.conc<-0.01?'#16a34a':'var(--text3)'))+'">'+sp(r.conc)+'</span>'
+      +'<span style="flex:.7;text-align:right;color:'+(r.lift>0.005?'#16a34a':(r.lift<-0.005?'#ef4444':'var(--text3)'))+'">'+sp(r.lift)+'</span>'
+      +'</div>';
+  };
+  var thead='<div style="display:flex;font-size:8px;color:var(--text3);font-weight:700;padding:2px 0;border-bottom:2px solid var(--border)">'
+    +'<span style="flex:2.1">조합 (A ∧ B)</span><span style="flex:.5;text-align:right">n</span><span style="flex:.75;text-align:right">폭락lift</span><span style="flex:.6;text-align:right">폭락%</span><span style="flex:.7;text-align:right">농축Δ</span><span style="flex:.7;text-align:right">평균lift</span></div>';
+  var top=res.rows.slice(0,15), topKeys={};
+  top.forEach(function(r){ topKeys[r.key]=1; });
+  var sec1='<div style="font-size:9.5px;font-weight:800;color:#ef4444;margin:4px 0 2px">① 폭락 집중 상위 15 <span style="font-weight:500;font-size:8px;color:var(--text3)">— 유효 페어 '+res.rows.length+'개 중</span></div>'+thead+top.map(mkRow).join('');
+  var hypExtra=res.rows.filter(function(r){ return r.hyp&&!topKeys[r.key]; }).slice(0,12);
+  if(hypExtra.length) sec1+='<div style="font-size:8.5px;font-weight:700;color:#f59e0b;margin:5px 0 1px">★ 사전가설 — 상위 15 밖</div>'+hypExtra.map(mkRow).join('');
+  var safe=res.rows.filter(function(r){ return r.n>=30; }).slice(-5).reverse();
+  var sec2='<div style="font-size:9.5px;font-weight:800;color:#16a34a;margin:10px 0 2px">② 역방향(폭락 희소) 하위 5 <span style="font-weight:500;font-size:8px;color:var(--text3)">— 폭락lift 최저 · n≥30</span></div>'+thead+safe.map(mkRow).join('');
+  var sec3='';
+  if(reg&&reg.rows&&reg.rows.length){
+    var rb=reg.base;
+    var rHead='<div style="display:flex;font-size:8px;color:var(--text3);font-weight:700;padding:2px 0;border-bottom:2px solid var(--border)">'
+      +'<span style="flex:2.1">조합</span><span style="flex:1;text-align:right">전체</span><span style="flex:1;text-align:right">정배(단기)</span><span style="flex:1;text-align:right">역배(장기)</span></div>';
+    var cell=function(c){ if(!c||c.crash==null||c.n<15) return '<span style="color:var(--text3)">—'+((c&&c.n)?('<span style="font-size:7px">('+c.n+')</span>'):'')+'</span>';
+      var col=c.rel>0.01?'#ef4444':(c.rel<-0.01?'#16a34a':'var(--text3)');
+      return '<span style="color:'+col+';font-weight:700">'+sp(c.rel)+'</span><span style="font-size:7px;color:var(--text3)">('+c.n+')</span>'; };
+    var rRows=reg.rows.map(function(r){ return '<div style="display:flex;align-items:center;font-size:9.5px;padding:4px 0;border-bottom:1px solid var(--border)">'
+      +'<span style="flex:2.1;font-weight:600;color:var(--text)">'+(r.hyp?'<span style="color:#f59e0b">★</span>':'')+r.label+'</span>'
+      +'<span style="flex:1;text-align:right">'+cell(r.cells.all)+'</span>'
+      +'<span style="flex:1;text-align:right">'+cell(r.cells.st1)+'</span>'
+      +'<span style="flex:1;text-align:right">'+cell(r.cells.bear)+'</span>'
+      +'</div>'; }).join('');
+    sec3='<div style="font-size:9.5px;font-weight:800;color:#2563eb;margin:10px 0 2px">③ 레짐 분해 <span style="font-weight:500;font-size:8px;color:var(--text3)">— 상위 8(n≥30) · 값=그 레짐 자체 baseline 대비 폭락lift(레짐 상대·base rate 보정) · 레짐 baseline 폭락: 전체 '+pct(rb.all.crash)+' / 정배 '+pct(rb.st1.crash)+'('+rb.st1.n+') / 역배 '+pct(rb.bear.crash)+'('+rb.bear.n+') · 셀n&lt;15 —</span></div>'+rHead+rRows;
+  }
+  var foot='<div style="font-size:8.5px;color:var(--text3);margin-top:8px;line-height:1.5">⚠ 전수 페어 스캔=다중비교 — 상위권 과적합 가능. <b>채택은 표본외 부호 일치 후에만</b>(확장↔발굴 · 📦스냅↔🔴라이브 교차). 현 기준하 보임.</div>';
+  return '<div style="padding:9px 10px;background:var(--surface);border-radius:9px;border:1px solid var(--border)">'+head+sec1+sec2+sec3+foot+'</div>';
+}
+async function _riskComboUI(){
+  var el=document.getElementById('btDiscrimResult'); if(!el) return; el.style.display='block';
+  var cache=window._sxRiskEntries;
+  if(!cache||!cache.entries||!cache.entries.length){
+    el.innerHTML='<div style="font-size:11px;color:#dc2626;padding:10px 4px;line-height:1.6">🧪 조합 측정은 <b>entries 세션캐시</b>가 필요합니다.<br>먼저 🛡️ 위험·확장 또는 위험·발굴을 실행하세요 — 완료 시 자동 캐시되고, 조합은 재fetch 없이 즉시 계산됩니다.</div>'; return;
+  }
+  var srcLabel=(cache.source==='mega'?'발굴풀':(cache.source==='all'?'확장풀':'대표풀'))+(cache.snap?'·📦스냅샷':'·🔴라이브');
+  el.innerHTML='<div style="text-align:center;padding:14px;color:#7c3aed;font-size:12px;font-weight:800">🧪 조합 계산 중… <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+srcLabel+' 캐시 '+cache.entries.length+'봉 · 재fetch 없음</div></div>';
+  await new Promise(function(r){ setTimeout(r, 30); });
+  var agg, reg;
+  try{ agg=_riskComboAgg(cache.entries); reg=(agg&&agg.ok)?_riskComboRegime(cache.entries, agg.rows, 8):null; }
+  catch(e){ agg={ ok:false, reason:String(e&&e.message||e) }; reg=null; }
+  var ageMin=Math.round((Date.now()-(cache.ts||Date.now()))/60000);
+  try{ if(agg&&agg.ok&&typeof _sxMeasStash==='function') _sxMeasStash('riskcombo_'+cache.mk+'_'+cache.source+'_'+(cache.snap?'snap':'live'), { pool:srcLabel, snap:cache.snap, base:agg.base, rows:agg.rows.slice(0,250), single:agg.single, regime:reg }); }catch(_){}
+  el.innerHTML=_riskComboRender(agg, reg, (cache.mk||'?').toUpperCase()+' · '+srcLabel+' '+(cache.stocksUsed||'?')+'종 · 캐시 '+ageMin+'분 전');
+}
+if(typeof window!=='undefined'){ window._riskComboUI=_riskComboUI; }
+
 
 async function _btDiscrimRun(){
   var el=document.getElementById('btDiscrimResult'); if(!el) return;
@@ -8208,7 +8336,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1000';
+  window.SX_BUILD='S1001';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
