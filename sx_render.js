@@ -8349,7 +8349,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1003';
+  window.SX_BUILD='S1004';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -13188,6 +13188,38 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
         <div style="font-size:11.5px;line-height:1.6;color:var(--text);margin-top:8px">${_narrTxt}</div>
         <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);font-size:9.5px;color:var(--text3)">단기(5·20·60) <b>${_sa}</b>${_sp} · 이격=현재가와 각 평균선 거리 · 기울기=최근 10봉 방향 — 측정된 위치만 (판정·저항지지 아님)</div>
       </div>`;
+    })()}
+
+    ${(()=>{
+      // [S1004] ⚠️ 위험 시그니처 배지 — sx_risk_core.js(시즌1·2 공용 SSOT) 현재봉 평가 · 표시만(엔진/판정 무변경)
+      //   근거: S1001~S1003 조합측정 · 3시장×3중검증 · 수식=측정 하네스 그대로(골드테스트 11/11 소수점 일치)
+      //   일봉 전용(통계가 일봉 측정) · 미발동=조용(정직한 무표시) · 침체군/ATR 미수록(캐논: 안전/고변동 표지)
+      try{
+        if(typeof _analTF!=='undefined' && _analTF!=='day') return '';
+        if(!(window.SXRiskCore && indicators && indicators._advanced)) return '';
+        const _rrows = indicators._advanced.rows;
+        if(!Array.isArray(_rrows) || _rrows.length < 30) return '';
+        const _rmk = (typeof currentMarket!=='undefined') ? currentMarket : 'kr';
+        const _sigs = SXRiskCore.evalRiskAt(_rmk, indicators._advanced, _rrows, _rrows.length-1);
+        if(!_sigs.length) return '';
+        const _sigRows = _sigs.map(function(s){
+          const t1 = s.tier===1, col = t1 ? '#dc2626' : '#d97706', st = s.stats||{};
+          const pc = function(v){ return v==null?'?':Math.round(v*100)+'%'; };
+          return '<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 0">'
+            +'<span style="flex:none;font-size:9px;font-weight:800;color:#fff;background:'+col+';border-radius:6px;padding:1px 6px;margin-top:1px">'+(t1?'주력':'2군')+'</span>'
+            +'<div style="font-size:10.5px;line-height:1.45;color:var(--text)"><b>'+s.label+'</b><br><span style="font-size:9px;color:var(--text3)">발동 봉의 <b>'+pc(st.crash)+'</b>가 10봉 내 −10% 폭락 (base 대비 +'+(st.crashLift!=null?Math.round(st.crashLift*100):'?')+'%p · n'+(st.n||'?')+' · '+(st.oos||'')+')</span></div>'
+            +'</div>';
+        }).join('');
+        const _bc = _sigs.some(function(s){return s.tier===1;}) ? '#dc2626' : '#d97706';
+        return `<div class="itp-card show" style="margin:0 0 12px;padding:11px 13px;border-left:4px solid ${_bc};background:${_bc}0F;border-radius:10px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:800;color:${_bc}">⚠️ 위험 시그니처</span>
+            <span style="font-size:9px;color:var(--text3)">· 폭락 집중 패턴 발동 중 — 측정 기반 표시 (판정 아님)</span>
+          </div>
+          ${_sigRows}
+          <div style="margin-top:5px;padding-top:5px;border-top:1px dashed var(--border);font-size:8.5px;color:var(--text3)">시장별 시그니처 SSOT(sx_risk_core) · 3시장×3중검증 · 스냅 ${(_sigs[0].stats&&_sigs[0].stats.snap)||'2026-07-01'} 앵커 — 현 기준하 보임</div>
+        </div>`;
+      }catch(_eRisk){ return ''; }
     })()}
 
     <div class="anal-fold">
