@@ -845,13 +845,13 @@ function btGetCurrentState(btResult, currentPrice){
       color: isWin ? 'var(--accent)' : 'var(--sell)'
     };
   }
-  // 그 외 → 대기중
-  const lastScore = btResult.scores ? btResult.scores[btResult.scores.length-1] : null;
+  // 그 외 → 대기중 [S1019] 레시피 votes 기반 (클래식 점수 표기 폐기)
+  const lastVotes = btResult.scores ? btResult.scores[btResult.scores.length-1] : null;
   return {
     state:'waiting',
-    currentScore: lastScore,
-    buyTh: btResult.params?.buyTh || 62,
-    text: '대기중' + (lastScore != null ? ' — 현재 점수 ' + lastScore : ''),
+    currentScore: lastVotes,   // (레거시 필드명·이제 votes)
+    lastVotes: lastVotes,
+    text: '대기중 — 레시피 진입 신호 없음' + (lastVotes >= 1 ? ' (최근봉 votes ' + lastVotes + ')' : ''),
     color: 'var(--text3)'
   };
 }
@@ -1683,62 +1683,43 @@ function btRenderBasicResult(stock, r){
     </div>`;
   }
 
-  // S44: 매매 0건 진단 카드
+  // [S1019] 진입 신호 0건 진단 — 레시피 votes 기반 (클래식 score/buyTh 폐기). '신호 없음'이 정상(S968).
   if(r.totalTrades===0 && r.scores && r.scores.length){
-    const params = btGetParams();
-    const sorted = [...r.scores].sort((a,b)=>a-b);
-    const maxS = Math.max(...r.scores), minS = Math.min(...r.scores), medS = sorted[Math.floor(sorted.length/2)];
-    const aboveBuy = r.scores.filter(s=>s>=params.buyTh).length;
-    const gap = params.buyTh - maxS;
+    const _v = r.scores;                         // 이제 봉별 레시피 votes(0~4)
+    const _fired = _v.filter(v=>v>=1).length;
     html += `<div class="bt-card" style="border-left:3px solid var(--accent)">
-      <div class="bt-card-title" style="color:var(--accent)">🔍 매매 0건 진단</div>
+      <div class="bt-card-title" style="color:var(--accent)">🔍 진입 신호 0건</div>
       <div style="font-size:11px;color:var(--text2);line-height:1.6">
-        <b>BUY 임계값:</b> ${params.buyTh}점<br>
-        <b>점수 범위:</b> ${minS} ~ ${maxS} (중앙값 ${medS})<br>
-        <b>임계값 이상:</b> ${aboveBuy}봉 / ${r.scores.length}봉`;
-    if(aboveBuy===0){
-      html += `<br><br><span style="color:var(--sell)">점수 최고 ${maxS}이 BUY 임계값 ${params.buyTh}에 ${gap}점 부족</span>`;
-      html += `<br><br><b>💡 해결 방법:</b><br>`;
-      html += `· 설정 → 분석 파라미터 → BUY 임계 낮추기 (${Math.max(40,maxS-5)}~${maxS} 권장)<br>`;
-      html += `· 타임프레임 변경 (일봉↔주봉)으로 다른 패턴 탐색<br>`;
-      html += `· 해당 종목의 최근 변동성이 낮아 강한 시그널 미발생 가능`;
+        <b>레시피 진입 신호(votes≥1):</b> ${_fired}봉 / ${_v.length}봉`;
+    if(_fired===0){
+      html += `<br><br><span style="color:var(--sell)">이 구간에 레시피 발동이 없었습니다.</span>`;
+      html += `<br><span style="font-size:10px;color:var(--text3)">강한 추세 종목은 '신호 없음'이 정상입니다 — 레시피는 눌림·전환 구조에서 발동합니다.</span>`;
     } else {
-      // S160: 게이트 차단이 원인인지 mom/osc가 원인인지 구분
-      if((r.gateBlocks||0) > 0){
-        html += `<br><br><span style="color:var(--accent)">임계값 이상 ${aboveBuy}봉 중 ${r.gateBlocks}봉은 진입 게이트에서 차단, 나머지는 mom/osc 필터 차단</span>`;
-        html += `<br><span style="font-size:10px;color:var(--text3)">🚦 버튼을 눌러 일부 게이트를 꺼보면 매매가 발생할 수 있습니다</span>`;
-      } else {
-        html += `<br><br><span style="color:var(--accent)">임계값 이상 ${aboveBuy}봉 존재하나 mom/osc 필터에서 차단됨</span>`;
-        html += `<br><span style="font-size:10px;color:var(--text3)">모멘텀(mom>0)과 오실레이터(osc>0) 두 조건을 동시에 만족해야 BUY 진입</span>`;
-      }
+      html += `<br><br><span style="color:var(--accent)">신호 ${_fired}봉 있었으나 진입/청산 구간이 부족했습니다(데이터 끝 근처 발동 등).</span>`;
     }
     html += `</div></div>`;
   }
 
-  // 점수 분포 히스토그램
+  // [S1019] 레시피 신호(votes) 분포 — 클래식 0~100 점수 히스토그램 폐기. votes 0~4.
   if(r.scores && r.scores.length){
-    const bins = Array(10).fill(0);
-    r.scores.forEach(s=>{ const idx=Math.min(Math.floor(s/10),9); bins[idx]++; });
-    const maxBin = Math.max(...bins,1);
-    const params = btGetParams();
-    const buyBin = Math.min(Math.floor(params.buyTh/10),9);
-    const sellBin = Math.min(Math.floor(params.sellTh/10),9);
-    const sorted = [...r.scores].sort((a,b)=>a-b);
-    html += `<div class="bt-card"><div class="bt-card-title">점수 분포</div>`;
-    html += `<div style="font-size:9px;color:var(--text3);margin-bottom:4px">봉 ${r.scores.length} · 중앙값 ${sorted[Math.floor(sorted.length/2)]} · 최고 ${Math.max(...r.scores)} · 최저 ${Math.min(...r.scores)}</div>`;
-    for(let i=9;i>=0;i--){
-      const pct = (bins[i]/maxBin*100).toFixed(0);
-      const isBuy = i>=buyBin;
-      const barColor = isBuy?'var(--buy)':'var(--text3)';
-      const tag = i===buyBin?` <span style="color:var(--accent);font-weight:700;font-size:8px">← BUY(${params.buyTh})</span>`:'';
-      const sellTag = i===sellBin?` <span style="color:var(--sell);font-weight:700;font-size:8px">← SELL(${params.sellTh})</span>`:'';
+    const _v = r.scores;
+    const dist = [0,0,0,0,0];
+    _v.forEach(x=>{ const k=Math.max(0,Math.min(4,x|0)); dist[k]++; });
+    const maxD = Math.max(...dist,1);
+    const fired = _v.filter(x=>x>=1).length;
+    const _labels = ['0 (신호없음)','1','2','3','4 (강)'];
+    html += `<div class="bt-card"><div class="bt-card-title">레시피 신호 분포 (votes)</div>`;
+    html += `<div style="font-size:9px;color:var(--text3);margin-bottom:4px">봉 ${_v.length} · 신호(≥1) ${fired}봉 · 진입 ${r.totalTrades}회</div>`;
+    for(let v=4;v>=0;v--){
+      const pct = (dist[v]/maxD*100).toFixed(0);
+      const barColor = v>=1 ? 'var(--buy)' : 'var(--text3)';
       html += `<div class="bt-hist-row">
-        <span class="bt-hist-label">${i*10}-${i*10+9}</span>
+        <span class="bt-hist-label">${_labels[v]}</span>
         <div class="bt-hist-bar-wrap"><div class="bt-hist-bar" style="width:${pct}%;background:${barColor}"></div></div>
-        <span class="bt-hist-cnt">${bins[i]}</span>${tag}${sellTag}
+        <span class="bt-hist-cnt">${dist[v]}</span>
       </div>`;
     }
-    html += `<div style="font-size:9px;color:var(--text3);margin-top:4px">buyTh(${params.buyTh}) 이상: ${r.scores.filter(s=>s>=params.buyTh).length}봉 → 최종 BUY ${r.totalTrades}</div>`;
+    html += `<div style="font-size:9px;color:var(--text3);margin-top:4px">votes≥1 = 레시피 진입 신호 · 청산은 이중ATR(2×/3×)+MA5×20 데드(유예10)</div>`;
     html += `</div>`;
   }
 
