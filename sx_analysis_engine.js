@@ -4540,7 +4540,7 @@ SXE._btEarlyExit = (function(){
   //   이 값은 이제 "수동 운용 조기청산"의 시작 기본값일 뿐, 옵티마이저 모드가 덮어쓰지 않음.
   //   (모드는 sxRunBtEngine 정배열 게이트 기간만 결정)
   return {
-    enabled:   true,   // 마스터 스위치
+    enabled:   false,  // [S1011] true→false — 공식 BT 프레임(사전선언): 조기청산 OFF 기본. 세부 룰 값은 ON 시의 스윙 표준 시작값으로 보존.
     score:     true,   // [S467] false→true (점수청산 ON — 사진 스윙)
     trailing:  true,   // 피크 대비 trailMult×ATR 하락
     breakeven: true,   // beTrigger×ATR 도달 시 SL=entry
@@ -4856,7 +4856,7 @@ SXE._btExitMode = (function(){
     const v = localStorage.getItem('SX_BT_EXIT_MODE');
     if(v === 'conservative' || v === 'close') return v;
   } catch(_) {}
-  return 'close';  // [S292] 기본값 변경: OHLC 보수 → 종가 매매 (사용자 요청)
+  return 'conservative';  // [S292] 종가 → [S1011] OHLC 보수 복귀 — 공식 프레임(일중 SL 실전 동기화)
 })();
 
 SXE._btExitModeSave = function(){
@@ -4889,7 +4889,7 @@ SXE._btEntryMode = (function(){
     const v = localStorage.getItem('SX_BT_ENTRY_MODE');
     if(v === 'close' || v === 'nextOpen') return v;
   } catch(_) {}
-  return 'close';  // 기본값: 신호봉 종가 진입 (기존 동작 유지)
+  return 'nextOpen';  // [S1011] close→nextOpen — 공식 프레임: 다음봉 시가(시즌2 실전 정합)
 })();
 
 SXE._btEntryModeSave = function(){
