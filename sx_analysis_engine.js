@@ -3392,7 +3392,7 @@ function scrQuickScore(rows, tf, market) {
   // S67: 안전필터 (플래그 기반 ON/OFF — SXE._safetyFlags)
   // [S264] 폴백 기본값 10개 전수 ON. foreignSell은 평가식의 `ind._foreignConsecSell != null` 가드가 KIS 미연결 자동 통과 처리.
   const _sf = SXE._safetyFlags || {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,stochRsi:false,macdNeg:true,ma60resist:false,bbUpper:true,resistNear:true,fakeBreakout:true,volResist:true,chaseGuard:true,dumpWarn:true,deadCrossGuard:false,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true,riskSignature:false};
-  _sf.stochRsi = false; _sf.ma60resist = false; _sf.deadCrossGuard = false;   // [S1008] 역효과 확정 3종 강제 OFF — 3시장 측정(S1001~03): 침체군=폭락 희소, 차단=좋은 진입만 버림. S1009 BT A/B 후 철거 판단
+  if(!SXE._sfAbOverride){ _sf.stochRsi = false; _sf.ma60resist = false; _sf.deadCrossGuard = false; }   // [S1008] 역효과 확정 3종 강제 OFF(측정 S1001~03) · [S1009] A/B 하네스만 SXE._sfAbOverride로 복귀 가능
   // [S454] 되돌림주의(dumpWarn) 안전필터 — 천정·투매 위험 = 정지(추격금지보다 강한 단계). 강등·_safetyViol 공용 1회 계산.
   let _dumpW = null;
   if (_sf.dumpWarn && typeof SXE.calcDumpWarn === 'function') {
@@ -4375,7 +4375,7 @@ SXE._checkSafetyFilters = function(ind, rawScore, buyTh, volSoft, tf, candles, o
   const _gBypass = !!(opts && opts.goldenBypass);
   // [S264] 폴백 기본값 10개 전수 ON. foreignSell은 ind._foreignConsecSell != null 가드로 KIS 미연결 자동 통과.
   const _sf = SXE._safetyFlags || {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,stochRsi:false,macdNeg:true,ma60resist:false,bbUpper:true,resistNear:true,fakeBreakout:true,volResist:true,chaseGuard:true,dumpWarn:true,deadCrossGuard:false,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true,riskSignature:false};
-  _sf.stochRsi = false; _sf.ma60resist = false; _sf.deadCrossGuard = false;   // [S1008] 역효과 확정 3종 강제 OFF — 3시장 측정(S1001~03): 침체군=폭락 희소, 차단=좋은 진입만 버림. S1009 BT A/B 후 철거 판단
+  if(!SXE._sfAbOverride){ _sf.stochRsi = false; _sf.ma60resist = false; _sf.deadCrossGuard = false; }   // [S1008] 역효과 확정 3종 강제 OFF(측정 S1001~03) · [S1009] A/B 하네스만 SXE._sfAbOverride로 복귀 가능
 
   // 1. 임계값 마진 부족 (rawScore가 buyTh 턱걸이일 때) — [S568] 골든 우회(무점수 진입)
   if(_sf.threshold && !_gBypass && rawScore < buyTh + 2) return { pass: false, reason: '🔒임계값' };
