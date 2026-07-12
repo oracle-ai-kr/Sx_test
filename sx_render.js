@@ -5014,7 +5014,7 @@ async function _riskMeasureBracket(mk, source, onProgress){
     if(mk==='kr'){ try{ _aug=(typeof _VOL_AUGMENT_KR!=='undefined'?_VOL_AUGMENT_KR:[]).map(function(x){return {code:x[0],name:x[1]};}); }catch(_){} }
     _rep.concat(_watch).concat(_aug).concat(_dca).forEach(function(s){ if(s&&s.code&&!_seen[s.code]){ _seen[s.code]=1; list.push(s); } });
   } else if(source==='mega'){
-    list=(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]).map(function(x){ return Array.isArray(x)?{code:x[0],name:x[1]||x[0]}:x; });
+    list=(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]).map(function(x){ return Array.isArray(x)?{code:x[0],name:x[1]||x[0]}:{code:String(x),name:String(x)}; });   // [S1003] us 발굴풀=티커 문자열 배열 — 정규화 누락으로 s.code=undefined→스냅 전멸 버그 수정(다른 10개 소비처와 동일 패턴)
   } else { try{ var p=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[]; list=(p||[]).map(function(x){return {code:x.code||x[0],name:x.name||x[1]};}); }catch(_){} }
   if(!list.length) return { ok:false, reason:'풀 비어있음('+mk+')' };
   var CAP=(source==='all')?130:(source==='mega'?220:20), use=list.slice(0,CAP);
@@ -5132,6 +5132,7 @@ async function _riskMeasureUI(src){
   var _snapOn=!!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode());
   var srcLabel=(source==='mega'?'발굴풀':(source==='all'?'확장풀':'대표풀'))+(_snapOn?'·📦스냅샷':'·🔴라이브');   // [S996] OOS 비교용 냉동/라이브 표기
   el.innerHTML='<div style="text-align:center;padding:14px;color:#ef4444;font-size:12px;font-weight:800">🛡️ 위험필터 측정 시작… <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+srcLabel+' 전수 · 봉별 지표계산이라 시간 걸림</div></div>';
+  if(typeof _snapEnsure==='function'){ var _okS=await _snapEnsure(mk, el); if(!_okS) return; }   // [S1003] 스냅 모드 시 현재 시장 자동 로드(미로드=전멸 방지 · discrim과 동일)
   await new Promise(function(r){ setTimeout(r, 30); });
   var res;
   try{ res=await _riskMeasureBracket(mk, source, function(i,t,n){ var e=document.getElementById('btDiscrimResult'); if(e) e.innerHTML='<div style="text-align:center;padding:14px;color:#ef4444;font-size:12px;font-weight:700">🛡️ 측정 중 '+i+'/'+t+'<div style="font-size:10px;color:#94a3b8;margin-top:3px">'+(n||'')+'</div></div>'; }); }
@@ -8348,7 +8349,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1002';
+  window.SX_BUILD='S1003';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
