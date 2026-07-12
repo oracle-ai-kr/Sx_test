@@ -51,14 +51,14 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=367"></script>
+<script src="sx_render.js?v=368"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
 <script src="sx_signal_val.js?v=3"></script>
 <script src="sx_chart_predict.js?v=6"></script>
 <script src="sx_candle_bt.js?v=25"></script>
-<script src="sx_bt.js?v=20"></script>
+<script src="sx_bt.js?v=21"></script>
 <script src="sx_diag.js?v=4"></script>
 <script src="sx_optimizer.js?v=4"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -2536,18 +2536,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
             </div>
         </div><!-- /dcAuditBody -->
       </div><!-- /🔬 데드캣 검증 도구 카드 [S749] -->
-      <div class="bt-section-title">관심종목 교차 백테스트</div>
-      <!-- S110 Phase C+D: 대상 리스트 영역 (관심목록 + 현재 분석 종목) -->
-      <div id="btCrossTargetList" style="margin:6px 0;font-size:11px;color:var(--text2)"></div>
-      <div class="bt-info" id="btCrossInfo" style="display:none"></div>
-      <!-- S162: 자동 보강 버튼 (제외 종목 있을 때만 표시) -->
-      <button class="bt-btn" id="btnBtCrossReinforce" onclick="_sxVib(15);btCrossReinforce()" style="display:none;background:#f59e0b;color:#fff;border-color:#f59e0b">⚡ 자동 보강</button>
-      <button class="bt-btn bt-btn-primary" id="btnBtCross" onclick="_sxVib(20);btRunCross()">▶ 교차검증 실행</button>
-      <!-- S110: 0/1종목 안내 -->
-      <div id="btCrossEmptyHint" style="display:none;margin-top:8px;padding:10px;background:var(--surface2);border:1px dashed var(--border);border-radius:8px;text-align:center;font-size:11px;color:var(--text3);line-height:1.5"></div>
-      <div class="bt-prog-bar" id="btCrossProg" style="display:none;"><div class="bt-prog-fill" id="btCrossProgFill"></div></div>
-      <div class="bt-prog-text" id="btCrossProgText" style="display:none;"></div>
-      <div id="btCrossResult" style="display:none;"></div>
+      <!-- [S1007] 관심종목 교차 백테스트 철거 — 3시장 혼합 평균=측정 무의미 · 검증은 측정 도구군(대표/발굴풀 전수)이 담당 -->
     </div>
   </div>
   <!-- 탭3: 워크포워드 -->
@@ -9991,7 +9980,6 @@ function toggleWatchlist(){
     }
   }catch(e){ console.warn('[S110] auto BT trigger err', e); }
   // S110: 교차/대시 리스트 갱신
-  try{ if(typeof btCrossRefreshTargetList === 'function') btCrossRefreshTargetList(); }catch(e){}
   try{ if(typeof btDashRefreshTargetList === 'function') btDashRefreshTargetList(); }catch(e){}
   // [S293] 결과탭 ★ 갱신 (관심종목 추가 시 결과 행 즉시 반영)
   try{ if(typeof _renderResultRowsOnly === 'function') _renderResultRowsOnly(); }catch(e){}
@@ -10016,8 +10004,7 @@ function _favAnalClick(){
     _updateFavBtn(false);
     toast(`${name} 관심목록 제거`);
     try{ if(typeof _watchBtDelete === 'function') _watchBtDelete(marketRaw, code); }catch(e){}
-    try{ if(typeof btCrossRefreshTargetList === 'function') btCrossRefreshTargetList(); }catch(e){}
-    try{ if(typeof btDashRefreshTargetList === 'function') btDashRefreshTargetList(); }catch(e){}
+      try{ if(typeof btDashRefreshTargetList === 'function') btDashRefreshTargetList(); }catch(e){}
     // [S293] 결과탭 ★ 갱신 (제거 시)
     try{ if(typeof _renderResultRowsOnly === 'function') _renderResultRowsOnly(); }catch(e){}
   } else {
@@ -11370,8 +11357,7 @@ function removeWlItem(market, idx){
   if(removed[0]){
     toast(`${removed[0].name} 제거`);
     try{ if(typeof _watchBtDelete === 'function') _watchBtDelete(removed[0].market||'kr', removed[0].code); }catch(e){}
-    try{ if(typeof btCrossRefreshTargetList === 'function') btCrossRefreshTargetList(); }catch(e){}
-    try{ if(typeof btDashRefreshTargetList === 'function') btDashRefreshTargetList(); }catch(e){}
+      try{ if(typeof btDashRefreshTargetList === 'function') btDashRefreshTargetList(); }catch(e){}
     // [S293] 결과탭 ★ 갱신 (패널에서 삭제 시)
     try{ if(typeof _renderResultRowsOnly === 'function') _renderResultRowsOnly(); }catch(e){}
   }
@@ -14715,7 +14701,6 @@ function switchAnalTab(idx){
   if(idx===5) { if(typeof mtRender === 'function') mtRender(); }
   // S110 Phase C+D: 교차검증/대시보드 탭 진입 시 대상 리스트 자동 갱신
   try{
-    if(idx===2 && typeof btCrossRefreshTargetList === 'function') btCrossRefreshTargetList();
     if(idx===4 && typeof btDashRefreshTargetList === 'function') btDashRefreshTargetList();
   }catch(e){ console.warn('[S110] tab refresh err', e); }
   // ═══════════════════════════════════════════════════════════
