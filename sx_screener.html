@@ -51,7 +51,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=372"></script>
+<script src="sx_render.js?v=373"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -12427,11 +12427,15 @@ async function resetEarlyExit(){
       oscCount: 3   // [S565] 진동 카운터
     };
     if(typeof SXE._btEarlyExitSave === 'function') SXE._btEarlyExitSave();
-    // BT 청산 동작 모드 — 진입 시점·청산 검사·갭가드는 전역(매트릭스 외부) → 사진 기준으로 함께 복원
-    if(typeof SXE.setBtTrailAtrMode === 'function') SXE.setBtTrailAtrMode(_cell.btTrailAtrMode); // 단타 entry / 스윙·중기 dynamic
-    if(typeof SXE.setBtExitMode     === 'function') SXE.setBtExitMode('close');   // 종가(추세)
-    if(typeof SXE.setBtEntryMode    === 'function') SXE.setBtEntryMode('close');  // 신호봉 종가
-    if(typeof SXE.setBtGapGuard     === 'function') SXE.setBtGapGuard(false);     // 갭 가드 OFF
+    // [S1012] BT 청산 동작 모드 초기화 = 공식 프레임(사전선언) — 다음봉시가·OHLC·순수MA OFF·갭가드 OFF
+    //   (구버전: 사진 기준 종가/종가 하드코딩 + 순수MA 스코프 밖 → 초기화가 공식 프레임과 어긋나고 순수MA 체크 잔류하던 버그)
+    if(typeof SXE.setBtTrailAtrMode === 'function') SXE.setBtTrailAtrMode(_cell.btTrailAtrMode); // 트레일: 모드 셀 값(조기청산 OFF 상태에선 비활성 룰)
+    if(typeof SXE.setBtExitMode     === 'function') SXE.setBtExitMode('conservative'); // OHLC 보수 — 공식 프레임
+    if(typeof SXE.setBtEntryMode    === 'function') SXE.setBtEntryMode('nextOpen');    // 다음봉 시가 — 공식 프레임(시즌2 정합)
+    if(typeof SXE.setBtGapGuard     === 'function') SXE.setBtGapGuard(false);          // 갭 가드 OFF
+    if(typeof SXE.setBtMaCross      === 'function') SXE.setBtMaCross(false);           // [S1012] 순수 MA크로스 OFF — 초기화 스코프에 편입
+    if(typeof SXE.setBtMaCrossScoreGate === 'function') SXE.setBtMaCrossScoreGate(false);
+    if(typeof SXE.setBtMaCrossSL    === 'function') SXE.setBtMaCrossSL(false);
   }
   // 모달은 그대로 두고 UI만 새 상태로 재렌더
   //   (이전 버전 버그: closeEarlyExitModal()이 _eeSyncSlidersToState()로
