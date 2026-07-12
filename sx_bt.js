@@ -154,17 +154,7 @@ function _watchBtGet(market, code, tf, strictBars){
     console.log(`[regime-mirror] 옛 캐시 (보정 미적용) — ${entry.name||code} 무효화`);
     return null;
   }
-  // S161: 게이트 해시 체크 — 게이트 설정이 바뀌면 캐시 무효화
-  //   현재 전역 게이트 해시와 저장 당시 해시 비교
-  //   둘 다 없으면 (구버전 캐시) 무효화 처리 — 안전한 쪽
-  if(typeof SXE !== 'undefined' && typeof SXE._btGateHash === 'function'){
-    const curHash = SXE._btGateHash(SXE._btEntryGates || {});
-    const savedHash = entry.btResult?._gateHash || null;
-    if(savedHash !== curHash){
-      console.log(`[S161-cache] 게이트 해시 불일치 (${savedHash||'none'} → ${curHash}) — ${entry.name||code} 캐시 무효화`);
-      return null;
-    }
-  }
+  // [S1006] 게이트 해시 체크 철거 — 스키마 v5 bump로 옛 캐시 일괄 무효화
   // S162: 봉수 체크 (strictBars=true일 때만 — 교차검증에서 활성)
   if(strictBars){
     const bars = entry.btResult?.rowsLength || 0;
@@ -191,11 +181,7 @@ function _watchBtGetReason(market, code, tf, strictBars){
   if(tf && entry.tf !== tf) return 'tf_mismatch';
   if(!entry.saved_at || (Date.now() - entry.saved_at > WATCH_BT_TTL_MS)) return 'expired';
   if(!entry.btResult?._regimeMirror) return 'expired'; // 옛 캐시 (보정 미적용) — TTL과 동일 처리
-  if(typeof SXE !== 'undefined' && typeof SXE._btGateHash === 'function'){
-    const curHash = SXE._btGateHash(SXE._btEntryGates || {});
-    const savedHash = entry.btResult?._gateHash || null;
-    if(savedHash !== curHash) return 'gate_changed';
-  }
+  // [S1006] gate_changed 판정 철거
   if(strictBars){
     const bars = entry.btResult?.rowsLength || 0;
     const minBars = _crossMinBars(market);
@@ -218,8 +204,6 @@ function _watchBtSet(stock, btResult, tf){
     }
   }
   // S161: 현재 게이트 해시 생성 (저장 당시의 게이트 설정 스냅샷)
-  const _curGateHash = (typeof SXE !== 'undefined' && typeof SXE._btGateHash === 'function')
-    ? SXE._btGateHash(SXE._btEntryGates || {}) : 'g0';
   all[key] = {
     market: market,
     code: stock.code,
@@ -236,7 +220,6 @@ function _watchBtSet(stock, btResult, tf){
       avgLoss: btResult.avgLoss || 0,
       maxConsecLoss: btResult.maxConsecLoss || 0,
       rowsLength: btResult.rowsLength || 0, // S110 fix4: 사용된 봉수 (🔴/🔵/🟢 배지용)
-      _gateHash: _curGateHash, // S161: 게이트 해시 — 캐시 무효화 판정용
       _regimeMirror: true, // [BT-실시간 미러링] 봉별 보정 적용된 BT 결과임을 표시 — 옛 캐시와 구분
       trades: (btResult.trades || []).map(t => ({
         entry: t.entry, exit: t.exit, pnl: t.pnl, type: t.type, bars: t.bars,
@@ -245,7 +228,7 @@ function _watchBtSet(stock, btResult, tf){
     }
   };
   _watchBtSaveAll(all);
-  console.log(`[S110-watchBt] ✅ 캐시 저장: ${stock.name||stock.code} (${tf||_btTF()}, 거래 ${btResult.totalTrades}, ${btResult.rowsLength||0}봉, 해시 ${_curGateHash})`);
+  console.log(`[S110-watchBt] ✅ 캐시 저장: ${stock.name||stock.code} (${tf||_btTF()}, 거래 ${btResult.totalTrades}, ${btResult.rowsLength||0}봉)`);
 }
 
 // 특정 종목 캐시 삭제 (관심 해제 시)
@@ -2618,20 +2601,7 @@ function btRenderCrossResult(results, cacheMissReasons, excludedList){
     </div>`;
   }
 
-  // S161: 현재 게이트 요약 (활성 게이트 수)
-  let gateSummaryHtml = '';
-  try{
-    const gates = (typeof SXE !== 'undefined' && SXE._btEntryGates) ? SXE._btEntryGates : null;
-    if(gates){
-      let activeCount = 0;
-      for(const k in gates){ if(gates[k] && gates[k].on) activeCount++; }
-      if(activeCount > 0){
-        gateSummaryHtml = `<div style="padding:6px 10px;background:var(--accent-glow);border-radius:6px;font-size:10px;color:var(--text2);margin:6px 0;text-align:center">
-          🚦 진입 게이트 <b style="color:var(--accent)">${activeCount}개 활성</b> 상태로 백테스트
-        </div>`;
-      }
-    }
-  }catch(_){}
+  let gateSummaryHtml = '';   // [S1006] 게이트 철거 — 요약 배지 제거
 
   let html = `<div class="bt-card">
     <div class="bt-card-title">교차검증 결과 (${valid.length}/${results.length}개)${skipped.length?` · <span style="color:var(--sell)">${skipped.length}개 스킵</span>`:''}${excludedList && excludedList.length ? ` · <span style="color:#f59e0b">${excludedList.length}개 제외</span>`:''}</div>
