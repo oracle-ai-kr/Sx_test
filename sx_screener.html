@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>SX Screener</title>
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
-<script src="sx_analysis_engine.js?v=44"></script>
+<script src="sx_analysis_engine.js?v=45"></script>
 <script src="sx_recipe_core.js?v=4"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
 <script src="sx_feature_library.js?v=2"></script><!-- [S999] 통합 재료 라이브러리 SSOT — 레시피+위험 공용 -->
 <script src="sx_risk_core.js?v=1"></script><!-- [S1004] 위험 시그니처 SSOT — 시즌1(배지/게이트)·시즌2(보유 경고) 공용 · 3시장×3중검증 -->
@@ -51,7 +51,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=369"></script>
+<script src="sx_render.js?v=370"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -2487,7 +2487,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
             <div style="font-size:9.5px;font-weight:800;color:#ef4444;margin:8px 0 6px;border-top:1px solid var(--border);padding-top:8px;">🛡️ 위험필터 발굴 <span style="color:var(--text3);font-weight:500">· 위험재료용 · 검증풀=전체 봉(레짐 무관 — 위 바닥/눌림 토글 안 씀) · 🧪조합=🛡️측정 완료 후(세션캐시·즉시)</span></div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
               <button onclick="_sxVib(12);window._riskMeasureUI&&_riskMeasureUI('all')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#ef444414;color:#ef4444;border:1px solid #ef444466">🛡️ 위험·확장</button>
-              <button onclick="_sxVib(12);window._riskMeasureUI&&_riskMeasureUI('mega')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262620;color:#dc2626;border:1px solid #dc262688">🛡️ 위험·발굴</button><button onclick="_sxVib(12);window._riskComboUI&&_riskComboUI()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧪 위험조합</button><!-- [S1001] entries 세션캐시 기반 페어 조합 측정 -->
+              <button onclick="_sxVib(12);window._riskMeasureUI&&_riskMeasureUI('mega')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262620;color:#dc2626;border:1px solid #dc262688">🛡️ 위험·발굴</button><button onclick="_sxVib(12);window._riskComboUI&&_riskComboUI()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧪 위험조합</button><button onclick="_sxVib(12);window._sfABRun&&_sfABRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#16a34a14;color:#16a34a;border:1px solid #16a34a66">⚖️ 필터A/B</button><!-- [S1009] 안전필터 A/B 실효성(BT) --><button onclick="_sxVib(12);window._sfAbUI&&_sfAbUI()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0891b214;color:#0891b2;border:1px solid #0891b266">⚖️ 안전필터 A/B</button><!-- [S1009] ⓐ전무/ⓑ시그니처/ⓒA그룹 BT 한계효용 --><!-- [S1001] entries 세션캐시 기반 페어 조합 측정 -->
             </div>
             <div style="font-size:9.5px;font-weight:800;color:#64748b;margin:8px 0 6px;border-top:1px solid var(--border);padding-top:8px;">📦 데이터 <span style="color:var(--text3);font-weight:500"></span></div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
