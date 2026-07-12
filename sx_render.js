@@ -4996,13 +4996,15 @@ function _riskCondsAt(ind, rows, bi){
   if(ind.stoch&&ind.rsi&&typeof ind.stoch.k==='number'&&typeof ind.rsi.val==='number') C.stochRsiCombo=(ind.stoch.k>90&&ind.rsi.val<60);
   if(ind.rsi&&ind.rsi.div) C.rsiDivBear=(ind.rsi.div==='bearish');
   (function(){ var m=ind.maAlign&&ind.maAlign.ma60; if(m!=null&&price<m) C.ma60resist=((m/price-1)*100)<2; })();
+  // [S1013] 데드크로스 5×20 — deadCrossGuard 안전필터와 동일식(_maDeadCross(closes,5,20,2).crossed). A그룹 3종을 인앱 위험필터 실효성 카드에서 전부 측정(기존엔 stochRsiCombo·ma60resist만). _maDeadCross=엔진 전역(typeof 가드 fail-safe).
+  (function(){ try{ if(ind.closes&&typeof _maDeadCross==='function') C.deadCross5x20=!!_maDeadCross(ind.closes,5,20,2).crossed; }catch(_){} })();
   return C;
 }
 // 조건 한글 라벨 + 겹침쌍 표시
 var _RISK_LABELS={ recentHigh20:'최근10봉 +20%↑', atrMult3:'상승폭 ATR×3↑', highProx95:'고점 95%근접', consecUp3:'3연속 양봉', gapUp3:'갭 +3%↑',
   rsi70:'RSI≥70', bbPctB90:'%B≥90 [겹B]', stochK80:'Stoch K≥80 [겹S]', maDisp8:'MA20이격≥8% [겹M]', atrHard10:'ATR%≥10', adxLt15:'ADX<15',
   macdNeg3:'MACD 3봉음전 [겹D]', volSpike3:'거래량 3배↑', volDry50:'거래량 빈사<50%',
-  maDisp20:'MA20이격≥20% [겹M]', macdNeg5:'MACD 5봉음전 [겹D]', bbTouch:'BB밴드터치 [겹B]', stochRsiCombo:'Stoch>90&RSI<60 [겹S]', rsiDivBear:'RSI 약세다이버', ma60resist:'MA60저항 근접' };
+  maDisp20:'MA20이격≥20% [겹M]', macdNeg5:'MACD 5봉음전 [겹D]', bbTouch:'BB밴드터치 [겹B]', stochRsiCombo:'Stoch>90&RSI<60 [겹S]', rsiDivBear:'RSI 약세다이버', ma60resist:'MA60저항 근접', deadCross5x20:'데드크로스(5×20)' };
 async function _riskMeasureBracket(mk, source, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
   if(!(typeof SXE!=='undefined'&&SXE.calcAllScreener)) return { ok:false, reason:'엔진 미로드' };
@@ -8472,7 +8474,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1012';
+  window.SX_BUILD='S1013';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
