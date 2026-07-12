@@ -50,7 +50,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=360"></script>
+<script src="sx_render.js?v=361"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -2737,7 +2737,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         <div id="dcAuditBody" style="display:none;margin-top:10px" data-loaded="1">
           <div style="display:flex;align-items:center;gap:6px;margin:0 0 10px">
             <!-- [S780] 데드캣→가짜반등 명칭 통일 -->
-            <span style="font-size:9px;font-weight:700;color:var(--text3);flex-shrink:0">검증 풀</span>
+            <span style="font-size:9px;font-weight:700;color:var(--text3);flex-shrink:0">검증 풀 <span style="font-weight:500;color:#7c3aed">(레시피 재료발굴용)</span></span>
             <button id="dcPoolChipDead" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('deadcat')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:800;line-height:1.25;cursor:pointer;background:#dc26261F;color:#dc2626;border:1px solid #dc2626">🔴 바닥확인 <span style="font-weight:500;font-size:8.5px">하락장·약세</span></button>
             <button id="dcPoolChipPull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('pullback')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🔵 눌림목 <span style="font-weight:500;font-size:8.5px">상승장·약세</span></button>
           </div>
@@ -2767,11 +2767,14 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
               <button onclick="_sxVib(12);window._btDiscrimRun&&_btDiscrimRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧪 변별력</button>
               <button onclick="_sxVib(12);window._btDiscrimRunAll&&_btDiscrimRunAll()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed;color:#fff;border:1px solid #7c3aed">🧪 확장풀 변별력</button>
               <button onclick="_sxVib(12);window._btDiscrimRunMega&&_btDiscrimRunMega()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e7490;color:#fff;border:1px solid #0e7490">🌍 발굴풀 변별력</button>
-              <button onclick="_sxVib(12);window._riskMeasureUI&&_riskMeasureUI('all')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#ef444414;color:#ef4444;border:1px solid #ef444466">🛡️ 위험·확장</button>
-              <button onclick="_sxVib(12);window._riskMeasureUI&&_riskMeasureUI('mega')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262620;color:#dc2626;border:1px solid #dc262688">🛡️ 위험·발굴</button>
               <button onclick="_sxVib(12);window._btThreshRun&&_btThreshRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">📏 임계값</button>
               <button onclick="_sxVib(12);window._btEnsembleRun&&_btEnsembleRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧬 앙상블</button>
               <button onclick="_sxVib(12);window._btBuilderRun&&_btBuilderRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🛠️ 빌더</button>
+            </div>
+            <div style="font-size:9.5px;font-weight:800;color:#ef4444;margin:8px 0 6px;border-top:1px solid var(--border);padding-top:8px;">🛡️ 위험필터 발굴 <span style="color:var(--text3);font-weight:500">· 위험재료용 · 검증풀=전체 봉(레짐 무관 — 위 바닥/눌림 토글 안 씀)</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+              <button onclick="_sxVib(12);window._riskMeasureUI&&_riskMeasureUI('all')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#ef444414;color:#ef4444;border:1px solid #ef444466">🛡️ 위험·확장</button>
+              <button onclick="_sxVib(12);window._riskMeasureUI&&_riskMeasureUI('mega')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262620;color:#dc2626;border:1px solid #dc262688">🛡️ 위험·발굴</button>
             </div>
             <div style="font-size:9.5px;font-weight:800;color:#64748b;margin:8px 0 6px;border-top:1px solid var(--border);padding-top:8px;">📦 데이터 <span style="color:var(--text3);font-weight:500"></span></div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
