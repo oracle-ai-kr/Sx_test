@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>SX Screener</title>
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
-<script src="sx_analysis_engine.js?v=42"></script>
+<script src="sx_analysis_engine.js?v=43"></script>
 <script src="sx_recipe_core.js?v=4"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
 <script src="sx_feature_library.js?v=2"></script><!-- [S999] 통합 재료 라이브러리 SSOT — 레시피+위험 공용 -->
 <script src="sx_risk_core.js?v=1"></script><!-- [S1004] 위험 시그니처 SSOT — 시즌1(배지/게이트)·시즌2(보유 경고) 공용 · 3시장×3중검증 -->
@@ -51,16 +51,16 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=366"></script>
+<script src="sx_render.js?v=367"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
 <script src="sx_signal_val.js?v=3"></script>
 <script src="sx_chart_predict.js?v=6"></script>
 <script src="sx_candle_bt.js?v=25"></script>
-<script src="sx_bt.js?v=19"></script>
+<script src="sx_bt.js?v=20"></script>
 <script src="sx_diag.js?v=4"></script>
-<script src="sx_optimizer.js?v=3"></script>
+<script src="sx_optimizer.js?v=4"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <style>
 /* ═══ Theme System — SIGNAL X 동일 ═══ */
@@ -801,53 +801,6 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .sf-check-row input[type="checkbox"]{margin-top:2px;flex-shrink:0;accent-color:var(--accent)}
 .sf-ck-label{font-weight:600;color:var(--text);flex-shrink:0;min-width:80px}
 .sf-ck-desc{font-size:9px;color:var(--text3);line-height:1.4}
-
-/* S160: BT 진입 게이트 모달 */
-.bt-gate-summary{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:6px 0;font-size:11px;cursor:pointer}
-.bt-gate-summary:active{filter:brightness(.9)}
-.bt-gate-summary-left{display:flex;align-items:center;gap:6px;color:var(--text2)}
-.bt-gate-summary-count{color:var(--accent);font-weight:700}
-.bt-gate-summary-arrow{color:var(--text3);font-size:14px}
-.bt-gate-subtabs{display:flex;gap:4px;padding:6px 4px 8px;overflow-x:auto;border-bottom:1px solid var(--border);margin-bottom:8px}
-.bt-gate-subtab{flex-shrink:0;padding:5px 10px;border-radius:6px;font-size:10px;font-weight:600;color:var(--text3);background:var(--surface2);border:1px solid var(--border);cursor:pointer;white-space:nowrap}
-.bt-gate-subtab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.bt-gate-subtab .bt-gate-badge{display:inline-block;margin-left:4px;padding:0 5px;border-radius:8px;background:rgba(255,255,255,.22);font-size:9px;font-weight:700;min-width:12px;text-align:center}
-.bt-gate-subtab:not(.active) .bt-gate-badge{background:var(--accent);color:#fff}
-/* S164: BT 게이트 프리셋 버튼 바 (3회차 우선순위 2) */
-.bt-gate-preset-bar{display:flex;gap:6px;padding:4px 12px 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px dashed var(--border);margin-bottom:6px;align-items:center}
-.bt-gate-preset-chip{flex-shrink:0;padding:6px 10px;border-radius:14px;font-size:11px;font-weight:600;color:var(--warn);background:transparent;border:1px solid var(--warn,#ffa726);cursor:pointer;white-space:nowrap;transition:all .15s}
-.bt-gate-preset-chip:active{transform:scale(.95)}
-.bt-gate-preset-chip.active{background:var(--warn,#ffa726);color:#fff;box-shadow:0 2px 6px rgba(255,167,38,.3)}
-.bt-gate-page{display:none}
-.bt-gate-page.active{display:block}
-.bt-gate-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px}
-.bt-gate-item.on{border-color:var(--accent);background:var(--accent-glow)}
-.bt-gate-item-head{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
-.bt-gate-item-toggle{width:16px;height:16px;accent-color:var(--accent);margin:0;flex-shrink:0}
-.bt-gate-item-title{font-size:11px;font-weight:700;color:var(--text);flex:1}
-.bt-gate-item-desc{font-size:9px;color:var(--text3);line-height:1.4;margin-top:4px;margin-left:22px}
-.bt-gate-item-params{margin-top:6px;margin-left:22px;display:none}
-.bt-gate-item.on .bt-gate-item-params{display:block}
-.bt-gate-param-row{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:10px}
-.bt-gate-param-row label{color:var(--text2);min-width:70px;font-size:10px}
-.bt-gate-param-row input[type=range]{flex:1;height:3px;accent-color:var(--accent)}
-.bt-gate-param-row .bt-gate-param-val{color:var(--accent);font-weight:700;min-width:44px;text-align:right;font-size:10px}
-.bt-gate-modal-actions{display:flex;gap:8px;padding:10px 0;margin-top:8px;border-top:1px solid var(--border)}
-.bt-gate-modal-actions button{flex:1;padding:10px;border-radius:8px;font-size:11px;font-weight:700;border:1px solid var(--border);cursor:pointer;font-family:inherit}
-.bt-gate-btn-reset{background:var(--surface2);color:var(--text2)}
-.bt-gate-btn-save{background:var(--accent);color:#fff;border-color:var(--accent)}
-.setting-group{margin-bottom:14px}
-.setting-group-title{font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px;padding-left:2px;text-transform:uppercase;letter-spacing:.3px}
-.setting-row{display:flex;align-items:center;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:4px;cursor:pointer}
-.setting-row:active{background:var(--accent-glow)}
-.setting-row .sl{flex:1;font-size:12px}
-.setting-row .sr{font-size:11px;color:var(--accent);font-weight:600;font-family:'Outfit'}
-.setting-row .arrow{color:var(--text3);margin-left:6px;font-size:10px}
-
-.setting-input-row{display:flex;gap:6px;margin-top:6px}
-.setting-input-row input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;outline:none;font-family:inherit}
-.setting-input-row input:focus{border-color:var(--accent)}
-.setting-input-row button{padding:8px 14px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit}
 
 /* ── 테마 선택 카드 (앱 동일) ── */
 .mode-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
@@ -1757,253 +1710,6 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
   </div>
 </div>
 
-<!-- ═══ S160: BT 진입 게이트 설정 모달 ═══ -->
-<div class="help-modal-overlay" id="btGateModal" onclick="if(event.target===this)closeBtGateModal()">
-  <div class="help-modal-sheet">
-    <div class="help-modal-handle"></div>
-    <div class="help-modal-title" style="display:flex;align-items:center;justify-content:center;gap:8px;position:relative">
-      <span>🚦 BT 진입 게이트</span>
-      <!-- S167: 헤더 접기 토글 - 하단 임계값 영역 확보 -->
-      <button id="gateHeaderCollapseBtn" onclick="_sxVib(10);_gateHeaderToggleCollapse()" title="설정 영역 접기/펼치기"
-        style="position:absolute;right:12px;top:50%;transform:translateY(-50%);width:28px;height:28px;padding:0;border:1px solid var(--bd,#e5e8ec);background:var(--bg2,#f7f8fa);border-radius:14px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2,#666)">
-        <span id="gateHeaderCollapseIcon">▲</span>
-      </button>
-    </div>
-    <div id="gateHeaderDescRow" style="padding:0 16px 4px;font-size:10px;color:var(--text3);line-height:1.5">
-      rawScore가 매수 임계값을 넘어도, 활성화된 게이트 조건을 모두 통과해야 실제 진입합니다. <b>기본 전부 OFF</b>.
-    </div>
-    <!-- S167: 접힌 상태일 때 노출되는 요약 바 (탭하면 펼쳐짐) -->
-    <div id="gateHeaderCollapsedBar" onclick="_sxVib(10);_gateHeaderToggleCollapse()" style="display:none;margin:6px 12px 8px;padding:10px 12px;background:var(--bg2,#f7f8fa);border:1px solid var(--bd,#e5e8ec);border-radius:10px;font-size:11px;cursor:pointer;display:none;align-items:center;justify-content:space-between;gap:8px">
-      <span id="gateHeaderCollapsedSummary" style="flex:1;color:var(--text2,#666)">설정 보기</span>
-      <span style="color:var(--text3);font-size:10px">▼ 펼치기</span>
-    </div>
-    <!-- S167: 접을 수 있는 헤더 영역 (적용 토글 + 동기화 모드 + 편집 대상 탭) -->
-    <!-- [A] 안전필터 도움말 펼침 시 헤더가 너무 커지지 않도록 max-height + 자체 스크롤 적용 -->
-    <div id="gateHeaderExpandedArea" style="max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
-    <!-- ═══ S165: 분석엔진 적용 + 동기화 모드 ═══ -->
-    <div id="gateApplyBox" style="margin:8px 12px;padding:10px 12px;background:var(--bg2,#f7f8fa);border-radius:10px;border:1px solid var(--bd,#e5e8ec)">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600">
-        <input type="checkbox" id="gateApplyToAnalysisToggle" onchange="_sxVib(10);_gateApplyToggleChanged(this.checked)" style="width:16px;height:16px;cursor:pointer">
-        <span>실시간 분석/스크리너에도 게이트 적용</span>
-      </label>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px;padding-left:24px;line-height:1.4">
-        ON 시 BUY 판정 후 게이트 통과 못하면 HOLD로 강등 — BT-실전 미스매치 해소
-      </div>
-      <div id="gateSyncModeRow" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd,#e5e8ec)">
-        <div style="font-size:11px;font-weight:600;margin-bottom:6px">동기화 모드</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <label style="flex:1;min-width:120px;display:flex;align-items:center;gap:6px;padding:8px 10px;background:#fff;border:1px solid var(--bd,#e5e8ec);border-radius:8px;cursor:pointer;font-size:11px" id="gateSyncModeSyncLabel">
-            <input type="radio" name="gateSyncMode" value="sync" onchange="_sxVib(10);_gateSyncModeChanged(this.value)" style="cursor:pointer">
-            <span><b>↔️ 동기화</b><br><span style="color:var(--text3);font-size:9px">BT=실시간 자동 일치</span></span>
-          </label>
-          <label style="flex:1;min-width:120px;display:flex;align-items:center;gap:6px;padding:8px 10px;background:#fff;border:1px solid var(--bd,#e5e8ec);border-radius:8px;cursor:pointer;font-size:11px" id="gateSyncModeSplitLabel">
-            <input type="radio" name="gateSyncMode" value="split" onchange="_sxVib(10);_gateSyncModeChanged(this.value)" style="cursor:pointer">
-            <span><b>🔀 독립</b><br><span style="color:var(--text3);font-size:9px">BT/실시간 따로 관리</span></span>
-          </label>
-        </div>
-        <button id="gateCopyBtn" onclick="_sxVib(10);_gatesCopyBtToAnalysis()" style="display:none;width:100%;margin-top:8px;padding:8px;background:var(--bg3,#eef0f4);border:1px solid var(--bd,#e5e8ec);border-radius:8px;font-size:11px;cursor:pointer">
-          🔗 현재 BT 설정을 실시간 게이트로 복사
-        </button>
-      </div>
-    </div>
-    <!-- ═══ S166: 독립 모드 편집 대상 탭 (BT용 ↔ 실시간용) ═══ -->
-    <div id="gateEditTargetTabs" style="display:none;margin:0 12px 8px;padding:4px;background:var(--bg2,#f7f8fa);border-radius:10px;border:1px solid var(--bd,#e5e8ec)">
-      <div style="display:flex;gap:4px">
-        <button id="gateEditTargetBtTab" onclick="_sxVib(10);_gateSwitchEditTarget('bt')" style="flex:1;padding:10px 8px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:var(--accent,#3b82f6);color:#fff;transition:all .15s">
-          🎯 BT용 게이트 <span id="gateEditTargetBtCount" style="display:inline-block;margin-left:4px;padding:1px 6px;background:rgba(255,255,255,.25);border-radius:8px;font-size:10px">0</span>
-        </button>
-        <button id="gateEditTargetAnTab" onclick="_sxVib(10);_gateSwitchEditTarget('an')" style="flex:1;padding:10px 8px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2,#666);transition:all .15s">
-          📡 실시간용 게이트 <span id="gateEditTargetAnCount" style="display:inline-block;margin-left:4px;padding:1px 6px;background:var(--bg3,#eef0f4);border-radius:8px;font-size:10px">0</span>
-        </button>
-      </div>
-      <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:4px;padding:2px 4px" id="gateEditTargetHint">
-        BT 백테스트 진입 시 적용되는 게이트
-      </div>
-    </div>
-    </div><!-- /gateHeaderExpandedArea (S167) -->
-    <div class="help-modal-body" id="btGateModalBody">
-      <!-- S164: BT 게이트 프리셋 버튼 바 (3회차 우선순위 2) -->
-      <div class="bt-gate-preset-bar" id="btGatePresetBar">
-        <button class="bt-gate-preset-chip" id="btGatePresetChip_chase_defense" onclick="_sxVib(10);_btGateApplyPreset('chase_defense')">🛡️ 추격매수 방어</button>
-        <button class="bt-gate-preset-chip" id="btGatePresetChip_sideways_avoid" onclick="_sxVib(10);_btGateApplyPreset('sideways_avoid')">📊 횡보장 회피</button>
-        <button class="bt-gate-preset-chip" id="btGatePresetChip_vol_extreme" onclick="_sxVib(10);_btGateApplyPreset('vol_extreme')">⚠️ 극단변동성</button>
-      </div>
-      <div class="bt-gate-subtabs" id="btGateSubtabs">
-        <div class="bt-gate-subtab active" data-sub="chase" onclick="_btGateSwitchSub('chase')">추격방지 <span class="bt-gate-badge" id="btGateBadge_chase">0</span></div>
-        <div class="bt-gate-subtab" data-sub="heat" onclick="_btGateSwitchSub('heat')">과열필터 <span class="bt-gate-badge" id="btGateBadge_heat">0</span></div>
-        <div class="bt-gate-subtab" data-sub="trend" onclick="_btGateSwitchSub('trend')">변동성/추세 <span class="bt-gate-badge" id="btGateBadge_trend">0</span></div>
-        <div class="bt-gate-subtab" data-sub="vol" onclick="_btGateSwitchSub('vol')">거래량 <span class="bt-gate-badge" id="btGateBadge_vol">0</span></div>
-      </div>
-
-      <!-- ━━ 추격방지 ━━ -->
-      <div class="bt-gate-page active" data-page="chase">
-        <div class="bt-gate-item" data-gate="recentHigh">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="recentHigh.on">
-            <span class="bt-gate-item-title">최근 N봉 대비 상승률 제한</span>
-          </label>
-          <div class="bt-gate-item-desc">최근 N봉 시작점 대비 상승률이 기준 이상이면 진입 금지 — 단기 급등주 추격 방어</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>N봉 수</label><input type="range" min="2" max="20" step="1" data-gk="recentHigh.nBars"><span class="bt-gate-param-val" data-gkv="recentHigh.nBars">3봉</span></div>
-            <div class="bt-gate-param-row"><label>허용 상승률</label><input type="range" min="5" max="100" step="1" data-gk="recentHigh.maxPct"><span class="bt-gate-param-val" data-gkv="recentHigh.maxPct">20%</span></div>
-          </div>
-        </div>
-        <div class="bt-gate-item" data-gate="atrMultiple">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="atrMultiple.on">
-            <span class="bt-gate-item-title">ATR 배수 상승률 제한</span>
-          </label>
-          <div class="bt-gate-item-desc">최근 N봉 상승폭이 ATR × 배수를 넘으면 진입 금지 — 변동성 정규화 (저변동·고변동 공정 비교)</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>N봉 수</label><input type="range" min="2" max="20" step="1" data-gk="atrMultiple.nBars"><span class="bt-gate-param-val" data-gkv="atrMultiple.nBars">5봉</span></div>
-            <div class="bt-gate-param-row"><label>ATR 배수</label><input type="range" min="1" max="10" step="0.5" data-gk="atrMultiple.atrMult"><span class="bt-gate-param-val" data-gkv="atrMultiple.atrMult">3×</span></div>
-          </div>
-        </div>
-        <div class="bt-gate-item" data-gate="highProximity">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="highProximity.on">
-            <span class="bt-gate-item-title">고점 근접도 제한</span>
-          </label>
-          <div class="bt-gate-item-desc">최근 N봉 최고가의 X% 이상 근접하면 진입 금지 — 신고가 추격 방어</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>N봉 수</label><input type="range" min="5" max="60" step="1" data-gk="highProximity.nBars"><span class="bt-gate-param-val" data-gkv="highProximity.nBars">20봉</span></div>
-            <div class="bt-gate-param-row"><label>근접 한도</label><input type="range" min="70" max="100" step="1" data-gk="highProximity.maxPct"><span class="bt-gate-param-val" data-gkv="highProximity.maxPct">95%</span></div>
-          </div>
-        </div>
-        <div class="bt-gate-item" data-gate="consecUp">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="consecUp.on">
-            <span class="bt-gate-item-title">연속 양봉 과열</span>
-          </label>
-          <div class="bt-gate-item-desc">최근 N봉이 모두 양봉(close &gt; open)이면 진입 금지</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>연속 N봉</label><input type="range" min="2" max="10" step="1" data-gk="consecUp.nBars"><span class="bt-gate-param-val" data-gkv="consecUp.nBars">5봉</span></div>
-          </div>
-        </div>
-        <div class="bt-gate-item" data-gate="gapUp">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="gapUp.on">
-            <span class="bt-gate-item-title">갭상승 직후 금지</span>
-          </label>
-          <div class="bt-gate-item-desc">당봉 시가가 전봉 고가 대비 +X% 이상이면 진입 금지 — 갭상승 추격 방어</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>갭 한도</label><input type="range" min="1" max="20" step="0.5" data-gk="gapUp.maxPct"><span class="bt-gate-param-val" data-gkv="gapUp.maxPct">3%</span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ━━ 과열필터 ━━ -->
-      <div class="bt-gate-page" data-page="heat">
-        <div class="bt-gate-item" data-gate="rsiOverbought">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="rsiOverbought.on">
-            <span class="bt-gate-item-title">RSI 과열</span>
-          </label>
-          <div class="bt-gate-item-desc">RSI ≥ 기준이면 진입 금지 — 전통 모멘텀 과열 방어</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>RSI 한도</label><input type="range" min="50" max="90" step="1" data-gk="rsiOverbought.maxRsi"><span class="bt-gate-param-val" data-gkv="rsiOverbought.maxRsi">70</span></div>
-          </div>
-        </div>
-        <div class="bt-gate-item" data-gate="bbUpper">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="bbUpper.on">
-            <span class="bt-gate-item-title">볼린저밴드 상단 근접</span>
-          </label>
-          <div class="bt-gate-item-desc">BB %B × 100 ≥ 기준이면 진입 금지 (100 = 상단선) — 통계적 과열 방어</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>%B 한도</label><input type="range" min="70" max="110" step="1" data-gk="bbUpper.maxPctB"><span class="bt-gate-param-val" data-gkv="bbUpper.maxPctB">90</span></div>
-          </div>
-        </div>
-        <div class="bt-gate-item" data-gate="stochOverbought">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="stochOverbought.on">
-            <span class="bt-gate-item-title">Stochastic 과열</span>
-          </label>
-          <div class="bt-gate-item-desc">Stoch %K ≥ 기준이면 진입 금지 — RSI와 독립된 모멘텀 축</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>%K 한도</label><input type="range" min="60" max="95" step="1" data-gk="stochOverbought.maxK"><span class="bt-gate-param-val" data-gkv="stochOverbought.maxK">80</span></div>
-          </div>
-        </div>
-        <div class="bt-gate-item" data-gate="maDisparity">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="maDisparity.on">
-            <span class="bt-gate-item-title">MA 이격도 과열 (MA20)</span>
-          </label>
-          <div class="bt-gate-item-desc">가격이 MA20 대비 +X% 이상 벌어졌으면 진입 금지 — 평균 회귀 리스크</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>이격 한도</label><input type="range" min="2" max="30" step="0.5" data-gk="maDisparity.maxPct"><span class="bt-gate-param-val" data-gkv="maDisparity.maxPct">8%</span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ━━ 변동성/추세 ━━ -->
-      <div class="bt-gate-page" data-page="trend">
-        <div class="bt-gate-item" data-gate="atrHard">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="atrHard.on">
-            <span class="bt-gate-item-title">ATR% 절대 상한</span>
-          </label>
-          <div class="bt-gate-item-desc">ATR% ≥ 기준이면 진입 금지 — 애초에 변동성이 너무 큰 종목 차단</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>ATR% 한도</label><input type="range" min="3" max="30" step="0.5" data-gk="atrHard.maxPct"><span class="bt-gate-param-val" data-gkv="atrHard.maxPct">10%</span></div>
-          </div>
-        </div>
-        <div class="bt-gate-item" data-gate="adxMin">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="adxMin.on">
-            <span class="bt-gate-item-title">ADX 추세 하한</span>
-          </label>
-          <div class="bt-gate-item-desc">ADX &lt; 기준이면 진입 금지 — 방향성 없는 횡보장 회피</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>ADX 최소</label><input type="range" min="5" max="40" step="1" data-gk="adxMin.minAdx"><span class="bt-gate-param-val" data-gkv="adxMin.minAdx">15</span></div>
-          </div>
-        </div>
-        <div class="bt-gate-item" data-gate="macdNegN">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="macdNegN.on">
-            <span class="bt-gate-item-title">MACD 연속 음전</span>
-          </label>
-          <div class="bt-gate-item-desc">MACD 히스토그램이 최근 N봉 연속 음수면 진입 금지</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>연속 N봉</label><input type="range" min="2" max="10" step="1" data-gk="macdNegN.nBars"><span class="bt-gate-param-val" data-gkv="macdNegN.nBars">3봉</span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ━━ 거래량 ━━ -->
-      <div class="bt-gate-page" data-page="vol">
-        <div class="bt-gate-item" data-gate="volSpike">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="volSpike.on">
-            <span class="bt-gate-item-title">거래량 급증 후 금지</span>
-          </label>
-          <div class="bt-gate-item-desc">최근 N봉 내 거래량이 20봉 평균의 X배 이상인 봉이 있으면 진입 금지 — 꼭지 거래량 회피</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>N봉 수</label><input type="range" min="1" max="10" step="1" data-gk="volSpike.nBars"><span class="bt-gate-param-val" data-gkv="volSpike.nBars">3봉</span></div>
-            <div class="bt-gate-param-row"><label>급증 배율</label><input type="range" min="1.5" max="10" step="0.5" data-gk="volSpike.spikeMult"><span class="bt-gate-param-val" data-gkv="volSpike.spikeMult">3×</span></div>
-          </div>
-        </div>
-        <div class="bt-gate-item" data-gate="volDry">
-          <label class="bt-gate-item-head">
-            <input type="checkbox" class="bt-gate-item-toggle" data-gk="volDry.on">
-            <span class="bt-gate-item-title">거래량 빈사</span>
-          </label>
-          <div class="bt-gate-item-desc">당봉 거래량이 N봉 평균의 X% 미만이면 진입 금지 — 유동성 빈사 종목 회피</div>
-          <div class="bt-gate-item-params">
-            <div class="bt-gate-param-row"><label>평균 N봉</label><input type="range" min="5" max="60" step="1" data-gk="volDry.nBars"><span class="bt-gate-param-val" data-gkv="volDry.nBars">20봉</span></div>
-            <div class="bt-gate-param-row"><label>최소 비율</label><input type="range" min="10" max="100" step="5" data-gk="volDry.minRatio"><span class="bt-gate-param-val" data-gkv="volDry.minRatio">50%</span></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bt-gate-modal-actions">
-        <button class="bt-gate-btn-reset" onclick="_sxVib(10);_btGateReset()">전체 OFF</button>
-        <button class="bt-gate-btn-save" onclick="_sxVib(15);_btGateSaveAndClose()">저장</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ═══ 임계값 설정 모달 ═══ -->
 <div class="modal-overlay" id="condModal">
   <div class="modal-sheet">
@@ -2704,14 +2410,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         <span class="bt-slider-val" id="btOptSlipVal">1‰</span>
       </div>
       <!-- [S422] '다음봉 시가 진입' 체크박스 제거 → 조기청산 설정 모달의 [진입 시점] 라디오(전역 _btEntryMode)로 통일 -->
-      <!-- S160: 진입 게이트 요약 뱃지 (탭하면 모달) -->
-      <div class="bt-gate-summary" onclick="_sxVib(10);openBtGateModal()">
-        <div class="bt-gate-summary-left">
-          <span>🚦 진입 게이트</span>
-          <span id="btGateSummaryText"><span class="bt-gate-summary-count" id="btGateActiveCount">0</span>개 활성</span>
-        </div>
-        <span class="bt-gate-summary-arrow">›</span>
-      </div>
+      <!-- [S1006] BT 진입 게이트 철거 — 안전필터(설정탭)로 일원화. 측정(S1001~03): 게이트 다수가 역효과(침체군)/고변동 오분류 -->
       <button class="bt-btn bt-btn-primary" id="btnBtBasic" onclick="_sxVib(20);btRunBasic()">▶ 백테스트 실행</button>
       <div class="bt-prog-bar" id="btBasicProg" style="display:none;"><div class="bt-prog-fill" id="btBasicProgFill"></div></div>
       <div class="bt-prog-text" id="btBasicProgText" style="display:none;"></div>
@@ -3143,9 +2842,6 @@ const STORAGE_KEYS = Object.freeze({
   BT_EXIT_MODE:        'SX_BT_EXIT_MODE',          // [S297] BT 청산 동작 모드 (close/conservative)
   BT_TRAIL_ATR_MODE:   'SX_BT_TRAIL_ATR_MODE',     // [S297] 트레일링 ATR 계산 (entry/dynamic)
   BT_APPLY_SAFETY:     'SX_BT_APPLY_SAFETY',       // BT에 안전필터 적용
-  BT_ENTRY_GATES:      'SX_BT_ENTRY_GATES',        // BT 진입 게이트 14종
-  ANALYSIS_ENTRY_GATES:'SX_ANALYSIS_ENTRY_GATES',  // 분석엔진 진입 게이트
-  APPLY_GATES_TO_ANAL: 'SX_APPLY_GATES_TO_ANALYSIS', // 게이트 분석에도 적용
 
   // ─── KIS API ───
   KIS_TOKEN:           'SX_KIS_TOKEN',             // KIS 액세스 토큰
@@ -3384,7 +3080,7 @@ function _sxCleanupExtCacheForOtherStocks(currentCode, currentMkt){
 //   사용 안 함: 사용자 설정(SX_PRESET_MODE 등) — 영구 보관 의도라 버전 체크 X
 //   향후 변경 시: 데이터 의미가 바뀌는 코드 수정이 있을 때만 SX_DATA_SCHEMA_VERSION 올리기
 // ════════════════════════════════════════════════════════════
-const SX_DATA_SCHEMA_VERSION = 'v4-2026-05';  // [S217] KIS 700봉 정합 패치 — BT/분석탭 봉수 통일 (옛 600봉 캐시 자동 무효화)
+const SX_DATA_SCHEMA_VERSION = 'v5-2026-07';  // [S217] KIS 700봉 정합 패치 — BT/분석탭 봉수 통일 (옛 600봉 캐시 자동 무효화)
 
 // 버전 + TTL 모두 유효한 캐시만 반환. 무효면 자동 제거 + null 반환
 function _sxCacheRead(key, ttl){
@@ -3908,7 +3604,6 @@ function init(){
   // [S578] 차트 마커 교차선택 세그먼트 초기 렌더 (저장값 반영)
   if(typeof _renderChartMarkerSeg === 'function') _renderChartMarkerSeg();
   // S160: BT 진입 게이트 로드 + 엔진 동기화 + 요약 뱃지 갱신
-  if(typeof _btGateInit === 'function') _btGateInit();
   if(searchResults.length) renderResults();
 
   // S47: 페이지 진입 시 자동 지수 fetch (배지 표시용)
@@ -5291,14 +4986,6 @@ function _buildScanConfig(){
     // [S993] transZoneTh scanPayload 주입 삭제.
     parallelEnabled: localStorage.getItem('SX_PARALLEL_FETCH')==='1',
     safetyFlags,
-    // S165: 분석엔진 진입 게이트 (BT 게이트와 대칭 적용)
-    //   - applyGatesToAnalysis: 스크리너 스캔/실시간 분석에 게이트 적용 여부
-    //   - gatesSyncMode: 'sync' (BT와 자동 일치) | 'split' (독립 관리)
-    //   - btEntryGates / analysisEntryGates: 양쪽 게이트 설정 (워커가 SXE에 주입)
-    applyGatesToAnalysis: (typeof _applyGatesToAnalysisLoad === 'function') ? _applyGatesToAnalysisLoad() : false,
-    gatesSyncMode: (typeof _gatesSyncModeLoad === 'function') ? _gatesSyncModeLoad() : 'sync',
-    btEntryGates: (typeof _btGateLoad === 'function') ? _btGateLoad() : null,
-    analysisEntryGates: (typeof _analysisGateLoad === 'function') ? _analysisGateLoad() : null,
     // [S309] 분석탭↔스캐너 BT 결과 일관성 보장 — 메인의 BT 청산 설정을 워커로 동봉
     //   배경: 워커는 importScripts로 sx_analysis_engine.js 로드 시 SXE._bt* 변수들이
     //         IIFE의 localStorage 접근 실패(워커는 localStorage 미지원) → catch 폴백으로 기본값에 고정됨.
@@ -5439,7 +5126,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=16');
+    _scanWorker = new Worker('sx_scan_worker.js?v=17');
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -9579,7 +9266,7 @@ window.SXBtScoreCheck = function(){
 };
 
 // ─── [보너스] BT-분석엔진 미스매치 진단 ─────────────────────
-// 분석엔진의 안전필터가 BT에서 무시되고 있는지 + 게이트가 활성화되어 있는지 종합 진단.
+// 분석엔진의 안전필터가 BT에서 무시되고 있는지 종합 진단. [S1006] 게이트 진단 철거
 // 사용 시점: BT 점수가 좋은데 분석탭에선 BUY 안 나오는 상황을 만났을 때.
 //
 // 사용법: window.SXBtAnalysisCheck()
@@ -9600,29 +9287,15 @@ window.SXBtAnalysisCheck = function(){
   const _onCount = Object.values(_sf).filter(v => v === true).length;
   const _offCount = Object.values(_sf).filter(v => v === false).length;
   console.log('안전필터 플래그: ON ' + _onCount + '개 / OFF ' + _offCount + '개');
-  // 3) 분석엔진 게이트 적용 여부
-  const _gatesOnAnalysis = (typeof SXE !== 'undefined') && SXE._applyGatesToAnalysis === true;
-  console.log('분석엔진 게이트 적용: ' + (_gatesOnAnalysis ? 'ON' : 'OFF (기본값)'));
-  if(_gatesOnAnalysis){
-    console.log('  동기화 모드: ' + (SXE._gatesSyncMode || 'sync'));
-  }
-  // 4) 활성 게이트 카운트
-  const _btGates = (typeof SXE !== 'undefined' && SXE._btEntryGates) || {};
-  const _activeGates = Object.entries(_btGates).filter(([k, v]) => v && v.on === true).map(([k]) => k);
-  console.log('BT 활성 게이트(' + _activeGates.length + '개):', _activeGates.length ? _activeGates : '없음');
-  // 5) 종합 권장사항
-  if(!_safetyOnBt && !_activeGates.length){
+  // 3) 종합 권장사항  [S1006] 게이트 항목 철거 — 안전필터 일원화
+  if(!_safetyOnBt){
     console.log('');
-    console.log('💡 BT-실전 미스매치를 줄이려면:');
-    console.log('  방법 A: SXE._applySafetyToBt = true  (안전필터를 BT에도 적용 — 가장 간단)');
-    console.log('  방법 B: BT 진입 게이트를 UI에서 활성화 (사진의 4개 카테고리에서 켜기)');
+    console.log('💡 BT-실전 미스매치를 줄이려면: SXE._applySafetyToBt = true (안전필터를 BT에도 적용)');
   }
   console.groupEnd();
   return {
     safetyOnBt: _safetyOnBt,
     safetyFlagsOnCount: _onCount,
-    gatesOnAnalysis: _gatesOnAnalysis,
-    activeGates: _activeGates,
   };
 };
 
@@ -12918,563 +12591,11 @@ function _loadSafetyFilterUI(){
 }
 
 // ════════════════════════════════════════════════════════════
-// S160: BT 진입 게이트 관리
+// [S1006] BT 진입 게이트 철거 — 설정탭 안전필터로 일원화 (기능 중복 · 측정 S1001~03 캐논)
+//   철거: 모달·프리셋·게이트 설정 함수군 전체. 존치: BT 안전필터 토글군(아래·🐻데드캣 포함)
 // ════════════════════════════════════════════════════════════
-const SX_BT_GATES_KEY = 'SX_BT_ENTRY_GATES';
-// S165: 분석엔진 게이트 — BT 게이트와 대칭 적용 (BT-실전 미스매치 해소)
-const SX_ANALYSIS_GATES_KEY = 'SX_ANALYSIS_ENTRY_GATES';
-const SX_APPLY_GATES_TO_ANALYSIS_KEY = 'SX_APPLY_GATES_TO_ANALYSIS'; // '1'/'0'
-const SX_GATES_SYNC_MODE_KEY = 'SX_GATES_SYNC_MODE'; // 'sync' | 'split'
-// S167: 모달 헤더 접기 상태 ('1' = 접힘, '0'/없음 = 펼침). 기본 펼침.
-const SX_GATE_HEADER_COLLAPSED_KEY = 'SX_GATE_HEADER_COLLAPSED';
-const _btGateDefaults = {
-  recentHigh:     { on:false, nBars:3,  maxPct:20 },
-  atrMultiple:    { on:false, nBars:5,  atrMult:3 },
-  highProximity:  { on:false, nBars:20, maxPct:95 },
-  consecUp:       { on:false, nBars:5 },
-  gapUp:          { on:false, maxPct:3 },
-  rsiOverbought:  { on:false, maxRsi:70 },
-  bbUpper:        { on:false, maxPctB:90 },
-  stochOverbought:{ on:false, maxK:80 },
-  maDisparity:    { on:false, maxPct:8 },
-  atrHard:        { on:false, maxPct:10 },
-  adxMin:         { on:false, minAdx:15 },
-  macdNegN:       { on:false, nBars:3 },
-  volSpike:       { on:false, nBars:3,  spikeMult:3 },
-  volDry:         { on:false, nBars:20, minRatio:50 },
-};
-const _btGateSubTabMap = {
-  recentHigh:'chase', atrMultiple:'chase', highProximity:'chase', consecUp:'chase', gapUp:'chase',
-  rsiOverbought:'heat', bbUpper:'heat', stochOverbought:'heat', maDisparity:'heat',
-  atrHard:'trend', adxMin:'trend', macdNegN:'trend',
-  volSpike:'vol', volDry:'vol',
-};
-// 값 포맷터: 슬라이더 값을 표시용 문자열로
-const _btGateFmt = {
-  'recentHigh.nBars':      v=>`${v}봉`,
-  'recentHigh.maxPct':     v=>`${v}%`,
-  'atrMultiple.nBars':     v=>`${v}봉`,
-  'atrMultiple.atrMult':   v=>`${v}×`,
-  'highProximity.nBars':   v=>`${v}봉`,
-  'highProximity.maxPct':  v=>`${v}%`,
-  'consecUp.nBars':        v=>`${v}봉`,
-  'gapUp.maxPct':          v=>`${v}%`,
-  'rsiOverbought.maxRsi':  v=>`${v}`,
-  'bbUpper.maxPctB':       v=>`${v}`,
-  'stochOverbought.maxK':  v=>`${v}`,
-  'maDisparity.maxPct':    v=>`${v}%`,
-  'atrHard.maxPct':        v=>`${v}%`,
-  'adxMin.minAdx':         v=>`${v}`,
-  'macdNegN.nBars':        v=>`${v}봉`,
-  'volSpike.nBars':        v=>`${v}봉`,
-  'volSpike.spikeMult':    v=>`${v}×`,
-  'volDry.nBars':          v=>`${v}봉`,
-  'volDry.minRatio':       v=>`${v}%`,
-};
-
-// ── S164: BT 게이트 프리셋 정의 (3회차 우선순위 2 — 사진3 원본 의도 구현) ──
-// 주의: 내 필터 탭의 같은 이름 프리셋과 임계값/로직이 다름.
-//   내 필터 = 데이터 조건 기반 스캔 필터링
-//   BT 게이트 = 백테스트 진입 시점 기술지표 기반 엄격 필터
-const _BT_GATE_PRESETS = {
-  chase_defense: {
-    name: '추격매수 방어',
-    icon: '🛡️',
-    gates: {
-      recentHigh:    { on:true, nBars:3,  maxPct:20 },
-      highProximity: { on:true, nBars:20, maxPct:95 },
-      volSpike:      { on:true, nBars:3,  spikeMult:3 },
-    }
-  },
-  sideways_avoid: {
-    name: '횡보장 회피',
-    icon: '📊',
-    gates: {
-      adxMin:   { on:true, minAdx:20 },
-      macdNegN: { on:true, nBars:3 },
-    }
-  },
-  vol_extreme: {
-    name: '극단 변동성 차단',
-    icon: '⚠️',
-    gates: {
-      atrHard: { on:true, maxPct:8 },
-      gapUp:   { on:true, maxPct:3 },
-    }
-  },
-};
-
-function _btGateApplyPreset(presetKey){
-  const preset = _BT_GATE_PRESETS[presetKey];
-  if(!preset){ console.warn('[btGate] Unknown preset:', presetKey); return; }
-  // 현재 상태 로드
-  let gates = _btGateCollectFromModal();
-  // 토글 판정: 이 프리셋의 모든 게이트가 이미 ON이면 OFF로 해제
-  const isActive = _btGateIsPresetActive(presetKey, gates);
-  if(isActive){
-    // 해제: 이 프리셋이 관할하는 게이트만 OFF (다른 프리셋과 겹치는 게이트는 남겨둠)
-    for(const gk in preset.gates){
-      // 다른 활성 프리셋이 이 게이트를 쓰는지 확인
-      const stillUsedByOther = Object.keys(_BT_GATE_PRESETS).some(pk =>
-        pk !== presetKey && _BT_GATE_PRESETS[pk].gates[gk] && _btGateIsPresetActive(pk, gates)
-      );
-      if(!stillUsedByOther && gates[gk]){
-        gates[gk] = {...gates[gk], on:false};
-      }
-    }
-    if(typeof toast === 'function'){
-      toast(`${preset.icon} ${preset.name} 해제`);
-    }
-  } else {
-    // 적용: 기존 게이트 유지 + 이 프리셋 게이트만 추가로 ON
-    for(const gk in preset.gates){
-      if(gates[gk]){
-        gates[gk] = {...gates[gk], ...preset.gates[gk]};
-      }
-    }
-    if(typeof toast === 'function'){
-      const gateCount = Object.keys(preset.gates).length;
-      toast(`${preset.icon} ${preset.name} 적용 (${gateCount}개 게이트)`);
-    }
-  }
-  // 상태 반영
-  // S166: 독립 모드 + 실시간 탭에서 프리셋 누른 경우 BT를 덮어쓰면 안 됨
-  //   → 활성 버퍼만 갱신하고 모달에 반영. 영구 저장은 "저장" 버튼에서 처리.
-  //   동기화 모드/BT 탭일 때는 기존처럼 즉시 저장 유지 (사용자 기대대로)
-  const applyOn = _applyGatesToAnalysisLoad();
-  const syncMode = _gatesSyncModeLoad();
-  const inSplitAnTab = (applyOn && syncMode === 'split' && _gateEditTarget === 'an');
-  if(inSplitAnTab){
-    // 실시간 탭 → 활성 버퍼만 갱신, BT 영구 저장은 건드리지 않음
-    if(_gateEditBuffer) _gateEditBuffer.an = gates;
-    _btGateSyncModalFromState(gates);
-    _btGateRefreshPresetChips(gates);
-    _btGateUpdateModalSubTabBadges(gates); // S168 [BUGFIX]
-    _gateUpdateEditTargetTabs();
-  } else {
-    _btGateSave(gates);
-    _btGateSyncModalFromState(gates);
-    _btGateUpdateSummary();
-    _btGateRefreshPresetChips(gates);
-    _btGateUpdateModalSubTabBadges(gates); // S168 [BUGFIX]
-    // S166: BT 탭에서도 활성 버퍼 동기화 (탭 전환 시 변경사항 보존)
-    if(_gateEditBuffer && _gateEditTarget) _gateEditBuffer[_gateEditTarget] = gates;
-    _gateUpdateEditTargetTabs();
-  }
-}
-
-// ── S164: 프리셋 활성 여부 판정 (모든 게이트가 on:true인지) ──
-function _btGateIsPresetActive(presetKey, gates){
-  const preset = _BT_GATE_PRESETS[presetKey];
-  if(!preset) return false;
-  for(const gk in preset.gates){
-    if(!gates[gk] || !gates[gk].on) return false;
-  }
-  return true;
-}
-
-// ── S164: 프리셋 칩 활성 상태 UI 갱신 ──
-function _btGateRefreshPresetChips(gates){
-  if(!gates) gates = _btGateLoad();
-  for(const presetKey in _BT_GATE_PRESETS){
-    const chip = document.getElementById(`btGatePresetChip_${presetKey}`);
-    if(!chip) continue;
-    if(_btGateIsPresetActive(presetKey, gates)){
-      chip.classList.add('active');
-    } else {
-      chip.classList.remove('active');
-    }
-  }
-}
-
-function _btGateDeepClone(obj){
-  const o = {};
-  for(const k in obj){ o[k] = {...obj[k]}; }
-  return o;
-}
-function _btGateLoad(){
-  try{
-    const d = JSON.parse(localStorage.getItem(SX_BT_GATES_KEY));
-    if(d && typeof d === 'object'){
-      // 기본값과 병합 (신규 게이트 누락 대비)
-      const merged = _btGateDeepClone(_btGateDefaults);
-      for(const k in d){
-        if(merged[k] && typeof d[k] === 'object'){
-          merged[k] = {...merged[k], ...d[k]};
-        }
-      }
-      return merged;
-    }
-  }catch(_){}
-  return _btGateDeepClone(_btGateDefaults);
-}
-function _btGateSave(gates){
-  try{ localStorage.setItem(SX_BT_GATES_KEY, JSON.stringify(gates)); }catch(_){}
-  if(typeof SXE !== 'undefined') SXE._btEntryGates = gates;
-  // S165: 동기화 모드(sync)일 때는 BT 게이트 변경이 분석 게이트에도 즉시 반영
-  //   - 'sync' 모드의 핵심 가치: 사용자가 한 곳(BT 게이트)만 수정하면 양쪽이 자동 일치
-  //   - 'split' 모드일 때는 BT만 저장 (분석 게이트는 독립적으로 관리)
-  if(_gatesSyncModeLoad() === 'sync'){
-    const cloned = _btGateDeepClone(gates);
-    try{ localStorage.setItem(SX_ANALYSIS_GATES_KEY, JSON.stringify(cloned)); }catch(_){}
-    if(typeof SXE !== 'undefined') SXE._analysisEntryGates = cloned;
-  }
-}
-
-// ── S165: 분석엔진 게이트 헬퍼 (BT 게이트와 동일 구조 재사용) ──
-function _analysisGateLoad(){
-  try{
-    const d = JSON.parse(localStorage.getItem(SX_ANALYSIS_GATES_KEY));
-    if(d && typeof d === 'object'){
-      const merged = _btGateDeepClone(_btGateDefaults);
-      for(const k in d){
-        if(merged[k] && typeof d[k] === 'object'){
-          merged[k] = {...merged[k], ...d[k]};
-        }
-      }
-      return merged;
-    }
-  }catch(_){}
-  return _btGateDeepClone(_btGateDefaults);
-}
-function _analysisGateSave(gates){
-  try{ localStorage.setItem(SX_ANALYSIS_GATES_KEY, JSON.stringify(gates)); }catch(_){}
-  if(typeof SXE !== 'undefined') SXE._analysisEntryGates = gates;
-}
-// 분석엔진 게이트 적용 ON/OFF 토글
-function _applyGatesToAnalysisLoad(){
-  return localStorage.getItem(SX_APPLY_GATES_TO_ANALYSIS_KEY) === '1';
-}
-function _applyGatesToAnalysisSave(on){
-  try{ localStorage.setItem(SX_APPLY_GATES_TO_ANALYSIS_KEY, on ? '1' : '0'); }catch(_){}
-  if(typeof SXE !== 'undefined') SXE._applyGatesToAnalysis = !!on;
-}
-// 동기화 모드: 'sync' (양쪽 자동 일치) | 'split' (독립 관리)
-function _gatesSyncModeLoad(){
-  const v = localStorage.getItem(SX_GATES_SYNC_MODE_KEY);
-  return (v === 'split') ? 'split' : 'sync'; // 기본 'sync'
-}
-function _gatesSyncModeSave(mode){
-  const v = (mode === 'split') ? 'split' : 'sync';
-  try{ localStorage.setItem(SX_GATES_SYNC_MODE_KEY, v); }catch(_){}
-  if(typeof SXE !== 'undefined') SXE._gatesSyncMode = v;
-  // sync 모드로 전환 시: 현재 BT 게이트를 분석 게이트로 즉시 복사 (일관성 회복)
-  if(v === 'sync'){
-    const btGates = _btGateLoad();
-    _analysisGateSave(_btGateDeepClone(btGates));
-  }
-}
-// BT → 분석 게이트로 1회성 복사 (split 모드에서 시작점 맞추기 용)
-function _gatesCopyBtToAnalysis(){
-  // S166: 모달이 열려 있으면 현재 모달 상태를 BT 버퍼에 우선 반영 (사용자가 방금 BT 탭에서 만진 값이 있을 수 있음)
-  if(_gateEditBuffer){
-    if(_gateEditTarget === 'bt'){
-      const cur = _btGateCollectFromModal();
-      if(cur) _gateEditBuffer.bt = cur;
-    }
-    const src = _gateEditBuffer.bt || _btGateLoad();
-    _gateEditBuffer.an = _btGateDeepClone(src);
-    _analysisGateSave(_gateEditBuffer.an);
-    // 만약 사용자가 실시간 탭 보고 있다면 모달도 새로 갱신
-    if(_gateEditTarget === 'an'){
-      _btGateSyncModalFromState(_gateEditBuffer.an);
-      _btGateRefreshPresetChips(_gateEditBuffer.an);
-      _btGateUpdateModalSubTabBadges(_gateEditBuffer.an); // S168 [BUGFIX]
-    }
-    _gateUpdateEditTargetTabs();
-  } else {
-    const btGates = _btGateLoad();
-    _analysisGateSave(_btGateDeepClone(btGates));
-  }
-  toast('BT 게이트 → 실시간 게이트 복사 완료');
-  _btGateUpdateSummary();
-}
-function _btGateCountActive(gates){
-  let total = 0;
-  const bySub = {chase:0, heat:0, trend:0, vol:0};
-  for(const k in gates){
-    if(gates[k] && gates[k].on){
-      total++;
-      const sub = _btGateSubTabMap[k];
-      if(sub) bySub[sub]++;
-    }
-  }
-  return { total, bySub };
-}
-// 요약 뱃지 업데이트
-function _btGateUpdateSummary(){
-  const gates = _btGateLoad();
-  const { total, bySub } = _btGateCountActive(gates);
-  const countEl = document.getElementById('btGateActiveCount');
-  if(countEl) countEl.textContent = total;
-  const sumTextEl = document.getElementById('btGateSummaryText');
-  if(sumTextEl){
-    if(total === 0){
-      sumTextEl.innerHTML = '<span class="bt-gate-summary-count" id="btGateActiveCount" style="color:var(--text3)">전부 OFF</span>';
-    } else {
-      const parts = [];
-      if(bySub.chase) parts.push(`추격 ${bySub.chase}`);
-      if(bySub.heat) parts.push(`과열 ${bySub.heat}`);
-      if(bySub.trend) parts.push(`추세 ${bySub.trend}`);
-      if(bySub.vol) parts.push(`거래량 ${bySub.vol}`);
-      sumTextEl.innerHTML = `<span class="bt-gate-summary-count">${total}</span>개 활성 <span style="color:var(--text3);font-size:10px">· ${parts.join(' · ')}</span>`;
-    }
-  }
-  // 서브탭 배지 갱신
-  ['chase','heat','trend','vol'].forEach(sub=>{
-    const el = document.getElementById(`btGateBadge_${sub}`);
-    if(el) el.textContent = bySub[sub];
-  });
-}
-
-// 모달 UI에 현재 값 적용
-function _btGateSyncModalFromState(gates){
-  // 체크박스
-  document.querySelectorAll('#btGateModal input[type=checkbox][data-gk]').forEach(chk=>{
-    const [gk, sub] = chk.dataset.gk.split('.');
-    if(sub === 'on'){
-      const on = !!(gates[gk] && gates[gk].on);
-      chk.checked = on;
-      const item = chk.closest('.bt-gate-item');
-      if(item){ item.classList.toggle('on', on); }
-    }
-  });
-  // 슬라이더
-  document.querySelectorAll('#btGateModal input[type=range][data-gk]').forEach(rng=>{
-    const [gk, sub] = rng.dataset.gk.split('.');
-    if(gates[gk] && gates[gk][sub] != null){
-      rng.value = gates[gk][sub];
-    }
-    // 값 표시 업데이트
-    const valEl = document.querySelector(`#btGateModal [data-gkv="${rng.dataset.gk}"]`);
-    if(valEl){
-      const fmt = _btGateFmt[rng.dataset.gk] || (v=>v);
-      valEl.textContent = fmt(rng.value);
-    }
-  });
-}
-
-// 모달 내 변경사항을 상태 객체로 수집
-function _btGateCollectFromModal(){
-  const gates = _btGateDeepClone(_btGateDefaults);
-  document.querySelectorAll('#btGateModal input[type=checkbox][data-gk]').forEach(chk=>{
-    const [gk, sub] = chk.dataset.gk.split('.');
-    if(gates[gk]) gates[gk][sub] = !!chk.checked;
-  });
-  document.querySelectorAll('#btGateModal input[type=range][data-gk]').forEach(rng=>{
-    const [gk, sub] = rng.dataset.gk.split('.');
-    if(gates[gk]){
-      const num = parseFloat(rng.value);
-      gates[gk][sub] = isFinite(num) ? num : gates[gk][sub];
-    }
-  });
-  return gates;
-}
-
-function openBtGateModal(){
-  const modal = document.getElementById('btGateModal');
-  if(!modal) return;
-  // S166: 모달 열 때마다 편집 대상을 BT로 초기화 (사용자 혼란 방지)
-  _gateEditTarget = 'bt';
-  // 임시 버퍼 초기화 (탭 전환 시 변경사항 보존용)
-  _gateEditBuffer.bt = _btGateDeepClone(_btGateLoad());
-  _gateEditBuffer.an = _btGateDeepClone(_analysisGateLoad());
-  // 현재 편집 대상의 게이트를 모달에 표시
-  const gates = _gateEditBuffer[_gateEditTarget];
-  _btGateSyncModalFromState(gates);
-  _btGateRefreshPresetChips(gates);  // S164: 프리셋 칩 활성 상태 반영
-  // S168 [BUGFIX]: 서브탭 배지도 활성 버퍼 기준으로 갱신 (이전엔 BT 게이트 기준이라 실시간 탭에서 오표시)
-  _btGateUpdateModalSubTabBadges(gates);
-  // S165: 모달 헤더 UI 상태 반영 (적용 토글 + 동기화 모드)
-  _gateApplySyncUiToModal();
-  // [A] BT 안전필터 토글 상태 반영
-  _btSafetyApplyUiToModal();
-  // S166: 편집 대상 탭 UI 갱신 (배지 카운트 포함)
-  _gateUpdateEditTargetTabs();
-  // S167: 헤더 접기 상태 복원 (마지막 사용자 선택 유지)
-  _gateHeaderApplyCollapseToDom();
-  // 첫 탭 활성화 유지
-  _btGateSwitchSub('chase');
-  modal.classList.add('show');
-  // [S213] 모바일 뒤로가기 지원
-  history.pushState({view:'btGateModal'}, '');
-}
-
-// ── S166: 모달 내부 편집 상태 (독립 모드 전용) ──
-//   _gateEditTarget: 현재 편집 중인 대상 ('bt' | 'an')
-//   _gateEditBuffer: 모달 내 임시 버퍼 (탭 전환 시 변경사항 보존)
-//     모달 진입 시 로드 → 탭 전환 시 현재 모달 상태를 버퍼에 저장 후 다른 버퍼를 모달에 로드
-//     저장 버튼 누를 때 비로소 localStorage에 영구 저장
-let _gateEditTarget = 'bt';
-let _gateEditBuffer = { bt:null, an:null };
-
-// ── S168 [BUGFIX]: 모달 서브탭 배지(추격방지/과열필터/변동성·추세/거래량)를
-//   "현재 모달에 표시되고 있는 게이트" 기준으로 갱신.
-//   기존 _btGateUpdateSummary는 항상 localStorage의 BT 게이트를 읽어서 갱신했기 때문에
-//   사용자가 실시간 탭으로 전환해도 서브탭 배지가 BT 값으로 남아있는 문제가 있었음.
-function _btGateUpdateModalSubTabBadges(gates){
-  if(!gates) return;
-  const { bySub } = _btGateCountActive(gates);
-  ['chase','heat','trend','vol'].forEach(sub=>{
-    const el = document.getElementById(`btGateBadge_${sub}`);
-    if(el) el.textContent = bySub[sub] || 0;
-  });
-}
-
-// 편집 대상 탭 전환
-function _gateSwitchEditTarget(target){
-  if(target !== 'bt' && target !== 'an') return;
-  if(target === _gateEditTarget) return; // 같은 탭 → 무시
-  // 1. 현재 모달의 변경사항을 활성 버퍼에 저장
-  _gateEditBuffer[_gateEditTarget] = _btGateCollectFromModal();
-  // 2. 편집 대상 전환
-  _gateEditTarget = target;
-  // 3. 새 대상의 버퍼를 모달에 로드
-  const gates = _gateEditBuffer[target];
-  _btGateSyncModalFromState(gates);
-  _btGateRefreshPresetChips(gates);
-  // S168 [BUGFIX]: 서브탭 배지도 새 대상 기준으로 갱신
-  _btGateUpdateModalSubTabBadges(gates);
-  // 4. 탭 UI 갱신
-  _gateUpdateEditTargetTabs();
-}
-
-// 편집 대상 탭 UI 갱신 (활성 표시 + 카운트 + 힌트)
-function _gateUpdateEditTargetTabs(){
-  const btTab = document.getElementById('gateEditTargetBtTab');
-  const anTab = document.getElementById('gateEditTargetAnTab');
-  const hint = document.getElementById('gateEditTargetHint');
-  if(!btTab || !anTab) return;
-  const isBt = (_gateEditTarget === 'bt');
-  // 활성 탭 강조
-  btTab.style.background = isBt ? 'var(--accent,#3b82f6)' : 'transparent';
-  btTab.style.color = isBt ? '#fff' : 'var(--text2,#666)';
-  anTab.style.background = isBt ? 'transparent' : 'var(--accent,#3b82f6)';
-  anTab.style.color = isBt ? 'var(--text2,#666)' : '#fff';
-  // 배지 색 토글
-  const btBadge = document.getElementById('gateEditTargetBtCount');
-  const anBadge = document.getElementById('gateEditTargetAnCount');
-  if(btBadge){
-    btBadge.style.background = isBt ? 'rgba(255,255,255,.25)' : 'var(--bg3,#eef0f4)';
-    btBadge.style.color = isBt ? '#fff' : 'var(--text2,#666)';
-  }
-  if(anBadge){
-    anBadge.style.background = isBt ? 'var(--bg3,#eef0f4)' : 'rgba(255,255,255,.25)';
-    anBadge.style.color = isBt ? 'var(--text2,#666)' : '#fff';
-  }
-  // 카운트 갱신 (각 버퍼의 활성 게이트 수)
-  if(_gateEditBuffer.bt && btBadge) btBadge.textContent = _btGateCountActive(_gateEditBuffer.bt).total;
-  if(_gateEditBuffer.an && anBadge) anBadge.textContent = _btGateCountActive(_gateEditBuffer.an).total;
-  // 힌트 메시지
-  if(hint){
-    hint.textContent = isBt
-      ? 'BT 백테스트 진입 시 적용되는 게이트'
-      : '실시간 분석/스크리너에서 적용되는 게이트';
-  }
-}
-
-// ── S165: 모달 헤더의 적용/동기화 UI를 현재 상태에 맞게 갱신 ──
-function _gateApplySyncUiToModal(){
-  const applyOn = _applyGatesToAnalysisLoad();
-  const syncMode = _gatesSyncModeLoad();
-  const applyChk = document.getElementById('gateApplyToAnalysisToggle');
-  if(applyChk) applyChk.checked = applyOn;
-  // 동기화 모드 행: 적용 ON일 때만 노출
-  const syncRow = document.getElementById('gateSyncModeRow');
-  if(syncRow) syncRow.style.display = applyOn ? 'block' : 'none';
-  // 라디오 버튼 상태 반영
-  document.querySelectorAll('input[name="gateSyncMode"]').forEach(r=>{
-    r.checked = (r.value === syncMode);
-  });
-  // split 모드일 때만 복사 버튼 노출
-  const copyBtn = document.getElementById('gateCopyBtn');
-  if(copyBtn) copyBtn.style.display = (applyOn && syncMode === 'split') ? 'block' : 'none';
-  // 활성 카드 시각 강조
-  const syncLbl = document.getElementById('gateSyncModeSyncLabel');
-  const splitLbl = document.getElementById('gateSyncModeSplitLabel');
-  if(syncLbl) syncLbl.style.borderColor = (syncMode === 'sync') ? 'var(--accent,#3b82f6)' : 'var(--bd,#e5e8ec)';
-  if(splitLbl) splitLbl.style.borderColor = (syncMode === 'split') ? 'var(--accent,#3b82f6)' : 'var(--bd,#e5e8ec)';
-  // S166: 편집 대상 탭 — 독립 모드 + 적용 ON일 때만 노출
-  const editTabs = document.getElementById('gateEditTargetTabs');
-  if(editTabs){
-    const showTabs = applyOn && syncMode === 'split';
-    editTabs.style.display = showTabs ? 'block' : 'none';
-    // 동기화로 전환되면 편집 대상을 강제로 BT로 (실시간 탭에서 편집 중이었다면 BT 버퍼는 그대로 살아있음)
-    if(!showTabs && _gateEditTarget === 'an'){
-      // sync 또는 적용 OFF로 바뀐 경우 → 현재 모달 상태를 'an' 버퍼에 저장하고 BT로 전환
-      if(_gateEditBuffer && _gateEditBuffer.an){
-        _gateEditBuffer.an = _btGateCollectFromModal();
-      }
-      _gateEditTarget = 'bt';
-      const btGates = _gateEditBuffer && _gateEditBuffer.bt ? _gateEditBuffer.bt : _btGateLoad();
-      _btGateSyncModalFromState(btGates);
-      _btGateRefreshPresetChips(btGates);
-      _btGateUpdateModalSubTabBadges(btGates); // S168 [BUGFIX]: 모달 다시 그릴 때 서브탭 배지도 갱신
-    }
-  }
-  // S167: 헤더가 접혀 있다면 요약 바 텍스트도 갱신
-  _gateHeaderUpdateCollapsedSummary();
-}
-
-// ── S167: 모달 헤더 접기/펼치기 ──
-//   하단 게이트 임계값 영역이 좁다는 피드백 → 적용/동기화/편집 대상 영역을 접을 수 있게
-//   접힌 상태에서는 한 줄짜리 요약 바만 노출 (탭하면 다시 펼침)
-//   상태는 localStorage에 저장 → 다음 모달 열 때도 유지
-function _gateHeaderCollapsedLoad(){
-  return localStorage.getItem(SX_GATE_HEADER_COLLAPSED_KEY) === '1';
-}
-function _gateHeaderCollapsedSave(on){
-  try{ localStorage.setItem(SX_GATE_HEADER_COLLAPSED_KEY, on ? '1' : '0'); }catch(_){}
-}
-// 접기 상태에 따라 DOM 표시 갱신 (함수 호출 시점의 localStorage 값을 기준)
-function _gateHeaderApplyCollapseToDom(){
-  const collapsed = _gateHeaderCollapsedLoad();
-  const desc = document.getElementById('gateHeaderDescRow');
-  const expanded = document.getElementById('gateHeaderExpandedArea');
-  const collapsedBar = document.getElementById('gateHeaderCollapsedBar');
-  const icon = document.getElementById('gateHeaderCollapseIcon');
-  if(desc) desc.style.display = collapsed ? 'none' : 'block';
-  if(expanded) expanded.style.display = collapsed ? 'none' : 'block';
-  if(collapsedBar) collapsedBar.style.display = collapsed ? 'flex' : 'none';
-  if(icon) icon.textContent = collapsed ? '▼' : '▲';
-  // 접혔을 때 요약 텍스트 채우기
-  if(collapsed) _gateHeaderUpdateCollapsedSummary();
-}
-// 토글 핸들러
-function _gateHeaderToggleCollapse(){
-  const next = !_gateHeaderCollapsedLoad();
-  _gateHeaderCollapsedSave(next);
-  _gateHeaderApplyCollapseToDom();
-}
-// 접힌 상태일 때 요약 바 텍스트 갱신
-function _gateHeaderUpdateCollapsedSummary(){
-  const el = document.getElementById('gateHeaderCollapsedSummary');
-  if(!el) return;
-  const applyOn = _applyGatesToAnalysisLoad();
-  const syncMode = _gatesSyncModeLoad();
-  let summary;
-  if(!applyOn){
-    summary = '🔒 BT 백테스트만 적용';
-  } else if(syncMode === 'sync'){
-    summary = '🔗 동기화 모드 — BT=실시간 자동 일치';
-  } else {
-    // split 모드: 현재 어느 탭을 편집 중인지 표시
-    const editing = (_gateEditTarget === 'an') ? '📡 실시간 편집 중' : '🎯 BT 편집 중';
-    summary = `🔀 독립 · ${editing}`;
-  }
-  el.textContent = summary;
-}
-
-// 적용 토글 변경 핸들러
-function _gateApplyToggleChanged(on){
-  _applyGatesToAnalysisSave(!!on);
-  _gateApplySyncUiToModal();
-  toast(on ? '실시간 분석에도 게이트 적용 ON' : '실시간 분석 게이트 OFF (BT만 적용)');
-}
 
 // ─── [A] BT 안전필터 적용 토글 핸들러 ─────────────────────
-// SXE.toggleBtSafety()를 UI에서 호출 — 모바일에서 콘솔 없이 사용 가능
-// localStorage 영속화는 SXE 헬퍼가 처리
 function _btSafetyToggleChanged(on){
   if(typeof SXE === 'undefined' || typeof SXE.toggleBtSafety !== 'function'){
     toast('엔진 미준비 — 새로고침 후 다시 시도');
@@ -13528,8 +12649,6 @@ function _btSafetyHelpToggleClick(){
 }
 
 // ─── [A] 안전필터 10종 토글 UI 동적 생성/갱신 ─────
-// 도움말 펼침 영역 안에서 직접 ON/OFF 가능. 기존 SX_SAFETY_FILTERS 영속 시스템과 완전 동기화.
-// 메인 7개 + 옵션 3개 분리 렌더 (UI 구획 명확화)
 function _btSafetyTogglesRender(){
   const _itemsMain = [
     {key:'threshold',  name:'🔒 임계값',         desc:'점수가 매수기준 턱걸이 (불안정)'},
@@ -13600,9 +12719,6 @@ function _btSafetyTogglesRender(){
 }
 
 // ─── [A] 안전필터 토글 변경 — 영속화 + 양쪽 UI 동기화 ─────
-//   (1) 도움말 안 토글에서 변경된 값을 SX_SAFETY_FILTERS에 저장
-//   (2) SXE._safetyFlags 엔진 상태도 즉시 갱신
-//   (3) 설정 페이지의 #safetyFilterList 체크박스도 같이 갱신 (양방향 동기화)
 function _btSafetyTogglesChanged(key, on){
   if(typeof _loadSafetyFilters !== 'function'){
     toast('안전필터 시스템 미준비');
@@ -13620,133 +12736,7 @@ function _btSafetyTogglesChanged(key, on){
   toast((on ? '🔒 ON: ' : 'OFF: ') + key);
 }
 
-// 동기화 모드 변경 핸들러
-function _gateSyncModeChanged(mode){
-  // S166: 모드 전환 전에 현재 모달 상태를 활성 버퍼에 백업
-  //   (독립→동기화로 갈 때 _gateApplySyncUiToModal이 모달을 BT 버퍼로 다시 그리는데,
-  //    그 사이에 사용자가 만진 분석 게이트 편집사항이 사라지는 걸 방지)
-  if(_gateEditBuffer && _gateEditTarget){
-    const cur = _btGateCollectFromModal();
-    if(cur) _gateEditBuffer[_gateEditTarget] = cur;
-  }
-  _gatesSyncModeSave(mode);
-  // sync로 전환된 경우: 분석 버퍼를 BT 버퍼로 강제 일치 (저장소가 그렇게 됐으니 모달 버퍼도)
-  if(mode === 'sync' && _gateEditBuffer){
-    _gateEditBuffer.an = _btGateDeepClone(_gateEditBuffer.bt || _btGateLoad());
-  }
-  _gateApplySyncUiToModal();
-  _gateUpdateEditTargetTabs();
-  toast(mode === 'sync' ? '동기화 모드 — BT/실시간 자동 일치' : '독립 모드 — BT/실시간 따로 관리');
-}
 
-function closeBtGateModal(){
-  const modal = document.getElementById('btGateModal');
-  if(modal) modal.classList.remove('show');
-}
-function _btGateSwitchSub(sub){
-  document.querySelectorAll('#btGateSubtabs .bt-gate-subtab').forEach(el=>{
-    el.classList.toggle('active', el.dataset.sub === sub);
-  });
-  document.querySelectorAll('#btGateModalBody .bt-gate-page').forEach(el=>{
-    el.classList.toggle('active', el.dataset.page === sub);
-  });
-}
-// [S224] async 변환 — sxConfirm 사용
-async function _btGateReset(){
-  if(!await sxConfirm('모든 진입 게이트를 OFF로 초기화하시겠습니까?')) return;
-  const gates = _btGateDeepClone(_btGateDefaults);
-  _btGateSyncModalFromState(gates);
-  _btGateRefreshPresetChips(gates);  // S164: 모든 프리셋 칩 비활성화
-  _btGateUpdateModalSubTabBadges(gates); // S168 [BUGFIX]: 서브탭 배지도 0으로
-  // S166: 활성 버퍼도 리셋 (탭 카운트 즉시 반영)
-  if(_gateEditBuffer && _gateEditTarget) _gateEditBuffer[_gateEditTarget] = gates;
-  _gateUpdateEditTargetTabs();
-  toast('모든 게이트 OFF로 초기화');
-}
-function _btGateSaveAndClose(){
-  // S166: 현재 모달 상태를 활성 버퍼에 반영
-  const curGates = _btGateCollectFromModal();
-  if(_gateEditBuffer && _gateEditTarget) _gateEditBuffer[_gateEditTarget] = curGates;
-
-  const applyOn = _applyGatesToAnalysisLoad();
-  const syncMode = _gatesSyncModeLoad();
-  // 분기 1: 동기화 모드 또는 적용 OFF → 기존 동작 (BT만 저장, sync면 분석에도 자동 복사)
-  // 분기 2: 독립 모드 + 적용 ON → 양쪽 버퍼를 각각 저장
-  if(applyOn && syncMode === 'split'){
-    // 양쪽 다 저장
-    _btGateSave(_gateEditBuffer.bt);          // BT 저장 (sync가 아니므로 분석에는 자동 복사 안 됨)
-    _analysisGateSave(_gateEditBuffer.an);    // 분석 저장
-    _btGateUpdateSummary();
-    closeBtGateModal();
-    const btCount = _btGateCountActive(_gateEditBuffer.bt).total;
-    const anCount = _btGateCountActive(_gateEditBuffer.an).total;
-    toast(`저장됨 — BT: ${btCount}개, 실시간: ${anCount}개`);
-  } else {
-    // 기존 동작 (BT 게이트 하나만 저장. sync면 _btGateSave 안에서 분석 게이트로 자동 복사)
-    const gates = _gateEditBuffer.bt || curGates;
-    _btGateSave(gates);
-    _btGateUpdateSummary();
-    closeBtGateModal();
-    const { total } = _btGateCountActive(gates);
-    toast(total === 0 ? '진입 게이트 저장됨 (전부 OFF)' : `진입 게이트 저장됨 (${total}개 활성)`);
-  }
-}
-
-// 모달 내부 이벤트 위임: 체크박스 토글 시 on 클래스 + 슬라이더 변경 시 값 표시
-document.addEventListener('change', (e)=>{
-  const t = e.target;
-  if(!t || !t.dataset || !t.dataset.gk) return;
-  if(!t.closest('#btGateModal')) return;
-  if(t.type === 'checkbox'){
-    const item = t.closest('.bt-gate-item');
-    if(item) item.classList.toggle('on', t.checked);
-    // S164: 개별 게이트 토글 시 프리셋 칩 상태 재계산
-    const collected = _btGateCollectFromModal();
-    _btGateRefreshPresetChips(collected);
-    // S168 [BUGFIX]: 서브탭 배지(추격방지/과열필터/변동성·추세/거래량)도 즉시 갱신
-    //   이전에는 _gateUpdateEditTargetTabs만 호출해서 상단 BT/실시간 탭 카운트만 갱신됐고,
-    //   하단 서브탭 배지는 전역 _btGateUpdateSummary 호출 시점까지 stale 상태였음.
-    _btGateUpdateModalSubTabBadges(collected);
-    // S166: 활성 버퍼 갱신 + 탭 배지 카운트 실시간 갱신
-    if(_gateEditBuffer && _gateEditTarget){
-      _gateEditBuffer[_gateEditTarget] = collected;
-      _gateUpdateEditTargetTabs();
-    }
-  }
-});
-document.addEventListener('input', (e)=>{
-  const t = e.target;
-  if(!t || !t.dataset || !t.dataset.gk) return;
-  if(!t.closest('#btGateModal')) return;
-  if(t.type === 'range'){
-    const valEl = document.querySelector(`#btGateModal [data-gkv="${t.dataset.gk}"]`);
-    if(valEl){
-      const fmt = _btGateFmt[t.dataset.gk] || (v=>v);
-      valEl.textContent = fmt(t.value);
-    }
-  }
-});
-
-// 초기 엔진 동기화 + 요약 뱃지 갱신 (페이지 로드 시)
-function _btGateInit(){
-  const gates = _btGateLoad();
-  if(typeof SXE !== 'undefined') SXE._btEntryGates = gates;
-
-  // S165: 분석엔진 게이트 + 적용 토글 + 동기화 모드 초기화
-  const syncMode = _gatesSyncModeLoad();
-  if(typeof SXE !== 'undefined') SXE._gatesSyncMode = syncMode;
-  // sync 모드면 BT 게이트를 분석 게이트로 강제 동기화 (저장된 값이 어긋나 있을 수 있음)
-  if(syncMode === 'sync'){
-    const cloned = _btGateDeepClone(gates);
-    try{ localStorage.setItem(SX_ANALYSIS_GATES_KEY, JSON.stringify(cloned)); }catch(_){}
-    if(typeof SXE !== 'undefined') SXE._analysisEntryGates = cloned;
-  } else {
-    if(typeof SXE !== 'undefined') SXE._analysisEntryGates = _analysisGateLoad();
-  }
-  if(typeof SXE !== 'undefined') SXE._applyGatesToAnalysis = _applyGatesToAnalysisLoad();
-
-  _btGateUpdateSummary();
-}
 // ════════════════════════════════════════════════════════════
 // S138: parallelFetchCandles 제거 (정의만 있고 호출처 0건 — 실제 병렬 fetch는 sx_scan_worker.js에서 처리)
 
@@ -15650,18 +14640,6 @@ function _sxcDownloadExtLog(){
     lines.push(`  확장 캐시: ${_cacheCount}개 (${(_cacheSize/1024).toFixed(1)}KB)`);
 
     try{
-      const gates = (typeof SXE !== 'undefined' && SXE._btEntryGates) ? SXE._btEntryGates : null;
-      if(gates){
-        let activeCount = 0; const activeNames = [];
-        for(const k in gates){ if(gates[k] && gates[k].on){ activeCount++; activeNames.push(k); } }
-        lines.push(`  게이트 활성: ${activeCount}개 ${activeNames.length>0?'('+activeNames.join(',')+')':''}`);
-        if(typeof SXE._btGateHash === 'function'){
-          lines.push(`  게이트 해시: ${SXE._btGateHash(gates)}`);
-        }
-      }
-    }catch(_){}
-
-    try{
       // [PATCH cache-version v3] _v wrapper 호환 — _watchBtLoadAll과 동일 패턴
       let all = {};
       try{
@@ -15899,8 +14877,6 @@ window.addEventListener('popstate', function(e){
   var swM = document.getElementById('scoreWeightModal');
   if(swM && swM.style.display !== 'none' && swM.style.display !== ''){ closeScoreWeightModal(); return; }
   // [S213] BT 게이트 모달
-  var btGateM = document.getElementById('btGateModal');
-  if(btGateM && btGateM.classList.contains('show')){ closeBtGateModal(); return; }
   // [S213] Early Exit 모달
   var eeM = document.getElementById('earlyExitModal');
   if(eeM && eeM.classList.contains('show')){ closeEarlyExitModal(); return; }
