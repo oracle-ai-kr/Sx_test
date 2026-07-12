@@ -2380,13 +2380,12 @@ async function _optRunNonstop(){
                     // [S242] 전역 상태 진단 — sxRunBtEngine이 내부에서 참조하는 전역 플래그/파라미터
                     //   _loadAnalParams: calcAllScreener의 RSI/BB/ATR/MA 길이가 여기서 결정될 수 있음
                     //   _applySafetyToBt: 분석엔진 안전필터를 BT에도 적용하는지 (기본 OFF)
-                    //   _btEntryGates: 진입 게이트 (rawScore 통과 후 추가 조건)
                     //   _btEarlyExit: 조기청산 (트레일링/본전보호)
                     if(typeof _loadAnalParams === 'function'){
                       const _ap = _loadAnalParams();
                       window._sxDebugBT && console.log(`[S242] [${tf}/OFF] _loadAnalParams: ${JSON.stringify(_ap)}`);
                     }
-                    window._sxDebugBT && console.log(`[S242] [${tf}/OFF] 전역플래그: applySafetyToBt=${!!SXE._applySafetyToBt} · btEntryGates=${!!SXE._btEntryGates} · btEarlyExit=${!!(SXE._btEarlyExit && SXE._btEarlyExit.enabled)}`);
+                    window._sxDebugBT && console.log(`[S242] [${tf}/OFF] 전역플래그: applySafetyToBt=${!!SXE._applySafetyToBt} · btEarlyExit=${!!(SXE._btEarlyExit && SXE._btEarlyExit.enabled)}`);
                     // [S249] 20250530 진입봉 이후 ~30봉의 close 출력 — 분석탭과 직접 비교용
                     try{
                       const _idx530 = (fullRows||[]).findIndex(r => (r.date || r.t) === '20250530');
@@ -2528,7 +2527,7 @@ async function _optRunNonstop(){
                       const _ap = _loadAnalParams();
                       window._sxDebugBT && console.log(`[S242] [${tf}/ON] _loadAnalParams: ${JSON.stringify(_ap)}`);
                     }
-                    window._sxDebugBT && console.log(`[S242] [${tf}/ON] 전역플래그: applySafetyToBt=${!!SXE._applySafetyToBt} · btEntryGates=${!!SXE._btEntryGates} · btEarlyExit=${!!(SXE._btEarlyExit && SXE._btEarlyExit.enabled)}`);
+                    window._sxDebugBT && console.log(`[S242] [${tf}/ON] 전역플래그: applySafetyToBt=${!!SXE._applySafetyToBt} · btEarlyExit=${!!(SXE._btEarlyExit && SXE._btEarlyExit.enabled)}`);
                     // [S249] 20250530 진입봉 이후 ~30봉의 close 출력
                     try{
                       const _idx530 = (fullRows||[]).findIndex(r => (r.date || r.t) === '20250530');
