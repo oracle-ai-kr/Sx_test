@@ -5270,89 +5270,7 @@ async function _riskComboUI(){
 }
 if(typeof window!=='undefined'){ window._riskComboUI=_riskComboUI; }
 
-// ═══════════ [S1009] 안전필터 A/B 실효성 측정 (BT·측정전용·엔진 무변경) ═══════════
-// 사전 선언(사용자 합의): 대표풀 전수 · 동일 rows 3구성 BT — ⓐ현행(A그룹 강제OFF·riskSig OFF) / ⓑ ⓐ+위험시그니처 / ⓒ ⓐ+A그룹3종 복귀(SXE._sfAbOverride).
-//   공통: _applySafetyToBt=true 강제(OFF면 필터가 BT에 안 걸려 A/B 무의미) · params/opts=현재 설정(3구성 동일→델타 유효) · 종료 후 전역 복원(저장 무접촉).
-//   판정: ⓑ MDD 개선 & 수익 훼손 미미→기본 ON 승격 · ⓑΔ~0=진입게이트론 발동 희박(예측대로·무해→승격 가능) · ⓒ<ⓐ 재확인→A그룹 코드 철거 확정. 현 기준하.
-function _sfABBlank(){ return { stocks:0, n:0, pnlSum:0, winWSum:0, mddSum:0, pfs:[], blk:0, sig:0 }; }
-function _sfABAdd(a, x){ if(!x) return; a.stocks++; a.n+=x.n; a.pnlSum+=x.pnl; a.winWSum+=(x.win||0)*(x.n||0); a.mddSum+=x.mdd; if(x.pf!=null&&isFinite(x.pf)) a.pfs.push(x.pf); a.blk+=x.blk; a.sig+=x.sig; }
-function _sfABMed(arr){ if(!arr.length) return null; var s=arr.slice().sort(function(p,q){ return p-q; }); return s[Math.floor(s.length/2)]; }
-async function _sfABRun(){
-  var el=document.getElementById('btDiscrimResult'); if(!el) return; el.style.display='block';
-  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
-  el.innerHTML='<div style="text-align:center;padding:14px;color:#16a34a;font-size:12px;font-weight:800">⚖️ 필터 A/B 측정 시작…</div>';
-  if(typeof _snapEnsure==='function'){ var _okS=await _snapEnsure(mk, el); if(!_okS) return; }
-  if(typeof SXE==='undefined'||typeof sxRunBtEngine!=='function'){ el.innerHTML='<div style="font-size:11px;color:#dc2626;padding:8px 2px">BT 엔진 미로드</div>'; return; }
-  var _hasOverride=false; try{ _hasOverride=String(SXE._checkSafetyFilters).indexOf('_sfAbOverride')>=0; }catch(_){}
-  var pool=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[];
-  var list=(pool||[]).map(function(x){ return Array.isArray(x)?{code:x[0],name:x[1]||x[0]}:{code:String(x),name:String(x)}; });
-  if(!list.length){ el.innerHTML='<div style="font-size:11px;color:#dc2626;padding:8px 2px">대표풀 없음 — 시장 확인</div>'; return; }
-  var bak={ apply:SXE._applySafetyToBt, flags:Object.assign({}, SXE._safetyFlags||{}), ab:SXE._sfAbOverride };
-  var CFG=[
-    { id:'A', set:function(f){ f.riskSignature=false; } },
-    { id:'B', set:function(f){ f.riskSignature=true; } },
-    { id:'C', set:function(f){ f.riskSignature=false; f.stochRsi=true; f.ma60resist=true; f.deadCrossGuard=true; } }
-  ];
-  var agg={ A:_sfABBlank(), B:_sfABBlank(), C:_sfABBlank() }, detail=[], used=0, fail=0;
-  var params=(typeof btGetParams==='function')?btGetParams():{}, opts=(typeof btGetOpts==='function')?btGetOpts():{};
-  try{
-    SXE._applySafetyToBt=true;
-    for(var i=0;i<list.length;i++){
-      var s=list[i];
-      el.innerHTML='<div style="text-align:center;padding:14px;color:#16a34a;font-size:12px;font-weight:800">⚖️ 필터 A/B '+(i+1)+'/'+list.length+'<div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+(s.name||s.code)+' · ⓐⓑⓒ 3회 BT</div></div>';
-      await new Promise(function(rz){ setTimeout(rz, 15); });
-      var rr=null; try{ rr=await SXCandleBT.fetchRows600(mk,'day',s.code); }catch(e){}
-      if(!Array.isArray(rr)||rr.length<400){ fail++; continue; }
-      var row={ code:s.code, name:s.name }, okStock=true;
-      for(var c=0;c<CFG.length;c++){
-        var cfg=CFG[c];
-        SXE._sfAbOverride=(cfg.id==='C');
-        var f=Object.assign({}, bak.flags); f.stochRsi=false; f.ma60resist=false; f.deadCrossGuard=false; cfg.set(f);
-        SXE._safetyFlags=f;
-        var rb=null; try{ rb=sxRunBtEngine(rr,'day',params,opts); }catch(e){ rb=null; }
-        if(!rb||rb.error){ okStock=false; break; }
-        row[cfg.id]={ n:rb.totalTrades||0, pnl:rb.totalPnl||0, win:rb.winRate||0, pf:(isFinite(rb.profitFactor)?rb.profitFactor:null), mdd:rb.mdd||0, blk:rb.gateBlocks||0, sig:(rb.gateReasons&&rb.gateReasons['🔒위험시그니처'])||0 };
-      }
-      if(!okStock){ fail++; continue; }
-      used++; detail.push(row);
-      _sfABAdd(agg.A, row.A); _sfABAdd(agg.B, row.B); _sfABAdd(agg.C, row.C);
-    }
-  } finally {
-    SXE._applySafetyToBt=bak.apply; SXE._safetyFlags=bak.flags; SXE._sfAbOverride=bak.ab;
-  }
-  var snapOn=!!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode());
-  var meta=mk.toUpperCase()+' 대표풀 '+used+'종'+(fail?(' · 제외 '+fail):'')+' · '+(snapOn?'📦스냅':'🔴라이브');
-  try{ if(typeof _sxMeasStash==='function') _sxMeasStash('sfab_'+mk+'_'+(snapOn?'snap':'live'), { meta:meta, agg:agg, detail:detail, hasOverride:_hasOverride }); }catch(_){}
-  el.innerHTML=_sfABRender(agg, meta, _hasOverride);
-}
-function _sfABRender(agg, meta, hasOverride){
-  var f1=function(v){ return (v>0?'+':'')+v.toFixed(2)+'%'; };
-  var base=agg.A, bPnl=base.stocks?base.pnlSum/base.stocks:0, bWin=base.n?base.winWSum/base.n:0, bMdd=base.stocks?base.mddSum/base.stocks:0;
-  var mkRow=function(id,label){
-    var a=agg[id];
-    var pnl=a.stocks?a.pnlSum/a.stocks:0, win=a.n?a.winWSum/a.n:0, mdd=a.stocks?a.mddSum/a.stocks:0, pf=_sfABMed(a.pfs);
-    var d=function(v,b,inv){ if(id==='A') return ''; var dd=v-b; var good=inv?dd<0:dd>0; return ' <span style="font-size:8px;color:'+(Math.abs(dd)<0.05?'var(--text3)':(good?'#16a34a':'#ef4444'))+'">('+(dd>0?'+':'')+dd.toFixed(2)+')</span>'; };
-    return '<div style="display:flex;align-items:center;font-size:9.5px;padding:5px 0;border-bottom:1px solid var(--border)">'
-      +'<span style="flex:1.5;font-weight:700;color:var(--text)">'+label+'</span>'
-      +'<span style="flex:.6;text-align:right;color:var(--text2)">'+a.n+(id!=='A'?'<span style="font-size:8px;color:var(--text3)">('+((a.n-base.n)>0?'+':'')+(a.n-base.n)+')</span>':'')+'</span>'
-      +'<span style="flex:.95;text-align:right;font-weight:800;color:'+(pnl>0?'#dc2626':'#2563eb')+'">'+f1(pnl)+d(pnl,bPnl)+'</span>'
-      +'<span style="flex:.8;text-align:right;color:var(--text2)">'+win.toFixed(1)+'%'+d(win,bWin)+'</span>'
-      +'<span style="flex:.55;text-align:right;color:var(--text2)">'+(pf!=null?pf.toFixed(2):'—')+'</span>'
-      +'<span style="flex:.85;text-align:right;color:var(--text2)">'+mdd.toFixed(1)+'%'+d(mdd,bMdd,true)+'</span>'
-      +'<span style="flex:.5;text-align:right;color:#7c3aed;font-weight:700">'+(a.sig||0)+'</span>'
-      +'</div>';
-  };
-  var head='<div style="display:flex;font-size:8px;color:var(--text3);font-weight:700;padding:2px 0;border-bottom:2px solid var(--border)"><span style="flex:1.5">구성</span><span style="flex:.6;text-align:right">거래</span><span style="flex:.95;text-align:right">평균수익</span><span style="flex:.8;text-align:right">승률</span><span style="flex:.55;text-align:right">PF중</span><span style="flex:.85;text-align:right">MDD평</span><span style="flex:.5;text-align:right">시그</span></div>';
-  var warn=hasOverride?'':'<div style="font-size:9px;color:#dc2626;font-weight:700;margin:4px 0">⚠ 엔진에 _sfAbOverride 탈출구 없음(구버전) — ⓒ 구성 무효(ⓐ과 동일). 엔진 재배포 후 재실행.</div>';
-  return '<div style="padding:9px 10px;background:var(--surface);border-radius:9px;border:1px solid var(--border)">'
-    +'<div style="font-size:11px;font-weight:800;color:#16a34a;margin-bottom:4px">⚖️ 안전필터 A/B (BT) · '+meta+'</div>'
-    +warn
-    +'<div style="font-size:8.5px;color:var(--text3);margin-bottom:6px;line-height:1.5">동일 rows·동일 params 3구성 · _applySafetyToBt 강제 ON · ( )=ⓐ 대비 Δ · MDD는 낮을수록 좋음(초록)</div>'
-    +head+mkRow('A','ⓐ 현행')+mkRow('B','ⓑ +위험시그니처')+mkRow('C','ⓒ A그룹 3종 복귀')
-    +'<div style="font-size:8.5px;color:var(--text3);margin-top:7px;line-height:1.55">판정(사전선언): ⓑ MDD 개선 & 수익 훼손 미미→기본 ON 승격 · ⓑΔ~0=진입게이트론 발동 희박(예측대로·무해) · ⓒ가 ⓐ보다 나쁨 재확인→A그룹 철거 확정 · 현 기준하 보임</div>'
-    +'</div>';
-}
-if(typeof window!=='undefined'){ window._sfABRun=_sfABRun; }
+// [S1010] 중복 하네스 정리 — 세션 끊김으로 A/B 하네스가 2벌 생성됐던 것, _sfAbUI(전무 베이스라인·차단내역·자동판정)를 정본으로 존치하고 본 블록(_sfABRun) 철거
 
 
 // ═══════════ [S1009] 안전필터 A/B 실효성 측정 — 필터 1개의 한계효용을 BT로 직접 잰다 ═══════════
@@ -5446,9 +5364,20 @@ function _sfAbRender(res, meta){
     +'<div style="margin-top:3px">ⓒ A그룹: '+vAg+'</div>'
     +'</div></div>';
 }
+function _sfAbFrame(){   // [S1010] BT 프레임 스탬프 — 프레임 따라 A/B 부호까지 뒤집힘 확인(사용자 발견) → 결과에 측정 프레임 각인. 공식 프레임(사전선언)=다음봉시가·OHLC·조기청산 OFF
+  try{
+    var p=[];
+    p.push('진입 '+(SXE._btEntryMode==='nextOpen'?'다음봉시가':'신호봉종가')+(SXE._btGapGuard?'+갭가드':''));
+    if(typeof SXE._btExitMode!=='undefined') p.push('청산 '+(SXE._btExitMode==='trend'?'종가':'OHLC'));
+    p.push('조기청산 '+((SXE._btEarlyExit&&SXE._btEarlyExit.enabled)?'ON':'OFF'));
+    if(SXE._btTrailAtrMode) p.push('트레일 '+(SXE._btTrailAtrMode==='entry'?'고정':'재계산'));
+    return p.join(' · ');
+  }catch(_e){ return ''; }
+}
 async function _sfAbUI(){
   var el=document.getElementById('btDiscrimResult'); if(!el) return; el.style.display='block';
   var mk=currentMarket;
+  var _hasOv=false; try{ _hasOv=String(SXE._checkSafetyFilters).indexOf('_sfAbOverride')>=0; }catch(_){}
   el.innerHTML='<div style="text-align:center;padding:14px;color:#0891b2;font-size:12px;font-weight:800">⚖️ 안전필터 A/B 시작…</div>';
   if(typeof _snapEnsure==='function'){ var okS=await _snapEnsure(mk, el); if(!okS) return; }
   var _prog=function(i,t,n){ el.innerHTML='<div style="text-align:center;padding:14px;color:#0891b2;font-size:12px;font-weight:800">⚖️ A/B 측정 중 '+i+'/'+t+'<div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+(n||'')+' · 종목당 BT 3회</div></div>'; };
@@ -5456,7 +5385,10 @@ async function _sfAbUI(){
   try{ res=await _sfAbBracket(mk, _prog); }catch(e){ res={ ok:false, reason:String(e&&e.message||e) }; }
   var snapOn=!!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode());
   try{ if(res&&res.ok&&typeof _sxMeasStash==='function') _sxMeasStash('sfab_'+mk+'_'+(snapOn?'snap':'live'), { stocksUsed:res.stocksUsed, base:_sfAbAgg(res.out.base), sig:_sfAbAgg(res.out.sig), agrp:_sfAbAgg(res.out.agrp) }); }catch(_){}
-  el.innerHTML=_sfAbRender(res, mk.toUpperCase()+' · 대표풀 '+(res&&res.stocksUsed||'?')+'종 · '+(snapOn?'📦스냅':'🔴라이브'));
+  var _frame=_sfAbFrame();
+  el.innerHTML=(_hasOv?'':'<div style="font-size:9px;color:#dc2626;font-weight:700;padding:4px 2px">⚠ 엔진에 _sfAbOverride 탈출구 없음(구버전) — ⓒ 구성 무효(ⓐ와 동일). 엔진 재배포 후 재실행.</div>')
+    +_sfAbRender(res, mk.toUpperCase()+' · 대표풀 '+(res&&res.stocksUsed||'?')+'종 · '+(snapOn?'📦스냅':'🔴라이브'))
+    +(_frame?'<div style="font-size:8.5px;color:var(--text3);margin-top:4px">🧭 측정 프레임: '+_frame+' · <b>공식 프레임(사전선언)=다음봉시가·OHLC·조기청산 OFF</b> — 다른 프레임 결과는 참고치(프레임 따라 평균수익 Δ 부호 반전 확인됨)</div>':'');
 }
 if(typeof window!=='undefined'){ window._sfAbUI=_sfAbUI; }
 
@@ -8539,7 +8471,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1009';
+  window.SX_BUILD='S1010';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
