@@ -2342,14 +2342,7 @@ async function startScan(config) {
   // 엔진에 safetyFlags/regimeAdapt 동기화
   if (typeof SXE !== 'undefined') {
     SXE._safetyFlags = _safetyFlags;
-    // S165: 분석엔진 진입 게이트 (BT 게이트와 대칭 적용)
-    //   - 메인스레드에서 scanPayload로 전달받아 SXE에 주입
-    //   - applyGatesToAnalysis=true면 scrQuickScore가 BUY 후 게이트 검사 추가 수행
-    //   - gatesSyncMode='sync'면 btEntryGates를 사용, 'split'이면 analysisEntryGates를 사용
-    if (config.btEntryGates) SXE._btEntryGates = config.btEntryGates;
-    if (config.analysisEntryGates) SXE._analysisEntryGates = config.analysisEntryGates;
-    SXE._applyGatesToAnalysis = !!config.applyGatesToAnalysis;
-    SXE._gatesSyncMode = (config.gatesSyncMode === 'split') ? 'split' : 'sync';
+    // [S1006] 분석 게이트 동기화 철거 — 안전필터 일원화
     // [S309] 분석탭↔스캐너 BT 결과 일관성 보장 — 메인이 동봉한 BT 청산 설정으로 SXE 덮어쓰기
     //   대상: _btEarlyExit (조기청산 + 5개 보조 룰), _btExitMode (종가/OHLC), _btTrailAtrMode (entry/dynamic)
     //   배경: 워커는 localStorage 미지원 → 위 3개 변수가 IIFE 폴백으로 기본값 고정됨.
