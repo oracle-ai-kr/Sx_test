@@ -3489,26 +3489,7 @@ function scrQuickScore(rows, tf, market) {
     if (ind.candle.strongest) { const _cnv = ind.candle.strongest.name || ''; if (_cnv.includes('이브닝') || _cnv.includes('슈팅')) _safetyViol.push('🔒' + _cnv); }
   }
 
-  // S165: 분석엔진 진입 게이트 — BT 게이트와 대칭 적용
-  //   · _applyGatesToAnalysis=true일 때만 적용 (기본 OFF → 기존 동작 보존)
-  //   · _gatesSyncMode='sync'면 BT 게이트와 항상 동일, 'split'이면 독립 관리
-  //   · BT 게이트로 학습한 진입 조건을 실전(scrQuickScore)에도 적용 → BT-실전 미스매치 해소
-  //   · _btCheckEntryGates 재사용: 마지막 봉(rows[rows.length-1])에 대해 검사
-  if (action === 'BUY' && SXE._applyGatesToAnalysis && typeof _btCheckEntryGates === 'function') {
-    // 동기화 모드면 BT 게이트 사용, 분리 모드면 분석 전용 게이트 사용
-    const gates = (SXE._gatesSyncMode === 'sync')
-      ? (SXE._btEntryGates || null)
-      : (SXE._analysisEntryGates || null);
-    if (gates) {
-      const gateRes = _btCheckEntryGates(gates, ind, rows, rows.length - 1);
-      if (!gateRes.pass) {
-        // 차단 사유를 reasons에 기록 (안전필터와 다른 아이콘 🚦 사용 → 진단 시 구분 가능)
-        const shortReason = (gateRes.reason || '').split('(')[0] || 'gate';
-        reasons.push('🚦' + shortReason);
-        action = 'HOLD';
-      }
-    }
-  }
+  // [S1006] S165 분석 게이트 철거 — 안전필터로 일원화
 
   const _tpRes = scrTrendPure(ind); // [S402] {score, parts} — 점수와 구성요소 분해 분리
 
@@ -5062,10 +5043,7 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
 
   const _btVolCache = {};
 
-  // S160: 진입 게이트 — opts.entryGates 우선, 없으면 SXE._btEntryGates 전역값 사용
-  //   · 실시간 단일검증/교차검증/워크포워드: opts.entryGates 미전달 → 전역값 사용
-  //   · 옵티마이저: 필요 시 opts.entryGates 전달로 오버라이드 가능 (현재는 미사용)
-  const _entryGates = opts.entryGates || SXE._btEntryGates || null;
+  // [S1006] BT 진입 게이트 철거 — 통계 채널(_gateBlocks/_gateReasons)은 안전필터·🐻데드캣용 유지
   let _gateBlocks = 0; // 게이트로 차단된 봉 수 (통계용)
   const _gateReasons = {}; // 게이트별 차단 카운트
 
@@ -5260,7 +5238,7 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
           _gateReasons[_safetyBlock] = (_gateReasons[_safetyBlock] || 0) + 1;
         } else {
           // S160: 진입 게이트 — rawScore/mom/osc 통과 후 추가 조건 검사
-          const _gateRes = _entryGates ? _btCheckEntryGates(_entryGates, ind, rows, i) : { pass: true, reason: '' };
+          const _gateRes = { pass: true, reason: '' };   // [S1006] 게이트 철거 — 항상 통과
           if (!_gateRes.pass) {
             _gateBlocks++;
             const key = (_gateRes.reason || '').split('(')[0] || 'unknown';
@@ -5878,283 +5856,9 @@ function _linRegSlope(arr){
 //        스크리너 로드 전 BT/실시간 신호가 안전필터 호출하는 레이스 윈도우에서만 사용됨.
 SXE._safetyFlags = {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,stochRsi:true,macdNeg:true,ma60resist:true,bbUpper:true,resistNear:true,fakeBreakout:true,volResist:true,chaseGuard:true,dumpWarn:true,deadCrossGuard:true,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true}; // [S468] deadCrossGuard 추가 [S469] supportBreak 추가
 
-// ══════════════════════════════════════════════════════════════
-//  S160: BT 진입 게이트 (Entry Gates)
-//  rawScore ≥ buyTh 를 통과해도 활성화된 게이트 조건을 추가로 만족해야 진입
-//  - 기본 전부 OFF (기존 BT 동작과 100% 호환)
-//  - 사용자가 UI에서 게이트별 ON/OFF + 파라미터 조정
-//  - 스크리너에서 SXE._btEntryGates 로 동기화
-// ══════════════════════════════════════════════════════════════
-SXE._btEntryGates = {
-  // [추격방지] 1. 최근 N봉 대비 상승률 제한
-  recentHigh:    { on:false, nBars:3,  maxPct:20 },
-  // [추격방지] 2. ATR 배수 상승률 제한 (변동성 정규화)
-  atrMultiple:   { on:false, nBars:5,  atrMult:3 },
-  // [추격방지] 3. 고점 근접도 제한
-  highProximity: { on:false, nBars:20, maxPct:95 },
-  // [추격방지] 13. 연속 양봉 과열
-  consecUp:      { on:false, nBars:5 },
-  // [추격방지] 14. 갭상승 직후 진입 금지
-  gapUp:         { on:false, maxPct:3 },
-  // [과열필터] 4. RSI 과열
-  rsiOverbought: { on:false, maxRsi:70 },
-  // [과열필터] 8. BB %B 상단 근접
-  bbUpper:       { on:false, maxPctB:90 }, // %B × 100 (0~100 슬라이더 편의)
-  // [과열필터] 9. Stochastic 과열
-  stochOverbought:{ on:false, maxK:80 },
-  // [과열필터] 7. MA 이격도 과열 (MA20 기준)
-  maDisparity:   { on:false, maxPct:8 },
-  // [변동성/추세] 6. ATR% 절대 상한
-  atrHard:       { on:false, maxPct:10 },
-  // [변동성/추세] 11. ADX 추세 하한
-  adxMin:        { on:false, minAdx:15 },
-  // [변동성/추세] 12. MACD 히스토그램 연속 음전
-  macdNegN:      { on:false, nBars:3 },
-  // [거래량] 5. 거래량 급증 후 진입 금지
-  volSpike:      { on:false, nBars:3,  spikeMult:3 },
-  // [거래량] 10. 거래량 빈사 (평균 대비 저조)
-  volDry:        { on:false, nBars:20, minRatio:50 }, // %
-};
+// [S1006] S160 BT 진입 게이트 섹션 철거(설정·검사함수·분석대칭 전역 일괄) — 안전필터 일원화
 
-// ══════════════════════════════════════════════════════════════
-//  S165: 분석엔진 진입 게이트 (Analysis Entry Gates)
-//  scrQuickScore (실시간 분석/스크리너 스캔)에서 BUY 판정 후 추가 검증
-//  - BT 게이트와 동일 구조 (재사용 가능)
-//  - SXE._applyGatesToAnalysis 가 true일 때만 적용 (기본 false → 기존 동작 100% 호환)
-//  - SXE._gatesSyncMode='sync': BT 게이트와 자동 동기화 (UI에서 한 곳만 관리)
-//    'split': BT용/실시간용 독립 관리 (세밀 튜닝)
-//  - 차단 시 action=HOLD + reasons에 '🚦' 사유 추가 (안전필터와 동일 패턴)
-//  - BT-실전 대칭성 회복: BT 게이트로 학습한 진입 조건이 실전에도 동일 적용됨
-// ══════════════════════════════════════════════════════════════
-SXE._analysisEntryGates = {
-  recentHigh:     { on:false, nBars:3,  maxPct:20 },
-  atrMultiple:    { on:false, nBars:5,  atrMult:3 },
-  highProximity:  { on:false, nBars:20, maxPct:95 },
-  consecUp:       { on:false, nBars:5 },
-  gapUp:          { on:false, maxPct:3 },
-  rsiOverbought:  { on:false, maxRsi:70 },
-  bbUpper:        { on:false, maxPctB:90 },
-  stochOverbought:{ on:false, maxK:80 },
-  maDisparity:    { on:false, maxPct:8 },
-  atrHard:        { on:false, maxPct:10 },
-  adxMin:         { on:false, minAdx:15 },
-  macdNegN:       { on:false, nBars:3 },
-  volSpike:       { on:false, nBars:3,  spikeMult:3 },
-  volDry:         { on:false, nBars:20, minRatio:50 },
-};
-// 분석엔진 게이트 활성 토글 (기본 OFF → 기존 동작 보존)
-SXE._applyGatesToAnalysis = false;
-// 동기화 모드: 'sync' | 'split'
-//   'sync'  → BT 게이트와 분석 게이트가 항상 같음 (UI에서 BT 게이트 변경 시 자동 복사)
-//   'split' → 둘이 독립적으로 관리됨 (세밀 튜닝)
-SXE._gatesSyncMode = 'sync';
-
-/**
- * BT 진입 게이트 체크
- * @param {object} gates - SXE._btEntryGates (또는 params 오버라이드)
- * @param {object} ind   - calcAllScreener 결과
- * @param {Array}  rows  - 전체 캔들 배열
- * @param {number} i     - 현재 봉 인덱스
- * @returns {{pass:boolean, reason:string}} - pass=true면 진입 허용
- */
-function _btCheckEntryGates(gates, ind, rows, i) {
-  if (!gates) return { pass: true, reason: '' };
-  const cur = rows[i];
-  if (!cur) return { pass: true, reason: '' };
-
-  // 1. 최근 N봉 대비 상승률 제한
-  if (gates.recentHigh && gates.recentHigh.on) {
-    const n = Math.max(1, gates.recentHigh.nBars | 0);
-    const maxPct = +gates.recentHigh.maxPct || 20;
-    const start = Math.max(0, i - n);
-    const ref = rows[start]?.close || rows[start]?.open || cur.close;
-    if (ref > 0) {
-      const risePct = ((cur.close - ref) / ref) * 100;
-      if (risePct >= maxPct) return { pass: false, reason: `recentHigh(+${risePct.toFixed(1)}% ≥ ${maxPct}%)` };
-    }
-  }
-
-  // 2. ATR 배수 상승률 제한
-  if (gates.atrMultiple && gates.atrMultiple.on && ind.atr && ind.atr.pct > 0) {
-    const n = Math.max(1, gates.atrMultiple.nBars | 0);
-    const mult = +gates.atrMultiple.atrMult || 3;
-    const start = Math.max(0, i - n);
-    const ref = rows[start]?.close;
-    if (ref > 0) {
-      const risePct = ((cur.close - ref) / ref) * 100;
-      const atrPct = ind.atr.pct;
-      if (risePct >= atrPct * mult) return { pass: false, reason: `atrMultiple(+${risePct.toFixed(1)}% ≥ ATR${atrPct.toFixed(1)}×${mult})` };
-    }
-  }
-
-  // 3. 고점 근접도 제한
-  if (gates.highProximity && gates.highProximity.on) {
-    const n = Math.max(1, gates.highProximity.nBars | 0);
-    const maxPct = +gates.highProximity.maxPct || 95;
-    const start = Math.max(0, i - n);
-    let highMax = 0;
-    for (let k = start; k <= i; k++) if (rows[k].high > highMax) highMax = rows[k].high;
-    if (highMax > 0) {
-      const proximity = (cur.close / highMax) * 100;
-      if (proximity >= maxPct) return { pass: false, reason: `highProximity(${proximity.toFixed(1)}% ≥ ${maxPct}%)` };
-    }
-  }
-
-  // 13. 연속 양봉 과열
-  if (gates.consecUp && gates.consecUp.on) {
-    const n = Math.max(2, gates.consecUp.nBars | 0);
-    if (i >= n - 1) {
-      let allUp = true;
-      for (let k = i - n + 1; k <= i; k++) {
-        if (rows[k].close <= rows[k].open) { allUp = false; break; }
-      }
-      if (allUp) return { pass: false, reason: `consecUp(${n}봉 연속 양봉)` };
-    }
-  }
-
-  // 14. 갭상승 직후 진입 금지
-  if (gates.gapUp && gates.gapUp.on && i >= 1) {
-    const prev = rows[i - 1];
-    const maxPct = +gates.gapUp.maxPct || 3;
-    if (prev && prev.high > 0) {
-      const gapPct = ((cur.open - prev.high) / prev.high) * 100;
-      if (gapPct >= maxPct) return { pass: false, reason: `gapUp(+${gapPct.toFixed(1)}% ≥ ${maxPct}%)` };
-    }
-  }
-
-  // 4. RSI 과열
-  if (gates.rsiOverbought && gates.rsiOverbought.on && ind.rsi) {
-    const maxRsi = +gates.rsiOverbought.maxRsi || 70;
-    if (ind.rsi.val >= maxRsi) return { pass: false, reason: `rsiOverbought(RSI ${ind.rsi.val.toFixed(1)} ≥ ${maxRsi})` };
-  }
-
-  // 8. BB %B 상단 근접
-  if (gates.bbUpper && gates.bbUpper.on && ind.bb && typeof ind.bb.pctB === 'number') {
-    const maxPctB = +gates.bbUpper.maxPctB || 90; // 0~100
-    const pctB100 = ind.bb.pctB * 100;
-    if (pctB100 >= maxPctB) return { pass: false, reason: `bbUpper(%B ${pctB100.toFixed(0)} ≥ ${maxPctB})` };
-  }
-
-  // 9. Stochastic 과열
-  if (gates.stochOverbought && gates.stochOverbought.on && ind.stoch) {
-    const maxK = +gates.stochOverbought.maxK || 80;
-    if (ind.stoch.k >= maxK) return { pass: false, reason: `stochOverbought(K ${ind.stoch.k.toFixed(0)} ≥ ${maxK})` };
-  }
-
-  // 7. MA 이격도 과열 (MA20 기준)
-  if (gates.maDisparity && gates.maDisparity.on && ind.maAlign && ind.maAlign.ma20 != null) {
-    const maxPct = +gates.maDisparity.maxPct || 8;
-    const disp = ((cur.close - ind.maAlign.ma20) / ind.maAlign.ma20) * 100;
-    if (disp >= maxPct) return { pass: false, reason: `maDisparity(MA20 +${disp.toFixed(1)}% ≥ ${maxPct}%)` };
-  }
-
-  // 6. ATR% 절대 상한
-  if (gates.atrHard && gates.atrHard.on && ind.atr) {
-    const maxPct = +gates.atrHard.maxPct || 10;
-    if (ind.atr.pct >= maxPct) return { pass: false, reason: `atrHard(ATR% ${ind.atr.pct.toFixed(1)} ≥ ${maxPct})` };
-  }
-
-  // 11. ADX 추세 하한
-  if (gates.adxMin && gates.adxMin.on && ind.adx) {
-    const minAdx = +gates.adxMin.minAdx || 15;
-    const adxV = ind.adx.adx ?? 0;
-    if (adxV < minAdx) return { pass: false, reason: `adxMin(ADX ${adxV.toFixed(1)} < ${minAdx})` };
-  }
-
-  // 12. MACD 히스토그램 연속 음전
-  if (gates.macdNegN && gates.macdNegN.on && ind.macd && ind.macd.arr && ind.macd.arr.hist) {
-    const n = Math.max(2, gates.macdNegN.nBars | 0);
-    const hist = ind.macd.arr.hist;
-    if (hist.length >= n) {
-      const last = hist.slice(-n);
-      if (last.every(v => v < 0)) return { pass: false, reason: `macdNegN(${n}봉 연속 음전)` };
-    }
-  }
-
-  // 5. 거래량 급증 후 진입 금지
-  if (gates.volSpike && gates.volSpike.on) {
-    const n = Math.max(1, gates.volSpike.nBars | 0);
-    const mult = +gates.volSpike.spikeMult || 3;
-    // 평균은 최근 20봉(스파이크 구간 제외) 기준
-    const spikeStart = Math.max(0, i - n + 1);
-    const avgStart = Math.max(0, spikeStart - 20);
-    if (avgStart < spikeStart) {
-      let avgSum = 0, avgCnt = 0;
-      for (let k = avgStart; k < spikeStart; k++) {
-        const v = rows[k].volume || 0;
-        if (v > 0) { avgSum += v; avgCnt++; }
-      }
-      const avg = avgCnt > 0 ? avgSum / avgCnt : 0;
-      if (avg > 0) {
-        let spiked = false;
-        for (let k = spikeStart; k <= i; k++) {
-          const v = rows[k].volume || 0;
-          if (v >= avg * mult) { spiked = true; break; }
-        }
-        if (spiked) return { pass: false, reason: `volSpike(${n}봉내 평균×${mult}↑)` };
-      }
-    }
-  }
-
-  // 10. 거래량 빈사
-  if (gates.volDry && gates.volDry.on) {
-    const n = Math.max(5, gates.volDry.nBars | 0);
-    const minRatio = (+gates.volDry.minRatio || 50) / 100; // %→배율
-    const start = Math.max(0, i - n);
-    let avgSum = 0, avgCnt = 0;
-    for (let k = start; k < i; k++) {
-      const v = rows[k].volume || 0;
-      if (v > 0) { avgSum += v; avgCnt++; }
-    }
-    const avg = avgCnt > 0 ? avgSum / avgCnt : 0;
-    const cv = cur.volume || 0;
-    if (avg > 0 && cv < avg * minRatio) {
-      return { pass: false, reason: `volDry(vol ${((cv/avg)*100).toFixed(0)}% < ${(minRatio*100).toFixed(0)}%)` };
-    }
-  }
-
-  return { pass: true, reason: '' };
-}
-
-SXE._btCheckEntryGates = _btCheckEntryGates;
-
-// ══════════════════════════════════════════════════════════════
-// S161: 게이트 해시 — 캐시 무효화용
-//   게이트 설정이 바뀌면 해시가 달라져서 캐시 자동 무효화 처리
-//   모든 게이트 OFF일 때도 고정된 해시(baseline)를 갖도록 구성
-// ══════════════════════════════════════════════════════════════
-function _btGateHash(gates){
-  if(!gates || typeof gates !== 'object') return 'g0';
-  // 키 순서 고정 (정렬)
-  const keys = Object.keys(gates).sort();
-  const parts = [];
-  for(const k of keys){
-    const g = gates[k];
-    if(!g || typeof g !== 'object') continue;
-    // on=false면 해시에서 제외 (OFF된 게이트는 결과에 영향 없음 → 해시 변화 없음이 맞음)
-    if(!g.on) continue;
-    // on인 게이트만 파라미터 포함
-    const subKeys = Object.keys(g).sort();
-    const subParts = subKeys.map(sk => `${sk}:${g[sk]}`).join(',');
-    parts.push(`${k}[${subParts}]`);
-  }
-  // [S728] BT 전역 플래그도 캐시 키에 포함 — 토글 시 BT 캐시 무효화(측정 정합). 종전엔 _btEntryGates만 → bear-gate/안전필터 토글해도 캐시 stale였음(잠재 버그 동시 수정).
-  if(typeof SXE !== 'undefined'){
-    if(SXE._btBearGate) parts.push('bearGate:1');
-    if(SXE._applySafetyToBt) parts.push('safetyBt:1');
-  }
-  if(parts.length === 0) return 'g0'; // 전부 OFF
-  // 간단한 djb2 해시 — 충돌 무시 가능 (캐시 무효화용)
-  const s = parts.join('|');
-  let h = 5381;
-  for(let i = 0; i < s.length; i++){
-    h = ((h << 5) + h) + s.charCodeAt(i);
-    h = h & h; // 32bit
-  }
-  return 'g' + (h >>> 0).toString(36); // base36 짧게
-}
-
-SXE._btGateHash = _btGateHash;
+// [S1006] S161 게이트 해시 철거 — 캐시 무효화는 SX_DATA_SCHEMA_VERSION v5 bump로 대체
 
 // ══════════════════════════════════════════════════════════════
 //  S73: 종목간 상관/분산 경고 (5축④)
