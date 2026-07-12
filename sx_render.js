@@ -5276,14 +5276,12 @@ if(typeof window!=='undefined'){ window._riskComboUI=_riskComboUI; }
 
 
 // ═══════════ [S1009] 안전필터 A/B 실효성 측정 — 필터 1개의 한계효용을 BT로 직접 잰다 ═══════════
-// 구성: ⓐ필터 전무(플래그 전부 OFF·캔들패턴 상수필터는 3구성 공통 잔존) ⓑ+위험시그니처만 ⓒ+A그룹 3종만(괴리·MA60저항·데드크로스 복귀).
+// [S1016] ⓒ(+A그룹) 제거 — S1013 최종심 철거. 구성: ⓐ필터 전무(플래그 전부 OFF·캔들패턴 상수필터는 공통 잔존) · ⓑ+위험시그니처만.
 // 고정: 대표풀 · 일봉 · BT 설정=현행 UI(btGetParams/btGetOpts) · _applySafetyToBt=하네스 내 ON 강제 · 📦스냅 지원(재현).
 // 사전 선언 판정: ⓑ 승격(기본 ON) = ⓐ 대비 평균MDD 개선 AND 수익 훼손 ≤10%(상대) AND 시그니처 차단 n≥10 (n<10=판정 보류 — 과열 발동이라 점수매수와 교집합 희박 가능).
-//               ⓒ = ⓐ 대비 악화 or 무개선 → A그룹 코드 철거 확정. 개선이면 재고(무조건부 측정 vs 조건부 적용 분포차). 전부 "현 기준하 보임".
 var _SFAB_CFGS=[
   { id:'base', label:'ⓐ 필터 전무', flags:{} },
-  { id:'sig',  label:'ⓑ +위험시그니처', flags:{ riskSignature:true } },
-  { id:'agrp', label:'ⓒ +A그룹 3종', flags:{ stochRsi:true, ma60resist:true, deadCrossGuard:true } }
+  { id:'sig',  label:'ⓑ +위험시그니처', flags:{ riskSignature:true } }   // [S1016] ⓒ(+A그룹) arm 제거 — S1013 철거
 ];
 async function _sfAbBracket(mk, onProgress){
   var pool=[]; try{ var p=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[]; pool=(p||[]).map(function(x){ return { code:x[0], name:x[1]||x[0] }; }); }catch(_){}
@@ -5293,7 +5291,7 @@ async function _sfAbBracket(mk, onProgress){
   var out={}; _SFAB_CFGS.forEach(function(c){ out[c.id]={ n:0, pnl:0, win:0, pfArr:[], mdd:0, trades:0, blocks:0, reasons:{} }; });
   var used=0;
   try{
-    SXE._sfAbOverride=true; SXE._applySafetyToBt=true;
+    SXE._applySafetyToBt=true;
     for(var i=0;i<pool.length;i++){
       var s=pool[i]; if(onProgress) onProgress(i+1, pool.length, s.name);
       var rr=null; try{ rr=await SXCandleBT.fetchRows600(mk,'day',s.code); }catch(e){}
@@ -5314,7 +5312,6 @@ async function _sfAbBracket(mk, onProgress){
       await _trendBatchSleep(15);
     }
   } finally {
-    SXE._sfAbOverride=false;
     SXE._applySafetyToBt=bak.apply;
     SXE._safetyFlags=bak.flags;   // [S1009] 무조건 복원 — 원본이 undefined여도 마지막 구성 잔류 방지
   }
@@ -5327,7 +5324,7 @@ function _sfAbAgg(o){
 }
 function _sfAbRender(res, meta){
   if(!res||!res.ok) return '<div style="font-size:11px;color:#dc2626;padding:8px 2px">A/B 측정 불가 — '+((res&&res.reason)||'?')+'</div>';
-  var A=_sfAbAgg(res.out.base), B=_sfAbAgg(res.out.sig), C=_sfAbAgg(res.out.agrp);
+  var A=_sfAbAgg(res.out.base), B=_sfAbAgg(res.out.sig);
   var f1=function(v){ return (v==null?'—':(v>0?'+':'')+v.toFixed(1)); };
   var f2=function(v){ return v==null?'—':v.toFixed(2); };
   var reasonsTxt=function(rs){ var ks=Object.keys(rs).sort(function(a,b){return rs[b]-rs[a];}); return ks.length?ks.map(function(k){return k.replace('🔒','')+' '+rs[k];}).join(' · '):'—'; };
@@ -5354,16 +5351,13 @@ function _sfAbRender(res, meta){
     var pnlOk=(A.pnlAvg>0)?(B.pnlAvg>=A.pnlAvg*0.9):(B.pnlAvg>=A.pnlAvg);
     vSig=(mddOk&&pnlOk)?'✅ <b>승격 조건 충족</b> — MDD 개선 & 수익 훼손 ≤10% (n='+sigBlk+')':'❌ <b>승격 기준 미달</b> — MDD개선 '+(mddOk?'O':'X')+' · 수익보존 '+(pnlOk?'O':'X');
   }
-  var cWorse=(C.pnlAvg<=A.pnlAvg)&&(C.pfMed!=null&&A.pfMed!=null?C.pfMed<=A.pfMed:true);
-  var vAg=cWorse?'🗑 <b>철거 확정 방향</b> — ⓒ가 ⓐ 대비 무개선/악화 (무조건부 측정과 일치)':'🔁 <b>재고</b> — ⓒ가 ⓐ보다 개선됨: 조건부(매수신호 봉) 분포가 무조건부와 다를 가능성, 재측정 필요';
   return '<div style="padding:9px 10px;background:var(--surface);border-radius:9px;border:1px solid var(--border)">'
     +'<div style="font-size:11px;font-weight:800;color:#0891b2;margin-bottom:4px">⚖️ 안전필터 A/B · '+(meta||'')+'</div>'
     +'<div style="font-size:8.5px;color:var(--text3);margin-bottom:6px;line-height:1.5">구성별 동일 데이터·동일 BT설정 · ⓐ=플래그 전무(캔들패턴 상수필터는 3구성 공통) · 판정 기준은 사전 선언(코드 주석) · 현 기준하 보임</div>'
-    +thead+row(_SFAB_CFGS[0].label,A,null)+row(_SFAB_CFGS[1].label,B,A)+row(_SFAB_CFGS[2].label,C,A)
-    +'<div style="font-size:8.5px;color:var(--text3);margin-top:6px;line-height:1.55"><b>차단 내역</b> — ⓑ: '+reasonsTxt(B.reasons)+'<br>ⓒ: '+reasonsTxt(C.reasons)+'</div>'
+    +thead+row(_SFAB_CFGS[0].label,A,null)+row(_SFAB_CFGS[1].label,B,A)
+    +'<div style="font-size:8.5px;color:var(--text3);margin-top:6px;line-height:1.55"><b>차단 내역</b> — ⓑ: '+reasonsTxt(B.reasons)+'</div>'
     +'<div style="margin-top:7px;padding-top:6px;border-top:1px dashed var(--border);font-size:9.5px;line-height:1.6">'
     +'<div>ⓑ 위험시그니처: '+vSig+'</div>'
-    +'<div style="margin-top:3px">ⓒ A그룹: '+vAg+'</div>'
     +'</div></div>';
 }
 function _sfAbFrame(){   // [S1010] BT 프레임 스탬프 — 프레임 따라 A/B 부호까지 뒤집힘 확인(사용자 발견) → 결과에 측정 프레임 각인. 공식 프레임(사전선언)=다음봉시가·OHLC·조기청산 OFF
@@ -5379,18 +5373,16 @@ function _sfAbFrame(){   // [S1010] BT 프레임 스탬프 — 프레임 따라 
 async function _sfAbUI(){
   var el=document.getElementById('btDiscrimResult'); if(!el) return; el.style.display='block';
   var mk=currentMarket;
-  var _hasOv=false; try{ _hasOv=String(SXE._checkSafetyFilters).indexOf('_sfAbOverride')>=0; }catch(_){}
   el.innerHTML='<div style="text-align:center;padding:14px;color:#0891b2;font-size:12px;font-weight:800">⚖️ 안전필터 A/B 시작…</div>';
   if(typeof _snapEnsure==='function'){ var okS=await _snapEnsure(mk, el); if(!okS) return; }
-  var _prog=function(i,t,n){ el.innerHTML='<div style="text-align:center;padding:14px;color:#0891b2;font-size:12px;font-weight:800">⚖️ A/B 측정 중 '+i+'/'+t+'<div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+(n||'')+' · 종목당 BT 3회</div></div>'; };
+  var _prog=function(i,t,n){ el.innerHTML='<div style="text-align:center;padding:14px;color:#0891b2;font-size:12px;font-weight:800">⚖️ A/B 측정 중 '+i+'/'+t+'<div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+(n||'')+' · 종목당 BT 2회</div></div>'; };
   var res=null;
   try{ res=await _sfAbBracket(mk, _prog); }catch(e){ res={ ok:false, reason:String(e&&e.message||e) }; }
   var snapOn=!!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode());
-  try{ if(res&&res.ok&&typeof _sxMeasStash==='function') _sxMeasStash('sfab_'+mk+'_'+(snapOn?'snap':'live'), { stocksUsed:res.stocksUsed, base:_sfAbAgg(res.out.base), sig:_sfAbAgg(res.out.sig), agrp:_sfAbAgg(res.out.agrp) }); }catch(_){}
+  try{ if(res&&res.ok&&typeof _sxMeasStash==='function') _sxMeasStash('sfab_'+mk+'_'+(snapOn?'snap':'live'), { stocksUsed:res.stocksUsed, base:_sfAbAgg(res.out.base), sig:_sfAbAgg(res.out.sig) }); }catch(_){}
   var _frame=_sfAbFrame();
   var _official=false; try{ _official=(SXE._btEntryMode==='nextOpen' && SXE._btExitMode==='conservative' && !(SXE._btEarlyExit&&SXE._btEarlyExit.enabled)); }catch(_){}
-  el.innerHTML=(_hasOv?'':'<div style="font-size:9px;color:#dc2626;font-weight:700;padding:4px 2px">⚠ 엔진에 _sfAbOverride 탈출구 없음(구버전) — ⓒ 구성 무효(ⓐ와 동일). 엔진 재배포 후 재실행.</div>')
-    +_sfAbRender(res, mk.toUpperCase()+' · 대표풀 '+(res&&res.stocksUsed||'?')+'종 · '+(snapOn?'📦스냅':'🔴라이브'))
+  el.innerHTML=_sfAbRender(res, mk.toUpperCase()+' · 대표풀 '+(res&&res.stocksUsed||'?')+'종 · '+(snapOn?'📦스냅':'🔴라이브'))
     +(_frame?('<div style="font-size:8.5px;margin-top:4px;color:'+(_official?'var(--text3)':'#d97706')+'">'+(_official?'🧭 공식 프레임 ✓ · ':'⚠️ <b>비공식 프레임 — 참고치</b> · ')+_frame+' · 공식(사전선언)=다음봉시가·OHLC·조기청산 OFF · 프레임 따라 Δ 부호 반전 확인됨</div>'):'');
 }
 if(typeof window!=='undefined'){ window._sfAbUI=_sfAbUI; }
@@ -8474,7 +8466,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1013';
+  window.SX_BUILD='S1016';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
