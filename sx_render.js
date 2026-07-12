@@ -5375,14 +5375,26 @@ async function _snapToggle(){
   _snapBadge();
   if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">📦 스냅샷 모드 <b>ON</b> — '+String(mk).toUpperCase()+' '+r.n+'종 · 기준일 '+r.date+'<br><span style="font-size:9px;color:var(--text3)">교차탭 측정 전부 이 냉동 데이터 기준(미수록 종목 자동 제외 · live 폴백 없음). 다른 시장은 🌍 실행 시 자동 로드. 측정 끝나면 다시 눌러 OFF — 분석탭 카드 등은 라이브가 필요해.</span></div>';
 }
-function _snapBadge(){
-  var e=document.getElementById('snapModeBadge'); if(!e) return;
+function _snapBadge(){   // [S1002] ON/OFF를 버튼 자체에 표기 — 기존엔 html에 없는 snapModeBadge만 갱신해 상태 표시가 죽어있던 버그 수정(사용자 리포트)
   var on=!!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode());
-  if(!on){ e.style.display='none'; e.innerHTML=''; return; }
-  var meta=(SXCandleBT.snapMeta&&SXCandleBT.snapMeta())||{};
-  var parts=Object.keys(meta).map(function(m){ return m.toUpperCase()+' '+((meta[m]&&meta[m].date)||'?'); });
-  e.style.display='inline-flex'; e.innerHTML='📦 '+(parts.join(' · ')||'스냅샷');
-  if(typeof _sxModeSyncAll==="function") _sxModeSyncAll();   // [S869]
+  var btn=document.getElementById('snapModeBtn');
+  if(btn){
+    if(on){
+      var bm=(SXCandleBT.snapMeta&&SXCandleBT.snapMeta())||{};
+      var bp=Object.keys(bm).map(function(m){ return m.toUpperCase()+' '+((bm[m]&&bm[m].date)||'?'); });
+      btn.style.background='#0e7490'; btn.style.color='#fff'; btn.style.borderStyle='solid';
+      btn.innerHTML='📦 스냅샷 ON · '+(bp.join(' · ')||'냉동');
+    } else {
+      btn.style.background='transparent'; btn.style.color='#0e7490'; btn.style.borderStyle='dashed';
+      btn.innerHTML='📂 스냅샷 OFF · 🔴라이브';
+    }
+  }
+  var e=document.getElementById('snapModeBadge');
+  if(e){
+    if(!on){ e.style.display='none'; e.innerHTML=''; }
+    else{ var meta=(SXCandleBT.snapMeta&&SXCandleBT.snapMeta())||{}; var parts=Object.keys(meta).map(function(m){ return m.toUpperCase()+' '+((meta[m]&&meta[m].date)||'?'); }); e.style.display='inline-flex'; e.innerHTML='📦 '+(parts.join(' · ')||'스냅샷'); }
+  }
+  if(typeof _sxModeSyncAll==="function") _sxModeSyncAll();   // [S869]→[S1002] 배지 부재로 사장됐던 모드칩 동기화 호출 복구
 }
 function _snapInfo(){   // [S847] 빔서치 JSON에 스냅샷 출처 기록용
   try{
@@ -8336,7 +8348,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1001';
+  window.SX_BUILD='S1002';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
