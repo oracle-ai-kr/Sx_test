@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>SX Screener</title>
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
-<script src="sx_analysis_engine.js?v=43"></script>
+<script src="sx_analysis_engine.js?v=44"></script>
 <script src="sx_recipe_core.js?v=4"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
 <script src="sx_feature_library.js?v=2"></script><!-- [S999] 통합 재료 라이브러리 SSOT — 레시피+위험 공용 -->
 <script src="sx_risk_core.js?v=1"></script><!-- [S1004] 위험 시그니처 SSOT — 시즌1(배지/게이트)·시즌2(보유 경고) 공용 · 3시장×3중검증 -->
@@ -51,7 +51,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=368"></script>
+<script src="sx_render.js?v=369"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -802,6 +802,18 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .sf-ck-label{font-weight:600;color:var(--text);flex-shrink:0;min-width:80px}
 .sf-ck-desc{font-size:9px;color:var(--text3);line-height:1.4}
 
+/* [S1008] 설정탭 CSS 복원 — S1006 게이트 CSS 절제 시 무주석으로 사이에 있던 .setting-* 11룰이 같이 삼켜진 버그 수복 */
+.setting-group{margin-bottom:14px}
+.setting-group-title{font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px;padding-left:2px;text-transform:uppercase;letter-spacing:.3px}
+.setting-row{display:flex;align-items:center;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:4px;cursor:pointer}
+.setting-row:active{background:var(--accent-glow)}
+.setting-row .sl{flex:1;font-size:12px}
+.setting-row .sr{font-size:11px;color:var(--accent);font-weight:600;font-family:'Outfit'}
+.setting-row .arrow{color:var(--text3);margin-left:6px;font-size:10px}
+.setting-input-row{display:flex;gap:6px;margin-top:6px}
+.setting-input-row input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;outline:none;font-family:inherit}
+.setting-input-row input:focus{border-color:var(--accent)}
+.setting-input-row button{padding:8px 14px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit}
 /* ── 테마 선택 카드 (앱 동일) ── */
 .mode-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
 .mode-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius-sm);padding:10px;cursor:pointer;transition:border-color .2s}
@@ -1486,20 +1498,21 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px">
         <div style="font-size:9px;color:var(--text3);margin-bottom:8px;line-height:1.5">안전필터는 기술적 시그널이 매수를 제안해도 위험 징후가 감지되면 매수를 보류시키는 보호 장치입니다. 끄면 위험 종목이 매수 리스트에 포함될 수 있습니다.</div>
         <div id="safetyFilterList">
+          <label class="sf-check-row"><input type="checkbox" data-sf="riskSignature" onchange="_saveSafetyFilters()"><span class="sf-ck-label">⚠️ 위험 시그니처 <span style="color:#7c3aed;font-weight:800;font-size:9px">[시장별]</span></span><span class="sf-ck-desc">[S1008] 시장별 폭락집중 조합(주력) 현재봉 발동 시 HOLD — KR 이격8%∧MACD음전 · US 3연속양봉∧갭3% · COIN 이격20%. 3시장×3중검증(sx_risk_core SSOT) · 2군은 분석탭 배지 표시만 · 기본 OFF(BT A/B 후 승격)</span></label>
           <label class="sf-check-row"><input type="checkbox" data-sf="threshold" onchange="_saveSafetyFilters()"><span class="sf-ck-label">임계값 마진</span><span class="sf-ck-desc">점수가 BUY 임계를 겨우 넘으면 HOLD로 격하</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="volExtreme" onchange="_saveSafetyFilters()"><span class="sf-ck-label">변동성 극단</span><span class="sf-ck-desc">ATR이 과도하면 강제 HOLD</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="volHigh" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">변동성 과다</span><span class="sf-ck-desc">ATR 높고 점수 부족하면 HOLD</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="rsiDiv" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">RSI 다이버전스</span><span class="sf-ck-desc">가격↑ RSI↓ = 상승 에너지 약화 경고</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="stochRsi" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">Stoch/RSI 괴리</span><span class="sf-ck-desc">Stoch 90+ 인데 RSI 60 미만이면 HOLD</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="macdNeg" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">MACD 5봉 음전</span><span class="sf-ck-desc">MACD 히스토그램 5봉 연속 음수면 HOLD</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="ma60resist" onchange="_saveSafetyFilters()"><span class="sf-ck-label">MA60 저항</span><span class="sf-ck-desc">가격이 MA60 아래 근접하면 HOLD</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="bbUpper" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">BB 상단 이탈</span><span class="sf-ck-desc">[S426] 가격이 볼린저밴드 상단 밖 = 과열 (진입 보류·관망 강등)</span></label>
+          <label class="sf-check-row"><input type="checkbox" data-sf="volExtreme" onchange="_saveSafetyFilters()"><span class="sf-ck-label">변동성 극단</span><span class="sf-ck-desc">ATR이 과도하면 강제 HOLD · [S1008] 측정: ATR극단=고변동 표지(폭락+대박 동반) — 차단 시 대박도 버림</span></label>
+          <label class="sf-check-row"><input type="checkbox" data-sf="volHigh" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">변동성 과다</span><span class="sf-ck-desc">ATR 높고 점수 부족하면 HOLD · [S1008] 고변동 표지 주의</span></label>
+          <label class="sf-check-row"><input type="checkbox" data-sf="rsiDiv" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">RSI 다이버전스</span><span class="sf-ck-desc">가격↑ RSI↓ = 상승 에너지 약화 경고 · [S1008] 시장별 — US 유효(+)·KR 약·<b>코인 역전(−12%p)</b></span></label>
+          <label class="sf-check-row" style="opacity:.55"><input type="checkbox" data-sf="stochRsi" disabled onchange="_saveSafetyFilters()"><span class="sf-ck-label">Stoch/RSI 괴리 <span style="font-size:8px;color:#dc2626;font-weight:800">📉역효과</span></span><span class="sf-ck-desc">[S1008] 3시장 측정: 발동 구간 폭락 오히려 희소(KR −3.0/−5.4%p) — 차단=좋은 진입만 버림 → 강제 OFF (S1009 BT A/B 후 철거)</span></label>
+          <label class="sf-check-row"><input type="checkbox" data-sf="macdNeg" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">MACD 5봉 음전</span><span class="sf-ck-desc">MACD 히스토그램 5봉 연속 음수면 HOLD · [S1008] 단독 변별력 ~0(3시장) — 이격 결합=⚠️위험시그니처가 대체</span></label>
+          <label class="sf-check-row" style="opacity:.55"><input type="checkbox" data-sf="ma60resist" disabled onchange="_saveSafetyFilters()"><span class="sf-ck-label">MA60 저항 <span style="font-size:8px;color:#dc2626;font-weight:800">📉역효과</span></span><span class="sf-ck-desc">[S1008] 3시장 공통 역효과 — MA60 아래=폭락 희소 구간(폭락lift KR −5.2 · US −0.8 · COIN −3.6%p) → 강제 OFF</span></label>
+          <label class="sf-check-row"><input type="checkbox" data-sf="bbUpper" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">BB 상단 이탈</span><span class="sf-ck-desc">[S426] 가격이 볼린저밴드 상단 밖 = 과열 (진입 보류·관망 강등) · [S1008] 과열군=고변동(평균수익도 높음·3시장 공통)</span></label>
           <label class="sf-check-row"><input type="checkbox" data-sf="resistNear" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">저항 근접</span><span class="sf-ck-desc">[S426] 피벗 R1 저항 1.5% 이내 = 돌파 부담 (관심 강등)</span></label>
           <label class="sf-check-row"><input type="checkbox" data-sf="fakeBreakout" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">가짜 저항 돌파</span><span class="sf-ck-desc">[S433] 5/20/60일선을 막 돌파했으나 OBV 하락·거래량 미증가 = 거짓 신호 (진입 보류)</span></label>
           <label class="sf-check-row"><input type="checkbox" data-sf="volResist" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">매물대 저항</span><span class="sf-ck-desc">[S523] 최근 120봉 현재가 위쪽 +1~8%에 거래량 집중(고저 범위 분산·최근봉 가중) = 머리 위 매물 저항 (진입 보류)</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="chaseGuard" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">추격금지 · 과열</span><span class="sf-ck-desc">[S453] MA20 이격도 +20% 이상 = 너무 멀리 올라 추격매수 위험 (일시정지)</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="dumpWarn" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">되돌림주의</span><span class="sf-ck-desc">[S454] 천정·투매 위험 신호(투매·RSI/OBV 약세 다이버전스·과열 급등) 감지 = 진입 정지</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="deadCrossGuard" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">데드크로스</span><span class="sf-ck-desc">[S468] MA5가 MA20 아래로 최근 3봉 내 하향교차 = 단기 추세전환 초입 (진입 보류)</span></label>
+          <label class="sf-check-row"><input type="checkbox" data-sf="chaseGuard" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">추격금지 · 과열</span><span class="sf-ck-desc">[S453] MA20 이격도 +20% 이상 = 추격 위험 (일시정지) · [S1008] KR/US=고변동 표지 · <b>코인만 진짜 위험(폭락lift +34%p)</b> — 시장별 성격</span></label>
+          <label class="sf-check-row"><input type="checkbox" data-sf="dumpWarn" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">되돌림주의</span><span class="sf-ck-desc">[S454] 천정·투매 위험 신호 감지 = 진입 정지 · [S1008] 복합신호(과열=고변동 + 다이버=시장별 혼재) — 재측정 대상</span></label>
+          <label class="sf-check-row" style="opacity:.55"><input type="checkbox" data-sf="deadCrossGuard" disabled onchange="_saveSafetyFilters()"><span class="sf-ck-label">데드크로스 <span style="font-size:8px;color:#dc2626;font-weight:800">📉역효과</span></span><span class="sf-ck-desc">[S468]→[S1008] 역효과 — 데드크로스 뒤 상승이 더 많음(S923 캐논·확정종가 56.6%↑) → 강제 OFF</span></label>
           <label class="sf-check-row"><input type="checkbox" data-sf="supportBreak" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">지지선 이탈</span><span class="sf-ck-desc">[S469] 종가가 MA20·MA60을 위→아래로 최근 3봉 내 하향 이탈 = 지지 붕괴 (진입 보류)</span></label>
           <div style="border-top:1px solid var(--border);margin:6px 0;padding-top:4px">
             <div style="font-size:9px;color:var(--accent);margin-bottom:4px;font-weight:600">추가 안전필터 (옵션)</div>
@@ -5115,7 +5128,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=17');
+    _scanWorker = new Worker('sx_scan_worker.js?v=18');
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -12522,10 +12535,11 @@ const SX_SAFETY_KEY = 'SX_SAFETY_FILTERS';
 //             기본 OFF. 재무건전성(부채비율 200%↑ 제외)과 고베타 경고(β>1.5)
 //             만 기본 ON. foreignSell은 KIS 미연결 시 자동 disable.
 const _safetyDefaults = {
+  riskSignature:false, // [S1008] ⚠️ 위험 시그니처(시장별) — 기본 OFF, S1009 BT A/B 후 승격 판단
   threshold:false, volExtreme:false, volHigh:true, rsiDiv:true,
-  stochRsi:true, macdNeg:true, ma60resist:false,
+  stochRsi:false, macdNeg:true, ma60resist:false,
   bbUpper:true, resistNear:true, fakeBreakout:true, volResist:true, chaseGuard:true, dumpWarn:true, // [S426/S433/S436/S453/S454] C 캡 전용 신규 — 기본 ON
-  deadCrossGuard:true, // [S468] 데드크로스(MA5×MA20 최근 3봉 내 하향교차) — 기본 ON
+  deadCrossGuard:false, // [S468]→[S1008] 역효과 강제 OFF 데드크로스(MA5×MA20 최근 3봉 내 하향교차) — 기본 ON
   supportBreak:true, // [S469] 지지선 이탈(종가가 MA20/MA60 최근 3봉 내 하향 이탈) — 기본 ON
   debtRatio:true, foreignSell:false, highBeta:false, // [S452] highBeta: β 데이터 미연결 → 데이터 연결 시 활성(기본 OFF·disabled)
   knnBearish:false, // [S658] kNN 음봉전이 경고 — 실험적 ML 신호라 기본 OFF(opt-in)
@@ -12568,6 +12582,10 @@ function _loadSafetyFilterUI(){
       chk.checked = false;
       const _bd = document.getElementById('sfBetaDesc');
       if(_bd) _bd.textContent = 'β 데이터 연결 시 활성화됩니다';
+    }
+    // [S1008] 역효과 확정(3시장 측정) 3종 — 강제 비활성 (저장값 무시). S1009 BT A/B 후 철거 판단.
+    if(key==='stochRsi' || key==='ma60resist' || key==='deadCrossGuard'){
+      chk.disabled = true; chk.checked = false;
     }
   });
   // 엔진에 동기화
