@@ -2674,7 +2674,7 @@ async function startScan(config) {
           //   ※약세 캔들(이브닝/슈팅)은 토글 없음(천장신호 항상 ON) 유지 → 게이트 안 붙임. _safety_clean은 이제 '켜둔 필터' 기준으로 카운트.
           const _sfW = (typeof SXE !== 'undefined' && SXE._safetyFlags && Object.keys(SXE._safetyFlags).length)
             ? SXE._safetyFlags
-            : {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,stochRsi:true,macdNeg:true,ma60resist:true,bbUpper:true,resistNear:true,chaseGuard:true,dumpWarn:true,deadCrossGuard:true,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true};
+            : {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,macdNeg:true,bbUpper:true,resistNear:true,chaseGuard:true,dumpWarn:true,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true};   // [S1016] A그룹(stochRsi/ma60resist/deadCrossGuard) 철거
           // [S454] 되돌림주의(dumpWarn) — 천정·투매 위험(정지). 강등·_safetyViol 공용 1회 계산. (조건검색 '되돌림주의 제외'와 동일 소스)
           let _dumpWW = null;
           if (_sfW.dumpWarn && typeof SXE !== 'undefined' && SXE.calcDumpWarn) {
@@ -2692,9 +2692,7 @@ async function startScan(config) {
           if (_sfW.threshold && action === 'BUY' && rawScore < th.buyTh + 2) { reasons.push('임계값'); action = 'HOLD'; _techFilterStats['_safety_threshold'] = (_techFilterStats['_safety_threshold']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', '임계값 마진 부족 (점수 buyTh+2 미만)', ''); }
           { const vf = _scrVolFilter(volSoft, currentTF); if (_sfW.volExtreme && volSoft >= vf.hard) { reasons.push('변동성극단'); action = 'HOLD'; _techFilterStats['_safety_volExtreme'] = (_techFilterStats['_safety_volExtreme']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', `변동성 극단 (${volSoft.toFixed(2)} ≥ ${vf.hard})`, ''); } else if (_sfW.volHigh && volSoft >= vf.softTh && action === 'BUY' && rawScore < th.buyTh + vf.bonus) { reasons.push('변동성과다'); action = 'HOLD'; _techFilterStats['_safety_volHigh'] = (_techFilterStats['_safety_volHigh']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', '변동성 과다 + 점수 마진 부족', ''); } }
           if (_sfW.rsiDiv && action === 'BUY' && adv.rsi.div === 'bearish') { reasons.push('RSI다이버전스'); action = 'HOLD'; _techFilterStats['_safety_rsiDiv'] = (_techFilterStats['_safety_rsiDiv']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', 'RSI 약세 다이버전스', ''); }
-          if (_sfW.stochRsi && action === 'BUY' && adv.stoch.k > 90 && adv.rsi.val < 60) { reasons.push('Stoch/RSI괴리'); action = 'HOLD'; _techFilterStats['_safety_stochRsi'] = (_techFilterStats['_safety_stochRsi']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', `Stoch ${adv.stoch.k.toFixed(0)}>90 + RSI ${adv.rsi.val.toFixed(0)}<60`, ''); }
           if (_sfW.macdNeg && action === 'BUY' && adv.macd.hist < 0) { const h = adv.macd.arr.hist; if (h.length >= 5 && h.slice(-5).every(v => v < 0)) { reasons.push('MACD음전'); action = 'HOLD'; _techFilterStats['_safety_macdNeg'] = (_techFilterStats['_safety_macdNeg']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', 'MACD 5봉 연속 음전', ''); } }
-          if (_sfW.ma60resist && action === 'BUY' && adv.maAlign.ma60 != null && adv.price < adv.maAlign.ma60) { const d60 = ((adv.maAlign.ma60 - adv.price) / adv.price) * 100; if (d60 < 2 && rawScore < th.buyTh + 4) { reasons.push('MA60저항'); action = 'HOLD'; _techFilterStats['_safety_ma60resist'] = (_techFilterStats['_safety_ma60resist']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', `MA60 저항 (현재가 -${d60.toFixed(1)}%)`, ''); } }
           // [S452] 분석엔진(3257-3265)과 강등 미러 — bb/pivot/_fakeBreak/_volResist는 calcAllScreener base에 존재해 워커에서도 동작. 토글 ON/OFF 반영.
           if (_sfW.bbUpper && action === 'BUY' && adv.bb && adv.bb.upper != null && adv.price >= adv.bb.upper) { reasons.push('BB상단이탈'); action = 'HOLD'; _techFilterStats['_safety_bbUpper'] = (_techFilterStats['_safety_bbUpper']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', 'BB 상단 이탈 (과열)', ''); }
           if (_sfW.resistNear && action === 'BUY' && adv.pivot && adv.pivot.R1 != null && adv.price < adv.pivot.R1 && ((adv.pivot.R1 - adv.price) / adv.price) * 100 <= 1.5) { reasons.push('저항근접'); action = 'HOLD'; _techFilterStats['_safety_resistNear'] = (_techFilterStats['_safety_resistNear']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', '피벗 R1 저항 1.5% 이내', ''); }
@@ -2706,8 +2704,6 @@ async function startScan(config) {
           if (_sfW.dumpWarn && action === 'BUY' && _dumpWW && _dumpWW.on) { reasons.push('되돌림주의'); action = 'HOLD'; _techFilterStats['_safety_dumpWarn'] = (_techFilterStats['_safety_dumpWarn']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', '되돌림주의 (천정/투매 위험)', ''); }
           // [S658] kNN 음봉전이 — 분석엔진 미러. 실험적 ML 신호(기본 OFF)
           if (_sfW.knnBearish && action === 'BUY' && _knnBearW) { reasons.push('kNN음봉전이'); action = 'HOLD'; _techFilterStats['_safety_knnBearish'] = (_techFilterStats['_safety_knnBearish']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', 'kNN 자기유사도 강한 음봉전이 예측(≤-30) [실험]', ''); }
-          // [S468] 데드크로스 — MA5가 MA20 아래로 최근 3봉 내 하향교차 (분석엔진 _maDeadCross 미러, lookback=2)
-          if (_sfW.deadCrossGuard && action === 'BUY' && typeof _maDeadCross === 'function' && _maDeadCross((candles && candles.length ? candles.map(c=>c.close) : []), 5, 20, 2).crossed) { reasons.push('데드크로스'); action = 'HOLD'; _techFilterStats['_safety_deadCrossGuard'] = (_techFilterStats['_safety_deadCrossGuard']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', 'MA5×MA20 데드크로스', ''); }
           // [S469] 지지선 이탈 — 종가가 MA20/MA60 최근 3봉 내 하향 이탈 (분석엔진 미러, lookback=2). short=1=종가.
           if (_sfW.supportBreak && action === 'BUY' && typeof _maDeadCross === 'function') { const _clSB = (candles && candles.length ? candles.map(c=>c.close) : []); if (_maDeadCross(_clSB, 1, 20, 2).crossed || _maDeadCross(_clSB, 1, 60, 2).crossed) { reasons.push('지지선이탈'); action = 'HOLD'; _techFilterStats['_safety_supportBreak'] = (_techFilterStats['_safety_supportBreak']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', '종가 MA20/60 하향이탈', ''); } }
           if (action === 'BUY' && adv.candle.strongest) { const cn = adv.candle.strongest.name || ''; if (cn.includes('이브닝') || cn.includes('슈팅')) { reasons.push(cn); action = 'HOLD'; _techFilterStats['_safety_bearCandle'] = (_techFilterStats['_safety_bearCandle']||0)+1; if (_isTraced2) _trace('안전필터', '⚠️ 강등', `약세 캔들: ${cn}`, ''); } }
@@ -2724,9 +2720,7 @@ async function startScan(config) {
               else if (_sfW.volHigh && volSoft >= _vf2.softTh && rawScore < th.buyTh + _vf2.bonus) _safetyViol.push('🔒변동성과다');
             }
             if (_sfW.rsiDiv && adv.rsi.div === 'bearish') _safetyViol.push('🔒RSI다이버전스');
-            if (_sfW.stochRsi && adv.stoch.k > 90 && adv.rsi.val < 60) _safetyViol.push('🔒Stoch/RSI괴리');
             if (_sfW.macdNeg && adv.macd.hist < 0) { const _h5 = adv.macd.arr.hist; if (_h5.length >= 5 && _h5.slice(-5).every(v => v < 0)) _safetyViol.push('🔒MACD음전'); }
-            if (_sfW.ma60resist && adv.maAlign.ma60 != null && adv.price < adv.maAlign.ma60) { const _d60v = ((adv.maAlign.ma60 - adv.price) / adv.price) * 100; if (_d60v < 2 && rawScore < th.buyTh + 4) _safetyViol.push('🔒MA60저항'); }
             if (_sfW.bbUpper && adv.bb && adv.bb.upper != null && adv.price >= adv.bb.upper) _safetyViol.push('🔒BB상단이탈');
             if (_sfW.resistNear && adv.pivot && adv.pivot.R1 != null && adv.price < adv.pivot.R1 && ((adv.pivot.R1 - adv.price) / adv.price) * 100 <= 1.5) _safetyViol.push('🔒저항근접');
             if (_sfW.fakeBreakout && adv._fakeBreak) _safetyViol.push('🔒가짜돌파MA' + adv._fakeBreak.ma); // [S452] 엔진 패스2 미러
@@ -2734,7 +2728,6 @@ async function startScan(config) {
             if (_sfW.chaseGuard && adv.maDisparity && adv.maDisparity.disparity20 != null && adv.maDisparity.disparity20 >= 20) _safetyViol.push('🔒추격금지'); // [S453]
             if (_sfW.dumpWarn && _dumpWW && _dumpWW.on) _safetyViol.push('🔒되돌림주의'); // [S454]
             if (_sfW.knnBearish && _knnBearW) _safetyViol.push('🔒kNN음봉전이'); // [S658]
-            if (_sfW.deadCrossGuard && typeof _maDeadCross === 'function' && _maDeadCross((candles && candles.length ? candles.map(c=>c.close) : []), 5, 20, 2).crossed) _safetyViol.push('🔒데드크로스'); // [S468]
             if (_sfW.supportBreak && typeof _maDeadCross === 'function') { const _clSB2 = (candles && candles.length ? candles.map(c=>c.close) : []); if (_maDeadCross(_clSB2, 1, 20, 2).crossed || _maDeadCross(_clSB2, 1, 60, 2).crossed) _safetyViol.push('🔒지지선이탈'); } // [S469]
             // [S452] 재무건전성/외국인매도/고베타 = 분석탭 전용 안전필터 → 스캐너(종목검색)에서 제외.
             //   (워커 스캔엔 _debtRatio/_foreignConsecSell/_beta 미생성이라 어차피 no-op이었음. 재무는 분석탭 render에서 DART로 적용, 외인은 KIS·베타는 데이터 연결 시)
