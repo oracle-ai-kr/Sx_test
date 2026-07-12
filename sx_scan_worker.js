@@ -11,6 +11,7 @@ function _loadEngines(cacheBuster) {
       `sx_session.js?v=${cacheBuster || '1'}`,
       `sx_analysis_engine.js?v=${cacheBuster || '1'}`,
       `sx_recipe_core.js?v=${cacheBuster || '1'}`,   // [S877] 레시피 코어(레지스트리+feats/match+votes) — 스캔 하이브리드 정합
+      `sx_risk_core.js?v=${cacheBuster || '1'}`,   // [S1008] 위험 시그니처 SSOT — 안전필터 riskSignature가 사용(미로드=fail-open)
       `sx_conditions.js?v=${cacheBuster || '1'}`,
       `sx_project_c.js?v=${cacheBuster || '1'}`,
       `sx_candle_knn.js?v=${cacheBuster || '1'}`   // [S621] 조건검색 캔들전이 kNN — 라이브 카드와 동일 엔진
