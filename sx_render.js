@@ -5386,9 +5386,10 @@ async function _sfAbUI(){
   var snapOn=!!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode());
   try{ if(res&&res.ok&&typeof _sxMeasStash==='function') _sxMeasStash('sfab_'+mk+'_'+(snapOn?'snap':'live'), { stocksUsed:res.stocksUsed, base:_sfAbAgg(res.out.base), sig:_sfAbAgg(res.out.sig), agrp:_sfAbAgg(res.out.agrp) }); }catch(_){}
   var _frame=_sfAbFrame();
+  var _official=false; try{ _official=(SXE._btEntryMode==='nextOpen' && SXE._btExitMode==='conservative' && !(SXE._btEarlyExit&&SXE._btEarlyExit.enabled)); }catch(_){}
   el.innerHTML=(_hasOv?'':'<div style="font-size:9px;color:#dc2626;font-weight:700;padding:4px 2px">⚠ 엔진에 _sfAbOverride 탈출구 없음(구버전) — ⓒ 구성 무효(ⓐ와 동일). 엔진 재배포 후 재실행.</div>')
     +_sfAbRender(res, mk.toUpperCase()+' · 대표풀 '+(res&&res.stocksUsed||'?')+'종 · '+(snapOn?'📦스냅':'🔴라이브'))
-    +(_frame?'<div style="font-size:8.5px;color:var(--text3);margin-top:4px">🧭 측정 프레임: '+_frame+' · <b>공식 프레임(사전선언)=다음봉시가·OHLC·조기청산 OFF</b> — 다른 프레임 결과는 참고치(프레임 따라 평균수익 Δ 부호 반전 확인됨)</div>':'');
+    +(_frame?('<div style="font-size:8.5px;margin-top:4px;color:'+(_official?'var(--text3)':'#d97706')+'">'+(_official?'🧭 공식 프레임 ✓ · ':'⚠️ <b>비공식 프레임 — 참고치</b> · ')+_frame+' · 공식(사전선언)=다음봉시가·OHLC·조기청산 OFF · 프레임 따라 Δ 부호 반전 확인됨</div>'):'');
 }
 if(typeof window!=='undefined'){ window._sfAbUI=_sfAbUI; }
 
@@ -8471,7 +8472,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1010';
+  window.SX_BUILD='S1011';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
