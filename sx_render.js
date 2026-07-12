@@ -3,6 +3,8 @@
 //  [S971] 추세 라벨 SSOT `_trendLabel` 신설 (단기 5/20/60 강세·약세 / 장기 60/120/200 상승장·하락장 / 천장권·바닥권). 레시피 해석 카드 전환.
 //  [S972] SSOT 용어 통일 A단계 — 교차검증 실험카드 + 측정 도구 결과 헤더의 레짐 라벨(정배/역배→상승장/하락장) 전환. 표기만·로직 무변경. MA순서 표기·서술문장·세부분류는 보존.
 // ════════════════════════════════════════════════════════════
+// [S1020] BT 진단 로그 토글 — 구 sx_optimizer.js에서 이관(옵티마이저 철거). 기본 OFF. 콘솔서 window._sxDebugBT=true로 활성.
+if(typeof window !== 'undefined' && typeof window._sxDebugBT === 'undefined'){ window._sxDebugBT = false; }
 const BT_SUPPORTED_TF = {
   kr:   ['30m','60m','day','week','month'],   // 30분은 KIS 한정
   us:   ['day','week','month'],
@@ -637,12 +639,7 @@ async function runAnalysis(stock){
       _sxCleanupExtCacheForOtherStocks(stock.code, _curMkt);
     }catch(_){/* 정리 실패해도 분석은 계속 */}
   }
-  // [캐시 정리] 옵티마이저 활성 외 종목의 SX_CDL_* 캐시 정리
-  //   정리 함수 정의: sx_optimizer.js `_cleanCandleCacheForOtherStocks`
-  //   분석탭 진입은 빈번하니 이때 함께 청소 (사용자 추가 액션 없이 자연스럽게)
-  if(typeof _cleanCandleCacheForOtherStocks === 'function'){
-    try{ _cleanCandleCacheForOtherStocks(); }catch(_){}
-  }
+  // [S1020] 옵티마이저 철거 — 캐시 정리 호출 제거. (정리 함수는 옵티마이저 등록 종목만 보존하는 전용 로직이라, 옵티마이저 없이는 keepCodes=0 → skip이었음. 무손실.)
   // [Phase 2-fix] 재무 데이터 보강 — 다양한 진입 경로에서 _financial 누락 케이스 대응
   //   대상 케이스:
   //     1) 스캔 백그라운드 fetch가 아직 미완료 (라인 4104~ 참고: .then 비대기)
@@ -8466,7 +8463,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1016';
+  window.SX_BUILD='S1022';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -9627,6 +9624,8 @@ function _buildSimPositionLine(stock, btSt, svVerdict){
     let tpslLine = '';
     if(tpStr && slStr){
       tpslLine = `<div style="${SUB_STYLE}">목표 ${tpStr} / 손절 ${slStr} <span style="color:var(--text3)">(예정)</span></div>`;
+    } else {
+      tpslLine = `<div style="${SUB_STYLE}"><span style="color:var(--text3)">청산: 이중ATR(2×손절·3×트레일) + MA5×20 데드(유예10)</span></div>`;   // [S1019] 레시피-BT 청산모델
     }
     return `<div style="${BOX_STYLE}">
       <div style="${TITLE_STYLE}">📊 엔진시뮬 신호포착</div>
