@@ -3391,8 +3391,8 @@ function scrQuickScore(rows, tf, market) {
 
   // S67: 안전필터 (플래그 기반 ON/OFF — SXE._safetyFlags)
   // [S264] 폴백 기본값 10개 전수 ON. foreignSell은 평가식의 `ind._foreignConsecSell != null` 가드가 KIS 미연결 자동 통과 처리.
-  const _sf = SXE._safetyFlags || {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,stochRsi:false,macdNeg:true,ma60resist:false,bbUpper:true,resistNear:true,fakeBreakout:true,volResist:true,chaseGuard:true,dumpWarn:true,deadCrossGuard:false,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true,riskSignature:false};
-  if(!SXE._sfAbOverride){ _sf.stochRsi = false; _sf.ma60resist = false; _sf.deadCrossGuard = false; }   // [S1008] 역효과 확정 3종 강제 OFF(측정 S1001~03) · [S1009] A/B 하네스만 SXE._sfAbOverride로 복귀 가능
+  const _sf = SXE._safetyFlags || {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,macdNeg:true,bbUpper:true,resistNear:true,fakeBreakout:true,volResist:true,chaseGuard:true,dumpWarn:true,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true,riskSignature:false};
+  // [S1016] A그룹(stochRsi/ma60resist/deadCrossGuard) 안전필터 철거 — S1013 최종심(조건부 crashLift 음수 3표본). 측정 조건은 _riskCondsAt에 보존.
   // [S454] 되돌림주의(dumpWarn) 안전필터 — 천정·투매 위험 = 정지(추격금지보다 강한 단계). 강등·_safetyViol 공용 1회 계산.
   let _dumpW = null;
   if (_sf.dumpWarn && typeof SXE.calcDumpWarn === 'function') {
@@ -3417,13 +3417,8 @@ function scrQuickScore(rows, tf, market) {
     else if (_sf.volHigh && volSoft >= vf.softTh && action === 'BUY' && rawScore < buyTh + vf.bonus) { reasons.push('🔒변동성과다'); action = 'HOLD'; }
   }
   if (_sf.rsiDiv && action === 'BUY' && ind.rsi.div === 'bearish') { reasons.push('🔒RSI다이버전스'); action = 'HOLD'; }
-  if (_sf.stochRsi && action === 'BUY' && ind.stoch.k > 90 && ind.rsi.val < 60) { reasons.push('🔒Stoch/RSI괴리'); action = 'HOLD'; }
   if (_sf.macdNeg && action === 'BUY' && ind.macd.hist < 0) {
     const h = ind.macd.arr.hist; if (h.length >= 5 && h.slice(-5).every(v => v < 0)) { reasons.push('🔒MACD음전'); action = 'HOLD'; }
-  }
-  if (_sf.ma60resist && action === 'BUY' && ind.maAlign.ma60 != null && ind.price < ind.maAlign.ma60) {
-    const d60 = ((ind.maAlign.ma60 - ind.price) / ind.price) * 100;
-    if (d60 < 2 && rawScore < buyTh + 4) { reasons.push('🔒MA60저항'); action = 'HOLD'; }
   }
   // [S426] 신규 안전필터 — BB 상단 이탈(과열) / 저항(피벗 R1) 근접
   if (_sf.bbUpper && action === 'BUY' && ind.bb && ind.bb.upper != null && ind.price >= ind.bb.upper) { reasons.push('🔒BB상단이탈'); action = 'HOLD'; }
@@ -3441,8 +3436,6 @@ function scrQuickScore(rows, tf, market) {
   if (_sf.dumpWarn && action === 'BUY' && _dumpW && _dumpW.on) { reasons.push('🔒되돌림주의'); action = 'HOLD'; }
   // [S658] kNN 음봉전이 — 자기유사도 패턴이 강하게 음봉전이 예측
   if (_sf.knnBearish && action === 'BUY' && _knnBear) { reasons.push('🔒kNN음봉전이'); action = 'HOLD'; }
-  // [S468] 데드크로스 — MA5가 MA20 아래로 최근 3봉 내 하향교차(lookback=2) = 단기 추세전환 초입 (진입 보류). 청산룰(S460·당봉 lookback0)보다 완화 — 진입 판단은 이틀 전 전환도 유효 위험.
-  if (_sf.deadCrossGuard && action === 'BUY' && typeof _maDeadCross === 'function' && _maDeadCross(ind.closes, 5, 20, 2).crossed) { reasons.push('🔒데드크로스'); action = 'HOLD'; }
   // [S1008] ⚠️ 위험 시그니처 (시장별·sx_risk_core SSOT) — tier1(주력)만 차단. 근거: S1001~03 3시장×3중검증.
   //   tier2=평균lift 양수(대박 동반)라 차단 안 함(분석탭 배지 표시 전용). 일봉 전용(통계=일봉 측정). 코어 미로드=fail-open.
   if (_sf.riskSignature && action === 'BUY' && tf === 'day' && typeof SXRiskCore !== 'undefined' && Array.isArray(rows) && rows.length >= 30) {
@@ -3480,9 +3473,7 @@ function scrQuickScore(rows, tf, market) {
       else if (_sf.volHigh && volSoft >= _vf2.softTh && rawScore < buyTh + _vf2.bonus) _safetyViol.push('🔒변동성과다');
     }
     if (_sf.rsiDiv && ind.rsi.div === 'bearish') _safetyViol.push('🔒RSI다이버전스');
-    if (_sf.stochRsi && ind.stoch.k > 90 && ind.rsi.val < 60) _safetyViol.push('🔒Stoch/RSI괴리');
     if (_sf.macdNeg && ind.macd.hist < 0) { const _h5 = ind.macd.arr.hist; if (_h5.length >= 5 && _h5.slice(-5).every(v => v < 0)) _safetyViol.push('🔒MACD음전'); }
-    if (_sf.ma60resist && ind.maAlign.ma60 != null && ind.price < ind.maAlign.ma60) { const _d60v = ((ind.maAlign.ma60 - ind.price) / ind.price) * 100; if (_d60v < 2 && rawScore < buyTh + 4) _safetyViol.push('🔒MA60저항'); }
     if (_sf.bbUpper && ind.bb && ind.bb.upper != null && ind.price >= ind.bb.upper) _safetyViol.push('🔒BB상단이탈');
     if (_sf.resistNear && ind.pivot && ind.pivot.R1 != null && ind.price < ind.pivot.R1 && ((ind.pivot.R1 - ind.price) / ind.price) * 100 <= 1.5) _safetyViol.push('🔒저항근접');
     if (_sf.fakeBreakout && ind._fakeBreak) _safetyViol.push('🔒가짜돌파MA' + ind._fakeBreak.ma);
@@ -3490,7 +3481,6 @@ function scrQuickScore(rows, tf, market) {
     if (_sf.chaseGuard && ind.maDisparity && ind.maDisparity.disparity20 != null && ind.maDisparity.disparity20 >= 20) _safetyViol.push('🔒추격금지'); // [S453]
     if (_sf.dumpWarn && _dumpW && _dumpW.on) _safetyViol.push('🔒되돌림주의'); // [S454]
     if (_sf.knnBearish && _knnBear) _safetyViol.push('🔒kNN음봉전이'); // [S658]
-    if (_sf.deadCrossGuard && typeof _maDeadCross === 'function' && _maDeadCross(ind.closes, 5, 20, 2).crossed) _safetyViol.push('🔒데드크로스'); // [S468]
     if (_sf.riskSignature && tf === 'day' && typeof SXRiskCore !== 'undefined' && Array.isArray(rows) && rows.length >= 30) { try { const _rsV = (SXRiskCore.evalRiskAt(_getCurrentMarketKey(), ind, rows, rows.length - 1) || []).find(s => s.tier === 1); if (_rsV) _safetyViol.push('🔒위험시그니처'); } catch(_eV) {} }   // [S1008]
     if (_sf.supportBreak && typeof _maDeadCross === 'function' && (_maDeadCross(ind.closes, 1, 20, 2).crossed || _maDeadCross(ind.closes, 1, 60, 2).crossed)) _safetyViol.push('🔒지지선이탈'); // [S469]
     if (_sf.debtRatio && ind._debtRatio != null && ind._debtRatio >= 200) _safetyViol.push('🔒부채비율');
@@ -4374,8 +4364,8 @@ SXE._checkSafetyFilters = function(ind, rawScore, buyTh, volSoft, tf, candles, o
   //   나머지 오실레이터·휩소·과열·저항 필터(RSI/가짜돌파/되돌림/데드크로스가드/지지선이탈 등)는 골든이어도 유지 — 가짜 반등 차단.
   const _gBypass = !!(opts && opts.goldenBypass);
   // [S264] 폴백 기본값 10개 전수 ON. foreignSell은 ind._foreignConsecSell != null 가드로 KIS 미연결 자동 통과.
-  const _sf = SXE._safetyFlags || {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,stochRsi:false,macdNeg:true,ma60resist:false,bbUpper:true,resistNear:true,fakeBreakout:true,volResist:true,chaseGuard:true,dumpWarn:true,deadCrossGuard:false,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true,riskSignature:false};
-  if(!SXE._sfAbOverride){ _sf.stochRsi = false; _sf.ma60resist = false; _sf.deadCrossGuard = false; }   // [S1008] 역효과 확정 3종 강제 OFF(측정 S1001~03) · [S1009] A/B 하네스만 SXE._sfAbOverride로 복귀 가능
+  const _sf = SXE._safetyFlags || {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,macdNeg:true,bbUpper:true,resistNear:true,fakeBreakout:true,volResist:true,chaseGuard:true,dumpWarn:true,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true,riskSignature:false};
+  // [S1016] A그룹(stochRsi/ma60resist/deadCrossGuard) 안전필터 철거 — S1013 최종심.
 
   // 1. 임계값 마진 부족 (rawScore가 buyTh 턱걸이일 때) — [S568] 골든 우회(무점수 진입)
   if(_sf.threshold && !_gBypass && rawScore < buyTh + 2) return { pass: false, reason: '🔒임계값' };
@@ -4390,19 +4380,10 @@ SXE._checkSafetyFilters = function(ind, rawScore, buyTh, volSoft, tf, candles, o
   // 3. RSI 베어리시 다이버전스
   if(_sf.rsiDiv && ind.rsi && ind.rsi.div === 'bearish') return { pass: false, reason: '🔒RSI다이버전스' };
 
-  // 4. Stoch 과열인데 RSI 약함 (괴리)
-  if(_sf.stochRsi && ind.stoch && ind.rsi && ind.stoch.k > 90 && ind.rsi.val < 60) return { pass: false, reason: '🔒Stoch/RSI괴리' };
-
   // 5. MACD 5봉 연속 음전
   if(_sf.macdNeg && ind.macd && ind.macd.hist < 0){
     const h = ind.macd.arr && ind.macd.arr.hist;
     if(h && h.length >= 5 && h.slice(-5).every(v => v < 0)) return { pass: false, reason: '🔒MACD음전' };
-  }
-
-  // 6. MA60 저항 임박 — [S568] 골든 우회(장기추세선 위치 필터 → 반등 진입 허용)
-  if(_sf.ma60resist && !_gBypass && ind.maAlign && ind.maAlign.ma60 != null && ind.price < ind.maAlign.ma60){
-    const d60 = ((ind.maAlign.ma60 - ind.price) / ind.price) * 100;
-    if(d60 < 2 && rawScore < buyTh + 4) return { pass: false, reason: '🔒MA60저항' };
   }
 
   // [S426] 6-1. BB 상단 이탈 (과열)
@@ -4424,11 +4405,6 @@ SXE._checkSafetyFilters = function(ind, rawScore, buyTh, volSoft, tf, candles, o
   if(_sf.dumpWarn && typeof SXE.calcDumpWarn === 'function'){
     try { const _c = candles || ind.candles || []; const _l=_c[_c.length-1], _p=_c[_c.length-2]; const _cr=(_p&&_p.close)?((_l.close/_p.close)-1)*100:0;
       const _dw=SXE.calcDumpWarn(_c, ind, _cr); if(_dw && _dw.on) return { pass: false, reason: '🔒되돌림주의' }; } catch(_e){}
-  }
-  // [S468] 데드크로스 — MA5×MA20 최근 3봉 내 하향교차(lookback=2) 시 진입 보류. candles(BT slice) 우선, 없으면 ind.closes. 청산룰(S460·당봉)보다 완화.
-  if(_sf.deadCrossGuard && typeof _maDeadCross === 'function'){
-    const _dcCl = (candles && candles.length) ? candles.map(c=>c.close) : (ind.closes || null);
-    if(_dcCl && _maDeadCross(_dcCl, 5, 20, 2).crossed) return { pass: false, reason: '🔒데드크로스' };
   }
   // [S469] 지지선 이탈 — 종가가 MA20 또는 MA60을 최근 3봉 내 하향 이탈 시 진입 보류. candles(BT slice) 우선, 없으면 ind.closes. lookback=2.
   if(_sf.supportBreak && typeof _maDeadCross === 'function'){
@@ -5873,7 +5849,7 @@ function _linRegSlope(arr){
 //        [S426] bbUpper(BB상단이탈)·resistNear(저항근접) 추가 → 12개 전수 ON.
 //        주의: 스크리너 _loadSafetyFilterUI가 첫 로드 시 localStorage 값으로 덮어씀 — 이 초기값은
 //        스크리너 로드 전 BT/실시간 신호가 안전필터 호출하는 레이스 윈도우에서만 사용됨.
-SXE._safetyFlags = {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,stochRsi:true,macdNeg:true,ma60resist:true,bbUpper:true,resistNear:true,fakeBreakout:true,volResist:true,chaseGuard:true,dumpWarn:true,deadCrossGuard:true,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true}; // [S468] deadCrossGuard 추가 [S469] supportBreak 추가
+SXE._safetyFlags = {threshold:true,volExtreme:true,volHigh:true,rsiDiv:true,macdNeg:true,bbUpper:true,resistNear:true,fakeBreakout:true,volResist:true,chaseGuard:true,dumpWarn:true,supportBreak:true,debtRatio:true,foreignSell:true,highBeta:true}; // [S469] supportBreak · [S1016] A그룹(stochRsi/ma60resist/deadCrossGuard) 철거
 
 // [S1006] S160 BT 진입 게이트 섹션 철거(설정·검사함수·분석대칭 전역 일괄) — 안전필터 일원화
 
