@@ -12,7 +12,7 @@
 <script src="sx_exec_core.js?v=1"></script><!-- [S1017] 실행 SSOT — 레시피 진입+이중ATR+MA청산 · 시즌1 BT/분석탭 · 시즌2 자동매매 공유(b 일원화) -->
 <script src="sx_interpret.js?v=45"></script>
 <script src="sx_chart.js?v=20"></script>
-<script src="sx_conditions.js?v=21"></script>
+<script src="sx_conditions.js?v=22"></script>
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
 <script src="sx_storage.js?v=2"></script>
@@ -52,7 +52,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=380"></script>
+<script src="sx_render.js?v=381"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -4129,7 +4129,7 @@ function renderPresetBar(){
       // p1/p2/p3 모두 평면 나열
       phaseHTML += presets.map(p=>{
         const isActive = comboEntry && comboEntry.presetId===p.id;
-        const _isBtPreset = p.conditions && (p.conditions._bt_score || p.conditions._bt_pnl || p.conditions._bt_winrate || p.conditions._bt_action || p.conditions._bt_trades || p.conditions._bt_mdd || p.conditions._bt_pf);
+        const _isBtPreset = p.conditions && (p.conditions._bt_pnl || p.conditions._bt_winrate || p.conditions._bt_action || p.conditions._bt_trades || p.conditions._bt_mdd || p.conditions._bt_pf);
         const _btDisabled = _isBtPreset && typeof _isBtSupportedTF==='function' && !_isBtSupportedTF(currentMarket, currentTF);
         if(_btDisabled){
           return `<div class="preset-chip combo-${phase.id}" style="opacity:0.35;cursor:not-allowed;pointer-events:none" title="현재 TF 미지원">${p.name}</div>`;
@@ -4677,7 +4677,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=20');
+    _scanWorker = new Worker('sx_scan_worker.js?v=21');
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -5177,29 +5177,6 @@ async function _startScanLegacy(){
         // S65: 엔진 확장 필터 (Phase 3)
         {
           const qs = s._scanResult;
-          // 안전필터 클린
-          const _sfClean = getFilter('_safety_clean');
-          if(_sfClean && _sfClean.value && _sfClean.value!=='설정안함' && qs){
-            const cnt = (qs._safetyViol||[]).length; // [S459] 정확 위반수(_safetyViol: 켠 16종 전수·action무관). 기존 qs.reasons는 첫 강등서 멈춰 부정확했음
-            if(_sfClean.value==='클린 (0개)' && cnt!==0) continue;
-            if(_sfClean.value==='1개 이하' && cnt>1) continue;
-            if(_sfClean.value==='2개 이하' && cnt>2) continue;
-          }
-          // [S431] 되돌림주의 제외 — 분석탭 헤더 ⚠️되돌림주의 배지와 동일 판정(SXE.calcDumpWarn 단일소스). on이면 제외.
-          //   sx_scan_worker.js 미러. coin만 volaMax(9/7) 갈림 → currentMarket 전달.
-          const _dumpF = getFilter('_dump_warn');
-          if(_dumpF && _dumpF.value === '되돌림주의 제외' && qs && typeof SXE!=='undefined' && SXE.calcDumpWarn){
-            const _dw = SXE.calcDumpWarn(qs.ind && qs.ind.candles, qs.ind, s.changeRate, currentMarket);
-            if(_dw && _dw.on) continue;
-          }
-          // 시장 레짐
-          const _regF = getFilter('_regime_label');
-          if(_regF && _regF.value && _regF.value!=='설정안함' && qs){
-            const r = qs.regime;
-            if(!r) continue;
-            const label = r.label || '';
-            if(!label.includes(_regF.value)) continue;
-          }
           // RSI 다이버전스
           const _rdF = getFilter('_rsi_div');
           if(_rdF && _rdF.value && _rdF.value!=='설정안함' && qs){
@@ -5211,13 +5188,6 @@ async function _startScanLegacy(){
           if(_odF && _odF.value && _odF.value!=='설정안함' && qs){
             if(_odF.value==='강세 다이버전스' && qs.obvDiv!=='bullish') continue;
             if(_odF.value==='약세 다이버전스' && qs.obvDiv!=='bearish') continue;
-          }
-          // 눌림목 점수
-          const _pbF = getFilter('_pullback_score');
-          if(_pbF && _pbF.value && qs){
-            const pb = qs.pbScore ?? 0;
-            if(_pbF.value.min!==null && pb<_pbF.value.min) continue;
-            if(_pbF.value.max!==null && pb>_pbF.value.max) continue;
           }
           // 레시피 감지 [S894]
           const _rcpDF = getFilter('_recipe_detect');
@@ -5248,14 +5218,6 @@ async function _startScanLegacy(){
         // S79: 비지원 TF에서는 BT 필터 전체 스킵 (결과 노출 유지)
         if(typeof _isBtSupportedTF==='function' && _isBtSupportedTF(currentMarket, currentTF))
         {
-          // 매매전략 점수
-          const _btScF = getFilter('_bt_score');
-          if(_btScF && _btScF.value){
-            const bs = s._btScore;
-            if(bs==null) continue;
-            if(_btScF.value.min!==null && bs<_btScF.value.min) continue;
-            if(_btScF.value.max!==null && bs>_btScF.value.max) continue;
-          }
           // BT 수익률
           const _btPnlF = getFilter('_bt_pnl');
           if(_btPnlF && _btPnlF.value){
@@ -8362,14 +8324,9 @@ function checkTechConditions(ind, techFilters, getFilter){
       // S48: 종합 판정 — 스캔 루프에서 처리하므로 여기서는 스킵
       case '_signal_action': break;
       // S65: 엔진 확장 + BT 필터 (스캔 루프에서 별도 처리)
-      case '_safety_clean': break;
-      case '_dump_warn': break;
-      case '_regime_label': break;
       case '_rsi_div': break;
       case '_obv_div': break;
-      case '_pullback_score': break;
       case '_recipe_detect': break;
-      case '_bt_score': break;
       case '_bt_pnl': break;
       case '_bt_winrate': break;
       case '_bt_trades': break;
@@ -9709,7 +9666,7 @@ function openScanDiagModal(){
     '_safety_bearCandle':'⚠️ 안전필터: 약세 캔들',
     '_safety_knnBearish':'⚠️ 안전필터: kNN 음봉전이 [실험]',
     // 메타 / 기타
-    '_recent_n_bars':'최근 N봉 (메타)','_safety_clean':'안전필터 클린','_dump_warn':'되돌림주의 제외',
+    '_recent_n_bars':'최근 N봉 (메타)',
     '_or_group':'OR 조건 그룹 전체 불충족',
     '_alt_path_fail':'AND조건묶음 · OR조건묶음 둘 다 불충족',
     'tech_all':'기술적 조건 (세부 미상)',
