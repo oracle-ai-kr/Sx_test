@@ -283,10 +283,17 @@ function _renderResultRowsOnly(){
 
 // [결과탭 검색] 단일 종목 행 HTML 생성 — renderResults / _renderResultRowsOnly 양쪽에서 공유
 //   displayed.map(...) 인라인 코드를 함수로 추출하여 두 렌더 경로에서 재사용
+// [S1025] 시세 등락 표기 SSOT — ▲/▼ 방향글리프 + 한국식 색(상승 빨강/하락 파랑). +/-(하이픈)은 폰트상 얇고 작아 방향 가독성↓ → 글리프로 통일. 시세 3곳(검색결과·분석헤더·분석행) 공유. ※손익(BT/포트폴리오)은 별도 문맥(수익 녹/손실 빨)이라 미적용.
+//   반환 {txt:'▲2.76%'|'▼1.05%'|'0.00%'(절대값·방향은 글리프가 표시), color:CSS변수, cls:'up'|'down'|'flat'}
+window._sxChg = function(pct){
+  var v = (pct==null || isNaN(pct)) ? 0 : +pct;
+  var up = v>0, dn = v<0, arrow = up?'▲':dn?'▼':'';
+  var abs = Math.abs(v).toFixed(2);
+  return { txt:(up||dn?arrow:'')+abs+'%', color:up?'var(--c-red)':dn?'var(--c-blue)':'var(--text3)', cls:up?'up':dn?'down':'flat' };
+};
 function _renderStockRow(s){
   const realIdx = searchResults.indexOf(s);
-  const chgClass = s.changeRate>0?'up':s.changeRate<0?'down':'flat';
-  const chgSign = s.changeRate>0?'+':'';
+  const chg = _sxChg(s.changeRate);
   // [S275] 미국 종목 USD 단위 표시 (네이버 호환: 가격 $X.XX, 거래대금 "115억 USD")
   //   배경: 사용자 요청 — 해외 종목 단위에 USD 붙여야 함 (네이버는 "115억 USD" 같은 표기)
   //   적용: s._mkt === 'us' 또는 currentMarket === 'us' (미러 미설정 시 대비)
@@ -294,7 +301,7 @@ function _renderStockRow(s){
   const priceStr = s.price > 0
     ? (_isUS ? `$${s.price.toFixed(2)}` : s.price.toLocaleString())
     : '—';
-  const chgStr = s.price > 0 ? `${chgSign}${(s.changeRate||0).toFixed(2)}%` : '—';
+  const chgStr = s.price > 0 ? chg.txt : '—';
   // 거래대금: 미국은 _tradeAmountDisplay (네이버 raw "115억 USD") 우선, 없으면 fmtVol + USD 접미사
   const volStr = _isUS
     ? (s._tradeAmountDisplay || (s.tradeAmount > 0 ? `${fmtVol(s.tradeAmount)} USD` : '—'))
@@ -353,7 +360,7 @@ function _renderStockRow(s){
         <div class="sr-row1">
           <div class="sr-name">${s.name}${(typeof _isInWatchlist==='function'&&_isInWatchlist(s.code))?'<span class="sr-wl-star">★</span>':''}</div>
           <div class="sr-col"><div class="sr-price">${priceStr}</div></div>
-          <div class="sr-col"><div class="sr-change ${s.price>0?chgClass:'flat'}">${chgStr}</div></div>
+          <div class="sr-col"><div class="sr-change ${s.price>0?chg.cls:'flat'}">${chgStr}</div></div>
           <div class="sr-col"><div class="sr-vol">${volStr}</div></div>
         </div>
         <div class="sr-row2">
@@ -8463,7 +8470,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1024';
+  window.SX_BUILD='S1025';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -12788,9 +12795,8 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
         //   "종목명 밑에 현재가" 배치로 시각적 안정성 + 중복 제거
         if(!stock.price || stock.price <= 0) return '';
         const _cr = typeof stock.changeRate === 'number' ? stock.changeRate : 0;
-        const _crColor = _cr > 0 ? 'var(--c-red)' : _cr < 0 ? 'var(--c-blue)' : 'var(--text3)';  // [S966] 시세 한국식(상승=빨/하락=파)
-        const _crSign = _cr > 0 ? '+' : '';
-        const _crStr = _cr !== 0 ? `<span style="font-size:12px;font-weight:700;color:${_crColor};margin-left:6px">${_crSign}${_cr.toFixed(2)}%</span>` : '';
+        const _c1025 = _sxChg(_cr);   // [S1025] 시세 등락 SSOT (▲/▼·한국식 색)
+        const _crStr = _cr !== 0 ? `<span style="font-size:12px;font-weight:700;color:${_c1025.color};margin-left:6px">${_c1025.txt}</span>` : '';
         const _priceStr = _isUsStock(stock) ? fmtUsPrice(stock.price) : `${stock.price.toLocaleString()}원`;
         return `<div class="anal-stock-price" style="margin-top:4px;font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.3px">${_priceStr}${_crStr}</div>`;
       })()}
@@ -13376,7 +13382,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       ${basicItp&&basicItp.marketCap?`<div class="itp-card show" style="margin-top:2px;margin-bottom:6px"><div>${basicItp.marketCap.text}</div></div>`:''}
       ${_isUsStock(stock) && stock._marketCapKrwDisplay ? `<div class="anal-row"><span class="al" style="font-size:10px;color:var(--text3)">원화 환산</span><span class="ar" style="font-size:11px;color:var(--text2)">${stock._marketCapKrwDisplay}</span></div>` : ''}
       <div class="anal-row"><span class="al">현재가</span><span class="ar">${_isUsStock(stock) ? fmtUsPrice(stock.price||0) : formatKRW(stock.price||0)}</span></div>
-      <div class="anal-row"><span class="al">등락률</span><span class="ar" style="color:${stock.changeRate>0?'var(--c-red)':stock.changeRate<0?'var(--c-blue)':'var(--text3)'}">${stock.changeRate>0?'+':''}${(stock.changeRate||0).toFixed(2)}%</span></div>${''/* [S966] 등락률=시세 한국식(상승빨/하락파). .ar.bullish/bearish 공유클래스 대신 인라인 */}
+      <div class="anal-row"><span class="al">등락률</span><span class="ar" style="color:${_sxChg(stock.changeRate).color}">${_sxChg(stock.changeRate).txt}</span></div>${''/* [S1025] 등락률=시세 등락 SSOT(_sxChg): ▲/▼·한국식 색(상승빨/하락파) */}
       ${basicItp&&basicItp.changeRate?`<div class="itp-card show" style="margin-top:2px;margin-bottom:6px"><div>${basicItp.changeRate.text}</div></div>`:''}
       <div class="anal-row"><span class="al">거래량</span><span class="ar">${(stock.volume||0).toLocaleString()}</span></div>
       <div class="anal-row"><span class="al">거래대금</span><span class="ar">${_isUsStock(stock) ? fmtUsTradeAmt(stock) : formatTradeAmt(stock.tradeAmount)}</span></div>
