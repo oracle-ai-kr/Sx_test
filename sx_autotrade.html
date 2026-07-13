@@ -182,7 +182,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S959</div>
+    <div class="tb-build">S1026</div>
   </div>
 
   <div class="scroll-area">
@@ -369,7 +369,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S959</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1026</div>
   </div>
 </div>
 
@@ -577,8 +577,8 @@ function atRenderEvents(events){
 }
 // ── [S933] 포트폴리오(KIS 잔고/손익) 렌더 ──
 function _atWon(n){ if(n==null||!isFinite(n)) return '—'; return '₩'+Math.round(n).toLocaleString(); }
-function _atPl(n){ if(n==null||!isFinite(n)) return '—'; const g=n>0?'+':(n<0?'−':''); return g+'₩'+Math.abs(Math.round(n)).toLocaleString(); }
-function _atPct(n){ if(n==null||!isFinite(n)) return '—'; const g=n>0?'+':(n<0?'−':''); return g+Math.abs(n).toFixed(2)+'%'; }
+function _atPl(n){ if(n==null||!isFinite(n)) return '—'; const g=n>0?'▲':(n<0?'▼':''); return g+'₩'+Math.abs(Math.round(n)).toLocaleString(); }  // [S1026] 손익 방향 ▲/▼ — 시즌2는 시세 표시 없어 방향글리프를 손익에 사용(색은 수익 녹/손실 빨 유지·색 없이도 방향 인지)
+function _atPct(n){ if(n==null||!isFinite(n)) return '—'; const g=n>0?'▲':(n<0?'▼':''); return g+Math.abs(n).toFixed(2)+'%'; }  // [S1026] 손익 방향 ▲/▼
 function _atPlCol(n){ return n>0?'var(--accent2)':(n<0?'var(--sell)':'var(--text2)'); }
 function atRenderPortfolio(pf){
   const tv=_$('atPfTotalV'), body=_$('atPfBody');
