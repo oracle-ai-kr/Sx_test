@@ -2856,18 +2856,11 @@ async function startScan(config) {
         const _sigFilter = activeFilters.find(f => f.id === '_signal_action');
         if (_sigFilter && _sigFilter.value && _sigFilter.value !== '설정안함') { if (!s._action) continue; if (s._action !== _sigFilter.value) continue; }
         // [S991] 5축 점수 필터 매칭 삭제 — score_range/_ready_score/_entry_score/_upside_score/_trend_score 제거(엔진 판정 5축 배제). 조건정의도 sx_conditions.js서 제거. 저장 프리셋 해당 조건은 조용히 무시(크래시 없음).
-        // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — s._indicators(=분석탭 indicators, RS 주입 포함)에서 도넛과 동일 공식으로 평가.
-        //   추세강도=round(ADX) · 구조위치=round(struct.pos×100) · 상대강도=clamp(0~100, round(50+rs20×2.5)).
-        //   값 미가용(캔들 부족/비일봉 RS 등) 시 해당 조건 사용하면 제외(continue) — 검증 불가 종목은 통과시키지 않음.
+        // [S585·S1023] 분석탭 전광판 '구조위치' 도넛 — s._indicators._advanced에서 도넛과 동일 공식으로 평가.
+        //   구조위치=round(struct.pos×100). (추세강도(ADX)/상대강도(RS) 도넛은 기술적분석 adx_value/rs_value와 완전중복 → S1023 삭제)
+        //   값 미가용 시 해당 조건 사용하면 제외(continue) — 검증 불가 종목은 통과시키지 않음.
         {
           const _ind585 = s._indicators;
-          const _adxScoreF = getFilter('_adx_score');
-          if (_adxScoreF && _adxScoreF.value) {
-            const _adxV = (_ind585 && _ind585.adx && _ind585.adx.adx != null) ? Math.round(_ind585.adx.adx) : null;
-            if (_adxV == null) continue;
-            if (_adxScoreF.value.min !== null && _adxV < _adxScoreF.value.min) continue;
-            if (_adxScoreF.value.max !== null && _adxV > _adxScoreF.value.max) continue;
-          }
           const _structF = getFilter('_struct_pos');
           if (_structF && _structF.value) {
             const _adv585 = _ind585 && _ind585._advanced;
@@ -2876,15 +2869,6 @@ async function startScan(config) {
             const _spV = Math.round(_sp * 100);
             if (_structF.value.min !== null && _spV < _structF.value.min) continue;
             if (_structF.value.max !== null && _spV > _structF.value.max) continue;
-          }
-          const _rsScoreF = getFilter('_rs_score');
-          if (_rsScoreF && _rsScoreF.value) {
-            // RS는 일봉 + 지수캐시 있을 때만 s._indicators.rs 주입됨 (worker [S440/S442]). 미가용이면 제외.
-            const _rs20 = (_ind585 && _ind585.rs && _ind585.rs.rs20 != null) ? _ind585.rs.rs20 : null;
-            if (_rs20 == null) continue;
-            const _rsV = Math.max(0, Math.min(100, Math.round(50 + _rs20 * 2.5)));
-            if (_rsScoreF.value.min !== null && _rsV < _rsScoreF.value.min) continue;
-            if (_rsScoreF.value.max !== null && _rsV > _rsScoreF.value.max) continue;
           }
         }
         {
@@ -2900,8 +2884,6 @@ async function startScan(config) {
           }
           const _regF = getFilter('_regime_label');
           if (_regF && _regF.value && _regF.value !== '설정안함' && qs) { const r = qs.regime; if (!r) continue; if (!(r.label || '').includes(_regF.value)) continue; }
-          const _sqF = getFilter('_squeeze');
-          if (_sqF && _sqF.value && _sqF.value !== '설정안함' && qs) { if (_sqF.value === '스퀴즈 중' && !qs.squeeze) continue; if (_sqF.value === '스퀴즈 아님' && qs.squeeze) continue; }
           const _rdF = getFilter('_rsi_div');
           if (_rdF && _rdF.value && _rdF.value !== '설정안함' && qs) { if (_rdF.value === '강세 다이버전스' && qs.rsiDiv !== 'bullish') continue; if (_rdF.value === '약세 다이버전스' && qs.rsiDiv !== 'bearish') continue; }
           const _odF = getFilter('_obv_div');
@@ -2945,6 +2927,12 @@ async function startScan(config) {
           const _btTodayEntryF = getFilter('_bt_today_entry');
           if (_btTodayEntryF && _btTodayEntryF.value && _btTodayEntryF.value !== '설정안함') {
             if (!s._btState || s._btState.state !== 'holding' || !s._btState._isBuySignal) continue;
+          }
+          // [S1023] 오늘 청산 신호 필터 — state=sell_signal (exec_core 이중ATR/MA데드 청산이 오늘 발생)
+          //   오늘 매수진입의 매도 짝. sell_signal은 btGetCurrentState가 청산 exitDate=오늘일 때만 반환.
+          const _btTodayExitF = getFilter('_bt_today_exit');
+          if (_btTodayExitF && _btTodayExitF.value && _btTodayExitF.value !== '설정안함') {
+            if (!s._btState || s._btState.state !== 'sell_signal') continue;
           }
         }
 
