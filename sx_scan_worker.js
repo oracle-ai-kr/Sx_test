@@ -2856,46 +2856,17 @@ async function startScan(config) {
         const _sigFilter = activeFilters.find(f => f.id === '_signal_action');
         if (_sigFilter && _sigFilter.value && _sigFilter.value !== '설정안함') { if (!s._action) continue; if (s._action !== _sigFilter.value) continue; }
         // [S991] 5축 점수 필터 매칭 삭제 — score_range/_ready_score/_entry_score/_upside_score/_trend_score 제거(엔진 판정 5축 배제). 조건정의도 sx_conditions.js서 제거. 저장 프리셋 해당 조건은 조용히 무시(크래시 없음).
-        // [S585·S1023] 분석탭 전광판 '구조위치' 도넛 — s._indicators._advanced에서 도넛과 동일 공식으로 평가.
-        //   구조위치=round(struct.pos×100). (추세강도(ADX)/상대강도(RS) 도넛은 기술적분석 adx_value/rs_value와 완전중복 → S1023 삭제)
-        //   값 미가용 시 해당 조건 사용하면 제외(continue) — 검증 불가 종목은 통과시키지 않음.
-        {
-          const _ind585 = s._indicators;
-          const _structF = getFilter('_struct_pos');
-          if (_structF && _structF.value) {
-            const _adv585 = _ind585 && _ind585._advanced;
-            const _sp = (_adv585 && _adv585.trend && _adv585.trend.struct && _adv585.trend.struct.pos != null) ? _adv585.trend.struct.pos : null;
-            if (_sp == null) continue;
-            const _spV = Math.round(_sp * 100);
-            if (_structF.value.min !== null && _spV < _structF.value.min) continue;
-            if (_structF.value.max !== null && _spV > _structF.value.max) continue;
-          }
-        }
+        // [S1024] 구조위치 등 분석판정 필터군(구조위치·안전필터·되돌림·시장레짐·눌림목) 삭제 — 검증 없는 추측 추가분 정리(측정 검증 후 재추가). 레시피 감지만 존치.
         {
           const qs = s._scanResult;
-          const _sfClean = getFilter('_safety_clean');
-          if (_sfClean && _sfClean.value && _sfClean.value !== '설정안함' && qs) { const cnt = (qs._safetyViol || []).length; /* [S459] reasons(action게이트→첫강등서 멈춤)→_safetyViol(켠 16종 전수·action무관)로 정확 카운트 */ if (_sfClean.value === '클린 (0개)' && cnt !== 0) continue; if (_sfClean.value === '1개 이하' && cnt > 1) continue; if (_sfClean.value === '2개 이하' && cnt > 2) continue; }
-          // [S431] 되돌림주의 제외 — 분석탭 헤더 ⚠️되돌림주의 배지와 동일 판정(SXE.calcDumpWarn 단일소스). on이면 제외.
-          //   coin 판정만 volaMax(9/7)에 영향 → currentMarket('coin') 전달(국내/미국은 둘 다 7로 무관, 코인만 9).
-          const _dumpF = getFilter('_dump_warn');
-          if (_dumpF && _dumpF.value && _dumpF.value === '되돌림주의 제외' && qs && typeof SXE !== 'undefined' && SXE.calcDumpWarn) {
-            const _dw = SXE.calcDumpWarn(qs.ind && qs.ind.candles, qs.ind, s.changeRate, currentMarket);
-            if (_dw && _dw.on) continue;
-          }
-          const _regF = getFilter('_regime_label');
-          if (_regF && _regF.value && _regF.value !== '설정안함' && qs) { const r = qs.regime; if (!r) continue; if (!(r.label || '').includes(_regF.value)) continue; }
           const _rdF = getFilter('_rsi_div');
           if (_rdF && _rdF.value && _rdF.value !== '설정안함' && qs) { if (_rdF.value === '강세 다이버전스' && qs.rsiDiv !== 'bullish') continue; if (_rdF.value === '약세 다이버전스' && qs.rsiDiv !== 'bearish') continue; }
           const _odF = getFilter('_obv_div');
           if (_odF && _odF.value && _odF.value !== '설정안함' && qs) { if (_odF.value === '강세 다이버전스' && qs.obvDiv !== 'bullish') continue; if (_odF.value === '약세 다이버전스' && qs.obvDiv !== 'bearish') continue; }
-          const _pbF = getFilter('_pullback_score');
-          if (_pbF && _pbF.value && qs) { const pb = qs.pbScore ?? 0; if (_pbF.value.min !== null && pb < _pbF.value.min) continue; if (_pbF.value.max !== null && pb > _pbF.value.max) continue; }
         }
         // S79: 비지원 TF에서는 BT 필터 전체 스킵 (결과 노출 유지)
         if(_isBtSupportedTF(currentMarket, currentTF))
         {
-          const _btScF = getFilter('_bt_score');
-          if (_btScF && _btScF.value) { const bs = s._btScore; if (bs == null) continue; if (_btScF.value.min !== null && bs < _btScF.value.min) continue; if (_btScF.value.max !== null && bs > _btScF.value.max) continue; }
           const _btPnlF = getFilter('_bt_pnl');
           if (_btPnlF && _btPnlF.value) { const bt = s._btResult; if (!bt) continue; if (_btPnlF.value.min !== null && (bt.totalPnl ?? 0) < _btPnlF.value.min) continue; if (_btPnlF.value.max !== null && (bt.totalPnl ?? 0) > _btPnlF.value.max) continue; }
           const _btWrF = getFilter('_bt_winrate');
