@@ -239,11 +239,6 @@ const SX_CONDITIONS = [
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_struct_pos',name:'구조위치',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'구조위치 0~100 (분석탭 "구조위치" 도넛 = 최근 고/저점 구간 내 현재가 위치) - 낮을수록 저점 근접(눌림 후보), 높을수록 고점 근접(과열 주의)',recommend:'~35 (저점 근접·눌림) / 40~70 (추세 중단)'},
-      {id:'_safety_clean',name:'안전필터 클린',type:'select',options:['설정안함','클린 (0개)','1개 이하','2개 이하'],default:'설정안함',source:'calc_candle',desc:'안전필터 미충족 사유 개수 - 클린=함정 위험 없음 (가장 안전)'},
-      {id:'_dump_warn',name:'되돌림주의 제외',type:'select',options:['설정안함','되돌림주의 제외'],default:'설정안함',source:'calc_candle',desc:'헤더 ⚠️되돌림주의 배지와 동일 판정 — 투매(대금급증≥65+가격하락+OBV이탈) 또는 천정위험(RSI/OBV 약세 다이버전스·과열 급등) 종목을 결과에서 제외',recommend:'되돌림주의 제외 → 추격 위험·자금 이탈 구간 종목을 걸러냄'},
-      {id:'_regime_label',name:'시장 레짐',type:'select',options:['설정안함','추세장','횡보장','추세+변동','전환기'],default:'설정안함',source:'calc_candle',desc:'ADX+BB폭 기반 - 추세장=방향 매매, 횡보장=박스권 매매'},
-      {id:'_pullback_score',name:'눌림목 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'눌림목 매수 적합도 - 상승추세 중 일시 조정 종목 발견',recommend:'50↑ (눌림목 후보) / 70↑ (강력 눌림목)'},
       {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
@@ -253,7 +248,6 @@ const SX_CONDITIONS = [
   ]},
   {id:'backtest',name:'백테스트',phase:'p3',groups:[
     {id:'ta_bt',name:'백테스트 (실시간)',conditions:[
-      {id:'_bt_score',name:'매매전략 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'BT 종합 점수 (수익률+승률+MDD+PF) - 60↑=양호, 80↑=우수',recommend:'60↑ (양호) / 80↑ (우수)'},
       {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'200봉 백테스트 총수익률 - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
       {id:'_bt_winrate',name:'BT 승률',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'승리 거래 비율 - 50↑=절반 이상 승, 60↑=양호',recommend:'50↑ (균형) / 60↑ (양호)'},
       {id:'_bt_trades',name:'BT 거래수',type:'range',unit:'회',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'총 청산 거래 수 - 너무 적으면 통계 신뢰성 ↓',recommend:'5↑ (최소 신뢰) / 10↑ (안정 통계)'},
@@ -432,11 +426,6 @@ const COIN_CONDITIONS = [
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_struct_pos',name:'구조위치',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'구조위치 0~100 (분석탭 "구조위치" 도넛 = 최근 고/저점 구간 내 현재가 위치) - 낮을수록 저점 근접(눌림 후보), 높을수록 고점 근접(과열 주의)',recommend:'~35 (저점 근접·눌림) / 40~70 (추세 중단)'},
-      {id:'_safety_clean',name:'안전필터 클린',type:'select',options:['설정안함','클린 (0개)','1개 이하','2개 이하'],default:'설정안함',source:'calc_candle',desc:'안전필터 미충족 사유 개수 - 클린=함정 위험 없음 (가장 안전)'},
-      {id:'_dump_warn',name:'되돌림주의 제외',type:'select',options:['설정안함','되돌림주의 제외'],default:'설정안함',source:'calc_candle',desc:'헤더 ⚠️되돌림주의 배지와 동일 판정 — 투매(대금급증≥65+가격하락+OBV이탈) 또는 천정위험(RSI/OBV 약세 다이버전스·과열 급등) 종목을 결과에서 제외',recommend:'되돌림주의 제외 → 추격 위험·자금 이탈 구간 종목을 걸러냄'},
-      {id:'_regime_label',name:'시장 레짐',type:'select',options:['설정안함','추세장','횡보장','추세+변동','전환기'],default:'설정안함',source:'calc_candle',desc:'ADX+BB폭 기반 - 추세장=방향 매매, 횡보장=박스권 매매'},
-      {id:'_pullback_score',name:'눌림목 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'눌림목 매수 적합도 - 상승추세 중 일시 조정 종목 발견',recommend:'50↑ (눌림목 후보) / 70↑ (강력 눌림목)'},
       {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
@@ -446,7 +435,6 @@ const COIN_CONDITIONS = [
   ]},
   {id:'backtest',name:'백테스트',phase:'p3',groups:[
     {id:'ta_bt',name:'백테스트 (실시간)',conditions:[
-      {id:'_bt_score',name:'매매전략 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'BT 종합 점수 (수익률+승률+MDD+PF) - 60↑=양호, 80↑=우수',recommend:'60↑ (양호) / 80↑ (우수)'},
       {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'200봉 백테스트 총수익률 - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
       {id:'_bt_winrate',name:'BT 승률',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'승리 거래 비율 - 50↑=절반 이상 승, 60↑=양호',recommend:'50↑ (균형) / 60↑ (양호)'},
       {id:'_bt_trades',name:'BT 거래수',type:'range',unit:'회',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'총 청산 거래 수 - 너무 적으면 통계 신뢰성 ↓',recommend:'5↑ (최소 신뢰) / 10↑ (안정 통계)'},
@@ -622,11 +610,6 @@ const US_CONDITIONS = [
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_struct_pos',name:'구조위치',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'구조위치 0~100 (분석탭 "구조위치" 도넛 = 최근 고/저점 구간 내 현재가 위치) - 낮을수록 저점 근접(눌림 후보), 높을수록 고점 근접(과열 주의)',recommend:'~35 (저점 근접·눌림) / 40~70 (추세 중단)'},
-      {id:'_safety_clean',name:'안전필터 클린',type:'select',options:['설정안함','클린 (0개)','1개 이하','2개 이하'],default:'설정안함',source:'calc_candle',desc:'안전필터 미충족 사유 개수 - 클린=함정 위험 없음 (가장 안전)'},
-      {id:'_dump_warn',name:'되돌림주의 제외',type:'select',options:['설정안함','되돌림주의 제외'],default:'설정안함',source:'calc_candle',desc:'헤더 ⚠️되돌림주의 배지와 동일 판정 — 투매(대금급증≥65+가격하락+OBV이탈) 또는 천정위험(RSI/OBV 약세 다이버전스·과열 급등) 종목을 결과에서 제외',recommend:'되돌림주의 제외 → 추격 위험·자금 이탈 구간 종목을 걸러냄'},
-      {id:'_regime_label',name:'시장 레짐',type:'select',options:['설정안함','추세장','횡보장','추세+변동','전환기'],default:'설정안함',source:'calc_candle',desc:'ADX+BB폭 기반 - 추세장=방향 매매, 횡보장=박스권 매매'},
-      {id:'_pullback_score',name:'눌림목 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'눌림목 매수 적합도 - 상승추세 중 일시 조정 종목 발견',recommend:'50↑ (눌림목 후보) / 70↑ (강력 눌림목)'},
       {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
@@ -636,7 +619,6 @@ const US_CONDITIONS = [
   ]},
   {id:'backtest',name:'백테스트',phase:'p3',groups:[
     {id:'ta_bt',name:'백테스트 (실시간)',conditions:[
-      {id:'_bt_score',name:'매매전략 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'BT 종합 점수 (수익률+승률+MDD+PF) - 60↑=양호, 80↑=우수',recommend:'60↑ (양호) / 80↑ (우수)'},
       {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'200봉 백테스트 총수익률 - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
       {id:'_bt_winrate',name:'BT 승률',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'승리 거래 비율 - 50↑=절반 이상 승, 60↑=양호',recommend:'50↑ (균형) / 60↑ (양호)'},
       {id:'_bt_trades',name:'BT 거래수',type:'range',unit:'회',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'총 청산 거래 수 - 너무 적으면 통계 신뢰성 ↓',recommend:'5↑ (최소 신뢰) / 10↑ (안정 통계)'},
@@ -698,9 +680,6 @@ const PRESETS_KR_P3 = [
   //   세 칩 모두 '상승 전이중' 동반 — 점수 합격 + 모멘텀 살아있는 종목만 추출
   //   _bt_action 동반 — BT 보유중 종목 자동 제외 (이미 보유 ≠ 신규 진입)
   //   ※ 조건검색 탭에선 _bt_action 트리 노드 숨김 (프리셋만 사용 — 중복 방지)
-  {id:'p3_kr_c_buy',  name:'매수',phase:'p3',desc:'순수 4축 60↑ (반등준비·반등전환·추세방향·추가상승 모두 합격) — 신규 진입 최적 후보',locked:true,conditions:{_ready_score:{min:60,max:100},_entry_score:{min:60,max:100},score_range:{min:60,max:100},_upside_score:{min:60,max:100}}},
-  {id:'p3_kr_c_watch',name:'관심',phase:'p3',desc:'순수 4축 50↑ (4축 부분 합격) — 선행 포착 후보',locked:true,conditions:{_ready_score:{min:50,max:100},_entry_score:{min:50,max:100},score_range:{min:50,max:100},_upside_score:{min:50,max:100}}},
-  {id:'p3_kr_c_observe',name:'관망',phase:'p3',desc:'순수 4축 40↑ (4축 약 합격) — 추가 모멘텀 대기 후보',locked:true,conditions:{_ready_score:{min:40,max:100},_entry_score:{min:40,max:100},score_range:{min:40,max:100},_upside_score:{min:40,max:100}}},
 ];
 
 // ── COIN 프리셋 ──
@@ -729,9 +708,6 @@ const PRESETS_COIN_P2 = [
 const PRESETS_COIN_P3 = [
   // [v2.6] 4축 점수 + 방향 전이 + 종합행동지침 6조건 프리셋
   //   KR과 동일 기준 — 점수/모멘텀/판정은 시장 무관하게 정규화되어 동일 임계 적용
-  {id:'p3_coin_c_buy',  name:'매수',phase:'p3',desc:'순수 4축 60↑ (반등준비·반등전환·추세방향·추가상승 모두 합격) — 신규 진입 최적 후보',locked:true,conditions:{_ready_score:{min:60,max:100},_entry_score:{min:60,max:100},score_range:{min:60,max:100},_upside_score:{min:60,max:100}}},
-  {id:'p3_coin_c_watch',name:'관심',phase:'p3',desc:'순수 4축 50↑ (4축 부분 합격) — 선행 포착 후보',locked:true,conditions:{_ready_score:{min:50,max:100},_entry_score:{min:50,max:100},score_range:{min:50,max:100},_upside_score:{min:50,max:100}}},
-  {id:'p3_coin_c_observe',name:'관망',phase:'p3',desc:'순수 4축 40↑ (4축 약 합격) — 추가 모멘텀 대기 후보',locked:true,conditions:{_ready_score:{min:40,max:100},_entry_score:{min:40,max:100},score_range:{min:40,max:100},_upside_score:{min:40,max:100}}},
 ];
 
 // ── US 프리셋 ──
@@ -762,9 +738,6 @@ const PRESETS_US_P2 = [
 const PRESETS_US_P3 = [
   // [v2.6] 4축 점수 + 방향 전이 + 종합행동지침 6조건 프리셋
   //   KR/COIN과 동일 기준 — 점수/모멘텀/판정은 시장 무관하게 정규화되어 동일 임계 적용
-  {id:'p3_us_c_buy',  name:'매수',phase:'p3',desc:'순수 4축 60↑ (반등준비·반등전환·추세방향·추가상승 모두 합격) — 신규 진입 최적 후보',locked:true,conditions:{_ready_score:{min:60,max:100},_entry_score:{min:60,max:100},score_range:{min:60,max:100},_upside_score:{min:60,max:100}}},
-  {id:'p3_us_c_watch',name:'관심',phase:'p3',desc:'순수 4축 50↑ (4축 부분 합격) — 선행 포착 후보',locked:true,conditions:{_ready_score:{min:50,max:100},_entry_score:{min:50,max:100},score_range:{min:50,max:100},_upside_score:{min:50,max:100}}},
-  {id:'p3_us_c_observe',name:'관망',phase:'p3',desc:'순수 4축 40↑ (4축 약 합격) — 추가 모멘텀 대기 후보',locked:true,conditions:{_ready_score:{min:40,max:100},_entry_score:{min:40,max:100},score_range:{min:40,max:100},_upside_score:{min:40,max:100}}},
 ];
 
 // ── 프리셋 접근 함수 ──
