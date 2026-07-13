@@ -138,6 +138,8 @@ const SX_CONDITIONS = [
       {id:'obv_trend',name:'OBV 추세',type:'select',options:['설정안함','상승 추세','하락 추세','OBV 다이버전스 (가격↓ OBV↑)'],default:'설정안함',source:'calc_candle',desc:'누적 거래량 - OBV 다이버전스=세력 매집 신호 (강력)'},
       {id:'volume_ma_arr',name:'거래량 MA 배열',type:'select',options:['설정안함','거래량 정배열','거래량 역배열'],default:'설정안함',source:'calc_candle',desc:'거래량 추세 - 정배열=관심 증가, 역배열=관심 감소'},
       {id:'ad_trend',name:'A/D선 추세',type:'select',options:['설정안함','상승 추세','하락 추세','다이버전스 (가격↓ AD↑)'],default:'설정안함',source:'calc_candle',desc:'누적 분산선 - 다이버전스=가격 하락에도 매집 (반전 신호)'},
+      {id:'_rsi_div',name:'RSI 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔RSI 괴리 - 강세 다이버전스=상승 반전 신호 (강력)'},
+      {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
     ]},
     {id:'ta_momentum_ext',name:'모멘텀 확장',conditions:[
       {id:'trix_signal',name:'TRIX',type:'select',options:['설정안함','TRIX > Signal (매수)','TRIX < Signal (매도)','TRIX > 0 (상승추세)','TRIX < 0 (하락추세)'],default:'설정안함',source:'calc_candle',desc:'TRIX(15) 현재 상태 - vs Signal(SMA9) 또는 vs 0선. cross는 골든크로스 폴더의 gc_trix 참조'},
@@ -237,15 +239,10 @@ const SX_CONDITIONS = [
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_adx_score',name:'추세강도(ADX)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세강도 0~100 (분석탭 "추세강도" 도넛 = ADX값) - 25↑=추세 형성, 40↑=매우 강한 추세. 횡보(낮음)에선 추세추종 비효율',recommend:'25↑ (추세 형성) / 40↑ (강한 추세)'},
       {id:'_struct_pos',name:'구조위치',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'구조위치 0~100 (분석탭 "구조위치" 도넛 = 최근 고/저점 구간 내 현재가 위치) - 낮을수록 저점 근접(눌림 후보), 높을수록 고점 근접(과열 주의)',recommend:'~35 (저점 근접·눌림) / 40~70 (추세 중단)'},
-      {id:'_rs_score',name:'상대강도(RS)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'상대강도 0~100 (분석탭 "상대강도" 도넛 = 시장지수 대비 20일 초과수익 50+rs20×2.5) - 50=시장과 동일, 50↑=아웃퍼폼. ※일봉 전용(주/월봉·지수 미가용 시 평가 제외→결과 빠짐)',recommend:'55↑ (시장 대비 강세) / 65↑ (뚜렷한 아웃퍼폼)'},
       {id:'_safety_clean',name:'안전필터 클린',type:'select',options:['설정안함','클린 (0개)','1개 이하','2개 이하'],default:'설정안함',source:'calc_candle',desc:'안전필터 미충족 사유 개수 - 클린=함정 위험 없음 (가장 안전)'},
       {id:'_dump_warn',name:'되돌림주의 제외',type:'select',options:['설정안함','되돌림주의 제외'],default:'설정안함',source:'calc_candle',desc:'헤더 ⚠️되돌림주의 배지와 동일 판정 — 투매(대금급증≥65+가격하락+OBV이탈) 또는 천정위험(RSI/OBV 약세 다이버전스·과열 급등) 종목을 결과에서 제외',recommend:'되돌림주의 제외 → 추격 위험·자금 이탈 구간 종목을 걸러냄'},
       {id:'_regime_label',name:'시장 레짐',type:'select',options:['설정안함','추세장','횡보장','추세+변동','전환기'],default:'설정안함',source:'calc_candle',desc:'ADX+BB폭 기반 - 추세장=방향 매매, 횡보장=박스권 매매'},
-      {id:'_squeeze',name:'BB 스퀴즈',type:'select',options:['설정안함','스퀴즈 중','스퀴즈 아님'],default:'설정안함',source:'calc_candle',desc:'볼린저밴드 수축 상태 - 스퀴즈=변동성 폭발 임박 (큰 움직임 예고)'},
-      {id:'_rsi_div',name:'RSI 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔RSI 괴리 - 강세 다이버전스=상승 반전 신호 (강력)'},
-      {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
       {id:'_pullback_score',name:'눌림목 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'눌림목 매수 적합도 - 상승추세 중 일시 조정 종목 발견',recommend:'50↑ (눌림목 후보) / 70↑ (강력 눌림목)'},
       {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
     ]},
@@ -264,7 +261,8 @@ const SX_CONDITIONS = [
       {id:'_bt_pf',name:'BT 손익비',type:'range',unit:'',min:0,max:10,default:{min:null,max:null},source:'calc_candle',desc:'총수익/총손실 비율 - 1↑=수익 우세, 1.5↑=양호, 2↑=우수',recommend:'1.5↑ (양호) / 2↑ (우수)'},
       {id:'_bt_action',name:'종합행동지침',type:'select',options:['설정안함','매수','관심','관망','회피','보유 유지','청산 준비','청산 검토','즉시 청산','매도 완료'],default:'설정안함',source:'calc_candle',desc:'C로직 9종 판정 (A분석 × B매매전략 교차) - 매수=강력 진입, 관심=주시'},
       {axis4:'buy',id:'_bt_buy_marker',name:'BT 매수마커',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 매수 신호를 낸 종목 - 차트에 ▲마커 표시된 상태 (_isBuySignal=true)',recommend:'매수마커 있음 → 당일 신규 매수 진입 신호 종목만 필터'},
-      {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안하',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
+      {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
+      {id:'_bt_today_exit',name:'오늘 청산 신호',type:'select',options:['설정안함','오늘 청산'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 청산 신호를 낸 종목 (state=sell_signal · exec_core 이중ATR/MA데드 청산) - 오늘 매수진입의 매도 짝',recommend:'오늘 청산 → 당일 exec_core 청산 신호 종목만 필터'},  // [S1023] exec_core 청산 추적
     ]},
   ]},
 ];
@@ -346,6 +344,8 @@ const COIN_CONDITIONS = [
     {id:'ta_other',name:'기타 지표',conditions:[
       {id:'obv_trend',name:'OBV 추세',type:'select',options:['설정안함','상승 추세','하락 추세'],default:'설정안함',source:'calc_candle',desc:'누적 거래량 - OBV 다이버전스=세력 매집 신호 (강력)'},
       {id:'ad_trend',name:'A/D선 추세',type:'select',options:['설정안함','상승 추세','하락 추세','다이버전스 (가격↓ AD↑)'],default:'설정안함',source:'calc_candle',desc:'누적 분산선 - 다이버전스=가격 하락에도 매집 (반전 신호)'},
+      {id:'_rsi_div',name:'RSI 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔RSI 괴리 - 강세 다이버전스=상승 반전 신호 (강력)'},
+      {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
       {id:'vwap_position',name:'VWAP 위치',type:'select',options:['설정안함','VWAP 위 (강세)','VWAP 근처 (±1%)','VWAP 아래 (약세)'],default:'설정안함',source:'calc_candle',desc:'거래량 가중 평균가 - 위=매수 평균 우위, 아래=매도 평균 우위 (기관 기준선)'},
       {id:'swing_structure',name:'구조 패턴 (HH/HL)',type:'select',options:['설정안함','Higher High (고점 상승)','HH+HL (상승구조)','Lower Low (저점 하락)'],default:'설정안함',source:'calc_candle',desc:'스윙 구조 - HH+HL=상승 추세 확정, LL=하락 추세'},
     ]},
@@ -432,15 +432,10 @@ const COIN_CONDITIONS = [
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_adx_score',name:'추세강도(ADX)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세강도 0~100 (분석탭 "추세강도" 도넛 = ADX값) - 25↑=추세 형성, 40↑=매우 강한 추세. 횡보(낮음)에선 추세추종 비효율',recommend:'25↑ (추세 형성) / 40↑ (강한 추세)'},
       {id:'_struct_pos',name:'구조위치',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'구조위치 0~100 (분석탭 "구조위치" 도넛 = 최근 고/저점 구간 내 현재가 위치) - 낮을수록 저점 근접(눌림 후보), 높을수록 고점 근접(과열 주의)',recommend:'~35 (저점 근접·눌림) / 40~70 (추세 중단)'},
-      {id:'_rs_score',name:'상대강도(RS)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'상대강도 0~100 (분석탭 "상대강도" 도넛 = 시장지수 대비 20일 초과수익 50+rs20×2.5) - 50=시장과 동일, 50↑=아웃퍼폼. ※일봉 전용(주/월봉·지수 미가용 시 평가 제외→결과 빠짐)',recommend:'55↑ (시장 대비 강세) / 65↑ (뚜렷한 아웃퍼폼)'},
       {id:'_safety_clean',name:'안전필터 클린',type:'select',options:['설정안함','클린 (0개)','1개 이하','2개 이하'],default:'설정안함',source:'calc_candle',desc:'안전필터 미충족 사유 개수 - 클린=함정 위험 없음 (가장 안전)'},
       {id:'_dump_warn',name:'되돌림주의 제외',type:'select',options:['설정안함','되돌림주의 제외'],default:'설정안함',source:'calc_candle',desc:'헤더 ⚠️되돌림주의 배지와 동일 판정 — 투매(대금급증≥65+가격하락+OBV이탈) 또는 천정위험(RSI/OBV 약세 다이버전스·과열 급등) 종목을 결과에서 제외',recommend:'되돌림주의 제외 → 추격 위험·자금 이탈 구간 종목을 걸러냄'},
       {id:'_regime_label',name:'시장 레짐',type:'select',options:['설정안함','추세장','횡보장','추세+변동','전환기'],default:'설정안함',source:'calc_candle',desc:'ADX+BB폭 기반 - 추세장=방향 매매, 횡보장=박스권 매매'},
-      {id:'_squeeze',name:'BB 스퀴즈',type:'select',options:['설정안함','스퀴즈 중','스퀴즈 아님'],default:'설정안함',source:'calc_candle',desc:'볼린저밴드 수축 상태 - 스퀴즈=변동성 폭발 임박 (큰 움직임 예고)'},
-      {id:'_rsi_div',name:'RSI 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔RSI 괴리 - 강세 다이버전스=상승 반전 신호 (강력)'},
-      {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
       {id:'_pullback_score',name:'눌림목 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'눌림목 매수 적합도 - 상승추세 중 일시 조정 종목 발견',recommend:'50↑ (눌림목 후보) / 70↑ (강력 눌림목)'},
       {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
     ]},
@@ -457,11 +452,12 @@ const COIN_CONDITIONS = [
       {id:'_bt_trades',name:'BT 거래수',type:'range',unit:'회',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'총 청산 거래 수 - 너무 적으면 통계 신뢰성 ↓',recommend:'5↑ (최소 신뢰) / 10↑ (안정 통계)'},
       {id:'_bt_mdd',name:'BT MDD',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'최대 낙폭 절대값 - 작을수록 안정 (max로 사용)',recommend:'~15 (안정) / ~25 (보통)'},
       {id:'_bt_pf',name:'BT 손익비',type:'range',unit:'',min:0,max:10,default:{min:null,max:null},source:'calc_candle',desc:'총수익/총손실 비율 - 1↑=수익 우세, 1.5↑=양호, 2↑=우수',recommend:'1.5↑ (양호) / 2↑ (우수)'},
-      {id:'_bt_action',name:'종합행동지침',type:'select',options:['설정안함','매수','관심','관망','회피','보유 유지','청산 준비','청산 검토','즉시 청산','매도 완료'],default:'설정안함',source:'calc_candle',desc:'C로직 9종 판정 (A분석 × B매매전략 교차) - 매수=강력 진입, 관심=주시'},
       // [v1.9] 방향 전이 — _scoreMomentum.direction 기반 (배너의 "— 상승 전이중/하락 전이중" 텍스트와 동일 소스)
       //   매수/관심 프리셋 보강용: 신호여도 모멘텀이 상승 방향일 때만 통과시켜 함정 진입 한 번 더 차단
+      {id:'_bt_action',name:'종합행동지침',type:'select',options:['설정안함','매수','관심','관망','회피','보유 유지','청산 준비','청산 검토','즉시 청산','매도 완료'],default:'설정안함',source:'calc_candle',desc:'C로직 9종 판정 (A분석 × B매매전략 교차) - 매수=강력 진입, 관심=주시'},
       {axis4:'buy',id:'_bt_buy_marker',name:'BT 매수마커',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 매수 신호를 낸 종목 - 차트에 ▲마커 표시된 상태 (_isBuySignal=true)',recommend:'매수마커 있음 → 당일 신규 매수 진입 신호 종목만 필터'},
-      {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안하',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
+      {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
+      {id:'_bt_today_exit',name:'오늘 청산 신호',type:'select',options:['설정안함','오늘 청산'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 청산 신호를 낸 종목 (state=sell_signal · exec_core 이중ATR/MA데드 청산) - 오늘 매수진입의 매도 짝',recommend:'오늘 청산 → 당일 exec_core 청산 신호 종목만 필터'},  // [S1023] exec_core 청산 추적
     ]},
   ]},
 ];
@@ -543,6 +539,8 @@ const US_CONDITIONS = [
     {id:'ta_other',name:'기타 지표',conditions:[
       {id:'obv_trend',name:'OBV 추세',type:'select',options:['설정안함','상승 추세','하락 추세'],default:'설정안함',source:'calc_candle',desc:'누적 거래량 - OBV 다이버전스=세력 매집 신호 (강력)'},
       {id:'ad_trend',name:'A/D선 추세',type:'select',options:['설정안함','상승 추세','하락 추세','다이버전스 (가격↓ AD↑)'],default:'설정안함',source:'calc_candle',desc:'누적 분산선 - 다이버전스=가격 하락에도 매집 (반전 신호)'},
+      {id:'_rsi_div',name:'RSI 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔RSI 괴리 - 강세 다이버전스=상승 반전 신호 (강력)'},
+      {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
       {id:'vwap_position',name:'VWAP 위치',type:'select',options:['설정안함','VWAP 위 (강세)','VWAP 근처 (±1%)','VWAP 아래 (약세)'],default:'설정안함',source:'calc_candle',desc:'거래량 가중 평균가 - 위=매수 평균 우위, 아래=매도 평균 우위 (기관 기준선)'},
       {id:'swing_structure',name:'구조 패턴 (HH/HL)',type:'select',options:['설정안함','Higher High (고점 상승)','HH+HL (상승구조)','Lower Low (저점 하락)'],default:'설정안함',source:'calc_candle',desc:'스윙 구조 - HH+HL=상승 추세 확정, LL=하락 추세'},
     ]},
@@ -624,15 +622,10 @@ const US_CONDITIONS = [
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_adx_score',name:'추세강도(ADX)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세강도 0~100 (분석탭 "추세강도" 도넛 = ADX값) - 25↑=추세 형성, 40↑=매우 강한 추세. 횡보(낮음)에선 추세추종 비효율',recommend:'25↑ (추세 형성) / 40↑ (강한 추세)'},
       {id:'_struct_pos',name:'구조위치',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'구조위치 0~100 (분석탭 "구조위치" 도넛 = 최근 고/저점 구간 내 현재가 위치) - 낮을수록 저점 근접(눌림 후보), 높을수록 고점 근접(과열 주의)',recommend:'~35 (저점 근접·눌림) / 40~70 (추세 중단)'},
-      {id:'_rs_score',name:'상대강도(RS)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'상대강도 0~100 (분석탭 "상대강도" 도넛 = 시장지수 대비 20일 초과수익 50+rs20×2.5) - 50=시장과 동일, 50↑=아웃퍼폼. ※일봉 전용(주/월봉·지수 미가용 시 평가 제외→결과 빠짐)',recommend:'55↑ (시장 대비 강세) / 65↑ (뚜렷한 아웃퍼폼)'},
       {id:'_safety_clean',name:'안전필터 클린',type:'select',options:['설정안함','클린 (0개)','1개 이하','2개 이하'],default:'설정안함',source:'calc_candle',desc:'안전필터 미충족 사유 개수 - 클린=함정 위험 없음 (가장 안전)'},
       {id:'_dump_warn',name:'되돌림주의 제외',type:'select',options:['설정안함','되돌림주의 제외'],default:'설정안함',source:'calc_candle',desc:'헤더 ⚠️되돌림주의 배지와 동일 판정 — 투매(대금급증≥65+가격하락+OBV이탈) 또는 천정위험(RSI/OBV 약세 다이버전스·과열 급등) 종목을 결과에서 제외',recommend:'되돌림주의 제외 → 추격 위험·자금 이탈 구간 종목을 걸러냄'},
       {id:'_regime_label',name:'시장 레짐',type:'select',options:['설정안함','추세장','횡보장','추세+변동','전환기'],default:'설정안함',source:'calc_candle',desc:'ADX+BB폭 기반 - 추세장=방향 매매, 횡보장=박스권 매매'},
-      {id:'_squeeze',name:'BB 스퀴즈',type:'select',options:['설정안함','스퀴즈 중','스퀴즈 아님'],default:'설정안함',source:'calc_candle',desc:'볼린저밴드 수축 상태 - 스퀴즈=변동성 폭발 임박 (큰 움직임 예고)'},
-      {id:'_rsi_div',name:'RSI 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔RSI 괴리 - 강세 다이버전스=상승 반전 신호 (강력)'},
-      {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
       {id:'_pullback_score',name:'눌림목 점수',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'눌림목 매수 적합도 - 상승추세 중 일시 조정 종목 발견',recommend:'50↑ (눌림목 후보) / 70↑ (강력 눌림목)'},
       {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
     ]},
@@ -649,11 +642,12 @@ const US_CONDITIONS = [
       {id:'_bt_trades',name:'BT 거래수',type:'range',unit:'회',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'총 청산 거래 수 - 너무 적으면 통계 신뢰성 ↓',recommend:'5↑ (최소 신뢰) / 10↑ (안정 통계)'},
       {id:'_bt_mdd',name:'BT MDD',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'최대 낙폭 절대값 - 작을수록 안정 (max로 사용)',recommend:'~15 (안정) / ~25 (보통)'},
       {id:'_bt_pf',name:'BT 손익비',type:'range',unit:'',min:0,max:10,default:{min:null,max:null},source:'calc_candle',desc:'총수익/총손실 비율 - 1↑=수익 우세, 1.5↑=양호, 2↑=우수',recommend:'1.5↑ (양호) / 2↑ (우수)'},
-      {id:'_bt_action',name:'종합행동지침',type:'select',options:['설정안함','매수','관심','관망','회피','보유 유지','청산 준비','청산 검토','즉시 청산','매도 완료'],default:'설정안함',source:'calc_candle',desc:'C로직 9종 판정 (A분석 × B매매전략 교차) - 매수=강력 진입, 관심=주시'},
       // [v1.9] 방향 전이 — _scoreMomentum.direction 기반 (배너의 "— 상승 전이중/하락 전이중" 텍스트와 동일 소스)
       //   매수/관심 프리셋 보강용: 신호여도 모멘텀이 상승 방향일 때만 통과시켜 함정 진입 한 번 더 차단
+      {id:'_bt_action',name:'종합행동지침',type:'select',options:['설정안함','매수','관심','관망','회피','보유 유지','청산 준비','청산 검토','즉시 청산','매도 완료'],default:'설정안함',source:'calc_candle',desc:'C로직 9종 판정 (A분석 × B매매전략 교차) - 매수=강력 진입, 관심=주시'},
       {axis4:'buy',id:'_bt_buy_marker',name:'BT 매수마커',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 매수 신호를 낸 종목 - 차트에 ▲마커 표시된 상태 (_isBuySignal=true)',recommend:'매수마커 있음 → 당일 신규 매수 진입 신호 종목만 필터'},
-      {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안하',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
+      {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
+      {id:'_bt_today_exit',name:'오늘 청산 신호',type:'select',options:['설정안함','오늘 청산'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 청산 신호를 낸 종목 (state=sell_signal · exec_core 이중ATR/MA데드 청산) - 오늘 매수진입의 매도 짝',recommend:'오늘 청산 → 당일 exec_core 청산 신호 종목만 필터'},  // [S1023] exec_core 청산 추적
     ]},
   ]},
 ];
