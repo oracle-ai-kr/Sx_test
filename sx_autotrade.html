@@ -13,6 +13,7 @@
 :root{
   --bg:#28282e; --surface:#333339; --surface2:#3e3e45; --surface3:#4a4a52;
   --accent:#2563eb; --accent2:#3b82f6; --accent-glow:rgba(37,99,235,.12);
+  --c-red:#dc2626; --c-blue:#2563eb;   /* [S1027] 한국식 시세색 SSOT — 메인앱과 통일(상승 빨강/하락 파랑) */
   --text:#f0f0f3; --text2:#a0a0a8; --text3:#6e6e78;
   --border:rgba(255,255,255,.07);
   --buy:#22c55e; --buy-bg:rgba(34,197,94,.1); --buy-border:rgba(34,197,94,.25);
@@ -182,7 +183,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1026</div>
+    <div class="tb-build">S1027</div>
   </div>
 
   <div class="scroll-area">
@@ -369,7 +370,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1026</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1027</div>
   </div>
 </div>
 
@@ -579,7 +580,7 @@ function atRenderEvents(events){
 function _atWon(n){ if(n==null||!isFinite(n)) return '—'; return '₩'+Math.round(n).toLocaleString(); }
 function _atPl(n){ if(n==null||!isFinite(n)) return '—'; const g=n>0?'▲':(n<0?'▼':''); return g+'₩'+Math.abs(Math.round(n)).toLocaleString(); }  // [S1026] 손익 방향 ▲/▼ — 시즌2는 시세 표시 없어 방향글리프를 손익에 사용(색은 수익 녹/손실 빨 유지·색 없이도 방향 인지)
 function _atPct(n){ if(n==null||!isFinite(n)) return '—'; const g=n>0?'▲':(n<0?'▼':''); return g+Math.abs(n).toFixed(2)+'%'; }  // [S1026] 손익 방향 ▲/▼
-function _atPlCol(n){ return n>0?'var(--accent2)':(n<0?'var(--sell)':'var(--text2)'); }
+function _atPlCol(n){ return n>0?'var(--c-red)':(n<0?'var(--c-blue)':'var(--text2)'); }  // [S1027] 손익 색 한국식 통일 — 수익(상승)=빨강/손실(하락)=파랑 (시세 _sxChg SSOT와 동일)
 function atRenderPortfolio(pf){
   const tv=_$('atPfTotalV'), body=_$('atPfBody');
   if(!tv||!body) return;
