@@ -12,7 +12,7 @@
 <script src="sx_exec_core.js?v=1"></script><!-- [S1017] 실행 SSOT — 레시피 진입+이중ATR+MA청산 · 시즌1 BT/분석탭 · 시즌2 자동매매 공유(b 일원화) -->
 <script src="sx_interpret.js?v=45"></script>
 <script src="sx_chart.js?v=20"></script>
-<script src="sx_conditions.js?v=20"></script>
+<script src="sx_conditions.js?v=21"></script>
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
 <script src="sx_storage.js?v=2"></script>
@@ -52,7 +52,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=379"></script>
+<script src="sx_render.js?v=380"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -4677,7 +4677,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=19');
+    _scanWorker = new Worker('sx_scan_worker.js?v=20');
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -5199,12 +5199,6 @@ async function _startScanLegacy(){
             if(!r) continue;
             const label = r.label || '';
             if(!label.includes(_regF.value)) continue;
-          }
-          // BB 스퀴즈
-          const _sqF = getFilter('_squeeze');
-          if(_sqF && _sqF.value && _sqF.value!=='설정안함' && qs){
-            if(_sqF.value==='스퀴즈 중' && !qs.squeeze) continue;
-            if(_sqF.value==='스퀴즈 아님' && qs.squeeze) continue;
           }
           // RSI 다이버전스
           const _rdF = getFilter('_rsi_div');
@@ -8371,7 +8365,6 @@ function checkTechConditions(ind, techFilters, getFilter){
       case '_safety_clean': break;
       case '_dump_warn': break;
       case '_regime_label': break;
-      case '_squeeze': break;
       case '_rsi_div': break;
       case '_obv_div': break;
       case '_pullback_score': break;
