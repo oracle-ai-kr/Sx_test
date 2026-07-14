@@ -6597,6 +6597,75 @@ async function _beamRun(){
   el.innerHTML=_beamRender(poolsOut, mk, poolLbl, res);
 }
 if(typeof window!=='undefined'){ window._beamRun=_beamRun; }
+// ════════ [S1039] 씨앗 검증기 — 빔서치 발굴 "하락장×강세 거래량급증 강세"를 사전선언 게이트로 held-out 검증. ════════
+//   신호·게이트 frozen(결과 보고 완화 금지·돌멩이). 빔서치는 다중검정이라 ✓조차 운일 수 있어 이 단독 재검이 진짜 관문. 복권 배제 위해 median 필수.
+//   양쪽 풀: 발굴풀(스냅샷 ON=in-sample) AND 대표+관심(스냅샷 OFF=held-out) 각각 돌려 둘 다 통과해야 인정. 측정전용.
+var SEED_SIG = Object.freeze({ market:'kr', pool:'down', volOsc:73.31, vr:389.41, label:'하락장×강세 · 거래량OSC≥73.31 & VR≥389.41' });
+var SEED_GATE = Object.freeze({ minN:50, minMean:0.08, minMedian:0, minWin:0.50, declared:'2026-07-14' });
+function _seedMed(arr){ if(!arr.length) return null; var s=arr.slice().sort(function(a,b){return a-b;}), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+async function _seedRun(){
+  var el=document.getElementById('seedResult'); if(!el) return;
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr'; el.style.display='block';
+  var _prog=function(lbl,i,t,n){ el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">✅ '+lbl+' 씨앗검증(추출) '+i+'/'+t+' · '+(n||'')+'</div>'; };
+  var res,poolLbl,isSnap=false;
+  if(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode()){
+    isSnap=true;
+    if(SXCandleBT.snapHas&&!SXCandleBT.snapHas(mk)){ el.innerHTML='<div style="padding:10px;font-size:11px;font-weight:800;color:#059669">📂 '+String(mk).toUpperCase()+' 스냅샷 자동 로드…</div>'; var _sr=await _snapLoad(mk); if(!_sr.ok){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">📂 '+_sr.reason+'</div>'; return; } if(typeof _snapBadge==='function')_snapBadge(); }
+    _prog('발굴풀',0,0,'시작');
+    try{ res=await _persistBracket(mk,['mega'],function(i,t,n){_prog('발굴풀',i,t,n);}); }catch(eM){ res={ok:false,reason:String(eM&&eM.message||eM)}; }
+    poolLbl='발굴풀(스냅샷·in-sample)';
+  } else {
+    _prog('대표+관심',0,0,'시작');
+    try{ res=await _persistBracket(mk,['rep','watch'],function(i,t,n){_prog('대표+관심',i,t,n);}); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
+    poolLbl='대표+관심(held-out)';
+  }
+  if(!res||!res.ok){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">✅ '+((res&&res.reason)||'추출 실패')+'</div>'; return; }
+  el.innerHTML=_seedRender(res, mk, poolLbl, isSnap);
+}
+function _seedRender(res, mk, poolLbl, isSnap){
+  var GRN='#16a34a',RED='#dc2626',AMB='#d97706',T2='var(--text2)',T3='var(--text3)';
+  var _pct=function(v){ return v==null?'–':((v>0?'+':'')+(v*100).toFixed(2)+'%'); };
+  var S=SEED_SIG, G=SEED_GATE;
+  var mkWarn = (mk!==S.market) ? '<div style="font-size:9px;color:'+AMB+';margin-bottom:6px;line-height:1.5">⚠ 이 씨앗은 <b>KR 발굴산</b>이야(volOsc/VR 임계도 KR fit). '+String(mk).toUpperCase()+'에서 돌린 건 참고만 — 검증은 KR로.</div>' : '';
+  var hits=res.entries.filter(function(e){ return e.pool===S.pool && e.f && e.f.volOsc!=null && e.f.volOsc>=S.volOsc && e.f.vr!=null && e.f.vr>=S.vr; });
+  var h15=[],h20=[],eA=[],lA=[];
+  for(var i=0;i<hits.length;i++){ var y=hits[i].r.h15; if(y!=null){ h15.push(y); if(hits[i].half==='e') eA.push(y); else lA.push(y); } var y20=hits[i].r.h20; if(y20!=null) h20.push(y20); }
+  var n=h15.length;
+  var mean=n?h15.reduce(function(s,v){return s+v;},0)/n:null, med=_seedMed(h15), win=n?h15.filter(function(v){return v>0;}).length/n:null;
+  var eM=eA.length>=10?eA.reduce(function(s,v){return s+v;},0)/eA.length:null, lM=lA.length>=10?lA.reduce(function(s,v){return s+v;},0)/lA.length:null;
+  var oosRob=(eM!=null&&lM!=null&&eM>0&&lM>0), oosKnown=(eM!=null&&lM!=null);
+  var m20=h20.length?h20.reduce(function(s,v){return s+v;},0)/h20.length:null, med20=_seedMed(h20);
+  var crit={
+    n:{v:n, pass:n>=G.minN, txt:'≥'+G.minN},
+    mean:{v:mean, pass:(mean!=null&&mean>=G.minMean), txt:'≥+'+(G.minMean*100)+'%'},
+    med:{v:med, pass:(med!=null&&med>G.minMedian), txt:'> 0'},
+    win:{v:win, pass:(win!=null&&win>=G.minWin), txt:'≥'+(G.minWin*100)+'%'},
+    oos:{v:oosRob, pass:oosRob, txt:'전·후반 둘다 +'}
+  };
+  var enough=crit.n.pass;
+  var allPass=crit.n.pass&&crit.mean.pass&&crit.med.pass&&crit.win.pass&&crit.oos.pass;
+  var status = !enough ? 'pending' : (allPass?'pass':'fail');
+  var badge = status==='pass'?'<span style="background:'+GRN+';color:#fff;padding:2px 10px;border-radius:11px;font-size:11px;font-weight:800">✅ 이 풀 통과</span>'
+    : status==='fail'?'<span style="background:'+RED+';color:#fff;padding:2px 10px;border-radius:11px;font-size:11px;font-weight:800">❌ 이 풀 탈락</span>'
+    : '<span style="background:var(--surface2);color:'+T2+';border:1px solid var(--border);padding:2px 10px;border-radius:11px;font-size:11px;font-weight:800">⏳ 표본부족</span>';
+  var row=function(label,c,fmt){ var ok=c.pass, mark=ok?('<span style="color:'+GRN+';font-weight:800">✓</span>'):('<span style="color:'+RED+';font-weight:800">✗</span>');
+    return '<tr><td style="padding:5px 7px;color:'+T2+';font-size:11px">'+label+'</td><td style="padding:5px 7px;text-align:right;font-weight:800;font-size:12px;color:'+(ok?GRN:RED)+'">'+fmt(c.v)+'</td><td style="padding:5px 7px;text-align:right;color:'+T3+';font-size:10px">'+c.txt+'</td><td style="padding:5px 7px;text-align:center">'+mark+'</td></tr>'; };
+  var _cnt=function(v){ return v==null?'–':String(v); };
+  var tbl='<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">'
+    +'<tr style="font-size:9px;color:'+T3+'"><td style="padding:3px 7px">게이트</td><td style="padding:3px 7px;text-align:right">현재</td><td style="padding:3px 7px;text-align:right">사전선언</td><td style="padding:3px 7px;text-align:center">판정</td></tr>'
+    +row('표본 n', crit.n, _cnt)
+    +row('평균 h15', crit.mean, _pct)
+    +row('중앙값 h15 (복권배제)', crit.med, _pct)
+    +row('승률 h15', crit.win, function(v){return v==null?'–':(v*100).toFixed(0)+'%';})
+    +row('OOS 전·후반', crit.oos, function(v){return oosKnown?(_pct(eM)+'/'+_pct(lM)):'표본부족';})
+    +'</table>';
+  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-bottom:8px">✅ <b>씨앗 검증</b> — 신호 <b>'+S.label+'</b> (frozen). 빔서치 다중검정이라 단독 재검. <b>median>0</b>=복권 배제. 이 풀 통과 + <b>반대 풀도 통과</b>해야 최종 인정(스냅샷 ON/OFF 각각). ⚠측정전용 · '+poolLbl+' · '+((res&&res.stocksUsed)||0)+'종목</div>';
+  return head+mkWarn
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px"><div style="font-size:11.5px;font-weight:800;color:'+T2+'">신호 발동 '+n+'건 · '+poolLbl.split('(')[0]+'</div>'+badge+'</div>'
+    +tbl
+    +'<div style="font-size:9px;color:'+T3+';margin-top:6px;line-height:1.55">참고: h20 평균 '+_pct(m20)+' · 중앙값 '+_pct(med20)+'. <b>양쪽 풀 규칙</b>: 지금 '+(isSnap?'발굴풀(in-sample)':'대표+관심(held-out)')+' 결과야 — '+(isSnap?'스냅샷 OFF로 held-out도':'스냅샷 ON으로 발굴풀도')+' 돌려서 <b>둘 다 통과</b>해야 진짜. 하나라도 미달=빔서치 착시로 폐기.</div>';
+}
+if(typeof window!=='undefined'){ window._seedRun=_seedRun; }
 // ════════ [S857] real×fake 동시발동 오염 — fake의 원설계는 하락예측이 아니라 "real처럼 보이는 가짜 거르기". S856에서 fake 단독 프로파일 무력(3시장) 확인 → 남은 질문: real 발동봉에 fake가 겹치면 real 성과가 깎이나(조건부 변별). 깎이면 fake=동시발동 감점으로 존속, 안 깎이면 완전 퇴역 → C 규칙 확정. real 이벤트를 순수(xk=0)/동반(xk>0)로 쪼개 t+k 프로파일 비교. base 불필요(동일 레짐 내부 차분). 표본 병기(S806)·측정전용. ════════
 async function _recipeContamBracket(mk, sources, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
@@ -9067,7 +9136,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1038';
+  window.SX_BUILD='S1039';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
