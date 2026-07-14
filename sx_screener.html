@@ -52,7 +52,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=382"></script>
+<script src="sx_render.js?v=383"></script>
 <script src="sx_recipe_signal.js?v=47"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -2023,6 +2023,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
             <div style="font-size:9.5px;font-weight:800;color:#0d9488;margin:8px 0 6px;border-top:1px solid var(--border);padding-top:8px;">🚀 진입 & 청산 <span style="color:var(--text3);font-weight:500">· 실전 판단</span></div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
               <button onclick="_sxVib(12);window._recipeProfileRun&&_recipeProfileRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e749014;color:#0e7490;border:1px solid #0e749066">⏱ 발동 후 t+k 유력시점</button><!-- [S856] -->
+              <button onclick="_sxVib(12);window._entryTimingRun&&_entryTimingRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">📈 진입 타이밍 A/B</button><!-- [S1030] -->
               <button onclick="_sxVib(12);window._deadcatTrajRun&&_deadcatTrajRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">📉 진입 후 진짜/가짜 궤적</button>
               <button onclick="_sxVib(12);window._deadcatConfirmRun&&_deadcatConfirmRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#16a34a14;color:#16a34a;border:1px solid #16a34a66">🎯 즉시 vs 확인 진입 N10</button>
               <button onclick="_sxVib(12);window._deadcatConfirmRun&&_deadcatConfirmRun('pullback')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">🎯 손절 4방식</button>
@@ -2075,6 +2076,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
               <div id="btGateAuditResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
               <div id="recipeOverlapResult" style="display:none;margin-top:4px;margin-bottom:12px"></div>
               <div id="recipeProfileResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S856] -->
+              <div id="entryTimingResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S1030] -->
               <div id="recipeContamResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S857] -->
               <div id="recipeMixDirResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S858] -->
               <div id="recipeCompanionResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S861] -->
