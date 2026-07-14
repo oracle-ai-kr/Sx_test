@@ -15,6 +15,17 @@ if(!_E||!_E.scrQuickScore||!_V||!_V._assembleScores||!_C||!_C.unifiedVerdictV2){
 const snap=JSON.parse(fs.readFileSync(snapPath,'utf8'));
 let codes=Object.keys(snap.stocks); if(LIMIT) codes=codes.slice(0,LIMIT);
 
+// ── [S1041] 강세 거래량급증 신호 — KR 하락장×강세 + 거래량OSC≥73.31 & VR≥389.41 (검증완료: 발굴풀 전체게이트 + 시간분리 held-out 후반 통과). ──
+//   검증 때와 동일 ind(calcAllScreener)로 계산 → qs.ind 필드누락에 의한 조용한 실패 방지. KR 전용(US/COIN 부호 반대). provisional=paper 전진검증 중.
+function _ltBear(ind){ try{ if(typeof _ltStr733==='function') return _ltStr733(ind.maAlignLT)==='bear'; var lt=ind&&ind.maAlignLT; return !!(lt&&lt.gateOn&&lt.bearish); }catch(e){ return false; } }
+function bullVolSignal(ind){ try{
+  if(!ind||!ind.maAlign||!ind.maAlign.bullish) return false;         // 강세(단기 5/20/60 정배열)
+  if(!_ltBear(ind)) return false;                                    // 하락장(장기 60/120/200 역배열)
+  if(typeof ind.volOsc!=='number'||ind.volOsc<73.31) return false;   // 거래량OSC≥73.31
+  if(typeof ind.vr!=='number'||ind.vr<389.41) return false;          // VR(거래량비율)≥389.41
+  return true;
+}catch(e){ return false; } }
+
 // ── 최신봉 verdict 직접 추출 (vv 검증가드 우회) → {grade, rawScore, dck, dcf, lt} ──
 function latestSignal(rows){
   const idx=rows.length-1;
@@ -25,7 +36,8 @@ function latestSignal(rows){
   // [S948] 레시피 투표 = 진입 결정 근거 (SSOT=_sxRecipeVotesCore). realK/fakeK = 발동 real/fake 겹침수.
   let votes=0, realK=0, fakeK=0, pure=false;
   try{ const rsig=_sxRecipeVotesCore(mk, qs.ind, rows, idx); if(rsig){ votes=rsig.votes||0; realK=rsig.realK||0; fakeK=rsig.fakeK||0; pure=!!rsig.pure; } }catch(e){}
-  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off' };
+  let bullVol=false; try{ const fullInd=(_E.calcAllScreener)?_E.calcAllScreener(rows,'day'):qs.ind; bullVol=bullVolSignal(fullInd); }catch(e){}  // [S1041] 강세 거래량급증(검증 때와 동일 ind)
+  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off', bullVol:bullVol };
 }
 
 // ── [S948] 레시피 기반 진입 정책 — votes≥1 → BUY. 엔진 점수축(등급) 미사용(원천 재료감사: ready/entry/trend/upside 다 약/역전).
@@ -47,18 +59,21 @@ codes.forEach((c,i)=>{
   const rows=raw.map(r=>Array.isArray(r)?({date:r[0],open:r[1],o:r[1],high:r[2],h:r[2],low:r[3],l:r[3],close:r[4],c:r[4],volume:r[5],v:r[5]}):r);
   let sig=null;
   try{ sig=latestSignal(rows); }catch(e){ errs.push(c+':'+(e&&e.message)); return; }
-  const {grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt}=sig;
-  const P=policy(mk, votes, realK, rawScore);
-  signals.push({ code:c, name:(snap.stocks[c]&&snap.stocks[c].name)||c, grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null }); // [S945]name [S948]votes기반
+  const {grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol}=sig;
+  let P=policy(mk, votes, realK, rawScore);
+  let src=(P.action==='BUY')?'recipe':null;
+  // [S1041] 강세 거래량급증 편입 — votes-BUY(약세반등)가 아닐 때만 별도 BUY(상호배타). KR 전용. src=bullVol 태그(가계부 전략구분용).
+  if(P.action!=='BUY' && bullVol && mk==='kr'){ P={ action:'BUY', score:(rawScore||0), policy:'kr:bullVol(하락장×강세·거래량OSC≥73.31&VR≥389.41)→BUY', provisional:true }; src='bullVol'; }
+  signals.push({ code:c, name:(snap.stocks[c]&&snap.stocks[c].name)||c, grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol:!!bullVol, src:src, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null }); // [S945]name [S948]votes [S1041]bullVol/src
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
 const cnt=(f)=>signals.filter(f).length;
 const ledger={ schema:'sx_signal_ledger_v1', mkt:mk, asof:snap.baseDate, generated:new Date().toISOString(),
   universe:codes.length, evaluated:signals.length, skipped:skip, errN:errs.length, errs:errs.slice(0,5),
-  summary:{ BUY:cnt(s=>s.action==='BUY'), HOLD:cnt(s=>s.action==='HOLD'), SELL:cnt(s=>s.action==='SELL'), provisional:cnt(s=>s.provisional),
+  summary:{ BUY:cnt(s=>s.action==='BUY'), bullVolBUY:cnt(s=>s.src==='bullVol'), HOLD:cnt(s=>s.action==='HOLD'), SELL:cnt(s=>s.action==='SELL'), provisional:cnt(s=>s.provisional),
             votes:{ v1:cnt(s=>s.votes===1), v2:cnt(s=>s.votes===2), v3:cnt(s=>s.votes===3), v4:cnt(s=>s.votes>=4) }, // [S948] 레시피 투표 분포
             grade:{ 매수:cnt(s=>s.grade==='매수'), 관심:cnt(s=>s.grade==='관심'), 관망:cnt(s=>s.grade==='관망'), 회피:cnt(s=>s.grade==='회피') } },
   signals };
 fs.writeFileSync(outPath, JSON.stringify(ledger,null,1));
-console.error('DONE sig '+mk+' asof='+snap.baseDate+': 평가 '+signals.length+'/'+codes.length+' | BUY '+ledger.summary.BUY+' HOLD '+ledger.summary.HOLD+' SELL '+ledger.summary.SELL+' (prov '+ledger.summary.provisional+') err='+errs.length+' '+((Date.now()-t0)/1000|0)+'s → '+outPath);
+console.error('DONE sig '+mk+' asof='+snap.baseDate+': 평가 '+signals.length+'/'+codes.length+' | BUY '+ledger.summary.BUY+'(bullVol '+ledger.summary.bullVolBUY+') HOLD '+ledger.summary.HOLD+' SELL '+ledger.summary.SELL+' (prov '+ledger.summary.provisional+') err='+errs.length+' '+((Date.now()-t0)/1000|0)+'s → '+outPath);
