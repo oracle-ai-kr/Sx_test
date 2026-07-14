@@ -6394,7 +6394,7 @@ if(typeof window!=='undefined'){ window._gridRun=_gridRun; }
 async function _persistBracket(mk, sources, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return {ok:false,reason:'캔들 fetch 미연결'};
   if(!(window.SXFeatureLib&&SXFeatureLib.contIds)) return {ok:false,reason:'재료 라이브러리 미로드 — 새로고침(캐시)'};
-  if(!(window.SXE&&SXE.calcAllScreener)) return {ok:false,reason:'엔진 미로드'};
+  if(typeof SXE==='undefined' || !SXE.calcAllScreener) return {ok:false,reason:'엔진 미로드'};
   var list=[],seen={};
   for(var si=0;si<sources.length;si++){ var source=sources[si],part=[];
     if(source==='mega') part=(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]).map(function(x){return Array.isArray(x)?{code:x[0],name:x[1]}:{code:String(x),name:String(x)};});
@@ -8976,7 +8976,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1035';
+  window.SX_BUILD='S1037';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
