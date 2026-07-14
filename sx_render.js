@@ -6143,6 +6143,149 @@ function _entryTimingRender(res, mk, poolLbl){
   return head+colBlock+tblBlock;
 }
 if(typeof window!=='undefined'){ window._entryTimingRun=_entryTimingRun; }
+// ════════ [S1033] 시장베타(지수) 회피 측정 — 신호일 지수상태별 forward return 비교. ════════
+//   지수: KR 코스피^KS11/코스닥^KQ11(종목별), US S&P^GSPC, COIN BTC(업비트). 야후 proxy 종가+timestamp → 신호 date에 정렬.
+//   지수상태 3정의 동시측정: ①당일 지수하락 ②지수<20MA ③지수 5일하락. 약세 vs 비약세 forward(h10·h15)+승률+Δ+OOS. 보조 동조율.
+//   Δ(약세−비약세)<0 & OOS 부호일치 = "약세 진입 실제 나쁨"=회피 근거. Δ≥0 = 약세가 싸게담는 기회→회피 역효과. 측정전용·엔진/C 무관.
+async function _fetchIndexSeries(market, stock){
+  var sym=''; if(market==='us') sym='^GSPC'; else if(market==='coin') sym='KRW-BTC'; else { var kq=false; try{ kq=(typeof _isKosdaqStock==='function')?_isKosdaqStock(stock):false; }catch(_){} sym= kq?'^KQ11':'^KS11'; }
+  var base=(typeof WORKER_BASE!=='undefined')?WORKER_BASE:'https://stock-signal-proxy.cheaheechang.workers.dev';
+  try{
+    if(market==='coin'){
+      var r=await fetch(base+'/upbit/candles?market=KRW-BTC&type=days&count=200',{signal:AbortSignal.timeout(15000)}); var j=await r.json();
+      var arr=(Array.isArray(j)?j:(j.data||[])).slice().reverse(); var dts=[],cls=[];
+      for(var i=0;i<arr.length;i++){ var c=arr[i], d=String(c.candle_date_time_kst||c.candle_date_time_utc||'').slice(0,10), px=parseFloat(c.trade_price||c.close||0); if(d&&px>0){ dts.push(d); cls.push(px); } }
+      return { sym:sym, dates:dts, closes:cls };
+    } else {
+      var yf='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range=5y';
+      var r2=await fetch(base+'/proxy?url='+encodeURIComponent(yf),{signal:AbortSignal.timeout(15000)}); var j2=await r2.json();
+      var res=j2&&j2.chart&&j2.chart.result&&j2.chart.result[0]; if(!res) return null;
+      var ts=res.timestamp||[], q=(res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close)||[], dts2=[],cls2=[];
+      var offH=(market==='kr')?9:0; // KR은 KST 보정(야후 UTC ts). 소폭 오차는 ±gap 허용으로 흡수.
+      for(var k=0;k<ts.length;k++){ var v=q[k]; if(v==null||!(v>0)) continue; var dt=new Date(ts[k]*1000+offH*3600000); var ymd=dt.getUTCFullYear()+'-'+String(dt.getUTCMonth()+1).padStart(2,'0')+'-'+String(dt.getUTCDate()).padStart(2,'0'); dts2.push(ymd); cls2.push(v); }
+      return { sym:sym, dates:dts2, closes:cls2 };
+    }
+  }catch(e){ return null; }
+}
+async function _betaBracket(mk, sources, onProgress){
+  if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return {ok:false,reason:'캔들 fetch 미연결'};
+  if(!(window.SXRecipeSignal&&SXRecipeSignal.realFireBars)) return {ok:false,reason:'레시피 모듈 구버전(realFireBars 없음) — 새로고침'};
+  var _norm=function(d){ var m=String(d||'').match(/(\d{4})-?(\d{2})-?(\d{2})/); return m?(m[1]+'-'+m[2]+'-'+m[3]):null; };
+  var idxCache={};
+  async function getIdx(stock){
+    var kq=false; if(mk==='kr'){ try{ kq=(typeof _isKosdaqStock==='function')?_isKosdaqStock(stock):false; }catch(_){} }
+    var key=(mk==='kr')?(kq?'kq':'ks'):mk;
+    if(idxCache[key]!==undefined) return idxCache[key];
+    var s=await _fetchIndexSeries(mk, stock);
+    if(!s||!s.dates||s.dates.length<30){ idxCache[key]=null; return null; }
+    var cl=s.closes, n=cl.length, down1=[],down5=[],below=[];
+    for(var i=0;i<n;i++){ var m=null; if(i>=19){ var sm=0; for(var k=i-19;k<=i;k++) sm+=cl[k]; m=sm/20; }
+      down1.push(i>=1?(cl[i]<cl[i-1]):false); down5.push(i>=5?(cl[i]<cl[i-5]):false); below.push(m!=null?(cl[i]<m):false); }
+    var obj={ dnorm:s.dates.map(_norm), down1:down1, down5:down5, below:below };
+    idxCache[key]=obj; return obj;
+  }
+  var list=[],seen={};
+  for(var si=0;si<sources.length;si++){ var source=sources[si],part=[];
+    if(source==='mega') part=(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]).map(function(x){return Array.isArray(x)?{code:x[0],name:x[1]}:{code:String(x),name:String(x)};});
+    else if(source==='watch'){ try{ part=(typeof _getWatchlist==='function'?(_getWatchlist(mk)||[]):[]).map(function(s){return {code:s.code,name:s.name||s.code};}); }catch(_){part=[];} }
+    else { try{ var p=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[]; part=(p||[]).map(function(x){return {code:x[0],name:x[1]};}); }catch(_){part=[];} }
+    for(var pi=0;pi<part.length;pi++){ var it=part[pi]; if(it&&it.code&&!seen[it.code]){seen[it.code]=1;list.push(it);} }
+  }
+  if(!list.length) return {ok:false,reason:'측정 풀 비어있음'};
+  var CAP=(sources.indexOf('mega')>=0)?220:40, use=list.slice(0,CAP);
+  var _tgt=(typeof _btTargetBars==='function')?_btTargetBars(mk,'day'):600, _floor=Math.floor(_tgt*0.95);
+  var DEFS=['down1','below','down5'], HZ=[10,15];
+  var mkAgg=function(){ var o={}; for(var d=0;d<DEFS.length;d++){ o[DEFS[d]]={weak:{},strong:{}}; for(var h=0;h<HZ.length;h++){ o[DEFS[d]].weak[HZ[h]]={n:0,sum:0,win:0}; o[DEFS[d]].strong[HZ[h]]={n:0,sum:0,win:0}; } } return o; };
+  var agg={all:mkAgg(),early:mkAgg(),late:mkAgg()};
+  var sync={idxDown:0,bothDown:0}, stocksUsed=0,totalSig=0,noIdx=0;
+  var _bs=function(dn,key){ var lo=0,hi=dn.length-1,ans=-1; while(lo<=hi){ var mid=(lo+hi)>>1; if(dn[mid]<=key){ans=mid;lo=mid+1;} else hi=mid-1; } return ans; };
+  var _gap=function(a,b){ return Math.abs((new Date(a).getTime()-new Date(b).getTime())/86400000); };
+  for(var i=0;i<use.length;i++){
+    var st=use[i]; if(onProgress) onProgress(i+1,use.length,st.name); await _trendBatchSleep(0);
+    var idx=await getIdx(st); if(!idx){ noIdx++; await _trendBatchSleep(6); continue; }
+    var rows=null; try{ rows=await SXCandleBT.fetchRows600(mk,'day',st.code); }catch(e){}
+    if(!Array.isArray(rows)||rows.length<_floor){ await _trendBatchSleep(6); continue; }
+    var fire=null; try{ fire=await SXRecipeSignal.realFireBars(st.code,rows); }catch(e2){}
+    if(!fire){ await _trendBatchSleep(6); continue; }
+    var bars=Object.keys(fire).map(Number).sort(function(a,b){return a-b;}), mid=rows.length/2, used=false;
+    for(var bIdx=0;bIdx<bars.length;bIdx++){
+      var bi=bars[bIdx], sig=rows[bi], sd=_norm(sig&&(sig.date||sig.t)); if(!sd) continue;
+      var jj=_bs(idx.dnorm, sd); if(jj<0) continue; if(_gap(sd, idx.dnorm[jj])>10) continue; // 정렬 신뢰(휴장 오차 흡수)
+      var ep=(sig&&typeof sig.close==='number')?sig.close:null; if(!(ep>0)) continue;
+      var seg=(bi<mid)?'early':'late';
+      var flags={down1:!!idx.down1[jj], below:!!idx.below[jj], down5:!!idx.down5[jj]};
+      if(flags.down1 && bi>=1 && rows[bi-1] && rows[bi-1].close>0){ sync.idxDown++; if(sig.close<rows[bi-1].close) sync.bothDown++; }
+      for(var hi=0;hi<HZ.length;hi++){ var H=HZ[hi]; if(bi+H>=rows.length) continue; var xr=rows[bi+H], exit=(xr&&typeof xr.close==='number')?xr.close:null; if(!(exit>0)) continue; var r=exit/ep-1;
+        for(var d=0;d<DEFS.length;d++){ var DF=DEFS[d], stt=flags[DF]?'weak':'strong';
+          var cA=agg.all[DF][stt][H]; cA.n++; cA.sum+=r; if(r>0) cA.win++;
+          var cS=agg[seg][DF][stt][H]; cS.n++; cS.sum+=r; if(r>0) cS.win++;
+        }
+      }
+      totalSig++; used=true;
+    }
+    if(used) stocksUsed++; await _trendBatchSleep(10);
+  }
+  if(stocksUsed<3) return {ok:false, reason:(noIdx>=Math.max(1,use.length-2))?'지수 시계열 fetch 실패(야후/proxy 확인)':'유효 종목 3개 미만'};
+  return {ok:true, agg:agg, DEFS:DEFS, HZ:HZ, sync:sync, stocksUsed:stocksUsed, totalSig:totalSig};
+}
+async function _betaRun(){
+  var el=document.getElementById('betaResult'); if(!el) return;
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr'; el.style.display='block';
+  var idxLbl=(mk==='kr')?'코스피/코스닥':((mk==='us')?'S&P500(^GSPC)':'BTC(업비트)');
+  var _prog=function(lbl,i,t,n){ el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">📉 '+lbl+' 시장베타 '+i+'/'+t+' · '+(n||'')+'</div>'; };
+  var res,poolLbl;
+  if(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode()){
+    if(SXCandleBT.snapHas&&!SXCandleBT.snapHas(mk)){ el.innerHTML='<div style="padding:10px;font-size:11px;font-weight:800;color:#2563eb">📂 '+String(mk).toUpperCase()+' 스냅샷 자동 로드…</div>'; var _sr=await _snapLoad(mk); if(!_sr.ok){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">📂 '+_sr.reason+'</div>'; return; } if(typeof _snapBadge==='function')_snapBadge(); }
+    _prog('발굴풀',0,0,'시작');
+    try{ res=await _betaBracket(mk,['mega'],function(i,t,n){_prog('발굴풀',i,t,n);}); }catch(eM){ res={ok:false,reason:String(eM&&eM.message||eM)}; }
+    poolLbl='발굴풀(스냅샷)';
+  } else {
+    _prog('대표+관심',0,0,'시작');
+    try{ res=await _betaBracket(mk,['rep','watch'],function(i,t,n){_prog('대표+관심',i,t,n);}); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
+    poolLbl='대표+관심 합산';
+  }
+  if(res&&res.ok) res.idxLbl=idxLbl;
+  if(typeof _sxMeasStash==='function') _sxMeasStash('beta_'+mk,{poolLbl:poolLbl,res:res});
+  el.innerHTML=_betaRender(res,mk,poolLbl);
+}
+function _betaRender(res, mk, poolLbl){
+  var GRN='#16a34a',RED='#dc2626',AMB='#d97706',BLU='#2563eb',T2='var(--text2)',T3='var(--text3)';
+  if(!res) return '';
+  if(!res.ok) return '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">📉 '+(res.reason||'측정 실패')+'</div>';
+  var DLBL={down1:'지수 당일 하락', below:'지수 &lt; 20MA', down5:'지수 5일 하락'};
+  var _mean=function(c){return c.n?c.sum/c.n*100:null;}, _win=function(c){return c.n?c.win/c.n*100:null;};
+  var esc=function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k];}); };
+  var sy=res.sync||{}, syncPct=sy.idxDown?sy.bothDown/sy.idxDown*100:null;
+  var syncBlock = syncPct!=null ? ('<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:10px;background:var(--surface)"><div style="font-size:9.5px;font-weight:800;color:'+T2+'">🔗 지수 하락일 종목 동조율 <span style="font-weight:500;color:'+T3+'">· n='+sy.idxDown+'</span></div><div style="font-size:14px;font-weight:800;color:'+T2+';margin-top:2px">'+syncPct.toFixed(0)+'%</div><div style="font-size:8.5px;color:'+T3+';margin-top:2px;line-height:1.5">지수 빠진 날 신호종목도 같이 빠진 비율(베타). 높은 건 정상 — 결론은 아래 Δ.</div></div>') : '';
+  var body='';
+  for(var d=0;d<res.DEFS.length;d++){ var DF=res.DEFS[d], perH='';
+    for(var hi=0;hi<res.HZ.length;hi++){ var H=res.HZ[hi];
+      var w=res.agg.all[DF].weak[H], s=res.agg.all[DF].strong[H], mw=_mean(w), ms=_mean(s), delta=(mw!=null&&ms!=null)?(mw-ms):null;
+      var eD=(function(){var a=_mean(res.agg.early[DF].weak[H]),b=_mean(res.agg.early[DF].strong[H]);return(a!=null&&b!=null)?a-b:null;})();
+      var lD=(function(){var a=_mean(res.agg.late[DF].weak[H]),b=_mean(res.agg.late[DF].strong[H]);return(a!=null&&b!=null)?a-b:null;})();
+      var robust=(eD!=null&&lD!=null&&((eD<0&&lD<0)||(eD>0&&lD>0)));
+      var dcol=(delta!=null)?(delta<0?RED:GRN):T3;
+      perH+='<div style="margin-top:5px"><div style="font-size:9px;font-weight:700;color:'+BLU+'">h'+H+'</div>'
+        +'<table style="width:100%;border-collapse:collapse;margin-top:2px"><tr style="color:'+T3+';font-size:8px"><td style="padding:2px 5px">지수상태</td><td style="padding:2px 5px;text-align:right">평균</td><td style="padding:2px 5px;text-align:right">승률</td><td style="padding:2px 5px;text-align:right">n</td></tr>'
+        +'<tr><td style="padding:3px 5px;color:'+RED+';font-weight:700;font-size:10px">약세</td><td style="padding:3px 5px;text-align:right;font-weight:700;font-size:11px;color:'+((mw!=null&&mw<0)?RED:T2)+'">'+(mw!=null?(mw>0?'+':'')+mw.toFixed(2)+'%':'–')+'</td><td style="padding:3px 5px;text-align:right;font-size:10px;color:'+T2+'">'+(_win(w)!=null?_win(w).toFixed(0)+'%':'–')+'</td><td style="padding:3px 5px;text-align:right;font-size:9px;color:'+T3+'">'+w.n+'</td></tr>'
+        +'<tr><td style="padding:3px 5px;color:'+T2+';font-weight:700;font-size:10px">비약세</td><td style="padding:3px 5px;text-align:right;font-weight:700;font-size:11px;color:'+T2+'">'+(ms!=null?(ms>0?'+':'')+ms.toFixed(2)+'%':'–')+'</td><td style="padding:3px 5px;text-align:right;font-size:10px;color:'+T2+'">'+(_win(s)!=null?_win(s).toFixed(0)+'%':'–')+'</td><td style="padding:3px 5px;text-align:right;font-size:9px;color:'+T3+'">'+s.n+'</td></tr></table>'
+        +'<div style="font-size:9px;margin-top:2px;color:'+dcol+';font-weight:700">Δ(약세−비약세) '+(delta!=null?(delta>0?'+':'')+delta.toFixed(2)+'%p':'–')+(delta!=null?(delta<0?' — 약세가 나쁨(회피 근거)':' — 약세가 오히려 나음(회피 역효과)'):'')+'</div>'
+        +'<div style="font-size:8px;color:'+T3+'">OOS 전반 '+(eD!=null?(eD>0?'+':'')+eD.toFixed(2):'–')+' · 후반 '+(lD!=null?(lD>0?'+':'')+lD.toFixed(2):'–')+'%p '+(robust?('<b style="color:'+GRN+'">✓부호일치</b>'):('<span style="color:'+AMB+'">불일치(취약)</span>'))+'</div></div>';
+    }
+    var w10=res.agg.all[DF].weak[10], mw10=_mean(w10), ms10=_mean(res.agg.all[DF].strong[10]), d10=(mw10!=null&&ms10!=null)?(mw10-ms10):null;
+    var e10=(function(){var a=_mean(res.agg.early[DF].weak[10]),b=_mean(res.agg.early[DF].strong[10]);return(a!=null&&b!=null)?a-b:null;})();
+    var l10=(function(){var a=_mean(res.agg.late[DF].weak[10]),b=_mean(res.agg.late[DF].strong[10]);return(a!=null&&b!=null)?a-b:null;})();
+    var rob10=(e10!=null&&l10!=null&&((e10<0&&l10<0)||(e10>0&&l10>0))), nw=w10.n, vd;
+    if(nw<20) vd='<span style="color:'+T3+'">약세 표본 부족(n='+nw+') — 판단보류</span>';
+    else if(d10!=null&&d10<0&&rob10) vd='<b style="color:'+GRN+'">약세 진입이 '+Math.abs(d10).toFixed(2)+'%p 나쁨 + OOS 유지 → 회피 필터 후보</b>';
+    else if(d10!=null&&d10<0) vd='<span style="color:'+AMB+'">약세가 나쁘지만 OOS 불일치 → 취약(등록 보류)</span>';
+    else vd='<b style="color:'+T2+'">약세 진입이 더 나쁘지 않음 → 회피 무의미(오히려 반등기회일 수)</b>';
+    body+='<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:10px"><div style="font-size:10.5px;font-weight:800;color:'+T2+'">📉 '+DLBL[DF]+'</div>'+perH+'<div style="font-size:9px;margin-top:5px;line-height:1.5">'+vd+'</div></div>';
+  }
+  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-bottom:8px">📉 <b>시장베타(지수) 회피 측정</b> — 신호일 지수상태별 forward return. <b>Δ(약세−비약세)&lt;0 + OOS 부호일치</b>면 "약세 진입 실제 나쁨"=회피 근거. Δ≥0이면 약세가 <b>싸게 담는 기회</b>라 회피는 역효과. 지수: '+esc(res.idxLbl||'')+' · ⚠ n&lt;20 판단보류 · 측정전용 · '+esc(poolLbl||'')+' '+(res.stocksUsed||0)+'종목 · 신호 '+(res.totalSig||0)+'건</div>';
+  return head+syncBlock+body;
+}
+if(typeof window!=='undefined'){ window._betaRun=_betaRun; }
 // ════════ [S857] real×fake 동시발동 오염 — fake의 원설계는 하락예측이 아니라 "real처럼 보이는 가짜 거르기". S856에서 fake 단독 프로파일 무력(3시장) 확인 → 남은 질문: real 발동봉에 fake가 겹치면 real 성과가 깎이나(조건부 변별). 깎이면 fake=동시발동 감점으로 존속, 안 깎이면 완전 퇴역 → C 규칙 확정. real 이벤트를 순수(xk=0)/동반(xk>0)로 쪼개 t+k 프로파일 비교. base 불필요(동일 레짐 내부 차분). 표본 병기(S806)·측정전용. ════════
 async function _recipeContamBracket(mk, sources, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
@@ -8613,7 +8756,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1032';
+  window.SX_BUILD='S1033';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
