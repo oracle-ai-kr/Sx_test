@@ -6602,6 +6602,7 @@ if(typeof window!=='undefined'){ window._beamRun=_beamRun; }
 //   양쪽 풀: 발굴풀(스냅샷 ON=in-sample) AND 대표+관심(스냅샷 OFF=held-out) 각각 돌려 둘 다 통과해야 인정. 측정전용.
 var SEED_SIG = Object.freeze({ market:'kr', pool:'down', volOsc:73.31, vr:389.41, label:'하락장×강세 · 거래량OSC≥73.31 & VR≥389.41' });
 var SEED_GATE = Object.freeze({ minN:50, minMean:0.08, minMedian:0, minWin:0.50, declared:'2026-07-14' });
+var SEED_TGATE = Object.freeze({ minN:30, minMean:0.08, minMedian:0, minWin:0.50 }); // [S1040] 시간분리(전/후반) 각 반분 게이트 — frozen 규칙 시간 안정성
 function _seedMed(arr){ if(!arr.length) return null; var s=arr.slice().sort(function(a,b){return a-b;}), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
 async function _seedRun(){
   var el=document.getElementById('seedResult'); if(!el) return;
@@ -6660,9 +6661,23 @@ function _seedRender(res, mk, poolLbl, isSnap){
     +row('OOS 전·후반', crit.oos, function(v){return oosKnown?(_pct(eM)+'/'+_pct(lM)):'표본부족';})
     +'</table>';
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-bottom:8px">✅ <b>씨앗 검증</b> — 신호 <b>'+S.label+'</b> (frozen). 빔서치 다중검정이라 단독 재검. <b>median>0</b>=복권 배제. 이 풀 통과 + <b>반대 풀도 통과</b>해야 최종 인정(스냅샷 ON/OFF 각각). ⚠측정전용 · '+poolLbl+' · '+((res&&res.stocksUsed)||0)+'종목</div>';
+  // [S1040] 시간분리 held-out — frozen 규칙을 전/후반 각각 전체 게이트로 (KR 종목 한계 우회)
+  var _hStat=function(arr){ var m=arr.length; if(!m) return {n:0}; var mn=arr.reduce(function(s,v){return s+v;},0)/m; return {n:m, mean:mn, med:_seedMed(arr), win:arr.filter(function(v){return v>0;}).length/m}; };
+  var eH=_hStat(eA), lH=_hStat(lA), TG=SEED_TGATE;
+  var _hPass=function(h){ return h.n>=TG.minN && h.mean!=null && h.mean>=TG.minMean && h.med!=null && h.med>TG.minMedian && h.win!=null && h.win>=TG.minWin; };
+  var ePass=_hPass(eH), lPass=_hPass(lH), tsEnough=(eH.n>=TG.minN&&lH.n>=TG.minN), tsPass=ePass&&lPass;
+  var _hCell=function(h,pass){ if(!h.n) return '<td style="padding:4px 6px;text-align:center;color:'+T3+';font-size:9px">–</td>'; return '<td style="padding:4px 6px;text-align:center"><div style="font-size:11px;font-weight:800;color:'+(h.mean>0?GRN:RED)+'">'+_pct(h.mean)+'</div><div style="font-size:8px;color:'+T3+'">med '+_pct(h.med)+'</div><div style="font-size:8px;color:'+T3+'">n'+h.n+(h.n<TG.minN?'⚠':'')+' · 승 '+(h.win!=null?(h.win*100).toFixed(0):'–')+'%</div><div style="font-size:9px;margin-top:1px">'+(pass?'<b style="color:'+GRN+'">✓통과</b>':'<span style="color:'+RED+';font-weight:700">✗</span>')+'</div></td>'; };
+  var tsVerdict = !tsEnough ? '<span style="background:var(--surface2);color:'+T2+';border:1px solid var(--border);padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800">⏳ 반분 표본부족</span>'
+    : tsPass ? '<span style="background:'+GRN+';color:#fff;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800">✅ 시간축 강건</span>'
+    : '<span style="background:'+RED+';color:#fff;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800">❌ 시간축 탈락</span>';
+  var tsBlock='<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-top:10px;background:var(--surface)">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:6px"><span style="font-size:10.5px;font-weight:800;color:'+T2+'">⏳ 시간분리 held-out <span style="font-weight:500;font-size:8px;color:'+T3+'">(frozen 규칙 · 각 반분 n≥'+TG.minN+'·평균≥+8%·중앙값>0·승률≥50% 둘다)</span></span>'+tsVerdict+'</div>'
+    +'<table style="width:100%;border-collapse:collapse;table-layout:fixed"><tr style="font-size:8.5px;color:'+T3+'"><td style="padding:2px 6px;text-align:center">전반(fit기여)</td><td style="padding:2px 6px;text-align:center">후반(held-out)</td></tr><tr>'+_hCell(eH,ePass)+_hCell(lH,lPass)+'</tr></table>'
+    +'<div style="font-size:8.5px;color:'+T3+';margin-top:4px;line-height:1.5">'+(!isSnap?'⚠ 지금 대표+관심이라 반분 표본 극소 — <b>스냅샷 ON(발굴풀 200종)</b>에서 봐야 의미 있어.':(tsPass?'양 기간 다 게이트 통과 → <b>시간축 강건.</b> KR 종목 한계상 이게 가능한 최선의 held-out. (임계값은 전체fit이라 순수 held-out 아닌 시간 안정성 검사)':(tsEnough?'한 기간이라도 미달 → 시간축 불안정(폐기 근거).':'반분 각 n30 미달 — 신호가 좁아 시간분리도 표본 부족.')))+'</div></div>';
   return head+mkWarn
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px"><div style="font-size:11.5px;font-weight:800;color:'+T2+'">신호 발동 '+n+'건 · '+poolLbl.split('(')[0]+'</div>'+badge+'</div>'
     +tbl
+    +tsBlock
     +'<div style="font-size:9px;color:'+T3+';margin-top:6px;line-height:1.55">참고: h20 평균 '+_pct(m20)+' · 중앙값 '+_pct(med20)+'. <b>양쪽 풀 규칙</b>: 지금 '+(isSnap?'발굴풀(in-sample)':'대표+관심(held-out)')+' 결과야 — '+(isSnap?'스냅샷 OFF로 held-out도':'스냅샷 ON으로 발굴풀도')+' 돌려서 <b>둘 다 통과</b>해야 진짜. 하나라도 미달=빔서치 착시로 폐기.</div>';
 }
 if(typeof window!=='undefined'){ window._seedRun=_seedRun; }
@@ -9136,7 +9151,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1039';
+  window.SX_BUILD='S1040';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
