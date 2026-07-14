@@ -6286,6 +6286,108 @@ function _betaRender(res, mk, poolLbl){
   return head+syncBlock+body;
 }
 if(typeof window!=='undefined'){ window._betaRun=_betaRun; }
+// ════════ [S1034] 3×3 SSOT 그리드 지도 — 발동신호를 단기(강세/약세/중립)×장기(상승장/하락장/횡보장) 9칸 분류. ════════
+//   칸별 신호빈도 + forward return(h10·h15)+승률+OOS. "빈 칸/소표본=발굴 후보지 정찰"(어디가 비었나·어디가 유망). realFireCells(셀)+rows 산술 forward.
+//   ⚠ 지도는 정찰이지 레시피가 아님 — 좋아 보이는 소표본 칸은 십중팔구 노이즈(S837). 유망 칸→개별 사전선언+OOS 검증 통과분만 레시피. 측정전용·엔진/C 무관.
+async function _gridBracket(mk, sources, onProgress){
+  if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return {ok:false,reason:'캔들 fetch 미연결'};
+  if(!(window.SXRecipeSignal&&SXRecipeSignal.realFireCells)) return {ok:false,reason:'레시피 모듈 구버전(realFireCells 없음) — 새로고침(캐시)'};
+  var list=[],seen={};
+  for(var si=0;si<sources.length;si++){ var source=sources[si],part=[];
+    if(source==='mega') part=(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]).map(function(x){return Array.isArray(x)?{code:x[0],name:x[1]}:{code:String(x),name:String(x)};});
+    else if(source==='watch'){ try{ part=(typeof _getWatchlist==='function'?(_getWatchlist(mk)||[]):[]).map(function(s){return {code:s.code,name:s.name||s.code};}); }catch(_){part=[];} }
+    else { try{ var p=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[]; part=(p||[]).map(function(x){return {code:x[0],name:x[1]};}); }catch(_){part=[];} }
+    for(var pi=0;pi<part.length;pi++){ var it=part[pi]; if(it&&it.code&&!seen[it.code]){seen[it.code]=1;list.push(it);} }
+  }
+  if(!list.length) return {ok:false,reason:'측정 풀 비어있음'};
+  var CAP=(sources.indexOf('mega')>=0)?220:40, use=list.slice(0,CAP);
+  var _tgt=(typeof _btTargetBars==='function')?_btTargetBars(mk,'day'):600, _floor=Math.floor(_tgt*0.95);
+  var SHORTS=['bull','bear','mid'], LONGS=['bull','bear','mix'], HZ=[10,15];
+  var mkCell=function(){ var o={n:0}; for(var h=0;h<HZ.length;h++) o[HZ[h]]={n:0,sum:0,win:0}; return o; };
+  var mkGrid=function(){ var g={}; for(var s=0;s<SHORTS.length;s++){ g[SHORTS[s]]={}; for(var l=0;l<LONGS.length;l++) g[SHORTS[s]][LONGS[l]]=mkCell(); } return g; };
+  var grid={all:mkGrid(),early:mkGrid(),late:mkGrid()}, stocksUsed=0,totalSig=0;
+  var _sk=function(c){ return c.maBull?'bull':(c.maBear?'bear':'mid'); }, _lk=function(c){ return c.lt==='bull'?'bull':(c.lt==='bear'?'bear':'mix'); };
+  for(var i=0;i<use.length;i++){
+    var st=use[i]; if(onProgress) onProgress(i+1,use.length,st.name); await _trendBatchSleep(0);
+    var rows=null; try{ rows=await SXCandleBT.fetchRows600(mk,'day',st.code); }catch(e){}
+    if(!Array.isArray(rows)||rows.length<_floor){ await _trendBatchSleep(6); continue; }
+    var cells=null; try{ cells=await SXRecipeSignal.realFireCells(st.code,rows); }catch(e2){}
+    if(!Array.isArray(cells)){ await _trendBatchSleep(6); continue; }
+    var mid=rows.length/2, used=false;
+    for(var ci=0;ci<cells.length;ci++){ var c=cells[ci], bi=c.bar, sig=rows[bi];
+      var ep=(sig&&typeof sig.close==='number')?sig.close:null; if(!(ep>0)) continue;
+      var sk=_sk(c), lk=_lk(c), seg=(bi<mid)?'early':'late';
+      grid.all[sk][lk].n++; grid[seg][sk][lk].n++;
+      for(var hi=0;hi<HZ.length;hi++){ var H=HZ[hi]; if(bi+H>=rows.length) continue; var xr=rows[bi+H], exit=(xr&&typeof xr.close==='number')?xr.close:null; if(!(exit>0)) continue; var r=exit/ep-1;
+        var cA=grid.all[sk][lk][H]; cA.n++; cA.sum+=r; if(r>0) cA.win++;
+        var cS=grid[seg][sk][lk][H]; cS.n++; cS.sum+=r; if(r>0) cS.win++;
+      }
+      totalSig++; used=true;
+    }
+    if(used) stocksUsed++; await _trendBatchSleep(10);
+  }
+  if(stocksUsed<3) return {ok:false,reason:'유효 종목 3개 미만 — 네트워크 확인'};
+  return {ok:true, grid:grid, SHORTS:SHORTS, LONGS:LONGS, HZ:HZ, stocksUsed:stocksUsed, totalSig:totalSig};
+}
+async function _gridRun(){
+  var el=document.getElementById('gridResult'); if(!el) return;
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr'; el.style.display='block';
+  var _prog=function(lbl,i,t,n){ el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">🗺 '+lbl+' 3×3 그리드 '+i+'/'+t+' · '+(n||'')+'</div>'; };
+  var res,poolLbl;
+  if(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode()){
+    if(SXCandleBT.snapHas&&!SXCandleBT.snapHas(mk)){ el.innerHTML='<div style="padding:10px;font-size:11px;font-weight:800;color:#2563eb">📂 '+String(mk).toUpperCase()+' 스냅샷 자동 로드…</div>'; var _sr=await _snapLoad(mk); if(!_sr.ok){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">📂 '+_sr.reason+'</div>'; return; } if(typeof _snapBadge==='function')_snapBadge(); }
+    _prog('발굴풀',0,0,'시작');
+    try{ res=await _gridBracket(mk,['mega'],function(i,t,n){_prog('발굴풀',i,t,n);}); }catch(eM){ res={ok:false,reason:String(eM&&eM.message||eM)}; }
+    poolLbl='발굴풀(스냅샷)';
+  } else {
+    _prog('대표+관심',0,0,'시작');
+    try{ res=await _gridBracket(mk,['rep','watch'],function(i,t,n){_prog('대표+관심',i,t,n);}); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
+    poolLbl='대표+관심 합산';
+  }
+  if(typeof _sxMeasStash==='function') _sxMeasStash('grid_'+mk,{poolLbl:poolLbl,res:res});
+  el.innerHTML=_gridRender(res,mk,poolLbl);
+}
+function _gridRender(res, mk, poolLbl){
+  var GRN='#16a34a',RED='#dc2626',AMB='#d97706',BLU='#2563eb',T2='var(--text2)',T3='var(--text3)';
+  if(!res) return '';
+  if(!res.ok) return '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">🗺 '+(res.reason||'측정 실패')+'</div>';
+  var SL={bull:'강세',bear:'약세',mid:'중립'}, LL={bull:'상승장',bear:'하락장',mix:'횡보장'};
+  var TN={bull:{bull:'추가상승',bear:'기술적반등',mix:'상승세전환'},bear:{bull:'눌림목',bear:'바닥확인',mix:'하락세전환'},mid:{bull:'상승세약화',bear:'하락세약화',mix:'횡보장유지'}};
+  var _mean=function(c){return c.n?c.sum/c.n*100:null;}, _win=function(c){return c.n?c.win/c.n*100:null;};
+  var esc=function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k];}); };
+  var tot=res.totalSig||0;
+  var heat='<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:280px"><tr><td style="padding:3px"></td>';
+  for(var l=0;l<res.LONGS.length;l++) heat+='<td style="padding:3px 4px;text-align:center;font-size:9px;font-weight:800;color:'+T2+'">'+LL[res.LONGS[l]]+'</td>';
+  heat+='</tr>';
+  for(var s=0;s<res.SHORTS.length;s++){ var SK=res.SHORTS[s];
+    heat+='<tr><td style="padding:3px 4px;font-size:9px;font-weight:800;color:'+T2+';white-space:nowrap">'+SL[SK]+'</td>';
+    for(var l2=0;l2<res.LONGS.length;l2++){ var LK=res.LONGS[l2], cell=res.grid.all[SK][LK], nn=cell.n, freq=tot?nn/tot*100:0, m15=_mean(cell[15]);
+      var bg = nn===0?'var(--surface2)':(m15==null?'var(--surface)':(m15>0?('rgba(22,163,74,'+Math.min(0.28,Math.abs(m15)/40).toFixed(2)+')'):('rgba(220,38,38,'+Math.min(0.28,Math.abs(m15)/40).toFixed(2)+')')));
+      var spa=(nn>0&&nn<20);
+      heat+='<td style="padding:4px 3px;text-align:center;border:1px solid var(--border);background:'+bg+'">'
+        +'<div style="font-size:7.5px;color:'+T3+';line-height:1.1">'+esc(TN[SK][LK])+'</div>'
+        +'<div style="font-size:11px;font-weight:800;color:'+(m15!=null?(m15>0?GRN:RED):T3)+'">'+(m15!=null?(m15>0?'+':'')+m15.toFixed(1)+'%':'–')+'</div>'
+        +'<div style="font-size:7.5px;color:'+T3+'">n'+nn+(spa?'⚠':'')+' · '+freq.toFixed(0)+'%</div></td>';
+    }
+    heat+='</tr>';
+  }
+  heat+='</table></div>';
+  var arr=[];
+  for(var s2=0;s2<res.SHORTS.length;s2++) for(var l3=0;l3<res.LONGS.length;l3++){ var SK2=res.SHORTS[s2],LK2=res.LONGS[l3],cc=res.grid.all[SK2][LK2];
+    arr.push({sk:SK2,lk:LK2,name:TN[SK2][LK2],n:cc.n,m10:_mean(cc[10]),w15:_win(cc[15]),m15:_mean(cc[15]),
+      oos:(function(){var a=_mean(res.grid.early[SK2][LK2][15]),b=_mean(res.grid.late[SK2][LK2][15]);return {e:a,l:b,rob:(a!=null&&b!=null&&((a>0&&b>0)||(a<0&&b<0)))};})()}); }
+  arr.sort(function(a,b){ return (b.m15==null?-999:b.m15)-(a.m15==null?-999:a.m15); });
+  var rank='';
+  for(var r2=0;r2<arr.length;r2++){ var a=arr[r2];
+    if(a.n===0){ rank+='<div style="font-size:9px;color:'+T3+';padding:3px 0">— '+SL[a.sk]+'·'+LL[a.lk]+' ('+esc(a.name)+') : <b>빈 칸</b> (신호 0)</div>'; continue; }
+    var spa=a.n<20, mc=(a.m15!=null)?(a.m15>0?GRN:RED):T3;
+    rank+='<div style="border-top:1px solid var(--border);padding:5px 0;font-size:10px"><div style="display:flex;justify-content:space-between;gap:6px"><span style="font-weight:800;color:'+T2+'">'+SL[a.sk]+'·'+LL[a.lk]+' <span style="font-weight:500;color:'+T3+'">'+esc(a.name)+'</span></span><span style="font-weight:800;color:'+mc+'">h15 '+(a.m15!=null?(a.m15>0?'+':'')+a.m15.toFixed(2)+'%':'–')+'</span></div>'
+      +'<div style="font-size:8.5px;color:'+T3+'">n='+a.n+(spa?' <span style="color:'+AMB+'">⚠소표본</span>':'')+' · h10 '+(a.m10!=null?(a.m10>0?'+':'')+a.m10.toFixed(2)+'%':'–')+' · 승률 '+(a.w15!=null?a.w15.toFixed(0)+'%':'–')+' · OOS '+((a.oos.e!=null&&a.oos.l!=null)?(a.oos.rob?'<b style="color:'+GRN+'">✓일치</b>':'<span style="color:'+AMB+'">불일치</span>'):'–')+'</div></div>';
+  }
+  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-bottom:8px">🗺 <b>3×3 SSOT 그리드 지도</b> — 발동신호를 단기(강세/약세/중립)×장기(상승장/하락장/횡보장) 9칸 분류. 셀=h15 평균 · n · 빈도. <b>빈 칸/소표본(⚠n&lt;20) = 발굴 후보지 정찰</b>이지, 좋아 보여도 바로 레시피 금지(소표본 노이즈·S837). 유망 칸 → 개별 사전선언+OOS 검증. ⚠측정전용 · '+esc(poolLbl||'')+' '+(res.stocksUsed||0)+'종목 · 신호 '+tot+'건</div>';
+  return head+heat+'<div style="font-size:9px;font-weight:800;color:'+BLU+';margin:10px 0 2px">📊 셀 랭킹 (h15 forward 내림차순)</div>'+rank;
+}
+if(typeof window!=='undefined'){ window._gridRun=_gridRun; }
 // ════════ [S857] real×fake 동시발동 오염 — fake의 원설계는 하락예측이 아니라 "real처럼 보이는 가짜 거르기". S856에서 fake 단독 프로파일 무력(3시장) 확인 → 남은 질문: real 발동봉에 fake가 겹치면 real 성과가 깎이나(조건부 변별). 깎이면 fake=동시발동 감점으로 존속, 안 깎이면 완전 퇴역 → C 규칙 확정. real 이벤트를 순수(xk=0)/동반(xk>0)로 쪼개 t+k 프로파일 비교. base 불필요(동일 레짐 내부 차분). 표본 병기(S806)·측정전용. ════════
 async function _recipeContamBracket(mk, sources, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
@@ -8756,7 +8858,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1033';
+  window.SX_BUILD='S1034';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
