@@ -184,7 +184,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1029</div>
+    <div class="tb-build">S1031</div>
   </div>
 
   <div class="scroll-area">
@@ -339,6 +339,12 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div id="enMsg" style="font-size:11px;margin-top:9px;line-height:1.5;"></div>
     </div>
 
+    <!-- ═══ [S1031] 실현손익 evidence (로드맵3 · 가계부) ═══ -->
+    <div class="card" id="atPnlCard">
+      <div class="card-title">📒 실현손익 evidence <span class="tag">로드맵3 · S1031</span></div>
+      <div id="atPnlBody"><div style="font-size:11px;color:var(--text3);padding:4px 0;">로딩…</div></div>
+    </div>
+
     <!-- ═══ [S947] 신호 진단 (레시피 측정 스냅샷) ═══ -->
     <div class="card" id="atMeasureCard">
       <div class="card-title">🔬 신호 진단 <span class="tag">레시피 측정 · S947</span></div>
@@ -383,7 +389,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1029</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1031</div>
   </div>
 </div>
 
@@ -462,6 +468,7 @@ function atRender(d){
   atRenderPortfolio(d.portfolio);  // [S933] KIS 잔고/손익 패널
   atRenderExitConfig(d.exitConfig); // [S949] 청산 설정 입력칸 동기화
   atRenderEntryConfig(d.entryConfig); // [S1028] 진입 상한 입력칸 동기화
+  atRenderPnl(d.pnl); // [S1031] 실현손익 evidence 카드
   // [S943] 장중 배지(서버 계산 marketOpen·공휴일 반영)
   const mb=_$('atMktBadge');
   if(mb){
@@ -908,6 +915,40 @@ async function atSaveExitConfig(){
 }
 function _exSummary(c){ if(!c)return''; const mh=(c.maxHoldMode==='ma')?'MA5×20 데드':(c.maxHoldOn!==false?(c.maxHoldDays+'일'):'상한없음'); return '초기'+c.atrInitMult+'×/트레일'+c.atrTrailMult+'× · 최대보유 '+mh+(c.maxHoldMode==='ma'&&c.maGraceDays!=null?(' · 유예'+c.maGraceDays+'일'):''); }
 
+// ── [S1031] 실현손익 evidence (로드맵3 가계부) — /state.pnl 표시. 사전선언 게이트 판정 카드. ──
+function atRenderPnl(p){
+  var el=document.getElementById('atPnlBody'); if(!el) return;
+  var GRN='#16a34a', RED='#dc2626', T2='var(--text2)', T3='var(--text3)';
+  if(!p){ el.innerHTML='<div style="font-size:11px;color:'+T3+'">데이터 없음</div>'; return; }
+  var g=p.gate||{};
+  if(!p.ready){
+    el.innerHTML='<div style="font-size:11px;color:'+T3+';line-height:1.65">아직 완성거래(진입→청산) 0건. 매도가 체결되기 시작하면 실현손익이 여기 쌓여.<br><b style="color:'+T2+'">🔒 사전선언 게이트</b>: 완성거래 N≥'+g.minTrades+' · 기대값≥+'+g.minExpectancyPct+'% · 승률≥'+g.minWinPct+'% · MDD≤'+g.maxMddPct+'% · 기간≥'+g.minDays+'일 · PF≥'+g.minPF+'</div>';
+    return;
+  }
+  var badge = p.status==='pass' ? '<span style="background:'+GRN+';color:#fff;padding:2px 10px;border-radius:11px;font-size:11px;font-weight:800">✅ PASS</span>'
+    : p.status==='fail' ? '<span style="background:'+RED+';color:#fff;padding:2px 10px;border-radius:11px;font-size:11px;font-weight:800">❌ FAIL</span>'
+    : '<span style="background:var(--surface2);color:'+T2+';border:1px solid var(--border);padding:2px 10px;border-radius:11px;font-size:11px;font-weight:800">⏳ PENDING</span>';
+  var c=p.crit||{};
+  var row=function(label,cr,unit,cmp){ if(!cr) return '';
+    var ok=cr.pass, mark=ok?('<span style="color:'+GRN+';font-weight:800">✓</span>'):('<span style="color:'+RED+';font-weight:800">✗</span>');
+    return '<tr><td style="padding:5px 7px;color:'+T2+';font-size:11px">'+label+'</td>'
+      +'<td style="padding:5px 7px;text-align:right;font-weight:800;color:'+(ok?GRN:RED)+';font-size:12px">'+cr.val+unit+'</td>'
+      +'<td style="padding:5px 7px;text-align:right;color:'+T3+';font-size:10px">'+cmp+cr.need+unit+'</td>'
+      +'<td style="padding:5px 7px;text-align:center">'+mark+'</td></tr>';
+  };
+  var tr=p.totalRealized||0, trS=(tr>=0?'+':'')+tr.toLocaleString()+'원';
+  el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px"><div style="font-size:11.5px;font-weight:800;color:'+T2+'">완성 '+p.n+'건 · '+p.days+'일 · 실현 <span style="color:'+(tr>=0?GRN:RED)+'">'+trS+'</span></div>'+badge+'</div>'
+    +'<table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">'
+    +'<tr style="font-size:9px;color:'+T3+'"><td style="padding:3px 7px">지표</td><td style="padding:3px 7px;text-align:right">현재</td><td style="padding:3px 7px;text-align:right">사전선언</td><td style="padding:3px 7px;text-align:center">판정</td></tr>'
+    +row('완성거래 N', c.trades, '건', '≥')
+    +row('측정기간', c.days, '일', '≥')
+    +row('기대값(거래당)', c.expectancy, '%', '≥+')
+    +row('승률', c.winPct, '%', '≥')
+    +row('MDD(실현자산)', c.mdd, '%', '≤')
+    +row('Profit Factor', c.pf, '', '≥')
+    +'</table>'
+    +'<div style="font-size:9px;color:'+T3+';margin-top:6px;line-height:1.55">🔒 <b>사전선언 게이트</b>('+g.declared+') — 결과 보고 완화 금지(돌멩이). 완성거래(진입→청산 체결) 기준 · MDD=실현손익 자산곡선(초기 1,000만원 기준).'+(p.approxN?(' ⚠ '+p.approxN+'건 체결가 미회수→curPrice 근사'):'')+'</div>';
+}
 // ── [S1028] 진입/포지션 상한 UI (entry_config ↔ /state·/sx/autotrade/entry-config) ──
 let _enLoaded=false;
 function atRenderEntryConfig(cfg, force){
