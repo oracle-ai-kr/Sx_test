@@ -165,6 +165,19 @@
     return fire;
   }
 
+  // [S1034] 발동봉 + SSOT 셀 정보 — _realFireBars 클론. {bar,lt,maBull,maBear}[] 반환(3×3 그리드 측정용·동일 _scanStock 캐시 공유).
+  async function _realFireCells(sym, rows, opts){
+    opts = opts || {};
+    if(!Array.isArray(rows) || rows.length<260) return [];
+    var scan; try { scan = await _scanStock(sym, rows); } catch(e){ return []; }
+    var reals = _R().filter(function(r){ if(r.kind!=='real') return false; if(opts.excludeBear && r.pool==='deadcat') return false; return true; });
+    var out = [];
+    for(var i=0;i<scan.length;i++){ var s=scan[i];
+      for(var k=0;k<reals.length;k++){ if(_fires(reals[k], s.f, s.lt, s.maBull)){ out.push({ bar:s.bar, lt:s.lt, maBull:!!s.maBull, maBear:!!s.maBear }); break; } }
+    }
+    return out;
+  }
+
   /* ───────── [S816] 정배열 눌림목 신호 봉맵 — 단기추세매매 '정배열 레시피 엔진'용 ─────────
    *   pullback-real(진입) + pullback-fake(청산) 발동 봉. 역배(deadcat)·크로스 무관·정배열만.
    *   _scanStock 재사용(캐시 공유). 같은 rows 넘기면 BT와 봉 인덱스 1:1.
@@ -786,6 +799,6 @@
     } catch(e){}
   }
 
-  window.SXRecipeSignal = { setPreview:_setPreview, ingScan:_ingScan, clearPreview:_clearPreview, previewInfo:_previewInfo, buildCard:buildCard, toggle:toggle, tab:_tab, catToggle:_catToggle, _populate:_populate, _pendingByCat:_pendingByCat, realFireBars:_realFireBars, pullbackSignalBars:_pullbackSignalBars, overlapScan:_overlapScan, profileScan:_profileScan, evalBar:_evalBar, baseRateScan:_baseRateScan, deadcatTrajScan:_deadcatTrajScan, deadcatConfirmScan:_deadcatConfirmScan, deadcatOverlapHzScan:_deadcatOverlapHzScan, deadcatHzBtScan:_deadcatHzBtScan, fireOnly:_fireOnlySet, recipesFor:_recipesFor };
+  window.SXRecipeSignal = { setPreview:_setPreview, ingScan:_ingScan, clearPreview:_clearPreview, previewInfo:_previewInfo, buildCard:buildCard, toggle:toggle, tab:_tab, catToggle:_catToggle, _populate:_populate, _pendingByCat:_pendingByCat, realFireBars:_realFireBars, realFireCells:_realFireCells, pullbackSignalBars:_pullbackSignalBars, overlapScan:_overlapScan, profileScan:_profileScan, evalBar:_evalBar, baseRateScan:_baseRateScan, deadcatTrajScan:_deadcatTrajScan, deadcatConfirmScan:_deadcatConfirmScan, deadcatOverlapHzScan:_deadcatOverlapHzScan, deadcatHzBtScan:_deadcatHzBtScan, fireOnly:_fireOnlySet, recipesFor:_recipesFor };
   try{ Object.defineProperty(window.SXRecipeSignal,'RECIPES',{ get:function(){ return _R(); } }); }catch(_e){ window.SXRecipeSignal.RECIPES=RECIPES_BY_MKT.kr; }   // [S849] 구소비처 호환 — currentMarket 세트 동적 반환
 })();
