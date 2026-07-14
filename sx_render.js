@@ -6388,6 +6388,124 @@ function _gridRender(res, mk, poolLbl){
   return head+heat+'<div style="font-size:9px;font-weight:800;color:'+BLU+';margin:10px 0 2px">📊 셀 랭킹 (h15 forward 내림차순)</div>'+rank;
 }
 if(typeof window!=='undefined'){ window._gridRun=_gridRun; }
+// ════════ [S1035] 추세 지속 탐색 — 강세(정배열) 구간 전봉에서 "지속(forward+) vs 소진(forward−)"을 가르는 SSOT 재료 IC. ════════
+//   주제=반등 아님(real/fake 안 씀). 대상=강세 구간 전봉(발동 무관 — 강세엔 발동 n=0이라 지형 전수). 풀=상승장×강세/하락장×강세(lt bull/bear). outcome=forward h10/15/20.
+//   재료=SXFeatureLib(레시피/위험 공용 SSOT)·IC=Spearman(위험 crash-IC 기계 재사용). +면 재료↑→수익↑(지속). |IC|≥0.10 유의. OOS 시간분할. ⚠정찰용·유망재료도 개별 사전선언+OOS 검증 통과분만 레시피. 측정전용.
+async function _persistBracket(mk, sources, onProgress){
+  if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return {ok:false,reason:'캔들 fetch 미연결'};
+  if(!(window.SXFeatureLib&&SXFeatureLib.contIds)) return {ok:false,reason:'재료 라이브러리 미로드 — 새로고침(캐시)'};
+  if(!(window.SXE&&SXE.calcAllScreener)) return {ok:false,reason:'엔진 미로드'};
+  var list=[],seen={};
+  for(var si=0;si<sources.length;si++){ var source=sources[si],part=[];
+    if(source==='mega') part=(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]).map(function(x){return Array.isArray(x)?{code:x[0],name:x[1]}:{code:String(x),name:String(x)};});
+    else if(source==='watch'){ try{ part=(typeof _getWatchlist==='function'?(_getWatchlist(mk)||[]):[]).map(function(s){return {code:s.code,name:s.name||s.code};}); }catch(_){part=[];} }
+    else { try{ var p=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[]; part=(p||[]).map(function(x){return {code:x[0],name:x[1]};}); }catch(_){part=[];} }
+    for(var pi=0;pi<part.length;pi++){ var it=part[pi]; if(it&&it.code&&!seen[it.code]){seen[it.code]=1;list.push(it);} }
+  }
+  if(!list.length) return {ok:false,reason:'측정 풀 비어있음'};
+  var CAP=(sources.indexOf('mega')>=0)?220:20, use=list.slice(0,CAP);
+  var _tgt=(typeof _btTargetBars==='function')?_btTargetBars(mk,'day'):600, _floor=Math.floor(_tgt*0.95);
+  var _OUT=20, _STEP=(sources.indexOf('mega')>=0)?2:1, HZ=[10,15,20];
+  var entries=[], stocksUsed=0, bullBars=0;
+  for(var i=0;i<use.length;i++){ var s=use[i]; if(onProgress) onProgress(i+1,use.length,s.name); await _trendBatchSleep(0);
+    var rr=null; try{ rr=await SXCandleBT.fetchRows600(mk,'day',s.code); }catch(e){}
+    if(!Array.isArray(rr)||rr.length<_floor){ await _trendBatchSleep(6); continue; }
+    var _used=false, mid=rr.length/2;
+    for(var bi=250; bi<rr.length-_OUT; bi+=_STEP){
+      var slice,ind; try{ slice=rr.slice(Math.max(0,bi-249),bi+1); ind=SXE.calcAllScreener(slice,'day'); }catch(_e){ if((bi&31)===0) await _trendBatchSleep(0); continue; }
+      if(!ind) continue;
+      var stBull=!!(ind.maAlign && ind.maAlign.bullish); if(!stBull){ if((bi&31)===0) await _trendBatchSleep(0); continue; }   // 강세(정배열)만
+      bullBars++;
+      var ep=(rr[bi]&&typeof rr[bi].close==='number')?rr[bi].close:null; if(!(ep>0)) continue;
+      var rgLT=(typeof _ltStr733==='function')?_ltStr733(ind.maAlignLT):null;
+      var pool= rgLT==='bull'?'up':(rgLT==='bear'?'down':null); if(!pool) continue;   // 상승장/하락장만(횡보 제외)
+      var feats=SXFeatureLib.evalCont(ind, rr, bi); if(!feats) continue;
+      var rets={}, okAny=false;
+      for(var h=0;h<HZ.length;h++){ var H=HZ[h], jj=bi+H, rv=(rr[jj]&&typeof rr[jj].close==='number')?(rr[jj].close/ep-1):null; rets['h'+H]=rv; if(rv!=null) okAny=true; }
+      if(!okAny) continue;
+      entries.push({ f:feats, r:rets, pool:pool, half:(bi<mid?'e':'l') });
+      _used=true; if((bi&31)===0) await _trendBatchSleep(0);
+    }
+    if(_used) stocksUsed++; await _trendBatchSleep(10);
+  }
+  if(stocksUsed<3) return {ok:false,reason:'유효 종목 3개 미만 — 네트워크 확인'};
+  return {ok:true, entries:entries, stocksUsed:stocksUsed, bullBars:bullBars, HZ:HZ};
+}
+function _persistAgg(res){
+  var entries=res.entries, HZ=res.HZ;
+  var _rank=function(arr){ var idx=arr.map(function(v,k){return [v,k];}).sort(function(x,y){return x[0]-y[0];}); var r=new Array(arr.length); for(var q=0;q<idx.length;q++) r[idx[q][1]]=q; return r; };
+  var _spear=function(xs,ys){ var n=xs.length; if(n<30) return null; var rx=_rank(xs),ry=_rank(ys),mx=(n-1)/2,sxy=0,sxx=0,syy=0; for(var q=0;q<n;q++){ var a=rx[q]-mx,b=ry[q]-mx; sxy+=a*b; sxx+=a*a; syy+=b*b; } return (sxx>0&&syy>0)?sxy/Math.sqrt(sxx*syy):null; };
+  var POOLS=['up','down'], out={};
+  POOLS.forEach(function(P){
+    var pe=entries.filter(function(e){return e.pool===P;}), n=pe.length;
+    var base={}; HZ.forEach(function(H){ var vs=pe.map(function(e){return e.r['h'+H];}).filter(function(v){return v!=null;}); base['h'+H]=vs.length?vs.reduce(function(s,v){return s+v;},0)/vs.length:null; });
+    var surv=(function(){ var vs=pe.map(function(e){return e.r.h10;}).filter(function(v){return v!=null;}); return vs.length?vs.filter(function(v){return v>0;}).length/vs.length:null; })();
+    var mats=[];
+    SXFeatureLib.contIds.forEach(function(id){
+      var icH={}, nById=0;
+      HZ.forEach(function(H){ var xs=[],ys=[]; for(var q=0;q<pe.length;q++){ var v=pe[q].f?pe[q].f[id]:null, y=pe[q].r['h'+H]; if(v!=null&&isFinite(v)&&y!=null){ xs.push(v); ys.push(y); } } icH['h'+H]= xs.length>=100?_spear(xs,ys):null; if(H===15) nById=xs.length; });
+      var _seg=function(hf){ var xs=[],ys=[]; for(var q=0;q<pe.length;q++){ if(pe[q].half!==hf) continue; var v=pe[q].f?pe[q].f[id]:null,y=pe[q].r.h15; if(v!=null&&isFinite(v)&&y!=null){ xs.push(v); ys.push(y); } } return xs.length>=50?_spear(xs,ys):null; };
+      var ie=_seg('e'), il=_seg('l'), rob=(ie!=null&&il!=null&&((ie>0&&il>0)||(ie<0&&il<0)));
+      var f=SXFeatureLib.byId[id];
+      mats.push({ id:id, label:(f?f.label:id), n:nById, ic:icH, oosE:ie, oosL:il, rob:rob });
+    });
+    mats.sort(function(a,b){ var xa=(a.ic.h15==null?-1:Math.abs(a.ic.h15)), xb=(b.ic.h15==null?-1:Math.abs(b.ic.h15)); return xb-xa; });
+    out[P]={ n:n, base:base, surv:surv, mats:mats };
+  });
+  return out;
+}
+async function _persistRun(){
+  var el=document.getElementById('persistResult'); if(!el) return;
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr'; el.style.display='block';
+  var _prog=function(lbl,i,t,n){ el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">📈 '+lbl+' 강세 재료IC '+i+'/'+t+' · '+(n||'')+'</div>'; };
+  var res,poolLbl;
+  if(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode()){
+    if(SXCandleBT.snapHas&&!SXCandleBT.snapHas(mk)){ el.innerHTML='<div style="padding:10px;font-size:11px;font-weight:800;color:#0891b2">📂 '+String(mk).toUpperCase()+' 스냅샷 자동 로드…</div>'; var _sr=await _snapLoad(mk); if(!_sr.ok){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">📂 '+_sr.reason+'</div>'; return; } if(typeof _snapBadge==='function')_snapBadge(); }
+    _prog('발굴풀',0,0,'시작');
+    try{ res=await _persistBracket(mk,['mega'],function(i,t,n){_prog('발굴풀',i,t,n);}); }catch(eM){ res={ok:false,reason:String(eM&&eM.message||eM)}; }
+    poolLbl='발굴풀(스냅샷)';
+  } else {
+    _prog('대표+관심',0,0,'시작');
+    try{ res=await _persistBracket(mk,['rep','watch'],function(i,t,n){_prog('대표+관심',i,t,n);}); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
+    poolLbl='대표+관심 합산';
+  }
+  var agg=(res&&res.ok)?_persistAgg(res):null;
+  if(typeof _sxMeasStash==='function') _sxMeasStash('persist_'+mk,{poolLbl:poolLbl});
+  el.innerHTML=_persistRender(res,agg,mk,poolLbl);
+}
+function _persistRender(res, agg, mk, poolLbl){
+  var GRN='#16a34a',RED='#dc2626',AMB='#d97706',BLU='#0891b2',T2='var(--text2)',T3='var(--text3)';
+  if(!res) return '';
+  if(!res.ok) return '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">📈 '+(res.reason||'측정 실패')+'</div>';
+  var esc=function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k];}); };
+  var _pct=function(v){ return v==null?'–':((v>0?'+':'')+(v*100).toFixed(2)+'%'); };
+  var _ic=function(v){ if(v==null) return {t:'–',c:T3,w:400}; var sig=Math.abs(v)>=0.10, weak=Math.abs(v)<0.05; return {t:(v>0?'+':'')+v.toFixed(2), c:weak?T3:(v>0?GRN:RED), w:sig?800:600}; };
+  var PL={up:'상승장 × 강세',down:'하락장 × 강세'};
+  var body='';
+  ['up','down'].forEach(function(P){
+    var a=agg?agg[P]:null;
+    if(!a||!a.n){ body+='<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:10px"><div style="font-size:11px;font-weight:800;color:'+T2+'">'+PL[P]+'</div><div style="font-size:9.5px;color:'+T3+';margin-top:3px">표본 없음(이 시장·풀에 강세 봉 부족)</div></div>'; return; }
+    var b15=a.base?a.base.h15:null, survTxt=a.surv!=null?(a.surv*100).toFixed(0)+'%':'–';
+    var top=a.mats.filter(function(m){return m.ic.h15!=null;}).slice(0,10);
+    var rows='';
+    top.forEach(function(m){ var c10=_ic(m.ic.h10),c15=_ic(m.ic.h15),c20=_ic(m.ic.h20);
+      rows+='<tr style="border-top:1px solid var(--border)"><td style="padding:4px 5px;font-size:10px;color:'+T2+';font-weight:600">'+esc(m.label)+'</td>'
+        +'<td style="padding:4px 5px;text-align:right;font-size:10px;color:'+c10.c+';font-weight:'+c10.w+'">'+c10.t+'</td>'
+        +'<td style="padding:4px 5px;text-align:right;font-size:11px;color:'+c15.c+';font-weight:'+c15.w+'">'+c15.t+'</td>'
+        +'<td style="padding:4px 5px;text-align:right;font-size:10px;color:'+c20.c+';font-weight:'+c20.w+'">'+c20.t+'</td>'
+        +'<td style="padding:4px 5px;text-align:center;font-size:9px">'+(m.oosE!=null&&m.oosL!=null?(m.rob?'<b style="color:'+GRN+'">✓</b>':'<span style="color:'+AMB+'">✗</span>'):'–')+'</td>'
+        +'<td style="padding:4px 5px;text-align:right;font-size:8.5px;color:'+T3+'">'+m.n+'</td></tr>';
+    });
+    body+='<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:10px">'
+      +'<div style="font-size:11px;font-weight:800;color:'+T2+'">'+PL[P]+' <span style="font-weight:500;font-size:9px;color:'+T3+'">n='+a.n+'봉</span></div>'
+      +'<div style="font-size:9px;color:'+T3+';margin:2px 0 6px;line-height:1.5">지형 지속 기저: h15 forward <b style="color:'+(b15!=null&&b15>0?GRN:RED)+'">'+_pct(b15)+'</b> · h10 생존 '+survTxt+' (이 위에서 재료 IC=+/− 기울기)</div>'
+      +'<table style="width:100%;border-collapse:collapse"><tr style="font-size:8px;color:'+T3+'"><td style="padding:2px 5px">재료(|IC h15| 상위)</td><td style="padding:2px 5px;text-align:right">h10</td><td style="padding:2px 5px;text-align:right">h15</td><td style="padding:2px 5px;text-align:right">h20</td><td style="padding:2px 5px;text-align:center">OOS</td><td style="padding:2px 5px;text-align:right">n</td></tr>'
+      +rows+'</table></div>';
+  });
+  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-bottom:8px">📈 <b>추세 지속 탐색</b> — 강세(정배열) 구간 전봉의 SSOT 재료 vs forward return <b>IC(Spearman)</b>. <b style="color:'+GRN+'">+</b>=재료↑→수익↑(지속 신호) · <b style="color:'+RED+'">−</b>=재료↑→수익↓(소진). |IC|≥0.10 유의(굵게)·|IC|&lt;0.05 회색. h20 = 지속력. OOS ✓=전·후반 부호일치. ⚠<b>정찰용</b> — 유망 재료도 바로 레시피 금지(개별 사전선언+OOS+효과크기 검증). 측정전용 · '+esc(poolLbl||'')+' '+(res.stocksUsed||0)+'종목 · 강세봉 '+(res.bullBars||0)+'</div>';
+  return head+body;
+}
+if(typeof window!=='undefined'){ window._persistRun=_persistRun; }
 // ════════ [S857] real×fake 동시발동 오염 — fake의 원설계는 하락예측이 아니라 "real처럼 보이는 가짜 거르기". S856에서 fake 단독 프로파일 무력(3시장) 확인 → 남은 질문: real 발동봉에 fake가 겹치면 real 성과가 깎이나(조건부 변별). 깎이면 fake=동시발동 감점으로 존속, 안 깎이면 완전 퇴역 → C 규칙 확정. real 이벤트를 순수(xk=0)/동반(xk>0)로 쪼개 t+k 프로파일 비교. base 불필요(동일 레짐 내부 차분). 표본 병기(S806)·측정전용. ════════
 async function _recipeContamBracket(mk, sources, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
@@ -8858,7 +8976,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1034';
+  window.SX_BUILD='S1035';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
