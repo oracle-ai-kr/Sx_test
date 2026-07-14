@@ -6094,12 +6094,12 @@ function _entryTimingRender(res, mk, poolLbl){
   var esc=function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k];}); };
   var cAll=res.col.all, bullPct=cAll.n?cAll.bull/cAll.n*100:null, colBlock='';
   if(bullPct!=null){
-    var bearPct=100-bullPct, dom=(bullPct>=50)?'양봉':'음봉';
+    var bearPct=100-bullPct, _d=bullPct-50, domTxt=(Math.abs(_d)<2)?'양·음 거의 반반(중립) → 진입 직후 방향성 없음(물림은 시장베타)':(_d>0?'다음날 양봉이 다수 → 진입 직후 강세 시작이 잦음':'다음날 음봉이 다수 → 진입 직후 약세로 시작(=물림)이 잦음');/* [S1032] 50% 근처 중립 처리 */
     colBlock='<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:10px;background:var(--surface)">'
       +'<div style="font-size:9.5px;font-weight:800;color:'+T2+';margin-bottom:4px">🕯 신호 다음봉 색 <span style="font-weight:500;color:'+T3+'">· n='+cAll.n+'</span></div>'
       +'<div style="display:flex;height:14px;border-radius:5px;overflow:hidden;background:var(--surface2)"><div style="width:'+bullPct.toFixed(0)+'%;background:'+RED+'"></div><div style="width:'+bearPct.toFixed(0)+'%;background:'+BLU+'"></div></div>'
       +'<div style="display:flex;justify-content:space-between;font-size:10px;margin-top:4px"><span style="color:'+RED+';font-weight:700">양봉 '+bullPct.toFixed(0)+'%</span><span style="color:'+BLU+';font-weight:700">음봉 '+bearPct.toFixed(0)+'%</span></div>'
-      +'<div style="font-size:8.5px;color:'+T3+';margin-top:3px;line-height:1.5">다음날 '+dom+'이 다수 → '+(dom==='음봉'?'진입 직후 약세로 시작(=물림)이 잦음':'진입 직후 강세 시작이 잦음')+'. (색=시세방향 · 수익은 아래 표)</div>'
+      +'<div style="font-size:8.5px;color:'+T3+';margin-top:3px;line-height:1.5">'+domTxt+'. (색=시세방향 · 수익은 아래 표)</div>'
       +'</div>';
   }
   var tblBlock='';
@@ -8613,7 +8613,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1030';
+  window.SX_BUILD='S1032';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
