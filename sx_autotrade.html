@@ -49,9 +49,10 @@ body.sx-white{
 }
 
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;}
+html,body{height:100%;overflow-x:clip;}/* [S1029] 모바일 가로 오버플로 차단 — clip은 스크롤컨테이너 미생성이라 sticky/세로스크롤 안전(hidden과 차이) */
 body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent;}
-#app{display:flex;flex-direction:column;min-height:100%;max-width:480px;margin:0 auto;}
+*{min-width:0;}/* [S1029] flex/grid 자식 기본 min-width:auto → 긴 값이 폭을 밀어내는 것 방지(축소 허용) */
+#app{display:flex;flex-direction:column;min-height:100%;max-width:480px;margin:0 auto;width:100%;overflow-x:clip;}/* [S1029] 폭100%+가로클립 */
 
 /* ── Top Bar ── */
 .top-bar{
@@ -103,10 +104,10 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .pipe-link{width:22px;height:2px;background:var(--surface3);flex-shrink:0;margin-bottom:26px;}
 
 /* ── 상태 행 ── */
-.st-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.st-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}/* [S1029] gap: 값 줄바꿈 시 라벨과 간격 */
 .st-row:last-child{border-bottom:none;}
-.st-row .k{color:var(--text2);}
-.st-row .v{font-weight:600;color:var(--text3);}
+.st-row .k{color:var(--text2);flex-shrink:0;}/* [S1029] 라벨 고정 */
+.st-row .v{font-weight:600;color:var(--text3);text-align:right;overflow-wrap:anywhere;}/* [S1029] 값 우측정렬+긴값 줄바꿈 */
 .st-badge{
   display:inline-flex;align-items:center;gap:5px;
   font-size:11px;font-weight:700;color:var(--hold);
@@ -183,7 +184,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1028</div>
+    <div class="tb-build">S1029</div>
   </div>
 
   <div class="scroll-area">
@@ -382,7 +383,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1028</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1029</div>
   </div>
 </div>
 
@@ -584,7 +585,7 @@ function atRenderEvents(events){
     const col=e.kind==='error'?'var(--sell)':(e.kind==='order'?'var(--buy)':'var(--text2)');
     x+='<div style="display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;">';
     x+='<span style="flex-shrink:0;line-height:1.3;">'+_atEvIcon(e.kind)+'</span>';
-    x+='<span style="flex:1;color:'+col+';line-height:1.4;">'+_esc(e.msg||'')+'</span>';
+    x+='<span style="flex:1;min-width:0;overflow-wrap:anywhere;color:'+col+';line-height:1.4;">'+_esc(e.msg||'')+'</span>';/* [S1029] 긴 메시지 줄바꿈 */
     x+='<span style="flex-shrink:0;color:var(--text3);font-size:10px;">'+atRel(e.at)+'</span></div>';
   }
   body.innerHTML=x;
@@ -606,7 +607,7 @@ function atRenderPortfolio(pf){
   tv.innerHTML='<span style="color:'+_atPlCol(pl)+';">'+_atPl(pl)+' ('+_atPct(rate)+')</span>';
   const hs=pf.holdings||[];
   if(!hs.length){ body.innerHTML='<span style="color:var(--text3);">보유 종목 없음'+(t.cash?(' · 예수금 '+_atWon(t.cash)):'')+'</span>'; return; }
-  let h='<div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.9fr 1.1fr;gap:5px 8px;font-size:11px;align-items:end;">';
+  let h='<div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,1.1fr);gap:5px 8px;font-size:11px;align-items:end;">';/* [S1029] minmax(0,fr): 트랙 shrink 허용 */
   h+='<div style="color:var(--text3);">종목</div><div style="color:var(--text3);text-align:right;">평단</div><div style="color:var(--text3);text-align:right;">현재가</div><div style="color:var(--text3);text-align:right;">평가손익</div>';
   for(const x of hs){
     const c=_atPlCol(x.plAmt||0);
