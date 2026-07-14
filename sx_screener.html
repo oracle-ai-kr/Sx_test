@@ -1993,16 +1993,19 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div id="sxModeBar" style="margin-bottom:6px"></div><!-- [S869] 공용 모드 바 -->
       <div id="rcpPreviewCard"></div><!-- [S872] 레시피 사용성 진단 -->
       <div id="cvDeepCardsHost" style="margin-bottom:4px"></div>
-      <!-- [S1035] 📈 추세 지속 탐색 (신설 카드 — 강세 지형 재료 발굴, 반등 카드와 별개 주제) -->
+      <!-- [S1035] 📈 추세 지속 탐색 (신설 카드 — 강세 지형 재료 발굴, 반등 카드와 별개 주제) · [S1036] 접기/펼치기 기본접힘 -->
       <div style="margin:0 0 10px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <div class="cv-toggle" onclick="_sxVib(8);window._cvToggle&&_cvToggle(this,'persistBody')" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <span class="cv-arrow" style="color:var(--accent);font-size:11px">▶</span>
           <span style="font-size:13px;font-weight:800;color:var(--text)">📈 추세 지속 탐색</span>
           <span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text3);border:1px solid var(--border)">실험</span>
-          <span style="margin-left:auto;flex-shrink:0;font-size:8px;font-weight:800;color:#0891b2;background:#0891b214;border:1px solid #0891b255;border-radius:6px;padding:1px 6px">S1035</span>
+          <span style="margin-left:auto;flex-shrink:0;font-size:8px;font-weight:800;color:#0891b2;background:#0891b214;border:1px solid #0891b255;border-radius:6px;padding:1px 6px">S1036</span>
         </div>
-        <div style="font-size:9.5px;color:var(--text3);line-height:1.5;margin-bottom:8px">강세(정배열) <b>구간 전봉</b>에서 추세가 <b>지속되나 소진되나</b>를 가르는 SSOT 재료를 IC로 탐색. real/fake(반등) 아님 · outcome=forward return(h10/15/20, h20=지속력). 풀 <b>상승장×강세 / 하락장×강세</b> 동시. ⚠ 정찰용 — 유망 재료도 바로 레시피 금지(개별 사전선언+OOS 검증 필요).</div>
-        <button onclick="_sxVib(12);window._persistRun&&_persistRun()" style="display:inline-flex;align-items:center;padding:7px 14px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;background:#0891b2;color:#fff;border:none;font-family:inherit">🔎 강세 재료 IC 스캔</button>
-        <div id="persistResult" style="display:none;margin-top:8px"></div>
+        <div id="persistBody" style="display:none;margin-top:10px" data-loaded="1">
+          <div style="font-size:9.5px;color:var(--text3);line-height:1.5;margin-bottom:8px">강세(정배열) <b>구간 전봉</b>에서 추세가 <b>지속되나 소진되나</b>를 가르는 SSOT 재료를 IC로 탐색. real/fake(반등) 아님 · outcome=forward return(h10/15/20, h20=지속력). 풀 <b>상승장×강세 / 하락장×강세</b> 동시. ⚠ 정찰용 — 유망 재료도 바로 레시피 금지(개별 사전선언+OOS 검증 필요). 먼저 <b>📦 스냅샷 생성(ON)</b> 후 실행.</div>
+          <button onclick="_sxVib(12);window._persistRun&&_persistRun()" style="display:inline-flex;align-items:center;padding:7px 14px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;background:#0891b2;color:#fff;border:none;font-family:inherit">🔎 강세 재료 IC 스캔</button>
+          <div id="persistResult" style="display:none;margin-top:8px"></div>
+        </div>
       </div>
       <!-- [S749] 🔬 데드캣 검증 도구 — S747 카드를 깊이카드 옆(상단)으로 이동 + 버튼→칩 축소 + 풀/재료 2그룹 색구분(풀=teal #0d9488, 재료=purple #7c3aed). 기본 접힘·data-loaded=1로 C검증 자동실행 방지. 측정 전용·엔진 무변경. -->
       <div style="margin:0 0 10px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border)">
