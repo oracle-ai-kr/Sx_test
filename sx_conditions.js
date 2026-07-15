@@ -636,8 +636,6 @@ const US_CONDITIONS = [
 
 function getConditions(){ return currentMarket==='coin'?COIN_CONDITIONS:currentMarket==='us'?US_CONDITIONS:SX_CONDITIONS; }
 
-// ── Phase별 조건 필터링 유틸 ──
-function getConditionsByPhase(phase){ return getConditions().filter(c=>c.phase===phase); }
 
 // ════════════════════════════════════════════════════════════
 //  Phase별 프리셋 (조합 시스템용)
