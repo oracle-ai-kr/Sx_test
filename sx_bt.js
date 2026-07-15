@@ -658,19 +658,6 @@ function btHistAccumulate(){
 
 // S67: 누적 데이터 삭제
 // [S224] async 변환 — sxConfirm 사용
-async function btHistClear(){
-  const stock = _btCurrentStock();
-  if(!stock){ toast('종목을 먼저 선택하세요'); return; }
-  const market = stock._mkt || stock.market || currentMarket;
-  const hist = _btHistLoad(market);
-  if(!hist[stock.code] || !hist[stock.code].length){ toast('누적 데이터가 없습니다'); return; }
-  const _conf = (typeof window !== 'undefined' && window.sxConfirm) ? window.sxConfirm : (m=>Promise.resolve(confirm(m)));
-  if(!await _conf(`${stock.name||stock.code}의 검증 누적 데이터를 삭제하시겠습니까?`)) return;
-  delete hist[stock.code];
-  _btHistSave(market, hist);
-  toast('검증 데이터 삭제됨');
-  _btHistUpdateUI(stock);
-}
 
 // S67: 누적 기반 통계 계산
 function _btHistCalcStats(arr){
@@ -3146,9 +3133,6 @@ function _mtRenderTradeRow(t){
 //   (기존 코드가 btRenderPaper 등을 호출해도 에러 나지 않도록)
 // ============================================================
 function btRenderPaper(){ /* deprecated → mtRender()로 대체됨 */ }
-function btRecordPaper(){ /* deprecated */ }
-function btUpdatePaper(){ toast('수동 매매 시뮬 모드로 개편되었습니다'); }
-function btClearPaper(){ mtClearAll(); }
 
 // ── Bridge 연동: BT 결과 저장 ──
 function _btSaveBtResult(stock, r){
