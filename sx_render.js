@@ -3837,7 +3837,6 @@ function _vbFeatVal(feat, adv){
   }
   return null;
 }
-function _vbCondMet(c, adv){ var v=_vbFeatVal(c.feat, adv); if(v==null) return false; return c.dir==='lt'? v<c.th : v>c.th; }
 
 // ════════ [S889] C 2.0 축 재접지 — 순수 점수함수(Stage 1·미배선·검증용). 스트립(S882)의 검증된 로직(준비=완성률/전환=겹침/전이=발동후궤적)을 0~100 점수화. 집계 준비:전환:전이=2:5:3(전환 주도). 라이브 verdict 무영향 — 스트립에 점수만 표시. 개념: 준비=사전예고·전환=완성및강도·전이=유지및관찰.
 function _cv2ReadyScore(on, total){ return (total>0)?Math.round((on/total)*100):0; }   // 준비=재료 완성률(발동 예고). B검증: 완성↑→3봉내 발동↑(kr bear 5+ 46%)
@@ -9178,7 +9177,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1042';
+  window.SX_BUILD='S1043';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11226,234 +11225,6 @@ async function _loadMoreCandles(stock){
   }
 }
 
-// S62: BT 배너 생성 (종합행동지침 — 진입 검토×매매전략 교차 판정)
-function _buildBtBanner(stock, qs){
-  const btData = _getBtData(stock);
-
-  // S79: BT 비지원 TF 체크
-  const _btMkt = stock._mkt || stock.market || currentMarket;
-  if(!_isBtSupportedTF(_btMkt, _analTF)){
-    return `<div class="bt-banner info">
-      <div class="bt-banner-header"><div class="bt-banner-title info">매매전략 — 데이터 부족</div></div>
-      <div class="bt-action-line neutral">현재 타임프레임은 백테스트 미지원</div>
-      <div class="bt-banner-body">이 타임프레임에서는 충분한 매매 데이터를 확보할 수 없습니다. 관심종목에 등록하고 지원 TF에서 거래 10회 이상 누적 후 확인하세요.</div>
-    </div>`;
-  }
-
-  // 검증 시점 포맷
-  let btDateStr = '';
-  if(btData && btData.saved_at){
-    try{
-      const dt = new Date(btData.saved_at);
-      btDateStr = (dt.getMonth()+1)+'/'+dt.getDate()+' '+(dt.getHours()<10?'0':'')+dt.getHours()+':'+(dt.getMinutes()<10?'0':'')+dt.getMinutes()+' 검증';
-    }catch(e){}
-  }
-
-  // S108 Phase 3-B-9a-ext: "?" 버튼을 도움말 → 수동 확장(+200봉) 버튼으로 교체
-  //   기존 도움말은 구버전(진입 검토/매매전략 의미가 이미 바뀜, C 9종 판정 체계와 불일치)
-  //   새 역할: 데이터 부족 상태에서 "?" 클릭 시 추가 200봉 로드 → BT 재실행 → UI 재렌더
-  //   표시 조건: trades < BT_MIN_TRADES AND stage < 2 (최대 2단계 = 600봉)
-  //   아이콘 "?"는 유지 (이미 익숙한 위치, 학습 비용 0)
-  //
-  //   stage 플래그:
-  //     0 → 200봉 (스캐너 기본)
-  //     1 → 400봉 (분석탭 진입 시 자동 확장 완료)
-  //     2 → 600봉 (? 버튼 클릭 시 수동 확장 완료, 최대)
-  const _extStageNow = stock._analCandlesExtendedStage || (stock._analCandlesExtended ? 1 : 0);
-  const _extMktBanner = stock._mkt || stock.market || currentMarket;
-  // [S168 600봉 통일] 미국(us) 시장 추가 — fetchCandlesExtended period1/period2 지원
-  const _extSupportedBanner = (_extMktBanner === 'coin' || _extMktBanner === 'kr' || _extMktBanner === 'us');
-  // helpBtn은 이제 loadMoreBtn — 조건 충족 시 버튼, 아니면 빈 문자열
-  //   조건: (1) 시장 지원 (2) stage < 2 (3) 현재 부족 상태 — 버튼 생성부에서는 (1)+(2)만 체크
-  //   실제 표시는 각 분기에서 isInsufficient 조건과 함께 결정 (아래 _loadMoreBtn 사용)
-  const _canExpand = _extSupportedBanner && _extStageNow < 2 && typeof fetchCandlesExtended === 'function';
-  // S114: ? 버튼 UI만 숨김 — _loadMoreCandles 함수와 _canExpand 로직은 보존 (혹시 모를 다른 조건 대비)
-  //   엔진판단 검증 버튼이 역할 대체 (400→600봉 확장 + BT 재실행)
-  //   원본: const _loadMoreBtn = _canExpand ? `<span class="bt-help-btn" onclick="_loadMoreCandles(currentAnalStock)" title="+200봉 추가 로드 (현재 ${200+_extStageNow*200}봉 → ${200+(_extStageNow+1)*200}봉)">?</span>` : '';
-  const _loadMoreBtn = '';  // S114: UI 숨김 (복원 시 위 원본 주석 참고)
-  // 하위 호환: 기존 helpBtn/helpHTML 이름 유지 (다른 분기에서 참조)
-  const helpBtn = _loadMoreBtn;
-  const helpHTML = ''; // 도움말 HTML 완전 제거 (구버전 내용 — C 9종 판정 체계와 불일치)
-
-  // S109 Phase 3-B-9a-ext-fix5: analScore/analGood은 이제 배너에서 사용 안 함 (원칙 ① 독자 판정 제거)
-  //   이전엔 analGood × btGood 2×2 판정에 사용 → 이제 5카드 요약만 표시
-  //   변수는 하위 호환 위해 유지 (제거 시 아래 분기에서 참조 리스크)
-  const analScore = qs ? qs.score : 0;
-  const analGood = analScore >= 60;
-
-  // BT 미실행
-  if(!btData){
-    return `<div class="bt-banner info">
-      <div class="bt-banner-header"><div class="bt-banner-title info">전략 미검증</div>${helpBtn}</div>
-      <div class="bt-action-line neutral">단일검증 탭에서 백테스트 후 교차 판단 가능</div>
-      <div class="bt-banner-body">진입 검토 ${analScore}점 — 매매전략 미실행. 진입 검토만으로는 전략의 과거 성과를 알 수 없습니다. 단일검증 탭에서 백테스트를 실행하면 두 점수를 교차 비교할 수 있습니다.</div>
-      ${helpHTML}
-    </div>`;
-  }
-
-  const pnl = btData.totalPnl ?? 0;
-  const wr = btData.winRate ?? 0;
-  const trades = btData.totalTrades ?? 0;
-  const mdd = btData.mdd ?? 0;
-  const pf = btData.profitFactor ?? 0;
-
-  // 거래 0건
-  if(trades === 0){
-    return `<div class="bt-banner info">
-      <div class="bt-banner-header"><div class="bt-banner-title info">거래 신호 없음</div>${helpBtn}</div>
-      <div class="bt-action-line neutral">검증 기간 내 매매 신호 미발생</div>
-      <div class="bt-banner-body">설정한 조건에서 매매 신호가 발생하지 않았습니다. 타임프레임이나 임계값을 조정하여 재검증을 권장합니다.</div>
-      ${btDateStr?`<div style="font-size:8px;color:var(--text3);margin-top:4px;text-align:right">${btDateStr}</div>`:''}
-      ${helpHTML}
-    </div>`;
-  }
-
-  // S93: 거래수 기반 신뢰도 3색 (점수는 항상 표시)
-  let _bReliLabel='', _bReliColor='';
-  if(trades < BT_MIN_TRADES){ _bReliLabel='데이터 부족'; _bReliColor='var(--sell)'; }
-  else if(trades < 30){ _bReliLabel='데이터 충족'; _bReliColor='var(--accent)'; }
-  else { _bReliLabel='데이터 충분'; _bReliColor='var(--buy)'; }
-
-  // S109 Phase 3-B-9a-ext-fix5: 배너 정합성 수정 (원칙 ① 독자 판정 금지 + ⑦ 시간적 일관성)
-  //   문제:
-  //     (1) trades<10일 때는 "매매전략 — 데이터 부족" 타이틀
-  //     (2) trades≥10일 때는 "종합행동지침 — 데이터 충족" 타이틀 (역할 변경!)
-  //     (3) analScore×btScore 2×2 독자 판정 ("진입 적기/단기급등/관심/회피")
-  //     → 원칙 ⑦ 시간적 일관성 위배 + 원칙 ① 독자 판정 금지 위배
-  //
-  //   해결: 배너 역할을 "BT 데이터 품질 + 성과 숫자"로 고정
-  //     - 타이틀: 항상 "매매전략 — 데이터 XX"
-  //     - 내용: 5개 카드 [승률][수익][거래][MDD][손익비]
-  //     - 데이터 부족 시: 거래 수와 손익비는 표시, 나머지는 "?"
-  //     - actionText("진입 적기" 등) 완전 제거 — C 판정은 이미 상단 배지/매수 근거 평가 카드에 있음
-  //
-  //   거래 0건 특수 케이스만 예외적으로 유지 (표시할 숫자가 없으므로)
-  if(trades === 0){
-    return `<div class="bt-banner info">
-      <div class="bt-banner-header"><div class="bt-banner-title info">매매전략 — <span style="color:var(--text3);font-weight:700">거래 없음</span></div>${helpBtn}</div>
-      <div class="bt-banner-body" style="padding:8px 10px;font-size:11px;color:var(--text3)">검증 기간 내 매매 신호가 발생하지 않았습니다. 타임프레임이나 임계값을 조정하거나 관심종목 등록 후 재검증하세요.</div>
-      ${helpHTML}
-    </div>`;
-  }
-
-  const btScore = calcBtScore(btData, stock);
-
-  // 5카드 생성 함수 — 데이터 부족 시 승률/수익/MDD만 "?"로, 거래/손익비는 항상 표시
-  const _insufficient = trades < BT_MIN_TRADES;
-  const _fmtPct = v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
-  // 손익비: BT 결과의 평균이익/평균손실 비율 (없으면 fallback)
-  const avgWin = btData.avgWin ?? (btData.avgProfit > 0 ? btData.avgProfit : 0);
-  const avgLoss = btData.avgLoss ?? (btData.avgProfit < 0 ? Math.abs(btData.avgProfit) : 0);
-  let _rrLabel = '—';
-  if(avgWin > 0 && avgLoss > 0){
-    const ratio = avgWin / avgLoss;
-    _rrLabel = ratio >= 1 ? `${ratio.toFixed(1)} : 1` : `1 : ${(1/ratio).toFixed(1)}`;
-  } else if(pf > 0){
-    // avgWin/avgLoss 없으면 PF로 추정 표시
-    _rrLabel = `PF ${pf.toFixed(2)}`;
-  }
-
-  const _cardStyle = 'flex:1;min-width:0;background:var(--surface2);border-radius:6px;padding:6px 3px;text-align:center';
-  const _labelStyle = 'font-size:9px;color:var(--text3);font-weight:600;letter-spacing:-.2px';
-  const _valueStyle = 'font-size:11px;font-weight:800;margin-top:2px;line-height:1.2;letter-spacing:-.3px';
-
-  // [S292] 승률 4단계: 60%↑녹색 / 40~59%파랑 / 20~39%주황 / 0~19%빨강
-  const _wrColor = _insufficient ? 'var(--text3)' : (wr >= 60 ? 'var(--buy)' : wr >= 40 ? '#3b82f6' : wr >= 20 ? '#f97316' : 'var(--sell)');
-  // [S295] 총수익률 4단계: ≥100% 녹색 / 50~99.9% 파랑 / 0~49.9% 주황 / <0 빨강
-  const _pnlColor = _insufficient ? 'var(--text3)' : (pnl >= 100 ? 'var(--buy)' : pnl >= 50 ? '#3b82f6' : pnl >= 0 ? '#f97316' : 'var(--sell)');
-  // [S294] MDD 3단계: <10% 파랑 / 10~19.9% 보라 / ≥20% 빨강
-  const _mddColor = _insufficient ? 'var(--text3)' : (mdd < 10 ? '#3b82f6' : mdd < 20 ? '#8b5cf6' : 'var(--sell)');
-  const _trColor = _insufficient ? 'var(--sell)' : (trades < 30 ? 'var(--accent)' : 'var(--buy)');
-
-  // [S293] 손익비 색상: ≥2.0 녹색 / 1.5~1.99 파랑 / 1.0~1.49 주황 / <1.0 빨강
-  const _rrColor = pf >= 2.0 ? 'var(--buy)' : pf >= 1.5 ? '#3b82f6' : pf >= 1.0 ? '#f97316' : 'var(--sell)';
-
-  const _statsGrid = `<div style="display:flex;gap:4px;margin-top:8px">
-    <div style="${_cardStyle}"><div style="${_labelStyle}">승률</div><div style="${_valueStyle};color:${_wrColor}">${_insufficient?'?':wr.toFixed(1)+'%'}</div></div>
-    <div style="${_cardStyle}"><div style="${_labelStyle}">수익</div><div style="${_valueStyle};color:${_pnlColor}">${_insufficient?'?':_fmtPct(pnl)}</div></div>
-    <div style="${_cardStyle}"><div style="${_labelStyle}">거래</div><div style="${_valueStyle};color:${_trColor}">${trades}</div></div>
-    <div style="${_cardStyle}"><div style="${_labelStyle}">MDD</div><div style="${_valueStyle};color:${_mddColor}">${_insufficient?'?':mdd.toFixed(2)+'%'}</div></div>
-    <div style="${_cardStyle}"><div style="${_labelStyle}">손익비</div><div style="${_valueStyle};color:${_rrColor}">${_rrLabel}</div></div>
-  </div>`;
-
-  // S109 Phase 3-B-9a-ext-fix6: 데이터 부족 시 안내 분기
-  //   stage 0~1 (아직 확장 가능): "거래 N회 / 최소 10회 필요 — 신뢰도 주의"
-  //   stage 2 (최대 확장 도달, 600봉): "최대 확장 완료 — [권장 TF] 전환 권장"
-  //
-  //   TF 전환 권장 맵 (600봉 커버리지 기준):
-  //     국내: 60분(50일) → 일봉 / 일봉(2.4년) → 주봉 / 주봉·월봉 → 조건 검토
-  //     해외: 일봉 → 주봉 / 주봉 → 월봉 / 월봉 → 조건 검토
-  //     코인: 60분(25일) → 4시간 / 240m(100일) → 일봉 / 일봉 → 주봉 / 주봉·월봉 → 조건 검토
-  let _insufficientNote = '';
-  if(_insufficient){
-    const _stage = stock._analCandlesExtendedStage || (stock._analCandlesExtended ? 1 : 0);
-    const _tf = _analTF || 'day';
-    const _mkt = stock._mkt || stock.market || currentMarket;
-
-    if(_stage >= 2){
-      // 최대 확장 도달 — TF 전환 권장
-      let _recommendTf = null;
-      if(_mkt === 'kr'){
-        if(_tf === '60m') _recommendTf = '일봉';
-        else if(_tf === 'day') _recommendTf = '주봉';
-      } else if(_mkt === 'us'){
-        if(_tf === 'day') _recommendTf = '주봉';
-        else if(_tf === 'week') _recommendTf = '월봉';
-      } else if(_mkt === 'coin'){
-        if(_tf === '60m') _recommendTf = '4시간';
-        else if(_tf === '240m') _recommendTf = '일봉';
-        else if(_tf === 'day') _recommendTf = '주봉';
-        else if(_tf === 'week') _recommendTf = '월봉';
-      }
-
-      if(_recommendTf){
-        _insufficientNote = `<div style="margin-top:6px;padding:6px 8px;background:rgba(100,149,237,.08);border-radius:6px;font-size:10px;text-align:center;line-height:1.4">
-          <div style="color:var(--sell);font-weight:600">거래 ${trades}회 / 최소 ${BT_MIN_TRADES}회 필요</div>
-          <div style="color:var(--accent);margin-top:3px">💡 최대 확장 완료 (600봉) — <b>${_recommendTf}</b> 전환 권장</div>
-        </div>`;
-      } else {
-        // 전환 불가 (주봉/월봉 등)
-        _insufficientNote = `<div style="margin-top:6px;padding:6px 8px;background:rgba(100,149,237,.08);border-radius:6px;font-size:10px;text-align:center;line-height:1.4">
-          <div style="color:var(--sell);font-weight:600">거래 ${trades}회 / 최소 ${BT_MIN_TRADES}회 필요</div>
-          <div style="color:var(--accent);margin-top:3px">💡 최대 확장 완료 — 매매 조건 검토 권장</div>
-        </div>`;
-      }
-    } else {
-      // 아직 확장 가능 (기존 안내)
-      _insufficientNote = `<div style="margin-top:6px;font-size:10px;color:var(--sell);text-align:center">거래 ${trades}회 / 최소 ${BT_MIN_TRADES}회 필요 — 신뢰도 주의</div>`;
-    }
-  }
-
-  // S67: 누적 신뢰도 표시
-  const _histMkt = stock._mkt || stock.market || currentMarket;
-  const _histData = _btHistLoad(_histMkt);
-  const _histArr = _histData[stock.code] || [];
-  const _histRel = _btHistReliabilityLabel(_histArr.length);
-  const _histStats = _btHistCalcStats(_histArr);
-  let _histLine = '';
-  if(_histArr.length > 0){
-    const _hc = _histRel.cls==='full'?'var(--buy)':_histRel.cls==='mid'?'var(--accent)':_histRel.cls==='low'?'var(--sell)':'var(--text3)';
-    _histLine = `<div style="margin-top:6px;padding:6px 8px;background:var(--surface2);border-radius:6px;font-size:10px">
-      <span style="font-weight:700;color:${_hc}">신뢰도 ${_histRel.text}</span> <span style="color:var(--text3)">${_histRel.desc}</span>`;
-    if(_histStats){
-      _histLine += ` · 누적 승률 ${_histStats.wr}% · PF ${_histStats.pf} · 총수익 ${_histStats.totalPnl>=0?'+':''}${_histStats.totalPnl}%`;
-    }
-    _histLine += `</div>`;
-  }
-
-  // S109 Phase 3-B-9a-ext-fix5 후속: 신뢰도별 배너 색상 분기
-  //   데이터 부족(trades<10)  → info (하늘색) — 신중 분위기
-  //   데이터 충족/충분(trades≥10) → pass (녹색) — 검증 완료 분위기
-  const _bannerCls = _insufficient ? 'info' : 'pass';
-
-  return `<div class="bt-banner ${_bannerCls}">
-    <div class="bt-banner-header"><div class="bt-banner-title ${_bannerCls}">매매전략 — <span style="color:${_bReliColor};font-weight:700">${_bReliLabel}</span></div>${helpBtn}</div>
-    ${_statsGrid}
-    ${_insufficientNote}
-    ${_histLine}
-    ${helpHTML}
-  </div>`;
-}
 
 // ══════════════════════════════════════════════════════════════
 // [S356] 종합 점수 전광판 (Score Board) — 분석탭 배너 바로 아래
@@ -15293,32 +15064,6 @@ function renderPortfolioDiagnosis(containerId, radarGuide, corrGuide, corrData) 
   el.innerHTML = html;
 }
 
-async function saveAnalResult(){
-  if(!currentAnalStock) return;
-  let indicators = currentAnalStock._indicators || null;
-  if(!indicators){
-    try{
-      const candles = await fetchCandles(currentAnalStock.code, (currentMarket==='kr' && window._kisEnabled) ? 500 : 200, _analTF);
-      if(candles && candles.length>=20) indicators = calcIndicators(candles, _analTF);
-    }catch(e){}
-  }
-  const scores = indicators ? calcEnhancedScores(currentAnalStock, indicators) : calcBasicScores(currentAnalStock);
-  const result = {
-    code: currentAnalStock.code,
-    name: currentAnalStock.name,
-    scores,
-    timestamp: Date.now(),
-  };
-  try{
-    const saved = JSON.parse(localStorage.getItem(KEYS.ANAL_RESULTS)||'[]');
-    const idx = saved.findIndex(r=>r.code===result.code);
-    if(idx>=0) saved[idx] = result;
-    else saved.unshift(result);
-    if(saved.length>50) saved.length = 50;
-    localStorage.setItem(KEYS.ANAL_RESULTS, JSON.stringify(saved));
-    
-  }catch(e){}
-}
 
 // ══════════════════════════════════════════════════════════════
 //  S99-3: Phase C-1 — 분석탭 멀티TF 시스템
