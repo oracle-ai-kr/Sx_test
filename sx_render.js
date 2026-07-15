@@ -6391,7 +6391,7 @@ if(typeof window!=='undefined'){ window._gridRun=_gridRun; }
 // ════════ [S1035] 추세 지속 탐색 — 강세(정배열) 구간 전봉에서 "지속(forward+) vs 소진(forward−)"을 가르는 SSOT 재료 IC. ════════
 //   주제=반등 아님(real/fake 안 씀). 대상=강세 구간 전봉(발동 무관 — 강세엔 발동 n=0이라 지형 전수). 풀=상승장×강세/하락장×강세(lt bull/bear). outcome=forward h10/15/20.
 //   재료=SXFeatureLib(레시피/위험 공용 SSOT)·IC=Spearman(위험 crash-IC 기계 재사용). +면 재료↑→수익↑(지속). |IC|≥0.10 유의. OOS 시간분할. ⚠정찰용·유망재료도 개별 사전선언+OOS 검증 통과분만 레시피. 측정전용.
-async function _persistBracket(mk, sources, onProgress){
+async function _persistBracket(mk, sources, onProgress, opts){ opts=opts||{};   /* [S1042] {includeMixed,computeBrk} — 씨앗2(횡보장 돌파)용. 기존 호출부는 opts 없음=동작 불변 */
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return {ok:false,reason:'캔들 fetch 미연결'};
   if(!(window.SXFeatureLib&&SXFeatureLib.contIds)) return {ok:false,reason:'재료 라이브러리 미로드 — 새로고침(캐시)'};
   if(typeof SXE==='undefined' || !SXE.calcAllScreener) return {ok:false,reason:'엔진 미로드'};
@@ -6418,12 +6418,13 @@ async function _persistBracket(mk, sources, onProgress){
       bullBars++;
       var ep=(rr[bi]&&typeof rr[bi].close==='number')?rr[bi].close:null; if(!(ep>0)) continue;
       var rgLT=(typeof _ltStr733==='function')?_ltStr733(ind.maAlignLT):null;
-      var pool= rgLT==='bull'?'up':(rgLT==='bear'?'down':null); if(!pool) continue;   // 상승장/하락장만(횡보 제외)
+      var pool= rgLT==='bull'?'up':(rgLT==='bear'?'down':((opts.includeMixed&&rgLT==='mixed')?'mixed':null)); if(!pool) continue;   // [S1042] 상승장/하락장 + (opt-in)횡보장
       var feats=SXFeatureLib.evalCont(ind, rr, bi); if(!feats) continue;
       var rets={}, okAny=false;
       for(var h=0;h<HZ.length;h++){ var H=HZ[h], jj=bi+H, rv=(rr[jj]&&typeof rr[jj].close==='number')?(rr[jj].close/ep-1):null; rets['h'+H]=rv; if(rv!=null) okAny=true; }
       if(!okAny) continue;
-      entries.push({ f:feats, r:rets, pool:pool, half:(bi<mid?'e':'l') });
+      var _brk20; if(opts.computeBrk){ var _hh=0; for(var _bk=Math.max(0,bi-20);_bk<bi;_bk++){ if(rr[_bk]&&rr[_bk].high>_hh)_hh=rr[_bk].high; } _brk20=(_hh>0 && rr[bi].close>_hh); }   // [S1042] 20일 고점돌파(직전20봉 최고가 초과)
+      entries.push({ f:feats, r:rets, pool:pool, half:(bi<mid?'e':'l'), brk20:_brk20 });
       _used=true; if((bi&31)===0) await _trendBatchSleep(0);
     }
     if(_used) stocksUsed++; await _trendBatchSleep(10);
@@ -6601,6 +6602,8 @@ if(typeof window!=='undefined'){ window._beamRun=_beamRun; }
 //   신호·게이트 frozen(결과 보고 완화 금지·돌멩이). 빔서치는 다중검정이라 ✓조차 운일 수 있어 이 단독 재검이 진짜 관문. 복권 배제 위해 median 필수.
 //   양쪽 풀: 발굴풀(스냅샷 ON=in-sample) AND 대표+관심(스냅샷 OFF=held-out) 각각 돌려 둘 다 통과해야 인정. 측정전용.
 var SEED_SIG = Object.freeze({ market:'kr', pool:'down', volOsc:73.31, vr:389.41, label:'하락장×강세 · 거래량OSC≥73.31 & VR≥389.41' });
+// [S1042] 씨앗2 — 횡보장×강세 상승전환(20일고점 돌파 + 극단거래량). bullVol 형제 가설. 게이트=SEED_GATE/TGATE 공유(bullVol과 동일 frozen 기준). 발굴풀=in-sample·대표+관심=held-out. 컨테이너 예비(0701·발굴풀): 중앙+4.83%(강세포함)·onset n98 생존 — held-out이 진짜 관문.
+var SEED_SIG2 = Object.freeze({ market:'kr', pool:'mixed', brk:true, volOsc:73.31, vr:389.41, label:'횡보장×강세 · 20일고점 돌파 · 거래량OSC≥73.31 & VR≥389.41', declared:'2026-07-15' });
 var SEED_GATE = Object.freeze({ minN:50, minMean:0.08, minMedian:0, minWin:0.50, declared:'2026-07-14' });
 var SEED_TGATE = Object.freeze({ minN:30, minMean:0.08, minMedian:0, minWin:0.50 }); // [S1040] 시간분리(전/후반) 각 반분 게이트 — frozen 규칙 시간 안정성
 function _seedMed(arr){ if(!arr.length) return null; var s=arr.slice().sort(function(a,b){return a-b;}), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
@@ -6623,12 +6626,14 @@ async function _seedRun(){
   if(!res||!res.ok){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">✅ '+((res&&res.reason)||'추출 실패')+'</div>'; return; }
   el.innerHTML=_seedRender(res, mk, poolLbl, isSnap);
 }
-function _seedRender(res, mk, poolLbl, isSnap){
+function _seedRender(res, mk, poolLbl, isSnap){ return _seedRenderCore(res, mk, poolLbl, isSnap, SEED_SIG, function(e,S){ return e.pool===S.pool && e.f && e.f.volOsc!=null && e.f.volOsc>=S.volOsc && e.f.vr!=null && e.f.vr>=S.vr; }); }   // [S1042] bullVol 래퍼
+function _seed2Render(res, mk, poolLbl, isSnap){ return _seedRenderCore(res, mk, poolLbl, isSnap, SEED_SIG2, function(e,S){ return e.pool===S.pool && e.brk20 && e.f && e.f.volOsc!=null && e.f.volOsc>=S.volOsc && e.f.vr!=null && e.f.vr>=S.vr; }); }   // [S1042] 씨앗2 래퍼 — pool=mixed & brk20 추가
+function _seedRenderCore(res, mk, poolLbl, isSnap, S, hitFn){
   var GRN='#16a34a',RED='#dc2626',AMB='#d97706',T2='var(--text2)',T3='var(--text3)';
   var _pct=function(v){ return v==null?'–':((v>0?'+':'')+(v*100).toFixed(2)+'%'); };
-  var S=SEED_SIG, G=SEED_GATE;
+  var G=SEED_GATE;   // [S1042] S는 인자(SEED_SIG or SEED_SIG2)
   var mkWarn = (mk!==S.market) ? '<div style="font-size:9px;color:'+AMB+';margin-bottom:6px;line-height:1.5">⚠ 이 씨앗은 <b>KR 발굴산</b>이야(volOsc/VR 임계도 KR fit). '+String(mk).toUpperCase()+'에서 돌린 건 참고만 — 검증은 KR로.</div>' : '';
-  var hits=res.entries.filter(function(e){ return e.pool===S.pool && e.f && e.f.volOsc!=null && e.f.volOsc>=S.volOsc && e.f.vr!=null && e.f.vr>=S.vr; });
+  var hits=res.entries.filter(function(e){ return hitFn(e,S); });   // [S1042] 씨앗별 필터 주입
   var h15=[],h20=[],eA=[],lA=[];
   for(var i=0;i<hits.length;i++){ var y=hits[i].r.h15; if(y!=null){ h15.push(y); if(hits[i].half==='e') eA.push(y); else lA.push(y); } var y20=hits[i].r.h20; if(y20!=null) h20.push(y20); }
   var n=h15.length;
@@ -6681,6 +6686,28 @@ function _seedRender(res, mk, poolLbl, isSnap){
     +'<div style="font-size:9px;color:'+T3+';margin-top:6px;line-height:1.55">참고: h20 평균 '+_pct(m20)+' · 중앙값 '+_pct(med20)+'. <b>양쪽 풀 규칙</b>: 지금 '+(isSnap?'발굴풀(in-sample)':'대표+관심(held-out)')+' 결과야 — '+(isSnap?'스냅샷 OFF로 held-out도':'스냅샷 ON으로 발굴풀도')+' 돌려서 <b>둘 다 통과</b>해야 진짜. 하나라도 미달=빔서치 착시로 폐기.</div>';
 }
 if(typeof window!=='undefined'){ window._seedRun=_seedRun; }
+// [S1042] 씨앗2 runner — 횡보장×강세 돌파 신호. _persistBracket에 opts(includeMixed+computeBrk) 전달. 렌더=_seed2Render(pool=mixed & brk20 필터).
+async function _seed2Run(){
+  var el=document.getElementById('seedResult2'); if(!el) return;
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr'; el.style.display='block';
+  var _prog=function(lbl,i,t,n){ el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">✅ '+lbl+' 씨앗2(횡보장 돌파) '+i+'/'+t+' · '+(n||'')+'</div>'; };
+  var _opts={ includeMixed:true, computeBrk:true };
+  var res,poolLbl,isSnap=false;
+  if(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode()){
+    isSnap=true;
+    if(SXCandleBT.snapHas&&!SXCandleBT.snapHas(mk)){ el.innerHTML='<div style="padding:10px;font-size:11px;font-weight:800;color:#059669">📂 '+String(mk).toUpperCase()+' 스냅샷 자동 로드…</div>'; var _sr=await _snapLoad(mk); if(!_sr.ok){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">📂 '+_sr.reason+'</div>'; return; } if(typeof _snapBadge==='function')_snapBadge(); }
+    _prog('발굴풀',0,0,'시작');
+    try{ res=await _persistBracket(mk,['mega'],function(i,t,n){_prog('발굴풀',i,t,n);},_opts); }catch(eM){ res={ok:false,reason:String(eM&&eM.message||eM)}; }
+    poolLbl='발굴풀(스냅샷·in-sample)';
+  } else {
+    _prog('대표+관심',0,0,'시작');
+    try{ res=await _persistBracket(mk,['rep','watch'],function(i,t,n){_prog('대표+관심',i,t,n);},_opts); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
+    poolLbl='대표+관심(held-out)';
+  }
+  if(!res||!res.ok){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">✅ '+((res&&res.reason)||'추출 실패')+'</div>'; return; }
+  el.innerHTML=_seed2Render(res, mk, poolLbl, isSnap);
+}
+if(typeof window!=='undefined'){ window._seed2Run=_seed2Run; }
 // ════════ [S857] real×fake 동시발동 오염 — fake의 원설계는 하락예측이 아니라 "real처럼 보이는 가짜 거르기". S856에서 fake 단독 프로파일 무력(3시장) 확인 → 남은 질문: real 발동봉에 fake가 겹치면 real 성과가 깎이나(조건부 변별). 깎이면 fake=동시발동 감점으로 존속, 안 깎이면 완전 퇴역 → C 규칙 확정. real 이벤트를 순수(xk=0)/동반(xk>0)로 쪼개 t+k 프로파일 비교. base 불필요(동일 레짐 내부 차분). 표본 병기(S806)·측정전용. ════════
 async function _recipeContamBracket(mk, sources, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
@@ -9151,7 +9178,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1040';
+  window.SX_BUILD='S1042';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
