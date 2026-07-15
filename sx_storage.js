@@ -23,7 +23,7 @@
   //   사용자 설정(필터/프리셋)은 SX_SCR_FILTERS_*/SX_SCR_PRESETS 등 다른 키이므로 영향 없음
   const CACHE_PREFIXES = ['SX_DISC_','sx_ext_','SX_CDL_','SX_FIN_','ORACLE_','SX_DASH_CACHE_','SX_SCR_SEARCH_RESULTS_'];
   const EXCLUDE_FROM_CACHE_CLEAR = new Set(['SX_FIN_REPORT']);  // 사용자 설정 — 캐시 정리에서 제외
-  const ALL_PREFIXES = ['SX_','ORACLE_','sx_ext_'];
+  const ALL_PREFIXES = ['SX_','ORACLE_','sx_ext_','at_'];  // [S1044] at_ 추가 — 자동매매(at_session·at_collapsed)도 전체 초기화 대상(기존엔 누락)
 
   // [S224-fix5/fix6/fix7] 통합 toast 헬퍼 — 양 환경 모두에서 확실히 표시
   //   sx_screener.html: 자체 정의된 window.toast() 사용 (CSS 정의 있음, #toast DOM 사용)
@@ -57,6 +57,9 @@
     'SX_NOTIFY_':      { icon:'🔔', name:'알림·텔레그램',  desc:'알림 소리 + 텔레그램 연동' },
     'SX_CHART_':       { icon:'🎨', name:'차트 설정',     desc:'캔들 색상(녹적) + 마커 소스(보라)' },
     'SX_APP_':         { icon:'⚙️', name:'앱 설정',       desc:'모드·필터·가중치·전이임계 등 기타 설정' },
+    // [S1044] 전수 스캔으로 기타에서 분리
+    'SX_MANUAL_':      { icon:'✍️', name:'수동매매',      desc:'수동 매매 시뮬 거래·정렬·통계 상태' },
+    'AT_':             { icon:'🤖', name:'자동매매',      desc:'자동매매 페이지 세션·UI 상태 (시즌2·localStorage 공유)' },
   };
 
   // [S553] prefix → 카테고리ID 매핑. 여러 prefix를 한 카테고리로 묶기 위함.
@@ -94,6 +97,20 @@
     // ── [S589] 그동안 '기타'로 빠지던 키 분류 추가 ──
     { p:'SX_CHART_',         c:'SX_CHART_'      },  // 차트 색상(GREENRED)·마커 소스(PURPLE)
     { p:'SX_EE_',            c:'SX_BT_'         },  // 조기청산 모드별 상태(SX_EE_MODE_STATE) — BT 설정으로 묶음
+    // ── [S1044] 전수 스캔: 그동안 '기타'로 빠지던 키 분류 (순서: 앞 규칙 우선, 전부 신규 prefix라 기존 불변) ──
+    { p:'SX_MANUAL_',        c:'SX_MANUAL_'     },  // 수동매매 시뮬(거래/정렬/통계)
+    { p:'SX_PAPER_',         c:'SX_MANUAL_'     },  // 페이퍼 거래 → 수동매매로 묶음
+    { p:'at_',               c:'AT_'            },  // 자동매매 페이지(at_session·at_collapsed) — localStorage 공유
+    { p:'SX_APP_',           c:'SX_APP_'        },  // SX_APP_ 자체 prefix(누락됐었음)
+    { p:'SX_NOTIFY_',        c:'SX_NOTIFY_'     },  // SX_NOTIFY_ 자체 prefix(누락됐었음)
+    { p:'SX_CT_',            c:'SX_APP_'        },  // CT 풀 자동(SX_CT_POOL_AUTO)
+    { p:'SX_CUSTOM_',        c:'SX_APP_'        },  // 커스텀 임계·MA크로스
+    { p:'SX_MACRO_',         c:'SX_APP_'        },  // 매크로 컨텍스트
+    { p:'SX_GATE',           c:'SX_APP_'        },  // SX_GATE_/SX_GATES_ 게이트 설정
+    { p:'SX_P2_',            c:'SX_APP_'        },  // 프로젝트C 하위폴드 UI
+    { p:'SX_PHASE_FOLD_',    c:'SX_APP_'        },  // Phase 폴드 UI
+    { p:'SX_SMART_',         c:'SX_APP_'        },  // 스마트 설정
+    { p:'SX_DATA_SCHEMA',    c:'SX_APP_'        },  // 스키마 버전
   ];
 
   // 펼침 상태 보관 (모달 다시 그릴 때 유지)
