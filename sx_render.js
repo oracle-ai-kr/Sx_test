@@ -9163,7 +9163,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1052';
+  window.SX_BUILD='S1054';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11260,6 +11260,7 @@ const _SXB_PARAM = new Set(['추세신호','변동성','가격모멘텀','눌림
 function _sxbCircle(score, label, big, neutral, delta, inverse, byValue, signal, param, colorOverride){
   const r = big?28:18, sw = big?6:5, box=(r+sw)*2;   // [S416] big 32→28/sw 7→6: 헤더 텍스트(상태·등급·▲▼) 한 줄 확보
   const circ = 2*Math.PI*r;
+  const _isNullSc = (score == null || typeof score !== 'number' || !isFinite(score));   // [S1054] 검증 재료 없는 카테고리 — 링 0%·숫자 '–'
   const sc = Math.max(0, Math.min(100, (typeof score==='number'?score:0)));
   const off = circ*(1-sc/100);
   // [S369] stroke 색: signal('up'/'down')=단방향(≥65만 발동 색) · inverse=값반전 · neutral=회색 · 기본=점수
@@ -11286,7 +11287,7 @@ function _sxbCircle(score, label, big, neutral, delta, inverse, byValue, signal,
     + `<svg viewBox="0 0 ${box} ${box}" width="${box}" height="${box}">`
     + `<circle cx="${box/2}" cy="${box/2}" r="${r}" fill="none" stroke="var(--surface3)" stroke-width="${sw}"/>`
     + `<circle cx="${box/2}" cy="${box/2}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 ${box/2} ${box/2})"/>`
-    + `<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="${fs}" font-weight="800" fill="${numColor}">${Math.round(sc)}</text>`
+    + `<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="${fs}" font-weight="800" fill="${numColor}">${_isNullSc?'–':Math.round(sc)}</text>`
     + `</svg>`
     + (label?`<div class="sxb-circle-label"${param?' style="color:#a855f7"':''}>${label}${_sxbTri(delta, inverse)}</div>`:'')   // [S502] 전이(어제 대비 |Δ|>2) 도넛 이름 옆 ▲/▼ — 색은 의미 기반(좋음=녹/나쁨=빨). inverse(구조위치 등)는 ▲빨/▼녹 반전
     + `</div>`;
@@ -11337,7 +11338,13 @@ function _sxbWhy(itemKey){
     if(f){ foundItem = f; break; }
   }
   if(!foundItem) return;
-  const msg = _sxbBuildWhyMsg(foundItem);
+  let msg = _sxbBuildWhyMsg(foundItem);
+  // [S1054] 검증 상태 안내 — S1053 측정 기반. 모바일은 title 툴팁이 없어 토스트 선두에 부착.
+  if(foundItem.excl && msg){
+    msg = (foundItem.vstat==='rev'
+      ? '⚠️ [S1053 측정] 역방향 — 이 시장에선 색 방향과 반대로 움직임(카테고리 평균·분포 제외)'
+      : '💤 [S1053 측정] 무변별 — 이 시장에선 예측 변별력 없음·서술 참고용(카테고리 평균·분포 제외)') + '\n' + msg;
+  }
   if(msg){
     if(typeof toast === 'function') toast(msg + _sxbTrans(foundItem)); // [S410] 전이 안내 공통 부착
     if(typeof _sxVib === 'function') _sxVib(8);
@@ -11766,14 +11773,14 @@ function _swReset(){
 }
 
 function _sxbAvg(items){
-  const vs = items.filter(it=>typeof it.v==='number' && (it.inverse || !it.neutral))
+  const vs = items.filter(it=>typeof it.v==='number' && !it.excl && (it.inverse || !it.neutral))   // [S1054] excl(무변별·역배선) 평균 제외 — inverse보다 우선
     .map(it=> it.inverse ? (100 - it.v) : it.v);
   if(!vs.length) return null;
   return Math.round(vs.reduce((a,b)=>a+b,0)/vs.length);
 }
 // [S357] 섹션 전이 = 델타 있는 점수성 항목들의 평균 변화
 function _sxbAvgDelta(items){
-  const ds = items.filter(it=>!it.neutral && typeof it.d==='number').map(it=>it.d);
+  const ds = items.filter(it=>!it.neutral && !it.excl && typeof it.d==='number').map(it=>it.d);   // [S1054] excl 전이 제외
   if(!ds.length) return null;
   return Math.round(ds.reduce((a,b)=>a+b,0)/ds.length);
 }
@@ -12322,18 +12329,52 @@ function _sxbHTML(){
     + `<span class="sxb-arrow">▶</span></div>`;
   // 미니: 섹션 평균 + 섹션 전이 (접힘 상태에서 노출)
   let mini = `<div class="sxb-mini">`;
-  groups.forEach(g=>{ const a=_sxbAvg(g.items); mini += _sxbCircle(a==null?0:a, g.title, false, a==null, _sxbAvgDelta(g.items)); });
+  groups.forEach(g=>{ const a=_sxbAvg(g.items); mini += _sxbCircle(a, g.title, false, a==null, _sxbAvgDelta(g.items)); });   // [S1054] null 평균 → '–' 표기(_sxbCircle 내 처리) — 검증 재료 없는 카테고리(0점 오독 방지)
   mini += `</div>`;
   // 상세: 섹션 카드 + 항목 전이 (펼침 상태에서 노출)
   let det = `<div class="sxb-detail">`;
   groups.forEach(g=>{
     if(!g.items.length) return;
     det += `<div class="sxb-group"><div class="sxb-group-title">${g.title}</div><div class="sxb-group-items">`;
-    g.items.forEach(it=>{ const _pp = _SXB_PARAM.has(it.k) || it.k.indexOf('이평선')===0; det += _sxbCircle(it.v, it.k, false, !!it.neutral, it.d, !!it.inverse, !!it.byValue, it.signal, _pp); });
+    g.items.forEach(it=>{ const _pp = _SXB_PARAM.has(it.k) || it.k.indexOf('이평선')===0;
+      // [S1054] excl(무변별/역배선) — 회색 도넛(neutral 강제·inverse/signal 무력화) + 흐림. rev는 ⚠ 배지(흐림 밖·좌상단).
+      const _c = _sxbCircle(it.v, it.k, false, !!it.neutral || !!it.excl, it.d, !it.excl && !!it.inverse, !!it.byValue, it.excl ? undefined : it.signal, _pp);
+      det += it.excl
+        ? `<span style="position:relative;display:inline-block"><span style="display:inline-block;opacity:.35;filter:grayscale(85%)">${_c}</span>${it.vstat==='rev'?`<span style="position:absolute;top:-2px;left:2px;font-size:11px;line-height:1">⚠️</span>`:''}</span>`
+        : _c; });
     det += `</div></div>`;
   });
   det += `</div>`;
   return h + mini + det;
+}
+// [S1054] 도넛 검증맵 — S1053/S1053B 측정(OOS 스냅 0715-16 · FWD10 · crash r10≤−10% · 시장별 5분위) 기반 재료 선별.
+//   ★이 스냅으로 선별했으므로 본 맵의 예측 주장은 새 빈티지(0723~ 백로그) 재검증 전까지 잠정 — gut-check 정본·시즌2 자동게이트 금지.
+//   pass = 변별력+방향 정합(색·평균·분포 유지) / desc = 무변별·장식(흐림 + 평균·분포·전이 제외) / rev = 색 방향과 반대로 측정(흐림+⚠+제외).
+//   미기재 = 측정불능(밸류·재무·공시·섹터·MTF·RS·도미넌스 등 외부/정적 데이터) → 서술 지위 유지(변경 없음).
+//   판정 주석: kr 가격모멘텀은 수익축 강(+2.0pp·방향✓)·위험축 +0.2pp(무변별 대역)로 수익축 기준 pass — 위험축 무변별은 방향 증거 없음으로 해석(측정문서 명시).
+//   kr A/D·Chaikin·coin 눌림신호 = 약(1~2pp) 통과 등급. ADX(추세강도)는 S1052 neutral 유지(3시장 고ADX=고crash 재확인·방향 없는 강도).
+const _DONUT_VALID = {
+  kr: {
+    '변동성':'pass','대금전이':'pass','가격모멘텀':'pass','A/D':'pass','Chaikin':'pass',
+    '거래량':'rev',   // crash +5.4pp 역(강) — 수익 +2.4 동반 = 양꼬리 확대형(강도). green 단방향 표기가 오배선.
+    '추세신호':'desc','구조위치':'desc','눌림신호':'desc','EOM':'desc','스토캐스틱':'desc','볼린저%B':'desc','크로스신호':'desc','이평선 배열':'desc'
+  },
+  us: {
+    '변동성':'rev',   // inverse 기대와 수익축 역(강 +2.0) — 고변동 Q5가 수익 독식("차단=대박 버림" 재확인). 위험축은 정합(+8.7).
+    '추세신호':'desc','가격모멘텀':'desc','거래량':'desc','구조위치':'desc','눌림신호':'desc','A/D':'desc','EOM':'desc','Chaikin':'desc','MFI':'desc','대금전이':'desc','스토캐스틱':'desc','볼린저%B':'desc','크로스신호':'desc','이평선 배열':'desc'
+  },
+  coin: {
+    '볼린저%B':'pass','스토캐스틱':'pass','변동성':'pass','구조위치':'pass','눌림신호':'pass','크로스신호':'pass',
+    'Chaikin':'rev','A/D':'rev','대금전이':'rev','가격모멘텀':'rev','심리도':'rev',  // money-flow/모멘텀 계열 코인 역배선(run-up 구동)
+    '추세신호':'desc','거래량':'desc','EOM':'desc','MFI':'desc','이평선 배열':'desc'
+  }
+};
+// [S1054] 항목 라벨 → 검증 상태. '이평선 (?)' 등 동적 라벨은 접두 매칭.
+function _donutVStat(k){
+  const m = _DONUT_VALID[(typeof currentMarket!=='undefined' && currentMarket) || 'kr'] || {};
+  if(m[k] != null) return m[k];
+  if(k && k.indexOf('이평선') === 0) return m['이평선 배열'] != null ? m['이평선 배열'] : null;
+  return null;
 }
 // 동기 점수로 전광판 초기 구성 + HTML 반환
 // [S357] 전광판 그룹(5카테고리 items) 빌더 — _buildScoreBoard와 멀티TF 5분류(_classifyBoardDist)의 단일 소스.
@@ -12376,6 +12417,13 @@ function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   // [S361] 골든/데드 2칸 → 양방향 크로스신호 1칸 + 추가상승 1칸
   if(extras.crosssig && extras.crosssig.v!=null) g5.push({k:'크로스신호', v:extras.crosssig.v, byValue:true, fired:extras.crosssig._fired||[]});
   // [S989] 5축 배제 — '추격여력'(upsideScore) 제거. 추세 강도=추세강도(ADX)+이평선배열이 커버. (피더 _boardExtras.upside 11796·툴팁 10807은 고아=무해, 다음 정리)
+  // [S1054·B안] 검증맵 적용 — desc/rev는 excl 마킹 → _sxbAvg(카테고리 평균)·_classifyBoardDist(분포)·_sxbAvgDelta(전이)에서 제외.
+  //   pass/미기재(측정불능)는 현행 유지. 표시 흐림·⚠는 _sxbHTML det 렌더에서 excl/vstat로 처리.
+  [g1,g2,g3,g4,g5].forEach(_gl=>_gl.forEach(it=>{
+    const _vs = _donutVStat(it.k);
+    if(_vs === 'desc' || _vs === 'rev'){ it.excl = true; it.vstat = _vs; }
+    else if(_vs === 'pass'){ it.vstat = 'pass'; }
+  }));
   return [
     {id:'trend', title:'추세·구조', items:g1},
     {id:'mom',   title:'모멘텀·진입', items:g2},
@@ -12391,6 +12439,7 @@ function _classifyBoardDist(groups){
   let greens=0, reds=0, nContrib=0;
   (groups||[]).forEach(g=>g.items.forEach(it=>{
     if(it.k === 'MTF') return;   // [S418] MTF는 타 TF dist 종합 → 분포 카운트에 넣으면 자기참조 순환(TF 전환마다 배지 변동). 항상 제외(종합점수 가중·도넛 클릭엔 그대로 기여)
+    if(it.excl) return;          // [S1054] 무변별(desc)·역배선(rev) 항목 분포 제외 — 검증 도넛만 5분류에 기여. ※nContrib 감소로 S595 정규화 스케일 상승(클램프 1.6x 상한)·US는 N<10 가드로 정규화 생략됨
     // [S595] 카운트 대상 도넛 수 — 시장별 임계 정규화 분모. 헤더 _cnt(inverse||!neutral)와 동일 기준(MTF만 제외).
     if(typeof it.v==='number' && (it.inverse || !it.neutral)) nContrib++;
     if(it.signal === 'up' && typeof it.v==='number'){
