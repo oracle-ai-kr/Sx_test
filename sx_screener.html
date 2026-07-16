@@ -52,7 +52,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=396"></script>
+<script src="sx_render.js?v=397"></script>
 <script src="sx_recipe_signal.js?v=48"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -2070,6 +2070,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
             <div style="font-size:9.5px;font-weight:800;color:#64748b;margin:8px 0 6px;border-top:1px solid var(--border);padding-top:8px;">📦 데이터 <span style="color:var(--text3);font-weight:500"></span></div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
               <button onclick="_sxVib(12);window._snapCreate&&_snapCreate()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e749014;color:#0e7490;border:1px solid #0e749066">📦 스냅샷 생성</button>
+              <button onclick="_sxVib(12);window._snapCreate&&_snapCreate('oos')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#f59e0b1a;color:#b45309;border:1px solid #f59e0b66">📦 OOS 스냅샷</button><!-- [S1048] 홀드아웃 풀(_OOS_POOL) 냉동 → snap_{mk}_oos.json -->
               <button id="snapModeBtn" onclick="_sxVib(12);window._snapToggle&&_snapToggle()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:transparent;color:#0e7490;border:1px dashed #0e7490">📂 스냅샷 OFF · 🔴라이브</button><!-- [S1002] 상태 표기 — _snapBadge가 갱신 · 새로고침=항상 OFF 시작이라 기본 마크업=OFF -->
             </div>
             <div style="margin:8px 0 0;border-top:1px solid var(--border);padding-top:8px">
