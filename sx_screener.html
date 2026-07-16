@@ -52,7 +52,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=398"></script>
+<script src="sx_render.js?v=399"></script>
 <script src="sx_recipe_signal.js?v=48"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1479,28 +1479,13 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px">
         <div style="font-size:9px;color:var(--text3);margin-bottom:8px;line-height:1.5">안전필터는 기술적 시그널이 매수를 제안해도 위험 징후가 감지되면 매수를 보류시키는 보호 장치입니다. 끄면 위험 종목이 매수 리스트에 포함될 수 있습니다.</div>
         <div id="safetyFilterList">
-          <label class="sf-check-row"><input type="checkbox" data-sf="riskSignature" onchange="_saveSafetyFilters()"><span class="sf-ck-label">⚠️ 위험 시그니처 <span style="color:#7c3aed;font-weight:800;font-size:9px">[시장별]</span></span><span class="sf-ck-desc">[S1008] 시장별 폭락집중 조합(주력) 현재봉 발동 시 HOLD — KR 이격8%∧MACD음전 · US 3연속양봉∧갭3% · COIN 이격20%. 3시장×3중검증(sx_risk_core SSOT) · 2군은 분석탭 배지 표시만 · 기본 OFF(BT A/B 후 승격)</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="threshold" onchange="_saveSafetyFilters()"><span class="sf-ck-label">임계값 마진</span><span class="sf-ck-desc">점수가 BUY 임계를 겨우 넘으면 HOLD로 격하</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="volExtreme" onchange="_saveSafetyFilters()"><span class="sf-ck-label">변동성 극단</span><span class="sf-ck-desc">ATR이 과도하면 강제 HOLD · [S1008] 측정: ATR극단=고변동 표지(폭락+대박 동반) — 차단 시 대박도 버림</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="volHigh" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">변동성 과다</span><span class="sf-ck-desc">ATR 높고 점수 부족하면 HOLD · [S1008] 고변동 표지 주의</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="rsiDiv" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">RSI 다이버전스</span><span class="sf-ck-desc">가격↑ RSI↓ = 상승 에너지 약화 경고 · [S1008] 시장별 — US 유효(+)·KR 약·<b>코인 역전(−12%p)</b></span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="macdNeg" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">MACD 5봉 음전</span><span class="sf-ck-desc">MACD 히스토그램 5봉 연속 음수면 HOLD · [S1008] 단독 변별력 ~0(3시장) — 이격 결합=⚠️위험시그니처가 대체</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="bbUpper" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">BB 상단 이탈</span><span class="sf-ck-desc">[S426] 가격이 볼린저밴드 상단 밖 = 과열 (진입 보류·관망 강등) · [S1008] 과열군=고변동(평균수익도 높음·3시장 공통)</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="resistNear" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">저항 근접</span><span class="sf-ck-desc">[S426] 피벗 R1 저항 1.5% 이내 = 돌파 부담 (관심 강등)</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="fakeBreakout" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">가짜 저항 돌파</span><span class="sf-ck-desc">[S433] 5/20/60일선을 막 돌파했으나 OBV 하락·거래량 미증가 = 거짓 신호 (진입 보류)</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="volResist" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">매물대 저항</span><span class="sf-ck-desc">[S523] 최근 120봉 현재가 위쪽 +1~8%에 거래량 집중(고저 범위 분산·최근봉 가중) = 머리 위 매물 저항 (진입 보류)</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="chaseGuard" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">추격금지 · 과열</span><span class="sf-ck-desc">[S453] MA20 이격도 +20% 이상 = 추격 위험 (일시정지) · [S1008] KR/US=고변동 표지 · <b>코인만 진짜 위험(폭락lift +34%p)</b> — 시장별 성격</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="dumpWarn" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">되돌림주의</span><span class="sf-ck-desc">[S454] 천정·투매 위험 신호 감지 = 진입 정지 · [S1008] 복합신호(과열=고변동 + 다이버=시장별 혼재) — 재측정 대상</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="supportBreak" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">지지선 이탈</span><span class="sf-ck-desc">[S469] 종가가 MA20·MA60을 위→아래로 최근 3봉 내 하향 이탈 = 지지 붕괴 (진입 보류)</span></label>
+          <label class="sf-check-row"><input type="checkbox" data-sf="riskSignature" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">⚠️ 위험 시그니처 <span style="color:#7c3aed;font-weight:800;font-size:9px">[시장별]</span></span><span class="sf-ck-desc">[S1008] 시장별 폭락집중 조합(주력) 현재봉 발동 시 HOLD — KR 이격8%∧MACD음전 · US 3연속양봉∧갭3% · COIN 이격20%. 3시장×3중검증(sx_risk_core SSOT) · 2군은 분석탭 배지 표시만 · 기본 ON(검증완료·시장별) [S1051]</span></label>
           <div style="border-top:1px solid var(--border);margin:6px 0;padding-top:4px">
             <div style="font-size:9px;color:var(--accent);margin-bottom:4px;font-weight:600">추가 안전필터 (옵션)</div>
           </div>
           <label class="sf-check-row"><input type="checkbox" data-sf="debtRatio" checked onchange="_saveSafetyFilters()"><span class="sf-ck-label">재무 건전성</span><span class="sf-ck-desc">부채비율 200% 이상 종목 제외 (기존 DART 데이터)</span></label>
           <!-- [S264] foreignSell: HTML 정적 checked 없음 — _loadSafetyFilterUI()가 KIS 연결 상태 보고
                                   KIS ON이면 checked, OFF이면 disabled+unchecked로 강제. JS가 항상 덮어씀. -->
-          <label class="sf-check-row"><input type="checkbox" data-sf="foreignSell" onchange="_saveSafetyFilters()"><span class="sf-ck-label">수급 필터 [KIS]</span><span class="sf-ck-desc" id="sfForeignDesc">외국인 연속 순매도 종목 경고</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="highBeta" onchange="_saveSafetyFilters()"><span class="sf-ck-label">고베타 경고</span><span class="sf-ck-desc" id="sfBetaDesc">β > 1.5 종목 주의 표시</span></label>
-          <label class="sf-check-row"><input type="checkbox" data-sf="knnBearish" onchange="_saveSafetyFilters()"><span class="sf-ck-label">kNN 음봉전이 경고 <span style="color:var(--accent);font-weight:700">[실험]</span></span><span class="sf-ck-desc">[S658] 캔들전이 자기유사도 kNN이 강하게 음봉전이 예측(점수 ≤-30)이면 HOLD로 강등. 검증 정확도 보장 안 됨</span></label>
         </div>
         <!-- [S455] BT에도 안전필터 적용 토글 — 구 BT게이트 모달에서 이동 (단일검증 중복 제거) -->
         <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
@@ -11357,7 +11342,7 @@ function _renderAnalModeChips(){
 }
 
 // ── S67: 안전필터 ON/OFF 관리 ──
-const SX_SAFETY_KEY = 'SX_SAFETY_FILTERS';
+const SX_SAFETY_KEY = 'SX_SAFETY_FILTERS_v2';   // [S1051] 안전필터 정리 — 구 localStorage(레거시 필터 ON) 무효화
 // [S330] 안전필터 기본값 — 기술적 7종 OFF + 추가 옵션 2종 ON (사용자 요청)
 //   〔이력〕 [S216]: 3개 ON (rsiDiv/stochRsi/macdNeg) — 검증된 신호만
 //          [S264]: 10개 전부 ON — 보호 장치 최대화
@@ -11370,13 +11355,12 @@ const SX_SAFETY_KEY = 'SX_SAFETY_FILTERS';
 //             기본 OFF. 재무건전성(부채비율 200%↑ 제외)과 고베타 경고(β>1.5)
 //             만 기본 ON. foreignSell은 KIS 미연결 시 자동 disable.
 const _safetyDefaults = {
-  riskSignature:false, // [S1008] ⚠️ 위험 시그니처(시장별) — 기본 OFF, S1009 BT A/B 후 승격 판단
-  threshold:false, volExtreme:false, volHigh:true, rsiDiv:true,
-  macdNeg:true,   // [S1016] A그룹(stochRsi/ma60resist/deadCrossGuard) 철거 — S1013 최종심
-  bbUpper:true, resistNear:true, fakeBreakout:true, volResist:true, chaseGuard:true, dumpWarn:true, // [S426/S433/S436/S453/S454] C 캡 전용 신규 — 기본 ON
-  supportBreak:true, // [S469] 지지선 이탈(종가가 MA20/MA60 최근 3봉 내 하향 이탈) — 기본 ON
-  debtRatio:true, foreignSell:false, highBeta:false, // [S452] highBeta: β 데이터 미연결 → 데이터 연결 시 활성(기본 OFF·disabled)
-  knnBearish:false, // [S658] kNN 음봉전이 경고 — 실험적 ML 신호라 기본 OFF(opt-in)
+  // [S1051] 안전필터 정리 — 위험시그니처(시장별 검증) + 재무(파산회피)만 유지. 나머지 기술필터 UI삭제·false고정(엔진 apply는 false면 skip).
+  riskSignature:true,  // [S1051] 기본 ON 승격 — S1013 A그룹기각·S1008 3중검증·이번세션 crashLift 시장별 확인(KR ATR/COIN 모멘텀)
+  debtRatio:true,      // 펀더멘털 파산회피(부채비율 200%↑ 제외) — crashLift 무관·유지
+  threshold:false, volExtreme:false, volHigh:false, rsiDiv:false, macdNeg:false,
+  bbUpper:false, resistNear:false, fakeBreakout:false, volResist:false, chaseGuard:false, dumpWarn:false, supportBreak:false,
+  foreignSell:false, highBeta:false, knnBearish:false,
 };
 function _loadSafetyFilters(){
   try{ const d=JSON.parse(localStorage.getItem(SX_SAFETY_KEY)); if(d) return {..._safetyDefaults,...d}; }catch(e){}
