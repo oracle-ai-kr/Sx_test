@@ -9177,7 +9177,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1043';
+  window.SX_BUILD='S1045';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11479,10 +11479,22 @@ function _sxbScoreWhy(){
     const _head = (r.display !== r.orig) ? `📊 종합점수 ${r.display} (기본 ${r.orig})` : `📊 종합점수 ${r.display}`;
     msg = `${_head}\n🔒 안전필터 위험 ${r.viol.length}건\n${_show}${_detail}`;
   }
+  msg = '⚗️ 미검증 집계 — 예측·안전 검증 안 됨. 개별 지표로 판단하세요.\n\n' + msg;   // [S1045] 집계 권위 강등
   if(typeof toast === 'function') toast(msg);
   if(typeof _sxVib === 'function') _sxVib(8);
 }
 window._sxbScoreWhy = _sxbScoreWhy;
+
+// [S1045] 변동성 안전 렌즈 why — 종합점수(집계)와 별개. ATR 기반이 무조건부·매수신호 조건부 crashLift 모두에서 검증된 유일 안전 재료라는 근거 서술.
+function _sxbVolaSafeWhy(){
+  const _B=window._sxBoard; let _v=null;
+  try{ const _g=(_B&&_B.groups||[]).find(function(g){return g.id==='trend';}); const _it=_g&&_g.items.find(function(x){return x.k==='변동성';}); _v=_it?_it.v:null; }catch(_){}
+  const _lvl = _v==null?'—':(_v>=67?'높음':(_v>=34?'보통':'낮음'));
+  const _msg = '🌪️ 변동성(ATR 기반) · '+_lvl+'\n변동성 높을수록 역사적으로 10봉 급락 빈도↑ — 무조건부·매수신호 조건부 crashLift 모두에서 검증된 유일 안전 렌즈.\n\n※ 서술 참고용 · 자동매매 결정엔 미배선.';
+  if(typeof toast==='function') toast(_msg);
+  if(typeof _sxVib==='function') _sxVib(8);
+}
+window._sxbVolaSafeWhy = _sxbVolaSafeWhy;
 
 // [S727] 구조 위험 배지 토스트 — 역배열/단기약세 설명 + C 매수 차단 여부
 function _sxbStructRiskWhy(){
@@ -12297,14 +12309,25 @@ function _sxbHTML(){
     } }
   const _dirBadges  = `${transBadge}${_transitionBadge}`;                         // 방향 판정 (좌)
   const _warnBadges = `${_structRiskBadge}${whipBadge}${_dumpBadge}${_safetyBadge}${_mixBadge}${_mtfBadge}<span id="sxMacroSoonSlot">${_sxMacroBadgeHTML(_sxMacroEvents().find(e=>e.mode==='soon'))}</span><span id="sxMacroResultSlot">${_sxMacroBadgeHTML(_sxMacroEvents().find(e=>e.mode==='result'))}</span>`; // [S727] 구조위험 선두 · 경고·이벤트 (우)
+  // [S1045] 변동성 안전 렌즈 승격 — ATR 기반 · 무조건부/매수신호 조건부 crashLift 모두에서 검증된 유일 안전 재료. 종합점수(미검증 집계)와 분리된 서술 헤드.
+  const _volaSafe = (function(){
+    const _g=(groups.find(g=>g.id==='trend')||{items:[]}); const _it=_g.items.find(x=>x.k==='변동성');
+    if(!_it||_it.v==null) return '';
+    const _v=_it.v; let _c,_t;
+    if(_v>=67){_c='#dc2626';_t='🌪️ 변동성 높음 · 역사적 급락 잦음';}
+    else if(_v>=34){_c='#f59e0b';_t='🌫️ 변동성 보통';}
+    else {_c='#16a34a';_t='🌤️ 변동성 낮음 · 안정적';}
+    return `<div style="margin-top:3px"><span class="sxb-badge" style="color:${_c};background:${_c}1A;border:1px solid ${_c};cursor:pointer" onclick="event.stopPropagation();_sxbVolaSafeWhy&&_sxbVolaSafeWhy()">${_t}</span></div>`;
+  })();
   let h = `<div class="sxb-head" onclick="_sxVib(8);this.parentElement.classList.toggle('sxb-open')">`
     + `<div class="sxb-head-left">`
     +   `<div class="sxb-head-main">`
     +     `<span onclick="event.stopPropagation();_sxbScoreWhy&&_sxbScoreWhy()" style="cursor:pointer">` + _sxbCircle(_displayTotal, '', true, false, headColorDelta, false, false, null, false, bc) + `</span>`   // [S417] colorOverride=bc(dist5 색): 도넛=배지=TF점 [S472] 표시 종합점수 [S473] 클릭→안전필터 위험 토스트
     +     `<div class="sxb-head-txt">`
     +       `<div class="sxb-head-tone" style="color:${_headTone.c}">${_headTone.t}</div>`
-    +       `<div class="sxb-head-sub">상태 ${_displayTotal} · ${_sxbGrade(_displayTotal)}등급 · ${_cnt}개 지표 · <span style="color:#16a34a;font-weight:700">▲${greens}</span> <span style="color:#ef4444;font-weight:700">▼${reds}</span></div>`
-    +       `<div style="font-size:9px;color:var(--text3);margin-top:2px;letter-spacing:-.2px">종목 상태 점수 · 매매 타이밍은 아래 검토영역 참고</div>`
+    +       `<div class="sxb-head-sub"><span style="font-size:8px;font-weight:800;color:#b45309;background:#f59e0b22;border:1px solid #f59e0b66;border-radius:6px;padding:1px 5px;margin-right:5px;letter-spacing:-.2px" onclick="event.stopPropagation();_sxbScoreWhy&&_sxbScoreWhy()">⚗️실험</span>상태 ${_displayTotal} · ${_sxbGrade(_displayTotal)}등급 · ${_cnt}개 지표 · <span style="color:#16a34a;font-weight:700">▲${greens}</span> <span style="color:#ef4444;font-weight:700">▼${reds}</span></div>`
+    +       `<div style="font-size:9px;color:var(--text3);margin-top:2px;letter-spacing:-.2px">미검증 집계 · 예측·안전 검증 안 됨 — 개별 지표로 판단</div>`
+    +       _volaSafe
     +     `</div>`
     +   `</div>`
     +   `<div class="sxb-head-dir">${_dirBadges}</div>`
