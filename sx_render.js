@@ -9136,6 +9136,7 @@ function _sxModeBarRender(){
     +'<span style="font-size:8.5px;font-weight:800;color:var(--text3)">모드</span>'
     +pill('snap')
     +'<span onclick="_sxVib(10);window._snapCreate&&_snapCreate()" style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:12px;border:1px dashed #d9770688;cursor:pointer;background:var(--surface2);color:#d97706;white-space:nowrap">📦 생성</span>'   /* [S871] 스냅샷 생성 공용화 — 진행/결과는 재료 측정 영역(btDiscrimResult)에 표시·스냅모드 ON이면 자체 거부(라이브 필요) */
+    +'<span onclick="_sxVib(10);window._snapCreate&&_snapCreate(\'oos\')" style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:12px;border:1px dashed #b4530988;cursor:pointer;background:var(--surface2);color:#b45309;white-space:nowrap">📦 OOS</span>'   /* [S1049] 모드 퀵메뉴 OOS 홀드아웃 스냅(_OOS_POOL) → snap_{mk}_oos.json */
     +pill('recipe')+pill('gate')+pill('macd')
     +'<span style="font-size:8.5px;font-weight:700;color:var(--text3);margin-left:2px">h</span>'+[7,10,15,20].map(hChip).join('')
     +'<span onclick="_sxVib(12);window._recipeSuiteRun&&_recipeSuiteRun()" style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:12px;border:1px solid #7c3aed;cursor:pointer;background:#7c3aed;color:#fff;white-space:nowrap">🔬 레시피 종합검증</span>'   /* [S874] 6종 일괄 공용화 — 카드 펼침 불필요 */
@@ -9162,7 +9163,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1048';
+  window.SX_BUILD='S1049';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
