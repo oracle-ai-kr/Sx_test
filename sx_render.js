@@ -9177,7 +9177,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1045';
+  window.SX_BUILD='S1046';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -12322,11 +12322,11 @@ function _sxbHTML(){
   let h = `<div class="sxb-head" onclick="_sxVib(8);this.parentElement.classList.toggle('sxb-open')">`
     + `<div class="sxb-head-left">`
     +   `<div class="sxb-head-main">`
-    +     `<span onclick="event.stopPropagation();_sxbScoreWhy&&_sxbScoreWhy()" style="cursor:pointer">` + _sxbCircle(_displayTotal, '', true, false, headColorDelta, false, false, null, false, bc) + `</span>`   // [S417] colorOverride=bc(dist5 색): 도넛=배지=TF점 [S472] 표시 종합점수 [S473] 클릭→안전필터 위험 토스트
+    +     ``   /* [S1046] 종합점수 도넛 제거 — 미검증 집계라 서술 헤드에서 강등. 계산(_displayTotal→_riskInfo·대시보드)은 유지 */
     +     `<div class="sxb-head-txt">`
     +       `<div class="sxb-head-tone" style="color:${_headTone.c}">${_headTone.t}</div>`
-    +       `<div class="sxb-head-sub"><span style="font-size:8px;font-weight:800;color:#b45309;background:#f59e0b22;border:1px solid #f59e0b66;border-radius:6px;padding:1px 5px;margin-right:5px;letter-spacing:-.2px" onclick="event.stopPropagation();_sxbScoreWhy&&_sxbScoreWhy()">⚗️실험</span>상태 ${_displayTotal} · ${_sxbGrade(_displayTotal)}등급 · ${_cnt}개 지표 · <span style="color:#16a34a;font-weight:700">▲${greens}</span> <span style="color:#ef4444;font-weight:700">▼${reds}</span></div>`
-    +       `<div style="font-size:9px;color:var(--text3);margin-top:2px;letter-spacing:-.2px">미검증 집계 · 예측·안전 검증 안 됨 — 개별 지표로 판단</div>`
+    +       `<div class="sxb-head-sub">${_cnt}개 지표 · <span style="color:#16a34a;font-weight:700">▲${greens}</span> <span style="color:#ef4444;font-weight:700">▼${reds}</span></div>`
+    +       `<div style="font-size:9px;color:var(--text3);margin-top:2px;letter-spacing:-.2px">지표=종목 상태 서술 · 매매 판단은 아래 검토영역 참고</div>`
     +       _volaSafe
     +     `</div>`
     +   `</div>`
