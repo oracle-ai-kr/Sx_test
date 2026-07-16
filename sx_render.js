@@ -9163,7 +9163,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1051';
+  window.SX_BUILD='S1052';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -12344,7 +12344,7 @@ function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   // ① 추세·구조
   // [S989] 5축 배제 — '추세방향'(sv4.trendScore) 제거. 추세는 추세신호(scores.trend)+추세강도(ADX)가 커버 · 기술적 판단=3×3 SSOT.
   if(scores && scores.trend!=null) g1.push({k:'추세신호', v:scores.trend, d:D.trend});
-  if(extras.adx && extras.adx.v!=null) g1.push({k:'추세강도', v:extras.adx.v, d:extras.adx.d, byValue:true});      // [S362/S364] ADX 값 기준 분포
+  if(extras.adx && extras.adx.v!=null) g1.push({k:'추세강도', v:extras.adx.v, d:extras.adx.d, byValue:true, neutral:true});      // [S362/S364] ADX 값 기준 분포 [S1052] neutral — ADX=방향없는 강도(강한 하락도 高). green=good 오배선 제거·회색 서술
   if(structPos!=null) g1.push({k:'구조위치', v:structPos, neutral:true, inverse:true, d:D.struct});                // [S362] 인버스 색(과열 빨/안정 녹)
   if(extras.vola && extras.vola.v!=null) g1.push({k:'변동성', v:extras.vola.v, neutral:true, inverse:true});       // [S362] ATR% — 변동성 심하면 빨강/양호 녹색
   if(extras.rs && extras.rs.v!=null) g1.push({k:'상대강도', v:extras.rs.v, byValue:true});                         // [S438] RS — 시장(지수) 대비 강도. 점수색·분포 카운트 포함
