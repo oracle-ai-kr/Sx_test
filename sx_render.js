@@ -4901,14 +4901,7 @@ async function _btDiscrimBracket(mk, source, onProgress){
   if(!(typeof SXE!=='undefined'&&SXE.calcAllScreener)) return { ok:false, reason:'엔진 미로드' };
   var list;
   if(source==='watch'){ try{ list=(typeof _getWatchlist==='function'?(_getWatchlist(mk)||[]):[]).filter(function(s){return s&&s.code;}).map(function(s){return {code:s.code,name:s.name||s.code};}); }catch(_){ list=[]; } }
-  else if(source==='all'){   // [S833] 확장 풀 — 측정 도구(base rate/발동/손절)와 동일: 대표+관심+보강+top100, seen 중복제거. beam-search 풀 확장용.
-    var _rep=[],_watch=[],_aug=[],_dca=[];
-    try{ var pp=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[]; _rep=(pp||[]).map(function(x){return {code:x[0],name:x[1]};}); }catch(_){}
-    try{ _watch=(typeof _getWatchlist==='function'?(_getWatchlist(mk)||[]):[]).filter(function(s){return s&&s.code;}).map(function(s){return {code:s.code,name:s.name||s.code};}); }catch(_){}
-    if(mk==='kr'){ try{ _aug=_VOL_AUGMENT_KR.map(function(x){return {code:x[0],name:x[1]};}); }catch(_){} try{ _dca=_DEADCAT_AUGMENT_KR.map(function(x){return {code:x[0],name:x[1]};}); }catch(_){} }
-    var _seen={}; list=[];
-    _rep.concat(_watch).concat(_aug).concat(_dca).forEach(function(s){ if(s&&s.code&&!_seen[s.code]){ _seen[s.code]=1; list.push(s); } });
-  }
+  // [S1047] 확장풀('all') 제거 — 현 레시피=발굴풀-only(S865)·동적이라 재현성 열위. 측정 정본=발굴풀 스냅샷
   else if(source==='mega'){   // [S846] 발굴 풀(대형) — 레시피 3시장 확장 전용(위 _DISCOVERY_POOL). us는 티커 문자열 배열이라 정규화.
     list=(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]).map(function(x){ return Array.isArray(x)?{code:x[0],name:x[1]}:{code:String(x),name:String(x)}; });
   }
@@ -5012,13 +5005,8 @@ async function _riskMeasureBracket(mk, source, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
   if(!(typeof SXE!=='undefined'&&SXE.calcAllScreener)) return { ok:false, reason:'엔진 미로드' };
   var list=[];
-  if(source==='all'){
-    var _rep=[],_watch=[],_aug=[],_dca=[],_seen={};
-    try{ var pp=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[]; _rep=(pp||[]).map(function(x){return {code:x.code||x[0],name:x.name||x[1]};}); }catch(_){}
-    try{ _watch=(typeof _getWatchlist==='function'?(_getWatchlist(mk)||[]):[]).filter(function(s){return s&&s.code;}).map(function(s){return {code:s.code,name:s.name};}); }catch(_){}
-    if(mk==='kr'){ try{ _aug=(typeof _VOL_AUGMENT_KR!=='undefined'?_VOL_AUGMENT_KR:[]).map(function(x){return {code:x[0],name:x[1]};}); }catch(_){} }
-    _rep.concat(_watch).concat(_aug).concat(_dca).forEach(function(s){ if(s&&s.code&&!_seen[s.code]){ _seen[s.code]=1; list.push(s); } });
-  } else if(source==='mega'){
+  // [S1047] 확장풀('all') 제거 — 발굴풀-only fit·재현성. 위험측정 기본=발굴풀
+  if(source==='mega'){
     list=(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]).map(function(x){ return Array.isArray(x)?{code:x[0],name:x[1]||x[0]}:{code:String(x),name:String(x)}; });   // [S1003] us 발굴풀=티커 문자열 배열 — 정규화 누락으로 s.code=undefined→스냅 전멸 버그 수정(다른 10개 소비처와 동일 패턴)
   } else { try{ var p=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[]; list=(p||[]).map(function(x){return {code:x.code||x[0],name:x.name||x[1]};}); }catch(_){} }
   if(!list.length) return { ok:false, reason:'풀 비어있음('+mk+')' };
@@ -5133,9 +5121,9 @@ function _riskMeasureRender(res, meta){
 async function _riskMeasureUI(src){
   var el=document.getElementById('btDiscrimResult'); if(!el) return; el.style.display='block';
   var mk=(typeof currentMarket!=='undefined'&&currentMarket)?currentMarket:((window._sxTrendCtx&&window._sxTrendCtx.market)||'kr');   // [S998] 현재 탭 시장 우선(기존 발굴풀 도구와 동일) — _sxTrendCtx.market 고착으로 코인풀(60) 오선택 버그 수정
-  var source=src||'all';
+  var source=src||'mega';   // [S1047] 확장풀 제거 → 기본=발굴풀
   var _snapOn=!!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode());
-  var srcLabel=(source==='mega'?'발굴풀':(source==='all'?'확장풀':'대표풀'))+(_snapOn?'·📦스냅샷':'·🔴라이브');   // [S996] OOS 비교용 냉동/라이브 표기
+  var srcLabel=(source==='mega'?'발굴풀':'대표풀')+(_snapOn?'·📦스냅샷':'·🔴라이브');   // [S996] OOS 비교용 냉동/라이브 [S1047] 확장풀 제거
   el.innerHTML='<div style="text-align:center;padding:14px;color:#ef4444;font-size:12px;font-weight:800">🛡️ 위험필터 측정 시작… <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+srcLabel+' 전수 · 봉별 지표계산이라 시간 걸림</div></div>';
   if(typeof _snapEnsure==='function'){ var _okS=await _snapEnsure(mk, el); if(!_okS) return; }   // [S1003] 스냅 모드 시 현재 시장 자동 로드(미로드=전멸 방지 · discrim과 동일)
   await new Promise(function(r){ setTimeout(r, 30); });
@@ -5263,7 +5251,7 @@ async function _riskComboUI(){
   if(!cache||!cache.entries||!cache.entries.length){
     el.innerHTML='<div style="font-size:11px;color:#dc2626;padding:10px 4px;line-height:1.6">🧪 조합 측정은 <b>entries 세션캐시</b>가 필요합니다.<br>먼저 🛡️ 위험·확장 또는 위험·발굴을 실행하세요 — 완료 시 자동 캐시되고, 조합은 재fetch 없이 즉시 계산됩니다.</div>'; return;
   }
-  var srcLabel=(cache.source==='mega'?'발굴풀':(cache.source==='all'?'확장풀':'대표풀'))+(cache.snap?'·📦스냅샷':'·🔴라이브');
+  var srcLabel=(cache.source==='mega'?'발굴풀':'대표풀')+(cache.snap?'·📦스냅샷':'·🔴라이브');   // [S1047] 확장풀 제거
   el.innerHTML='<div style="text-align:center;padding:14px;color:#7c3aed;font-size:12px;font-weight:800">🧪 조합 계산 중… <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+srcLabel+' 캐시 '+cache.entries.length+'봉 · 재fetch 없음</div></div>';
   await new Promise(function(r){ setTimeout(r, 30); });
   var agg, reg;
@@ -5405,18 +5393,7 @@ async function _btDiscrimRun(){
   el.innerHTML=_btDiscrimRender(rep, watch, mk);
 }
 // [S833] 확장 풀(대표+관심+보강+top100 ~115종) 재료 변별력 — beam-search 풀 확장용. 결과 entries는 동일 window._sxLastDiscrimEntries에 저장 → 이어서 🌳 진짜전수/가짜전수 실행하면 확장 풀 기준 새 레시피 탐색.
-async function _btDiscrimRunAll(){
-  var el=document.getElementById('btDiscrimResult'); if(!el) return;
-  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
-  el.style.display='block';
-  var _prog=function(stage,i,t,n){ el.innerHTML='<div style="text-align:center;padding:14px;color:#0891b2;font-size:12px;font-weight:800">🧪 '+stage+' 재료 변별력 '+i+'/'+t+'<div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+(n||'')+'</div></div>'; };
-  el.innerHTML='<div style="text-align:center;padding:14px;color:#0891b2;font-size:12px;font-weight:800">🧪 확장 풀 측정 시작… <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">~115종 전수 · 시간 걸림</div></div>';
-  await _trendBatchSleep(30);
-  var all=null;
-  try{ all=await _btDiscrimBracket(mk,'all',function(i,t,n){_prog('확장풀',i,t,n);}); }catch(e){ all={ok:false,reason:String(e&&e.message||e)}; }
-  el.innerHTML=_btDiscrimRender(all, null, mk);   // all을 rep 자리에, watch=null → entries=확장풀
-}
-if(typeof window!=='undefined'){ window._btDiscrimRunAll=_btDiscrimRunAll; }
+// [S1047] _btDiscrimRunAll(확장풀 변별력) 제거 — 확장풀 폐지. 발굴풀 변별력(_btDiscrimRunMega)이 정본.
 // [S846] 발굴 풀(대형) 재료 변별력 — 레시피 신호 3시장 확장용. 시장 전환 후 실행하면 그 시장 발굴 풀(KR200/US100/coin60)로 entries 생성 → 이어서 🌳 빔서치가 발굴 풀 기준 레시피 탐색. 결과 JSON에 mkt 포함(핸드오프 자기서술).
 async function _btDiscrimRunMega(){
   var el=document.getElementById('btDiscrimResult'); if(!el) return;
@@ -9177,7 +9154,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1046';
+  window.SX_BUILD='S1047';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
