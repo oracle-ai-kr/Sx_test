@@ -2002,9 +2002,9 @@ function _trBbUp(close,p,mult){ const n=close.length, up=new Array(n).fill(null)
 // ═══════════ [S816] 정배열 레시피 엔진 — 단기추세매매 대체 BT ═══════════
 //   MA 크로스 대신 레시피 신호로 매매: pullback-real(정배 진짜)=진입 / pullback-fake(정배 가짜)=청산.
 //   1포지션(보유 중 추가 진짜 무시) · SL/TP 없음(순수 신호) · 발동맵은 ctx.rows(=BT 동일)로 봉 인덱스 1:1.
-let _trendEngine='cross';   // 'cross'(MA 크로스) | 'recipe'(정배열 레시피)
+let _trendEngine='hybrid';   // 'hybrid'(레짐라우팅) | 'cross'(MA 크로스) | 'recipe'(정배열 레시피)
 function _trendRcpKey(){ const ctx=window._sxTrendCtx; if(!ctx||!ctx.rows) return ''; return (ctx.name||'')+'|'+ctx.market+'_'+ctx.rows.length+'_'+(ctx.rows.length?ctx.rows[ctx.rows.length-1].close:0); }
-function _trendToggleEngine(){ _trendEngine = _trendEngine==='cross'?'recipe':'cross'; _trendRerender(); }
+function _trendToggleEngine(){ _trendEngine = _trendEngine==='hybrid'?'cross':(_trendEngine==='cross'?'recipe':'hybrid'); _trendRerender(); }
 function _trendRcpEnsure(cb){
   window._trendRcpFireCache = window._trendRcpFireCache||{};
   const key=_trendRcpKey(); if(!key){ cb&&cb(null); return; }
@@ -2018,6 +2018,21 @@ function _trendRcpEnsure(cb){
   setTimeout(async function(){
     let fire=null; try{ fire=await SXRecipeSignal.pullbackSignalBars(sym, ctx.rows); }catch(e){ fire={real:{},fake:{}}; }
     window._trendRcpFireCache[key]=fire||{real:{},fake:{}}; cb&&cb(window._trendRcpFireCache[key]);
+  },10);
+}
+function _trendHybEnsure(cb){
+  window._trendHybFireCache = window._trendHybFireCache||{};
+  const key=_trendRcpKey(); if(!key){ cb&&cb(null); return; }
+  const c=window._trendHybFireCache[key];
+  if(c && c!=='pending'){ cb&&cb(c); return; }
+  if(c==='pending') return;
+  const ctx=window._sxTrendCtx; if(!ctx||!ctx.rows){ cb&&cb(null); return; }
+  if(!(window.SXRecipeSignal && SXRecipeSignal.hybridSignalBars)){ window._trendHybFireCache[key]={pbReal:{},pbFake:{},dcReal:{},dcFake:{}}; cb&&cb(window._trendHybFireCache[key]); return; }
+  window._trendHybFireCache[key]='pending';
+  const sym=(ctx.name||'')+'|'+ctx.market;
+  setTimeout(async function(){
+    let fire=null; try{ fire=await SXRecipeSignal.hybridSignalBars(sym, ctx.rows); }catch(e){ fire={pbReal:{},pbFake:{},dcReal:{},dcFake:{}}; }
+    window._trendHybFireCache[key]=fire||{pbReal:{},pbFake:{},dcReal:{},dcFake:{}}; cb&&cb(window._trendHybFireCache[key]);
   },10);
 }
 // 레시피 BT — real 진입/fake 청산/1포지션/순수. 통계·반환 형식은 _trendBt와 동일(그리드·모달·물타기 재사용).
@@ -2050,6 +2065,52 @@ function _trendBtRecipe(rows, fire){
   const totalPnl=+((eq-1)*100).toFixed(2);
   return { winRate, pf, totalPnl, totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, lastClose:close[n-1],
     predHit:null, predFires:0, predDcHit:null, predDcFires:0, predDday:null, predDdayProb:null, predDdayType:null, predExitNow:false, _recipe:true };
+}
+// ═══════════ [S1058] 레짐라우팅 하이브리드 엔진 — 단기추세 + 레시피 상호보완 ═══════════
+//   진입: 불장/상승장 = MA 골든크로스(추세) · 하락장/횡보장 = deadcat-real(역배 바닥반등). 각 레짐에서 강한 도구로 라우팅.
+//   청산: MA 데드크로스 ∪ deadcat-fake. 1포지션. sig={pbReal,pbFake,dcReal,dcFake}(SXRecipeSignal.hybridSignalBars). 반환형식 _trendBtRecipe 동일(그리드·모달 재사용).
+//   레짐=_btRegimeAt(SMA 20/60/120/200). 〔근거 S1058 측정〕 추세는 하락장서 승률 급락(취약)·deadcat이 하락장서 고승률 → 상호보완. MDD 대폭↓(시즌2 게이트 정합).
+function _trendBtHybrid(rows, sig, cfg, bbP){
+  const n=rows.length; const _s=cfg.s||5, _l=cfg.l||20; if(!n || n<Math.max(30,_l+5)) return null;
+  const close=rows.map(r=>+(r.close!=null?r.close:r.c));
+  const maS=_trSma(close,_s), maL=_trSma(close,_l);
+  const _xOn=!!cfg.xCross, _xs=_xOn?(+cfg.xs||_s):_s, _xl=_xOn?(+cfg.xl||_l):_l;
+  const maXS=_xOn?_trSma(close,_xs):maS, maXL=_xOn?_trSma(close,_xl):maL;
+  const dcR=(sig&&sig.dcReal)||{}, dcF=(sig&&sig.dcFake)||{};   // pbFake 미사용(추세 데드크로스가 청산 담당)
+  const _regCache={};
+  const _reg=(i)=>{ let r=_regCache[i]; if(r===undefined){ try{ r=(typeof _btRegimeAt==='function')?_btRegimeAt(rows,i):'side'; }catch(_){ r='side'; } _regCache[i]=r; } return r; };
+  const _nextOpen=!!cfg.nextOpen, _opens=_nextOpen?rows.map(r=>+(r.open!=null?r.open:(r.o!=null?r.o:NaN))):null;
+  const trades=[]; let pos=null;
+  for(let i=0;i<n;i++){
+    const gc=(i>0&&maS[i]!=null&&maL[i]!=null&&maS[i-1]!=null&&maL[i-1]!=null&&maS[i]>maL[i]&&maS[i-1]<=maL[i-1]);
+    const dx=(i>0&&maXS[i]!=null&&maXL[i]!=null&&maXS[i-1]!=null&&maXL[i-1]!=null&&maXS[i]<maXL[i]&&maXS[i-1]>=maXL[i-1]);
+    const rg=_reg(i), bullSide=(rg==='bull'||rg==='up'), bearSide=(rg==='down'||rg==='side');
+    if(pos==null){
+      const enter=(gc&&bullSide)?'trend':((dcR[i]&&bearSide)?'deadcat':null);
+      if(enter){
+        if(_nextOpen){ const j=i+1; if(j<n && _opens[j]>0) pos={entry:_opens[j], entryIdx:j, src:enter}; }
+        else if(close[i]>0) pos={entry:close[i], entryIdx:i, src:enter};
+      }
+    } else if((dx || dcF[i]) && close[i]>0){
+      const ex=close[i], pnl=+((ex/pos.entry-1)*100).toFixed(2);
+      trades.push({ entry:pos.entry, exit:ex, pnl, bars:i-pos.entryIdx, entryIdx:pos.entryIdx, exitIdx:i, src:pos.src,
+        entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'', exitDate:(rows[i]&&(rows[i].date||rows[i].t))||'' });
+      pos=null;
+    }
+  }
+  let open=null;
+  if(pos){ const last=close[n-1]; open={ entry:pos.entry, cur:last, pnl:+((last/pos.entry-1)*100).toFixed(2), bars:(n-1)-pos.entryIdx, entryIdx:pos.entryIdx, src:pos.src, entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'' }; }
+  const nT=trades.length; let wins=0,lossN=0,grossW=0,grossL=0,sumPnl=0;
+  trades.forEach(t=>{ if(t.pnl>0){wins++;grossW+=t.pnl;} else if(t.pnl<0){lossN++;grossL+=-t.pnl;} sumPnl+=t.pnl; });
+  const winRate=nT?Math.round(wins/nT*1000)/10:0;
+  const avgWin=wins?+(grossW/wins).toFixed(2):0, avgLoss=lossN?+(grossL/lossN).toFixed(2):0;
+  const pf=grossL>0?Math.round(grossW/grossL*100)/100:(grossW>0?99:0);
+  const expectancy=nT?+(sumPnl/nT).toFixed(2):0;
+  let eq=1,peak=1,mdd=0;
+  trades.forEach(t=>{ eq*=(1+t.pnl/100); if(eq>peak)peak=eq; const dd=peak>0?(peak-eq)/peak:0; if(dd>mdd)mdd=dd; });
+  const totalPnl=+((eq-1)*100).toFixed(2);
+  return { winRate, pf, totalPnl, totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, lastClose:close[n-1],
+    predHit:null, predFires:0, predDcHit:null, predDcFires:0, predDday:null, predDdayProb:null, predDdayType:null, predExitNow:false, _hybrid:true };
 }
 // ═══════════ [S988] Season2 정합 마커 엔진 — 레시피 진입 + 이중ATR 청산 (자동매매 추적 관찰용) ═══════════
 //   진입=레시피 real 발동(pullbackSignalBars) · 청산=초기ATR손절 + ATR트레일(래칫) + MA5×20데드(유예N). 유예중 MA청산 OFF·ATR손절 상시.
@@ -2112,6 +2173,14 @@ function _ensureSeason2Trades(stock, rows, sym){
   }catch(_){}
 }
 function _trendBt(rows,cfg,bbP){
+  if(_trendEngine==='hybrid'){
+    const key=_trendRcpKey(), sig=(window._trendHybFireCache||{})[key];
+    if(!sig || sig==='pending'){
+      const lc=(rows.length?+(rows[rows.length-1].close!=null?rows[rows.length-1].close:rows[rows.length-1].c):0);
+      return { winRate:0,pf:0,totalPnl:0,totalTrades:0,avgWin:0,avgLoss:0,mdd:0,expectancy:0,trades:[],open:null,lastClose:lc,predHit:null,predFires:0,predDcHit:null,predDcFires:0,predDday:null,predDdayProb:null,predDdayType:null,predExitNow:false,_hybrid:true,_hybPending:true };
+    }
+    return _trendBtHybrid(rows, sig, cfg, bbP);
+  }
   if(_trendEngine==='recipe'){
     const key=_trendRcpKey(), fire=(window._trendRcpFireCache||{})[key];
     if(!fire || fire==='pending'){
@@ -2410,9 +2479,10 @@ function _trendRenderInner(){
   const _ov=!!(window._trendGuardOverride&&window._trendGuardOverride[_stockKey]);
   const _btOn=_trendBt(rows,cfg,_bbp);
   if(_trendEngine==='recipe' && _btOn._rcpPending){ _trendRcpEnsure(function(){ _trendRerender(); }); }   // [S816] 레시피 발동맵 async 확보 후 재렌더
+  if(_trendEngine==='hybrid' && _btOn._hybPending){ _trendHybEnsure(function(){ _trendRerender(); }); }   // [S1058] 하이브리드 발동맵 async 확보 후 재렌더
   // [S628~S630] 선행 가드 — ON이 OFF보다 손해면 손해 표시 + 종목 진입 시 임시 OFF(🔮 탭으로 강제 ON 가능)
   let _guardBadge='', _guardHurt=false, _btOff=null;
-  if(cfg.predict && _trendEngine!=='recipe'){
+  if(cfg.predict && _trendEngine==='cross'){
     try{ _btOff=_trendBt(rows,Object.assign({},cfg,{predict:false}),_bbp); }catch(_g){ _btOff=null; }
     if(_btOff){
       const dE=+(_btOn.expectancy-_btOff.expectancy).toFixed(2);
@@ -2569,7 +2639,20 @@ function _trendRenderInner(){
     +`<button onclick="window._trendBatchUI&&_trendBatchUI()" style="width:100%;font-size:11px;font-weight:700;padding:8px 0;border-radius:8px;cursor:pointer;color:#0ea5e9;background:var(--surface);border:1px solid #0ea5e966">▶ ${_bsRep?'대표풀':'관심목록'} × 7설정 자동 BT · ${_bmLabel}</button>`
     +`<div id="sxTrendBatchResult" style="margin-top:8px"></div></div>`;
   const _engRecipe=_trendEngine==='recipe';
-  const engRow=`<div style="margin-bottom:9px;display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span onclick="_sxVib(10);window._trendToggleEngine&&_trendToggleEngine()" title="MA 골든/데드크로스 대신 레시피 신호로 매매 — 정배열 진짜반등=진입, 정배열 가짜반등=청산. 크로스·조건칩 무시·순수 신호. 탭으로 전환." style="font-size:10px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid;cursor:pointer;${_engRecipe?'background:#16a34a;color:#fff;border-color:#16a34a':'background:var(--surface2);color:#16a34a;border-color:#16a34a66'}">📊 정배열 레시피 ${_engRecipe?'ON':'OFF'}</span><span style="font-size:8.5px;color:var(--text3);flex:1;min-width:130px">${_engRecipe?'정배 진짜=진입 · 정배 가짜=청산 (크로스 무시)':'MA 크로스 대신 레시피 신호로 매매'}</span></div>`;
+  const _engHyb=_trendEngine==='hybrid';
+  const _engLbl={hybrid:'🔀 레짐 하이브리드',cross:'📈 MA 크로스',recipe:'📊 정배열 레시피'}[_trendEngine]||'📈 MA 크로스';
+  const _engDesc={hybrid:'불장=추세 골든크로스 · 하락장=역배 반등(deadcat) · 각 레짐 강한 도구',cross:'MA 골든/데드크로스 · 조건칩 적용',recipe:'정배 진짜=진입 · 정배 가짜=청산 (크로스 무시)'}[_trendEngine]||'';
+  const _engCol=_engHyb?'#7c3aed':(_engRecipe?'#16a34a':'#0ea5e9');
+  const engRow=`<div style="margin-bottom:9px;display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span onclick="_sxVib(10);window._trendToggleEngine&&_trendToggleEngine()" title="엔진 전환(탭): 레짐 하이브리드 → MA 크로스 → 정배열 레시피. 하이브리드=불장 추세+하락장 역배반등 라우팅(상호보완·MDD↓)." style="font-size:10px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid;cursor:pointer;background:${_engCol};color:#fff;border-color:${_engCol}">${_engLbl} ⟳</span><span style="font-size:8.5px;color:var(--text3);flex:1;min-width:130px">${_engDesc}</span></div>`;
+  if(_engHyb){
+    let stHyb;
+    if(_btOn.open){ stHyb={label:`보유중 · ${_btOn.open.src==='deadcat'?'역배반등':'추세'} 진입 ${_btOn.open.bars}봉차 · 평가 ${_btOn.open.pnl>=0?'+':''}${_btOn.open.pnl}%`, color:_btOn.open.pnl>=0?'#22c55e':'#e8365a'}; }
+    else if(_btOn._hybPending){ stHyb={label:'🔀 레짐 하이브리드 신호 스캔 중…', color:'var(--text3)'}; }
+    else { stHyb={label:'대기 · 불장 추세 골든 / 하락장 역배반등 신호 대기', color:'var(--text3)'}; }
+    const stateHyb=`<div style="font-size:12px;font-weight:700;color:${stHyb.color};margin-bottom:9px;padding:7px 10px;background:var(--surface2);border-radius:8px">${stHyb.label}</div>`;
+    const noteHyb=`<div style="font-size:9px;color:var(--text3);margin-top:9px;border-top:1px solid var(--border);padding-top:6px">실험 지표 · 정식 판정과 무관 · 🔀 <b>레짐 라우팅 하이브리드</b> · 불장/상승장=MA 골든크로스(추세) · 하락장/횡보장=역배 진짜반등(deadcat) 진입 · 청산=데드크로스 ∪ 역배 가짜반등 · 1포지션 · <b>추세는 하락장서 취약→deadcat 보완</b>(S1058) · <b style="color:${_trBarsCol}">[${_trBars}봉 기준]</b></div>`;
+    return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+engRow+stateHyb+grid+noteHyb+`</div>`;
+  }
   if(_engRecipe){
     let stRcp;
     if(_btOn.open){ stRcp={label:`보유중 · 진입 ${_btOn.open.bars}봉차 · 평가 ${_btOn.open.pnl>=0?'+':''}${_btOn.open.pnl}%`, color:_btOn.open.pnl>=0?'#22c55e':'#e8365a'}; }
@@ -9163,7 +9246,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1054';
+  window.SX_BUILD='S1058';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
