@@ -6,6 +6,13 @@
  *        임계값은 소비처에서 적용 → 레시피는 IC(순위상관), 위험은 crash-IC / 임계 lift.
  *  통합 원칙: 겹치는 지표(RSI·Stoch·BB·이격·ADX·MACD·거래량)는 연속값으로 1개만.
  *  확장: 새 재료 후보는 아래 FEATURES 배열에 1개 추가 → 레시피·위험 양쪽 자동 사용.
+ *  [S1057] Tier2 등록 5종(발굴풀 107k rec 종목-홀드아웃 통과 — PREREG_S1056/s1056_result 근거):
+ *    tvTrend(대금전이·KR수익green/COIN위험rev 정반대) · adScore(COIN위험rev) · psycho(COIN수익rev)
+ *    · diRebound(adx>40∧−DI우위 투매소진 — KR/COIN 안전+수익) · diOverheat(adx>40∧+DI우위 — KR 위험·COIN 미재현=KR 전용 권장).
+ *    지위="발굴풀 통과 재료" — 시간-홀드아웃(0723~ 빈티지) 재판정 대기. 채용은 자체 검증 파이프라인 경유.
+ *  [S1057] 인덱스-세이프 수리: 소비처(evalCont(ind, rr, bi))가 250봉 윈도 ind + 전역 bi를 넘겨
+ *    ind.closes(슬라이스) 직접 인덱싱 재료(ma5slope·크로스류·settle20)가 상시 null/0이던 퀴크 →
+ *    _closesFor 길이가드+rows 폴백. (evalAll/binIds 라이브 소비처 0곳·recipe_core는 자체 구현 — 무영향 grep 증명)
  *  자기완결: recipe_core 의존 없이 ind(calcAllScreener 반환) + rows(OHLCV)로만 계산.
  *  ind 필드 가정: rsi.val/rsi.div, stoch.k, cci, bb.pctB/bb.upper, volOsc, adx.adx/adx.pdi/adx.mdi,
  *                mfi, vr, obv.div/obv.trend, macd.line/macd.sig/macd.hist, psar.trend,
@@ -35,6 +42,14 @@
     return 0;
   }
   function _num(v){ return (typeof v==='number' && isFinite(v)) ? v : null; }
+  // [S1057] 인덱스-세이프 closes 선택 — 실소비처(sx_render 5032·6406 evalCont)가 250봉 윈도 ind + 전역 i(rows 기준)를
+  //   넘기면 ind.closes(슬라이스) 직접 인덱싱이 범위 초과 → ma5slope 상시 null·크로스류 상시 0이던 퀴크의 수리.
+  //   i가 ind.closes 범위 안이면 그대로(기존 동작·윈도-로컬 호출 무변화), 밖이면 rows에서 재구성.
+  function _closesFor(ind, rows, i){
+    var cl = ind && ind.closes;
+    if(cl && i < cl.length) return cl;
+    return rows ? rows.map(function(r){ return r.close; }) : null;
+  }
 
   // ── 재료 정의 ──
   //  kind: 'cont'(연속·IC용) | 'bin'(이진 0/1)
@@ -45,11 +60,14 @@
     { id:'stochK',  label:'Stoch %K',       group:'osc', kind:'cont', value:function(ind){ return ind.stoch?_num(ind.stoch.k):null; } },
     { id:'cci',     label:'CCI',            group:'osc', kind:'cont', value:function(ind){ return _num(ind.cci); } },
     { id:'bbPctB',  label:'BB %B',          group:'osc', kind:'cont', value:function(ind){ return ind.bb?_num(ind.bb.pctB):null; } },
+    // [S1057] 투자심리도(상승일 비율 0~100) — 도넛 원천(psychoLegacy·평탄화 폴백) 그대로.
+    //   stats(발굴풀 S1056): COIN rGap −2.7 강 rev(높음=수익악화·run-up 정합)·cGap+4.0 / KR rGap+1.1 약 / US 무변별.
+    { id:'psycho',  label:'투자심리도',       group:'osc', kind:'cont', value:function(ind){ var p=(ind.psychoLegacy&&ind.psychoLegacy.psycho!=null)?ind.psychoLegacy.psycho:((ind.psycho&&ind.psycho.psycho!=null)?ind.psycho.psycho:null); return _num(p); } },
 
     // ═══ 이격도 (연속) ═══  — 과열군의 핵심(200종서 crashLift 최강)
     { id:'dev20',   label:'MA20 이격%',      group:'ma', kind:'cont', value:function(ind){ return ind.maDisparity?_num(ind.maDisparity.disparity20):null; } },
     { id:'dev60',   label:'MA60 이격%',      group:'ma', kind:'cont', value:function(ind,rows,i){ var m=ind.maAlign&&ind.maAlign.ma60, c=rows[i]&&rows[i].close; return (m&&c)?+(100*(c-m)/m).toFixed(2):null; } },
-    { id:'ma5slope',label:'MA5 기울기%',     group:'ma', kind:'cont', value:function(ind,rows,i){ var cl=ind.closes; if(!cl||i<6) return null; var a=_sma(cl,5,i), b=_sma(cl,5,i-3); return (a!=null&&b!=null&&b!==0)?+(100*(a-b)/Math.abs(b)).toFixed(2):null; } },
+    { id:'ma5slope',label:'MA5 기울기%',     group:'ma', kind:'cont', value:function(ind,rows,i){ var cl=_closesFor(ind,rows,i); if(!cl||i<6) return null; /* [S1057] 인덱스-세이프 */ var a=_sma(cl,5,i), b=_sma(cl,5,i-3); return (a!=null&&b!=null&&b!==0)?+(100*(a-b)/Math.abs(b)).toFixed(2):null; } },
 
     // ═══ 변동성 (연속) ═══
     { id:'atrPct',  label:'ATR%',           group:'vol', kind:'cont', value:function(ind){ return ind.atr?_num(ind.atr.pct):null; } },
@@ -58,6 +76,11 @@
     // ═══ 추세강도 (연속/이진) ═══
     { id:'adx',     label:'ADX',            group:'trend', kind:'cont', value:function(ind){ return ind.adx?_num(ind.adx.adx):null; } },
     { id:'diBear',  label:'DI 하락우위',      group:'trend', kind:'bin',  value:function(ind){ return (ind.adx&&typeof ind.adx.pdi==='number'&&typeof ind.adx.mdi==='number'&&ind.adx.mdi>ind.adx.pdi)?1:0; } },
+    // [S1057] DI 레짐 2종 — S1055(OOS 발견) → S1056 발굴풀 종목-홀드아웃 재현. 사용자 확정 등록(지속 필요 판단).
+    //   diRebound stats: KR n289 crash 4.2%(lift −7.6pp)·meanR10 +6.7% / COIN n861 lift −5.7pp / US 무변별. OOS(S1055): KR −10.8pp·+10.1%. 투매소진 반등 — bullVol·deadcat의 DMI 사촌.
+    { id:'diRebound', label:'DI 강추세 투매소진', group:'trend', kind:'bin', value:function(ind){ var a=ind.adx; return (a&&typeof a.adx==='number'&&typeof a.pdi==='number'&&typeof a.mdi==='number'&&a.adx>40&&a.mdi>a.pdi)?1:0; } },
+    //   diOverheat stats: KR n9739 crash 18.3%(lift +6.6pp)·ret +4.5%(★수익꼬리 동반=단독 숏 불가·위험시그니처 결합 컨텍스트 용) / ⚠COIN 미재현(발굴풀 −0.8pp ↔ OOS +6.8 — 풀 의존)=KR 전용 권장 / US 무변별.
+    { id:'diOverheat', label:'DI 강추세 상승과열', group:'trend', kind:'bin', value:function(ind){ var a=ind.adx; return (a&&typeof a.adx==='number'&&typeof a.pdi==='number'&&typeof a.mdi==='number'&&a.adx>40&&a.pdi>a.mdi)?1:0; } },
     { id:'sarBear', label:'PSAR 하락',       group:'trend', kind:'bin',  value:function(ind){ return (ind.psar&&ind.psar.trend==='down')?1:0; } },
 
     // ═══ 추격/과열 (연속) ═══  — 위험 고유(고변동 마커)
@@ -72,6 +95,12 @@
     { id:'mfi',     label:'MFI(자금흐름)',     group:'flow', kind:'cont', value:function(ind){ return _num(ind.mfi); } },
     { id:'volRatio',label:'거래량 배율',       group:'flow', kind:'cont', value:function(ind,rows,i){ var s=Math.max(0,i-20),sum=0,c=0; for(var k=s;k<i;k++){ var v=rows[k].volume||0; if(v>0){sum+=v;c++;} } var a=c?sum/c:0; return (a>0)?+((rows[i].volume||0)/a).toFixed(2):null; } },
     { id:'obvUp',   label:'OBV 상승추세',      group:'flow', kind:'bin',  value:function(ind){ return (ind.obv&&ind.obv.trend==='up')?1:0; } },
+    // [S1057] 대금전이 — SXE.calcDumpWarn(S431 SSOT) tvScore 동일식 자기완결 이식(골든테스트 소수점 일치 필수·검증 로그 s1057 참조):
+    //   최근3봉 평균 거래대금 ÷ 이전10봉 평균 → 50 + log2(비율)×25, clamp 0~100.
+    //   stats(발굴풀 S1056): KR rGap +1.7 mono4/4 green(⚠crash U자: Q1 13.8·Q5 14.6 — 대금 급감/급증 양쪽 위험·중간 안정) / COIN cGap +11.1 강 rev(이번 측정 최강·KR과 정반대="시장별 정반대" 캐논) / US 무변별.
+    { id:'tvTrend', label:'대금전이',          group:'flow', kind:'cont', value:function(ind,rows,i){ if(!rows||i<12) return null; var s=0,p=0,k,r; for(k=i-2;k<=i;k++){ r=rows[k]; if(!r) return null; s+=(r.close||0)*(r.volume||0); } for(k=i-12;k<=i-3;k++){ r=rows[k]; if(!r) return null; p+=(r.close||0)*(r.volume||0); } var aR=s/3, aP=p/10; return (aP>0)?Math.max(0,Math.min(100,Math.round(50+Math.log2(aR/aP)*25))):null; } },
+    // [S1057] A/D 라인 점수(0~100) — 도넛 원천(adLegacy.score100·평탄화 폴백). stats(발굴풀 S1056): COIN cGap +6.0 강 rev(높음=위험·run-up 정합·mono2/4 견고성 약) / KR +4.5 약(위험쪽) / US 무변별.
+    { id:'adScore', label:'A/D 점수',          group:'flow', kind:'cont', value:function(ind){ var a=(ind.adLegacy&&ind.adLegacy.score100!=null)?ind.adLegacy.score100:((ind.ad&&ind.ad.score100!=null)?ind.ad.score100:null); return _num(a); } },
 
     // ═══ MACD (연속/이진) ═══
     { id:'macdHist',    label:'MACD 히스토값',   group:'macd', kind:'cont', value:function(ind){ return (ind.macd)?_num(ind.macd.hist):null; } },
@@ -85,12 +114,12 @@
     { id:'obvDivBull',label:'OBV 상승다이버',   group:'div', kind:'bin', value:function(ind){ return (ind.obv&&ind.obv.div==='bullish')?1:0; } },
     { id:'nearSup',   label:'지지선 근접',      group:'struct', kind:'bin', value:function(ind){ return (ind.trend&&ind.trend.struct&&ind.trend.struct.nearSupport)?1:0; } },
 
-    // ═══ 크로스/안착 (이진) ═══
-    { id:'gx5_9',   label:'골든크로스 5×9',   group:'cross', kind:'bin', value:function(ind,rows,i){ return _crossed(ind.closes||rows.map(function(r){return r.close;}), i, 5, 9, 3, 'golden'); } },
-    { id:'gx5_20',  label:'골든크로스 5×20',  group:'cross', kind:'bin', value:function(ind,rows,i){ return _crossed(ind.closes||rows.map(function(r){return r.close;}), i, 5, 20, 3, 'golden'); } },
-    { id:'gx5_60',  label:'골든크로스 5×60',  group:'cross', kind:'bin', value:function(ind,rows,i){ return _crossed(ind.closes||rows.map(function(r){return r.close;}), i, 5, 60, 3, 'golden'); } },
-    { id:'deadCross',label:'데드크로스 5×20',  group:'cross', kind:'bin', value:function(ind,rows,i){ return _crossed(ind.closes||rows.map(function(r){return r.close;}), i, 5, 20, 3, 'dead'); } },
-    { id:'settle20',label:'MA20 돌파안착',    group:'cross', kind:'bin', value:function(ind,rows,i){ var cl=ind.closes||rows.map(function(r){return r.close;}); var m=_sma(cl,20,i), mp=_sma(cl,20,i-1), cN=cl[i], cP=cl[i-1], c3=cl[i-3]; return (m!=null&&mp!=null&&cN>m&&cP>mp&&c3!=null&&cN>c3)?1:0; } }
+    // ═══ 크로스/안착 (이진) ═══  — [S1057] 인덱스-세이프: 기존 ind.closes||rows 순서는 슬라이스 ind + 전역 i에서 상시 0이던 퀴크
+    { id:'gx5_9',   label:'골든크로스 5×9',   group:'cross', kind:'bin', value:function(ind,rows,i){ return _crossed(_closesFor(ind,rows,i), i, 5, 9, 3, 'golden'); } },
+    { id:'gx5_20',  label:'골든크로스 5×20',  group:'cross', kind:'bin', value:function(ind,rows,i){ return _crossed(_closesFor(ind,rows,i), i, 5, 20, 3, 'golden'); } },
+    { id:'gx5_60',  label:'골든크로스 5×60',  group:'cross', kind:'bin', value:function(ind,rows,i){ return _crossed(_closesFor(ind,rows,i), i, 5, 60, 3, 'golden'); } },
+    { id:'deadCross',label:'데드크로스 5×20',  group:'cross', kind:'bin', value:function(ind,rows,i){ return _crossed(_closesFor(ind,rows,i), i, 5, 20, 3, 'dead'); } },
+    { id:'settle20',label:'MA20 돌파안착',    group:'cross', kind:'bin', value:function(ind,rows,i){ var cl=_closesFor(ind,rows,i); if(!cl) return 0; var m=_sma(cl,20,i), mp=_sma(cl,20,i-1), cN=cl[i], cP=cl[i-1], c3=cl[i-3]; return (m!=null&&mp!=null&&cN>m&&cP>mp&&c3!=null&&cN>c3)?1:0; } }
   ];
 
   // ── 소비처용 API ──
@@ -120,6 +149,6 @@
     evalAll: evalAll,
     evalCont: evalCont,
     evalOne: evalOne,
-    version: 'S999'
+    version: 'S1057'  // [S1057] Tier2 등록 5종(tvTrend·adScore·psycho·diRebound·diOverheat) + 인덱스-세이프
   };
 })();
