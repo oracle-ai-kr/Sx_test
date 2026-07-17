@@ -1927,22 +1927,23 @@ function _ctConfidence(score, market, sbFired, regime){
 }
 // [S481] 캔들 전이 예측 카드 (분석탭 전광판 아래, 실험 영역)
 // ===== [S549] 단기 추세 매매 (실험 카드) — MA 골든크로스 진입 → 데드크로스 청산. 보조지표 AND(최근 N봉). 독립 룰. =====
-const _TREND_MKT_DEFAULT = { kr:[5,9], us:[5,9], coin:[5,9] };
+const _TREND_MKT_DEFAULT = { kr:[5,20], us:[5,20], coin:[5,20] };
+const _TREND_CFG_VER = 2;   // [S1059] 기본 프리셋 개편(5×20 단일·옵션 전체 OFF) → bump 시 구 localStorage 저장값 무효화
 // [S573] 단기추세 기본 프리셋 — 순수 MA 골든/데드크로스만. 매수·매도 보조칩 전부 OFF, 정배열 재진입 OFF (사진 기준 0건 적용 상태).
 //   매번 새 객체 반환(aux/sell 참조 공유 방지). MA쌍은 시장별 _TREND_MKT_DEFAULT 사용.
 function _trendDefaults(market){
   const d=_TREND_MKT_DEFAULT[market]||[5,9];
-  return { s:5, l:60, n:3,   // [S822] 기본 프리셋: 진입 5×60
+  return { s:5, l:20, n:3, _ver:_TREND_CFG_VER,   // [S1059] 기본 프리셋: 진입 5×20 · 옵션 전체 OFF · 엔진 기본=레짐라우팅(_trendEngine)
     aux:{},
     sell:{},
-    reentry:true,
+    reentry:false,               // [S1059] 정배열 재진입 OFF
     predict:false, predLead:1,   // [S623] 🔮 크로스 예측 진입 (kNN 선행 1~2봉)
     earlyMa5:false,              // [S675] 종가<단기MA 조기청산 (데드크로스보다 빠른 비대칭 익절) — 실험 opt-in
     earlySlope:false,            // [S678] MA5 기울기 하향 조기청산 (종가<MA5보다 부드러움) — 실험 opt-in
     disSl:false, slAtr:3,        // [S675] 넓은 ATR 재앙 손절 (폭락 바닥만, 리스크 정책) — 실험 opt-in
-    entrySlope:false, entryConfirm:true,  // [S687] 기울기 조기진입(단기MA 상향전환 시 골든크로스 전 진입) + 확인봉(종가>단기MA). 검증된 기울기 청산의 거울. 실험 opt-in.
-    entryRsi:false,              // [S703] 조기진입 재현 부스트 — 기울기 전환 OR rsiGc(RSI>시그널)로도 선진입. 토너먼트: 기울기 OR rsiGc 재현 95~98%. entrySlope과 OR. 실험 opt-in.
-    xCross:true, xs:5, xl:9, reEntryS:5, reEntryL:9,   // [S822] 청산 분리 ON·청산 5×9·재진입 골든크로스 5×9
+    entrySlope:false, entryConfirm:true,  // [S687] 기울기 조기진입 + 확인봉. entrySlope OFF이므로 무효(모디파이어).
+    entryRsi:false,              // [S703] 조기진입 재현 부스트 — 실험 opt-in
+    xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20,   // [S1059] 청산분리 OFF(=진입과 동일 5×20 데드크로스)·값은 5×20 통일
     nextOpen:false };  // [S581] 진입방식: false=신호봉 종가(기본) / true=다음봉 시가
 }
 const _TREND_AUX = [
@@ -1973,7 +1974,7 @@ function _trendMkt(stock){ const m=(stock&&(stock._mkt||stock.market))||(typeof 
 function _trendCfg(market){
   const d=_TREND_MKT_DEFAULT[market]||[5,9];
   let cfg=_trendDefaults(market); // [S572] 기본 프리셋(칩·재진입) 포함 — localStorage 있으면 아래서 덮어씀
-  try { const raw=localStorage.getItem('SX_TREND_'+market); if(raw){ const o=JSON.parse(raw); if(o){ cfg.s=+o.s||d[0]; cfg.l=+o.l||d[1]; cfg.n=+o.n||3; cfg.aux=(o.aux&&typeof o.aux==='object')?o.aux:{}; cfg.sell=(o.sell&&typeof o.sell==='object')?o.sell:{}; cfg.reentry=!!o.reentry; cfg.nextOpen=!!o.nextOpen; cfg.predict=!!o.predict; cfg.predLead=(o.predLead==='auto')?'auto':((+o.predLead===2)?2:1); cfg.earlyMa5=!!o.earlyMa5; cfg.earlySlope=!!o.earlySlope; cfg.disSl=!!o.disSl; cfg.slAtr=(+o.slAtr>0)?+o.slAtr:3; cfg.entrySlope=!!o.entrySlope; cfg.entryConfirm=(o.entryConfirm!==false); cfg.entryRsi=!!o.entryRsi; cfg.xCross=!!o.xCross; cfg.xs=+o.xs||cfg.s; cfg.xl=+o.xl||cfg.l; cfg.reEntryS=+o.reEntryS||cfg.s; cfg.reEntryL=+o.reEntryL||cfg.l; } } } catch(_){}
+  try { const raw=localStorage.getItem('SX_TREND_'+market); if(raw){ const o=JSON.parse(raw); if(o && o._ver===_TREND_CFG_VER){ cfg.s=+o.s||d[0]; cfg.l=+o.l||d[1]; cfg.n=+o.n||3; cfg.aux=(o.aux&&typeof o.aux==='object')?o.aux:{}; cfg.sell=(o.sell&&typeof o.sell==='object')?o.sell:{}; cfg.reentry=!!o.reentry; cfg.nextOpen=!!o.nextOpen; cfg.predict=!!o.predict; cfg.predLead=(o.predLead==='auto')?'auto':((+o.predLead===2)?2:1); cfg.earlyMa5=!!o.earlyMa5; cfg.earlySlope=!!o.earlySlope; cfg.disSl=!!o.disSl; cfg.slAtr=(+o.slAtr>0)?+o.slAtr:3; cfg.entrySlope=!!o.entrySlope; cfg.entryConfirm=(o.entryConfirm!==false); cfg.entryRsi=!!o.entryRsi; cfg.xCross=!!o.xCross; cfg.xs=+o.xs||cfg.s; cfg.xl=+o.xl||cfg.l; cfg.reEntryS=+o.reEntryS||cfg.s; cfg.reEntryL=+o.reEntryL||cfg.l; } } } catch(_){}
   if(cfg.xCross){ if(!(cfg.xs>0)) cfg.xs=cfg.s; if(!(cfg.xl>0)) cfg.xl=cfg.l; if(cfg.xs>=cfg.xl) cfg.xl=cfg.xs+1; }   // [S820] 청산 MA 정합
   if(cfg.reentry){ if(!(cfg.reEntryS>0)) cfg.reEntryS=cfg.s; if(!(cfg.reEntryL>0)) cfg.reEntryL=cfg.l; if(cfg.reEntryS>=cfg.reEntryL) cfg.reEntryL=cfg.reEntryS+1; }   // [S822] 재진입 MA 정합
   if(!(cfg.s>0)) cfg.s=d[0]; if(!(cfg.l>0)) cfg.l=d[1]; if(cfg.s>=cfg.l) cfg.l=cfg.s+1; if(!(cfg.n>=1)) cfg.n=3;
@@ -9246,7 +9247,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1058';
+  window.SX_BUILD='S1059';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
