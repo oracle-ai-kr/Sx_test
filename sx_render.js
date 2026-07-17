@@ -3001,7 +3001,12 @@ function _trendDetailInner(bt,cfg,ctx){
   const sellOn=Object.keys(cfg.sell||{}).filter(k=>cfg.sell[k]);
   const sellLbl=sellOn.length? sellOn.map(k=>{ const a=_TREND_SELL.find(x=>x.k===k); return a?a.label:k; }).join(', ') : '';
   const head=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:14px;font-weight:800;color:var(--text)">📈 단기추세매매 거래내역</span><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text3);border:1px solid var(--border)">실험</span><span onclick="window._trendDetailClose&&_trendDetailClose()" style="margin-left:auto;font-size:20px;line-height:1;color:var(--text3);cursor:pointer;padding:2px 6px">×</span></div>`;
-  const sub=`<div style="font-size:10px;color:var(--text3);margin-bottom:10px">${cfg.s}MA×${cfg.l}MA 골든→데드 · 진입 ${cfg.nextOpen?'다음봉 시가':'종가'} · 매수: ${auxLbl}${auxOn.length?` (최근${cfg.n}봉)`:''}${sellLbl?` · 매도(OR): ${sellLbl}`:''}${nm}</div>`;
+  const _subStyle='font-size:10px;color:var(--text3);margin-bottom:10px';
+  const sub = bt._hybrid
+    ? `<div style="${_subStyle}">🔀 레짐 라우팅 · ${cfg.s}MA×${cfg.l}MA · 진입 ${cfg.nextOpen?'다음봉 시가':'종가'} · 불장/상승=골든크로스 · 하락/횡보=역배반등(deadcat) · 청산=데드크로스 ∪ 가짜반등${nm}</div>`
+    : bt._recipe
+    ? `<div style="${_subStyle}">📊 정배열 레시피 · 진입 ${cfg.nextOpen?'다음봉 시가':'종가'} · 청산=${cfg.s}MA×${cfg.l}MA 데드크로스${nm}</div>`
+    : `<div style="${_subStyle}">${cfg.s}MA×${cfg.l}MA 골든→데드 · 진입 ${cfg.nextOpen?'다음봉 시가':'종가'} · 매수: ${auxLbl}${auxOn.length?` (최근${cfg.n}봉)`:''}${sellLbl?` · 매도(OR): ${sellLbl}`:''}${nm}</div>`;
   if(!bt || (bt.totalTrades===0 && !bt.open)) return head+sub+'<div style="font-size:12px;color:var(--text3);text-align:center;padding:24px 0">조건을 만족하는 거래가 없어요. 보조지표를 줄이거나 N봉을 늘려보세요.</div>';
   const INIT=1000000; let eq=1; const balAfter=[];
   bt.trades.forEach(t=>{ eq*=(1+t.pnl/100); balAfter.push(Math.round(INIT*eq)); });
@@ -3045,7 +3050,7 @@ function _trendDetailInner(bt,cfg,ctx){
     + (_trendWtMode!=='off' ? `<div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin:2px 0 4px;padding:6px 8px;background:var(--surface2);border-radius:6px">💧 물타기는 <b style="color:#0891b2">보유 중 첫 진짜반등 1회</b>만(포지션당 1회) · <b style="color:#0891b2">진입 직후 10봉 차단</b>(진입 직후 바로 물타기 방지) · 레시피 발동 판정이 250봉 슬라이스 기반 → 600봉 중 <b style="color:#d97706">첫 250봉 이전에 진입한 거래는 물타기 0회</b> 처리${_trendWtMode==='B'?` · <b>☑ 현재가&lt;진입가</b>: 진입가보다 쌀 때만 물타기(진짜 평단 낮추기·추격 차단) · <b>B 환수</b>: 청산회수에서 물타기원금(N×100만)을 빼되 <b style="color:#d97706">본체가 0 밑으로 안 가는 선까지만 회수</b> — 모자란 부족분만 흡수(부분 환수)`:''}</div>` : '');
   // [S632] 골든/데드 예측 적중률 — 모달에선 예측 토글과 무관하게 강제 ON으로 측정해 둘 다 표기
   let accBlock='';
-  try{
+  if(!bt._hybrid && !bt._recipe) try{   // [S1060] 예측 적중률=크로스 모드 전용(하이브리드/레시피는 예측 미계산→숨김)
     const _accBt = cfg.predict ? bt : _trendBt(ctx.rows, Object.assign({},cfg,{predict:true}), _trendBbParams(ctx.market));
     const _ac=(v)=>v==null?'var(--text3)':(v>=65?'#22c55e':v>=50?'#f59e0b':'#ef4444');
     const _gh=_accBt.predHit, _gf=_accBt.predFires||0, _dh=_accBt.predDcHit, _df=_accBt.predDcFires||0;
@@ -9247,7 +9252,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1059';
+  window.SX_BUILD='S1060';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
