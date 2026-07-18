@@ -3780,7 +3780,7 @@ if(typeof window !== 'undefined'){ window._mxToggleDir = _mxToggleDir; window._m
 //   〔H 탐색 측정 S1067·KR〕 MA20: H10이 스위트스팟(73.7 vs 나이브 71.7) · **MA60: H20 최적(90.0 vs 86.3·Δ+3.7%p)**·H30도 유효(+3.0)·H10/H40은 무효.
 //   **MA5 제외**: 어떤 지평서도 나이브에 패배(H2 62.6 vs 73.8 · H3 59.7 vs 65.6 · H5 53.6 vs 56.1) = 노이즈 지배·예측 불가.
 //   ⚠ 실험 지표 · 정식 판정과 무관 · in-sample · 맞히는 게 목적이 아니라 "이어질 모양"을 보는 도구.
-var _MS_H20 = 10, _MS_H60 = 20, _MS_K = 10, _MS_MIN_POOL = 60, _MS_MAG = 0.3;
+var _MS_H20 = 10, _MS_H60 = 20, _MS_K = 10, _MS_MIN_POOL = 60, _MS_MAG = 0.3, _MS_DECAY = 0.35;
 
 function _msSma(a, p){ var o = new Array(a.length).fill(null), s = 0, i;
   for(i=0;i<a.length;i++){ s += a[i]; if(i>=p) s -= a[i-p]; if(i>=p-1) o[i] = s/p; } return o; }
@@ -4055,8 +4055,29 @@ function _buildMaSlopeCard(stock, indicators){
       turnHtml = '<div style="margin:8px 0;padding:6px 9px;border-radius:8px;background:var(--bg2)">'
         + '<span style="font-size:11px;font-weight:700;color:var(--text2)">〰️ 평탄권 — 방향이 바뀌긴 하나 폭이 작아(±0.3% 미만) 의미 두기 어려움</span></div>';
     } else {
-      turnHtml = '<div style="margin:8px 0;padding:6px 9px;border-radius:8px;background:var(--bg2)">'
-        + '<span style="font-size:11px;font-weight:700;color:var(--text2)">➡️ 방향 유지 — 현재 기울기가 이어질 것으로 보임</span></div>';
+      // [S1070] 방향 유지 안에서도 크기 변화를 구분 — 부호만 보던 탓에 +14.68%→+1.63%(89% 감쇠)도 "기울기가 이어짐"으로 표시되던 문제(사용자 리포트).
+      //   ★서술 교정 전용 — 판정(isTurn/weakTurn)·점수·votes·BUY 어디에도 영향 없음. 새 상태를 만든 게 아니라 기존 한 문장을 둘로 가른 것.
+      //   문턱 0.35 = 감쇠비 |pred|/|cur| 분포 측정(S1070·n466·중앙 0.86·p10 0.31)에서 방향유지 표본의 12.2%(MA20 15.7%·MA60 9.4%)에만 발동하도록 캘리브레이션.
+      //   ⚠ 이 문턱은 "이 정도면 둔화라 부르자"는 표시 기준이지 예측력이 측정된 값이 아님.
+      var _decCk = function(r, nm){
+        if(!r || r.sPred===0 || r.sCur===0 || r.sPred!==r.sCur) return null;
+        if(Math.abs(r.cur) < _MS_MAG) return null;          // 원래 평탄한 건 둔화라 부를 대상 아님
+        var rt = Math.abs(r.pred)/Math.abs(r.cur);
+        return (rt <= _MS_DECAY) ? { r:r, nm:nm, rt:rt } : null;
+      };
+      var _dc = _decCk(r60, '장기추세(MA60)') || _decCk(r20, '단기추세(MA20)');   // 장기 우선(더 큰 사건) — 꺾임 배너와 동일 원칙
+      if(_dc){
+        var _dcol = _dc.r.sPred > 0 ? GRN : RED;
+        turnHtml = '<div style="margin:8px 0;padding:7px 9px;border-radius:8px;background:var(--bg2);border:1px solid var(--border)">'
+          + '<span style="font-size:11.5px;font-weight:800;color:var(--text2)">🔅 방향은 유지 — 단 '+_dc.nm+' 기울기가 <span style="color:'+_dcol+'">크게 둔화</span></span>'
+          + '<div style="font-size:8.5px;color:'+T3+';margin-top:3px;line-height:1.5">'
+          +   (_dc.r.cur>=0?'+':'')+_dc.r.cur.toFixed(2)+'% → '+(_dc.r.pred>=0?'+':'')+_dc.r.pred.toFixed(2)+'% (크기 '+Math.round((1-_dc.rt)*100)+'% 축소). '
+          +   '부호는 그대로지만 "이어진다"고 보기 어려운 구간 — 방향이 아니라 <b>힘</b>이 빠지는 모양. '
+          +   '⚠ 서술 구분일 뿐 별도로 측정된 신호가 아님(문턱 0.35 = 방향유지 표본의 12%).</div></div>';
+      } else {
+        turnHtml = '<div style="margin:8px 0;padding:6px 9px;border-radius:8px;background:var(--bg2)">'
+          + '<span style="font-size:11px;font-weight:700;color:var(--text2)">➡️ 방향 유지 — 현재 기울기가 이어질 것으로 보임</span></div>';
+      }
     }
 
     var aRef = r20 || r60;
@@ -9640,7 +9661,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1069';
+  window.SX_BUILD='S1070';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
