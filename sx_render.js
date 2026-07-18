@@ -3897,7 +3897,7 @@ function _buildMaSlopeCard(stock, indicators){
       : res.isTurn
       ? '<div style="margin:8px 0;padding:7px 9px;border-radius:8px;background:'+(res.sPred>0?'rgba(22,163,74,.10)':'rgba(232,54,90,.10)')+';border:1px solid '+prdCol+'40">'
         + '<span style="font-size:11.5px;font-weight:800;color:'+prdCol+'">🔀 꺾임 신호 — '+(res.sPred>0?'하락 → 상승':'상승 → 하락')+' 전환 예측</span>'
-        + '<div style="font-size:8.5px;color:'+T3+';margin-top:3px;line-height:1.5">유사 사례들이 현재 방향과 <b>반대</b>로 흘렀습니다. 〔측정: 전환 예측 적중 53.9% · 전환 발생률 28.3% 대비 1.9배 — 단 절반은 빗나감〕</div></div>'
+        + '<div style="font-size:8.5px;color:'+T3+';margin-top:3px;line-height:1.5">유사 사례들이 현재 방향과 <b>반대</b>로 흘렀습니다. 〔측정 S1065: 일치도 80%↑ 꺾임은 <b>61.6%</b>가 실제 전환 · 그중 <b>70%</b>가 다음 10봉도 유지 → 합쳐서 <b>약 43%가 전환 후 20봉 지속</b>. <b>유통기한</b>: 전환은 10봉은 잘 가나(81.5%) 20봉 유지는 47.7%로 절반 아래〕</div></div>'
       : '<div style="margin:8px 0;padding:6px 9px;border-radius:8px;background:var(--bg2)">'
         + '<span style="font-size:11px;font-weight:700;color:var(--text2)">➡️ 방향 유지 — 현재 기울기가 이어질 것으로 보임</span></div>';
 
@@ -3936,7 +3936,9 @@ function _buildMaSlopeCard(stock, indicators){
     +   '<div style="font-size:8px;color:'+T3+';line-height:1.55;margin-top:6px;border-top:1px solid var(--border);padding-top:6px">'
     +     '실험 지표 · 정식 판정과 무관 · <b>재료</b>: MA5/20/60 기울기·곡률·이격(5-20/20-60/종가-20)·배열·구조위치·크로스 경과 11종. '
     +     '<b>측정(S1065·KR 20종목)</b>: 10봉이 스위트스팟 — 전체 kNN 73.7% vs 나이브(지속 가정) 71.7%, <b>일치도 80%↑ 구간 79.6% vs 나이브 74.6%</b>. '
-    +     '5봉은 관성이 지배해 무의미(80.5 vs 81.6), 20봉은 노이즈 지배(59.0 vs 59.9). ⚠ in-sample · 맞히는 게 아니라 <b>이어질 모양을 보는 도구</b>.'
+    +     '5봉은 관성이 지배해 무의미(80.5 vs 81.6), 20봉은 노이즈 지배(59.0 vs 59.9). '
+    +     '<b>전환 지속성</b>: 한 번 꺾이면 다음 10봉 유지 81.5%(아무 방향 베이스 71.2%보다 높음=진짜 국면 전환) · 20봉 유지 47.7%. 단 kNN이 고른 전환의 지속성(70~74%)은 전체 전환(81.5%)보다 낮음 — <b>kNN은 전환 감지엔 강하나 오래갈 전환 선별엔 약함</b>. '
+    +     '⚠ in-sample · 맞히는 게 아니라 <b>이어질 모양을 보는 도구</b>.'
     +   '</div>'
     + '</div>';
   }catch(_e){ return ''; }
