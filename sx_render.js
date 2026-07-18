@@ -3773,6 +3773,175 @@ function _buildMaCrossCard(stock, indicators){
 }
 if(typeof window !== 'undefined'){ window._mxToggleDir = _mxToggleDir; window._mxCycleN = _mxCycleN; window._mxRerenderCard = _mxRerenderCard; window._mxTournament = _mxTournament; window._buildMaCrossCard = _buildMaCrossCard; }
 
+// ═══════════ [S1065] 이평선 기울기 예측 (실험 카드) — MA 그림의 "다음 조각"을 kNN으로 ═══════════
+//   재료(11특징): 기울기(MA5/20/60) · 곡률(기울기의 변화) · 이격(5-20/20-60/종가-20) · 배열(정/역/혼조) · 구조위치(60봉 내 %) · 크로스 경과(골든/데드)
+//   타깃: H=10봉 후 MA20 기울기(%). kNN K=10 (워크포워드 — 과거 봉만 사용·라벨 겹침 H봉 차단).
+//   〔측정 근거 S1065·KR 20종목〕 H=5: 나이브81.6% vs kNN80.5%(패배·관성 지배) · **H=10: 나이브71.7% vs kNN73.7%·확신구간 79.6% vs 나이브 74.6%(+5%p)** · H=20: 59.9 vs 59.0(노이즈 지배).
+//   ★킬러 기능=전환(꺾임) 예측: H10서 precision 53.9% (전환 발생률 28.3% 대비 1.9배) — 나이브가 원리상 못 하는 것.
+//   ⚠ 실험 지표 · 정식 판정과 무관 · in-sample 측정(0723 미검증) · 맞히는 게 목적이 아니라 "MA 그림이 이어질 모양"을 보는 도구.
+var _MS_H = 10, _MS_K = 10, _MS_MIN_POOL = 60;
+
+function _msSma(a, p){ var o = new Array(a.length).fill(null), s = 0, i;
+  for(i=0;i<a.length;i++){ s += a[i]; if(i>=p) s -= a[i-p]; if(i>=p-1) o[i] = s/p; } return o; }
+
+// MA 그림 벡터 (측정 하네스 test_maslope.js와 동일 가중)
+function _msVec(i, cl, m5, m20, m60, lastGc, lastDc){
+  var g = function(ma,k){ return (ma[i]!=null && ma[i-k]!=null && ma[i-k]!==0) ? ((ma[i]-ma[i-k])/ma[i-k]*100) : null; };
+  var s5 = g(m5,3), s20 = g(m20,5), s60 = g(m60,10);
+  var s20p = (m20[i-5]!=null && m20[i-10]!=null && m20[i-10]!==0) ? ((m20[i-5]-m20[i-10])/m20[i-10]*100) : null;
+  if(s5==null || s20==null || s60==null || s20p==null) return null;
+  var curv = s20 - s20p;
+  var d520 = (m5[i]!=null && m20[i]) ? ((m5[i]-m20[i])/m20[i]*100) : null;
+  var d2060 = (m20[i]!=null && m60[i]) ? ((m20[i]-m60[i])/m60[i]*100) : null;
+  var dC20 = (m20[i]) ? ((cl[i]-m20[i])/m20[i]*100) : null;
+  if(d520==null || d2060==null || dC20==null) return null;
+  var align = (m5[i]>m20[i] && m20[i]>m60[i]) ? 1 : ((m5[i]<m20[i] && m20[i]<m60[i]) ? -1 : 0);
+  var lo = Infinity, hi = -Infinity, k;
+  for(k=Math.max(0,i-59); k<=i; k++){ if(cl[k]<lo) lo=cl[k]; if(cl[k]>hi) hi=cl[k]; }
+  var pos = (hi>lo) ? ((cl[i]-lo)/(hi-lo)) : 0.5;
+  var bg = Math.min(30, i-(lastGc[i]==null?-30:lastGc[i]))/30, bd = Math.min(30, i-(lastDc[i]==null?-30:lastDc[i]))/30;
+  return [s5, s20*2, s60*3, curv*2, d520, d2060, dC20*0.5, align*2, (pos-0.5)*4, bg, bd];
+}
+
+function _msPredict(rows){
+  if(!rows || rows.length < 260) return null;
+  var cl = rows.map(function(r){ return +(r.close!=null?r.close:r.c); });
+  var n = cl.length;
+  var m5 = _msSma(cl,5), m20 = _msSma(cl,20), m60 = _msSma(cl,60);
+  var lastGc = new Array(n).fill(null), lastDc = new Array(n).fill(null), lg = null, ld = null, i;
+  for(i=1;i<n;i++){
+    if(m5[i]!=null && m20[i]!=null){
+      if(m5[i]>m20[i] && m5[i-1]<=m20[i-1]) lg = i;
+      if(m5[i]<m20[i] && m5[i-1]>=m20[i-1]) ld = i;
+    }
+    lastGc[i] = lg; lastDc[i] = ld;
+  }
+  var qi = n-1, qv = _msVec(qi, cl, m5, m60 ? m20 : m20, m60, lastGc, lastDc);
+  if(!qv) return null;
+  // 과거 풀 (라벨 확정 가능한 봉만 = i+H <= n-1, 그리고 현재와 H봉 이상 떨어진 것)
+  var cand = [], p, f, d, df, v;
+  for(p=210; p<=n-1-_MS_H; p++){
+    if(qi - p < _MS_H) continue;                       // 라벨 겹침 차단
+    v = _msVec(p, cl, m5, m20, m60, lastGc, lastDc);
+    if(!v || m20[p]==null || m20[p+_MS_H]==null || m20[p]===0) continue;
+    d = 0; for(f=0;f<qv.length;f++){ df = qv[f]-v[f]; d += df*df; }
+    cand.push({ d:d, lab:(m20[p+_MS_H]-m20[p])/m20[p]*100, idx:p });
+  }
+  if(cand.length < _MS_MIN_POOL) return null;
+  cand.sort(function(a,b){ return a.d-b.d; });
+  var top = cand.slice(0, _MS_K);
+  var pred = 0; top.forEach(function(t){ pred += t.lab; }); pred /= top.length;
+  var sPred = pred > 0 ? 1 : (pred < 0 ? -1 : 0);
+  var agree = top.filter(function(t){ return (t.lab>0?1:(t.lab<0?-1:0)) === sPred; }).length / top.length;
+  var ups = top.filter(function(t){ return t.lab>0; }).length;
+  // 현재 기울기(같은 정의: 최근 H봉)
+  var cur = (m20[qi]!=null && m20[qi-_MS_H]!=null && m20[qi-_MS_H]!==0) ? ((m20[qi]-m20[qi-_MS_H])/m20[qi-_MS_H]*100) : 0;
+  var sCur = cur > 0 ? 1 : (cur < 0 ? -1 : 0);
+  return { pred:pred, cur:cur, sPred:sPred, sCur:sCur, agree:agree, ups:ups, downs:top.length-ups,
+           k:top.length, pool:cand.length, isTurn:(sPred!==0 && sCur!==0 && sPred!==sCur && Math.abs(pred)>=0.3 && Math.abs(cur)>=0.3),   // [S1065] 크기 문턱 — 노이즈급(±0.3% 미만) 전환은 꺾임으로 보지 않음(측정서 |Δ|<0.15% 무방향 제외한 것과 같은 취지)
+           weakTurn:(sPred!==0 && sCur!==0 && sPred!==sCur && (Math.abs(pred)<0.3 || Math.abs(cur)<0.3)),
+           ma20:m20, cl:cl, n:n, qi:qi, top:top };
+}
+
+// "그림의 다음 조각" — 최근 MA20 실선 + 예측 연장 점선 SVG
+function _msSpark(res){
+  var BACK = 40, W = 268, Hh = 62, PAD = 5;
+  var s = Math.max(0, res.qi-BACK+1), i, pts = [], vals = [];
+  for(i=s;i<=res.qi;i++){ if(res.ma20[i]!=null) vals.push(res.ma20[i]); }
+  if(vals.length < 8) return '';
+  var last = res.ma20[res.qi];
+  var future = last * (1 + res.pred/100);
+  var all = vals.concat([future]);
+  var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all), rng = (hi-lo) || 1;
+  var totalX = vals.length + _MS_H;      // 과거 구간 + 예측 구간
+  var X = function(k){ return PAD + (k/(totalX-1)) * (W-2*PAD); };
+  var Y = function(v){ return PAD + (1-(v-lo)/rng) * (Hh-2*PAD); };
+  for(i=0;i<vals.length;i++) pts.push(X(i).toFixed(1)+','+Y(vals[i]).toFixed(1));
+  var col = res.sPred>0 ? '#16a34a' : (res.sPred<0 ? '#e8365a' : '#94a3b8');
+  var xNow = X(vals.length-1), yNow = Y(last), xEnd = X(totalX-1), yEnd = Y(future);
+  // 예측 구간 배경 + 실선(과거) + 점선(예측) + 현재점
+  return '<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:62px;display:block">'
+    + '<rect x="'+xNow.toFixed(1)+'" y="0" width="'+(xEnd-xNow).toFixed(1)+'" height="'+Hh+'" fill="'+col+'" opacity="0.06"/>'
+    + '<polyline points="'+pts.join(' ')+'" fill="none" stroke="#64748b" stroke-width="1.8" stroke-linejoin="round"/>'
+    + '<line x1="'+xNow.toFixed(1)+'" y1="'+yNow.toFixed(1)+'" x2="'+xEnd.toFixed(1)+'" y2="'+yEnd.toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>'
+    + '<circle cx="'+xNow.toFixed(1)+'" cy="'+yNow.toFixed(1)+'" r="2.6" fill="#334155"/>'
+    + '<circle cx="'+xEnd.toFixed(1)+'" cy="'+yEnd.toFixed(1)+'" r="3" fill="'+col+'"/>'
+    + '<text x="'+(xEnd-2).toFixed(1)+'" y="'+Math.max(9,(yEnd-6)).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+col+'" font-weight="700">+'+_MS_H+'봉</text>'
+    + '</svg>';
+}
+
+function _buildMaSlopeCard(stock, indicators){
+  try{
+    var rows = (indicators && indicators._advanced && Array.isArray(indicators._advanced.rows)) ? indicators._advanced.rows
+             : (stock && Array.isArray(stock._lastAnalCandles)) ? stock._lastAnalCandles
+             : ((window._sxCTBT && Array.isArray(window._sxCTBT.rows)) ? window._sxCTBT.rows : null);   // [S1065] 트렌드 카드와 동일 소스(flattening trap 회피)
+    if(!Array.isArray(rows) || rows.length < 260) return '';
+    var res = _msPredict(rows);
+    if(!res) return '';
+    var T3 = 'var(--text3)', GRN = '#16a34a', RED = '#e8365a', GRY = '#94a3b8';
+    var lbl = function(sg, mag){
+      var a = Math.abs(mag);
+      if(sg > 0) return a >= 2 ? '가파른 상승' : (a >= 0.6 ? '상승' : '완만한 상승');
+      if(sg < 0) return a >= 2 ? '가파른 하락' : (a >= 0.6 ? '하락' : '완만한 하락');
+      return '평탄';
+    };
+    var curCol = res.sCur>0 ? GRN : (res.sCur<0 ? RED : GRY);
+    var prdCol = res.sPred>0 ? GRN : (res.sPred<0 ? RED : GRY);
+    var conf = Math.round(res.agree*100);
+    var confCol = conf >= 80 ? GRN : (conf >= 60 ? '#0891b2' : '#f59e0b');
+    var confTxt = conf >= 80 ? '높음' : (conf >= 60 ? '보통' : '낮음');
+
+    var turnHtml = res.weakTurn
+      ? '<div style="margin:8px 0;padding:6px 9px;border-radius:8px;background:var(--bg2)">'
+        + '<span style="font-size:11px;font-weight:700;color:var(--text2)">〰️ 평탄권 — 방향이 바뀌긴 하나 폭이 작아(±0.3% 미만) 의미 두기 어려움</span></div>'
+      : res.isTurn
+      ? '<div style="margin:8px 0;padding:7px 9px;border-radius:8px;background:'+(res.sPred>0?'rgba(22,163,74,.10)':'rgba(232,54,90,.10)')+';border:1px solid '+prdCol+'40">'
+        + '<span style="font-size:11.5px;font-weight:800;color:'+prdCol+'">🔀 꺾임 신호 — '+(res.sPred>0?'하락 → 상승':'상승 → 하락')+' 전환 예측</span>'
+        + '<div style="font-size:8.5px;color:'+T3+';margin-top:3px;line-height:1.5">유사 사례들이 현재 방향과 <b>반대</b>로 흘렀습니다. 〔측정: 전환 예측 적중 53.9% · 전환 발생률 28.3% 대비 1.9배 — 단 절반은 빗나감〕</div></div>'
+      : '<div style="margin:8px 0;padding:6px 9px;border-radius:8px;background:var(--bg2)">'
+        + '<span style="font-size:11px;font-weight:700;color:var(--text2)">➡️ 방향 유지 — 현재 기울기가 이어질 것으로 보임</span></div>';
+
+    // 유사 사례 분포 바
+    var upPct = Math.round(res.ups/res.k*100);
+    var distBar = '<div style="display:flex;height:7px;border-radius:4px;overflow:hidden;margin:4px 0 3px">'
+      + '<div style="width:'+upPct+'%;background:'+GRN+'"></div><div style="width:'+(100-upPct)+'%;background:'+RED+'"></div></div>';
+
+    return ''
+    + '<div class="card" style="padding:12px 13px">'
+    +   '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">'
+    +     '<span style="font-size:13px;font-weight:800;color:var(--text)">🎚️ 이평선 기울기 예측</span>'
+    +     '<span style="font-size:8.5px;padding:1px 5px;border-radius:4px;background:var(--bg2);color:'+T3+'">실험</span>'
+    +     '<span style="margin-left:auto;font-size:9px;color:'+T3+'">MA20 · '+_MS_H+'봉 후</span>'
+    +   '</div>'
+    +   '<div style="font-size:8.5px;color:'+T3+';margin-bottom:8px">이평선을 하나의 그림으로 보고, 과거에서 <b>가장 닮은 '+res.k+'개 장면</b>을 찾아 그 뒤에 이어진 모양을 평균냈습니다 <span style="color:#0891b2">(kNN · 후보 '+res.pool+'개)</span></div>'
+    +   _msSpark(res)
+    +   '<div style="display:flex;gap:8px;margin:8px 0 2px">'
+    +     '<div style="flex:1;padding:7px 9px;border-radius:8px;background:var(--bg2)">'
+    +       '<div style="font-size:8.5px;color:'+T3+'">지금 기울기</div>'
+    +       '<div style="font-size:12.5px;font-weight:800;color:'+curCol+'">'+lbl(res.sCur,res.cur)+'</div>'
+    +       '<div style="font-size:9px;color:'+T3+'">'+(res.cur>=0?'+':'')+res.cur.toFixed(2)+'% / '+_MS_H+'봉</div>'
+    +     '</div>'
+    +     '<div style="flex:1;padding:7px 9px;border-radius:8px;background:'+prdCol+'0d;border:1px solid '+prdCol+'33">'
+    +       '<div style="font-size:8.5px;color:'+T3+'">예측 기울기</div>'
+    +       '<div style="font-size:12.5px;font-weight:800;color:'+prdCol+'">'+lbl(res.sPred,res.pred)+'</div>'
+    +       '<div style="font-size:9px;color:'+T3+'">'+(res.pred>=0?'+':'')+res.pred.toFixed(2)+'% / '+_MS_H+'봉</div>'
+    +     '</div>'
+    +   '</div>'
+    +   turnHtml
+    +   '<div style="font-size:9.5px;color:var(--text2);display:flex;align-items:center;gap:6px">'
+    +     '<span>닮은 장면 '+res.k+'개 중 <b style="color:'+GRN+'">'+res.ups+'개 상승</b> · <b style="color:'+RED+'">'+res.downs+'개 하락</b></span>'
+    +     '<span style="margin-left:auto;color:'+confCol+';font-weight:700">일치도 '+conf+'% ('+confTxt+')</span>'
+    +   '</div>'
+    +   distBar
+    +   '<div style="font-size:8px;color:'+T3+';line-height:1.55;margin-top:6px;border-top:1px solid var(--border);padding-top:6px">'
+    +     '실험 지표 · 정식 판정과 무관 · <b>재료</b>: MA5/20/60 기울기·곡률·이격(5-20/20-60/종가-20)·배열·구조위치·크로스 경과 11종. '
+    +     '<b>측정(S1065·KR 20종목)</b>: 10봉이 스위트스팟 — 전체 kNN 73.7% vs 나이브(지속 가정) 71.7%, <b>일치도 80%↑ 구간 79.6% vs 나이브 74.6%</b>. '
+    +     '5봉은 관성이 지배해 무의미(80.5 vs 81.6), 20봉은 노이즈 지배(59.0 vs 59.9). ⚠ in-sample · 맞히는 게 아니라 <b>이어질 모양을 보는 도구</b>.'
+    +   '</div>'
+    + '</div>';
+  }catch(_e){ return ''; }
+}
+
 // ===== [S742] 반등 사이클 (실험 카드) — 추세구조(X)×반등품질(Y)을 도넛 링에 매핑. 마커가 사이클(바닥반등→눌림목→되돌림→데드캣)을 시계방향 순환. 독립 표시 카드(C 판정·BT·점수 무관). =====
 //   X(추세): 장기배열 maAlignLT(±60) + 단기배열 maAlign(±25) + 20일추세%(±15). 하락− ↔ 상승+
 //   Y(품질)[S760·측정기반]: 진짜반등(+: 소진축=거래량OSC<−40 or ADX<19 둘중 max·위치=CCI<80/RSI<57) − 데드캣(−: 골든크로스 5×20/5×9 반짝·되돌림 dumpWarn·OBV하락·약세다이버·저항근접)
@@ -9312,7 +9481,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1064';
+  window.SX_BUILD='S1065';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -13457,6 +13626,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     ${_buildTransitionCard(stock, indicators)}
     ${_buildTrendCard(stock, indicators)}
     ${_buildReboundCycleCard(stock, indicators)}
+    ${_buildMaSlopeCard(stock, indicators)}
     ${(typeof window!=='undefined' && window.SXRecipeSignal) ? SXRecipeSignal.buildCard(stock, indicators) : ''}
     ${_buildChartPredictCard(stock, indicators)}
     ${_buildBadgeInventoryCard(stock, indicators)}
