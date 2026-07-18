@@ -1993,6 +1993,7 @@ function _trendBbParams(market){
 
 // ── 지표 시리즈 헬퍼 ──
 function _trSma(a,p){ const o=new Array(a.length).fill(null); let s=0; for(let i=0;i<a.length;i++){ s+=a[i]; if(i>=p) s-=a[i-p]; if(i>=p-1) o[i]=s/p; } return o; }
+function _trStd(a,m,p){ const o=new Array(a.length).fill(null); for(let i=p-1;i<a.length;i++){ if(m[i]==null){o[i]=null;continue;} let s=0; for(let k=i-p+1;k<=i;k++){ const d=a[k]-m[i]; s+=d*d; } o[i]=Math.sqrt(s/p); } return o; }   // [S1064] 롤링 표준편차(BB용·m=동일창 SMA)
 function _trEma(a,p){ const o=new Array(a.length).fill(null); const k=2/(p+1); let e=null,cnt=0,acc=0; for(let i=0;i<a.length;i++){ const v=a[i]; if(v==null){ o[i]=null; continue; } if(e==null){ acc+=v; cnt++; if(cnt>=p){ e=acc/p; o[i]=e; } } else { e=v*k+e*(1-k); o[i]=e; } } return o; }
 function _trRsi(close,p){ const n=close.length, o=new Array(n).fill(null); if(n<=p) return o; let g=0,l=0; for(let i=1;i<=p;i++){ const d=close[i]-close[i-1]; if(d>=0)g+=d; else l-=d; } g/=p; l/=p; o[p]= l===0?100:100-100/(1+g/l); for(let i=p+1;i<n;i++){ const d=close[i]-close[i-1]; g=(g*(p-1)+(d>0?d:0))/p; l=(l*(p-1)+(d<0?-d:0))/p; o[i]= l===0?100:100-100/(1+g/l); } return o; }
 function _trMacd(close){ const e12=_trEma(close,12), e26=_trEma(close,26); const macd=close.map((_,i)=> (e12[i]!=null&&e26[i]!=null)? e12[i]-e26[i]: null); const sig=_trEma(macd,9); return {macd,sig}; }
@@ -2071,7 +2072,7 @@ function _trendBtRecipe(rows, fire){
 // ═══════════ [S1058] 레짐라우팅 하이브리드 엔진 — 단기추세 + 레시피 상호보완 ═══════════
 //   진입: 상승장(60>120>200 정배열) = MA 골든크로스(추세·강세+중립) · 하락장(60<120<200 역배열) = deadcat-real(역배 바닥반등) · 횡보장 = 무진입. 각 레짐에서 강한 도구로 라우팅.
 //   청산: MA 데드크로스 ∪ deadcat-fake. 1포지션. sig={pbReal,pbFake,dcReal,dcFake}(SXRecipeSignal.hybridSignalBars). 반환형식 _trendBtRecipe 동일(그리드·모달 재사용).
-//   레짐=시장별 [S1063]: KR=3×3 SSOT 장기(60/120/200·상승장→추세/하락장→deadcat/횡보장 스킵) · US=_btRegimeAt(3×3 역효과·S1062) · COIN=3×3+60MA기울기필터+빠른청산(고변동·S1063). 과최적 주의·0723 판관. 〔근거 S1058-S1060 3×3 셀측정〕 추세는 상승장(중립+15.5%/강세+6.8%)·deadcat은 하락장(약세+10.4%/중립+12.2%)·횡보장은 손실(강세×횡보 −0.9%)이라 스킵. KR40 V2: 평균+109.4%/중앙+66.9%/MDD22%(현행 _btRegimeAt 대비 전 지표 우월).
+//   레짐=시장별 [S1063]: KR=3×3 SSOT 장기(60/120/200·상승장→추세/하락장→deadcat/횡보장 스킵) · US=_btRegimeAt(3×3 역효과·S1062) · COIN=3×3+60MA기울기필터+빠른청산(고변동·S1063). + [S1064] KR·US 횡보장=BB하단(pctB≤0.2)&극단이격(dev20<-8) 평균회귀·청산 BB중단(0.5)/20봉캡(COIN 제외=지는레짐). 과최적 주의·0723 판관. 〔근거 S1058-S1060 3×3 셀측정〕 추세는 상승장(중립+15.5%/강세+6.8%)·deadcat은 하락장(약세+10.4%/중립+12.2%)·횡보장은 손실(강세×횡보 −0.9%)이라 스킵. KR40 V2: 평균+109.4%/중앙+66.9%/MDD22%(현행 _btRegimeAt 대비 전 지표 우월).
 function _trendBtHybrid(rows, sig, cfg, bbP){
   const n=rows.length; const _s=cfg.s||5, _l=cfg.l||20; if(!n || n<Math.max(30,_l+5)) return null;
   const close=rows.map(r=>+(r.close!=null?r.close:r.c));
@@ -2088,22 +2089,30 @@ function _trendBtHybrid(rows, sig, cfg, bbP){
     else { let rg; try{ rg=(typeof _btRegimeAt==='function')?_btRegimeAt(rows,i):'side'; }catch(_){ rg='side'; } r=(rg==='bull'||rg==='up')?'up':'down'; }   // US/COIN: _btRegimeAt (bull|up)=추세 · (down|side)=deadcat
     _regCache[i]=r; } return r; };
   const _nextOpen=!!cfg.nextOpen, _opens=_nextOpen?rows.map(r=>+(r.open!=null?r.open:(r.o!=null?r.o:NaN))):null;
+  const maBB20=_trSma(close,20), stdBB=_trStd(close,maBB20,20);   // [S1064] 횡보장 평균회귀 BB(SMA20·2σ)
+  const _rangeOn=(_mk==='kr'||_mk==='us');   // [S1064] KR·US만 횡보장 평균회귀 레그 (COIN 제외=지는 레짐·좋은 씨앗 발굴 전 회피)
+  const _isFlat=(i)=>{ const a=maR60[i],b=maR120[i],c=maR200[i]; return (a!=null&&b!=null&&c!=null&&!(a>b&&b>c)&&!(a<b&&b<c)); };   // 3×3 횡보장(60/120/200 혼조)
+  const _pctB=(i)=>{ const m=maBB20[i],s=stdBB[i]; if(m==null||s==null||s<=0) return 0.5; return (close[i]-(m-2*s))/(4*s); };
+  const _dev20=(i)=>{ const m=maBB20[i]; return (m!=null&&m>0)?(close[i]/m-1)*100:0; };
   const trades=[]; let pos=null;
   for(let i=0;i<n;i++){
     const gc=(i>0&&maS[i]!=null&&maL[i]!=null&&maS[i-1]!=null&&maL[i-1]!=null&&maS[i]>maL[i]&&maS[i-1]<=maL[i-1]);
     const dx=(i>0&&maXS[i]!=null&&maXL[i]!=null&&maXS[i-1]!=null&&maXL[i-1]!=null&&maXS[i]<maXL[i]&&maXS[i-1]>=maXL[i-1]);
     const _rg=_regGet(i), bullSide=(_rg==='up'), bearSide=(_rg==='down');   // [S1062] up=추세 · down=deadcat · flat(KR 횡보장만)=무진입
     if(pos==null){
-      const enter=(gc&&bullSide&&(!_isCoin||_coinSlopeUp(i)))?'trend':((dcR[i]&&bearSide)?'deadcat':null);   // [S1063] COIN 추세는 60MA 상승기울기 필수(평평한 정배 배제)
+      const enter=(_rangeOn&&_isFlat(i)&&_pctB(i)<=0.2&&_dev20(i)<-8)?'range':((gc&&bullSide&&(!_isCoin||_coinSlopeUp(i)))?'trend':((dcR[i]&&bearSide)?'deadcat':null));   // [S1064] 횡보장 평균회귀(KR·US): BB하단(pctB≤0.2)&극단이격(dev20<-8)
       if(enter){
         if(_nextOpen){ const j=i+1; if(j<n && _opens[j]>0) pos={entry:_opens[j], entryIdx:j, src:enter}; }
         else if(close[i]>0) pos={entry:close[i], entryIdx:i, src:enter};
       }
-    } else if((dx || dcF[i] || (_isCoin && pos.src==='trend' && maS[i]!=null && close[i]<maS[i])) && close[i]>0){   // [S1063] COIN 추세 빠른청산: 종가<5MA (변동반전 전 익절)
-      const ex=close[i], pnl=+((ex/pos.entry-1)*100).toFixed(2);
-      trades.push({ entry:pos.entry, exit:ex, pnl, bars:i-pos.entryIdx, entryIdx:pos.entryIdx, exitIdx:i, src:pos.src,
-        entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'', exitDate:(rows[i]&&(rows[i].date||rows[i].t))||'' });
-      pos=null;
+    } else {
+      const _exitNow=(pos.src==='range')?(_pctB(i)>=0.5 || (i-pos.entryIdx>=20)):(dx || dcF[i] || (_isCoin && pos.src==='trend' && maS[i]!=null && close[i]<maS[i]));   // [S1064] range=BB중단(0.5) or 20봉 홀드캡 · 그외=데드크로스∪가짜(∪COIN 추세 5MA)
+      if(_exitNow && close[i]>0){
+        const ex=close[i], pnl=+((ex/pos.entry-1)*100).toFixed(2);
+        trades.push({ entry:pos.entry, exit:ex, pnl, bars:i-pos.entryIdx, entryIdx:pos.entryIdx, exitIdx:i, src:pos.src,
+          entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'', exitDate:(rows[i]&&(rows[i].date||rows[i].t))||'' });
+        pos=null;
+      }
     }
   }
   let open=null;
@@ -3038,10 +3047,10 @@ function _trendHybRenderRegime(rb){
 // [S1062] 하이브리드 라우팅 설명 — 시장별(KR=3×3 SSOT 장기 · US/COIN=_btRegimeAt). 카드/배너/모달 공용.
 function _hybRouteText(mk, kind){
   const kr = (mk==='kr'), coin = (mk==='coin');
-  if(kind==='short')  return kr ? '상승장=추세 골든크로스 · 하락장=역배 반등(deadcat) · 횡보장 스킵' : coin ? '상승장(기울기↑)=추세 골든 · 하락장=역배 반등 · 횡보장 스킵 · 빠른청산' : '강세레짐=추세 골든 · 약세레짐=역배 반등(deadcat)';
-  if(kind==='banner') return kr ? '상승장 추세 골든 / 하락장 역배반등' : coin ? '상승장(기울기↑) 추세 골든 / 하락장 역배반등' : '강세레짐 추세 골든 / 약세레짐 역배반등';
-  if(kind==='sub')    return kr ? '상승장=골든크로스 · 하락장=역배반등(deadcat) · 횡보장 스킵' : coin ? '상승장(60MA기울기↑)=골든크로스 · 하락장=역배반등 · 횡보장 스킵 · 추세 빠른청산(종가<5MA)' : '강세레짐=골든크로스 · 약세레짐=역배반등(deadcat)';
-  if(kind==='note')   return kr ? '상승장(60&gt;120&gt;200)=MA 골든크로스(추세·강세+중립) · 하락장(60&lt;120&lt;200)=역배 진짜반등(deadcat) · 횡보장=스킵 <span style="color:#0891b2">〔3×3 SSOT〕</span>' : coin ? '상승장(60&gt;120&gt;200)+<b>60MA 상승기울기</b>=MA 골든크로스 · 하락장(60&lt;120&lt;200)=역배 진짜반등(deadcat) · 횡보장=스킵 · <b>추세 빠른청산(종가&lt;5MA)</b> <span style="color:#0891b2">〔3×3+기울기+빠른청산·COIN 고변동 전용·S1063〕</span>' : '강세레짐(20×200 이격↑)=MA 골든크로스(추세) · 약세레짐=역배 진짜반등(deadcat) <span style="color:#0891b2">〔_btRegimeAt·US는 3×3 역효과라 시장별 라우팅·S1062〕</span>';
+  if(kind==='short')  return kr ? '상승장=추세 골든 · 하락장=역배 반등(deadcat) · 횡보장=BB하단 평균회귀' : coin ? '상승장(기울기↑)=추세 골든 · 하락장=역배 반등 · 횡보장 스킵 · 빠른청산' : '강세레짐=추세 골든 · 약세레짐=역배 반등 · 횡보장=BB하단 평균회귀';
+  if(kind==='banner') return kr ? '상승장 추세 골든 / 하락장 역배반등 / 횡보장 평균회귀' : coin ? '상승장(기울기↑) 추세 골든 / 하락장 역배반등' : '강세레짐 추세 골든 / 약세레짐 역배반등 / 횡보장 평균회귀';
+  if(kind==='sub')    return kr ? '상승장=골든크로스 · 하락장=역배반등(deadcat) · 횡보장=BB하단 평균회귀' : coin ? '상승장(60MA기울기↑)=골든크로스 · 하락장=역배반등 · 횡보장 스킵 · 추세 빠른청산(종가<5MA)' : '강세레짐=골든크로스 · 약세레짐=역배반등(deadcat) · 횡보장=BB하단 평균회귀';
+  if(kind==='note')   return kr ? '상승장(60&gt;120&gt;200)=MA 골든크로스(추세·강세+중립) · 하락장(60&lt;120&lt;200)=역배 진짜반등(deadcat) · <b>횡보장=BB하단(pctB≤0.2)+극단이격(dev20&lt;-8) 평균회귀·청산 BB중단</b> <span style="color:#0891b2">〔3×3 SSOT+횡보 평균회귀·S1064〕</span>' : coin ? '상승장(60&gt;120&gt;200)+<b>60MA 상승기울기</b>=MA 골든크로스 · 하락장(60&lt;120&lt;200)=역배 진짜반등(deadcat) · 횡보장=스킵 · <b>추세 빠른청산(종가&lt;5MA)</b> <span style="color:#0891b2">〔3×3+기울기+빠른청산·COIN 고변동 전용·S1063〕</span>' : '강세레짐(20×200 이격↑)=MA 골든크로스(추세) · 약세레짐=역배 진짜반등(deadcat) · <b>횡보장=BB하단 평균회귀(dev20&lt;-8·청산 BB중단)</b> <span style="color:#0891b2">〔_btRegimeAt+횡보 평균회귀·US는 3×3 역효과·S1064〕</span>';
   return '';
 }
 function _trendDetailInner(bt,cfg,ctx){
@@ -9303,7 +9312,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1063';
+  window.SX_BUILD='S1064';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
