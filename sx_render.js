@@ -3882,24 +3882,24 @@ function _msSpark2(core, r20, r60){
   var X = function(k){ return PAD + (k/totalX) * (W-2*PAD); };
   var Y = function(v){ return PAD + (1-(v-lo)/rng) * (Hh-2*PAD); };
   var poly = function(arr){ return arr.map(function(o){ return X(o.x).toFixed(1)+','+Y(o.v).toFixed(1); }).join(' '); };
-  var col = function(sg){ return sg>0 ? '#16a34a' : (sg<0 ? '#e8365a' : '#94a3b8'); };
+  var C20 = '#16a34a', C60 = '#ec4899';   // [S1068] MA20=녹색 · MA60=핑크 (선 정체성 색 — 예측 점선도 동일색이라 어느 선의 예측인지 즉시 구분)
   var xNow = X(span), out = '<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:76px;display:block">';
   out += '<rect x="'+xNow.toFixed(1)+'" y="0" width="'+(X(totalX)-xNow).toFixed(1)+'" height="'+Hh+'" fill="#64748b" opacity="0.05"/>';
   out += '<line x1="'+xNow.toFixed(1)+'" y1="0" x2="'+xNow.toFixed(1)+'" y2="'+Hh+'" stroke="var(--border)" stroke-width="1"/>';
-  if(a60.length>2) out += '<polyline points="'+poly(a60)+'" fill="none" stroke="#94a3b8" stroke-width="2.4" stroke-linejoin="round"/>';
-  out += '<polyline points="'+poly(a20)+'" fill="none" stroke="#475569" stroke-width="1.6" stroke-linejoin="round"/>';
-  if(r60 && f60!=null){ var c6=col(r60.sPred);
+  if(a60.length>2) out += '<polyline points="'+poly(a60)+'" fill="none" stroke="'+C60+'" stroke-width="2.4" stroke-linejoin="round" opacity="0.9"/>';
+  out += '<polyline points="'+poly(a20)+'" fill="none" stroke="'+C20+'" stroke-width="1.8" stroke-linejoin="round"/>';
+  if(r60 && f60!=null){ var c6=C60;
     out += '<line x1="'+xNow.toFixed(1)+'" y1="'+Y(core.m60[qi]).toFixed(1)+'" x2="'+X(span+r60.H).toFixed(1)+'" y2="'+Y(f60).toFixed(1)+'" stroke="'+c6+'" stroke-width="2.6" stroke-dasharray="5 3" stroke-linecap="round" opacity="0.85"/>'
         + '<circle cx="'+X(span+r60.H).toFixed(1)+'" cy="'+Y(f60).toFixed(1)+'" r="3.2" fill="'+c6+'"/>'; }
-  if(r20 && f20!=null){ var c2=col(r20.sPred);
+  if(r20 && f20!=null){ var c2=C20;
     out += '<line x1="'+xNow.toFixed(1)+'" y1="'+Y(core.m20[qi]).toFixed(1)+'" x2="'+X(span+r20.H).toFixed(1)+'" y2="'+Y(f20).toFixed(1)+'" stroke="'+c2+'" stroke-width="1.8" stroke-dasharray="3 3" stroke-linecap="round"/>'
         + '<circle cx="'+X(span+r20.H).toFixed(1)+'" cy="'+Y(f20).toFixed(1)+'" r="2.6" fill="'+c2+'"/>'; }
-  out += '<circle cx="'+xNow.toFixed(1)+'" cy="'+Y(core.m20[qi]).toFixed(1)+'" r="2" fill="#334155"/>';
+  out += '<circle cx="'+xNow.toFixed(1)+'" cy="'+Y(core.m20[qi]).toFixed(1)+'" r="2.2" fill="'+C20+'"/>';
   out += '<text x="'+(X(totalX)-1).toFixed(1)+'" y="9" text-anchor="end" font-size="7.5" fill="var(--text3)">+'+FWD+'봉</text>';
   out += '</svg>'
     + '<div style="display:flex;gap:10px;justify-content:center;font-size:8px;color:var(--text3);margin-top:2px">'
-    +   '<span><span style="display:inline-block;width:10px;height:2px;background:#475569;vertical-align:middle"></span> MA20</span>'
-    +   '<span><span style="display:inline-block;width:10px;height:3px;background:#94a3b8;vertical-align:middle"></span> MA60</span>'
+    +   '<span><span style="display:inline-block;width:11px;height:2px;background:'+C20+';vertical-align:middle"></span> <b style="color:'+C20+'">MA20</b></span>'
+    +   '<span><span style="display:inline-block;width:11px;height:3px;background:'+C60+';vertical-align:middle"></span> <b style="color:'+C60+'">MA60</b></span>'
     +   '<span>┈ 예측</span></div>';
   return out;
 }
@@ -9519,7 +9519,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1067';
+  window.SX_BUILD='S1068';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
