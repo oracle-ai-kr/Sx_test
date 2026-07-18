@@ -3806,6 +3806,8 @@ function _msVec(i, cl, m5, m20, m60, lastGc, lastDc){
 function _msCore(rows){
   if(!rows || rows.length < 260) return null;
   var cl = rows.map(function(r){ return +(r.close!=null?r.close:r.c); });
+  var _lr = rows[rows.length-1];
+  var _dq = String((_lr && (_lr.date!=null ? _lr.date : _lr.d)) || '');   // [S1069] 질의일 — 교차종목 풀 룩어헤드 차단용(없으면 풀링 미적용)
   var n = cl.length, i;
   var m5 = _msSma(cl,5), m20 = _msSma(cl,20), m60 = _msSma(cl,60);
   var lastGc = new Array(n).fill(null), lastDc = new Array(n).fill(null), lg = null, ld = null;
@@ -3828,14 +3830,14 @@ function _msCore(rows){
     pAlign = (m5[p]>m20[p] && m20[p]>m60[p]) ? 1 : ((m5[p]<m20[p] && m20[p]<m60[p]) ? -1 : 0);
     pv.push({ idx:p, v:v, align:pAlign });
   }
-  return { cl:cl, n:n, qi:qi, qv:qv, qAlign:qAlign, m5:m5, m20:m20, m60:m60, pv:pv };
+  return { cl:cl, n:n, qi:qi, qv:qv, qAlign:qAlign, m5:m5, m20:m20, m60:m60, pv:pv, dq:_dq };
 }
 
 // 타깃 MA 예측 (배열 하드필터 + 부족 시 전체 폴백)
-function _msRun(core, MA, H){
+function _msRun(core, MA, H, bank){
   if(!core) return null;
   var qi = core.qi, n = core.n, qv = core.qv, i, f, d, df, it;
-  var cand = [], candAll = [];
+  var cand = [], candAll = [], _pooled = 0;
   for(i=0;i<core.pv.length;i++){
     var p = core.pv[i].idx;
     if(p > n-1-H) continue;                       // 라벨 확정 가능한 봉만
@@ -3845,6 +3847,27 @@ function _msRun(core, MA, H){
     it = { d:d, lab:(MA[p+H]-MA[p])/MA[p]*100 };
     candAll.push(it);
     if(core.pv[i].align === core.qAlign) cand.push(it);
+  }
+  // [S1069] 교차종목 풀 병합 — 도너=대표목록(시총상위) 고정. 후보는 라벨확정일 < 질의일인 것만(측정 하네스 verbatim 룩어헤드 차단).
+  //   자기 종목이 도너에 포함된 경우 그 그룹은 건너뜀(자기 후보 이중 계상 방지).
+  //   ★도너 수 포화 측정(S1069): 12→188종 전 구간 McNemar 유의차 없음(p=0.10~0.68) → 대표목록 20종으로 충분. 이득은 "풀의 크기"가 아니라 "교차 풀의 유무"에서 나옴.
+  if(bank && bank.groups && bank.groups.length && core.dq){
+    var _is60 = (MA === core.m60);
+    var _kD = _is60 ? 'd60' : 'd20', _kL = _is60 ? 'lab60' : 'lab20';
+    var gi, gg, ei, e;
+    for(gi=0; gi<bank.groups.length; gi++){
+      gg = bank.groups[gi];
+      if(!gg || !gg.items) continue;
+      if(bank.skip && gg.code === bank.skip) continue;
+      for(ei=0; ei<gg.items.length; ei++){
+        e = gg.items[ei];
+        if(e[_kD] == null || !_msDlt(e[_kD], core.dq)) continue;
+        d = 0; for(f=0;f<qv.length;f++){ df = qv[f]-e.v[f]; d += df*df; }
+        it = { d:d, lab:e[_kL] };
+        candAll.push(it); _pooled++;
+        if(e.align === core.qAlign) cand.push(it);
+      }
+    }
   }
   var aligned = (cand.length >= _MS_MIN_POOL);
   if(!aligned) cand = candAll;
@@ -3860,8 +3883,86 @@ function _msRun(core, MA, H){
   var big = (Math.abs(pred) >= _MS_MAG && Math.abs(cur) >= _MS_MAG);
   return { pred:pred, cur:cur, sPred:sPred, sCur:sCur, agree:agree, ups:ups, downs:top.length-ups,
            k:top.length, pool:cand.length, aligned:aligned, H:H, MA:MA,
+           pooled:_pooled, donors:((bank&&bank.donors)?bank.donors.length:0),
            isTurn:(sPred!==0 && sCur!==0 && sPred!==sCur && big),
            weakTurn:(sPred!==0 && sCur!==0 && sPred!==sCur && !big) };
+}
+
+// ===== [S1069] 교차종목 풀 — 자기 종목 이력만으로는 같은 배열 장면이 60개도 안 모여 하드필터를 포기하던 문제를 해결 =====
+//   〔측정 S1068〕 자기단독 71.4%(n636·평균풀 109) → 교차풀 78.2%(n763·평균풀 1166) · 확신 78.9%→84.5%. 단독은 후보부족으로 예측 자체가 실패(n636<763).
+//   〔포화 측정 S1069〕 질의 12종 고정·도너만 12/20/50/100/188 확장 → 78.2/79.3/80.6/79.2/78.6%. 동일 질의 763개 McNemar **전 구간 유의차 없음**(p=0.10~0.68).
+//     D50의 확신구간 겉보기 +3.7%p도 공통 확신집합(n515)에서 88.7 vs 88.9로 소멸 = 확신 자격 멤버십이 갈린 구성 효과.
+//     → **도너 대표목록 20종으로 충분**. 이득은 풀의 크기가 아니라 "교차 풀의 유무"에서 나옴. 스냅샷(5MB) 불필요.
+//   ⚠ 이 측정은 풀 *크기* 곡선이지 도너 *품질* 곡선이 아님(스냅 순서=시총순 아님) — 시총상위 20종의 우월성은 미측정.
+var _msPoolCache = {};   // 'mkt|tf' → {groups:[{code,items}], donors:[name]} | null(실패·자기단독 유지) | 'PENDING'
+
+function _msDlt(a, b){   // 라벨확정일 < 질의일. 표기형식 차이 흡수 · 결측이면 false(=후보 제외)로 보수 처리
+  a = String(a==null?'':a).replace(/[^0-9]/g,''); b = String(b==null?'':b).replace(/[^0-9]/g,'');
+  if(!a || !b) return false;
+  var L = Math.min(a.length, b.length);
+  return a.slice(0,L) < b.slice(0,L);
+}
+
+function _msRerenderCard(){ try{ var el=document.getElementById('sxMsCardWrap'); var L=window._sxMsLast; if(el && L && L.stock) el.outerHTML=_buildMaSlopeCard(L.stock, L.indicators); }catch(_e){} }
+
+// 도너 1종목 rows → 후보 벡터(라벨·라벨확정일 동봉). MA20/MA60 두 지평 라벨을 함께 담아 뱅크 1개로 양쪽 재사용.
+function _msBankFrom(rows){
+  if(!rows || rows.length < 260) return [];
+  var cl = [], dt = [], i, r;
+  for(i=0;i<rows.length;i++){ r = rows[i]; cl.push(+(r.close!=null?r.close:r.c)); dt.push(String((r.date!=null?r.date:r.d) || '')); }
+  var n = cl.length;
+  var m5 = _msSma(cl,5), m20 = _msSma(cl,20), m60 = _msSma(cl,60);
+  var lastGc = new Array(n).fill(null), lastDc = new Array(n).fill(null), lg = null, ld = null;
+  for(i=1;i<n;i++){
+    if(m5[i]!=null && m20[i]!=null){
+      if(m5[i]>m20[i] && m5[i-1]<=m20[i-1]) lg = i;
+      if(m5[i]<m20[i] && m5[i-1]>=m20[i-1]) ld = i;
+    }
+    lastGc[i] = lg; lastDc[i] = ld;
+  }
+  var out = [], p, v, al, q, e;
+  for(p=210; p<n; p++){
+    v = _msVec(p, cl, m5, m20, m60, lastGc, lastDc);
+    if(!v) continue;
+    al = (m5[p]>m20[p] && m20[p]>m60[p]) ? 1 : ((m5[p]<m20[p] && m20[p]<m60[p]) ? -1 : 0);
+    e = { v:v, align:al };
+    q = p + _MS_H20; if(q < n && m20[p]!=null && m20[q]!=null && m20[p]!==0){ e.d20 = dt[q]; e.lab20 = (m20[q]-m20[p])/m20[p]*100; }
+    q = p + _MS_H60; if(q < n && m60[p]!=null && m60[q]!=null && m60[p]!==0){ e.d60 = dt[q]; e.lab60 = (m60[q]-m60[p])/m60[p]*100; }
+    if(e.d20!=null || e.d60!=null) out.push(e);
+  }
+  return out;
+}
+
+async function _msBuildPool(mk, tf){
+  var key = mk + '|' + tf, groups = [], donors = [], i, code, nm, rows, items;
+  try{
+    // 지역 참조 — 맨 이름 전역(SXCandleBT) 의존을 없애 Node 검증 하네스에서도 동일 경로가 돌게 함
+    var CB = ((typeof window !== 'undefined') && window.SXCandleBT) ? window.SXCandleBT
+           : ((typeof SXCandleBT !== 'undefined') ? SXCandleBT : null);
+    if(!(CB && CB.getRepPool && CB.fetchRows600)){ _msPoolCache[key] = null; return; }
+    var rep = CB.getRepPool(mk) || [];
+    if(!rep.length){ _msPoolCache[key] = null; return; }
+    for(i=0;i<rep.length;i++){
+      code = rep[i][0]; nm = rep[i][1] || code; rows = null;
+      try{ rows = await CB.fetchRows600(mk, tf, code); }catch(_e1){ rows = null; }
+      if(!rows || !rows.length) continue;
+      items = _msBankFrom(rows);
+      if(items.length){ groups.push({ code:code, items:items }); donors.push(nm); }
+    }
+    _msPoolCache[key] = groups.length ? { groups:groups, donors:donors } : null;
+  }catch(_e2){ _msPoolCache[key] = null; }
+}
+
+// 동기 접근자 — 뱅크 있으면 즉시 반환, 없으면 비동기 구축 예약 후 null(=자기단독으로 먼저 그림) → 완료 시 카드만 재렌더
+function _msGetPool(mk, tf, curCode){
+  try{
+    var key = mk + '|' + tf, v = _msPoolCache[key];
+    if(v && v.groups) return { groups:v.groups, donors:v.donors, skip:(curCode||'') };
+    if(v === 'PENDING' || v === null) return null;
+    _msPoolCache[key] = 'PENDING';
+    setTimeout(function(){ _msBuildPool(mk, tf).then(function(){ _msRerenderCard(); }, function(){ _msRerenderCard(); }); }, 50);
+    return null;
+  }catch(_e){ return null; }
 }
 
 // "그림의 다음 조각" — MA20·MA60 실선 + 각자의 예측 연장 점선
@@ -3906,13 +4007,18 @@ function _msSpark2(core, r20, r60){
 
 function _buildMaSlopeCard(stock, indicators){
   try{
+    try{ window._sxMsLast = { stock:stock, indicators:indicators }; }catch(_eL){}   // [S1069] 비동기 풀 구축 완료 후 카드만 재렌더하기 위한 인자 보관
     var rows = (indicators && indicators._advanced && Array.isArray(indicators._advanced.rows)) ? indicators._advanced.rows
              : (stock && Array.isArray(stock._lastAnalCandles)) ? stock._lastAnalCandles
              : ((window._sxCTBT && Array.isArray(window._sxCTBT.rows)) ? window._sxCTBT.rows : null);
     if(!Array.isArray(rows) || rows.length < 260) return '';
     var core = _msCore(rows);
     if(!core) return '';
-    var r20 = _msRun(core, core.m20, _MS_H20), r60 = _msRun(core, core.m60, _MS_H60);
+    // [S1069] 교차종목 풀 — 뱅크 있으면 즉시 병합, 없으면 자기단독으로 먼저 그리고 구축 완료 시 재렌더(폴백 보존)
+    var _mkMs = (stock && (stock._mkt || stock.market)) || ((typeof currentMarket !== 'undefined') ? currentMarket : 'kr');
+    var _tfMs = ((typeof _analTF !== 'undefined') && _analTF) ? _analTF : (((typeof currentTF !== 'undefined') && currentTF) ? currentTF : 'day');
+    var _bank = _msGetPool(_mkMs, _tfMs, (stock && (stock.code || stock.name)) || '');
+    var r20 = _msRun(core, core.m20, _MS_H20, _bank), r60 = _msRun(core, core.m60, _MS_H60, _bank);
     if(!r20 && !r60) return '';
     var T3 = 'var(--text3)', GRN = '#16a34a', RED = '#e8365a', GRY = '#94a3b8';
     var lbl = function(sg, mag){ var a = Math.abs(mag);
@@ -3960,7 +4066,20 @@ function _buildMaSlopeCard(stock, indicators){
     var _rightHtml = (r60 ? '<span style="font-size:9px;font-weight:700;color:'+col(r60.sPred)+'">장기 '+lbl(r60.sPred,r60.pred)+'</span>' : '')
       + (r20 ? '<span style="font-size:8.5px;color:'+T3+';margin-left:5px">단기 '+lbl(r20.sPred,r20.pred)+'</span>' : '');
 
+    // [S1069] 풀링 표시 — 어느 후보집합으로 그린 그림인지 노출
+    var _isPooled = !!(aRef && aRef.pooled > 0);
+    var _pc = _isPooled ? '#0ea5e9' : '#7c3aed';
+    var _poolBadge = '<div style="margin-bottom:7px">'
+      + '<span style="font-size:10px;font-weight:800;color:'+_pc+';padding:3px 8px;border-radius:7px;background:'+_pc+'1a;border:1px solid '+_pc+'55">'
+      +   (_isPooled ? ('🌐 풀링 kNN · 도너 '+aRef.donors+'종') : '🧬 자기유사도 kNN')
+      + '</span>'
+      + '<span style="font-size:8.5px;color:'+T3+';margin-left:6px">'
+      +   (_isPooled ? '대표목록(시총상위) 과거 장면을 후보에 더함 — 측정 71.4%→<b>78.2%</b>·확신 78.9%→<b>84.5%</b>'
+                     : '이 종목 과거 장면만 사용 — 대표목록 로드 중이거나 실패')
+      + '</span></div>';
+
     var _body = ''
+    +   _poolBadge
     +   '<div style="font-size:8.5px;color:'+T3+';margin-bottom:8px">이평선을 하나의 그림으로 보고, 과거에서 <b>가장 닮은 '+aRef.k+'개 장면</b>을 찾아 그 뒤에 이어진 모양을 평균냈습니다 <span style="color:#0891b2">(kNN · 후보 '+aRef.pool+'개 · '+alignTxt+')</span></div>'
     +   _msSpark2(core, r20, r60)
     +   '<div style="margin-top:8px">'
@@ -3974,6 +4093,8 @@ function _buildMaSlopeCard(stock, indicators){
     +     '<b>지평 측정</b>: MA20은 10봉(73.7 vs 나이브 71.7·확신 79.6 vs 74.6) · <b>MA60은 20봉</b>(90.0 vs 86.3·Δ+3.7%p). '
     +     '<b>MA5는 제외</b> — 어떤 지평서도 나이브에 패배(H2 62.6 vs 73.8 · H5 53.6 vs 56.1)=노이즈 지배. '
     +     '<b>전환 지속성</b>: 한 번 꺾이면 다음 10봉 유지 81.5%(아무 방향 베이스 71.2%보다 높음=진짜 국면 전환)·20봉 47.7%. 단 kNN이 고른 전환의 지속성(70~74%)은 전체 전환(81.5%)보다 낮음 — <b>전환 감지엔 강하나 오래갈 전환 선별엔 약함</b>. '
+    +     '<b>★교차종목 풀링(S1068/S1069)</b>: 후보를 이 종목 과거로만 한정하면 같은 배열 장면이 60개도 안 모여 하드필터를 포기하는 일이 잦음(측정 표본의 17%는 예측 자체가 불발). 대표목록 과거 장면을 후보에 더해 <b>71.4%→78.2%</b>·확신 <b>78.9%→84.5%</b>. '
+    +     '도너 수는 <b>무관</b> — 12~188종 전 구간 동일 질의 McNemar 유의차 없음(p=0.10~0.68) → 이득은 풀의 크기가 아니라 <b>교차 풀의 유무</b>에서 나옴. 후보는 라벨확정일이 오늘보다 앞선 것만(룩어헤드 차단). '
     +     '⚠ in-sample · 맞히는 게 아니라 <b>이어질 모양을 보는 도구</b>.'
     +   '</div>';
     return _sxExpCard('sxMsCardWrap', 'sxMsCardWrap_b', _titleHtml, _rightHtml, _body);
@@ -9519,7 +9640,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1068';
+  window.SX_BUILD='S1069';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
