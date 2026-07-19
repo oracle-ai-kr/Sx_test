@@ -853,10 +853,18 @@ function _btSleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 function _btVinYmd(v){ return (typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) ? v.replace(/-/g,'') : ''; }
 function _btVinKey(v){ var y=_btVinYmd(v); return y ? ('_v'+y) : ''; }
 function _btVinDash(v){ var y=_btVinYmd(v); return y ? (y.slice(0,4)+'-'+y.slice(4,6)+'-'+y.slice(6,8)) : ''; }
+// [S1077] ★날짜 형식 정규화 필수 — 소스마다 t 형식이 다르다.
+//   KIS/YF/업비트 = '2023-08-09'(하이픈) · **네이버 = '20230809'(하이픈 없음)**
+//   문자열 비교 시 5번째 자리에서 '0'(48) vs '-'(45) → '20230809' > '2023-08-09' 로 판정되어
+//   **2023년 봉이 통째로 잘리는** 사고 발생(S1076 KR 창A: 요청 2023-08-09인데 최종봉 20221229).
+//   → 양쪽 다 숫자만 남겨 YYYYMMDD로 비교한다. ISO('2021-08-16T09:00:00')도 동일 처리.
 function _btVinClip(rows, v){
-  var d=_btVinDash(v);
-  if(!d || !Array.isArray(rows)) return rows;   // 무인자 = 원본 배열 그대로(동일 참조)
-  return rows.filter(function(r){ return String((r&&(r.t||r.date))||'').slice(0,10) <= d; });
+  var y=_btVinYmd(v);
+  if(!y || !Array.isArray(rows)) return rows;   // 무인자 = 원본 배열 그대로(동일 참조)
+  return rows.filter(function(r){
+    var ymd=String((r&&(r.t||r.date))||'').replace(/[^0-9]/g,'').slice(0,8);
+    return !!ymd && ymd <= y;
+  });
 }
 
 // ── BT용 캔들 fetch (Yahoo Finance 경유) ──
