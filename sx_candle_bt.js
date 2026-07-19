@@ -54,13 +54,15 @@
       if(_snapKeys.indexOf(key)<0) _snapKeys.push(key);
       _rows600Cache[key]=rows; n++;
     });
-    _snapMeta[mk]={ date:(meta&&meta.date)||'', n:n, file:(meta&&meta.file)||'' };
+    _snapMeta[mk]={ date:(meta&&meta.date)||'', n:n, file:(meta&&meta.file)||'', vintage:(meta&&meta.vintage)||'' };   // [S1076]
     return n;
   }
   function _snapHas(mk){ return !!_snapMeta[_normMkt(mk)]; }
-  async function fetchRows600(mk, tf, code){
+  async function fetchRows600(mk, tf, code, vintage){
     mk=_normMkt(mk); tf=tf||'day';
-    var key=mk+'|'+tf+'|'+code;
+    // [S1076] vintage 접미 — 없으면 '' 라 기존 키와 바이트 동일. 스냅 프리로드(_snapKeys)와도 슬롯 분리.
+    var _vk=(typeof _btVinKey==='function')?_btVinKey(vintage):'';
+    var key=mk+'|'+tf+'|'+code+(_vk?('|v'+_vk.slice(2)):'');
     if(_rows600Cache[key]!==undefined) return _rows600Cache[key];
     if(_snapMode) return null;   // [S847] 스냅샷 모드 — 프리로드 밖 종목은 live 폴백 없이 제외
     // [S643] 목표 봉수 = 라이브 카드와 동일(_btTargetBars: KIS ON 700 / OFF 600 / 주·월 400) — 게이트/카드 정합.
@@ -69,15 +71,15 @@
     var r=null;
     // [S643] 1차: 공유 캐시 경유(btFetchCandles, 빠름). 단 candleCache 공유 루프가 요청 봉수를 무시하고
     //   분석탭 짧은 캐시(200/400봉, Math.min(count,60) 가드)를 줄 수 있어 → kNN/검증 600봉 계약이 깨졌음(self 불일치 뿌리).
-    try { if(typeof btFetchCandles==='function') r=_toScreenerRows(await btFetchCandles(code, mk==='coin', tf, _tgt)); } catch(e){ r=null; }
+    try { if(typeof btFetchCandles==='function') r=_toScreenerRows(await btFetchCandles(code, mk==='coin', tf, _tgt, vintage)); } catch(e){ r=null; }   // [S1076]
     // [S643] 2차: 1차가 목표 미달이면 candleCache 우회 독립 fetch로 재시도(_btCandleCache는 S641 length>=count 가드 有).
     //   kNN 진입점(fetchRows600)에만 적용 → btFetchCandles 30개 호출처(BT/옵티마이저/페이퍼)는 무영향.
     if(!Array.isArray(r) || r.length < _floor){
       var r2=null;
       try {
-        if(mk==='coin'){ if(typeof btFetchCandlesCoin==='function') r2=_toScreenerRows(await btFetchCandlesCoin(code, tf, _tgt)); }
-        else if(mk==='us'){ if(typeof btFetchCandlesYF==='function') r2=_toScreenerRows(await btFetchCandlesYF(code, tf, _tgt)); }
-        else { if(typeof btFetchCandlesKR==='function') r2=_toScreenerRows(await btFetchCandlesKR(code, tf, _tgt)); }
+        if(mk==='coin'){ if(typeof btFetchCandlesCoin==='function') r2=_toScreenerRows(await btFetchCandlesCoin(code, tf, _tgt, vintage)); }   // [S1076]
+        else if(mk==='us'){ if(typeof btFetchCandlesYF==='function') r2=_toScreenerRows(await btFetchCandlesYF(code, tf, _tgt, vintage)); }
+        else { if(typeof btFetchCandlesKR==='function') r2=_toScreenerRows(await btFetchCandlesKR(code, tf, _tgt, vintage)); }
       } catch(e2){ r2=null; }
       if(Array.isArray(r2) && (!Array.isArray(r) || r2.length>r.length)) r=r2;   // 더 긴 쪽 채택(짧은 종목은 가용 최대)
     }
