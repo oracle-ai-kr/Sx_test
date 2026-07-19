@@ -845,13 +845,31 @@ function btGetCurrentState(btResult, currentPrice){
 
 function _btSleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
+// ════════ [S1076] vintage(과거 시대) 인자화 — 스냅 창을 "최근 600봉 고정"에서 임의 시대로 개방 ════════
+//   계약: vintage='YYYY-MM-DD' | falsy(미전달)=현행 100% 유지(캐시키 접미 '' · URL 동일 · 클립 no-op).
+//   ★함정1 캐시키: 키에 vintage가 없으면 "과거 창을 요청했는데 최근 캐시가 조용히 반환"됨 → 전 키에 접미 편입.
+//   ★함정2 룩어헤드: API 파라미터(end/to/range)가 어긋나도 _btVinClip이 최종 방어선. date>vintage 봉은 여기서 잘림.
+//   형식 불일치(오타 등)는 _btVinYmd가 ''를 반환 → 키·클립 **양쪽 모두** 무시(일관). 진입점(_snapCreate)에서 별도 하드 검증.
+function _btVinYmd(v){ return (typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) ? v.replace(/-/g,'') : ''; }
+function _btVinKey(v){ var y=_btVinYmd(v); return y ? ('_v'+y) : ''; }
+function _btVinDash(v){ var y=_btVinYmd(v); return y ? (y.slice(0,4)+'-'+y.slice(4,6)+'-'+y.slice(6,8)) : ''; }
+function _btVinClip(rows, v){
+  var d=_btVinDash(v);
+  if(!d || !Array.isArray(rows)) return rows;   // 무인자 = 원본 배열 그대로(동일 참조)
+  return rows.filter(function(r){ return String((r&&(r.t||r.date))||'').slice(0,10) <= d; });
+}
+
 // ── BT용 캔들 fetch (Yahoo Finance 경유) ──
 let _btCandleCache = {};
-async function btFetchCandlesYF(code, tf, count){
+async function btFetchCandlesYF(code, tf, count, vintage){
   tf = tf||'day';
   const yfTf = {day:'1d',week:'1wk',month:'1mo'}[tf]||'1d';
-  const range = {day:'5y',week:'10y',month:'max'}[tf]||'5y';
-  const cacheKey = `yf_${code}_${tf}`;
+  const _vk = _btVinKey(vintage);   // [S1076]
+  //   vintage 시 창을 넓힘 — 과거 기준일에서 다시 count봉을 뒤로 확보해야 하므로 5y로는 모자랄 수 있음.
+  //   무인자면 기존 맵 그대로(골든 보존).
+  const range = _vk ? ({day:'10y',week:'max',month:'max'}[tf]||'10y')
+                    : ({day:'5y',week:'10y',month:'max'}[tf]||'5y');
+  const cacheKey = `yf_${code}_${tf}${_vk}`;
   if(_btCandleCache[cacheKey] && Date.now()-_btCandleCache[cacheKey].ts<300000 && _btCandleCache[cacheKey].data.length>=count)
     return _btCandleCache[cacheKey].data.slice(-count);   // [S641] 캐시 봉수<요청봉수면 재fetch (count 미포함 키 → 짧은 캐시 재사용 버그 차단)
 
@@ -879,15 +897,17 @@ async function btFetchCandlesYF(code, tf, count){
     o:q.open?.[i]||0, h:q.high?.[i]||0, l:q.low?.[i]||0,
     c:q.close?.[i]||0, v:q.volume?.[i]||0,
   })).filter(_btIsValidCandle);
-  if(rows.length<30) throw new Error(`캔들 데이터 부족 (${rows.length}봉)`);
-  _btCandleCache[cacheKey] = {data:rows, ts:Date.now()};
-  return rows.slice(-count);
+  const _rows = _btVinClip(rows, vintage);   // [S1076] 무인자면 rows와 동일 참조
+  if(_rows.length<30) throw new Error(`캔들 데이터 부족 (${_rows.length}봉)`);
+  _btCandleCache[cacheKey] = {data:_rows, ts:Date.now()};
+  return _rows.slice(-count);
 }
 
 // ── BT용 캔들: 코인(업비트 Workers v9) ──
-async function btFetchCandlesCoin(code, tf, count){
+async function btFetchCandlesCoin(code, tf, count, vintage){
   tf = tf||'day';
-  const cacheKey = `coin_${code}_${tf}`;
+  const _vk = _btVinKey(vintage);   // [S1076]
+  const cacheKey = `coin_${code}_${tf}${_vk}`;
   if(_btCandleCache[cacheKey] && Date.now()-_btCandleCache[cacheKey].ts<300000 && _btCandleCache[cacheKey].data.length>=count)
     return _btCandleCache[cacheKey].data.slice(-count);   // [S641] 캐시 봉수<요청봉수면 재fetch (count 미포함 키 → 짧은 캐시 재사용 버그 차단)
 
@@ -897,7 +917,9 @@ async function btFetchCandlesCoin(code, tf, count){
   const PAGE = 200; // 업비트 단일 호출 최대
   const pages = Math.ceil(count / PAGE);
   let allArr = [];
-  let cursor = ''; // to 파라미터 (빈값=최신부터)
+  // [S1076] 업비트는 이미 to= 커서로 뒤로 페이징 중 → 초기 커서만 vintage로 주면 과거 창이 열림.
+  //   to는 '이 시각 이전'. 일봉 KST 경계 어긋남은 아래 _btVinClip이 최종 차단.
+  let cursor = _vk ? (_btVinDash(vintage)+'T23:59:59') : ''; // to 파라미터 (빈값=최신부터)
 
   for(let p=0; p<pages; p++){
     const toParam = cursor ? `&to=${encodeURIComponent(cursor)}` : '';
@@ -932,8 +954,9 @@ async function btFetchCandlesCoin(code, tf, count){
     v: k.candle_acc_trade_volume||0,
   })).filter(_btIsValidCandle)
      .sort((a,b)=>(a.t||'').localeCompare(b.t||''));  // [SAFETY-SORT] 시간 오름차순 (reverse 대체 — 더 안전)
-  _btCandleCache[cacheKey] = {data:rows, ts:Date.now()};
-  return rows.slice(-count);
+  const _rows = _btVinClip(rows, vintage);   // [S1076]
+  _btCandleCache[cacheKey] = {data:_rows, ts:Date.now()};
+  return _rows.slice(-count);
 }
 
 // ── BT용 캔들 통합 ──
@@ -941,14 +964,16 @@ async function btFetchCandlesCoin(code, tf, count){
 //   kr: KIS 우선 → 네이버 폴백 (분석탭과 동일 소스 정합)
 //   us: Yahoo
 //   coin: 업비트
-async function btFetchCandles(code, isCoin, tf, count){
+async function btFetchCandles(code, isCoin, tf, count, vintage){
   count = count||300;
-  if(isCoin) return btFetchCandlesCoin(code, tf, count);
+  if(isCoin) return btFetchCandlesCoin(code, tf, count, vintage);
 
   const mkt = currentMarket || (isCoin?'coin':/^\d{6}$/.test(code)?'kr':'us');
 
   // ① 스크리너 캔들 캐시 조회 (candleCache는 글로벌)
-  if(typeof candleCache !== 'undefined'){
+  // [S1076] ★vintage 요청 시 이 블록 통째로 스킵 — candleCache는 '오늘' 데이터 전용이라
+  //   과거 창을 요청했는데 최근 캐시가 조용히 반환되는 최악의 함정. 키에 vintage가 없으므로 우회 불가.
+  if(!_btVinKey(vintage) && typeof candleCache !== 'undefined'){
     // 스크리너 캐시키: market_code_count_tf — count가 다를 수 있으므로 넉넉한 키 탐색
     const exactKey = mkt + '_' + code + '_' + count + '_' + tf;
     if(candleCache[exactKey] && Date.now()-candleCache[exactKey].ts < 600000){
@@ -969,8 +994,8 @@ async function btFetchCandles(code, isCoin, tf, count){
   }
 
   // ② 캐시 미스 → 독립 fetch
-  if(mkt === 'kr') return btFetchCandlesKR(code, tf, count);
-  return btFetchCandlesYF(code, tf, count);
+  if(mkt === 'kr') return btFetchCandlesKR(code, tf, count, vintage);
+  return btFetchCandlesYF(code, tf, count, vintage);
 }
 
 // [S229] BT 형식 캔들 무결성 검증 — sx_screener.html의 _sxIsValidCandle 미러 (BT는 {t,o,h,l,c,v} 형식)
@@ -1020,16 +1045,16 @@ function _btNormalizeRows(rows){
 }
 
 // S93: 국내주식 KIS 우선 → 네이버 폴백 (스크리너 fetchCandles와 동일 소스)
-async function btFetchCandlesKR(code, tf, count){
+async function btFetchCandlesKR(code, tf, count, vintage){
   tf = tf||'day';
-  const cacheKey = `kr_kis_${code}_${tf}`;
+  const cacheKey = `kr_kis_${code}_${tf}${_btVinKey(vintage)}`;   // [S1076]
   if(_btCandleCache[cacheKey] && Date.now()-_btCandleCache[cacheKey].ts<300000 && _btCandleCache[cacheKey].data.length>=count)
     return _btCandleCache[cacheKey].data.slice(-count);   // [S641] 캐시 봉수<요청봉수면 재fetch (count 미포함 키 → 짧은 캐시 재사용 버그 차단)
 
   // KIS 시도
   if(window._kisEnabled && typeof _getKisConfig === 'function'){
     try{
-      const rows = await _btFetchKIS(code, tf, count);
+      const rows = await _btFetchKIS(code, tf, count, vintage);   // [S1076]
       if(rows && rows.length >= 30){
         _btCandleCache[cacheKey] = {data:rows, ts:Date.now()};
         return rows.slice(-count);
@@ -1039,7 +1064,7 @@ async function btFetchCandlesKR(code, tf, count){
 
   // 네이버 폴백
   try{
-    const rows = await _btFetchNaver(code, tf, count);
+    const rows = await _btFetchNaver(code, tf, count, vintage);   // [S1076]
     if(rows && rows.length >= 30){
       _btCandleCache[cacheKey] = {data:rows, ts:Date.now()};
       return rows.slice(-count);
@@ -1047,11 +1072,11 @@ async function btFetchCandlesKR(code, tf, count){
   }catch(e){ console.warn('[BT] Naver fetch err, fallback to Yahoo', e); }
 
   // 최종 폴백: Yahoo
-  return btFetchCandlesYF(code, tf, count);
+  return btFetchCandlesYF(code, tf, count, vintage);   // [S1076]
 }
 
 // S93: KIS 일봉/주봉/월봉 (500봉 페이지네이션)
-async function _btFetchKIS(code, tf, count){
+async function _btFetchKIS(code, tf, count, vintage){
   const periodMap = {'day':'D','week':'W','month':'M'};
   const period = periodMap[tf];
   if(!period) return null; // 분봉은 BT에서 미지원
@@ -1059,9 +1084,13 @@ async function _btFetchKIS(code, tf, count){
   const token = cfg ? await _getKisToken() : null;
   if(!token) return null;
   const KIS_PAGE = 100;
-  const maxPages = Math.min(Math.ceil(count / KIS_PAGE), 5);
+  const _vy = _btVinYmd(vintage);   // [S1076]
+  //   상한 완화는 vintage 있을 때만 — 무인자 경로의 5페이지(=500봉) 동작을 건드리면 골든이 깨진다.
+  //   (무인자 KR 실사용은 500<570 미달로 Naver 폴백이 담당 — 의도된 현행 동작, 보존)
+  const maxPages = _vy ? Math.min(Math.ceil(count / KIS_PAGE), 12)
+                       : Math.min(Math.ceil(count / KIS_PAGE), 5);
   let allBars = [];
-  let curEnd = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  let curEnd = _vy || new Date().toISOString().slice(0,10).replace(/-/g,'');   // [S1076]
   for(let pg = 0; pg < maxPages; pg++){
     const endD = curEnd.replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3');
     const sd = new Date(endD);
@@ -1097,16 +1126,18 @@ async function _btFetchKIS(code, tf, count){
   }
   // [FIX] KIS output2는 최신→과거 내림차순 → 중복 제거 후 시간 순으로 정렬
   const seen = new Set();
-  return allBars.filter(b=>{ if(seen.has(b.t)) return false; seen.add(b.t); return true; })
-                .sort((a,b)=>a.t.localeCompare(b.t));
+  return _btVinClip(allBars.filter(b=>{ if(seen.has(b.t)) return false; seen.add(b.t); return true; })
+                .sort((a,b)=>a.t.localeCompare(b.t)), vintage);   // [S1076]
 }
 
 // S93: 네이버 sise 캔들 (스크리너와 동일 로직)
-async function _btFetchNaver(code, tf, count){
+async function _btFetchNaver(code, tf, count, vintage){
   const tfMap={'day':'day','week':'week','month':'month'};
   const timeframe = tfMap[tf]||'day';
-  const end = new Date().toISOString().slice(0,10).replace(/-/g,'');
-  const startDate = new Date();
+  // [S1076] 네이버는 이미 start/end 날짜로 요청 중 — end만 인자화하면 과거 창이 열린다(가장 깨끗한 경로).
+  const _vd = _btVinDash(vintage);
+  const end = _vd ? _vd.replace(/-/g,'') : new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const startDate = _vd ? new Date(_vd) : new Date();
   const dayRange = {'day':Math.ceil(count*1.8),'week':Math.ceil(count*10),'month':Math.ceil(count*35)}[tf] || Math.ceil(count*1.8);
   startDate.setDate(startDate.getDate() - dayRange);
   const start = startDate.toISOString().slice(0,10).replace(/-/g,'');
@@ -1129,7 +1160,7 @@ async function _btFetchNaver(code, tf, count){
       }
     }catch(e){ console.warn('[BT] Naver raw parse err',e); }
   }
-  return (dataArr||[]).map(r=>({
+  return _btVinClip((dataArr||[]).map(r=>({   // [S1076]
     t:r.localDate||r['날짜']||r.date||'',
     o:parseFloat(r.openPrice||r['시가']||r.open||0),
     h:parseFloat(r.highPrice||r['고가']||r.high||0),
@@ -1137,7 +1168,7 @@ async function _btFetchNaver(code, tf, count){
     c:parseFloat(r.closePrice||r['종가']||r.close||0),
     v:parseInt(r.accumulatedTradingVolume||r['거래량']||r.volume||0),
   })).filter(_btIsValidCandle)
-     .sort((a,b)=>(a.t||'').localeCompare(b.t||''));  // [SAFETY-SORT] 시간 오름차순 보장
+     .sort((a,b)=>(a.t||'').localeCompare(b.t||'')), vintage);  // [SAFETY-SORT] 시간 오름차순 보장
 }
 
 // ── BT 파라미터 ──
