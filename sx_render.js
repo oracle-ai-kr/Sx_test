@@ -6006,7 +6006,21 @@ async function _snapCreate(mode, vintage){
     var blob=new Blob([JSON.stringify(snap)],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=fname; document.body.appendChild(a); a.click(); setTimeout(function(){try{document.body.removeChild(a);URL.revokeObjectURL(url);}catch(_){}},200);
   }catch(e){ if(el) el.innerHTML='다운로드 실패: '+(e&&e.message||e); return; }
   // [S1076] 빈티지 스냅은 '요청 창 vs 실제 도달 창'을 반드시 같이 보여준다 — 폴백으로 최근 데이터가 섞이면 여기서 드러남.
-  var _vinNote = _vin ? ('<br><b style="color:'+((maxDate&&maxDate.slice(0,10)<=_vin)?'#0e7490':'#dc2626')+'">🕰 빈티지 요청 '+_vin+' → 실제 최종봉 '+(maxDate||'?')+((maxDate&&maxDate.slice(0,10)<=_vin)?' ✓ 룩어헤드 없음':' ⚠️ 요청 창 초과 — 폴백 오염 의심, 사용 금지')+'</b>') : '';
+  // [S1077] ★'룩어헤드 없음'만으론 부족 — **창에 도달했는지**까지 봐야 한다.
+  //   S1076 사고: 클립 형식 불일치로 7.3개월 미달인데 룩어헤드 검사만 통과해 정상처럼 보였음.
+  //   비교는 숫자만 남긴 YYYYMMDD로(네이버 '20230809' vs 하이픈 형식 혼용 방지).
+  var _vinNote='';
+  if(_vin){
+    var _vy=_vin.replace(/-/g,''), _my=String(maxDate||'').replace(/[^0-9]/g,'').slice(0,8);
+    var _over=_my && _my>_vy;                                   // 창 초과 = 룩어헤드
+    var _gapD=(_my&&!_over)?Math.round((new Date(_vy.slice(0,4)+'-'+_vy.slice(4,6)+'-'+_vy.slice(6,8))-new Date(_my.slice(0,4)+'-'+_my.slice(4,6)+'-'+_my.slice(6,8)))/86400000):null;
+    var _short=(_gapD!=null && _gapD>30);                       // 30일 초과 미달 = 창 미도달
+    var _col=_over?'#dc2626':(_short?'#d97706':'#0e7490');
+    var _msg=_over?' ⚠️ 요청 창 초과 — 룩어헤드, 사용 금지'
+            :(_short?(' ⚠️ 창 미도달 '+_gapD+'일 부족 — 선언한 창이 아님, 사용 금지')
+                    :' ✓ 룩어헤드 없음 · 창 도달'+(_gapD!=null?' ('+_gapD+'일 이내)':''));
+    _vinNote='<br><b style="color:'+_col+'">🕰 빈티지 요청 '+_vin+' → 실제 최종봉 '+(maxDate||'?')+_msg+'</b>';
+  }
   if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">📦 <b>'+fname+'</b> 생성 완료 — '+String(mk).toUpperCase()+' '+n+'종 · 기준일 '+(maxDate||'?')+' · 미수록(봉수미달) '+excluded.length+'종'+_vinNote+'<br>→ <b>snap_'+mk+(_oos?'_oos':'')+(_vin?'_vin':'')+'.json</b>으로 이름 바꿔 repo 루트에 커밋 (OOS/빈티지는 별도 파일명)</div>';
 }
 // [S1076] 빈티지 창 스위치 — _snapLoad 호출처가 25곳(전 측정 브래킷)이라 인자를 늘리는 대신 단일 플래그로 통일.
@@ -9740,7 +9754,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1076';
+  window.SX_BUILD='S1077';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
