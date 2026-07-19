@@ -40,10 +40,10 @@
   var _rows600Cache = {};   // [S637] 'mkt|tf|code' → 600봉 screener rows | null. 카드 kNN/게이트를 검증툴과 동일 600봉 기준으로 통일.
 
   // ── [S847] 캔들 스냅샷 모드 — 발굴풀 캔들을 파일(GitHub Pages)로 냉동해 재현 측정. ON=fetchRows600 캐시 전용(미수록 종목 null=측정 제외, live 폴백 없음 → 냉동/라이브 섞임 원천 차단). 세션 한정(새로고침=OFF). OFF시 프리로드 키 퍼지. ──
-  var _snapMode=false, _snapKeys=[], _snapMeta={};   // _snapMeta: mkt → {date, n, file}
+  var _snapMode=false, _snapKeys=[], _snapMeta={}, _snapSrc={};   // [S1078] _snapSrc: mkt → {code:'disc'|'oos'}   // _snapMeta: mkt → {date, n, file}
   function _snapSet(on){
     _snapMode=!!on;
-    if(!_snapMode){ _snapKeys.forEach(function(k){ delete _rows600Cache[k]; }); _snapKeys=[]; _snapMeta={}; }
+    if(!_snapMode){ _snapKeys.forEach(function(k){ delete _rows600Cache[k]; }); _snapKeys=[]; _snapMeta={}; _snapSrc={}; }   // [S1078]
   }
   function _snapPreload(mk, tf, stocks, meta){   // stocks: {code:{name, rows:[[date,o,h,l,c,v],...]}} → 스크리너 행 복원 후 캐시 주입
     mk=_normMkt(mk); tf=tf||'day'; var n=0;
@@ -53,8 +53,9 @@
       var key=mk+'|'+tf+'|'+code;
       if(_snapKeys.indexOf(key)<0) _snapKeys.push(key);
       _rows600Cache[key]=rows; n++;
+      if(st.src) (_snapSrc[mk]||(_snapSrc[mk]={}))[code]=st.src;   // [S1078] 하위집단(disc/oos) 보존 — 쪼개 보고용
     });
-    _snapMeta[mk]={ date:(meta&&meta.date)||'', n:n, file:(meta&&meta.file)||'', vintage:(meta&&meta.vintage)||'' };   // [S1076]
+    _snapMeta[mk]={ date:(meta&&meta.date)||'', n:n, file:(meta&&meta.file)||'', vintage:(meta&&meta.vintage)||'', poolKind:(meta&&meta.poolKind)||'disc' };   // [S1076]·[S1078]
     return n;
   }
   function _snapHas(mk){ return !!_snapMeta[_normMkt(mk)]; }
@@ -899,7 +900,7 @@
     }, 40);
   }
 
-  window.SXCandleBT = { open: open, close: _close, setThr: setThr, setKnnWin: setKnnWin, setKnnK: setKnnK, setKnnGate: setKnnGate, runKnnGrid: runKnnGrid, downloadKnnJson: downloadKnnJson, run: runBacktest, runBasket: runBasket, runBasketUI: runBasketUI, runPoolCompareUI: runPoolCompareUI, runPoolCompare: runPoolCompare, runPoolVerifyUI: runPoolVerifyUI, runPoolVerify: runPoolVerify, backToSingle: backToSingle, evalPoolAuto: evalPoolAuto, poolAutoOn: _ctPoolAutoOn, poolAutoSet: _ctPoolAutoSet, fetchRows600: fetchRows600, getRepPool: function(mk){ return _REP_POOL[_normMkt(mk)]||[]; }, snapSet:_snapSet, snapMode:function(){ return _snapMode; }, snapPreload:_snapPreload, snapHas:_snapHas, snapMeta:function(){ return _snapMeta; }, _remove: _removeOverlay };   // [S847] 스냅샷 API
+  window.SXCandleBT = { open: open, close: _close, setThr: setThr, setKnnWin: setKnnWin, setKnnK: setKnnK, setKnnGate: setKnnGate, runKnnGrid: runKnnGrid, downloadKnnJson: downloadKnnJson, run: runBacktest, runBasket: runBasket, runBasketUI: runBasketUI, runPoolCompareUI: runPoolCompareUI, runPoolCompare: runPoolCompare, runPoolVerifyUI: runPoolVerifyUI, runPoolVerify: runPoolVerify, backToSingle: backToSingle, evalPoolAuto: evalPoolAuto, poolAutoOn: _ctPoolAutoOn, poolAutoSet: _ctPoolAutoSet, fetchRows600: fetchRows600, getRepPool: function(mk){ return _REP_POOL[_normMkt(mk)]||[]; }, snapSet:_snapSet, snapMode:function(){ return _snapMode; }, snapPreload:_snapPreload, snapHas:_snapHas, snapMeta:function(){ return _snapMeta; }, snapSrc:function(mk){ return _snapSrc[_normMkt(mk)]||{}; }, _remove: _removeOverlay };   // [S847] 스냅샷 API
 
   // [S635] 대표목록 도너 뱅크 구축(세션 1회/시장·TF, 캐시 재사용). fetch 실패 종목 graceful skip.
   async function _ensureRepBank(mk, tf, win){
