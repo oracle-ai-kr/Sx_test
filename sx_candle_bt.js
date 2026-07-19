@@ -40,10 +40,10 @@
   var _rows600Cache = {};   // [S637] 'mkt|tf|code' → 600봉 screener rows | null. 카드 kNN/게이트를 검증툴과 동일 600봉 기준으로 통일.
 
   // ── [S847] 캔들 스냅샷 모드 — 발굴풀 캔들을 파일(GitHub Pages)로 냉동해 재현 측정. ON=fetchRows600 캐시 전용(미수록 종목 null=측정 제외, live 폴백 없음 → 냉동/라이브 섞임 원천 차단). 세션 한정(새로고침=OFF). OFF시 프리로드 키 퍼지. ──
-  var _snapMode=false, _snapKeys=[], _snapMeta={}, _snapSrc={};   // [S1078] _snapSrc: mkt → {code:'disc'|'oos'}   // _snapMeta: mkt → {date, n, file}
+  var _snapMode=false, _snapKeys=[], _snapMeta={}, _snapSrc={}, _snapKeySet={};   // [S1078] _snapSrc: mkt → {code:'disc'|'oos'} / [S1080] _snapKeySet: 스냅 주입 키 O(1) 판별   // _snapMeta: mkt → {date, n, file}
   function _snapSet(on){
     _snapMode=!!on;
-    if(!_snapMode){ _snapKeys.forEach(function(k){ delete _rows600Cache[k]; }); _snapKeys=[]; _snapMeta={}; _snapSrc={}; }   // [S1078]
+    if(!_snapMode){ _snapKeys.forEach(function(k){ delete _rows600Cache[k]; }); _snapKeys=[]; _snapMeta={}; _snapSrc={}; _snapKeySet={}; }   // [S1078]·[S1080]
   }
   function _snapPreload(mk, tf, stocks, meta){   // stocks: {code:{name, rows:[[date,o,h,l,c,v],...]}} → 스크리너 행 복원 후 캐시 주입
     mk=_normMkt(mk); tf=tf||'day'; var n=0;
@@ -52,7 +52,7 @@
       var rows=st.rows.map(function(a){ return { date:a[0]||'', open:+a[1]||0, high:+a[2]||0, low:+a[3]||0, close:+a[4]||0, volume:+a[5]||0 }; });
       var key=mk+'|'+tf+'|'+code;
       if(_snapKeys.indexOf(key)<0) _snapKeys.push(key);
-      _rows600Cache[key]=rows; n++;
+      _rows600Cache[key]=rows; _snapKeySet[key]=1; n++;   // [S1080]
       if(st.src) (_snapSrc[mk]||(_snapSrc[mk]={}))[code]=st.src;   // [S1078] 하위집단(disc/oos) 보존 — 쪼개 보고용
     });
     _snapMeta[mk]={ date:(meta&&meta.date)||'', n:n, file:(meta&&meta.file)||'', vintage:(meta&&meta.vintage)||'', poolKind:(meta&&meta.poolKind)||'disc' };   // [S1076]·[S1078]
@@ -64,8 +64,12 @@
     // [S1076] vintage 접미 — 없으면 '' 라 기존 키와 바이트 동일. 스냅 프리로드(_snapKeys)와도 슬롯 분리.
     var _vk=(typeof _btVinKey==='function')?_btVinKey(vintage):'';
     var key=mk+'|'+tf+'|'+code+(_vk?('|v'+_vk.slice(2)):'');
+    // [S1080] ★가드 순서 교정 — 기존엔 캐시 조회가 snapMode 가드보다 **앞**이라,
+    //   세션 중 라이브로 이미 받아둔 종목이 스냅샷 모드에서도 그대로 반환됐다(과거 창에 현재 데이터 혼입).
+    //   S1076 창A 실행에서 실제 발생: 스냅 167종인데 측정 168종 · COIN 창B 41→48종(15% 오염).
+    //   스냅 모드에선 **프리로드로 주입된 키만** 인정한다(그 외 전부 null=제외, live 폴백 없음).
+    if(_snapMode) return _snapKeySet[key] ? _rows600Cache[key] : null;   // [S847]→[S1080]
     if(_rows600Cache[key]!==undefined) return _rows600Cache[key];
-    if(_snapMode) return null;   // [S847] 스냅샷 모드 — 프리로드 밖 종목은 live 폴백 없이 제외
     // [S643] 목표 봉수 = 라이브 카드와 동일(_btTargetBars: KIS ON 700 / OFF 600 / 주·월 400) — 게이트/카드 정합.
     var _tgt = (typeof _btTargetBars==='function') ? _btTargetBars(mk, tf) : 600;
     var _floor = Math.floor(_tgt * 0.95);
