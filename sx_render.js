@@ -1928,7 +1928,7 @@ function _ctConfidence(score, market, sbFired, regime){
 // [S481] 캔들 전이 예측 카드 (분석탭 전광판 아래, 실험 영역)
 // ===== [S549] 단기 추세 매매 (실험 카드) — MA 골든크로스 진입 → 데드크로스 청산. 보조지표 AND(최근 N봉). 독립 룰. =====
 const _TREND_MKT_DEFAULT = { kr:[5,20], us:[5,20], coin:[5,20] };
-const _TREND_CFG_VER = 2;   // [S1059] 기본 프리셋 개편(5×20 단일·옵션 전체 OFF) → bump 시 구 localStorage 저장값 무효화
+const _TREND_CFG_VER = 3;   // [S1059] 기본 프리셋 개편(5×20 단일·옵션 전체 OFF) → bump 시 구 localStorage 저장값 무효화 / [S1073] bullVol·이중ATR 옵션 추가로 bump
 // [S573] 단기추세 기본 프리셋 — 순수 MA 골든/데드크로스만. 매수·매도 보조칩 전부 OFF, 정배열 재진입 OFF (사진 기준 0건 적용 상태).
 //   매번 새 객체 반환(aux/sell 참조 공유 방지). MA쌍은 시장별 _TREND_MKT_DEFAULT 사용.
 function _trendDefaults(market){
@@ -1944,7 +1944,9 @@ function _trendDefaults(market){
     entrySlope:false, entryConfirm:true,  // [S687] 기울기 조기진입 + 확인봉. entrySlope OFF이므로 무효(모디파이어).
     entryRsi:false,              // [S703] 조기진입 재현 부스트 — 실험 opt-in
     xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20,   // [S1059] 청산분리 OFF(=진입과 동일 5×20 데드크로스)·값은 5×20 통일
-    nextOpen:false };  // [S581] 진입방식: false=신호봉 종가(기본) / true=다음봉 시가
+    nextOpen:false,  // [S581] 진입방식: false=신호봉 종가(기본) / true=다음봉 시가
+    bullVol:false,                       // [S1073] 시즌2 이식 — 강세 거래량급증 진입(하이브리드 엔진·KR 전용). 기본 OFF: 시즌2 검증은 시즌2 실행 프레임 기준이라 카드 BT 편입 효과는 미측정.
+    atr2:false, atrInit:2, atrTrail:3 }; // [S1073] 시즌2 이식 — 이중 ATR 청산(진입가 −2×ATR ∪ 최고가 −3×ATR). 기본 OFF.
 }
 const _TREND_AUX = [
   {k:'rsiGc',  label:'RSI 골든'},
@@ -1974,7 +1976,7 @@ function _trendMkt(stock){ const m=(stock&&(stock._mkt||stock.market))||(typeof 
 function _trendCfg(market){
   const d=_TREND_MKT_DEFAULT[market]||[5,9];
   let cfg=_trendDefaults(market); // [S572] 기본 프리셋(칩·재진입) 포함 — localStorage 있으면 아래서 덮어씀
-  try { const raw=localStorage.getItem('SX_TREND_'+market); if(raw){ const o=JSON.parse(raw); if(o && o._ver===_TREND_CFG_VER){ cfg.s=+o.s||d[0]; cfg.l=+o.l||d[1]; cfg.n=+o.n||3; cfg.aux=(o.aux&&typeof o.aux==='object')?o.aux:{}; cfg.sell=(o.sell&&typeof o.sell==='object')?o.sell:{}; cfg.reentry=!!o.reentry; cfg.nextOpen=!!o.nextOpen; cfg.predict=!!o.predict; cfg.predLead=(o.predLead==='auto')?'auto':((+o.predLead===2)?2:1); cfg.earlyMa5=!!o.earlyMa5; cfg.earlySlope=!!o.earlySlope; cfg.disSl=!!o.disSl; cfg.slAtr=(+o.slAtr>0)?+o.slAtr:3; cfg.entrySlope=!!o.entrySlope; cfg.entryConfirm=(o.entryConfirm!==false); cfg.entryRsi=!!o.entryRsi; cfg.xCross=!!o.xCross; cfg.xs=+o.xs||cfg.s; cfg.xl=+o.xl||cfg.l; cfg.reEntryS=+o.reEntryS||cfg.s; cfg.reEntryL=+o.reEntryL||cfg.l; } } } catch(_){}
+  try { const raw=localStorage.getItem('SX_TREND_'+market); if(raw){ const o=JSON.parse(raw); if(o && o._ver===_TREND_CFG_VER){ cfg.s=+o.s||d[0]; cfg.l=+o.l||d[1]; cfg.n=+o.n||3; cfg.aux=(o.aux&&typeof o.aux==='object')?o.aux:{}; cfg.sell=(o.sell&&typeof o.sell==='object')?o.sell:{}; cfg.reentry=!!o.reentry; cfg.nextOpen=!!o.nextOpen; cfg.predict=!!o.predict; cfg.predLead=(o.predLead==='auto')?'auto':((+o.predLead===2)?2:1); cfg.earlyMa5=!!o.earlyMa5; cfg.earlySlope=!!o.earlySlope; cfg.disSl=!!o.disSl; cfg.slAtr=(+o.slAtr>0)?+o.slAtr:3; cfg.entrySlope=!!o.entrySlope; cfg.entryConfirm=(o.entryConfirm!==false); cfg.entryRsi=!!o.entryRsi; cfg.xCross=!!o.xCross; cfg.xs=+o.xs||cfg.s; cfg.xl=+o.xl||cfg.l; cfg.reEntryS=+o.reEntryS||cfg.s; cfg.reEntryL=+o.reEntryL||cfg.l; cfg.bullVol=!!o.bullVol; cfg.atr2=!!o.atr2; cfg.atrInit=(+o.atrInit>0)?+o.atrInit:2; cfg.atrTrail=(+o.atrTrail>0)?+o.atrTrail:3; } } } catch(_){}
   if(cfg.xCross){ if(!(cfg.xs>0)) cfg.xs=cfg.s; if(!(cfg.xl>0)) cfg.xl=cfg.l; if(cfg.xs>=cfg.xl) cfg.xl=cfg.xs+1; }   // [S820] 청산 MA 정합
   if(cfg.reentry){ if(!(cfg.reEntryS>0)) cfg.reEntryS=cfg.s; if(!(cfg.reEntryL>0)) cfg.reEntryL=cfg.l; if(cfg.reEntryS>=cfg.reEntryL) cfg.reEntryL=cfg.reEntryS+1; }   // [S822] 재진입 MA 정합
   if(!(cfg.s>0)) cfg.s=d[0]; if(!(cfg.l>0)) cfg.l=d[1]; if(cfg.s>=cfg.l) cfg.l=cfg.s+1; if(!(cfg.n>=1)) cfg.n=3;
@@ -2094,22 +2096,56 @@ function _trendBtHybrid(rows, sig, cfg, bbP){
   const _isFlat=(i)=>{ const a=maR60[i],b=maR120[i],c=maR200[i]; return (a!=null&&b!=null&&c!=null&&!(a>b&&b>c)&&!(a<b&&b<c)); };   // 3×3 횡보장(60/120/200 혼조)
   const _pctB=(i)=>{ const m=maBB20[i],s=stdBB[i]; if(m==null||s==null||s<=0) return 0.5; return (close[i]-(m-2*s))/(4*s); };
   const _dev20=(i)=>{ const m=maBB20[i]; return (m!=null&&m>0)?(close[i]/m-1)*100:0; };
+  // ══ [S1073] 시즌2 → 시즌1 이식 (수식 verbatim · 둘 다 기본 OFF) ══
+  //  ① bullVol 진입 = sig_runner_s927.js `bullVolSignal`: 강세(5>20>60) ∧ 하락장(60<120<200) ∧ volOsc≥73.31 ∧ VR≥389.41 · KR 전용
+  //     volOsc = VolumeOSC.calc(engine 695) = (SMA(vol,5)−SMA(vol,20))/SMA(vol,20)×100
+  //     VR     = calcVR(engine 3623) = 최근 20봉 상승거래량/하락거래량×100 (하락합 0 → 300)
+  //     편입 규칙도 시즌2 동일 = **다른 소스가 진입하지 않을 때만**(상호배타)
+  //  ② 이중 ATR 청산 = workers_v9.js 2714 : stop = max(진입가 − atrInit×entryATR, 최고가 − atrTrail×entryATR) · entryATR=ATR14 진입시 고정
+  //     ★프레임 차이 명시: 시즌2는 장중 현재가(tick) 기준, 카드 BT는 종가 기준(카드의 기존 청산과 동일 축). 체결 강도가 다르므로 수치 직접 비교 금지.
+  const _bvOn=!!(cfg&&cfg.bullVol&&_mk==='kr');
+  let _bvOk=null;
+  if(_bvOn){
+    const _v=rows.map(r=>+(r.volume!=null?r.volume:(r.v!=null?r.v:0)));
+    const _vS=_trSma(_v,5), _vL=_trSma(_v,20);
+    const _b5=_trSma(close,5), _b20=_trSma(close,20), _b60=_trSma(close,60);
+    _bvOk=new Array(n).fill(false);
+    for(let i=20;i<n;i++){
+      if(!(_b5[i]!=null&&_b20[i]!=null&&_b60[i]!=null&&_b5[i]>_b20[i]&&_b20[i]>_b60[i])) continue;                                                  // 강세
+      if(!(i>=199&&maR60[i]!=null&&maR120[i]!=null&&maR200[i]!=null&&maR60[i]<maR120[i]&&maR120[i]<maR200[i])) continue;                            // 하락장(gateOn=200봉)
+      if(!(_vS[i]!=null&&_vL[i]!=null&&_vL[i]>0) || ((_vS[i]-_vL[i])/_vL[i]*100)<73.31) continue;                                                   // volOsc
+      let _up=0,_dn=0; for(let k=Math.max(1,i-19);k<=i;k++){ if(close[k]>close[k-1]) _up+=_v[k]; else if(close[k]<close[k-1]) _dn+=_v[k]; }
+      if(((_dn===0)?300:(_up/_dn*100))<389.41) continue;                                                                                            // VR
+      _bvOk[i]=true;
+    }
+  }
+  const _a2On=!!(cfg&&cfg.atr2), _aI=(+(cfg&&cfg.atrInit)>0)?+cfg.atrInit:2, _aT=(+(cfg&&cfg.atrTrail)>0)?+cfg.atrTrail:3;
+  let _atr14=null;
+  if(_a2On){
+    const _hi=rows.map(r=>+(r.high!=null?r.high:(r.h!=null?r.h:(r.close!=null?r.close:r.c))));
+    const _lo=rows.map(r=>+(r.low!=null?r.low:(r.l!=null?r.l:(r.close!=null?r.close:r.c))));
+    const _tr=new Array(n).fill(0);
+    for(let i=1;i<n;i++){ const _pc=close[i-1]; _tr[i]=Math.max(_hi[i]-_lo[i], Math.abs(_hi[i]-_pc), Math.abs(_lo[i]-_pc)); }
+    _atr14=_trSma(_tr,14);
+  }
   const trades=[]; let pos=null;
   for(let i=0;i<n;i++){
     const gc=(i>0&&maS[i]!=null&&maL[i]!=null&&maS[i-1]!=null&&maL[i-1]!=null&&maS[i]>maL[i]&&maS[i-1]<=maL[i-1]);
     const dx=(i>0&&maXS[i]!=null&&maXL[i]!=null&&maXS[i-1]!=null&&maXL[i-1]!=null&&maXS[i]<maXL[i]&&maXS[i-1]>=maXL[i-1]);
     const _rg=_regGet(i), bullSide=(_rg==='up'), bearSide=(_rg==='down');   // [S1062] up=추세 · down=deadcat · flat(KR 횡보장만)=무진입
     if(pos==null){
-      const enter=(_rangeOn&&_isFlat(i)&&_pctB(i)<=0.2&&_dev20(i)<-8)?'range':((gc&&bullSide&&(!_isCoin||_coinSlopeUp(i)))?'trend':((dcR[i]&&bearSide)?'deadcat':null));   // [S1064] 횡보장 평균회귀(KR·US): BB하단(pctB≤0.2)&극단이격(dev20<-8)
+      const enter=(_rangeOn&&_isFlat(i)&&_pctB(i)<=0.2&&_dev20(i)<-8)?'range':((gc&&bullSide&&(!_isCoin||_coinSlopeUp(i)))?'trend':((dcR[i]&&bearSide)?'deadcat':((_bvOn&&_bvOk[i])?'bullvol':null)));   // [S1064] 횡보장 평균회귀(KR·US): BB하단(pctB≤0.2)&극단이격(dev20<-8) / [S1073] bullVol=상호배타 최하순위
       if(enter){
-        if(_nextOpen){ const j=i+1; if(j<n && _opens[j]>0) pos={entry:_opens[j], entryIdx:j, src:enter}; }
-        else if(close[i]>0) pos={entry:close[i], entryIdx:i, src:enter};
+        if(_nextOpen){ const j=i+1; if(j<n && _opens[j]>0) pos={entry:_opens[j], entryIdx:j, src:enter, entryATR:(_a2On&&_atr14&&_atr14[j]>0)?_atr14[j]:0, peak:_opens[j]}; }
+        else if(close[i]>0) pos={entry:close[i], entryIdx:i, src:enter, entryATR:(_a2On&&_atr14&&_atr14[i]>0)?_atr14[i]:0, peak:close[i]};
       }
     } else {
-      const _exitNow=(pos.src==='range')?(_pctB(i)>=0.5 || (i-pos.entryIdx>=20)):(dx || dcF[i] || (_isCoin && pos.src==='trend' && maS[i]!=null && close[i]<maS[i]));   // [S1064] range=BB중단(0.5) or 20봉 홀드캡 · 그외=데드크로스∪가짜(∪COIN 추세 5MA)
+      if(_a2On && close[i]>pos.peak) pos.peak=close[i];   // [S1073] 트레일 기준 최고가(종가 기준 — 카드 BT 축)
+      const _a2Hit=(_a2On && pos.entryATR>0 && close[i]>0 && close[i] <= Math.max(pos.entry-_aI*pos.entryATR, pos.peak-_aT*pos.entryATR));   // [S1073] 이중 ATR: 초기손절 ∪ 트레일 중 높은 쪽
+      const _exitNow=((pos.src==='range')?(_pctB(i)>=0.5 || (i-pos.entryIdx>=20)):(dx || dcF[i] || (_isCoin && pos.src==='trend' && maS[i]!=null && close[i]<maS[i]))) || _a2Hit;   // [S1064] range=BB중단(0.5) or 20봉 홀드캡 · 그외=데드크로스∪가짜(∪COIN 추세 5MA) / [S1073] ∪이중ATR
       if(_exitNow && close[i]>0){
         const ex=close[i], pnl=+((ex/pos.entry-1)*100).toFixed(2);
-        trades.push({ entry:pos.entry, exit:ex, pnl, bars:i-pos.entryIdx, entryIdx:pos.entryIdx, exitIdx:i, src:pos.src,
+        trades.push({ entry:pos.entry, exit:ex, pnl, bars:i-pos.entryIdx, entryIdx:pos.entryIdx, exitIdx:i, src:pos.src, a2:!!_a2Hit,
           entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'', exitDate:(rows[i]&&(rows[i].date||rows[i].t))||'' });
         pos=null;
       }
@@ -2667,8 +2703,14 @@ function _trendRenderInner(){
     else if(_btOn._hybPending){ stHyb={label:'🔀 레짐 하이브리드 신호 스캔 중…', color:'var(--text3)'}; }
     else { stHyb={label:'대기 · '+_hybRouteText(market,'banner')+' 신호 대기', color:'var(--text3)'}; }
     const stateHyb=`<div style="font-size:12px;font-weight:700;color:${stHyb.color};margin-bottom:9px;padding:7px 10px;background:var(--surface2);border-radius:8px">${stHyb.label}</div>`;
-    const noteHyb=`<div style="font-size:9px;color:var(--text3);margin-top:9px;border-top:1px solid var(--border);padding-top:6px">실험 지표 · 정식 판정과 무관 · 🔀 <b>레짐 라우팅 하이브리드</b> · ${_hybRouteText(market,'note')} · 청산=데드크로스 ∪ 역배 가짜반등 · 1포지션 · <b>추세는 하락장서 취약→deadcat 보완</b>(S1058) · <b style="color:${_trBarsCol}">[${_trBars}봉 기준]</b></div>`;
-    return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+engRow+stateHyb+grid+noteHyb+`</div>`;
+    // [S1073] 시즌2 이식 옵션 — 기본 OFF. 켜면 거래셋/청산이 바뀌므로 수치 직접 비교 금지(별도 A/B 필요).
+    const _bvCol=cfg.bullVol?'#7c3aed':'var(--text3)', _a2Col=cfg.atr2?'#0891b2':'var(--text3)';
+    const hybOpts=`<div style="margin-bottom:9px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">`
+      +`<span onclick="_sxVib(10);window._trendToggleBullVol&&_trendToggleBullVol()" title="시즌2 이식(S1041/S1073). 하락장×강세 + 거래량OSC≥73.31 & VR≥389.41 → 별도 진입(다른 소스가 진입 안 할 때만·KR 전용). 시즌2에선 held-out 통과했으나 이 카드 BT 편입 효과는 미측정." style="font-size:10px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid;cursor:pointer;${cfg.bullVol?'background:#7c3aed;color:#fff;border-color:#7c3aed':'background:var(--surface2);color:#7c3aed;border-color:#7c3aed66'}">🔊 bullVol 진입 ${cfg.bullVol?'ON':'OFF'}</span>`
+      +`<span onclick="_sxVib(10);window._trendToggleAtr2&&_trendToggleAtr2()" title="시즌2 이식(S1073). 청산 = max(진입가 −${(+cfg.atrInit>0?cfg.atrInit:2)}×ATR14, 최고가 −${(+cfg.atrTrail>0?cfg.atrTrail:3)}×ATR14) 도달 시. 기존 청산과 OR 합류. 시즌2는 장중 현재가 기준·카드 BT는 종가 기준이라 체결 강도가 다름." style="font-size:10px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid;cursor:pointer;${cfg.atr2?'background:#0891b2;color:#fff;border-color:#0891b2':'background:var(--surface2);color:#0891b2;border-color:#0891b266'}">🛡️ 이중 ATR 청산 ${cfg.atr2?'ON':'OFF'}</span>`
+      +`<span style="font-size:8.5px;color:var(--text3)">시즌2 이식 · 기본 OFF · 미측정</span></div>`;
+    const noteHyb=`<div style="font-size:9px;color:var(--text3);margin-top:9px;border-top:1px solid var(--border);padding-top:6px">실험 지표 · 정식 판정과 무관 · 🔀 <b>레짐 라우팅 하이브리드</b> · ${_hybRouteText(market,'note')} · 청산=데드크로스 ∪ 역배 가짜반등${cfg.atr2?' ∪ <b>이중ATR</b>':''} · 1포지션 · <b>추세는 하락장서 취약→deadcat 보완</b>(S1058)${cfg.bullVol?' · <b>bullVol 진입 ON</b>(S1073 이식·미측정)':''} · <b style="color:${_trBarsCol}">[${_trBars}봉 기준]</b></div>`;
+    return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+engRow+hybOpts+stateHyb+grid+noteHyb+`</div>`;
   }
   if(_engRecipe){
     let stRcp;
@@ -2752,6 +2794,8 @@ function _trendToggleEarlyMa5(){ const ctx=window._sxTrendCtx; if(!ctx) return; 
 function _trendToggleDisasterSl(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.disSl=!cfg.disSl; _trendSave(m,cfg); _trendRerender(); } // [S675] 🛡️ 넓은 ATR 재앙손절 토글
 function _trendToggleEarlySlope(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.earlySlope=!cfg.earlySlope; _trendSave(m,cfg); _trendRerender(); } // [S678] 📉 MA5 기울기 하향 조기청산 토글
 function _trendToggleEntrySlope(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.entrySlope=!cfg.entrySlope; _trendSave(m,cfg); _trendRerender(); } // [S687] 📈 기울기 조기진입 토글
+function _trendToggleBullVol(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.bullVol=!cfg.bullVol; _trendSave(m,cfg); _trendRerender(); } // [S1073] 🔊 bullVol 진입 토글(하이브리드·KR)
+function _trendToggleAtr2(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.atr2=!cfg.atr2; _trendSave(m,cfg); _trendRerender(); } // [S1073] 🛡️ 이중 ATR 청산 토글(하이브리드)
 function _trendToggleEntryRsi(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.entryRsi=!cfg.entryRsi; _trendSave(m,cfg); _trendRerender(); } // [S703] 📊 rsiGc 조기진입 OR 토글 (재현 부스트)
 function _trendToggleEntryConfirm(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.entryConfirm=!cfg.entryConfirm; _trendSave(m,cfg); _trendRerender(); } // [S687] ✓ 확인봉 토글
 function _trendCycleSlAtr(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); const seq=[3,2.5,2,1.5]; const cur=cfg.slAtr>0?cfg.slAtr:3; const idx=seq.indexOf(cur); cfg.slAtr=seq[(idx+1)%seq.length]; _trendSave(m,cfg); _trendRerender(); } // [S676] 손절폭 순환 3→2.5→2→1.5 (탭=좁히기 · 3은 데드크로스가 선점해 거의 무발화 → 좁혀야 엔진)
@@ -2872,7 +2916,7 @@ function _trendCycleLead(){ const ctx=window._sxTrendCtx; if(!ctx) return; const
 function _trendToggleBuyOpen(){ _trendBuyOpen=!_trendBuyOpen; _trendRerender(); }
 function _trendToggleSellOpen(){ _trendSellOpen=!_trendSellOpen; _trendRerender(); }
 function _trendReset(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; _trendSave(m,_trendDefaults(m)); _trendRerender(); _trendRedrawChart(); } // [S572] 리셋=기본 프리셋
-if(typeof window!=='undefined'){ window._trendApply=_trendApply; window._trendToggleAux=_trendToggleAux; window._trendToggleSell=_trendToggleSell; window._trendToggleReentry=_trendToggleReentry; window._trendToggleNextOpen=_trendToggleNextOpen; window._trendTogglePredict=_trendTogglePredict; window._trendCycleLead=_trendCycleLead; window._trendToggleEarlyMa5=_trendToggleEarlyMa5; window._trendToggleEarlySlope=_trendToggleEarlySlope; window._trendToggleEntrySlope=_trendToggleEntrySlope; window._trendToggleEntryConfirm=_trendToggleEntryConfirm; window._trendToggleEntryRsi=_trendToggleEntryRsi; window._trendToggleDisasterSl=_trendToggleDisasterSl; window._trendCycleSlAtr=_trendCycleSlAtr; window._trendBatchSetSource=_trendBatchSetSource; window._trendBatchSetMode=_trendBatchSetMode; window._trendBatchUI=_trendBatchUI; window._trendToggleBuyOpen=_trendToggleBuyOpen; window._trendToggleSellOpen=_trendToggleSellOpen; window._trendToggleXCross=_trendToggleXCross; window._trendReset=_trendReset; }
+if(typeof window!=='undefined'){ window._trendApply=_trendApply; window._trendToggleAux=_trendToggleAux; window._trendToggleSell=_trendToggleSell; window._trendToggleReentry=_trendToggleReentry; window._trendToggleNextOpen=_trendToggleNextOpen; window._trendTogglePredict=_trendTogglePredict; window._trendCycleLead=_trendCycleLead; window._trendToggleEarlyMa5=_trendToggleEarlyMa5; window._trendToggleEarlySlope=_trendToggleEarlySlope; window._trendToggleEntrySlope=_trendToggleEntrySlope; window._trendToggleBullVol=_trendToggleBullVol; window._trendToggleAtr2=_trendToggleAtr2; window._trendToggleEntryConfirm=_trendToggleEntryConfirm; window._trendToggleEntryRsi=_trendToggleEntryRsi; window._trendToggleDisasterSl=_trendToggleDisasterSl; window._trendCycleSlAtr=_trendCycleSlAtr; window._trendBatchSetSource=_trendBatchSetSource; window._trendBatchSetMode=_trendBatchSetMode; window._trendBatchUI=_trendBatchUI; window._trendToggleBuyOpen=_trendToggleBuyOpen; window._trendToggleSellOpen=_trendToggleSellOpen; window._trendToggleXCross=_trendToggleXCross; window._trendReset=_trendReset; }
 // ── [S550] 거래내역 모달 (캔들전이 검증 모달 패턴) ──
 function _trendCloseDetail(){ try{ var el=document.getElementById('sxTrendBTOverlay'); if(el&&el.parentNode) el.parentNode.removeChild(el); }catch(_){} }
 function _trendDetailClose(){ try{ history.back(); }catch(e){ _trendCloseDetail(); } }
@@ -4072,8 +4116,12 @@ function _buildMaSlopeCard(stock, indicators){
           + '<span style="font-size:11.5px;font-weight:800;color:var(--text2)">🔅 방향은 유지 — 단 '+_dc.nm+' 기울기가 <span style="color:'+_dcol+'">크게 둔화</span></span>'
           + '<div style="font-size:8.5px;color:'+T3+';margin-top:3px;line-height:1.5">'
           +   (_dc.r.cur>=0?'+':'')+_dc.r.cur.toFixed(2)+'% → '+(_dc.r.pred>=0?'+':'')+_dc.r.pred.toFixed(2)+'% (크기 '+Math.round((1-_dc.rt)*100)+'% 축소). '
-          +   '부호는 그대로지만 "이어진다"고 보기 어려운 구간 — 방향이 아니라 <b>힘</b>이 빠지는 모양. '
-          +   '⚠ 서술 구분일 뿐 별도로 측정된 신호가 아님(문턱 0.35 = 방향유지 표본의 12%).</div></div>';
+          +   '〔측정 S1071·n4330〕 이 구간 뒤엔 실제로 기울기가 둔화했고(실현 감쇠비 중앙 <b>0.44~0.50</b> vs 비감쇠 1.03~1.09) '
+          +   '부호 <b>전환율이 26%</b>로 비감쇠(7~12%)의 2~4배. '
+          +   '<b>〔분리 S1072·확인표본 n4025〕</b> 이 구간의 정체는 "힘이 빠지는 국면"이 아니라 <b>이웃 장면들의 부호가 갈리는 것</b>이었음 — 전환 예측력은 일치도가 우위(AUC 0.713/0.749 vs 크기축 0.677/0.658·A/B 부호 일치)이고 <b>MA60은 일치도를 통제하면 크기축이 사라짐</b>(독립기여 1.1%p). '
+          +   '분기는 아직 크기 기준 · 교체는 OOS 재판정 후. '
+          +   '수익 우위도 없음: 상승 감쇠는 오히려 이후 수익이 <b>더 높았음</b>(MA60 +4.98%p·p=0.024). '
+          +   '⚠ 전환이 잦은 자리라는 표시일 뿐 매매 신호 아님.</div></div>';
       } else {
         turnHtml = '<div style="margin:8px 0;padding:6px 9px;border-radius:8px;background:var(--bg2)">'
           + '<span style="font-size:11px;font-weight:700;color:var(--text2)">➡️ 방향 유지 — 현재 기울기가 이어질 것으로 보임</span></div>';
@@ -9661,7 +9709,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1070';
+  window.SX_BUILD='S1073';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
