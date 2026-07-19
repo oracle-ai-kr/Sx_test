@@ -11,7 +11,20 @@
     "coin": "snap_coin_union_vin_20230415.json"
   },
   "updated": "2026-07-20",
-  "note_vintage": "[S1076] 시간 홀드아웃 창. 🕰 빈티지 스냅샷으로 생성 → snap_{mkt}_vin.json 으로 커밋 → 여기 등록. 앱에서 🕰 빈티지 창 ON → 📂 로드하면 전 측정이 이 창 기준. 미등록이면 라이브로 폴백하지 않고 에러(창 오염 차단). 창은 먼저 선언하고 잰다(PREREG_S1076).",
+  "note_vintage": "[S1076·S1079] 시간 홀드아웃. vintageSets에 창 세트를 선언하고 앱의 🕰 버튼이 OFF→창A→창B→OFF로 순환한다(repo 재커밋 불필요). vintage는 구버전 폴백. 미등록이면 라이브로 폴백하지 않고 에러(창 오염 차단). 창 선언·판정규칙=PREREG_S1076 §6.",
   "note": "고정 파일명 규약 — vintage 갱신 = 같은 이름으로 덮어쓰기 커밋(manifest 수정 불필요). 기준일은 파일 내 baseDate·로드 배지·빔서치 JSON snap.date로 추적. 과거 vintage는 git 히스토리에서 복원.",
-  "vintage_set": "창A(하락) — KR 2023-08-09 / US 2023-11-22 / COIN 2021-08-16→2023-04-15. 창B로 바꾸려면 vintage 3줄을 snap_kr_vin_20220209 / snap_us_vin_20220121 / snap_coin_union_vin_20210816 으로 교체."
+  "vintageSets": {
+    "A": {
+      "label": "창A·하락",
+      "kr": "snap_kr_vin_20230809.json",
+      "us": "snap_us_vin_20231122.json",
+      "coin": "snap_coin_union_vin_20230415.json"
+    },
+    "B": {
+      "label": "창B·상승",
+      "kr": "snap_kr_vin_20220209.json",
+      "us": "snap_us_vin_20220121.json",
+      "coin": "snap_coin_union_vin_20210816.json"
+    }
+  }
 }
