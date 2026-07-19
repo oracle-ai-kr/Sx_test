@@ -7251,7 +7251,9 @@ async function _seedRun(){
     if(SXCandleBT.snapHas&&!SXCandleBT.snapHas(mk)){ el.innerHTML='<div style="padding:10px;font-size:11px;font-weight:800;color:#059669">📂 '+String(mk).toUpperCase()+' 스냅샷 자동 로드…</div>'; var _sr=await _snapLoad(mk); if(!_sr.ok){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">📂 '+_sr.reason+'</div>'; return; } if(typeof _snapBadge==='function')_snapBadge(); }
     _prog('발굴풀',0,0,'시작');
     try{ res=await _persistBracket(mk,['mega'],function(i,t,n){_prog('발굴풀',i,t,n);}); }catch(eM){ res={ok:false,reason:String(eM&&eM.message||eM)}; }
-    poolLbl='발굴풀(스냅샷·in-sample)';
+    // [S1080] ★라벨 교정 — S1039 당시엔 스냅=fit 창뿐이라 'in-sample'이 맞았으나,
+    //   빈티지 창(S1076)에선 같은 스냅이 **홀드아웃**이다. 라벨이 거짓말하면 기록이 오염된다.
+    poolLbl=_SNAP_VIN?('발굴풀(스냅샷·🕰창'+_SNAP_SET+'·held-out)'):'발굴풀(스냅샷·in-sample)';
   } else {
     _prog('대표+관심',0,0,'시작');
     try{ res=await _persistBracket(mk,['rep','watch'],function(i,t,n){_prog('대표+관심',i,t,n);}); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
@@ -7332,7 +7334,9 @@ async function _seed2Run(){
     if(SXCandleBT.snapHas&&!SXCandleBT.snapHas(mk)){ el.innerHTML='<div style="padding:10px;font-size:11px;font-weight:800;color:#059669">📂 '+String(mk).toUpperCase()+' 스냅샷 자동 로드…</div>'; var _sr=await _snapLoad(mk); if(!_sr.ok){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">📂 '+_sr.reason+'</div>'; return; } if(typeof _snapBadge==='function')_snapBadge(); }
     _prog('발굴풀',0,0,'시작');
     try{ res=await _persistBracket(mk,['mega'],function(i,t,n){_prog('발굴풀',i,t,n);},_opts); }catch(eM){ res={ok:false,reason:String(eM&&eM.message||eM)}; }
-    poolLbl='발굴풀(스냅샷·in-sample)';
+    // [S1080] ★라벨 교정 — S1039 당시엔 스냅=fit 창뿐이라 'in-sample'이 맞았으나,
+    //   빈티지 창(S1076)에선 같은 스냅이 **홀드아웃**이다. 라벨이 거짓말하면 기록이 오염된다.
+    poolLbl=_SNAP_VIN?('발굴풀(스냅샷·🕰창'+_SNAP_SET+'·held-out)'):'발굴풀(스냅샷·in-sample)';
   } else {
     _prog('대표+관심',0,0,'시작');
     try{ res=await _persistBracket(mk,['rep','watch'],function(i,t,n){_prog('대표+관심',i,t,n);},_opts); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
@@ -9813,7 +9817,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1079';
+  window.SX_BUILD='S1080';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
