@@ -6063,14 +6063,22 @@ async function _snapCreate(mode, vintage){
 //   ★핵심 규율: 빈티지를 요청했는데 미등록이면 **에러로 멈춘다**. latest로 조용히 폴백하면
 //     "과거 창을 요청했는데 최근 데이터가 반환"되는 바로 그 함정이 로드 층에서 재현됨.
 var _SNAP_VIN=false;
-function _snapVinOn(){ return !!_SNAP_VIN; }
+// [S1079] 창 세트 A/B — manifest.vintageSets. 버튼 1개로 OFF→A→B→OFF 순환.
+//   ★두 창을 **다 돌리는 게 판정 규칙**(PREREG §6-4: 창A 단독 통과는 미채택)인데
+//     전환이 repo 왕복이면 마찰 때문에 한쪽만 보게 된다. 마찰 제거가 규율을 돕는 쪽.
+//   ★대신 어느 창인지 배지·버튼·_snapInfo에 항상 박아 결과 오라벨을 막는다.
+var _SNAP_SET='A';
+function _snapVinOn(){ return _SNAP_VIN?_SNAP_SET:false; }
 async function _snapLoad(mk){
   var mani=null;
   try{ var r=await fetch('snap_manifest.json?t='+Date.now(),{cache:'no-store'}); if(r&&r.ok) mani=await r.json(); }catch(e){}
+  var _vf='';
   if(_SNAP_VIN){   // [S1076] 빈티지 슬롯 — 폴백 금지
-    if(!mani||!mani.vintage||!mani.vintage[mk]) return { ok:false, reason:'🕰 빈티지 창 ON인데 manifest.vintage.'+mk+' 미등록 — 🕰 빈티지 스냅샷 생성 → snap_'+mk+'_vin.json 커밋 → manifest에 vintage 슬롯 추가. (라이브로 조용히 폴백하지 않음)' };
+    var _set=(mani&&mani.vintageSets&&mani.vintageSets[_SNAP_SET])||null;   // [S1079]
+    _vf=(_set&&_set[mk])||((mani&&mani.vintage&&mani.vintage[mk])||'');      // 구버전 폴백=vintage
+    if(!_vf) return { ok:false, reason:'🕰 창'+_SNAP_SET+' ON인데 manifest.vintageSets.'+_SNAP_SET+'.'+mk+' 미등록 — 해당 창 스냅을 커밋하고 manifest에 등록해줘. (라이브로 조용히 폴백하지 않음)' };
   } else if(!mani||!mani.latest||!mani.latest[mk]) return { ok:false, reason:'snap_manifest.json 없음 또는 latest.'+mk+' 미등록 — 📦 생성 → repo 커밋 → manifest 갱신 순서로' };
-  var file=_SNAP_VIN?mani.vintage[mk]:mani.latest[mk], snap=null;   // [S1076]
+  var file=_SNAP_VIN?_vf:mani.latest[mk], snap=null;   // [S1076]·[S1079]
   try{ var r2=await fetch(file); if(r2&&r2.ok) snap=await r2.json(); }catch(e2){}
   if(!snap||snap.kind!=='sx_candle_snapshot'||!snap.stocks) return { ok:false, reason:file+' 로드 실패(미커밋? 형식?)' };
   if(snap.mkt!==mk) return { ok:false, reason:file+' 시장 불일치('+snap.mkt+')' };
@@ -6079,18 +6087,22 @@ async function _snapLoad(mk){
   if(!n) return { ok:false, reason:file+' 수록 종목 0' };
   // [S1078] 스냅이 합집합이면 측정 풀도 합집합으로 교체(브래킷 28곳 자동 추종) · 아니면 원본 복원
   var _pn=_poolUnionSet(snap.poolKind==='union', mk);
-  return { ok:true, n:n, date:snap.baseDate||'', file:file, vintage:snap.vintage||'', poolKind:snap.poolKind||'disc', poolN:_pn };
+  return { ok:true, n:n, date:snap.baseDate||'', file:file, vintage:snap.vintage||'', poolKind:snap.poolKind||'disc', poolN:_pn, set:(_SNAP_VIN?_SNAP_SET:'') };   // [S1079]
 }
 // [S1076] 빈티지 창 토글 — 켜면 이미 주입된 프리로드를 반드시 퍼지(창 혼합 차단) 후 재로드 요구
 async function _snapVinToggle(){
   var el=document.getElementById('btDiscrimResult');
-  _SNAP_VIN=!_SNAP_VIN;
+  // [S1079] OFF → 창A → 창B → OFF 순환
+  if(!_SNAP_VIN){ _SNAP_VIN=true; _SNAP_SET='A'; }
+  else if(_SNAP_SET==='A'){ _SNAP_SET='B'; }
+  else { _SNAP_VIN=false; _SNAP_SET='A'; }
   try{ if(window.SXCandleBT&&SXCandleBT.snapSet) SXCandleBT.snapSet(false); }catch(_){}   // 창 전환 = 기존 주입 전량 퍼지
   try{ if(_POOL_ORIG) Object.keys(_POOL_ORIG).slice().forEach(function(m){ _poolUnionSet(false,m); }); }catch(_){}   // [S1078] 풀도 원본 복원
   _snapBadge();
   if(el){ el.style.display='block';
+    var _sn=(_SNAP_SET==='A')?'창A · 하락(주 홀드아웃)':'창B · 상승(대조군)';
     el.innerHTML=_SNAP_VIN
-      ? '<div style="border:1px solid #7c3aed66;border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">🕰 <b>빈티지 창 ON</b> — 이후 📂 스냅샷 로드는 manifest.<b>vintage</b>[시장]을 읽음.<br><span style="font-size:9px;color:var(--text3)">스냅샷 모드는 꺼졌어(창 혼합 차단) — 📂를 다시 눌러 홀드아웃 창을 로드해줘. 미등록이면 라이브로 폴백하지 않고 에러로 멈춘다.</span></div>'
+      ? '<div style="border:1px solid #7c3aed66;border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">🕰 <b>'+_sn+' ON</b> — 이후 📂 로드는 manifest.vintageSets.<b>'+_SNAP_SET+'</b>[시장]을 읽음.<br><span style="font-size:9px;color:var(--text3)">프리로드 퍼지 완료 — 📂를 다시 눌러 로드해줘. 한 번 더 누르면 '+(_SNAP_SET==='A'?'창B':'OFF')+'.<br>⚠️ 판정 규칙: 창A 단독 통과는 미채택 — <b>두 창 다 돌려야</b> 함(PREREG §6-4).</span></div>'
       : '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">🕰 빈티지 창 <b>OFF</b> — manifest.latest(현행 창)로 복귀. 프리로드 퍼지 완료.</div>';
   }
 }
@@ -6121,10 +6133,10 @@ function _snapBadge(){   // [S1002] ON/OFF를 버튼 자체에 표기 — 기존
       var bp=Object.keys(bm).map(function(m){ return m.toUpperCase()+' '+((bm[m]&&bm[m].date)||'?'); });
       btn.style.background=_SNAP_VIN?'#6d28d9':'#0e7490'; btn.style.color='#fff'; btn.style.borderStyle='solid';   // [S1076]
       var _un=(typeof _POOL_ORIG!=='undefined'&&_POOL_ORIG&&Object.keys(_POOL_ORIG).length)?' · 🔗합집합':'';   // [S1078]
-      btn.innerHTML=(_SNAP_VIN?'🕰 빈티지 ON · ':'📦 스냅샷 ON · ')+(bp.join(' · ')||'냉동')+_un;   // [S1076] 어느 창을 보고 있는지 항상 노출
+      btn.innerHTML=(_SNAP_VIN?('🕰 창'+_SNAP_SET+' ON · '):'📦 스냅샷 ON · ')+(bp.join(' · ')||'냉동')+_un;   // [S1079]   // [S1076] 어느 창을 보고 있는지 항상 노출
     } else {
       btn.style.background='transparent'; btn.style.color=_SNAP_VIN?'#6d28d9':'#0e7490'; btn.style.borderStyle='dashed';
-      btn.innerHTML=_SNAP_VIN?'📂 OFF · 🕰빈티지 대기':'📂 스냅샷 OFF · 🔴라이브';   // [S1076]
+      btn.innerHTML=_SNAP_VIN?('📂 OFF · 🕰창'+_SNAP_SET+' 대기'):'📂 스냅샷 OFF · 🔴라이브';   // [S1076]·[S1079]
     }
   }
   var e=document.getElementById('snapModeBadge');
@@ -6132,6 +6144,12 @@ function _snapBadge(){   // [S1002] ON/OFF를 버튼 자체에 표기 — 기존
     if(!on){ e.style.display='none'; e.innerHTML=''; }
     else{ var meta=(SXCandleBT.snapMeta&&SXCandleBT.snapMeta())||{}; var parts=Object.keys(meta).map(function(m){ return m.toUpperCase()+' '+((meta[m]&&meta[m].date)||'?'); }); e.style.display='inline-flex'; e.innerHTML='📦 '+(parts.join(' · ')||'스냅샷'); }
   }
+  // [S1079] 🕰 버튼 라벨도 현재 창 반영 — 모바일에서 배지가 접혀도 어느 창인지 보이도록
+  var vb=document.getElementById('snapVinBtn');
+  if(vb){ vb.innerHTML=_SNAP_VIN?('🕰 창'+_SNAP_SET):'🕰 빈티지 창';
+          vb.style.background=_SNAP_VIN?'#6d28d9':'transparent';
+          vb.style.color=_SNAP_VIN?'#fff':'#6d28d9';
+          vb.style.borderStyle=_SNAP_VIN?'solid':'dashed'; }
   if(typeof _sxModeSyncAll==="function") _sxModeSyncAll();   // [S869]→[S1002] 배지 부재로 사장됐던 모드칩 동기화 호출 복구
 }
 function _snapInfo(){   // [S847] 빔서치 JSON에 스냅샷 출처 기록용
@@ -6139,7 +6157,7 @@ function _snapInfo(){   // [S847] 빔서치 JSON에 스냅샷 출처 기록용
     if(!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode())) return null;
     var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
     var m=(SXCandleBT.snapMeta&&SXCandleBT.snapMeta()[mk])||null;
-    return m?{ date:m.date||'', file:m.file||'', vintage:(m.vintage||'') }:null;   // [S1076] 결과 JSON이 어느 창인지 자기서술
+    return m?{ date:m.date||'', file:m.file||'', vintage:(m.vintage||''), set:(_SNAP_VIN?_SNAP_SET:''), poolKind:(m.poolKind||'disc') }:null;   // [S1076]·[S1079] 결과 JSON이 어느 창인지 자기서술
   }catch(_){ return null; }
 }
 if(typeof window!=='undefined'){ window._snapCreate=_snapCreate; window._snapLoad=_snapLoad; window._snapToggle=_snapToggle; window._snapBadge=_snapBadge; window._snapInfo=_snapInfo; window._snapVinToggle=_snapVinToggle; window._snapVinOn=_snapVinOn; }   // [S1076]
@@ -9795,7 +9813,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1078';
+  window.SX_BUILD='S1079';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
