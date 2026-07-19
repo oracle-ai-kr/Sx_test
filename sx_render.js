@@ -5973,8 +5973,40 @@ var _OOS_POOL = {
 // [S1076] vintage 인자 추가 — 스냅 창을 '최근 600봉 고정'에서 임의 시대로. 형식 'YYYY-MM-DD' | 미전달=현행.
 //   ★생존 편향 경고: 오늘의 발굴풀로 과거를 보면 "살아남은 것들의 과거". 홀드아웃으로 유용하되 완전 중립 아님.
 //   ★과적합 표면: 창을 고를 수 있게 된 순간 표면이 넓어짐 — 창은 먼저 선언하고 잰다(PREREG_S1076).
+// ════════ [S1078] 합집합 풀 — 발굴풀 + OOS풀 (과거 창 커버리지 확보) ════════
+//   배경(실측): 코인 발굴풀 60종 중 33종이 2024년 이후 상장 → 과거 창에서 21/17종만 생존(문턱 25 미달).
+//     봉수를 600→250으로 줄여도 +4/+2종뿐(없는 코인은 안 생김) · 4시간봉은 MA60/120/200 의미가 바뀌어 캐논 홀드아웃이 아니게 됨.
+//     원인은 데이터가 아니라 **풀 구성**이었다. OOS풀 149종은 옛 코인 비중이 높아 40/24종 → 합집합 61/41종(중복 0).
+//   ★_DISCOVERY_POOL[mk] 참조가 측정 브래킷 28곳 → 개별 수정 대신 **풀 자체를 교체**해 전부 자동 추종시킨다.
+//   ★반드시 복원: 스냅 OFF·빈티지 OFF·비합집합 스냅 로드 시 원본 복귀(라이브 측정 오염 차단).
+var _POOL_ORIG=null;
+function _poolIsUnion(mk){ return !!(_POOL_ORIG && _POOL_ORIG[mk]); }
+function _poolUnionList(mk){   // 발굴 + OOS, code 기준 dedupe
+  var base=(_POOL_ORIG&&_POOL_ORIG[mk])?_POOL_ORIG[mk]:((typeof _DISCOVERY_POOL!=='undefined'&&_DISCOVERY_POOL[mk])||[]);
+  var oos=(typeof _OOS_POOL!=='undefined'&&_OOS_POOL[mk])?_OOS_POOL[mk]:[];
+  var seen={}, out=[];
+  base.concat(oos).forEach(function(x){
+    var c=Array.isArray(x)?x[0]:String(x);
+    if(seen[c]) return; seen[c]=1; out.push(x);
+  });
+  return out;
+}
+function _poolUnionSet(on, mk){
+  if(typeof _DISCOVERY_POOL==='undefined') return 0;
+  if(on){
+    if(!_POOL_ORIG) _POOL_ORIG={};
+    if(!_POOL_ORIG[mk]) _POOL_ORIG[mk]=(_DISCOVERY_POOL[mk]||[]).slice();
+    _DISCOVERY_POOL[mk]=_poolUnionList(mk);
+    return _DISCOVERY_POOL[mk].length;
+  }
+  if(_POOL_ORIG && _POOL_ORIG[mk]){ _DISCOVERY_POOL[mk]=_POOL_ORIG[mk]; delete _POOL_ORIG[mk]; }
+  return (_DISCOVERY_POOL[mk]||[]).length;
+}
+if(typeof window!=='undefined'){ window._poolUnionSet=_poolUnionSet; window._poolIsUnion=_poolIsUnion; }
+
 async function _snapCreate(mode, vintage){
   var _oos=(mode==='oos');   // [S1048] OOS 스냅2 모드
+  var _uni=(mode==='union');   // [S1078] 합집합 모드(발굴+OOS)
   var _vin=(typeof vintage==='string')?vintage.trim():'';   // [S1076]
   var el=document.getElementById('btDiscrimResult'); if(el) el.style.display='block';
   if(_vin && !/^\d{4}-\d{2}-\d{2}$/.test(_vin)){   // [S1076] 오타가 조용히 라이브 스냅이 되는 사고 차단 — 하드 검증
@@ -5984,7 +6016,10 @@ async function _snapCreate(mode, vintage){
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)){ if(el) el.innerHTML='캔들 fetch 미연결'; return; }
   if(SXCandleBT.snapMode&&SXCandleBT.snapMode()){ if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#d97706;font-weight:700">📦 생성은 라이브 데이터로 해야 함 — 먼저 📂 스냅샷 모드를 꺼줘</div>'; return; }
-  var _srcPool=_oos?(typeof _OOS_POOL!=='undefined'?(_OOS_POOL[mk]||[]):[]):(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]);   // [S1048]
+  var _srcPool=_uni?_poolUnionList(mk)   // [S1078]
+                  :(_oos?(typeof _OOS_POOL!=='undefined'?(_OOS_POOL[mk]||[]):[]):(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]));   // [S1048]
+  // [S1078] 하위집단 라벨 — PREREG 수정안이 '발굴/OOS 쪼개 보고'를 요구하므로 스냅에 출처를 박아둔다
+  var _oosSet={}; if(_uni){ ((typeof _OOS_POOL!=='undefined'&&_OOS_POOL[mk])||[]).forEach(function(x){ _oosSet[Array.isArray(x)?x[0]:String(x)]=1; }); }
   var pool=_srcPool.map(function(x){ return Array.isArray(x)?{code:x[0],name:x[1]}:{code:String(x),name:String(x)}; });
   if(!pool.length){ if(el) el.innerHTML=(_oos?'OOS 풀':'발굴 풀')+' 비어있음'; return; }
   var _tgt=(typeof _btTargetBars==='function')?_btTargetBars(mk,'day'):600, _floor=Math.floor(_tgt*0.95);
@@ -5994,14 +6029,14 @@ async function _snapCreate(mode, vintage){
     if(el) el.innerHTML='<div style="text-align:center;padding:14px;color:#0e7490;font-size:12px;font-weight:800">📦 스냅샷 생성 '+(i+1)+'/'+pool.length+'<div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+(s.name||s.code)+'</div></div>';
     var rows=null; try{ rows=await SXCandleBT.fetchRows600(mk,'day',s.code,_vin||undefined); }catch(e){ rows=null; }   // [S1076]
     if(!Array.isArray(rows)||rows.length<_floor){ excluded.push({code:s.code,name:s.name,bars:(rows?rows.length:0)}); await _trendBatchSleep(6); continue; }
-    stocks[s.code]={ name:s.name, rows: rows.map(function(r){ return [r.date||'', +r.open||0, +r.high||0, +r.low||0, +r.close||0, +r.volume||0]; }) };
+    stocks[s.code]={ name:s.name, src:(_uni?(_oosSet[s.code]?'oos':'disc'):(_oos?'oos':'disc')), rows: rows.map(function(r){ return [r.date||'', +r.open||0, +r.high||0, +r.low||0, +r.close||0, +r.volume||0]; }) };   // [S1078] src=하위집단
     var ld=(rows[rows.length-1]&&rows[rows.length-1].date)?String(rows[rows.length-1].date):''; if(ld>maxDate) maxDate=ld;
     n++; await _trendBatchSleep(10);
   }
   if(n<3){ if(el) el.innerHTML='유효 종목 3개 미만 — 네트워크 확인'; return; }
   var dt=(maxDate||new Date().toISOString().slice(0,10)).replace(/[^0-9]/g,'').slice(0,8);
-  var fname='snap_'+mk+(_oos?'_oos':'')+(_vin?'_vin':'')+'_'+dt+'.json';   // [S1048] OOS는 _oos 접미 · [S1076] 빈티지는 _vin 접미
-  var snap={ kind:'sx_candle_snapshot', ver:1, mkt:mk, tf:'day', baseDate:maxDate, vintage:_vin, created:new Date().toISOString(), build:(window.SX_BUILD||''), poolName:(_oos?'OOS(홀드아웃)':'발굴풀(대형)')+(_vin?' · 빈티지 '+_vin:''), n:n, excluded:excluded, fields:['date','open','high','low','close','volume'], stocks:stocks };   // [S1076] vintage 자기서술
+  var fname='snap_'+mk+(_oos?'_oos':'')+(_uni?'_union':'')+(_vin?'_vin':'')+'_'+dt+'.json';   // [S1048] OOS는 _oos · [S1076] 빈티지 _vin · [S1078] 합집합 _union
+  var snap={ kind:'sx_candle_snapshot', ver:1, mkt:mk, tf:'day', baseDate:maxDate, vintage:_vin, created:new Date().toISOString(), build:(window.SX_BUILD||''), poolKind:(_uni?'union':(_oos?'oos':'disc')), poolName:(_uni?'발굴+OOS 합집합':(_oos?'OOS(홀드아웃)':'발굴풀(대형)'))+(_vin?' · 빈티지 '+_vin:''), n:n, excluded:excluded, fields:['date','open','high','low','close','volume'], stocks:stocks };   // [S1076] vintage 자기서술
   try{
     var blob=new Blob([JSON.stringify(snap)],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=fname; document.body.appendChild(a); a.click(); setTimeout(function(){try{document.body.removeChild(a);URL.revokeObjectURL(url);}catch(_){}},200);
   }catch(e){ if(el) el.innerHTML='다운로드 실패: '+(e&&e.message||e); return; }
@@ -6040,15 +6075,18 @@ async function _snapLoad(mk){
   if(!snap||snap.kind!=='sx_candle_snapshot'||!snap.stocks) return { ok:false, reason:file+' 로드 실패(미커밋? 형식?)' };
   if(snap.mkt!==mk) return { ok:false, reason:file+' 시장 불일치('+snap.mkt+')' };
   if(_SNAP_VIN && !snap.vintage) return { ok:false, reason:file+' 에 vintage 필드 없음 — 빈티지 스냅이 아님(라이브 스냅을 vintage 슬롯에 잘못 등록?)' };   // [S1076] 자기서술 대조
-  var n=SXCandleBT.snapPreload(mk, snap.tf||'day', snap.stocks, { date:snap.baseDate||'', file:file, vintage:snap.vintage||'' });
+  var n=SXCandleBT.snapPreload(mk, snap.tf||'day', snap.stocks, { date:snap.baseDate||'', file:file, vintage:snap.vintage||'', poolKind:snap.poolKind||'disc' });
   if(!n) return { ok:false, reason:file+' 수록 종목 0' };
-  return { ok:true, n:n, date:snap.baseDate||'', file:file, vintage:snap.vintage||'' };
+  // [S1078] 스냅이 합집합이면 측정 풀도 합집합으로 교체(브래킷 28곳 자동 추종) · 아니면 원본 복원
+  var _pn=_poolUnionSet(snap.poolKind==='union', mk);
+  return { ok:true, n:n, date:snap.baseDate||'', file:file, vintage:snap.vintage||'', poolKind:snap.poolKind||'disc', poolN:_pn };
 }
 // [S1076] 빈티지 창 토글 — 켜면 이미 주입된 프리로드를 반드시 퍼지(창 혼합 차단) 후 재로드 요구
 async function _snapVinToggle(){
   var el=document.getElementById('btDiscrimResult');
   _SNAP_VIN=!_SNAP_VIN;
   try{ if(window.SXCandleBT&&SXCandleBT.snapSet) SXCandleBT.snapSet(false); }catch(_){}   // 창 전환 = 기존 주입 전량 퍼지
+  try{ if(_POOL_ORIG) Object.keys(_POOL_ORIG).slice().forEach(function(m){ _poolUnionSet(false,m); }); }catch(_){}   // [S1078] 풀도 원본 복원
   _snapBadge();
   if(el){ el.style.display='block';
     el.innerHTML=_SNAP_VIN
@@ -6061,7 +6099,9 @@ async function _snapToggle(){
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
   if(!(window.SXCandleBT&&SXCandleBT.snapSet)){ return; }
   if(SXCandleBT.snapMode()){
-    SXCandleBT.snapSet(false); _snapBadge();
+    SXCandleBT.snapSet(false);
+    try{ if(_POOL_ORIG) Object.keys(_POOL_ORIG).slice().forEach(function(m){ _poolUnionSet(false,m); }); }catch(_){}   // [S1078] 스냅 OFF = 풀 원본 복원
+    _snapBadge();
     if(el){ el.style.display='block'; el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:10px;color:var(--text3)">📂 스냅샷 모드 OFF — 프리로드 퍼지 완료, 이후 측정은 라이브 기준</div>'; }
     return;
   }
@@ -6080,7 +6120,8 @@ function _snapBadge(){   // [S1002] ON/OFF를 버튼 자체에 표기 — 기존
       var bm=(SXCandleBT.snapMeta&&SXCandleBT.snapMeta())||{};
       var bp=Object.keys(bm).map(function(m){ return m.toUpperCase()+' '+((bm[m]&&bm[m].date)||'?'); });
       btn.style.background=_SNAP_VIN?'#6d28d9':'#0e7490'; btn.style.color='#fff'; btn.style.borderStyle='solid';   // [S1076]
-      btn.innerHTML=(_SNAP_VIN?'🕰 빈티지 ON · ':'📦 스냅샷 ON · ')+(bp.join(' · ')||'냉동');   // [S1076] 어느 창을 보고 있는지 항상 노출
+      var _un=(typeof _POOL_ORIG!=='undefined'&&_POOL_ORIG&&Object.keys(_POOL_ORIG).length)?' · 🔗합집합':'';   // [S1078]
+      btn.innerHTML=(_SNAP_VIN?'🕰 빈티지 ON · ':'📦 스냅샷 ON · ')+(bp.join(' · ')||'냉동')+_un;   // [S1076] 어느 창을 보고 있는지 항상 노출
     } else {
       btn.style.background='transparent'; btn.style.color=_SNAP_VIN?'#6d28d9':'#0e7490'; btn.style.borderStyle='dashed';
       btn.innerHTML=_SNAP_VIN?'📂 OFF · 🕰빈티지 대기':'📂 스냅샷 OFF · 🔴라이브';   // [S1076]
@@ -9754,7 +9795,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1077';
+  window.SX_BUILD='S1078';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
