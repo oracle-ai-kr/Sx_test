@@ -52,7 +52,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=420"></script>
+<script src="sx_render.js?v=421"></script>
 <script src="sx_recipe_signal.js?v=49"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -2057,7 +2057,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
               <button onclick="_sxVib(12);window._snapCreate&&_snapCreate()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0e749014;color:#0e7490;border:1px solid #0e749066">📦 스냅샷 생성</button>
               <button onclick="_sxVib(12);window._snapCreate&&_snapCreate('oos')" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#f59e0b1a;color:#b45309;border:1px solid #f59e0b66">📦 OOS 스냅샷</button><!-- [S1048] 홀드아웃 풀(_OOS_POOL) 냉동 → snap_{mk}_oos.json -->
               <button onclick="_sxVib(12);(function(){var v=prompt('🕰 빈티지 기준일 (YYYY-MM-DD)\n이 날짜까지의 봉만 사용 — 시간 홀드아웃용.\n※창은 먼저 선언하고 잰다(PREREG).','');if(v&&v.trim()&&window._snapCreate)_snapCreate('',v.trim());})()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed1a;color:#6d28d9;border:1px solid #7c3aed66">🕰 빈티지 스냅샷</button><!-- [S1076] 발굴풀을 임의 과거 창으로 냉동 → snap_{mk}_vin_{기준일}.json · 시간 홀드아웃 -->
-              <button onclick="_sxVib(12);window._snapVinToggle&&_snapVinToggle()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:transparent;color:#6d28d9;border:1px dashed #7c3aed">🕰 빈티지 창</button><!-- [S1076] ON이면 _snapLoad가 manifest.vintage[mk] 로드 — 측정 브래킷 25곳 자동 추종 · 미등록 시 폴백 없이 에러 -->
+              <button id="snapVinBtn" onclick="_sxVib(12);window._snapVinToggle&&_snapVinToggle()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:transparent;color:#6d28d9;border:1px dashed #7c3aed">🕰 빈티지 창</button><!-- [S1076] ON이면 _snapLoad가 manifest.vintage[mk] 로드 — 측정 브래킷 25곳 자동 추종 · 미등록 시 폴백 없이 에러 -->
               <button onclick="_sxVib(12);(function(){var v=prompt('🔗 합집합(발굴+OOS) 빈티지 스냅샷\n기준일 YYYY-MM-DD — 과거 창 커버리지 확보용.','');if(v&&v.trim()&&window._snapCreate)_snapCreate('union',v.trim());})()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0d948814;color:#0f766e;border:1px solid #0d948866">🔗 합집합 빈티지</button><!-- [S1078] 발굴+OOS 합집합 → snap_{mk}_union_vin_{일}.json · 로드 시 측정 풀도 자동 합집합 -->
               <button id="snapModeBtn" onclick="_sxVib(12);window._snapToggle&&_snapToggle()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:transparent;color:#0e7490;border:1px dashed #0e7490">📂 스냅샷 OFF · 🔴라이브</button><!-- [S1002] 상태 표기 — _snapBadge가 갱신 · 새로고침=항상 OFF 시작이라 기본 마크업=OFF -->
             </div>
