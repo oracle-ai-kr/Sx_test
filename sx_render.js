@@ -5970,9 +5970,17 @@ var _OOS_POOL = {
   us: [["MMM","3M"],["AOS","A. O. Smith"],["ABT","Abbott Laboratories"],["ABBV","AbbVie"],["ACN","Accenture"],["AES","AES Corporation"],["AFL","Aflac"],["A","Agilent Technologies"],["APD","Air Products"],["AKAM","Akamai Technologies"],["ALB","Albemarle Corporation"],["ARE","Alexandria Real Estate Equities"],["ALGN","Align Technology"],["ALLE","Allegion"],["LNT","Alliant Energy"],["ALL","Allstate"],["GOOG","Alphabet Inc. (Class C)"],["MO","Altria"],["AMCR","Amcor"],["AEE","Ameren"],["AXP","American Express"],["AIG","American International Group"],["AMT","American Tower"],["AWK","American Water Works"],["AMP","Ameriprise Financial"],["AME","Ametek"],["APH","Amphenol"],["AON","Aon plc"],["APA","APA Corporation"],["APO","Apollo Global Management"],["APTV","Aptiv"],["ACGL","Arch Capital Group"],["ADM","Archer Daniels Midland"],["ARES","Ares Management"],["ANET","Arista Networks"],["AJG","Arthur J. Gallagher & Co."],["AIZ","Assurant"],["T","AT&T"],["ATO","Atmos Energy"],["AZO","AutoZone"],["AVB","AvalonBay Communities"],["AVY","Avery Dennison"],["BALL","Ball Corporation"],["BAC","Bank of America"],["BAX","Baxter International"],["BDX","Becton Dickinson"],["BRK.B","Berkshire Hathaway"],["BBY","Best Buy"],["TECH","Bio-Techne"],["BIIB","Biogen"],["BLK","BlackRock"],["BX","Blackstone Inc."],["XYZ","Block, Inc."],["BNY","BNY Mellon"],["BA","Boeing"],["BSX","Boston Scientific"],["BMY","Bristol Myers Squibb"],["BR","Broadridge Financial Solutions"],["BRO","Brown & Brown"],["BF.B","Brown–Forman"],["BLDR","Builders FirstSource"],["BG","Bunge Global"],["BXP","BXP, Inc."],["CHRW","C.H. Robinson"],["CPT","Camden Property Trust"],["COF","Capital One"],["CAH","Cardinal Health"],["CCL","Carnival Corporation"],["CARR","Carrier Global"],["CVNA","Carvana"],["CASY","Casey's"],["CAT","Caterpillar Inc."],["CBOE","Cboe Global Markets"],["CBRE","CBRE Group"],["CDW","CDW Corporation"],["COR","Cencora"],["CNC","Centene Corporation"],["CNP","CenterPoint Energy"],["CF","CF Industries"],["CRL","Charles River Laboratories"],["SCHW","Charles Schwab Corporation"],["CHTR","Charter Communications"],["CVX","Chevron Corporation"],["CMG","Chipotle Mexican Grill"],["CB","Chubb Limited"],["CHD","Church & Dwight"],["CIEN","Ciena"],["CI","Cigna"],["CINF","Cincinnati Financial"],["C","Citigroup"],["CFG","Citizens Financial Group"],["CLX","Clorox"],["CME","CME Group"],["CMS","CMS Energy"],["KO","Coca-Cola Company (The)"],["CTSH","Cognizant"],["COHR","Coherent Corp."],["COIN","Coinbase"],["CL","Colgate-Palmolive"],["FIX","Comfort Systems USA"],["COP","ConocoPhillips"],["ED","Consolidated Edison"],["STZ","Constellation Brands"],["COO","Cooper Companies (The)"],["GLW","Corning Inc."],["CPAY","Corpay"],["CTVA","Corteva"],["CSGP","CoStar Group"],["CRH","CRH plc"],["CCI","Crown Castle"],["CMI","Cummins"],["CVS","CVS Health"],["DHR","Danaher Corporation"],["DRI","Darden Restaurants"],["DVA","DaVita"],["DECK","Deckers Brands"],["DE","Deere & Company"],["DELL","Dell Technologies"],["DAL","Delta Air Lines"],["DVN","Devon Energy"],["DLR","Digital Realty"],["DG","Dollar General"],["DLTR","Dollar Tree"],["D","Dominion Energy"],["DPZ","Domino's"],["DOV","Dover Corporation"],["DOW","Dow Inc."],["DHI","D. R. Horton"],["DTE","DTE Energy"],["DUK","Duke Energy"],["DD","DuPont"],["ETN","Eaton Corporation"],["EBAY","eBay Inc."],["ECHO","EchoStar"],["ECL","Ecolab"],["EIX","Edison International"],["EW","Edwards Lifesciences"],["ELV","Elevance Health"],["EME","Emcor"],["EMR","Emerson Electric"],["ETR","Entergy"],["EOG","EOG Resources"],["EQT","EQT Corporation"],["EFX","Equifax"],["EQIX","Equinix"],["EQR","Equity Residential"],["ERIE","Erie Indemnity"],["ESS","Essex Property Trust"],["EL","Estée Lauder Companies (The)"],["EG","Everest Group"],["EVRG","Evergy"],["ES","Eversource Energy"],["EXE","Expand Energy"],["EXPE","Expedia Group"],["EXPD","Expeditors International"],["EXR","Extra Space Storage"],["XOM","ExxonMobil"],["FFIV","F5, Inc."],["FDS","FactSet"],["FICO","Fair Isaac"],["FRT","Federal Realty Investment Trust"],["FDX","FedEx"],["FDXF","FedEx Freight"],["FIS","Fidelity National Information Services"],["FITB","Fifth Third Bancorp"],["FSLR","First Solar"],["FE","FirstEnergy"],["FISV","Fiserv"],["FLEX","Flex Ltd."],["F","Ford Motor Company"],["FTV","Fortive"],["FOXA","Fox Corporation (Class A)"],["FOX","Fox Corporation (Class B)"],["BEN","Franklin Resources"],["FCX","Freeport-McMoRan"],["GRMN","Garmin"],["IT","Gartner"],["GE","GE Aerospace"],["GEV","GE Vernova"],["GEN","Gen Digital"],["GNRC","Generac"],["GD","General Dynamics"],["GIS","General Mills"],["GM","General Motors"],["GPC","Genuine Parts Company"],["GPN","Global Payments"],["GL","Globe Life"],["GDDY","GoDaddy"],["GS","Goldman Sachs"],["HAL","Halliburton"],["HIG","Hartford (The)"],["HAS","Hasbro"],["HCA","HCA Healthcare"],["DOC","Healthpeak Properties"],["HSIC","Henry Schein"],["HSY","Hershey Company (The)"],["HPE","Hewlett Packard Enterprise"],["HLT","Hilton Worldwide"],["HD","Home Depot (The)"],["HONA","Honeywell Aerospace"]],
   coin: [["AVAX","아발란체"],["CRO","크로노스"],["UNI","유니스왑"],["WLFI","월드리버티파이낸셜"],["SKY","스카이프로토콜"],["DOT","폴카닷"],["MNT","맨틀"],["ICP","인터넷컴퓨터"],["ETC","이더리움클래식"],["POL","폴리곤에코시스템토큰"],["JST","저스트"],["ATOM","코스모스"],["RENDER","렌더토큰"],["ALGO","알고랜드"],["PUMP","펌프펀"],["FIL","파일코인"],["ARB","아비트럼"],["APT","앱토스"],["INJ","인젝티브"],["AERO","에어로드롬파이낸스"],["VET","비체인"],["ETHFI","이더파이"],["TIA","셀레스티아"],["SPX","에스피엑스6900"],["SUN","썬"],["SEI","세이"],["BONK","봉크"],["STX","스택스"],["ZRO","레이어제로"],["PENDLE","펜들"],["BTT","비트토렌트"],["MON","모나드"],["XTZ","테조스"],["2Z","더블제로"],["OP","옵티미즘"],["SYRUP","메이플파이낸스"],["CHIP","유에스디에이아이"],["FF","팔콘파이낸스"],["GRT","더그래프"],["RAY","레이디움"],["PIEVERSE","파이버스"],["KAITO","카이토"],["CHZ","칠리즈"],["ENS","이더리움네임서비스"],["AKT","아카시네트워크"],["COMP","컴파운드"],["WIF","도그위프햇"],["THETA","쎄타토큰"],["XCN","오닉스코인"],["DRV","디라이브"],["NEO","네오"],["MANA","디센트럴랜드"],["XEC","이캐시"],["SAND","샌드박스"],["A","볼타"],["BAT","베이직어텐션토큰"],["TRAC","오리진트레일"],["AWE","에이더블유이"],["IMX","이뮤터블엑스"],["1INCH","1인치네트워크"],["ZK","지케이싱크"],["GLM","골렘"],["DATA","데이터네트워크"],["SENT","센티언트"],["EGLD","멀티버스엑스"],["ATH","에이셔"],["COW","카우프로토콜"],["MET2","메테오라"],["BEAM","빔"],["ZAMA","자마"],["SAFE","세이프"],["WAL","월러스"],["LPT","라이브피어"],["NXPC","넥스페이스"],["ZRX","제로엑스"],["ORCA","오르카"],["ARKM","아캄"],["QTUM","퀀텀"],["CFG","센트리퓨즈"],["RVN","레이븐코인"],["PLUME","플룸"],["LINEA","리네아"],["BIO","바이오프로토콜"],["TFUEL","쎄타퓨엘"],["W","웜홀"],["SKR","시커"],["MINA","미나"],["ZIL","질리카"],["IO","아이오넷"],["SOON","쑨"],["BERA","베라체인"],["SUPER","슈퍼버스"],["SPK","스파크"],["BABY","바빌론"],["PROS","파로스"],["HOLO","홀로월드에이아이"],["ELF","엘프"],["ZETA","제타체인"],["AXL","엑셀라"],["KAVA","카바"],["RED","레드스톤"],["BLUR","블러"],["TOSHI","토시"],["POLYX","폴리매쉬"],["ASTR","아스타"],["MOVE","무브먼트"],["CTC","크레딧코인"],["ONT","온톨로지"],["CKB","너보스"],["ESP","에스프레소"],["DEEP","딥북"],["T","쓰레스홀드"],["ALT","알트레이어"],["BARD","롬바드"],["AZTEC","아즈텍"],["0G","제로지"],["VANA","바나"],["MASK","마스크네트워크"],["PROVE","서싱트"],["VTHO","비토르토큰"],["MOODENG","무뎅"],["MOCA","모카네트워크"],["ANKR","앵커"],["MANTRA","만트라"],["MMT","모멘텀"],["API3","에이피아이쓰리"],["MEW","캣인어독스월드"],["AVNT","아반티스"],["OPEN","오픈렛저"],["SC","시아코인"],["ZORA","조라"],["ORBS","오브스"],["PRL","펄"],["B3","비쓰리"],["SNT","스테이터스네트워크토큰"],["BORA","보라"],["HIVE","하이브"],["ICX","아이콘"],["IRYS","아이리스"],["WAVES","웨이브"],["AUCTION","바운스토큰"],["MVL","엠블"],["HYPER","하이퍼레인"],["GMT","스테픈"],["IOST","아이오에스티"],["CYBER","사이버"],["TOKAMAK","토카막네트워크"],["STEEM","스팀"],["PUNDIX","펀디엑스"]]
 };
-async function _snapCreate(mode){
+// [S1076] vintage 인자 추가 — 스냅 창을 '최근 600봉 고정'에서 임의 시대로. 형식 'YYYY-MM-DD' | 미전달=현행.
+//   ★생존 편향 경고: 오늘의 발굴풀로 과거를 보면 "살아남은 것들의 과거". 홀드아웃으로 유용하되 완전 중립 아님.
+//   ★과적합 표면: 창을 고를 수 있게 된 순간 표면이 넓어짐 — 창은 먼저 선언하고 잰다(PREREG_S1076).
+async function _snapCreate(mode, vintage){
   var _oos=(mode==='oos');   // [S1048] OOS 스냅2 모드
+  var _vin=(typeof vintage==='string')?vintage.trim():'';   // [S1076]
   var el=document.getElementById('btDiscrimResult'); if(el) el.style.display='block';
+  if(_vin && !/^\d{4}-\d{2}-\d{2}$/.test(_vin)){   // [S1076] 오타가 조용히 라이브 스냅이 되는 사고 차단 — 하드 검증
+    if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626;font-weight:700">빈티지 형식 오류: <b>'+_vin+'</b> — YYYY-MM-DD 로 입력해줘</div>';
+    return;
+  }
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)){ if(el) el.innerHTML='캔들 fetch 미연결'; return; }
   if(SXCandleBT.snapMode&&SXCandleBT.snapMode()){ if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#d97706;font-weight:700">📦 생성은 라이브 데이터로 해야 함 — 먼저 📂 스냅샷 모드를 꺼줘</div>'; return; }
@@ -5984,7 +5992,7 @@ async function _snapCreate(mode){
   for(var i=0;i<pool.length;i++){
     var s=pool[i];
     if(el) el.innerHTML='<div style="text-align:center;padding:14px;color:#0e7490;font-size:12px;font-weight:800">📦 스냅샷 생성 '+(i+1)+'/'+pool.length+'<div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+(s.name||s.code)+'</div></div>';
-    var rows=null; try{ rows=await SXCandleBT.fetchRows600(mk,'day',s.code); }catch(e){ rows=null; }
+    var rows=null; try{ rows=await SXCandleBT.fetchRows600(mk,'day',s.code,_vin||undefined); }catch(e){ rows=null; }   // [S1076]
     if(!Array.isArray(rows)||rows.length<_floor){ excluded.push({code:s.code,name:s.name,bars:(rows?rows.length:0)}); await _trendBatchSleep(6); continue; }
     stocks[s.code]={ name:s.name, rows: rows.map(function(r){ return [r.date||'', +r.open||0, +r.high||0, +r.low||0, +r.close||0, +r.volume||0]; }) };
     var ld=(rows[rows.length-1]&&rows[rows.length-1].date)?String(rows[rows.length-1].date):''; if(ld>maxDate) maxDate=ld;
@@ -5992,24 +6000,47 @@ async function _snapCreate(mode){
   }
   if(n<3){ if(el) el.innerHTML='유효 종목 3개 미만 — 네트워크 확인'; return; }
   var dt=(maxDate||new Date().toISOString().slice(0,10)).replace(/[^0-9]/g,'').slice(0,8);
-  var fname='snap_'+mk+(_oos?'_oos':'')+'_'+dt+'.json';   // [S1048] OOS는 _oos 접미
-  var snap={ kind:'sx_candle_snapshot', ver:1, mkt:mk, tf:'day', baseDate:maxDate, created:new Date().toISOString(), build:(window.SX_BUILD||''), poolName:(_oos?'OOS(홀드아웃)':'발굴풀(대형)'), n:n, excluded:excluded, fields:['date','open','high','low','close','volume'], stocks:stocks };
+  var fname='snap_'+mk+(_oos?'_oos':'')+(_vin?'_vin':'')+'_'+dt+'.json';   // [S1048] OOS는 _oos 접미 · [S1076] 빈티지는 _vin 접미
+  var snap={ kind:'sx_candle_snapshot', ver:1, mkt:mk, tf:'day', baseDate:maxDate, vintage:_vin, created:new Date().toISOString(), build:(window.SX_BUILD||''), poolName:(_oos?'OOS(홀드아웃)':'발굴풀(대형)')+(_vin?' · 빈티지 '+_vin:''), n:n, excluded:excluded, fields:['date','open','high','low','close','volume'], stocks:stocks };   // [S1076] vintage 자기서술
   try{
     var blob=new Blob([JSON.stringify(snap)],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=fname; document.body.appendChild(a); a.click(); setTimeout(function(){try{document.body.removeChild(a);URL.revokeObjectURL(url);}catch(_){}},200);
   }catch(e){ if(el) el.innerHTML='다운로드 실패: '+(e&&e.message||e); return; }
-  if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">📦 <b>'+fname+'</b> 생성 완료 — '+String(mk).toUpperCase()+' '+n+'종 · 기준일 '+(maxDate||'?')+' · 미수록(봉수미달) '+excluded.length+'종<br>→ <b>snap_'+mk+(_oos?'_oos':'')+'.json</b>으로 이름 바꿔 repo 루트에 커밋 (OOS는 별도 파일명)</div>';
+  // [S1076] 빈티지 스냅은 '요청 창 vs 실제 도달 창'을 반드시 같이 보여준다 — 폴백으로 최근 데이터가 섞이면 여기서 드러남.
+  var _vinNote = _vin ? ('<br><b style="color:'+((maxDate&&maxDate.slice(0,10)<=_vin)?'#0e7490':'#dc2626')+'">🕰 빈티지 요청 '+_vin+' → 실제 최종봉 '+(maxDate||'?')+((maxDate&&maxDate.slice(0,10)<=_vin)?' ✓ 룩어헤드 없음':' ⚠️ 요청 창 초과 — 폴백 오염 의심, 사용 금지')+'</b>') : '';
+  if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">📦 <b>'+fname+'</b> 생성 완료 — '+String(mk).toUpperCase()+' '+n+'종 · 기준일 '+(maxDate||'?')+' · 미수록(봉수미달) '+excluded.length+'종'+_vinNote+'<br>→ <b>snap_'+mk+(_oos?'_oos':'')+(_vin?'_vin':'')+'.json</b>으로 이름 바꿔 repo 루트에 커밋 (OOS/빈티지는 별도 파일명)</div>';
 }
+// [S1076] 빈티지 창 스위치 — _snapLoad 호출처가 25곳(전 측정 브래킷)이라 인자를 늘리는 대신 단일 플래그로 통일.
+//   ON이면 manifest.vintage[mk]를 로드 → 변별력·게이트·발동·빔서치가 전부 자동으로 홀드아웃 창을 본다.
+//   ★핵심 규율: 빈티지를 요청했는데 미등록이면 **에러로 멈춘다**. latest로 조용히 폴백하면
+//     "과거 창을 요청했는데 최근 데이터가 반환"되는 바로 그 함정이 로드 층에서 재현됨.
+var _SNAP_VIN=false;
+function _snapVinOn(){ return !!_SNAP_VIN; }
 async function _snapLoad(mk){
   var mani=null;
   try{ var r=await fetch('snap_manifest.json?t='+Date.now(),{cache:'no-store'}); if(r&&r.ok) mani=await r.json(); }catch(e){}
-  if(!mani||!mani.latest||!mani.latest[mk]) return { ok:false, reason:'snap_manifest.json 없음 또는 latest.'+mk+' 미등록 — 📦 생성 → repo 커밋 → manifest 갱신 순서로' };
-  var file=mani.latest[mk], snap=null;
+  if(_SNAP_VIN){   // [S1076] 빈티지 슬롯 — 폴백 금지
+    if(!mani||!mani.vintage||!mani.vintage[mk]) return { ok:false, reason:'🕰 빈티지 창 ON인데 manifest.vintage.'+mk+' 미등록 — 🕰 빈티지 스냅샷 생성 → snap_'+mk+'_vin.json 커밋 → manifest에 vintage 슬롯 추가. (라이브로 조용히 폴백하지 않음)' };
+  } else if(!mani||!mani.latest||!mani.latest[mk]) return { ok:false, reason:'snap_manifest.json 없음 또는 latest.'+mk+' 미등록 — 📦 생성 → repo 커밋 → manifest 갱신 순서로' };
+  var file=_SNAP_VIN?mani.vintage[mk]:mani.latest[mk], snap=null;   // [S1076]
   try{ var r2=await fetch(file); if(r2&&r2.ok) snap=await r2.json(); }catch(e2){}
   if(!snap||snap.kind!=='sx_candle_snapshot'||!snap.stocks) return { ok:false, reason:file+' 로드 실패(미커밋? 형식?)' };
   if(snap.mkt!==mk) return { ok:false, reason:file+' 시장 불일치('+snap.mkt+')' };
-  var n=SXCandleBT.snapPreload(mk, snap.tf||'day', snap.stocks, { date:snap.baseDate||'', file:file });
+  if(_SNAP_VIN && !snap.vintage) return { ok:false, reason:file+' 에 vintage 필드 없음 — 빈티지 스냅이 아님(라이브 스냅을 vintage 슬롯에 잘못 등록?)' };   // [S1076] 자기서술 대조
+  var n=SXCandleBT.snapPreload(mk, snap.tf||'day', snap.stocks, { date:snap.baseDate||'', file:file, vintage:snap.vintage||'' });
   if(!n) return { ok:false, reason:file+' 수록 종목 0' };
-  return { ok:true, n:n, date:snap.baseDate||'', file:file };
+  return { ok:true, n:n, date:snap.baseDate||'', file:file, vintage:snap.vintage||'' };
+}
+// [S1076] 빈티지 창 토글 — 켜면 이미 주입된 프리로드를 반드시 퍼지(창 혼합 차단) 후 재로드 요구
+async function _snapVinToggle(){
+  var el=document.getElementById('btDiscrimResult');
+  _SNAP_VIN=!_SNAP_VIN;
+  try{ if(window.SXCandleBT&&SXCandleBT.snapSet) SXCandleBT.snapSet(false); }catch(_){}   // 창 전환 = 기존 주입 전량 퍼지
+  _snapBadge();
+  if(el){ el.style.display='block';
+    el.innerHTML=_SNAP_VIN
+      ? '<div style="border:1px solid #7c3aed66;border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">🕰 <b>빈티지 창 ON</b> — 이후 📂 스냅샷 로드는 manifest.<b>vintage</b>[시장]을 읽음.<br><span style="font-size:9px;color:var(--text3)">스냅샷 모드는 꺼졌어(창 혼합 차단) — 📂를 다시 눌러 홀드아웃 창을 로드해줘. 미등록이면 라이브로 폴백하지 않고 에러로 멈춘다.</span></div>'
+      : '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">🕰 빈티지 창 <b>OFF</b> — manifest.latest(현행 창)로 복귀. 프리로드 퍼지 완료.</div>';
+  }
 }
 async function _snapToggle(){
   var el=document.getElementById('btDiscrimResult');
@@ -6034,11 +6065,11 @@ function _snapBadge(){   // [S1002] ON/OFF를 버튼 자체에 표기 — 기존
     if(on){
       var bm=(SXCandleBT.snapMeta&&SXCandleBT.snapMeta())||{};
       var bp=Object.keys(bm).map(function(m){ return m.toUpperCase()+' '+((bm[m]&&bm[m].date)||'?'); });
-      btn.style.background='#0e7490'; btn.style.color='#fff'; btn.style.borderStyle='solid';
-      btn.innerHTML='📦 스냅샷 ON · '+(bp.join(' · ')||'냉동');
+      btn.style.background=_SNAP_VIN?'#6d28d9':'#0e7490'; btn.style.color='#fff'; btn.style.borderStyle='solid';   // [S1076]
+      btn.innerHTML=(_SNAP_VIN?'🕰 빈티지 ON · ':'📦 스냅샷 ON · ')+(bp.join(' · ')||'냉동');   // [S1076] 어느 창을 보고 있는지 항상 노출
     } else {
-      btn.style.background='transparent'; btn.style.color='#0e7490'; btn.style.borderStyle='dashed';
-      btn.innerHTML='📂 스냅샷 OFF · 🔴라이브';
+      btn.style.background='transparent'; btn.style.color=_SNAP_VIN?'#6d28d9':'#0e7490'; btn.style.borderStyle='dashed';
+      btn.innerHTML=_SNAP_VIN?'📂 OFF · 🕰빈티지 대기':'📂 스냅샷 OFF · 🔴라이브';   // [S1076]
     }
   }
   var e=document.getElementById('snapModeBadge');
@@ -6053,10 +6084,10 @@ function _snapInfo(){   // [S847] 빔서치 JSON에 스냅샷 출처 기록용
     if(!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode())) return null;
     var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
     var m=(SXCandleBT.snapMeta&&SXCandleBT.snapMeta()[mk])||null;
-    return m?{ date:m.date||'', file:m.file||'' }:null;
+    return m?{ date:m.date||'', file:m.file||'', vintage:(m.vintage||'') }:null;   // [S1076] 결과 JSON이 어느 창인지 자기서술
   }catch(_){ return null; }
 }
-if(typeof window!=='undefined'){ window._snapCreate=_snapCreate; window._snapLoad=_snapLoad; window._snapToggle=_snapToggle; window._snapBadge=_snapBadge; window._snapInfo=_snapInfo; }
+if(typeof window!=='undefined'){ window._snapCreate=_snapCreate; window._snapLoad=_snapLoad; window._snapToggle=_snapToggle; window._snapBadge=_snapBadge; window._snapInfo=_snapInfo; window._snapVinToggle=_snapVinToggle; window._snapVinOn=_snapVinOn; }   // [S1076]
 async function _snapEnsure(mk, el){   // [S850] 스냅샷 모드면 현재 시장 로드 보장(측정 브래킷 공용) — 실패시 false(live 섞임 방지)
   if(!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode())) return true;
   if(SXCandleBT.snapHas&&SXCandleBT.snapHas(mk)) return true;
@@ -9709,7 +9740,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1073';
+  window.SX_BUILD='S1076';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
