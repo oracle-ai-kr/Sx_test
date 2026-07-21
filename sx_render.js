@@ -446,8 +446,7 @@ function saveSearchResults(){
         //   분석탭 진입 경로(라인 623): qs = stock._scanResult || scrQuickScore(...)
         //   → _scanResult가 있는데 regime만 비면 첫 줄/이유/토글 사라짐.
         regime: s._scanResult.regime || null,
-        _regimeAdapt: s._scanResult._regimeAdapt || null,
-        _adaptedTh: s._scanResult._adaptedTh || null,
+          _adaptedTh: s._scanResult._adaptedTh || null,
         reasons: s._scanResult.reasons || null
       } : null,
       // ★ 분석탭 진입 시 BT 재계산 skip 가능 (정합성 ↑)
@@ -9797,7 +9796,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1090';
+  window.SX_BUILD='S1092';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11354,9 +11353,7 @@ async function _runEngineVerify(stock){
     //   해결: 분석탭 BT 직전에도 옵티마이저 [S242]와 동일하게 전역 상태 출력 → 두 로그 직접 비교.
     try{
       const _ap = (typeof _loadAnalParams === 'function') ? _loadAnalParams() : {};
-      const _raEn = (typeof SXE !== 'undefined' && typeof SXE.regimeAdaptEnabled === 'function') ? SXE.regimeAdaptEnabled() : '?';
-      window._sxDebugBT && console.log(`[S245] [분석탭] ${stock.name||stock.code} BT호출옵션: applyRegimeAdjust=${opts.applyRegimeAdjust} · slippage=${opts.slippage} · nextBarEntry=${opts.nextBarEntry}`);
-      window._sxDebugBT && console.log(`[S245] [분석탭] ${stock.name||stock.code} 전역상태: regimeAdaptEnabled=${_raEn} · btEarlyExit=${!!(SXE._btEarlyExit && SXE._btEarlyExit.enabled)}`);
+      // [S1092] regimeAdaptEnabled 디버그 출력 철거
       window._sxDebugBT && console.log(`[S245] [분석탭] ${stock.name||stock.code} BT파라미터: ${JSON.stringify(params)}`);
       window._sxDebugBT && console.log(`[S245] [분석탭] ${stock.name||stock.code} _loadAnalParams: ${JSON.stringify(_ap)}`);
     }catch(_e){ console.warn(`[S245] 진단 로그 예외: ${_e.message}`); }
@@ -13876,7 +13873,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
 
   // S77: 현재 적용 파라미터 표시 (실제 적용값 전부 표시)
   const _ap = _loadAnalParams();
-  const _raOn = typeof SXE!=='undefined' && SXE.regimeAdaptEnabled();
+  // [S1092] 레짐 표시 철거
   const _curTf = typeof _analTF!=='undefined' ? _analTF : 'day';
   const _tfTh = (typeof _scrTfTh!=='undefined') ? _scrTfTh(_curTf) : {buy:62,sell:38};
   const _tfMa = (typeof _scrTfMa!=='undefined') ? _scrTfMa(_curTf) : {short:5,mid:20,long:60};
@@ -14402,11 +14399,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
         }
       }
       // S71: 레짐 적응형 파라미터 현황
-      const _ra = qs._regimeAdapt || null;
-      const _aTh = qs._adaptedTh || null;
-      const _baseTh = (typeof _getEffectiveTh!=='undefined') ? _getEffectiveTh(_analTF) : null;
-      const _raGuide = (typeof SXI!=='undefined' && SXI.regimeAdaptGuide && _ra && _aTh && _baseTh) ? SXI.regimeAdaptGuide(regime, _ra, _aTh, _baseTh) : null;
-      const _raEnabled = (typeof SXE!=='undefined' && SXE.regimeAdaptEnabled) ? SXE.regimeAdaptEnabled() : false;
+      const _ra=null, _raGuide=null, _raEnabled=false; // [S1092] 레짐 해석 철거
       const _raToggleId = 'raToggle_' + Math.random().toString(36).slice(2,8);
       const _raGuideId = 'raGuide_' + Math.random().toString(36).slice(2,8);
       let _raHTML = '';
