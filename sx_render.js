@@ -4364,25 +4364,6 @@ var SX_BADGE_DEFS = {
 var SX_BADGE_ORDER = ['bottom','deadcat','pullback','retrace'];
 if(typeof window!=='undefined'){ window.SX_BADGE_DEFS = SX_BADGE_DEFS; window.SX_BADGE_ORDER = SX_BADGE_ORDER; }
 
-// 재료값 읽기(분석탭 adv = indicators._advanced).
-function _vbFeatVal(feat, adv){
-  if(!adv) return null;
-  if(feat==='volOsc') return (typeof adv.volOsc==='number') ? adv.volOsc : null;
-  if(feat==='bbPctB') return (adv.bb && typeof adv.bb.pctB==='number') ? adv.bb.pctB : null;
-  if(feat==='dev20'){
-    var cl = (Array.isArray(adv.closes)&&adv.closes.length) ? adv.closes : (Array.isArray(adv.rows) ? adv.rows.map(function(r){return +r.close;}) : null);
-    if(cl && typeof _smaLast733==='function'){ var ma=_smaLast733(cl,20), c=cl[cl.length-1]; if(ma&&ma!==0&&typeof c==='number') return 100*(c-ma)/ma; }
-    return null;
-  }
-  if(feat==='adx') return (adv.adx && typeof adv.adx.adx==='number') ? adv.adx.adx : null;   // [S770] A경로(진짜반등) 재료
-  if(feat==='rsi') return (adv.rsi && typeof adv.rsi.val==='number') ? adv.rsi.val : null;
-  if(feat==='dev200'){
-    var cl2 = (Array.isArray(adv.closes)&&adv.closes.length) ? adv.closes : (Array.isArray(adv.rows) ? adv.rows.map(function(r){return +r.close;}) : null);
-    if(cl2 && typeof _smaLast733==='function'){ var ma2=_smaLast733(cl2,200), c2=cl2[cl2.length-1]; if(ma2&&ma2!==0&&typeof c2==='number') return 100*(c2-ma2)/ma2; }
-    return null;
-  }
-  return null;
-}
 
 // ════════ [S889] C 2.0 축 재접지 — 순수 점수함수(Stage 1·미배선·검증용). 스트립(S882)의 검증된 로직(준비=완성률/전환=겹침/전이=발동후궤적)을 0~100 점수화. 집계 준비:전환:전이=2:5:3(전환 주도). 라이브 verdict 무영향 — 스트립에 점수만 표시. 개념: 준비=사전예고·전환=완성및강도·전이=유지및관찰.
 function _cv2ReadyScore(on, total){ return (total>0)?Math.round((on/total)*100):0; }   // 준비=재료 완성률(발동 예고). B검증: 완성↑→3봉내 발동↑(kr bear 5+ 46%)
@@ -5814,7 +5795,8 @@ if(typeof window!=='undefined'){ window._riskComboUI=_riskComboUI; }
 
 // ═══════════ [S1009] 안전필터 A/B 실효성 측정 — 필터 1개의 한계효용을 BT로 직접 잰다 ═══════════
 // [S1016] ⓒ(+A그룹) 제거 — S1013 최종심 철거. 구성: ⓐ필터 전무(플래그 전부 OFF·캔들패턴 상수필터는 공통 잔존) · ⓑ+위험시그니처만.
-// 고정: 대표풀 · 일봉 · BT 설정=현행 UI(btGetParams/btGetOpts) · _applySafetyToBt=하네스 내 ON 강제 · 📦스냅 지원(재현).
+// 고정: 대표풀 · 일봉 · BT 설정=현행 UI(btGetParams/btGetOpts) · 📦스냅 지원(재현).
+// [S1090] _applySafetyToBt 강제 제거 — 그 토글은 S1021에 소비자가 철거돼 死였다. 측정축은 _safetyFlags(위험시그니처)만.
 // 사전 선언 판정: ⓑ 승격(기본 ON) = ⓐ 대비 평균MDD 개선 AND 수익 훼손 ≤10%(상대) AND 시그니처 차단 n≥10 (n<10=판정 보류 — 과열 발동이라 점수매수와 교집합 희박 가능).
 var _SFAB_CFGS=[
   { id:'base', label:'ⓐ 필터 전무', flags:{} },
@@ -5824,11 +5806,10 @@ async function _sfAbBracket(mk, onProgress){
   var pool=[]; try{ var p=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[]; pool=(p||[]).map(function(x){ return { code:x[0], name:x[1]||x[0] }; }); }catch(_){}
   if(pool.length<3) return { ok:false, reason:'대표풀 없음' };
   var params=(typeof btGetParams==='function')?btGetParams():{}, opts=(typeof btGetOpts==='function')?btGetOpts():{};
-  var bak={ flags:(window.SXE?SXE._safetyFlags:null), apply:(window.SXE?SXE._applySafetyToBt:null) };
+  var bak={ flags:(window.SXE?SXE._safetyFlags:null) };
   var out={}; _SFAB_CFGS.forEach(function(c){ out[c.id]={ n:0, pnl:0, win:0, pfArr:[], mdd:0, trades:0, blocks:0, reasons:{} }; });
   var used=0;
   try{
-    SXE._applySafetyToBt=true;
     for(var i=0;i<pool.length;i++){
       var s=pool[i]; if(onProgress) onProgress(i+1, pool.length, s.name);
       var rr=null; try{ rr=await SXCandleBT.fetchRows600(mk,'day',s.code); }catch(e){}
@@ -5849,7 +5830,6 @@ async function _sfAbBracket(mk, onProgress){
       await _trendBatchSleep(15);
     }
   } finally {
-    SXE._applySafetyToBt=bak.apply;
     SXE._safetyFlags=bak.flags;   // [S1009] 무조건 복원 — 원본이 undefined여도 마지막 구성 잔류 방지
   }
   return { ok:true, stocksUsed:used, out:out };
@@ -9817,7 +9797,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1080';
+  window.SX_BUILD='S1090';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11376,7 +11356,7 @@ async function _runEngineVerify(stock){
       const _ap = (typeof _loadAnalParams === 'function') ? _loadAnalParams() : {};
       const _raEn = (typeof SXE !== 'undefined' && typeof SXE.regimeAdaptEnabled === 'function') ? SXE.regimeAdaptEnabled() : '?';
       window._sxDebugBT && console.log(`[S245] [분석탭] ${stock.name||stock.code} BT호출옵션: applyRegimeAdjust=${opts.applyRegimeAdjust} · slippage=${opts.slippage} · nextBarEntry=${opts.nextBarEntry}`);
-      window._sxDebugBT && console.log(`[S245] [분석탭] ${stock.name||stock.code} 전역상태: regimeAdaptEnabled=${_raEn} · applySafetyToBt=${!!SXE._applySafetyToBt} · btEarlyExit=${!!(SXE._btEarlyExit && SXE._btEarlyExit.enabled)}`);
+      window._sxDebugBT && console.log(`[S245] [분석탭] ${stock.name||stock.code} 전역상태: regimeAdaptEnabled=${_raEn} · btEarlyExit=${!!(SXE._btEarlyExit && SXE._btEarlyExit.enabled)}`);
       window._sxDebugBT && console.log(`[S245] [분석탭] ${stock.name||stock.code} BT파라미터: ${JSON.stringify(params)}`);
       window._sxDebugBT && console.log(`[S245] [분석탭] ${stock.name||stock.code} _loadAnalParams: ${JSON.stringify(_ap)}`);
     }catch(_e){ console.warn(`[S245] 진단 로그 예외: ${_e.message}`); }
@@ -11886,9 +11866,6 @@ function _sxbColorInv(s){
   if(s>=55) return '#f59e0b';        // 주의(상단권)
   if(s<=30) return 'var(--buy)';     // 안정 / 매수 우위
   return 'var(--accent)';             // 중립
-}
-function _sxbGrade(s){
-  if(s>=70) return 'A'; if(s>=55) return 'B'; if(s>=40) return 'C'; if(s>=25) return 'D'; return 'F';
 }
 function _sxbTone(s){
   if(s>=65) return {t:'강세 우위', c:'var(--buy)'};
