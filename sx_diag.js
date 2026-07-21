@@ -620,8 +620,7 @@ function _diagScan(){
   rows.push({label:'캔들 병렬 로딩', value: parallel ? 'ON' : 'OFF', color: parallel ? 'var(--accent)' : 'var(--text3)'});
 
   // 레짐 적응형
-  let regimeAdapt = true; try { regimeAdapt = localStorage.getItem('SX_REGIME_ADAPT') !== 'off'; } catch(_){}
-  rows.push({label:'레짐 적응형', value: regimeAdapt ? 'ON' : 'OFF', color: regimeAdapt ? 'var(--accent)' : 'var(--text3)'});
+  // [S1092] 레짐 적응형 진단행 철거
 
   // 엔진 로드 상태
   const engineOk = typeof SXE !== 'undefined' && typeof SXE.calcIndicators === 'function';
