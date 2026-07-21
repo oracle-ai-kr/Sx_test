@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>SX Screener</title>
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
-<script src="sx_analysis_engine.js?v=50"></script>
+<script src="sx_analysis_engine.js?v=51"></script>
 <script src="sx_recipe_core.js?v=4"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
 <script src="sx_feature_library.js?v=3"></script><!-- [S999→S1057] 통합 재료 라이브러리 SSOT — 레시피+위험 공용 -->
 <script src="sx_risk_core.js?v=1"></script><!-- [S1004] 위험 시그니처 SSOT — 시즌1(배지/게이트)·시즌2(보유 경고) 공용 · 3시장×3중검증 -->
 <script src="sx_exec_core.js?v=1"></script><!-- [S1017] 실행 SSOT — 레시피 진입+이중ATR+MA청산 · 시즌1 BT/분석탭 · 시즌2 자동매매 공유(b 일원화) -->
-<script src="sx_interpret.js?v=45"></script>
+<script src="sx_interpret.js?v=46"></script>
 <script src="sx_chart.js?v=20"></script>
 <script src="sx_conditions.js?v=23"></script>
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
-<script src="sx_storage.js?v=3"></script>
+<script src="sx_storage.js?v=4"></script>
 <script src="sx_session.js?v=4"></script>
 <script src="sx_alert_sound.js?v=1"></script>
 <script>
@@ -52,7 +52,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=422"></script>
+<script src="sx_render.js?v=423"></script>
 <script src="sx_recipe_signal.js?v=49"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1487,16 +1487,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
           <!-- [S264] foreignSell: HTML 정적 checked 없음 — _loadSafetyFilterUI()가 KIS 연결 상태 보고
                                   KIS ON이면 checked, OFF이면 disabled+unchecked로 강제. JS가 항상 덮어씀. -->
         </div>
-        <!-- [S455] BT에도 안전필터 적용 토글 — 구 BT게이트 모달에서 이동 (단일검증 중복 제거) -->
-        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-          <input type="checkbox" id="btApplySafetyToggle" onchange="_sxVib(10);_btSafetyToggleChanged(this.checked)" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;margin-top:1px">
-          <span style="font-size:11px;font-weight:600;color:var(--text);line-height:1.4">백테스트(BT)에도 적용 <span style="font-size:9px;color:var(--accent);font-weight:500">권장</span><br><span style="font-size:9px;color:var(--text3);font-weight:400">ON 시 BT 매수 진입도 위 안전필터를 통과해야 진입 — BT 결과가 실전과 가까워짐</span></span>
-        </label>
-        <!-- [S728] BT 약세 데드캣 게이트 토글 — C S726 게이트의 BT 전파 (측정용·기본 OFF) -->
-        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-          <input type="checkbox" id="btBearGateToggle" onchange="_sxVib(10);_btBearGateToggleChanged(this.checked)" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;margin-top:1px">
-          <span style="font-size:11px;font-weight:600;color:var(--text);line-height:1.4">🐻 BT 약세 데드캣 게이트 <span style="font-size:9px;color:#dc2626;font-weight:500">측정용</span><br><span style="font-size:9px;color:var(--text3);font-weight:400">ON 시 장기 역배열+단기약세(MA5&gt;20&gt;60 미충족) 구간 BT 진입을 차단 — 분석탭 C의 S726 게이트를 BT에도 전파. ON/OFF로 BT 수익·PF·MDD 비교 후 커밋 판단 (차단수는 게이트차단 통계에 🐻약세데드캣으로 표시)</span></span>
-        </label>
+          <!-- [S1090] BT안전필터적용·약세데드캣 토글 철거 — 둘 다 소비자가 없어 켜도 무동작(engine 주석 참조) -->
       </div>
     </div>
     <!-- [S574] 거래 세션 시각 설정 — sx_session.js (정규장/프리/애프터 중앙 설정, 9/14 거래시간 확장 대비) -->
@@ -1523,36 +1514,22 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       </div>
     </div>
     <!-- S44: 캔들 병렬화 설정 -->
-    <!-- S71→S100: 레짐 적응형 파라미터 (상태 표시 전용 — 옵티마이저 대표 프리셋에 따라 자동 전환) -->
+    <!-- [S1090] 레짐 적응형 — 옵티마이저(S1020 제거) 자동전환 설명 정정. 현재는 수동 토글만. -->
     <div class="setting-group">
-      <div class="setting-group-title">레짐 적응형 <span style="font-size:8px;color:var(--text3);font-weight:400">대표 프리셋 레짐값 기준 자동 전환</span></div>
+      <div class="setting-group-title">레짐 적응형 <span style="font-size:8px;color:var(--text3);font-weight:400">수동 토글 · 레짐별 매수/매도 임계값 보정</span></div>
       <div class="sound-setting">
         <div class="sound-toggle-row">
           <span class="stl">적응형 파라미터 <span style="font-size:9px;color:var(--text3);font-weight:400">(수동 전환)</span></span>
           <label class="sound-toggle"><input type="checkbox" id="regimeAdaptToggle" checked onchange="saveRegimeAdaptSetting()"><span class="st-track"></span></label>
         </div>
         <div style="font-size:10px;color:var(--text3);margin-top:4px;line-height:1.5" id="regimeAdaptDesc">
-          옵티마이저에서 ★대표 선정 시 해당 프리셋의 레짐(ON/OFF)으로 자동 전환됩니다.<br>ON: 레짐별 파라미터 자동 조정 · OFF: 고정 파라미터
+          ON: 레짐(상승/하락/횡보)에 따라 매수·매도 임계값을 자동 보정 · OFF: 고정 임계값<br><span style="color:var(--text3)">※ 보정 효과는 아직 측정되지 않았습니다.</span>
         </div>
       </div>
     </div>
     <!-- S210: 조기청산 (Early Exit) — 모달 트리거 카드 -->
     <!-- [S1022] 조기청산 설정 그룹 철거 -->
-    <!-- [S301] 변동성 타깃팅 (Volatility Targeting) — 모달 트리거 카드 -->
-    <!--   배경: BUY 점수 편향은 없지만 변동성 큰 종목의 TP/SL 회전율 차이로 MDD 격차 발생.
-                포지션 사이즈를 ATR% 역수에 비례 조정하여 종목 간 자본 손실 균등화. -->
-    <div class="setting-group">
-      <div class="setting-group-title">변동성 타깃팅 <span style="font-size:8px;color:var(--text3);font-weight:400">BT 포지션 사이즈 정규화</span></div>
-      <div class="sound-setting">
-        <div class="sound-toggle-row">
-          <span class="stl" id="volTargetStatusLabel">변동성 타깃팅 (꺼짐)</span>
-          <button onclick="openVolTargetModal()" style="padding:6px 12px;border-radius:6px;background:#f59e0b;color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">설정</button>
-        </div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px;line-height:1.5" id="volTargetDesc">
-          종목별 ATR%에 반비례하여 포지션 크기 자동 조정. 종목 간 MDD 격차 완화, 거래당 손실 균일화.
-        </div>
-      </div>
-    </div>
+  <!-- [S1090] 변동성 타깃팅 설정 카드 철거 — S1017 SSOT 통합에서 배선이 끊겨 완전 死 -->
     <!-- [S578] 차트 마커 — 보라(A/C) + 녹/적(B/S) 교차 선택. 한 화면에 보라1 + 녹적1. -->
     <div class="setting-group">
       <div class="setting-group-title">차트 마커 <span style="font-size:8px;color:var(--text3);font-weight:400">녹·적 = 차트(2종)</span></div>
@@ -1762,89 +1739,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
 <!-- [S1022] 조기청산 설정 모달 철거 -->
 
-<!-- ═══ [S301] 변동성 타깃팅 (Volatility Targeting) 설정 모달 ═══ -->
-<!--   목적: 종목별 ATR%에 반비례한 포지션 사이즈 정규화 설정.
-            BT 엔진(sx_analysis_engine.js)에서 다음과 같이 작동:
-              posScale = clamp(target_ATR% / 종목_ATR%, clampMin, clampMax)
-              거래당 PnL × posScale 누적 → MDD 격차 평탄화
-            설정값은 SXS.getVolTargetSettings()/setVolTargetSettings()로 sx_storage.js에서 관리. -->
-<div class="modal-overlay" id="volTargetModal" onclick="if(event.target===this)closeVolTargetModal()">
-  <div class="modal-sheet" style="max-height:85vh">
-    <div class="modal-handle"></div>
-    <div class="modal-title">🎯 변동성 타깃팅 설정</div>
-    <div class="modal-desc">종목별 ATR%에 반비례하여 BT 포지션 크기 자동 조정. 변동성 큰 종목은 작게, 작은 종목은 크게 진입.</div>
-    <div class="modal-scroll">
-      <!-- 활성화 토글 -->
-      <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <span style="font-size:13px;font-weight:600;color:var(--text)">활성화</span>
-          <label class="sound-toggle">
-            <input type="checkbox" id="vtModalEnabled" onchange="_vtUpdatePreview()">
-            <span class="st-track"></span>
-          </label>
-        </div>
-        <div id="vtEnabledHint" style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.5">
-          OFF: 모든 종목 포지션 100% (기존 BT 동작과 동일)
-        </div>
-      </div>
-
-      <!-- 시장별 목표 ATR% -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">📈 시장별 목표 ATR%</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:11px;color:var(--text2);min-width:64px">🇰🇷 한국</span>
-            <input type="number" id="vtModalKR" step="0.1" min="0.1" max="20" oninput="_vtUpdatePreview()" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-size:12px;font-family:inherit;min-width:0">
-            <span style="font-size:10px;color:var(--text3)">%</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:11px;color:var(--text2);min-width:64px">🪙 코인</span>
-            <input type="number" id="vtModalCOIN" step="0.1" min="0.1" max="20" oninput="_vtUpdatePreview()" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-size:12px;font-family:inherit;min-width:0">
-            <span style="font-size:10px;color:var(--text3)">%</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:11px;color:var(--text2);min-width:64px">🇺🇸 미국</span>
-            <input type="number" id="vtModalUS" step="0.1" min="0.1" max="20" oninput="_vtUpdatePreview()" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-size:12px;font-family:inherit;min-width:0">
-            <span style="font-size:10px;color:var(--text3)">%</span>
-          </div>
-        </div>
-        <div style="font-size:9px;color:var(--text3);margin-top:8px;line-height:1.5">
-          기본값: KR 2.0% (대형주) · COIN 4.0% (변동성 큼) · US 1.5% (안정적)
-        </div>
-      </div>
-
-      <!-- 포지션 크기 제한 -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">📏 포지션 크기 제한 (Clamp)</div>
-        <div class="param-row"><span class="p-label">최소 (Min)</span><input type="range" id="vtModalMin" min="0.1" max="1.0" step="0.05" value="0.3" oninput="this.nextElementSibling.textContent=this.value+'x';_vtUpdatePreview()"><span class="p-val">0.3x</span></div>
-        <div class="param-row"><span class="p-label">최대 (Max)</span><input type="range" id="vtModalMax" min="1.0" max="5.0" step="0.1" value="3.0" oninput="this.nextElementSibling.textContent=this.value+'x';_vtUpdatePreview()"><span class="p-val">3.0x</span></div>
-        <div style="font-size:9px;color:var(--text3);margin-top:8px;line-height:1.5">
-          극단값 차단: Min 미만은 의미 없는 진입, Max 초과는 과도한 레버리지 위험
-        </div>
-      </div>
-
-      <!-- 예시 미리보기 -->
-      <div style="background:rgba(245,158,11,0.08);border:1px solid #f59e0b;border-radius:8px;padding:10px;margin-bottom:12px;font-size:10px;line-height:1.7">
-        <div style="font-weight:600;margin-bottom:4px;color:#92400e">📊 적용 예시 (한국 시장 기준)</div>
-        <div id="vtPreviewBody" style="color:var(--text2)">설정값에 따라 자동 계산</div>
-      </div>
-
-      <!-- 경고 -->
-      <div style="background:rgba(239,68,68,0.08);border-left:3px solid #ef4444;border-radius:4px;padding:8px 10px;margin-bottom:12px;font-size:10px;color:var(--text2);line-height:1.5">
-        ⚠ <b style="color:var(--sell)">변경 시 BT 결과 재실행 필요</b> — 분석탭/옵티마이저 BT를 다시 돌려야 새 설정이 반영됩니다.
-      </div>
-
-      <!-- 안내 -->
-      <div style="background:rgba(34,197,94,0.08);border-left:3px solid #22c55e;border-radius:4px;padding:8px 10px;font-size:10px;color:var(--text2);line-height:1.6">
-        <b style="color:#16a34a">✅ BT 엔진 정식 도입 완료 [S304]</b> — 활성화 시 분석탭/옵티마이저/실시간 스캐너 BT가 모두 자동으로 변동성 타깃팅 적용. 설정 변경 후 BT 재실행하면 즉시 반영됩니다.
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="_sxVib(12);resetVolTargetModal()" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border)">기본값 복원</button>
-      <button class="btn-add" onclick="_sxVib(15);saveVolTargetModal()" style="background:#f59e0b;color:#fff;border:none">저장</button>
-    </div>
-  </div>
-</div>
+  <!-- [S1090] 변동성 타깃팅 모달 철거 -->
 
 <!-- [S283] 시황 뉴스 인앱 모달 (한국 종목/코인 한글용) -->
 <div class="news-modal" id="newsModal" onclick="if(event.target===this)SXNews.closeModal()">
@@ -2413,7 +2308,7 @@ const STORAGE_KEYS = Object.freeze({
   BT_EARLY_EXIT:       'SX_BT_EARLY_EXIT',         // 조기청산 설정
   BT_EXIT_MODE:        'SX_BT_EXIT_MODE',          // [S297] BT 청산 동작 모드 (close/conservative)
   BT_TRAIL_ATR_MODE:   'SX_BT_TRAIL_ATR_MODE',     // [S297] 트레일링 ATR 계산 (entry/dynamic)
-  BT_APPLY_SAFETY:     'SX_BT_APPLY_SAFETY',       // BT에 안전필터 적용
+  // [S1090] BT_APPLY_SAFETY 키 삭제 — 토글 철거(소비자 없음)
 
   // ─── KIS API ───
   KIS_TOKEN:           'SX_KIS_TOKEN',             // KIS 액세스 토큰
@@ -2841,11 +2736,6 @@ function setFilterAddMode(m){
   renderFilterList();
 }
 
-function toggleSmartFilter(id){
-  if(activeSmartFilters.has(id)) activeSmartFilters.delete(id);
-  else activeSmartFilters.add(id);
-  renderSmartFilterChips();
-}
 
 // ============================================================
 //  초기화
@@ -3360,7 +3250,6 @@ async function switchMarket(m){
 // S99-3: Phase B — 내필터 TF 고정(day). renderTFChips/setTF는 no-op
 function renderTFChips(){ /* no-op: 내필터 TF 숨김 */ }
 
-function setTF(tf){ /* no-op: currentTF = 'day' 고정 */ }
 
 function renderScanMarketChips(){
   const wrap = document.getElementById('scanMarketChips');
@@ -4177,18 +4066,6 @@ function togglePhaseGroup(phaseId){
   try { localStorage.setItem(key, isHidden ? '0' : '1'); } catch(_){} // S138 [FIX-#5]
 }
 
-// S164: P2 서브그룹(공격/준비/방어/환경) 접기/펼치기
-function toggleP2Subgroup(grpId){
-  const key = 'SX_P2_SUBFOLD_'+grpId;
-  const chips = document.getElementById('p2SubChips_'+grpId);
-  const arrow = document.getElementById('p2SubArrow_'+grpId);
-  if(!chips) return;
-  _sxVib(6); // 가벼운 진동 — 서브그룹은 Phase보다 약하게
-  const isHidden = chips.style.display==='none';
-  chips.style.display = isHidden ? '' : 'none';
-  if(arrow) arrow.textContent = isHidden ? '▾' : '▸';
-  try { localStorage.setItem(key, isHidden ? '0' : '1'); } catch(_){}
-}
 
 // S68: Phase 프리셋 클릭 핸들러 (조합 시스템)
 function onPresetComboClick(pid){
@@ -4263,23 +4140,6 @@ async function deletePreset(pid){
   toast(`"${pName}" 삭제 완료`);
 }
 
-function copyPreset(pid){
-  const src = customPresets.find(p=>p.id===pid);
-  if(!src) return;
-  // 이름 중복 처리
-  let baseName = src.name;
-  let newName = baseName;
-  let num = 1;
-  const allNames = [...getAllPhasePresets(), ...customPresets].map(p=>p.name);
-  while(allNames.includes(newName)){
-    newName = baseName + ' ' + num;
-    num++;
-  }
-  const newId = 'custom_' + Date.now();
-  customPresets.push({id:newId, name:newName, desc:src.desc, locked:false, conditions:{...src.conditions}, groups:{...(src.groups||{})}});
-  saveState();
-  renderPresetBar();
-}
 
 function loadPreset(pid){
   // S68: 커스텀 프리셋 불러오기 (기본 프리셋은 onPresetComboClick에서 처리)
@@ -4380,15 +4240,6 @@ function savePreset(){
 let scanMarket = '전체';
 let scanState = 'idle'; // idle, running, paused, done
 let _scanLoadingActive = false;
-function _renderScanLoading(){
-  const area = document.getElementById('resultArea');
-  if(!area) return;
-  // 기존 결과가 없으면 전체 로딩 표시
-  if(!searchResults.length){
-    area.innerHTML = `<div class="result-summary"><span class="scan-loading-text">검색중<span class="dots"></span></span><button class="btn-diag" onclick="_sxVib(12);openScanDiagModal()" style="padding:3px 10px;border-radius:6px;background:var(--surface2);color:var(--text);border:1px solid var(--border);font-size:9px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;letter-spacing:.2px">📊 진단</button><button class="btn-sector" onclick="_sxVib(12);openSectorRadarModal()">📡 업종레이더</button><button class="btn-watchlist" onclick="_sxVib(12);toggleWatchlistView()">관심목록</button><button class="btn-reset" onclick="_sxVib(15);clearSearchResults()">초기화</button></div>`;
-  }
-  // 기존 결과가 있으면 renderResults가 알아서 로딩 라벨 표시
-}
 let scanAbort = false;
 let scanPauseResolve = null;
 let scanTotal = 0;
@@ -4692,7 +4543,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=21');
+    _scanWorker = new Worker('sx_scan_worker.js?v=22');
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -4821,14 +4672,7 @@ async function startScan(){
     _scanWorker = null;
   };
 
-  // [S304] 워커 시작 직전 — 변동성 타깃팅 설정 동기화
-  //   워커는 localStorage 접근 불가 → 메인에서 명시적 push 필요.
-  //   새 워커 인스턴스마다 1회 sync (이후 모달 저장 시에는 별도 sync로 갱신).
-  try {
-    if(typeof SXS !== 'undefined' && SXS.getVolTargetSettings){
-      _scanWorker.postMessage({ type: 'vol_target_sync', settings: SXS.getVolTargetSettings() });
-    }
-  } catch(_) {}
+  // [S1090] 변동성 타깃팅 워커 동기화 철거
 
   _scanWorker.postMessage({type:'start', config});
   return; // Worker가 비동기로 처리
@@ -7309,18 +7153,6 @@ async function fetchCandles(code, count, tf, _retry){
 // ============================================================
 let _extCandleMemCache = {}; // { 'sx_ext_<mkt>_<code>_<tf>_<date>': {ts, data} }
 
-// 메모리 캐시 통계 (진단용)
-function _extCandleMemStats(){
-  const keys = Object.keys(_extCandleMemCache);
-  let bytes = 0;
-  for(const k of keys){
-    try {
-      bytes += k.length * 2;
-      bytes += JSON.stringify(_extCandleMemCache[k].data || []).length * 2;
-    } catch(_){}
-  }
-  return { count: keys.length, bytes };
-}
 
 // ============================================================
 //  S107 Phase 3-B-9a: 분석탭 BT 자동 확장 (데이터 부족 시 과거 봉 추가 로드)
@@ -8788,26 +8620,13 @@ window.SXBtScoreCheck = function(){
 // 사용법: window.SXBtAnalysisCheck()
 window.SXBtAnalysisCheck = function(){
   console.group('[SXBtAnalysisCheck] BT-분석 정합성 진단');
-  // 1) 안전필터 BT 적용 여부
-  const _safetyOnBt = (typeof SXE !== 'undefined') && SXE._applySafetyToBt === true;
-  if(_safetyOnBt){
-    console.log('✅ BT 안전필터 적용 ON — 분석엔진과 동일한 매수 조건 사용');
-  } else {
-    console.warn('⚠️ BT 안전필터 적용 OFF (기본값)');
-    console.log('   → BT는 분석엔진의 11종 안전필터(🔒임계값/RSI다이버전스/MACD음전 등)를 통과 못한');
-    console.log('     매수도 모두 진입으로 카운트 → BT 결과가 실전보다 부풀려질 수 있음');
-    console.log('   → ON으로 바꾸려면: SXE._applySafetyToBt = true');
-  }
+      // [S1090] BT 안전필터 적용 진단 항목 철거 — 토글이 死라 항상 OFF로 보고됐다
   // 2) 안전필터 플래그 상태
   const _sf = (typeof SXE !== 'undefined' && SXE._safetyFlags) || {};
   const _onCount = Object.values(_sf).filter(v => v === true).length;
   const _offCount = Object.values(_sf).filter(v => v === false).length;
   console.log('안전필터 플래그: ON ' + _onCount + '개 / OFF ' + _offCount + '개');
-  // 3) 종합 권장사항  [S1006] 게이트 항목 철거 — 안전필터 일원화
-  if(!_safetyOnBt){
-    console.log('');
-    console.log('💡 BT-실전 미스매치를 줄이려면: SXE._applySafetyToBt = true (안전필터를 BT에도 적용)');
-  }
+      // [S1090] 권장 문구 철거
   console.groupEnd();
   return {
     safetyOnBt: _safetyOnBt,
@@ -9435,25 +9254,6 @@ function _getWatchlist(market){
   return [...v2.kr, ...v2.us, ...v2.coin].sort((a,b) => (b.ts||0) - (a.ts||0));
 }
 
-// 외부 API: 배열 받아서 시장별로 분리 저장
-function _saveWatchlist(list){
-  if(!Array.isArray(list)){
-    // 객체 형태로 직접 받은 경우 (호환)
-    if(list && typeof list === 'object' && (list.kr || list.us || list.coin)){
-      _wlSaveV2(list);
-    }
-    return;
-  }
-  // 배열 → 시장별 분리
-  const v2 = { kr: [], us: [], coin: [] };
-  list.forEach(w => {
-    if(!w || !w.code) return;
-    const mkt = _wlNormalizeMarket(w.market);
-    if(v2[mkt].length >= WL_MAX_PER_MARKET) return;
-    v2[mkt].push(w);
-  });
-  _wlSaveV2(v2);
-}
 
 function _isInWatchlist(code){
   if(!code) return false;
@@ -10962,9 +10762,6 @@ function runWatchlistScan(){
   _watchlistScanMode = true;
   startScan().finally(()=>{ _watchlistScanMode = false; });
 }
-// deprecated
-function renderWatchlistSimple(){}
-function renderWatchlistResults(){ renderResults(); }
 
 // S73: 포트폴리오 진단 (섹터 레이더 + 상관/분산)
 // [S358] 종목 industryCode → 업종명 매칭 (m.stock integration ↔ sise_group no 동일 숫자 체계)
@@ -11407,8 +11204,7 @@ function _loadSafetyFilterUI(){
   });
   // 엔진에 동기화
   if(typeof SXE!=='undefined') SXE._safetyFlags = f;
-  // [S455] BT 적용 체크박스(설정탭으로 이동)도 현재 SXE._applySafetyToBt 상태로 싱크
-  if(typeof _btSafetyApplyUiToModal === 'function') _btSafetyApplyUiToModal();
+
 }
 
 // ════════════════════════════════════════════════════════════
@@ -11416,143 +11212,11 @@ function _loadSafetyFilterUI(){
 //   철거: 모달·프리셋·게이트 설정 함수군 전체. 존치: BT 안전필터 토글군(아래·🐻데드캣 포함)
 // ════════════════════════════════════════════════════════════
 
-// ─── [A] BT 안전필터 적용 토글 핸들러 ─────────────────────
-function _btSafetyToggleChanged(on){
-  if(typeof SXE === 'undefined' || typeof SXE.toggleBtSafety !== 'function'){
-    toast('엔진 미준비 — 새로고침 후 다시 시도');
-    // 체크박스 원복
-    const chk = document.getElementById('btApplySafetyToggle');
-    if(chk) chk.checked = !on;
-    return;
-  }
-  const _v = SXE.toggleBtSafety(!!on);
-  toast(_v ? 'BT 안전필터 적용 ON — 분석엔진과 동일 매수 조건' : 'BT 안전필터 OFF (BT 종전 동작)');
-}
+// [S1090] BT 안전필터 적용 / 약세 데드캣 게이트 토글 핸들러 철거 — 소비자 없는 死 토글
 
-// [S728] BT 약세 데드캣 게이트 토글 핸들러 — SXE.toggleBtBearGate() 호출 (모바일 콘솔 없이)
-function _btBearGateToggleChanged(on){
-  if(typeof SXE === 'undefined' || typeof SXE.toggleBtBearGate !== 'function'){
-    toast('엔진 미준비 — 새로고침 후 다시 시도');
-    const chk = document.getElementById('btBearGateToggle');
-    if(chk) chk.checked = !on;
-    return;
-  }
-  const _v = SXE.toggleBtBearGate(!!on);
-  toast(_v ? '🐻 BT 약세 데드캣 게이트 ON — 역배열+단기약세 진입 차단 (BT 재실행해 비교)' : 'BT 약세 게이트 OFF (BT 종전 동작)');
-}
 
-// ─── [A] BT 안전필터 토글 상태를 모달에 반영 (열릴 때 호출) ─────
-function _btSafetyApplyUiToModal(){
-  const chk = document.getElementById('btApplySafetyToggle');
-  if(!chk) return;
-  const _on = (typeof SXE !== 'undefined') && SXE._applySafetyToBt === true;
-  chk.checked = _on;
-  const _bgChk = document.getElementById('btBearGateToggle'); // [S728] 약세 게이트 체크박스 싱크
-  if(_bgChk) _bgChk.checked = (typeof SXE !== 'undefined') && SXE._btBearGate === true;
-  // 도움말이 펼쳐져 있다면 안전필터 토글 상태도 갱신 (다른 곳에서 변경됐을 수 있음)
-  const _help = document.getElementById('btSafetyHelpContent');
-  if(_help && _help.style.display === 'block'){
-    _btSafetyTogglesRender();
-  }
-}
 
-// ─── [A] BT 안전필터 도움말 접기/펼치기 ─────
-// 모바일에서 콘솔 없이 안전필터가 무엇인지 자세히 볼 수 있게 — 기본 접힘
-function _btSafetyHelpToggleClick(){
-  const content = document.getElementById('btSafetyHelpContent');
-  const arrow = document.getElementById('btSafetyHelpArrow');
-  if(!content) return;
-  const _isOpen = content.style.display === 'block';
-  content.style.display = _isOpen ? 'none' : 'block';
-  if(arrow) arrow.textContent = _isOpen ? '▼' : '▲';
-  // 처음 펼치는 순간 토글 UI를 채워줌 (이미 있으면 현재 상태만 갱신)
-  if(!_isOpen) _btSafetyTogglesRender();
-}
 
-// ─── [A] 안전필터 10종 토글 UI 동적 생성/갱신 ─────
-function _btSafetyTogglesRender(){
-  const _itemsMain = [
-    {key:'threshold',  name:'🔒 임계값',         desc:'점수가 매수기준 턱걸이 (불안정)'},
-    {key:'volExtreme', name:'🔒 변동성극단',     desc:'변동성이 너무 극심함'},
-    {key:'volHigh',    name:'🔒 변동성과다',     desc:'변동성 높은데 점수 보너스 없음'},
-    {key:'rsiDiv',     name:'🔒 RSI다이버전스', desc:'가격↑ RSI↓ (약세 신호)'},
-    {key:'macdNeg',    name:'🔒 MACD음전',       desc:'MACD 5봉 연속 음수'},
-    {key:'bbUpper',    name:'🔒 BB상단이탈',     desc:'[S426] 볼린저밴드 상단 밖 (과열)'},
-    {key:'resistNear', name:'🔒 저항근접',       desc:'[S426] 피벗 R1 저항 1.5% 이내'},
-    {key:'chaseGuard', name:'🔒 추격금지·과열',  desc:'[S453] MA20 이격도 +20%↑ (추격매수 위험)'},
-    {key:'dumpWarn',   name:'🔒 되돌림주의',      desc:'[S454] 천정·투매 위험 (정지)'},
-    {key:'supportBreak', name:'🔒 지지선 이탈',  desc:'[S469] 종가가 MA20/MA60 최근 3봉 내 하향 이탈 (지지 붕괴)'},
-  ];
-  const _itemsOpt = [
-    {key:'debtRatio',   name:'🔒 부채비율',      desc:'200% 이상 (재무 위험)'},
-    {key:'foreignSell', name:'🔒 외국인매도',    desc:'3일 연속 순매도'},
-    {key:'highBeta',    name:'🔒 고베타',        desc:'β > 1.5 (시장 변동 증폭)'},
-    {key:'knnBearish',  name:'🔒 kNN 음봉전이 [실험]', desc:'[S662] 자기유사도 kNN이 강하게 음봉전이 예측(점수 ≤-30) — 설정탭과 연동, BT 진입 차단'},
-  ];
-  // 현재 플래그 상태 로드 (기존 _loadSafetyFilters 활용 → 영속화 데이터 일관성 보장)
-  const _flags = (typeof _loadSafetyFilters === 'function')
-    ? _loadSafetyFilters()
-    : ((typeof SXE !== 'undefined' && SXE._safetyFlags) ? SXE._safetyFlags : {});
-
-  const _renderRow = (item) => {
-    const _on = !!_flags[item.key];
-    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer;border-bottom:1px dashed var(--bd,#e5e8ec)">
-      <input type="checkbox" ${_on?'checked':''} data-btsf="${item.key}"
-        onchange="_sxVib(8);_btSafetyTogglesChanged('${item.key}', this.checked)"
-        style="width:16px;height:16px;cursor:pointer;flex-shrink:0">
-      <div style="flex:1;line-height:1.3">
-        <div style="font-weight:600;color:var(--text,#222);font-size:10px">${item.name}</div>
-        <div style="font-size:9px;color:var(--text3,#888);margin-top:1px">${item.desc}</div>
-      </div>
-    </label>`;
-  };
-
-  const main = document.getElementById('btSafetyToggleListMain');
-  const opt  = document.getElementById('btSafetyToggleListOpt');
-  if(main) main.innerHTML = _itemsMain.map(_renderRow).join('');
-  if(opt){
-    opt.innerHTML = _itemsOpt.map(_renderRow).join('');
-    // [S452] 고베타(β) — 데이터 미연결 → BT 게이트 모달에서도 항상 비활성("데이터 연결 시")
-    { const _hbChk = opt.querySelector('input[data-btsf="highBeta"]');
-      if(_hbChk){ _hbChk.disabled = true; _hbChk.checked = false;
-        const _hbRow = _hbChk.closest('label');
-        if(_hbRow){ const _hbDesc = _hbRow.querySelector('div > div:last-child'); if(_hbDesc) _hbDesc.textContent = 'β 데이터 연결 시 활성화'; }
-      }
-    }
-    // KIS 미연결 시 외국인매도는 비활성 (기존 _loadSafetyFilterUI와 동일한 정책)
-    if(!window._kisEnabled){
-      const _frChk = opt.querySelector('input[data-btsf="foreignSell"]');
-      if(_frChk){
-        _frChk.disabled = true;
-        _frChk.checked = false;
-        // 설명 텍스트도 보강
-        const _row = _frChk.closest('label');
-        if(_row){
-          const _desc = _row.querySelector('div > div:last-child');
-          if(_desc) _desc.textContent = 'KIS 연결 시 활성화 (현재 미연결)';
-        }
-      }
-    }
-  }
-}
-
-// ─── [A] 안전필터 토글 변경 — 영속화 + 양쪽 UI 동기화 ─────
-function _btSafetyTogglesChanged(key, on){
-  if(typeof _loadSafetyFilters !== 'function'){
-    toast('안전필터 시스템 미준비');
-    return;
-  }
-  // 현재 플래그 로드 → 한 키만 변경 → 저장
-  const _flags = _loadSafetyFilters();
-  _flags[key] = !!on;
-  try { localStorage.setItem(SX_SAFETY_KEY, JSON.stringify(_flags)); } catch(_){}
-  // 엔진에도 즉시 반영 (다음 분석부터 적용)
-  if(typeof SXE !== 'undefined') SXE._safetyFlags = _flags;
-  // 설정 페이지의 동일 체크박스도 동기화 (있으면)
-  const _setEl = document.querySelector('#safetyFilterList input[data-sf="'+key+'"]');
-  if(_setEl) _setEl.checked = !!on;
-  toast((on ? '🔒 ON: ' : 'OFF: ') + key);
-}
 
 
 // ════════════════════════════════════════════════════════════
@@ -11681,7 +11345,6 @@ function _toggleSxAzPanelCore(isOpen){
     history.pushState({view:'azPanel'}, '');
   }
 }
-function renderSxAzGroups(){ /* removed — no longer needed */ }
 function _loadSxAzItems(){
   const m = currentMarket;
   let items = [];
@@ -11791,50 +11454,9 @@ function _paramSlotSummary(p){ return `RSI${p.rsiLen} BB${p.bbLen}×${p.bbMult} 
 
 // ─── 공용 모달 닫기 ───
 function _closeParamModal(id){ const el=document.getElementById(id); if(el) el.remove(); }
-function _paramModal(id, title, desc, bodyHTML){
-  _closeParamModal(id);
-  const wrap = document.createElement('div');
-  wrap.id=id;
-  wrap.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center';
-  wrap.innerHTML=`<div style="background:var(--surface);border-radius:12px;padding:16px 20px;min-width:260px;max-width:320px;max-height:80vh;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.3)"><div style="font-size:13px;font-weight:700;margin-bottom:4px;color:var(--text)">${title}</div><div style="font-size:10px;color:var(--text3);margin-bottom:10px">${desc}</div>${bodyHTML}<div style="padding:8px 0;text-align:center;cursor:pointer;color:var(--text3);font-size:11px" onclick="_closeParamModal('${id}')">닫기</div></div>`;
-  wrap.addEventListener('click',e=>{if(e.target===wrap)_closeParamModal(id);});
-  document.body.appendChild(wrap);
-}
 
-// ═══════════════════════════════════════════
-//  S77 저장: 시장선택 → 슬롯 선택/신규
-// ═══════════════════════════════════════════
-function saveAnalParamsMarket(){
-  const items = Object.entries(_PARAM_MARKET_LABELS).map(([k,v])=>
-    `<div class="pm-row" onclick="_saveStep2('${k}')">${v}</div>`
-  ).join('');
-  _paramModal('pmSave','파라미터 저장','현재 슬라이더 값을 저장할 시장을 선택하세요.',items);
-}
 
-function _saveStep2(market){
-  _closeParamModal('pmSave');
-  const label = _PARAM_MARKET_LABELS[market];
-  const slots = _loadMarketSlots(market);
-  let body = '';
-  // 기존 슬롯 목록 (덮어쓰기)
-  slots.forEach((s,i)=>{
-    body += `<div class="pm-row" onclick="_saveToSlot('${market}',${i},null)"><div style="font-weight:600">${i+1}. ${_esc(s.name)}</div><div style="font-size:10px;color:var(--text3)">${_paramSlotSummary(s.params)} — 덮어쓰기</div></div>`;
-  });
-  // 빈 슬롯이 있으면 신규 추가
-  if(slots.length < SCR_ANAL_MAX_SLOTS){
-    body += `<div class="pm-row" onclick="_saveNewSlot('${market}')"><div style="color:var(--accent);font-weight:600">+ 새 프리셋 추가 (${slots.length}/${SCR_ANAL_MAX_SLOTS})</div></div>`;
-  } else {
-    body += `<div style="padding:6px 0;font-size:10px;color:var(--text3)">슬롯 가득참 (${SCR_ANAL_MAX_SLOTS}/${SCR_ANAL_MAX_SLOTS}) — 기존 항목을 덮어쓰세요</div>`;
-  }
-  _paramModal('pmSave2',`${label} — 슬롯 선택`,'저장할 슬롯을 선택하거나 새로 추가하세요.',body);
-}
 
-function _saveNewSlot(market){
-  _closeParamModal('pmSave2');
-  const label = _PARAM_MARKET_LABELS[market];
-  const body = `<div style="margin:8px 0"><input id="pmNewName" type="text" placeholder="프리셋 이름 (예: 단타용)" maxlength="20" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface2);color:var(--text);font-family:inherit"></div><div class="pm-row" style="text-align:center;font-weight:600;color:var(--accent)" onclick="_saveToSlot('${market}',-1,document.getElementById('pmNewName').value.trim())">저장</div>`;
-  _paramModal('pmSaveName',`${label} — 이름 입력`,'프리셋 이름을 입력하세요.',body);
-}
 
 // [S224] async 변환 — sxConfirm 사용
 async function _saveToSlot(market, index, name){
@@ -11866,39 +11488,8 @@ async function _saveToSlot(market, index, name){
   toast(`[OK] ${name} 저장됨`);
 }
 
-// ═══════════════════════════════════════════
-//  S77 적용: 시장선택 → 슬롯 선택 → 적용
-// ═══════════════════════════════════════════
-function loadAnalParamsMarket(){
-  const items = Object.entries(_PARAM_MARKET_LABELS).map(([k,v])=>{
-    const slots = _loadMarketSlots(k);
-    const cnt = slots.length;
-    const style = cnt>0 ? 'cursor:pointer' : 'cursor:default;opacity:0.4';
-    const click = cnt>0 ? `onclick="_loadStep2('${k}')"` : '';
-    return `<div class="pm-row" style="${style}" ${click}><div>${v}</div><div style="font-size:10px;color:var(--text3)">${cnt>0?cnt+'개 저장됨':'저장없음'}</div></div>`;
-  }).join('');
-  _paramModal('pmLoad','파라미터 적용','불러올 시장을 선택하세요.',items);
-}
 
-function _loadStep2(market){
-  _closeParamModal('pmLoad');
-  const label = _PARAM_MARKET_LABELS[market];
-  const slots = _loadMarketSlots(market);
-  const body = slots.map((s,i)=>
-    `<div class="pm-row" onclick="_doApplySlot('${market}',${i})"><div style="font-weight:600">${i+1}. ${_esc(s.name)}</div><div style="font-size:10px;color:var(--text3)">${_paramSlotSummary(s.params)}</div></div>`
-  ).join('');
-  _paramModal('pmLoad2',`${label} — 프리셋 선택`,'적용할 프리셋을 선택하세요.',body);
-}
 
-function _doApplySlot(market, index){
-  _closeParamModal('pmLoad2');
-  const slots = _loadMarketSlots(market);
-  const slot = slots[index];
-  if(!slot){ toast('프리셋 없음'); return; }
-  _saveAnalParams(slot.params);
-  loadAnalParamsUI();
-  toast(`[OK] "${slot.name}" 적용됨`);
-}
 
 // ═══════════════════════════════════════════
 //  S77 초기화: 전체 삭제 확인
@@ -12566,7 +12157,7 @@ function _sxcBuildRegimeLogHTML(){
     });
     logsSection += `</div>`;
   } else {
-    logsSection = `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);color:var(--text3);font-size:10.5px;text-align:center;padding:8px">레짐 관련 로그 없음<br><span style="font-size:9px">설정탭에서 레짐 토글 또는 옵티마이저 ★대표 선정 시 로그가 쌓입니다.</span></div>`;
+    logsSection = `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);color:var(--text3);font-size:10.5px;text-align:center;padding:8px">레짐 관련 로그 없음<br><span style="font-size:9px">설정탭에서 레짐 적응형 토글을 변경하면 로그가 쌓입니다.</span></div>`;
   }
 
   // 6. 안내 + 새로고침 버튼
@@ -13695,9 +13286,7 @@ window.addEventListener('popstate', function(e){
   if(swM && swM.style.display !== 'none' && swM.style.display !== ''){ closeScoreWeightModal(); return; }
   // [S213] BT 게이트 모달
   // [S1022] Early Exit 모달 브랜치 철거 (모달 제거됨)
-  // [S301] 변동성 타깃팅 모달
-  var vtM = document.getElementById('volTargetModal');
-  if(vtM && vtM.classList.contains('show')){ closeVolTargetModal(); return; }
+  // [S1090] 변동성 타깃팅 모달 브랜치 철거
   // [S213] 프리셋 저장 모달
   var presetM = document.getElementById('presetModal');
   if(presetM && presetM.classList.contains('show')){ closePresetModal(); return; }
