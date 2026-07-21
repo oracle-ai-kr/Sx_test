@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>SX Screener</title>
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
-<script src="sx_analysis_engine.js?v=51"></script>
+<script src="sx_analysis_engine.js?v=52"></script>
 <script src="sx_recipe_core.js?v=4"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
 <script src="sx_feature_library.js?v=3"></script><!-- [S999→S1057] 통합 재료 라이브러리 SSOT — 레시피+위험 공용 -->
 <script src="sx_risk_core.js?v=1"></script><!-- [S1004] 위험 시그니처 SSOT — 시즌1(배지/게이트)·시즌2(보유 경고) 공용 · 3시장×3중검증 -->
 <script src="sx_exec_core.js?v=1"></script><!-- [S1017] 실행 SSOT — 레시피 진입+이중ATR+MA청산 · 시즌1 BT/분석탭 · 시즌2 자동매매 공유(b 일원화) -->
-<script src="sx_interpret.js?v=46"></script>
+<script src="sx_interpret.js?v=47"></script>
 <script src="sx_chart.js?v=20"></script>
 <script src="sx_conditions.js?v=23"></script>
 <script src="sx_oracle.js?v=1"></script>
@@ -52,7 +52,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=423"></script>
+<script src="sx_render.js?v=424"></script>
 <script src="sx_recipe_signal.js?v=49"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -60,7 +60,7 @@
 <script src="sx_chart_predict.js?v=6"></script>
 <script src="sx_candle_bt.js?v=28"></script>
 <script src="sx_bt.js?v=25"></script>
-<script src="sx_diag.js?v=4"></script>
+<script src="sx_diag.js?v=5"></script>
 <!-- [S1020] sx_optimizer.js 철거 — 레시피-BT 일원화로 클래식 파라미터 튜닝 대상 소멸 -->
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -1514,19 +1514,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       </div>
     </div>
     <!-- S44: 캔들 병렬화 설정 -->
-    <!-- [S1090] 레짐 적응형 — 옵티마이저(S1020 제거) 자동전환 설명 정정. 현재는 수동 토글만. -->
-    <div class="setting-group">
-      <div class="setting-group-title">레짐 적응형 <span style="font-size:8px;color:var(--text3);font-weight:400">수동 토글 · 레짐별 매수/매도 임계값 보정</span></div>
-      <div class="sound-setting">
-        <div class="sound-toggle-row">
-          <span class="stl">적응형 파라미터 <span style="font-size:9px;color:var(--text3);font-weight:400">(수동 전환)</span></span>
-          <label class="sound-toggle"><input type="checkbox" id="regimeAdaptToggle" checked onchange="saveRegimeAdaptSetting()"><span class="st-track"></span></label>
-        </div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px;line-height:1.5" id="regimeAdaptDesc">
-          ON: 레짐(상승/하락/횡보)에 따라 매수·매도 임계값을 자동 보정 · OFF: 고정 임계값<br><span style="color:var(--text3)">※ 보정 효과는 아직 측정되지 않았습니다.</span>
-        </div>
-      </div>
-    </div>
+  <!-- [S1092] 레짐 적응형 토글 철거 — 측정 S1091 미달 + 슬롯 on/off 동어반복(S684) -->
     <!-- S210: 조기청산 (Early Exit) — 모달 트리거 카드 -->
     <!-- [S1022] 조기청산 설정 그룹 철거 -->
   <!-- [S1090] 변동성 타깃팅 설정 카드 철거 — S1017 SSOT 통합에서 배선이 끊겨 완전 死 -->
@@ -2298,8 +2286,7 @@ const STORAGE_KEYS = Object.freeze({
   ANAL_TF:             'SX_ANAL_TF',               // 분석탭 타임프레임
 
   // ─── 레짐 / 임계값 / 안전필터 ───
-  REGIME_ADAPT:        'SX_REGIME_ADAPT',          // 적응형 레짐 ON/OFF
-  REGIME_ON_MIGRATED:  'SX_REGIME_ON_MIGRATED',    // 레짐 ON 마이그레이션 플래그
+    // [S1092] REGIME_ADAPT / REGIME_ON_MIGRATED 키 삭제
   CUSTOM_THRESHOLDS:   'SX_CUSTOM_THRESHOLDS',     // 사용자 커스텀 임계값
   SAFETY_FILTERS:      'SX_SAFETY_FILTERS',        // 안전필터 11종 ON/OFF
   // [S993] TRANS_ZONE_TH 키 삭제 (전이 구간 임계값).
@@ -2339,7 +2326,7 @@ const STORAGE_KEYS = Object.freeze({
   OPT_WEIGHTS:         'SX_OPT_WEIGHTS',           // 가중치 (수익/거래/MDD/승률/PF)
   OPT_WEIGHTS_VER:     'SX_OPT_WEIGHTS_VER',       // 가중치 스키마 버전 (현재 S292)
   OPT_TIEBREAK:        'SX_OPT_TIEBREAK',          // S98: 타이브레이커 순위
-  OPT_BEST:            'SX_OPT_BEST4',             // S211: 시장별 최고기록 (BT 결과 누적)
+  // [S1092] OPT_BEST 키 삭제 — 옵티마이저 S1020 제거
 
   // ─── 데이터 스키마 ───
   DATA_SCHEMA_VERSION: 'SX_DATA_SCHEMA_VERSION',   // 데이터 캐시 버전
@@ -3032,7 +3019,6 @@ function init(){
   updateParamHints(); // S68: 초기 TF 기본값 힌트 표시
   loadSoundSetting();
   loadParallelSetting();
-  loadRegimeAdaptSetting(); // S71: 레짐 적응형 토글 로드
   _loadPresetMode(); // S92: 3모드 프리셋 상태 로드
   if(typeof _syncParamModeButtons === 'function') _syncParamModeButtons(); // S99-5: 설정탭 모드버튼 동기화
   // [S993] loadTransZoneTh 호출 삭제.
@@ -4415,14 +4401,14 @@ function _buildScanConfig(){
     btGapGuard:     (typeof SXE !== 'undefined') ? !!SXE._btGapGuard : null,  // [S423] 갭 가드(boolean) — false도 전달돼야 하므로 !! 사용
     btTrailAtrMode: (typeof SXE !== 'undefined' && SXE._btTrailAtrMode) ? SXE._btTrailAtrMode : null,
     // S124/S125: 공용 API 경유 — 레거시 '1'/'0' 값도 자동 교정됨
-    regimeAdaptEnabled: (typeof SXE !== 'undefined' && SXE.regimeAdaptEnabled) ? SXE.regimeAdaptEnabled() : (localStorage.getItem('SX_REGIME_ADAPT')!=='off'),
+      // [S1092] regimeAdaptEnabled config 전달 철거
     // S125 → S211: 현재 시장과 매트릭스 전체를 워커에 전달 (워커는 localStorage 접근 불가)
     //   currentAnalMode: 레거시 호환용 — 엔진의 _getCurrentMode()는 _getCurrentMarketKey()로 동작
     //   currentMarket:   S211 신규 — 워커에서 SXE._workerMarket으로 사용
     //   analParamsMatrix: V2 키(SX_SCR_ANAL_PARAMS_MATRIX_V2)에서 로드 (시장 기반 매트릭스)
     currentAnalMode: (typeof _analMode !== 'undefined') ? _analMode : 'kr',
     currentMarket: (typeof currentMarket !== 'undefined') ? currentMarket : 'kr',
-    analParamsMatrix: (function(){ try { return JSON.parse(localStorage.getItem('SX_SCR_ANAL_PARAMS_MATRIX_V2')||'{}'); } catch(_){ return {}; } })(),
+      analParamsStore: (function(){ try { return JSON.parse(localStorage.getItem('SX_SCR_ANAL_PARAMS_V3')||'{}'); } catch(_){ return {}; } })(), // [S1092] 레짐 축 제거
     oracleKospi, oracleKosdaq, oracleEtf, oracleCoin, oracleUsKeys,
     stockMasterCache, marketEnvData,
     scanRange: {from: range.from, to: range.to},
@@ -4543,7 +4529,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=22');
+    _scanWorker = new Worker('sx_scan_worker.js?v=23');
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -10909,59 +10895,7 @@ function loadParallelSetting(){
   const tog = document.getElementById('parallelToggle');
   if(tog) tog.checked = on;
 }
-// S71→S100: 레짐 적응형 파라미터 (read-only UI — 옵티마이저 대표에서 자동)
-// [v3.22 REGIME-FIX] 두 가지 문제 동시 수정:
-//   1) 진동 누락: _sxVib(15) 추가 — 옵티마이저의 _optToggleRepresent와 동일한 패턴 적용
-//      (사용자가 토글 전환 시 햅틱 피드백 받도록)
-//   2) 분석탭 결과 미갱신: 토글 후 loadAnalParamsUI()는 [P] 표시만 갱신하고
-//      실제 BT 결과(승률/거래/수익/MDD)는 캐시된 이전 결과 그대로 보여주는 문제.
-//      → 옵티마이저 _optToggleRepresentCore와 동일하게 selectStockForAnalysis 또는
-//        _refreshCurrentAnalysis 트리거해서 강제 재분석
-//      이게 안 되면 사용자가 레짐 ON↔OFF 토글해도 분석탭 BT 점수가 똑같이 보여서
-//      "토글이 작동 안 한다"는 오해 발생.
-function saveRegimeAdaptSetting(){
-  _sxVib(15); // [v3.22 REGIME-FIX] 토글 액션 진동 (이전 미적용)
-  const on = document.getElementById('regimeAdaptToggle').checked;
-  if(typeof SXE!=='undefined' && SXE.setRegimeAdapt) SXE.setRegimeAdapt(on);
-  // [S254] 분석탭 토글 → 옵티마이저 게이트 UI 동기화 (양방향 동기화 완성)
-  //   배경: [S252]에서 옵티마이저 → 분석탭은 동기화 했지만, 반대 방향은 _optRegimeMode가
-  //        let 변수라 외부 접근 불가하여 누락됨.
-  //   해결: 옵티마이저가 export한 _optSyncFromRegime 함수 호출 → _optRegimeMode 변수 + 게이트 UI 갱신.
-  if(typeof window._optSyncFromRegime === 'function'){
-    try { window._optSyncFromRegime(on); } catch(_){}
-  }
-  // S125: 레짐 토글 변경 시 현재 모드의 새 레짐 좌표 슬롯 로드 → 파라미터 UI 재갱신
-  //   (매트릭스가 모드×레짐 좌표별 독립이므로 레짐 전환은 곧 슬롯 전환)
-  if(typeof loadAnalParamsUI === 'function') loadAnalParamsUI();
-  if(typeof _renderAnalModeChips === 'function') _renderAnalModeChips();
-  _updatePresetStatus();
-  // [save-safe v1] 레짐 전환 시 조건검색탭 "현재 적용 파라미터" 요약도 즉시 갱신
-  //   기존 누락: 레짐 토글하면 분석탭 UI는 갱신되는데 조건검색탭 요약은 옛 레짐 값 그대로
-  //   → 사용자가 ON 슬롯과 OFF 슬롯 차이를 즉시 확인 가능
-  if(typeof _renderScanParamSummary === 'function') _renderScanParamSummary();
-  // [S263] 분석탭 재분석 트리거 — 미정의 호출 정리 + 진짜 함수 연결
-  //   기존: window._curAnalStock + selectStockForAnalysis 모두 미정의 → 가드로 SKIP되어 no-op.
-  //         _refreshCurrentAnalysis 폴백도 미정의 → 결과적으로 재분석 안 됨.
-  //   해결: 실제 변수 currentAnalStock + 실제 함수 runAnalysis 사용.
-  //   주의: currentAnalStock은 let 변수라 window.currentAnalStock 접근 불가 → 직접 참조 + typeof 가드.
-  try {
-    if(typeof currentAnalStock !== 'undefined' && currentAnalStock && typeof runAnalysis === 'function'){
-      runAnalysis(currentAnalStock);
-    }
-  } catch(_){}
-}
-function loadRegimeAdaptSetting(){
-  _syncRegimeToggleUI();
-}
-// S100: 레짐 토글 UI 동기화 (옵티마이저 대표 레짐값 → 설정탭 표시 반영)
-//   [S218] 폴백 기본 ON — 사용자 검증 패턴 반영 (이전: false → true)
-//   사유: 적응형 레짐 ON이 기본이므로 SXE 미로드 시점에도 ON으로 표시되어야 일관됨
-function _syncRegimeToggleUI(){
-  const on = (typeof SXE!=='undefined' && SXE.regimeAdaptEnabled) ? SXE.regimeAdaptEnabled() : true;
-  const tog = document.getElementById('regimeAdaptToggle');
-  if(tog) tog.checked = on;
-  if(typeof _renderScanParamSummary === 'function') _renderScanParamSummary();
-}
+// [S1092] 레짐 토글 핸들러군 철거 (saveRegimeAdaptSetting / loadRegimeAdaptSetting / _syncRegimeToggleUI)
 
 // ── S92→S99-4: 3모드 프리셋 선택 (_analMode 사용) ──
 function selectPresetMode(mode){
@@ -10983,20 +10917,8 @@ function _applyPresetFromBest(){
   // S211: _analMode = 시장 키(kr/us/crypto)
   const mNames = {kr:'국내', us:'해외', crypto:'코인'};
   const mIcons = {kr:'🇰🇷', us:'🇺🇸', crypto:'🪙'};
-  // [v3.21 REP-SPLIT] 옵티마이저 대표 프리셋 — V4 키 + 현재 레짐 ON/OFF 분기
-  let all;
-  try { all = JSON.parse(localStorage.getItem('SX_OPT_BEST4')) || {}; } catch(_){ all = {}; }
-  const bucket = all[_analMode];
-  let entry = null;
-  if(bucket && bucket.ranks && bucket.ranks.length > 0){
-    const regOn = (typeof SXE !== 'undefined' && typeof SXE._getCurrentRegimeOn === 'function')
-                  ? SXE._getCurrentRegimeOn() : true;
-    const repId = regOn ? bucket.representOnId : bucket.representOffId;
-    if(repId){
-      entry = bucket.ranks.find(r => r.id === repId);
-    }
-    if(!entry) entry = bucket.ranks[0]; // 대표 미지정 시 1위
-  }
+      // [S1092] 옵티마이저 대표 프리셋 조회 철거 (SX_OPT_BEST4 · S1020에서 옵티마이저 제거)
+      const entry = null;
   if(entry && entry.params){
     _saveAnalParams(entry.params);
     const label = `${mIcons[_analMode]||''} ${mNames[_analMode]||''} 프리셋 적용`;
@@ -11026,20 +10948,8 @@ function _loadPresetMode(){
 function _updatePresetStatus(){
   const status = document.getElementById('modePresetStatus');
   if(!status) return;
-  // [v3.21 REP-SPLIT] V4 키 + 현재 레짐 ON/OFF 분기
-  let all;
-  try { all = JSON.parse(localStorage.getItem('SX_OPT_BEST4')) || {}; } catch(_){ all = {}; }
-  const bucket = all[_analMode];
-  let entry = null;
-  if(bucket && bucket.ranks && bucket.ranks.length > 0){
-    const regOn = (typeof SXE !== 'undefined' && typeof SXE._getCurrentRegimeOn === 'function')
-                  ? SXE._getCurrentRegimeOn() : true;
-    const repId = regOn ? bucket.representOnId : bucket.representOffId;
-    if(repId){
-      entry = bucket.ranks.find(r => r.id === repId);
-    }
-    if(!entry) entry = bucket.ranks[0];
-  }
+    // [S1092] 옵티마이저 대표 프리셋 조회 철거
+    const entry = null;
   if(entry && entry.params){
     status.textContent = `✅ ${(entry.score||0).toFixed(1)}pt`;
     status.style.color = 'var(--accent)';
@@ -11114,30 +11024,19 @@ function _renderAnalModeChips(){
   const mIcons = {kr:'🇰🇷', us:'🇺🇸', crypto:'🪙'};
   const mNames = {kr:'국내', us:'해외', crypto:'코인'};
   const mkt = currentMarket === 'coin' ? 'crypto' : currentMarket;
-  const regOn = (typeof SXE !== 'undefined' && SXE.regimeAdaptEnabled) ? SXE.regimeAdaptEnabled() : false;
-  // S211-fix: 레짐 칩 ON/OFF 시각 차별화
-  //   ON  → active 클래스 (시장 배지와 동일하게 파란 바탕 + 흰 글씨)
-  //   OFF → 회색 바탕 유지, 글씨만 진하게 (가독성 개선)
-  const regClass = regOn ? 'active' : '';
-  const regStyle = regOn
-    ? 'cursor:default'
-    : 'cursor:default;color:var(--text);font-weight:600';
+
   wrap.innerHTML = `
     <div class="anal-mode-chip active" style="cursor:default">
       ${mIcons[mkt]||''} ${mNames[mkt]||mkt}
     </div>
-    <div class="anal-mode-chip ${regClass}" style="${regStyle}">
-      ${regOn ? '⚡레짐 ON' : '⚡레짐 OFF'}
-    </div>
+
   `;
   // 상태 라벨 갱신 — 옵티마이저 슬롯 사용 중인지 표시
   const statusEl = document.getElementById('analModeStatus');
   if(statusEl){
-    try {
-      const matrix = (typeof SXE !== 'undefined' && SXE._loadParamsMatrix) ? SXE._loadParamsMatrix() : {};
-      const slot = matrix[mkt] && matrix[mkt][regOn ? 'on' : 'off'];
-      statusEl.textContent = (slot && slot.buyTh > 0) ? '슬롯' : '기본값';
-    } catch(_){ statusEl.textContent = ''; }
+      try {
+        statusEl.textContent = (typeof SXE!=='undefined' && SXE._hasSlotOverride && SXE._hasSlotOverride(mkt)) ? '슬롯' : '기본값';
+      } catch(_){ statusEl.textContent = ''; }
   }
 }
 
@@ -11523,46 +11422,14 @@ function _selectParamMode(mode){
     el.classList.toggle('active', el.classList.contains('m-'+mode));
   });
 
-  // [v3.21 REP-SPLIT] V4 키 + 현재 레짐 ON/OFF 분기로 대표 프리셋 조회
-  let all;
-  try { all = JSON.parse(localStorage.getItem('SX_OPT_BEST4')) || {}; } catch(_){ all = {}; }
-  const bucket = all[mode];
-  let entry = null;
-  if(bucket && bucket.ranks && bucket.ranks.length > 0){
-    const curRegOn = (typeof SXE !== 'undefined' && typeof SXE._getCurrentRegimeOn === 'function')
-                     ? SXE._getCurrentRegimeOn() : true;
-    const repId = curRegOn ? bucket.representOnId : bucket.representOffId;
-    if(repId) entry = bucket.ranks.find(r => r.id === repId);
-    if(!entry) entry = bucket.ranks[0];
-  }
-  const mNames = {kr:'국내', us:'해외', crypto:'코인'};
-  const mIcons = {kr:'🇰🇷', us:'🇺🇸', crypto:'🪙'};
-  if(entry && entry.params){
-    // S125: entry.regime 좌표 슬롯에 저장 + 전역 레짐을 entry.regime에 맞춤
-    const regOn = (entry.regime === 'ON' || entry.regime === true);
-    if(typeof SXE !== 'undefined' && SXE.setRegimeAdapt) SXE.setRegimeAdapt(regOn);
-    if(typeof _syncRegimeToggleUI === 'function') _syncRegimeToggleUI();
-    if(typeof SXE !== 'undefined' && SXE._saveSlotParams){
-      SXE._saveSlotParams(mode, regOn, entry.params);
-    }
-    _saveAnalParams(entry.params); // 매트릭스 현재 좌표에 저장
-    loadAnalParamsUI();
-    toast(`${mIcons[mode]} ${mNames[mode]} 프리셋 적용 (${(entry.score||0).toFixed(1)}pt)`);
-  } else {
-    // S125: 프리셋 없음 → 현재 레짐 좌표의 슬롯 또는 하드코딩 기본값 로드
-    const regOn = (typeof SXE !== 'undefined' && SXE.regimeAdaptEnabled) ? SXE.regimeAdaptEnabled() : false;
+    // [S1092] 옵티마이저 대표 프리셋(SX_OPT_BEST4·S1020 제거) + 레짐 좌표 철거 → 시장 슬롯/기본값만
+    const mNames = {kr:'국내', us:'해외', crypto:'코인'};
     let params;
-    if(typeof SXE !== 'undefined' && SXE._getSlotParams){
-      params = SXE._getSlotParams(mode, regOn); // 매트릭스 → 하드코딩 폴백 자동
-    } else if(typeof _getMarketRegimeDefaults === 'function'){
-      params = _getMarketRegimeDefaults(mode, regOn);
-    } else {
-      params = (typeof SCR_ANAL_DEFAULTS !== 'undefined') ? SCR_ANAL_DEFAULTS : {};
-    }
+    if(typeof SXE !== 'undefined' && SXE._getSlotParams){ params = SXE._getSlotParams(mode); }
+    else { params = (typeof SCR_ANAL_DEFAULTS !== 'undefined') ? SCR_ANAL_DEFAULTS : {}; }
     _saveAnalParams({...params});
     loadAnalParamsUI();
-    toast(`${mNames[mode]} 프리셋 없음 — 슬롯[${mode}.${regOn?'on':'off'}] 기본값 표시`);
-  }
+    toast(`${mNames[mode]||mode} 기본 파라미터 적용`);
   _syncParamModeButtons();
   _updatePresetStatus();
   // 분석탭 모드칩도 동기화
@@ -11644,11 +11511,7 @@ function updateAnalParamBadge(){
   const p = _loadAnalParams();
   const d = SCR_ANAL_DEFAULTS;
   const isDefault = p.rsiLen===d.rsiLen && p.bbLen===d.bbLen && p.bbMult===d.bbMult && p.atrLen===d.atrLen && p.maShort===d.maShort && p.maMid===d.maMid && p.maLong===d.maLong && p.buyTh===d.buyTh && p.sellTh===d.sellTh && (p.tpMult||0)===d.tpMult && (p.slMult||0)===d.slMult;
-  // S???: 현재 레짐 ON/OFF 상태 표시 (배지 우측 접두사)
-  const regimeOn = (typeof SXE !== 'undefined' && SXE.regimeAdaptEnabled) ? SXE.regimeAdaptEnabled() : false;
-  const regimeTag = regimeOn
-    ? '<span style="display:inline-block;padding:1px 5px;margin-right:5px;border-radius:3px;background:var(--accent);color:#fff;font-size:9px;font-weight:700">레짐 ON</span>'
-    : '<span style="display:inline-block;padding:1px 5px;margin-right:5px;border-radius:3px;background:var(--surface2);color:var(--text3);font-size:9px;font-weight:700;border:1px solid var(--border)">레짐 OFF</span>';
+    const regimeTag = ''; // [S1092] 레짐 배지 철거
   if(isDefault){
     el.className = 'param-badge default';
     el.innerHTML = regimeTag + '기본값 사용중';
@@ -11694,13 +11557,10 @@ async function _resetSlotsToDefaults(){
     if(typeof toast === 'function') toast('❌ 리셋 함수 미로드');
     return;
   }
-  // 현재 시장 + 레짐 정보
-  const _curMkt = (typeof currentMarket !== 'undefined')
-    ? (currentMarket === 'coin' ? 'crypto' : currentMarket)
-    : 'kr';
-  const regimeOn = (typeof SXE !== 'undefined' && SXE.regimeAdaptEnabled) ? SXE.regimeAdaptEnabled() : false;
-  const mktName = { kr:'국내', us:'해외', crypto:'코인' }[_curMkt] || _curMkt;
-  const regTag = regimeOn ? '레짐 ON' : '레짐 OFF';
+    const _curMkt = (typeof currentMarket !== 'undefined')
+      ? (currentMarket === 'coin' ? 'crypto' : currentMarket)
+      : 'kr';
+    const mktName = { kr:'국내', us:'해외', crypto:'코인' }[_curMkt] || _curMkt;
   const totalSlots = SXE._countMarketSlots('kr') + SXE._countMarketSlots('us') + SXE._countMarketSlots('crypto');
 
   // 3단계 선택 다이얼로그 (confirm 체이닝)
@@ -11717,36 +11577,19 @@ async function _resetSlotsToDefaults(){
   let result = false;
   let msg = '';
   switch(choice.trim()){
-    case '1':
-      result = SXE._resetSlotToDefault(_curMkt, regimeOn);
-      msg = result ? `✓ ${mktName} ${regTag} 기본값 복원` : `${mktName} ${regTag}: 이미 기본값`;
-      break;
-    case '2':
-      result = SXE._resetMarketSlotsToDefault(_curMkt);
-      msg = result ? `✓ ${mktName} 시장 전체 기본값 복원` : `${mktName}: 이미 기본값`;
-      break;
+      case '1':
+        result = SXE._resetSlotToDefault(_curMkt);
+        msg = result ? `✓ ${mktName} 기본값 복원` : `${mktName}: 이미 기본값`;
+        break;
+      case '2':
+        result = SXE._resetSlotToDefault(_curMkt);
+        msg = result ? `✓ ${mktName} 기본값 복원` : `${mktName}: 이미 기본값`;
+        break;
     case '3':
       if(!await sxConfirm('⚠️ 모든 시장 6칸 슬롯을 모두 초기화합니다.\n\n옵티마이저로 저장한 모든 값 + 대표 ★ 표식이 사라집니다.\n계속하시겠습니까?')) return;
       result = SXE._resetAllSlotsToDefault();
       // 모든 시장 대표 ★ 해제 (ON/OFF 양쪽 모두)
-      //   현재 사양: V4 키 + representOnId + representOffId 모두 null로 설정
-      //   〔이력〕 [S176-fix] 시점에 V3 키(SX_OPT_BEST3)를 만지던 코드가 무의미했고,
-      //     [S176-fix2]에서 V4 키로 변경됐으나 representId 단일 키만 해제 → v3.21 분리 후 무효
-      //     (수정됨 — ON/OFF 양쪽 명시적 해제)
-      try {
-        const _OPT_BEST_KEY = 'SX_OPT_BEST4'; // sx_optimizer.js의 OPT_BEST_KEY_V4와 동일
-        const all = JSON.parse(localStorage.getItem(_OPT_BEST_KEY) || '{}');
-        let _starCleared = 0;
-        Object.keys(all).forEach(mkt => {
-          if(!all[mkt]) return;
-          if(all[mkt].representOnId){ all[mkt].representOnId = null; _starCleared++; }
-          if(all[mkt].representOffId){ all[mkt].representOffId = null; _starCleared++; }
-        });
-        localStorage.setItem(_OPT_BEST_KEY, JSON.stringify(all));
-        if(_starCleared > 0){
-          console.log(`[S176-fix2] 전체 초기화 — 대표 ★ ${_starCleared}개 함께 해제 (V4 키, ON/OFF)`);
-        }
-      } catch(e){ console.warn('[S176-fix2] 대표 해제 예외:', e.message); }
+      // [S1092] 옵티마이저 대표 ★ 해제 철거 (SX_OPT_BEST4 · S1020 제거)
       // 옵티마이저 카드도 즉시 갱신 (★ 표시 사라지게)
       if(typeof window._optRenderBestCards === 'function'){
         try { window._optRenderBestCards(); } catch(_){}
@@ -11774,8 +11617,6 @@ function _renderScanParamSummary(){
   const _curMkt = (typeof currentMarket !== 'undefined')
     ? (currentMarket === 'coin' ? 'crypto' : currentMarket)
     : 'kr';
-  // 레짐 상태 (현재 설정)
-  const regimeOn = (typeof SXE !== 'undefined' && SXE.regimeAdaptEnabled) ? SXE.regimeAdaptEnabled() : false;
   const _tf = (typeof _analTF !== 'undefined') ? _analTF : 'day';
   const _tfTh = (typeof _scrTfTh !== 'undefined') ? _scrTfTh(_tf) : {buy:62,sell:38};
   const _tfMa = (typeof _scrTfMa !== 'undefined') ? _scrTfMa(_tf) : {short:5,mid:20,long:60};
@@ -11798,48 +11639,9 @@ function _renderScanParamSummary(){
     let params = null;
     let src = '기본값';
     let srcClr = 'var(--text3)';
-    // [v3.21 REP-SPLIT FIX] V4 옵티마이저 대표 우선 (시장 버킷)
-    //   현재 사양: 현재 레짐 상태에 맞춰 representOnId / representOffId 조회
-    //     · 레짐 ON: representOnId
-    //     · 레짐 OFF: representOffId
-    try {
-      const all = JSON.parse(localStorage.getItem('SX_OPT_BEST4') || '{}');
-      const bucket = all[mkt];
-      if(bucket && bucket.ranks){
-        const repField = regimeOn ? 'representOnId' : 'representOffId';
-        const repId = bucket[repField];
-        if(repId){
-          const rep = bucket.ranks.find(r => r.id === repId);
-          if(rep && rep.params){ params = rep.params; src = '대표'; srcClr = 'var(--accent)'; }
-        }
-      }
-    } catch(_){}
-    // S211: 대표 없으면 매트릭스 슬롯 조회 (현재 시장+레짐 좌표)
-    if(!params && typeof SXE !== 'undefined' && SXE._getSlotParams){
-      const slot = SXE._getSlotParams(mkt, regimeOn);
-      if(slot && slot.buyTh > 0){
-        // 매트릭스 슬롯과 하드코딩 기본값을 구분 — _loadParamsMatrix로 직접 확인
-        try {
-          const matrix = (SXE._loadParamsMatrix) ? SXE._loadParamsMatrix() : {};
-          const regKey = regimeOn ? 'on' : 'off';
-          if(matrix[mkt] && matrix[mkt][regKey] && matrix[mkt][regKey].buyTh > 0){
-            params = slot; src = '슬롯'; srcClr = 'var(--accent)';
-          }
-        } catch(_){}
-      }
-    }
-    if(!params){
-      // 하드코딩: 시장+레짐 조합
-      if(typeof SXE !== 'undefined' && typeof SXE._getMarketRegimeDefaults === 'function'){
-        params = SXE._getMarketRegimeDefaults(mkt, regimeOn);
-      } else if(typeof _getMarketRegimeDefaults === 'function'){
-        params = _getMarketRegimeDefaults(mkt, regimeOn);
-      } else if(typeof SCR_ANAL_MARKET_DEFAULTS !== 'undefined' && SCR_ANAL_MARKET_DEFAULTS[mkt]){
-        params = SCR_ANAL_MARKET_DEFAULTS[mkt];
-      } else {
-        params = SCR_ANAL_DEFAULTS;
-      }
-    }
+      // [S1092] 대표 프리셋·레짐 좌표 분기 철거 → 시장 슬롯/기본값
+      params = (typeof SXE !== 'undefined' && SXE._getSlotParams) ? SXE._getSlotParams(mkt) : SCR_ANAL_DEFAULTS;
+      if(typeof SXE !== 'undefined' && SXE._hasSlotOverride && SXE._hasSlotOverride(mkt)){ src = '슬롯'; srcClr = 'var(--accent)'; }
     const pStr = _fullStr(params);
     const bold = isCur ? 'font-weight:700;color:var(--text)' : 'color:var(--text2)';
     html += `<div style="${bold};margin-bottom:2px">${isCur?'▸ ':'&nbsp;&nbsp;'}${mktIcons[mkt]} ${mktNames[mkt]} ${pStr} <span style="font-size:8px;color:${srcClr};font-weight:700">${src}</span></div>`;
@@ -12089,7 +11891,6 @@ function _sxcToggleRegimeLog(){
 }
 
 // [v3.23 LOG-BTN] 레짐 진단 로그 HTML 렌더러
-//   - 현재 레짐 상태 (SXE.regimeAdaptEnabled)
 //   - 현재 분석 종목의 BT 캐시 상태 (_btResult 존재 여부)
 //   - 매트릭스 슬롯 현황 (시장.on/off에 옵티마이저 값 있는지)
 //   - 레짐 관련 로그만 필터링 (v3.22/v3.23/REGIME-FIX/REP-SPLIT/S211 태그)
@@ -12100,9 +11901,7 @@ function _sxcBuildRegimeLogHTML(){
   const LABEL_STYLE = 'color:var(--text2);flex-shrink:0';
   const VAL_STYLE = 'font-weight:600;font-family:Outfit,monospace;text-align:right;word-break:break-all';
 
-  // 1. 현재 레짐 상태
-  const _raOn = (typeof SXE !== 'undefined' && SXE.regimeAdaptEnabled) ? SXE.regimeAdaptEnabled() : false;
-  lines.push(`<div style="${ROW_STYLE}"><span style="${LABEL_STYLE}">레짐 적응형</span><span style="${VAL_STYLE};color:${_raOn?'var(--buy)':'var(--text3)'}">${_raOn ? '⚡ ON (봉별 보정)' : '⚡ OFF (고정 슬롯)'}</span></div>`);
+    // [S1092] 레짐 상태 표시 철거
 
   // 2. 현재 분석 종목 + BT 캐시 상태
   const _stock = typeof currentAnalStock !== 'undefined' && currentAnalStock ? currentAnalStock : null;
@@ -12118,22 +11917,7 @@ function _sxcBuildRegimeLogHTML(){
     lines.push(`<div style="${ROW_STYLE}"><span style="${LABEL_STYLE}">분석 종목</span><span style="${VAL_STYLE};color:var(--text3)">선택 안됨</span></div>`);
   }
 
-  // 3. 옵티마이저 매트릭스 슬롯 현황 (현재 시장 기준)
-  try {
-    const matrix = (typeof SXE !== 'undefined' && SXE._loadParamsMatrix) ? SXE._loadParamsMatrix() : {};
-    const curMkt = (typeof currentMarket !== 'undefined') ? (currentMarket === 'coin' ? 'crypto' : currentMarket) : 'kr';
-    const slotOn = matrix[curMkt] && matrix[curMkt].on;
-    const slotOff = matrix[curMkt] && matrix[curMkt].off;
-    const _onVal = (slotOn && slotOn.buyTh > 0) ? `B${slotOn.buyTh} S${slotOn.sellTh} TP${slotOn.tpMult} SL${slotOn.slMult}` : '비어있음 (기본값 사용)';
-    const _offVal = (slotOff && slotOff.buyTh > 0) ? `B${slotOff.buyTh} S${slotOff.sellTh} TP${slotOff.tpMult} SL${slotOff.slMult}` : '비어있음 (기본값 사용)';
-    lines.push(`<div style="${ROW_STYLE}"><span style="${LABEL_STYLE}">${curMkt}.on 슬롯</span><span style="${VAL_STYLE};font-size:9px;color:${slotOn&&slotOn.buyTh>0?'var(--buy)':'var(--text3)'}">${_onVal}</span></div>`);
-    lines.push(`<div style="${ROW_STYLE}"><span style="${LABEL_STYLE}">${curMkt}.off 슬롯</span><span style="${VAL_STYLE};font-size:9px;color:${slotOff&&slotOff.buyTh>0?'var(--buy)':'var(--text3)'}">${_offVal}</span></div>`);
-    // 두 슬롯 동일 여부 — 동일하면 ON/OFF 결과가 base는 같으나 ON일 때 봉별 보정으로 차이 발생해야 함
-    if(slotOn && slotOff && slotOn.buyTh > 0 && slotOff.buyTh > 0){
-      const _sameBase = slotOn.buyTh === slotOff.buyTh && slotOn.sellTh === slotOff.sellTh && slotOn.tpMult === slotOff.tpMult && slotOn.slMult === slotOff.slMult;
-      lines.push(`<div style="${ROW_STYLE}"><span style="${LABEL_STYLE}">두 슬롯 동일?</span><span style="${VAL_STYLE};color:${_sameBase?'#ff8c00':'var(--buy)'}">${_sameBase ? '⚠ 동일 (ON 보정으로만 차이)' : '✓ 다름 (base 자체가 다름)'}</span></div>`);
-    }
-  } catch(_){}
+    // [S1092] 매트릭스 슬롯 현황(시장×레짐 6칸) 철거
 
   // 4. 트리거 함수/변수 가용성 진단
   const _hasFn = typeof runAnalysis === 'function';
