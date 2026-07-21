@@ -3050,24 +3050,7 @@ self.onmessage = function (e) {
       }
       break;
     }
-    // ─── [S304] 변동성 타깃팅 설정 동기화 ───
-    //   메인 스레드(sx_screener.html)에서 SXS.setVolTargetSettings 호출 후
-    //   워커에도 동일 설정 push → SXE._volTargetCache 갱신.
-    //   설계: 워커는 localStorage 접근 불가 → 메인이 변경 시마다 명시적 sync 필요.
-    //   호출 시점:
-    //     · 메인 페이지 로드 시 (초기 1회)
-    //     · 모달 saveVolTargetModal 시 (사용자 변경 후)
-    case 'vol_target_sync': {
-      try {
-        if(typeof SXE !== 'undefined' && SXE._volTargetSetWorker){
-          SXE._volTargetSetWorker(msg.settings || null);
-        }
-      } catch (err) {
-        // 조용히 실패 (BT는 OFF로 동작, 위험 없음)
-        console.warn('[S304] vol_target_sync 실패:', err && err.message);
-      }
-      break;
-    }
+    // [S1090] 변동성 타깃팅 동기화(vol_target_sync) 철거 — 기능이 S1017 SSOT 통합에서 배선 끊겨 완전 死.
     // ─── [FUTURE-1] case 누락 진단용 — Worker의 모든 필터 처리 함수에서 case 토큰 수집해 회신 ───
     //   메인 스레드의 SXTechCasesCheck()와 짝을 이루어 양쪽 case 목록을 비교 가능하게 함.
     //   주의: Worker는 case를 4개 함수로 분산 처리(checkTechConditions / passFilters /
