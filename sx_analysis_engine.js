@@ -120,44 +120,16 @@ const SCR_ANAL_MARKET_DEFAULTS = {
   us:     { rsiLen:14, bbLen:20, bbMult:2.0, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:25, sellTh:15, tpMult:9.0, slMult:3.0 },  // [S684]
   crypto: { rsiLen:14, bbLen:9,  bbMult:2.1, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:35, sellTh:25, tpMult:3.0, slMult:1.0 }   // [S684]
 };
-// S211: 시장×레짐 6개 조합별 기본값
-// [v3.24-defaults] 시장 특성 기반 정합성 있는 표준값
-//   ON  슬롯: 추세장 진입 (적극)
-//   OFF 슬롯: 횡보/약세장 (보수: buyTh ↑, sellTh ↓, tpMult ↓, slMult ↑)
-//   sellTh ON 38 / OFF 35 통일 (v3.17 fix 호환)
-const SCR_ANAL_MARKET_REGIME_DEFAULTS = {
-  // [S684] buyTh/sellTh −10 (가벼운 바닥). on/off 동일값. 레짐 동적보정은 regimeAdapt가 봉별로 별도 가산.
-  kr: {
-    on:  { rsiLen:14, bbLen:14, bbMult:1.9, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:30, sellTh:20, tpMult:6.0, slMult:2.0 },
-    off: { rsiLen:14, bbLen:14, bbMult:1.9, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:30, sellTh:20, tpMult:6.0, slMult:2.0 }
-  },
-  us: {
-    on:  { rsiLen:14, bbLen:20, bbMult:2.0, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:25, sellTh:15, tpMult:9.0, slMult:3.0 },
-    off: { rsiLen:14, bbLen:20, bbMult:2.0, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:25, sellTh:15, tpMult:9.0, slMult:3.0 }
-  },
-  crypto: {
-    on:  { rsiLen:14, bbLen:9,  bbMult:2.1, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:35, sellTh:25, tpMult:3.0, slMult:1.0 },
-    off: { rsiLen:14, bbLen:9,  bbMult:2.1, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:35, sellTh:25, tpMult:3.0, slMult:1.0 }
-  }
-};
+// [S1092] 시장×레짐 6칸 기본값 철거 — S684에서 on/off를 전 시장 동일값으로 통일한 뒤
+//   레짐 축이 이미 동어반복이었다(측정 S1091: 매수판정 변경 1만봉당 3건). SCR_ANAL_MARKET_DEFAULTS 단일로 일원화.
 
 // ── 하위호환 alias (점진적 제거 예정) ──
 //   기존 코드가 SCR_ANAL_MODE_DEFAULTS / SCR_ANAL_MODE_REGIME_DEFAULTS를 참조하는 부분을
 //   한 번에 다 못 바꿀 수 있어, 신규 키와 동일 객체를 가리키게 별칭 부여.
 //   참조 깨짐 방지용 — 새 코드 작성 시에는 SCR_ANAL_MARKET_*를 사용.
 const SCR_ANAL_MODE_DEFAULTS = SCR_ANAL_MARKET_DEFAULTS;
-const SCR_ANAL_MODE_REGIME_DEFAULTS = SCR_ANAL_MARKET_REGIME_DEFAULTS;
 
-// S211: 시장+레짐으로 기본값 조회 (market: kr/us/crypto, regimeOn: true/false)
-function _getMarketRegimeDefaults(market, regimeOn) {
-  const m = SCR_ANAL_MARKET_REGIME_DEFAULTS[market];
-  if(!m) return SCR_ANAL_DEFAULTS;
-  return regimeOn ? m.on : m.off;
-}
-// 하위호환 alias — 기존 코드가 _getModeRegimeDefaults('profit', true) 같이 호출할 가능성
-function _getModeRegimeDefaults(mode, regimeOn) {
-  return _getMarketRegimeDefaults(mode, regimeOn);
-}
+// [S1092] 시장×레짐 기본값 조회 철거 — SCR_ANAL_MARKET_DEFAULTS 직접 사용
 // S211: 현재 적용 프리셋 출처 라벨 생성 — 시장 기준
 function _getPresetSourceLabel() {
   const mIcons = {kr:'🇰🇷',us:'🇺🇸',crypto:'🪙'};
@@ -166,24 +138,7 @@ function _getPresetSourceLabel() {
   //   '4h'는 레거시 키 호환용으로 유지. 시스템 표준 키는 '240m'.
   const tfLabels = {'30m':'30분','60m':'60분','240m':'4시간','4h':'4시간','day':'일봉','week':'주봉','month':'월봉'};
   const market = _getCurrentMarketKey();
-  // 옵티마이저 대표 프리셋 확인 — 시장 키 + 현재 레짐 기준 ON/OFF 분기
-  //   [v3.21 REP-SPLIT] representOnId / representOffId 분리 (시장당 ON 대표 + OFF 대표)
-  try {
-    const all = JSON.parse(localStorage.getItem('SX_OPT_BEST4') || '{}');
-    const bucket = all[market];
-    if (bucket && bucket.ranks) {
-      const regOn = _getCurrentRegimeOn();
-      const repId = regOn ? bucket.representOnId : bucket.representOffId;
-      if (repId) {
-        const rep = bucket.ranks.find(r => r.id === repId);
-        if (rep) {
-          const tfs = rep.tfs ? rep.tfs.map(t => tfLabels[t] || t).join('+') : (tfLabels[rep.tf] || rep.tf || '');
-          const regime = regOn ? '⚡ON' : '⚡OFF';
-          return `${mIcons[market]||''} ${mNames[market]||''} ${tfs} ${regime}`;
-        }
-      }
-    }
-  } catch(_){}
+  // [S1092] 옵티마이저 대표 프리셋(SX_OPT_BEST4·S1020 제거) + 레짐 ON/OFF 분기 철거
   // 대표 프리셋 없으면 기본 하드코딩 표시
   return `${mIcons[market]||''} ${mNames[market]||''} 기본값`;
 }
@@ -214,7 +169,7 @@ const SCR_ANAL_MAX_SLOTS = 5;
 //
 //   [폴백 체인]
 // S211: market(kr/us/crypto) 기반 매트릭스 키
-const SCR_ANAL_PARAMS_MATRIX_KEY = 'SX_SCR_ANAL_PARAMS_MATRIX_V2';
+const SCR_ANAL_PARAMS_MATRIX_KEY_LEGACY = 'SX_SCR_ANAL_PARAMS_MATRIX_V2'; // [S1092] 삭제 전용(과거 사용자 잔재 정리)
 
 // S211: 현재 시장 키 조회 — currentMarket(kr/us/coin) → 슬롯 키(kr/us/crypto) 매핑
 //   coin → crypto 변환만 주의. 그 외엔 그대로 사용.
@@ -235,154 +190,66 @@ function _getCurrentMode(){
   return _getCurrentMarketKey();
 }
 
-// 현재 레짐 ON/OFF 조회 (순환참조 방지: SXE.regimeAdaptEnabled 정의 이전에도 동작해야 함)
-function _getCurrentRegimeOn(){
-  // 워커 환경에서는 SXE._workerRegimeOn 우선
-  if(typeof SXE !== 'undefined' && typeof SXE._workerRegimeOn === 'boolean') return SXE._workerRegimeOn;
-  try {
-    const v = localStorage.getItem('SX_REGIME_ADAPT');
-    if(v === '1' || v === '0') return v === '1';
-    return v !== 'off';
-  } catch(_){ return true; }
-}
+// [S1092] ★레짐 축 철거 — 시장별 단일 파라미터 슬롯으로 일원화.
+//   근거: (1) 하드코딩 on/off가 S684부터 전 시장 동일값 = 조회 결과가 항상 같음
+//         (2) 매트릭스 쓰기 경로가 옵티마이저(SX_OPT_BEST4·S1020 제거)에 묶여 사실상 막힘
+//         (3) 남은 유일 효과 regimeAdapt 봉별 가산 = 측정 S1091에서 매수판정 변경 1만봉당 3건(n 미달)
+//   수동 파라미터 편집은 살아있는 기능이라 시장별 단일 스토어로 보존한다.
+const SCR_ANAL_PARAMS_STORE_KEY = 'SX_SCR_ANAL_PARAMS_V3';
 
-// S211: 레거시 마이그레이션 함수 제거됨 (이전 사용자 없음 — 마이그레이션 정책 폐기)
-
-// 매트릭스 전체 로드 (빈 객체 안전 반환)
-function _loadParamsMatrix(){
-  // S125: 워커 환경에서는 SXE._workerMatrix 우선
-  if(typeof SXE !== 'undefined' && SXE._workerMatrix && typeof SXE._workerMatrix === 'object'){
-    return SXE._workerMatrix;
+function _loadParamsStore(){
+  if(typeof SXE !== 'undefined' && SXE._workerParamsStore && typeof SXE._workerParamsStore === 'object'){
+    return SXE._workerParamsStore;
   }
   try {
-    const raw = localStorage.getItem(SCR_ANAL_PARAMS_MATRIX_KEY);
+    const raw = localStorage.getItem(SCR_ANAL_PARAMS_STORE_KEY);
     if(raw){ const obj = JSON.parse(raw); if(obj && typeof obj === 'object') return obj; }
   } catch(_){}
   return {};
 }
-function _saveParamsMatrix(matrix){
-  try { localStorage.setItem(SCR_ANAL_PARAMS_MATRIX_KEY, JSON.stringify(matrix||{})); } catch(_){}
+function _saveParamsStore(store){
+  try { localStorage.setItem(SCR_ANAL_PARAMS_STORE_KEY, JSON.stringify(store||{})); } catch(_){}
 }
-
-// 특정 (market, regimeOn) 좌표의 슬롯 파라미터 조회 — 폴백 체인 ①②③ 순차 시도
-//   하위호환: 첫 인자가 모드 키(profit/balanced/safe)일 경우 자동 매핑
-function _getSlotParams(marketOrMode, regimeOn){
-  const regKey = regimeOn ? 'on' : 'off';
-  // 모드 키 → 시장 키 자동 변환 (레거시 호출자 호환)
+// 시장 기본값 (레짐 축 없음)
+function _getMarketDefaults(marketOrMode){
   const _legacyMap = { profit:'crypto', balanced:'kr', safe:'us' };
   const market = _legacyMap[marketOrMode] || marketOrMode;
-  // ① 매트릭스 저장값 (buyTh>0 이어야 유효로 간주)
-  const matrix = _loadParamsMatrix();
-  const slot = matrix[market] && matrix[market][regKey];
-  if(slot && typeof slot === 'object' && slot.buyTh > 0){
-    return { ...SCR_ANAL_DEFAULTS, ...slot };
-  }
-  // ② 시장×레짐 하드코딩 기본값
-  const def = SCR_ANAL_MARKET_REGIME_DEFAULTS[market] && SCR_ANAL_MARKET_REGIME_DEFAULTS[market][regKey];
-  if(def){ return { ...SCR_ANAL_DEFAULTS, ...def }; }
-  // ③ 최종 폴백
-  return { ...SCR_ANAL_DEFAULTS };
+  const def = SCR_ANAL_MARKET_DEFAULTS[market];
+  return def ? { ...SCR_ANAL_DEFAULTS, ...def } : { ...SCR_ANAL_DEFAULTS };
 }
-
-// 특정 (market, regimeOn) 좌표에 파라미터 저장
-function _saveSlotParams(marketOrMode, regimeOn, params){
-  // [S213] 반환값 추가 — 호출 측이 성공 여부 판정 가능
-  //   〔이력〕 이전: return 없이 끝남 → undefined → !undefined → true → 거짓 "저장 실패" 토스트 (수정됨)
-  //   현재: try-catch로 _saveParamsMatrix 실패도 잡아 정확히 판정
+// 저장 슬롯 우선 → 없으면 시장 기본값
+function _getSlotParams(marketOrMode){
+  const _legacyMap = { profit:'crypto', balanced:'kr', safe:'us' };
+  const market = _legacyMap[marketOrMode] || marketOrMode;
+  const slot = _loadParamsStore()[market];
+  if(slot && typeof slot === 'object' && slot.buyTh > 0) return { ...SCR_ANAL_DEFAULTS, ...slot };
+  return _getMarketDefaults(market);
+}
+function _saveSlotParams(marketOrMode, params){
   if(!params || typeof params !== 'object') return false;
   const _legacyMap = { profit:'crypto', balanced:'kr', safe:'us' };
   const market = _legacyMap[marketOrMode] || marketOrMode;
-  const regKey = regimeOn ? 'on' : 'off';
-  try {
-    const matrix = _loadParamsMatrix();
-    if(!matrix[market]) matrix[market] = {};
-    matrix[market][regKey] = { ...params };
-    _saveParamsMatrix(matrix);
-    return true;
-  } catch(e){
-    console.warn('[_saveSlotParams] 저장 실패:', e);
-    return false;
-  }
+  try { const st = _loadParamsStore(); st[market] = { ...params }; _saveParamsStore(st); return true; }
+  catch(e){ console.warn('[_saveSlotParams] 저장 실패:', e); return false; }
 }
-
-// ════════════════════════════════════════════════════════════
-// [S176] 슬롯 기본값 복원 함수들
-//   목적: 옵티마이저로 저장된 매트릭스 슬롯을 비워서
-//         하드코딩 기본값(SCR_ANAL_MARKET_REGIME_DEFAULTS)을 다시 사용하게 함
-//   3가지 범위:
-//     - _resetSlotToDefault(market, regimeOn) — 1칸만 (현재 좌표)
-//     - _resetMarketSlotsToDefault(market) — 시장 전체 (on+off 2칸)
-//     - _resetAllSlotsToDefault() — 모든 시장 6칸 전부
-//   호출 후 _loadAnalParams()는 자동으로 ② 하드코딩 기본값 사용
-// ════════════════════════════════════════════════════════════
-function _resetSlotToDefault(marketOrMode, regimeOn){
+function _resetSlotToDefault(marketOrMode){
   const _legacyMap = { profit:'crypto', balanced:'kr', safe:'us' };
   const market = _legacyMap[marketOrMode] || marketOrMode;
-  const regKey = regimeOn ? 'on' : 'off';
-  const matrix = _loadParamsMatrix();
-  if(matrix[market] && matrix[market][regKey]){
-    delete matrix[market][regKey];
-    // 시장 객체가 비었으면 시장 키 자체도 정리 (선택)
-    if(matrix[market] && Object.keys(matrix[market]).length === 0){
-      delete matrix[market];
-    }
-    _saveParamsMatrix(matrix);
-    return true;
-  }
+  const st = _loadParamsStore();
+  if(st[market]){ delete st[market]; _saveParamsStore(st); return true; }
   return false;
 }
-
-function _resetMarketSlotsToDefault(marketOrMode){
+function _resetAllSlotsToDefault(){ _saveParamsStore({}); return true; }
+function _hasSlotOverride(marketOrMode){
   const _legacyMap = { profit:'crypto', balanced:'kr', safe:'us' };
   const market = _legacyMap[marketOrMode] || marketOrMode;
-  const matrix = _loadParamsMatrix();
-  if(matrix[market]){
-    delete matrix[market];
-    _saveParamsMatrix(matrix);
-    return true;
-  }
-  return false;
-}
-
-function _resetAllSlotsToDefault(){
-  _saveParamsMatrix({}); // 매트릭스 통째로 비움
-  return true;
-}
-
-// 슬롯 존재 여부 조회 (UI 상태 표시용)
-function _hasSlotOverride(marketOrMode, regimeOn){
-  const _legacyMap = { profit:'crypto', balanced:'kr', safe:'us' };
-  const market = _legacyMap[marketOrMode] || marketOrMode;
-  const regKey = regimeOn ? 'on' : 'off';
-  const matrix = _loadParamsMatrix();
-  const slot = matrix[market] && matrix[market][regKey];
+  const slot = _loadParamsStore()[market];
   return !!(slot && typeof slot === 'object' && slot.buyTh > 0);
 }
+function _countMarketSlots(marketOrMode){ return _hasSlotOverride(marketOrMode) ? 1 : 0; }
 
-// 시장의 슬롯 개수 (0/1/2)
-function _countMarketSlots(marketOrMode){
-  const _legacyMap = { profit:'crypto', balanced:'kr', safe:'us' };
-  const market = _legacyMap[marketOrMode] || marketOrMode;
-  const matrix = _loadParamsMatrix();
-  if(!matrix[market]) return 0;
-  let n = 0;
-  if(matrix[market].on && matrix[market].on.buyTh > 0) n++;
-  if(matrix[market].off && matrix[market].off.buyTh > 0) n++;
-  return n;
-}
-
-function _loadAnalParams() {
-  // 매트릭스 우선 — 현재 시장/레짐 좌표의 슬롯 반환
-  const market = _getCurrentMarketKey();
-  const regOn = _getCurrentRegimeOn();
-  return _getSlotParams(market, regOn);
-}
-function _saveAnalParams(p) {
-  // 매트릭스 현재 좌표에 저장 (S211: 레거시 단일 키 미러링 폐기)
-  const market = _getCurrentMarketKey();
-  const regOn = _getCurrentRegimeOn();
-  _saveSlotParams(market, regOn, p);
-}
+function _loadAnalParams(){ return _getSlotParams(_getCurrentMarketKey()); }
+function _saveAnalParams(p){ _saveSlotParams(_getCurrentMarketKey(), p); }
 // S77 → S211: 시장별 슬롯 배열 로드 (kr/us/crypto 키)
 //   coin → crypto 매핑은 호출자에서 처리하거나 여기서 양쪽 다 인식
 const _SCR_MARKET_SLOT_KEYS = {
@@ -420,7 +287,9 @@ function _resetAllAnalParams() {
   try {
     // S211: 신규 키 모두 삭제 (시장별 멀티슬롯 + 매트릭스)
     Object.values(_SCR_MARKET_SLOT_KEYS).forEach(k=>localStorage.removeItem(k));
-    localStorage.removeItem(SCR_ANAL_PARAMS_MATRIX_KEY);
+    localStorage.removeItem(SCR_ANAL_PARAMS_MATRIX_KEY_LEGACY);
+    localStorage.removeItem(SCR_ANAL_PARAMS_STORE_KEY);
+    ['SX_REGIME_ADAPT','SX_REGIME_ON_MIGRATED','SX_OPT_BEST4'].forEach(k=>localStorage.removeItem(k)); // [S1092] 레짐/옵티마이저 잔재
     // 옛 사용자 환경에 남아있을 수 있는 레거시 키들도 명시적 리셋 시 함께 정리
     localStorage.removeItem(SCR_ANAL_PARAMS_KEY);
     localStorage.removeItem('SX_SCR_ANAL_PARAMS_MATRIX'); // 모드 기준 v1
@@ -2061,112 +1930,9 @@ const MarketRegime = {
 //  레짐 상태에 따라 buyTh/sellTh/tpMult/slMult 보정값 반환
 //  설계: 상승추세→공격적(buyTh↓,tp↑,sl↓), 하락→보수적(buyTh↑,tp↓,sl↑), 횡보→중립
 // ════════════════════════════════════════════════════════════
-const SX_REGIME_ADAPT_KEY = 'SX_REGIME_ADAPT';
-
-SXE.regimeAdaptEnabled = function(){
-  try{
-    const v = localStorage.getItem(SX_REGIME_ADAPT_KEY);
-    // S124 migration: 과거 옵티마이저/스크리너가 잘못 저장한 '1'/'0' 레거시 값을 'on'/'off'로 교정.
-    //   [배경] SXE.setRegimeAdapt은 'on'/'off'를 쓰는데, 과거 sx_optimizer.js/sx_screener.html 일부 경로에서
-    //          '1'/'0'으로 덮어쓰는 버그가 있었음. '0' !== 'off' → true로 평가되어 OFF가 ON으로 오작동.
-    //   [처리] 한 번만 실행되는 즉시 교정 — 다음 읽기부터는 정상.
-    if(v === '1' || v === '0'){
-      const corrected = (v === '1') ? 'on' : 'off';
-      try { localStorage.setItem(SX_REGIME_ADAPT_KEY, corrected); } catch(_){}
-      return corrected !== 'off';
-    }
-    // [S218] 기본 ON 마이그레이션 — 'off' 값을 1회만 'on'으로 자동 전환
-    //   사유: 사용자 검증 결과 적응형 레짐 ON이 기본 권장 → 옛 OFF 사용자도 ON 시작
-    //   1회성: 마이그레이션 플래그(SX_REGIME_ON_MIGRATED)로 1회만 실행 — 이후 사용자가 OFF 선택하면 그 값 유지
-    try {
-      const migrated = localStorage.getItem('SX_REGIME_ON_MIGRATED');
-      if(!migrated && v === 'off'){
-        localStorage.setItem(SX_REGIME_ADAPT_KEY, 'on');
-        localStorage.setItem('SX_REGIME_ON_MIGRATED', '1');
-        return true; // 마이그레이션 직후 ON으로 응답
-      }
-      // 첫 사용자(v === null) — 마이그레이션 플래그만 세워두고 ON 응답 (기본 ON)
-      if(!migrated && v === null){
-        localStorage.setItem('SX_REGIME_ON_MIGRATED', '1');
-      }
-    } catch(_){}
-    return v !== 'off';
-  }catch(e){ return true; }
-};
-SXE.setRegimeAdapt = function(on){
-  try { localStorage.setItem(SX_REGIME_ADAPT_KEY, on ? 'on' : 'off'); } catch(_){}
-};
-
-SXE.regimeAdapt = function(regime){
-  // 기본값: 보정 없음
-  const r = { buyThAdj: 0, sellThAdj: 0, tpMultFactor: 1.0, slMultFactor: 1.0, label: '기본', detail: '' };
-  if(!regime) return r;
-
-  const dir = regime.direction || 'FLAT';
-  const adx = regime.adx ?? 0;
-  const bbW = regime.bbWidth ?? 0;
-  const label = regime.label || '';
-
-  if(dir === 'UP' && adx > 25){
-    // 추세+변동 먼저 체크 (adx>30 && bbW>3)
-    if(label === '추세+변동'){
-      r.buyThAdj = -2;
-      r.tpMultFactor = 1.3;
-      r.slMultFactor = 1.1; // 변동성 높아 손절 살짝 여유
-      r.label = '공격+경계';
-      r.detail = '추세+고변동 — 수익 기회는 크지만 변동폭도 넓어 손절 여유를 약간 둡니다.';
-    } else {
-      // 일반 상승 추세
-      r.buyThAdj = -3;
-      r.sellThAdj = -2;
-      r.tpMultFactor = 1.2;
-      r.slMultFactor = 0.85;
-      r.label = '공격';
-      r.detail = '상승 추세 감지 — 진입 문턱 낮추고 목표가 확대. 추세를 따라가는 전략에 유리합니다.';
-      if(adx > 40){
-        r.buyThAdj = -5;
-        r.tpMultFactor = 1.35;
-        r.slMultFactor = 0.75;
-        r.detail = '강한 상승 추세 — 진입을 적극적으로, 목표를 크게 잡아도 도달 확률이 높습니다.';
-      }
-    }
-  } else if(dir === 'DOWN'){
-    // 추세+변동(하락) 먼저 체크
-    if(label === '추세+변동'){
-      r.buyThAdj = 6;
-      r.tpMultFactor = 0.7;
-      r.slMultFactor = 1.3;
-      r.label = '방어+경계';
-      r.detail = '하락 추세+고변동 — 매우 위험한 환경. 진입 기준을 크게 높이고 손절 여유를 확보하세요.';
-    } else {
-      // 일반 하락 추세
-      r.buyThAdj = 5;
-      r.sellThAdj = 3;
-      r.tpMultFactor = 0.75;
-      r.slMultFactor = 1.25;
-      r.label = '보수';
-      r.detail = '하락 추세 감지 — 진입 기준 강화, 목표는 보수적으로. 역추세 매매는 신중하게 접근하세요.';
-      if(adx > 40){
-        r.buyThAdj = 8;
-        r.tpMultFactor = 0.6;
-        r.slMultFactor = 1.4;
-        r.label = '방어';
-        r.detail = '강한 하락 추세 — 매수 진입 기준을 크게 높이고, 목표는 최소화. 방어적 자세가 최우선입니다.';
-      }
-    }
-  } else if(label === '횡보장'){
-    // 횡보: 중립, 박스권 대응
-    r.buyThAdj = 2;
-    r.sellThAdj = -2;
-    r.tpMultFactor = 0.85;
-    r.slMultFactor = 0.9;
-    r.label = '박스';
-    r.detail = '횡보장 — 돌파 실패 가능성이 높으므로 목표를 낮추고 빠른 수익 실현에 초점을 맞추세요.';
-  }
-  // 전환기: 기본값 유지 (보정 없음)
-
-  return r;
-};
+// [S1092] regimeAdaptEnabled / setRegimeAdapt / regimeAdapt(buyTh·sellTh 봉별 가산) 철거.
+//   측정 S1091: 보정은 봉의 56%에서 발생했으나 매수판정을 바꾼 건 fit 23/62,228 · OOS 14/59,885(1만봉당 3건).
+//   사전선언 n>=30 양 창 미달 → PREREG 미달 조항에 따라 철거. 원자료 = m/out/fit_kr.json · oos_kr.json.
 
 // [S257] SXE._applyRegimeAdapt 헬퍼 삭제 (이전 L2070~2080)
 //   〔이력〕 호출처 0건이었음 (sxRunBtEngine·scrQuickScore는 자체 clamp 사용).
@@ -3378,13 +3144,7 @@ function scrQuickScore(rows, tf, market) {
   //   [범위] 레짐 ON일 때만. OFF는 보정 없음(종전대로).
   const th = _getEffectiveTh(tf);
   let buyTh = th.buyTh, sellTh = th.sellTh;
-  let _regimeAdapt = null;
-  if(SXE.regimeAdaptEnabled() && ind.regime){
-    _regimeAdapt = SXE.regimeAdapt(ind.regime);
-    // 실시간 보정 가산 (옵티마이저 탐색 시 가산 방식과 동일한 clamp 범위 적용)
-    buyTh  = clamp(buyTh  + (_regimeAdapt.buyThAdj  || 0), 20, 85);
-    sellTh = clamp(sellTh + (_regimeAdapt.sellThAdj || 0), 20, 50);
-  }
+    // [S1092] 레짐 봉별 임계값 가산 철거 (측정 S1091 미달)
   let action = rawScore >= buyTh ? 'BUY' : rawScore <= sellTh ? 'SELL' : 'HOLD';
   if (action === 'BUY' && !_scrMomOscPass(mom, osc, tf)) action = 'HOLD';
   const reasons = [];
@@ -3523,7 +3283,6 @@ function scrQuickScore(rows, tf, market) {
     volBull: ind.volPattern.bullish,
     pbScore: ind.pullback ? ind.pullback.score : 0,
     regime: ind.regime,
-    _regimeAdapt, // S71: 레짐 적응 보정값
     _adaptedTh: { buyTh, sellTh }, // S71: 실제 적용된 임계값
     macdCrossUp: ind.macd.arr.hist.length >= 2 && ind.macd.hist > 0 && ind.macd.arr.hist[ind.macd.arr.hist.length - 2] <= 0,
     macdCrossDown: ind.macd.arr.hist.length >= 2 && ind.macd.hist < 0 && ind.macd.arr.hist[ind.macd.arr.hist.length - 2] >= 0,
@@ -4306,18 +4065,14 @@ SXE._getEffectiveTh = _getEffectiveTh;
 // S125 → S211: 시장×레짐 매트릭스 API export (sx_optimizer.js / sx_screener.html에서 사용)
 SXE._getSlotParams = _getSlotParams;
 SXE._saveSlotParams = _saveSlotParams;
-SXE._loadParamsMatrix = _loadParamsMatrix;
-SXE._saveParamsMatrix = _saveParamsMatrix;
 // [S176] 슬롯 리셋 함수들
 SXE._resetSlotToDefault = _resetSlotToDefault;
-SXE._resetMarketSlotsToDefault = _resetMarketSlotsToDefault;
 SXE._resetAllSlotsToDefault = _resetAllSlotsToDefault;
 SXE._hasSlotOverride = _hasSlotOverride;
 SXE._countMarketSlots = _countMarketSlots;
 SXE._getCurrentMode = _getCurrentMode;            // 하위호환 (시장 키 반환)
 SXE._getCurrentMarketKey = _getCurrentMarketKey;  // S211 신규
-SXE._getCurrentRegimeOn = _getCurrentRegimeOn;
-SXE._getMarketRegimeDefaults = _getMarketRegimeDefaults; // S211 신규
+SXE._getMarketDefaults = _getMarketDefaults; // [S1092] 레짐 축 없는 시장 기본값
 SXE._getCustomThresholds = _getCustomThresholds;
 SXE._loadAnalParams = _loadAnalParams;
 SXE._loadMarketSlots = _loadMarketSlots;
