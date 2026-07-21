@@ -4341,56 +4341,13 @@ function sxAdaptRows(rows) {
 }
 SXE.adaptRows = sxAdaptRows;
 
-// ════════════════════════════════════════════════════════════
-//  [A] BT-실시간 안전필터 동기화 헬퍼
-// ════════════════════════════════════════════════════════════
-// 배경: scrQuickScore (실시간 분석)는 BUY 판정 후 11종 안전필터로 한번 더 거름.
-//       BT는 같은 안전필터를 미적용 → BT가 분석보다 더 많은 매수 → 결과 부풀려짐.
-//       사용자 입장: "BT 87점인데 분석탭에선 진입 못 한다" 미스매치.
-//
-// 해법: 안전필터 검사 로직을 헬퍼로 추출. BT에서도 옵트인 가능.
-//   - SXE._applySafetyToBt = false (기본)  → BT는 종전대로 동작 (100% 호환)
-//   - SXE._applySafetyToBt = true          → BT가 분석엔진과 동일하게 안전필터 통과해야 진입
-//
-// 반환: { pass: boolean, reason: string }
-//   - pass=true  진입 허용
-//   - pass=false 진입 차단, reason은 첫번째 차단 사유 (예: '🔒RSI다이버전스')
-//
-// 분석엔진의 라인 2706~2731 로직과 동등 (단, BUY 전제 — SELL 분기는 BT 무관)
-// [S1021] SXE._checkSafetyFilters 철거 — 완전 死(레시피-BT 엔진 미호출·구 클래식 BT 안전필터 게이트). _applySafetyToBt 토글은 별도 존치.
 
-// BT에 안전필터 적용 토글 (기본 OFF → 기존 BT 결과 100% 호환)
-//   ON 시 BT 진입 시 _checkSafetyFilters를 거쳐 분석엔진과 동일한 매수 조건 적용.
-//   사용자 UI에서 "BT-실시간 동기화" 체크박스로 ON/OFF 노출 권장.
-//
-// [A] localStorage 영속화 — 페이지 새로고침 후에도 설정 유지
-SXE._applySafetyToBt = (function(){
-  try { return localStorage.getItem('SX_BT_APPLY_SAFETY') === '1'; } catch(_) { return false; }
-})();
 
-// 콘솔 헬퍼 — 한 줄로 ON/OFF + 영속 저장
-SXE.toggleBtSafety = function(on){
-  const _v = on === undefined ? !SXE._applySafetyToBt : !!on;
-  SXE._applySafetyToBt = _v;
-  try { localStorage.setItem('SX_BT_APPLY_SAFETY', _v ? '1' : '0'); } catch(_) {}
-  console.log('[SXE.toggleBtSafety] BT 안전필터 적용: ' + (_v ? 'ON ✅ (분석엔진과 동일 매수 조건)' : 'OFF (BT 종전 동작)'));
-  return _v;
-};
+// [S1090] BT 안전필터 적용 토글 철거 — S1021이 소비자 _checkSafetyFilters를 "완전 死"로 철거하면서
+//   토글만 존치됐고, 설정탭엔 "권장"으로 노출돼 있었다. 켜도 아무 일도 안 일어나므로 삭제.
 
-// [S728] BT 약세 데드캣 게이트 — 장기 역배열(ltAlign) + 단기약세(MA5>20>60 미충족) 진입 차단. C S726 게이트의 BT 전파.
-//   - SXE._btBearGate = false (기본)  → BT 종전 동작 (100% 호환·바이트동일)
-//   - SXE._btBearGate = true          → BT 점수진입/재진입이 역배열+단기약세면 차단(데드캣 회피)
-//   ★실매매 영향 → 측정 먼저(S712): ON/OFF로 BT 수익·PF·MDD·승률 비교 후 커밋. 단봉 ind 기반(룩어헤드 0).
-SXE._btBearGate = (function(){
-  try { return localStorage.getItem('SX_BT_BEARGATE') === '1'; } catch(_) { return false; }
-})();
-SXE.toggleBtBearGate = function(on){
-  const _v = on === undefined ? !SXE._btBearGate : !!on;
-  SXE._btBearGate = _v;
-  try { localStorage.setItem('SX_BT_BEARGATE', _v ? '1' : '0'); } catch(_) {}
-  console.log('[SXE.toggleBtBearGate] BT 약세 데드캣 게이트: ' + (_v ? 'ON ✅ (역배열+단기약세 진입 차단)' : 'OFF (BT 종전 동작)'));
-  return _v;
-};
+// [S1090] BT 약세 데드캣 게이트 철거 — _btBearGate 소비처 0(토글·스토리지·UI싱크만 존재).
+//   "측정용·ON/OFF로 BT 비교 후 커밋"이라 적혀 있었으나 켜도 차이가 0으로 나와 오판을 부른다.
 
 // ════════════════════════════════════════════════════════════
 //  S210: 조기청산 (Early Exit) — 단일 스위치 + 4개 세부 룰
@@ -4414,81 +4371,9 @@ SXE.toggleBtBearGate = function(on){
 
 SXE._btEarlyExit = { enabled: false };   // [S1022] 조기청산/3모드 폐기 — 레시피-BT 고정청산(이중ATR+MA데드). inert 스텁(render 읽기 안전용).
 
-// ════════════════════════════════════════════════════════════
-// [S304] 변동성 타깃팅 (Volatility Targeting) — BT 엔진 캐시 + 동기화
-// ════════════════════════════════════════════════════════════
-//   설계: SXE._volTargetCache 단일 글로벌로 메인 스레드/워커 양쪽 통일.
-//        sxRunBtEngine은 이 캐시만 읽어서 일관 동작.
-//
-//   동기화 경로:
-//     1. 메인 스레드: SXS.getVolTargetSettings()로 자동 로드
-//        - 페이지 로드 시 SXE._volTargetSync() 호출 (sx_screener.html에서)
-//        - 모달 저장 시 동일 함수 재호출하여 즉시 반영
-//     2. 워커 스레드: SXS 없음 (localStorage 접근 불가)
-//        - 메인이 'vol_target_sync' 메시지로 설정 전송
-//        - 워커는 SXE._volTargetSetWorker(settings)로 직접 주입
-//
-//   캐시 구조 (null일 때 = OFF):
-//     { enabled: true, kr: 2.0, coin: 4.0, us: 1.5, clampMin: 0.3, clampMax: 3.0 }
-//
-//   BT 엔진 사용 (sxRunBtEngine 내):
-//     - 진입 시: posScale = clamp(targetAtr / 종목_atrPct, clampMin, clampMax)
-//     - 청산 시: pnl × posScale 적용 → equity 누적
-//     - 결과: trades[].posScale, trades[].rawPnl 보존 (디버깅용)
-//
-//   기본값 null — 사용자가 설정 ON 해야 작동 (안전)
-// ════════════════════════════════════════════════════════════
-
-SXE._volTargetCache = null;  // 미설정 = OFF (기본)
-
-// [S304] 메인 스레드용 — SXS에서 자동 로드
-//   SXS가 없으면(워커 환경) 아무 동작 안 함 (이미 _volTargetSetWorker로 주입되어 있을 것)
-SXE._volTargetSync = function(){
-  try {
-    if(typeof SXS !== 'undefined' && SXS.getVolTargetSettings){
-      const s = SXS.getVolTargetSettings();
-      SXE._volTargetCache = s.enabled ? s : null;
-      return SXE._volTargetCache;
-    }
-  } catch(e){
-    console.warn('[S304] _volTargetSync 실패:', e);
-  }
-  return SXE._volTargetCache;
-};
-
-// [S304] 워커 스레드용 — 메인에서 받은 설정 직접 주입
-//   sx_scan_worker.js의 'vol_target_sync' 메시지 핸들러에서 호출
-SXE._volTargetSetWorker = function(settings){
-  if(settings && settings.enabled && settings.kr > 0 && settings.coin > 0 && settings.us > 0){
-    SXE._volTargetCache = {
-      enabled: true,
-      kr: settings.kr, coin: settings.coin, us: settings.us,
-      clampMin: settings.clampMin || 0.3,
-      clampMax: settings.clampMax || 3.0,
-    };
-  } else {
-    SXE._volTargetCache = null;
-  }
-  return SXE._volTargetCache;
-};
-
-// [S304] BT 엔진 내부용 — posScale 계산 단일 진입점
-//   인자: atrPct (소수 형식, 예: 0.025 = 2.5%), market ('kr'|'coin'|'us')
-//   반환: posScale (없으면 1.0 = 변동성 타깃팅 OFF 또는 미설정)
-SXE._volTargetCalcPosScale = function(atrPct, market){
-  const c = SXE._volTargetCache;
-  if(!c || !c.enabled) return 1.0;
-  if(!(atrPct > 0)) return 1.0;
-  let targetPct;
-  if(market === 'coin' || market === 'crypto') targetPct = c.coin;
-  else if(market === 'us')                     targetPct = c.us;
-  else                                          targetPct = c.kr;  // 'kr' 또는 미상 → 한국 기본
-  const targetAtr = targetPct / 100;
-  const raw = targetAtr / atrPct;
-  return Math.max(c.clampMin || 0.3, Math.min(c.clampMax || 3.0, raw));
-};
-
-
+// [S1090] 변동성 타깃팅 철거 — S1017 SSOT 통합(sxRunBtEngine→EC.runLifecycle)으로 posScale 훅이 끊겼다.
+//   _volTargetCalcPosScale 호출처 0 · BT는 posScale:1 하드코딩 = 완전 死. UI·스토리지·워커동기화만 생존해 있어 전수 삭제.
+//   ★분석탭 도움말의 변동성 타깃 진단(S293)은 자체 시뮬레이션이라 보존 — 재도입 판단에 필요.
 
 // ════════════════════════════════════════════════════════════
 // [S273] 트레일링 ATR 계산 모드 — 진입 시 고정 vs 매 봉 재계산
