@@ -83,7 +83,6 @@
     { p:'SX_ALERT_SOUND_',   c:'SX_NOTIFY_'     },
     { p:'SX_TG_',            c:'SX_NOTIFY_'     },
     { p:'SX_WL_',            c:'SX_APP_'        },
-    { p:'SX_REGIME_',        c:'SX_APP_'        },
     { p:'SX_TRANS_ZONE_',    c:'SX_APP_'        },
     { p:'SX_SCORE_WEIGHTS',  c:'SX_APP_'        },
     { p:'SX_SAFETY_FILTER',  c:'SX_APP_'        },
