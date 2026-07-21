@@ -168,91 +168,7 @@
     return { keys: totalKeys, bytes: totalBytes };
   }
 
-  // ═════════════════════════════════════════════════════════════════
-  //  [S301] 변동성 타깃팅 (Volatility Targeting) 설정 헬퍼
-  // ═════════════════════════════════════════════════════════════════
-  //   목적: BT 엔진이 종목별 ATR%에 반비례하여 포지션 크기 조정.
-  //         posScale = target_ATR% / 종목_ATR%  (clamp 적용)
-  //         → 변동성 큰 종목은 작게, 작은 종목은 크게 진입 → MDD 격차 평탄화
-  //
-  //   설계 결정:
-  //     - JSON 단일 키(SX_BT_VOL_TARGETING)로 모든 설정 통합 → 키 수 절약, 원자적 저장
-  //     - [S331] 기본값 enabled=false → 사용자 요청으로 OFF 복원
-  //               이력: 초기 false → [S308] true(자동 정규화) → [S331] false (사용자 요청)
-  //               기존에 ON으로 저장한 사용자는 모달에서 [기본값 복원] 클릭하면 OFF로 전환
-  //     - 시장별 target ATR%: KR 2.0%, COIN 4.0%, US 1.5% (실측 변동성 기준, 활성화 시 사용)
-  //     - clamp [0.3, 3.0]: 극단값 차단 (의미 없는 진입 / 과도한 레버리지 방지)
-  //
-  //   사용처:
-  //     - sx_screener.html 설정탭 UI ([S301])
-  //     - sx_analysis_engine.js sxRunBtEngine ([S304] 도입 완료)
-  //     - sx_scan_worker.js 미러 동기화 ([S304] 동시 적용)
-  // ═════════════════════════════════════════════════════════════════
-
-  const VOL_TARGET_KEY = 'SX_BT_VOL_TARGETING';
-  const VOL_TARGET_DEFAULTS = Object.freeze({
-    enabled: false,    // [S331] 기본 OFF — 사용자 요청 (이전 [S308]에서 ON이었으나 안전 우선으로 복원)
-    kr: 2.0,           // 한국 시장 목표 ATR% (대형주 기준)
-    coin: 4.0,         // 코인 시장 목표 ATR% (변동성 큼)
-    us: 1.5,           // 미국 시장 목표 ATR% (안정적)
-    clampMin: 0.3,     // posScale 최소 (0.3x 미만은 의미 없음)
-    clampMax: 3.0,     // posScale 최대 (3.0x 초과는 과도)
-  });
-
-  // [S301] 설정 로드 (기본값 fallback 포함)
-  //   누락 필드는 기본값으로 자동 보완 → 구버전 마이그레이션 안전
-  function getVolTargetSettings(){
-    try {
-      const raw = localStorage.getItem(VOL_TARGET_KEY);
-      if(!raw) return { ...VOL_TARGET_DEFAULTS };
-      const parsed = JSON.parse(raw);
-      return {
-        enabled:  typeof parsed.enabled === 'boolean' ? parsed.enabled : VOL_TARGET_DEFAULTS.enabled,
-        kr:       (typeof parsed.kr       === 'number' && parsed.kr       > 0) ? parsed.kr       : VOL_TARGET_DEFAULTS.kr,
-        coin:     (typeof parsed.coin     === 'number' && parsed.coin     > 0) ? parsed.coin     : VOL_TARGET_DEFAULTS.coin,
-        us:       (typeof parsed.us       === 'number' && parsed.us       > 0) ? parsed.us       : VOL_TARGET_DEFAULTS.us,
-        clampMin: (typeof parsed.clampMin === 'number' && parsed.clampMin > 0) ? parsed.clampMin : VOL_TARGET_DEFAULTS.clampMin,
-        clampMax: (typeof parsed.clampMax === 'number' && parsed.clampMax > 0) ? parsed.clampMax : VOL_TARGET_DEFAULTS.clampMax,
-      };
-    } catch(e){
-      console.warn('[S301] getVolTargetSettings 파싱 실패, 기본값 반환:', e);
-      return { ...VOL_TARGET_DEFAULTS };
-    }
-  }
-
-  // [S301] 설정 저장 (부분 업데이트 지원)
-  //   기존 설정 위에 patch만 덮어쓰기 → UI에서 일부 필드만 변경 시 편리
-  function setVolTargetSettings(patch){
-    try {
-      const curr = getVolTargetSettings();
-      const next = { ...curr, ...(patch || {}) };
-      // 안전 클램프: clampMin <= clampMax 보장
-      if(next.clampMin > next.clampMax){
-        next.clampMin = next.clampMax;
-      }
-      localStorage.setItem(VOL_TARGET_KEY, JSON.stringify(next));
-      return next;
-    } catch(e){
-      console.error('[S301] setVolTargetSettings 저장 실패:', e);
-      return null;
-    }
-  }
-
-  // [S301] 기본값 복원
-  function resetVolTargetSettings(){
-    try {
-      localStorage.removeItem(VOL_TARGET_KEY);
-      return { ...VOL_TARGET_DEFAULTS };
-    } catch(e){
-      console.error('[S301] resetVolTargetSettings 실패:', e);
-      return null;
-    }
-  }
-
-  // [S301] 기본값 노출 (UI에서 표시용)
-  function getVolTargetDefaults(){
-    return { ...VOL_TARGET_DEFAULTS };
-  }
+  // [S1090] 변동성 타깃팅 설정 헬퍼 철거 — 기능이 S1017 SSOT 통합에서 배선이 끊겨 완전 死였다(엔진 주석 참조).
 
   // ─── 1. 진단 (analyze) ───
   function analyze(){
@@ -600,11 +516,6 @@
     cacheClear: cacheClear,
     cacheStats: cacheStats,
 
-    // [S301] 변동성 타깃팅 설정 헬퍼
-    getVolTargetSettings: getVolTargetSettings,
-    setVolTargetSettings: setVolTargetSettings,
-    resetVolTargetSettings: resetVolTargetSettings,
-    getVolTargetDefaults: getVolTargetDefaults,
 
     // 키 정의 노출
     CACHE_PREFIXES: CACHE_PREFIXES,
