@@ -1195,7 +1195,7 @@ function btGetOpts(){
   //   〔이력〕 이전: btOptNextBar 체크박스 → nextBarEntry. 체크박스 제거하고 전역 모드로 통일(_btExitMode와 대칭).
   // [BT-실시간 미러링] 봉별 레짐 보정을 BT에도 적용 — 분석엔진과 100% 일치
   //   현재 사양: BT도 동일하게 봉별 보정 적용 → 차트 미러링 = 실시간 시뮬레이션으로 사용 가능.
-  //     조건: SXE.regimeAdaptEnabled() (사용자 토글) 기준 → OFF면 보정 없음 (보정 미적용 동작 유지).
+  //     [S1092] 레짐 보정 철거 — 임계값 가산 자체가 제거됨.
   //     적용 범위: sx_bt.js 모든 경로(단일검증/관심종목 BT/교차검증/워크포워드/대시보드).
   //     옵티마이저는 별개 호출(sx_optimizer.js에서 직접 true 전달) → 영향 없음.
   return { slippage:slip, applyRegimeAdjust:true };
