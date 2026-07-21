@@ -58,7 +58,6 @@ let _customDiscKw = [];
 // [S993] _transZoneTh 삭제 — 전이통계 제거로 고아.
 let _parallelEnabled = false;
 let _safetyFlags = {};
-let _regimeAdaptEnabled = false;
 
 // localStorage 대체 캐시 (Worker 수명 동안 유지)
 let _oracleKospi = [];
@@ -2205,7 +2204,6 @@ function _slimResults(arr) {
       //   + 레짐 적응 안내가 통째로 사라지는 증상 발생.
       //   regime: {label,icon,direction,score,adx,bbWidth} 6필드 — 직렬화 비용 무시 가능.
       regime: s._scanResult.regime || null,
-      _regimeAdapt: s._scanResult._regimeAdapt || null,
       _adaptedTh: s._scanResult._adaptedTh || null,
     } : null,
     _financial: s._financial || null,
@@ -2309,7 +2307,6 @@ async function startScan(config) {
   // [S993] transZoneTh 주입 삭제 — 전이통계 제거로 불필요.
   _parallelEnabled = config.parallelEnabled || false;
   _safetyFlags = config.safetyFlags || {};
-  _regimeAdaptEnabled = config.regimeAdaptEnabled || false;
   // S125 → S211: 워커 환경(localStorage 불가)에서 엔진이 매트릭스를 참조할 수 있도록 주입
   //   메인 스레드가 scanPayload에 currentMarket(시장), currentAnalMode(레거시 호환), analParamsMatrix를 담아 전달
   //   → 엔진의 _getCurrentMarketKey/_loadParamsMatrix가 이 값을 읽도록 SXE에 저장
@@ -2318,7 +2315,6 @@ async function startScan(config) {
     SXE._workerMarket = config.currentMarket || 'kr';
     SXE._workerCurrentMode = config.currentAnalMode || 'kr'; // 레거시 호환 — 엔진은 시장 키로 처리
     SXE._workerMatrix = config.analParamsMatrix || {};
-    SXE._workerRegimeOn = !!config.regimeAdaptEnabled;
   }
   _oracleKospi = config.oracleKospi || [];
   _oracleKosdaq = config.oracleKosdaq || [];
