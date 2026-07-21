@@ -184,7 +184,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1032</div>
+    <div class="tb-build">S1089</div>
   </div>
 
   <div class="scroll-area">
@@ -271,7 +271,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
     <!-- ═══ [S943] 주문 피드 (체결/신호/거절 카드) ═══ -->
     <div class="card" id="atOrderFeedCard" style="display:none;">
-      <div class="card-title" style="display:flex;align-items:center;">🧾 주문 피드 <span class="tag">체결·신호·거절 · S945</span><button onclick="atReset()" style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--text2);font-size:11px;font-weight:600;padding:4px 9px;border-radius:7px;cursor:pointer;">🧹 초기화</button></div>
+      <div class="card-title" style="display:flex;align-items:center;">🧾 주문 피드 <span class="tag">체결·신호·거절 · S945</span></div>
       <div id="atOrderFeed"></div>
     </div>
 
@@ -320,7 +320,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         <span style="font-size:9.5px;color:var(--text3);">유예 중엔 MA청산 OFF(자기모순 방지)·ATR손절은 상시</span>
       </div>
       <div id="exDaysRow" style="display:flex;gap:14px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
-        <label style="font-size:11px;color:var(--text2);display:inline-flex;align-items:center;gap:5px;"><input type="checkbox" id="exMaxHoldOn" style="width:16px;height:16px;"/> N일 상한 사용</label>
+        <label style="font-size:11px;color:var(--text2);display:inline-flex;align-items:center;gap:5px;"><input type="checkbox" id="exMaxHoldOn" style="width:16px;height:16px;"/> N일 상한 사용 <span style="opacity:.7">(N일 모드 전용)</span></label>
         <label style="font-size:11px;color:var(--text2);display:inline-flex;align-items:center;gap:5px;">N=<input id="exMaxHoldDays" type="number" step="1" min="1" max="250" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/>일</label>
       </div>
       <button type="button" id="exSaveBtn" onclick="atSaveExitConfig()" style="width:100%;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">💾 청산 설정 저장</button>
@@ -389,7 +389,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1032</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1089</div>
   </div>
 </div>
 
@@ -714,18 +714,8 @@ async function atPost(patch){
 function _atBuzz(){ try{ if(navigator.vibrate) navigator.vibrate(10); }catch(_){} }
 function atTogglePower(){ _atBuzz(); if(_atCmd.halt){ atPost({ halt:false, power:'on' }); return; } atPost({ power: (_atCmd.power==='on') ? 'off' : 'on' }); }  // [S938] halt 중이면 해제+가동 (백엔드가 halt:false 지원)
 function atSetMode(m){ _atBuzz(); atPost({ mode: m }); }
-// [S944] 테스트 매매이력 초기화 (주문·포지션·활동로그) — 신호·KIS잔고는 유지
-async function atReset(){
-  if(!confirm('주문 피드 · 포지션 · 활동 로그를 모두 초기화합니다.\n(오늘 신호 · KIS 잔고는 유지됩니다)\n\n되돌릴 수 없어요. 계속할까요?')) return;
-  _atBuzz();
-  try{
-    const r = await fetch(AT_WORKER_BASE + '/sx/autotrade/reset', { method:'POST', headers: atAuthHeaders(), signal: AbortSignal.timeout(12000) });
-    if(r.status===401){ atShowGate(); return; }
-    if(!r.ok){ const d=await r.json().catch(()=>({})); alert((d&&d.error)||('초기화 실패 ('+r.status+')')); return; }
-    _atSeenOrders=new Set(); // 플래시 상태도 리셋(재렌더 때 전부 새것으로 반짝이지 않게)
-    atRefresh();
-  }catch(e){ alert('초기화 실패: '+(e.message||e)); }
-}
+// [S1088] 이력 초기화 제거 — 주문피드(100)·활동로그(50)가 자체 롤오버라 유지보수가 불필요했고,
+//   버튼이 at:positions까지 지워 고아 포지션→유예 10일 재시작을 유발했다(2026-07-21 22종목).
 async function atExecNow(){
   if(_atCmd.power!=='on'){ alert('먼저 ▶가동을 눌러주세요'); return; }
   _atBuzz();
@@ -884,6 +874,9 @@ function atRenderBuyPreview(sig){
 let _exMode='ma'; // [S950] 기본 최대보유=MA5×20
 function _exTabStyle(btn,on){ if(!btn)return; btn.style.borderColor=on?'var(--accent)':'var(--border)'; btn.style.background=on?'var(--accent)':'transparent'; btn.style.color=on?'#fff':'var(--text2)'; }
 function atExitMode(m){ _exMode=(m==='ma')?'ma':'days'; _exTabStyle(_$('exModeMa'),_exMode==='ma'); _exTabStyle(_$('exModeDays'),_exMode==='days'); const dr=_$('exDaysRow'); if(dr) dr.style.opacity=(_exMode==='days')?'1':'0.4'; const mr=_$('exMaRow'); if(mr) mr.style.opacity=(_exMode==='ma')?'1':'0.4'; }
+  // [S1089] MA 모드에선 워커가 maxHoldOn을 읽지 않는다(else if 배타 분기) — 체크박스를 비활성화해
+  //   '30일 상한도 같이 걸려 있다'는 오독을 막는다. checked 상태는 유지(저장값 보존).
+  try { const _mh = document.getElementById('exMaxHoldOn'); if (_mh) _mh.disabled = (_exMode !== 'days'); } catch (_) {}
 let _exLoaded=false;
 function atRenderExitConfig(cfg, force){
   if(!cfg) return;
