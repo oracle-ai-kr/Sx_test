@@ -3438,37 +3438,7 @@ SXI.practicalGuide = function(verdictAction, analScore, btScore, summary, ind, s
 //  반환: { title, items[], note } | null
 // ════════════════════════════════════════════════════════════
 
-SXI.regimeAdaptGuide = function(regime, adapt, adaptedTh, baseTh){
-  if(!adapt || !regime) return null;
-  if(adapt.buyThAdj === 0 && adapt.tpMultFactor === 1.0) return null; // 보정 없음
-
-  const guide = { title: '', items: [], note: '' };
-
-  const dir = regime.direction || 'FLAT';
-  const label = regime.label || '';
-
-  guide.title = `현재 레짐: ${label} — 파라미터 "${adapt.label}" 모드`;
-
-  // 보정 항목 설명
-  if(adapt.buyThAdj !== 0){
-    const adj = adapt.buyThAdj;
-    guide.items.push(`매수 기준: 기본 ${baseTh.buyTh}점 → ${adaptedTh.buyTh}점 (${adj > 0 ? '+' : ''}${adj}점). ${adj < 0 ? '진입 기준을 낮춰 더 많은 기회를 포착합니다.' : '진입 기준을 높여 확실한 신호에서만 매수합니다.'}`);
-  }
-
-  if(adapt.tpMultFactor !== 1.0){
-    const pct = Math.round((adapt.tpMultFactor - 1) * 100);
-    guide.items.push(`목표가 배수: ${pct > 0 ? '+' : ''}${pct}% 조정. ${pct > 0 ? '추세를 따라 목표를 더 높게 잡습니다.' : '빠른 수익 실현에 초점을 맞춥니다.'}`);
-  }
-
-  if(adapt.slMultFactor !== 1.0){
-    const pct = Math.round((adapt.slMultFactor - 1) * 100);
-    guide.items.push(`손절 배수: ${pct > 0 ? '+' : ''}${pct}% 조정. ${pct > 0 ? '변동성을 감안해 손절에 여유를 둡니다.' : '손절을 타이트하게 가져가 손실을 줄입니다.'}`);
-  }
-
-  guide.note = adapt.detail;
-
-  return guide;
-};
+// [S1092] regimeAdaptGuide 철거 — 레짐 임계값 보정 자체가 제거됨
 
 // ════════════════════════════════════════════════════════════
 //  S70: 실패 분석 (Failure Analysis)
