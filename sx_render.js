@@ -9796,7 +9796,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1092';
+  window.SX_BUILD='S1092b';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -13884,7 +13884,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
   const _effMaL = _ap.maLong > 0 ? _ap.maLong : _tfMa.long;
   const _effTp = _ap.tpMult > 0 ? _ap.tpMult : 2.5;
   const _effSl = _ap.slMult > 0 ? _ap.slMult : 1.5;
-  const _apStr = `[P] RSI${_ap.rsiLen} BB${_ap.bbLen}×${_ap.bbMult} ATR${_ap.atrLen} MA${_effMaS}/${_effMaM}/${_effMaL} B${_effBuy} S${_effSell} TP${_effTp} SL${_effSl} · 레짐${_raOn?'ON':'OFF'}`;
+  const _apStr = `[P] RSI${_ap.rsiLen} BB${_ap.bbLen}×${_ap.bbMult} ATR${_ap.atrLen} MA${_effMaS}/${_effMaM}/${_effMaL} B${_effBuy} S${_effSell} TP${_effTp} SL${_effSl}`;
   // S100: 현재 적용 프리셋 출처 라벨
   const _presetLabel = (typeof _getPresetSourceLabel === 'function') ? _getPresetSourceLabel() : '';
 
@@ -14398,33 +14398,8 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           _regimeFlipHtml = _rfReq.cached ? (_regimeFlipBadge(_rfReq.res)||'') : `<span id="${_rfId}" style="font-size:9px;color:var(--text3);margin-left:6px">🔄…</span>`;
         }
       }
-      // S71: 레짐 적응형 파라미터 현황
-      const _ra=null, _raGuide=null, _raEnabled=false; // [S1092] 레짐 해석 철거
-      const _raToggleId = 'raToggle_' + Math.random().toString(36).slice(2,8);
-      const _raGuideId = 'raGuide_' + Math.random().toString(36).slice(2,8);
-      let _raHTML = '';
-      if(_raEnabled && _ra && _ra.buyThAdj !== 0){
-        // S125: 레짐 보정은 임계값에 적용되지 않음(슬롯 저장값이 이미 레짐 반영됨).
-        //   대신 "현재 시장이 어떤 레짐으로 감지됐는지"만 참고용으로 표시.
-        //   BUY 62→57 같은 화살표 표시는 삭제(이중 보정 오해 소지).
-        const _raColor = _ra.label==='공격'||_ra.label==='공격+경계'?'var(--buy)':_ra.label==='보수'||_ra.label==='방어'||_ra.label==='방어+경계'?'var(--sell)':'var(--accent)';
-        _raHTML = `<div style="margin-top:6px;padding:6px 8px;background:rgba(${_raColor==='var(--buy)'?'0,200,150':_raColor==='var(--sell)'?'255,59,48':'100,140,255'},.08);border-radius:6px;border-left:3px solid ${_raColor}">
-          <div style="font-size:10px;font-weight:700;color:${_raColor};margin-bottom:2px">감지 레짐: ${_ra.label}</div>
-          <div style="font-size:9px;color:var(--text2);line-height:1.5">현재 슬롯 BUY ${_baseTh?_baseTh.buyTh:'?'} · SELL ${_baseTh?_baseTh.sellTh:'?'} (레짐에 맞춰 저장된 값 그대로 사용)</div>
-        </div>`;
-        if(_raGuide){
-          _raHTML += `<div style="margin-top:4px">
-            <div class="itp-toggle-inline" onclick="_sxVib(8);const c=document.getElementById('${_raGuideId}');c.classList.toggle('show');this.querySelector('.sb-arrow').textContent=c.classList.contains('show')?'▼':'▶'" style="font-size:10px;color:var(--accent);cursor:pointer;font-weight:600"><span class="sb-arrow">▶</span> 레짐 특성 설명</div>
-            <div class="itp-card" id="${_raGuideId}" style="white-space:normal;margin-top:4px">
-              <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px">${_raGuide.title}</div>
-              ${_raGuide.items.map(it=>`<div style="font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:4px;padding-left:8px;border-left:2px solid var(--accent)">· ${it}</div>`).join('')}
-              ${_raGuide.note?`<div style="font-size:10px;color:var(--text3);margin-top:6px;font-style:italic">${_raGuide.note}</div>`:''}
-            </div>
-          </div>`;
-        }
-      } else if(!_raEnabled){
-        _raHTML = `<div style="margin-top:4px;font-size:9px;color:var(--text3)">레짐 적응: OFF (고정 파라미터 슬롯 사용)</div>`;
-      }
+      // [S1092] 레짐 적응형 현황 블록 철거 — 토글·보정 모두 제거됨
+      const _raHTML = '';
       return `<div class="anal-section" style="background:var(--surface2)">
         <div class="anal-section-title" style="margin-bottom:6px">시장 레짐</div>
         ${regime?`<div style="font-size:10px;color:var(--text2);margin-bottom:2px">${regime.icon} ${regime.label} · 추세강도 ${(regime.adx||0).toFixed(0)} · 변동폭 ${(regime.bbWidth||0).toFixed(1)}%</div>${_regimeFlipHtml?`<div style="margin-bottom:4px">${_regimeFlipHtml}</div>`:''}`:''}
