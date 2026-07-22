@@ -5306,7 +5306,15 @@ var _DISCRIM_FEATS = [
   { key:'macdHistUp', label:'MACD 히스토 양',    type:'bool' },
   { key:'macdBelow0', label:'MACD 영선아래',     type:'bool' },
   { key:'diBear',     label:'DI 하락우위',       type:'bool' },
-  { key:'sarBear',    label:'PSAR 하락',         type:'bool' }
+  { key:'sarBear',    label:'PSAR 하락',         type:'bool' },
+  // [S1094] 발굴 확장 재료 — 기존 레시피가 안 쓰는 어휘. 시즌3 BH 측정서 신호 확인분(envDn +0.60·diRebound·stochSlowGc 양 / ichiCloudUp·diOverheat 음=배제용). _extractFeats733에 추출 추가됨.
+  { key:'envDn',       label:'엔벨로프 하단이탈',   type:'bool' },
+  { key:'envUp',       label:'엔벨로프 상단이탈',   type:'bool' },
+  { key:'ichiCloudUp', label:'일목 구름위',        type:'bool' },
+  { key:'ichiTK',      label:'일목 전환>기준',     type:'bool' },
+  { key:'diRebound',   label:'DI 투매소진(강추세)', type:'bool' },
+  { key:'diOverheat',  label:'DI 상승과열(강추세)', type:'bool' },
+  { key:'stochSlowGc', label:'슬로우스토 골든',     type:'bool' }
 ];
 /* [S918] _smaLast733/_goldenX733 → sx_recipe_core.js 이관(워커-안전 SSOT) — 워커 rcpK 조용한 전멸 수정.
    window 로드순서: core가 render보다 먼저(sx_screener.html 9행 vs 52행)라 전역 해결 유지.
@@ -9796,7 +9804,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1092b';
+  window.SX_BUILD='S1094a';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
