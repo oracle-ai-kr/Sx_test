@@ -665,6 +665,14 @@ function _extractFeats733(ind, rows, idx){
   f.macdBelow0 = (ind.macd && typeof ind.macd.line==='number' && ind.macd.line<0) ? 1 : 0;    // [S786] 영선 아래(약세구간) · line 사용
   f.diBear     = (ind.adx && typeof ind.adx.pdi==='number' && typeof ind.adx.mdi==='number' && ind.adx.mdi>ind.adx.pdi) ? 1 : 0;   // −DI>+DI(하락 우위) · adx.pdi/mdi 기존 계산값
   f.sarBear    = (ind.psar && ind.psar.trend==='down') ? 1 : 0;   // PSAR 하락추세(SAR 위=전환 미완)
+  // [S1094] 발굴 확장 재료 — 기존 레시피 미사용 어휘(엔벨로프·일목·DI강추세·슬로우스토). 발굴 전용(기존 conds 미참조·추가만) · full ind(calcAllScreener) 필드. 값 없으면 0(라이브 scrQuickScore ind엔 일부 부재 가능 — 무해).
+  f.envDn       = (ind.envelope && (ind.envelope.position==='below_lower' || ind.envelope.position==='near_lower')) ? 1 : 0;   // 엔벨로프 하단 이탈/근접(과대낙폭)
+  f.envUp       = (ind.envelope && (ind.envelope.position==='above_upper' || ind.envelope.position==='near_upper')) ? 1 : 0;   // 엔벨로프 상단 이탈/근접
+  f.ichiCloudUp = (ind.ichimoku && ind.ichimoku.priceVsCloud==='above') ? 1 : 0;   // 일목 구름 위(회복)
+  f.ichiTK      = (ind.ichimoku && typeof ind.ichimoku.tenkan==='number' && typeof ind.ichimoku.kijun==='number' && ind.ichimoku.tenkan>ind.ichimoku.kijun) ? 1 : 0;   // 전환선>기준선
+  f.diRebound   = (ind.adx && typeof ind.adx.adx==='number' && typeof ind.adx.pdi==='number' && typeof ind.adx.mdi==='number' && ind.adx.adx>40 && ind.adx.mdi>ind.adx.pdi) ? 1 : 0;   // ADX>40 ∧ −DI우위(투매소진)
+  f.diOverheat  = (ind.adx && typeof ind.adx.adx==='number' && typeof ind.adx.pdi==='number' && typeof ind.adx.mdi==='number' && ind.adx.adx>40 && ind.adx.pdi>ind.adx.mdi) ? 1 : 0;   // ADX>40 ∧ +DI우위(상승과열·KR위험)
+  f.stochSlowGc = (ind.stochSlow && ind.stochSlow.cross==='golden') ? 1 : 0;   // 슬로우스토 골든크로스
   // 움직임 + MA 지지/저항 재료 — closes 필요(진입봉=슬라이스 마지막)
   var cl = ind.closes;
   if(cl && cl.length >= 4){
