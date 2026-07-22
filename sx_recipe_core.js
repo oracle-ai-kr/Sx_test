@@ -470,6 +470,46 @@ var RECIPES_BY_MKT = {
    conds:[{key:'dev20',type:'num',dir:'gt',th:4.03}, {key:'macdBelow0',type:'bin'}, {key:'sarBear',type:'bin'}], src:{n:56,late:0.0601,n10:0.821,surv:0.666,lens:0.75,retLens:0.1082,h1:0.85,h2:0.72}},
   {id:'pb_r_L11', pool:'pullback', kind:'real', mode:'and', label:'RSI 상승다이버전스 + 지지선 근접 + PSAR 하락',
    conds:[{key:'rsiDiv',type:'bin'}, {key:'nearSup',type:'bin'}, {key:'sarBear',type:'bin'}], src:{n:157,late:0.0659,n10:0.777,surv:0.668,lens:0.752,retLens:0.1072,h1:0.68,h2:0.83}},
+  // ── pullback · real 추가 [S1094] — 발굴(스냅 20260701)·KR기존11 중복2 제거 순수신규 19개. ⚠tradable:false=시즌2 매매 미사용(median 감사 0/21 통과=꼬리 잣대 미검증·등록만 보존). 시즌1 표시엔 등장. 새 꼬리 잣대로 눌림 전체 재검증 후 승격. ──
+  {id:'pb_r_L12', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'골든크로스 5×20 + MACD 영선아래 + 슬로우스토 골든',
+   conds:[{key:'gx5_20',type:'bin'}, {key:'macdBelow0',type:'bin'}, {key:'stochSlowGc',type:'bin'}], src:{n:56,late:0.0841,n10:0.7857,surv:0.6911,lens:0.7679,retLens:0.142,h1:0.71,h2:0.81}},
+  {id:'pb_r_L13', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'ADX<14.11 + MA20 이격도%>4.03 + 골든크로스 5×20',
+   conds:[{key:'adx',type:'num',dir:'lt',th:14.11}, {key:'dev20',type:'num',dir:'gt',th:4.03}, {key:'gx5_20',type:'bin'}], src:{n:149,late:0.0879,n10:0.7047,surv:0.6725,lens:0.7852,retLens:0.1365,h1:0.8,h2:0.78}},
+  {id:'pb_r_L14', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'ADX<14.11 + 골든크로스 5×20 + 엔벨로프 상단이탈',
+   conds:[{key:'adx',type:'num',dir:'lt',th:14.11}, {key:'gx5_20',type:'bin'}, {key:'envUp',type:'bin'}], src:{n:150,late:0.0873,n10:0.7,surv:0.6707,lens:0.78,retLens:0.1355,h1:0.78,h2:0.78}},
+  {id:'pb_r_L15', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'골든크로스 5×20 + MACD 골든크로스 + 슬로우스토 골든',
+   conds:[{key:'gx5_20',type:'bin'}, {key:'macdGc',type:'bin'}, {key:'stochSlowGc',type:'bin'}], src:{n:73,late:0.0832,n10:0.7671,surv:0.6699,lens:0.7534,retLens:0.1308,h1:0.71,h2:0.79}},
+  {id:'pb_r_L16', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'CCI>51.82 + 골든크로스 5×20 + PSAR 하락',
+   conds:[{key:'cci',type:'num',dir:'gt',th:51.82}, {key:'gx5_20',type:'bin'}, {key:'sarBear',type:'bin'}], src:{n:64,late:0.0791,n10:0.75,surv:0.6953,lens:0.75,retLens:0.1277,h1:0.62,h2:0.79}},
+  {id:'pb_r_L17', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'BB %B>0.82 + ADX<14.11 + 골든크로스 5×20',
+   conds:[{key:'bbPctB',type:'num',dir:'gt',th:0.82}, {key:'adx',type:'num',dir:'lt',th:14.11}, {key:'gx5_20',type:'bin'}], src:{n:195,late:0.0859,n10:0.6718,surv:0.6656,lens:0.7538,retLens:0.1276,h1:0.69,h2:0.8}},
+  {id:'pb_r_L18', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'BB %B>0.82 + 골든크로스 5×20 + 슬로우스토 골든',
+   conds:[{key:'bbPctB',type:'num',dir:'gt',th:0.82}, {key:'gx5_20',type:'bin'}, {key:'stochSlowGc',type:'bin'}], src:{n:50,late:0.0929,n10:0.8,surv:0.698,lens:0.82,retLens:0.1245,h1:0.85,h2:0.8}},
+  {id:'pb_r_L19', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'CCI>51.82 + MACD 영선아래 + PSAR 하락',
+   conds:[{key:'cci',type:'num',dir:'gt',th:51.82}, {key:'macdBelow0',type:'bin'}, {key:'sarBear',type:'bin'}], src:{n:120,late:0.074,n10:0.7917,surv:0.6667,lens:0.8083,retLens:0.1223,h1:0.78,h2:0.83}},
+  {id:'pb_r_L20', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'MA60 이격도%<-6.55 + RSI 상승다이버전스 + PSAR 하락',
+   conds:[{key:'dev60',type:'num',dir:'lt',th:-6.55}, {key:'rsiDiv',type:'bin'}, {key:'sarBear',type:'bin'}], src:{n:257,late:0.067,n10:0.7821,surv:0.6626,lens:0.7626,retLens:0.1217,h1:0.71,h2:0.79}},
+  {id:'pb_r_L21', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'MA60 이격도%<-6.55 + RSI 상승다이버전스 + 지지선 근접',
+   conds:[{key:'dev60',type:'num',dir:'lt',th:-6.55}, {key:'rsiDiv',type:'bin'}, {key:'nearSup',type:'bin'}], src:{n:144,late:0.0716,n10:0.7847,surv:0.6771,lens:0.7569,retLens:0.1174,h1:0.68,h2:0.83}},
+  {id:'pb_r_L22', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'MACD 영선아래 + 일목 구름위 + 일목 전환>기준',
+   conds:[{key:'macdBelow0',type:'bin'}, {key:'ichiCloudUp',type:'bin'}, {key:'ichiTK',type:'bin'}], src:{n:66,late:0.0639,n10:0.7424,surv:0.6833,lens:0.8485,retLens:0.1134,h1:0.86,h2:0.83}},
+  {id:'pb_r_L23', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'CCI>51.82 + MACD 영선아래 + 슬로우스토 골든',
+   conds:[{key:'cci',type:'num',dir:'gt',th:51.82}, {key:'macdBelow0',type:'bin'}, {key:'stochSlowGc',type:'bin'}], src:{n:127,late:0.0839,n10:0.748,surv:0.6559,lens:0.748,retLens:0.1115,h1:0.7,h2:0.79}},
+  {id:'pb_r_L24', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'CCI>51.82 + 골든크로스 5×20 + 슬로우스토 골든',
+   conds:[{key:'cci',type:'num',dir:'gt',th:51.82}, {key:'gx5_20',type:'bin'}, {key:'stochSlowGc',type:'bin'}], src:{n:55,late:0.0754,n10:0.7636,surv:0.66,lens:0.7636,retLens:0.1098,h1:0.72,h2:0.8}},
+  {id:'pb_r_L25', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'Stoch %K>75.26 + MA60 이격도%<-6.55 + DI 하락우위',
+   conds:[{key:'stochK',type:'num',dir:'gt',th:75.26}, {key:'dev60',type:'num',dir:'lt',th:-6.55}, {key:'diBear',type:'bin'}], src:{n:67,late:0.085,n10:0.791,surv:0.7478,lens:0.7612,retLens:0.1098,h1:0.83,h2:0.5}},
+  {id:'pb_r_L26', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'ADX<14.11 + MA60 이격도%<-6.55 + RSI 상승다이버전스',
+   conds:[{key:'adx',type:'num',dir:'lt',th:14.11}, {key:'dev60',type:'num',dir:'lt',th:-6.55}, {key:'rsiDiv',type:'bin'}], src:{n:56,late:0.0938,n10:0.6964,surv:0.6464,lens:0.7679,retLens:0.1096,h1:0.67,h2:0.88}},
+  {id:'pb_r_L27', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'MACD 영선아래 + PSAR 하락 + 엔벨로프 상단이탈',
+   conds:[{key:'macdBelow0',type:'bin'}, {key:'sarBear',type:'bin'}, {key:'envUp',type:'bin'}], src:{n:62,late:0.0595,n10:0.8387,surv:0.6726,lens:0.7742,retLens:0.1089,h1:0.86,h2:0.75}},
+  {id:'pb_r_L28', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'BB %B>0.82 + MACD 영선아래 + 슬로우스토 골든',
+   conds:[{key:'bbPctB',type:'num',dir:'gt',th:0.82}, {key:'macdBelow0',type:'bin'}, {key:'stochSlowGc',type:'bin'}], src:{n:120,late:0.0725,n10:0.7417,surv:0.66,lens:0.7667,retLens:0.1082,h1:0.8,h2:0.74}},
+  {id:'pb_r_L29', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'MA20 이격도%>4.03 + MACD 영선아래 + PSAR 하락',
+   conds:[{key:'dev20',type:'num',dir:'gt',th:4.03}, {key:'macdBelow0',type:'bin'}, {key:'sarBear',type:'bin'}], src:{n:56,late:0.0601,n10:0.8214,surv:0.6661,lens:0.75,retLens:0.1082,h1:0.85,h2:0.72}},
+  {id:'pb_r_L30', pool:'pullback', kind:'real', mode:'and', tradable:false, label:'RSI 상승다이버전스 + 지지선 근접 + PSAR 하락',
+   conds:[{key:'rsiDiv',type:'bin'}, {key:'nearSup',type:'bin'}, {key:'sarBear',type:'bin'}], src:{n:157,late:0.0659,n10:0.7771,surv:0.6675,lens:0.7516,retLens:0.1072,h1:0.68,h2:0.83}},
+
   // ── pullback · fake — [S865] 렌즈발굴(S864)·통일표준(반분 안정·Δ렌즈5%p·다양성 cap4·상한130) 2개 ──
   {id:'pb_f_L01', pool:'pullback', kind:'fake', mode:'and', label:'MA120 이격도%<-2.45 + OBV 상승다이버전스 + BB 스퀴즈 + MACD 골든크로스',
    conds:[{key:'dev120',type:'num',dir:'lt',th:-2.45}, {key:'obvDiv',type:'bin'}, {key:'squeeze',type:'bin'}, {key:'macdGc',type:'bin'}], src:{n:46,late:-0.0067,n10:0.587,surv:0.537,lens:0.457,retLens:-0.009,h1:0.52,h2:0.38}},
@@ -1011,7 +1051,8 @@ function _sxRecipeVotesCore(mk, ind, rows, idx){
     var f=_extractFeats733(ind, rows, idx); if(!f) return null;
     var lt=_ltOf(ind), maBull=!!(ind.maAlign && ind.maAlign.bullish);
     var set=RECIPES_BY_MKT[mk] || RECIPES_BY_MKT.kr, rk=0, fk=0;
-    for(var i=0;i<set.length;i++){ var r=set[i]; if(_fires(r, f, lt, maBull)){ if(r.kind==='real') rk++; else fk++; } }
+    // [S1094] tradable:false = 시즌2 votes 미포함(매매 격리·미검증 레시피). _fires/표시엔 영향 없음(등록·발동은 유지·시즌1 카드엔 등장).
+    for(var i=0;i<set.length;i++){ var r=set[i]; if(r.tradable===false) continue; if(_fires(r, f, lt, maBull)){ if(r.kind==='real') rk++; else fk++; } }
     var pure=(rk>0 && fk===0), mixed=(rk>0 && fk>0), v=0;
     if(pure){
       if(mk==='kr') v = rk>=4?4 : (rk>=3?3 : (rk>=2?2 : 1));
