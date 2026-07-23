@@ -913,7 +913,8 @@ function _goldenX733(c, shortP, longP, lookback){   // _maGoldenCross 복제(임
   }
   return false;
 }
-// ═══ [S1095] 계산 SSOT — _extractFeats733은 sx_feature_library.js(79재료) 위임 shim ═══
+// ═══ [S1095] 계산 SSOT — _extractFeats733은 sx_feature_library.js(**106재료**) 위임 shim ═══
+//   [S1098] 수치 정정(79→106). 단 이 shim은 _F733_KEYS **35개 고정**이라 라이브러리 확장이 매매로 새지 않는다.
 //  배경: 같은 재료가 ①라이브러리 ②여기(733) ③시즌3 l1_fire 세 곳에 따로 구현돼 드리프트 위험.
 //        S1095 전수대조(KR 188종×5봉=940샘플, 엄격일치)로 겹침 전 키가 라이브러리와 동일함을 증명 → 단일화.
 //  ★유일한 의도적 차이: volBreak — 구현이 ind.volumeMA를 숫자로 읽어 1880봉 전수 0% 점등(죽은배선)이던 것을
