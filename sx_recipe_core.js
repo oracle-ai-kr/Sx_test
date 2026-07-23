@@ -913,7 +913,31 @@ function _goldenX733(c, shortP, longP, lookback){   // _maGoldenCross 복제(임
   }
   return false;
 }
+// ═══ [S1095] 계산 SSOT — _extractFeats733은 sx_feature_library.js(79재료) 위임 shim ═══
+//  배경: 같은 재료가 ①라이브러리 ②여기(733) ③시즌3 l1_fire 세 곳에 따로 구현돼 드리프트 위험.
+//        S1095 전수대조(KR 188종×5봉=940샘플, 엄격일치)로 겹침 전 키가 라이브러리와 동일함을 증명 → 단일화.
+//  ★유일한 의도적 차이: volBreak — 구현이 ind.volumeMA를 숫자로 읽어 1880봉 전수 0% 점등(죽은배선)이던 것을
+//    라이브러리서 vma20 기준으로 수리(0%→5.6%). 레시피 conds 미사용 확인 → 매매 무영향(골든테스트 통과 근거).
+//  ★반환 키 이름은 기존 그대로 유지(rsiDiv/obvDiv). 레시피 conds가 이 이름을 참조하므로 절대 바꾸지 말 것.
+//  ★페일세이프: 라이브러리 미로드 시 조용히 죽지 않고 아래 구 구현으로 폴백(워커 rcpK 전멸 방지 · S918 교훈).
+//    워커는 sx_scan_worker.js importScripts에 sx_feature_library.js가 추가돼 있어야 SSOT 경로를 탄다.
+var _F733_KEYS = ['rsi','stochK','cci','bbPctB','volOsc','adx','rsiDiv','obvDiv','mfi','vr','obvUp','nearSup','squeeze',
+  'macdGc','macdHistUp','macdBelow0','diBear','sarBear','envDn','envUp','ichiCloudUp','ichiTK','diRebound','diOverheat',
+  'stochSlowGc','gx5_9','gx5_20','gx5_60','settle20','volBreak','dev20','dev60','dev120','dev200','ma5slope'];
+var _F733_WARNED = false;
 function _extractFeats733(ind, rows, idx){
+  var G=(typeof window!=='undefined')?window:((typeof self!=='undefined')?self:null);
+  var L=G && G.SXFeatureLib;
+  if(L && L.evalOne && L.version && L.version >= 'S1095'){
+    var o={};
+    for(var k=0;k<_F733_KEYS.length;k++){ var key=_F733_KEYS[k]; o[key]=L.evalOne(key, ind, rows, idx); }
+    return o;
+  }
+  if(!_F733_WARNED){ _F733_WARNED=true; try{ console.warn('[S1095] SXFeatureLib 미로드 — _extractFeats733 구 구현 폴백(드리프트 주의)'); }catch(_e){} }
+  return _extractFeats733_legacy(ind, rows, idx);
+}
+// ── [S1095] 구 구현 보존 — 폴백 전용. 라이브러리와 동치임이 S1095서 증명됨(volBreak 제외). 신규 재료 추가는 라이브러리에만 할 것. ──
+function _extractFeats733_legacy(ind, rows, idx){
   var f={};
   f.rsi    = (ind.rsi && typeof ind.rsi.val==='number') ? ind.rsi.val : null;
   f.stochK = (ind.stoch && typeof ind.stoch.k==='number') ? ind.stoch.k : null;
