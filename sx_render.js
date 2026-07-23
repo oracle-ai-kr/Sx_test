@@ -4653,7 +4653,12 @@ var _SX_MAT_DIR = {
   // 과매도
   envDn:'os', rsiOS30:'os', stochOS20:'os', cciOS100:'os', mfiOS20:'os', bbLower:'os',
   // 중립(상태·방향없음)
-  squeeze:'neu', massBulge:'neu', demarkPerf:'neu', adx25:'neu'
+  squeeze:'neu', massBulge:'neu', demarkPerf:'neu', adx25:'neu',
+  // [S1095c] 카드 탐색 발굴 27종(layers'4')의 이진 16개 — 역시 교과서 의미(측정된 수익방향 아님)
+  ltBull:'bull', swingHH:'bull', candleBull:'bull', volPatBull:'bull', newHighN:'bull',
+  maAlignBear:'bear', ltBear:'bear', swingLL:'bear', candleBear:'bear', volPatBear:'bear',
+  newLowN:'bear', newLow52:'bear',
+  maConv:'neu', tlbRev:'neu', psychNear:'neu', bwNeutral:'neu'
 };
 var _SX_MAT_GRPKO = { osc:'오실레이터', ma:'이격·MA', vol:'변동성', trend:'추세', momo:'모멘텀', chase:'추격',
   flow:'수급·거래량', macd:'MACD', div:'다이버전스', struct:'구조', band:'밴드·채널', ichi:'일목', cross:'크로스', thr:'교과서임계', extra:'추가재료' };
