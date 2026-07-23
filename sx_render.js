@@ -4719,10 +4719,14 @@ function _sxMatDeepPaintProg(){
 function _sxMatDeepPaint(){ _sxMatRerender(); }
 if(typeof window!=='undefined'){ window._sxMatDeepStart=_sxMatDeepStart; }
 
-// ════════ [S1095] 📟 재료 전광판 — 79재료 SSOT(sx_feature_library.js) 실시간 점등 ════════
+// ════════ [S1095] 📟 재료 전광판 — **106재료** SSOT(sx_feature_library.js) 실시간 점등 ════════
+//  [S1098] 수치 정정(79→106 · S1095c 발굴 27종 편입분 미반영이었음).
+//    점등 집계 분모는 **이진 62**(+사용자 추가재료) — 연속 44는 숫자로만 표시된다.
+//    ★코드는 L.binIds/L.features를 동적으로 읽는다 → 이 주석과 어긋나면 **런타임 값이 옳다.**
 //  분석탭에서 지금 이 종목의 재료가 몇 개 켜져 있는지 한눈에. 헤드=측정치+해석 / 본문=재료목록(접기).
 //  ★계산: indicators._advanced(=calcAllScreener 결과·rows/closes 포함)를 그대로 재사용 → 별도 fetch 0회.
 //    실측(S1095) evalAll(79재료·600봉) = 0.045ms → 동기 렌더 무해(자동). 수동 버튼 불필요.
+//      ※[S1098] 이 79는 **측정 당시 모집단**이다 — 수치만 106으로 바꾸면 거짓말이 된다(재측정 필요).
 //  ★표시 전용 — 엔진/매매 판정에 일절 관여하지 않는다.
 //  ⚠방향 태그(강세/약세/과열/과매도)는 **교과서 의미 부여**지 측정된 수익방향이 아니다.
 //    (실측 반례: diOverheat는 KR서 crash↑인데 수익꼬리 동반 · envDn은 시즌3 BH서 +0.60)
@@ -5836,7 +5840,8 @@ function _cvRender(R){
 }
 /* [S877] _ltStr733 → sx_recipe_core.js 이관(전역 동명 — 호출부 무변경) */   // _ltAlignStr 복제(단순 필드체크·MA계산 없음)
 // ════════ [S734] 🧪 재료 변별력 측정 — bear-deadcat 진입(게이트 타겟)을 결과로 가름(수익=진짜반등 / 손실=데드캣). 각 후보 재료가 두 그룹에서 평균 차이 나는지 → 차이 큰 재료=레시피 후보(진짜반등을 가리는 신호). 측정 전용·엔진 무변경. ════════
-// ★[S1095] 재료 SSOT = sx_feature_library.js (79재료). 재료를 찾을 땐 거기부터 볼 것.
+// ★[S1095] 재료 SSOT = sx_feature_library.js (**106재료**). 재료를 찾을 땐 거기부터 볼 것.
+//   [S1098] 수치 정정(79→106). 살아있는 값 = SXFeatureLib.features.length · .version
 //   이 배열은 그 중 **교차검증 빌더가 노출하는 35개의 뷰**(=매매 어휘·`SXFeatureLib.layersHas('2')`와 1:1 일치 검증됨 S1095).
 //   값은 _extractFeats733(→라이브러리 위임 shim) 산출물에서 읽으므로 key 이름은 733 표기 유지(rsiDiv/obvDiv = 라이브러리 rsiDivBull/obvDivBull 별칭).
 //   ⚠재료를 새로 추가할 땐 라이브러리에 먼저 등록하고, 빌더에도 노출하려면 여기 한 줄 추가(라벨/타입은 라이브러리와 맞출 것).
