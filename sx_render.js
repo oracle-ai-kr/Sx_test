@@ -4631,6 +4631,73 @@ async function _sxBadgeAsyncRender(token, mk, code){
 }
 if(typeof window!=='undefined'){ window._buildBadgeInventoryCard = _buildBadgeInventoryCard; window._sxBadgeAsyncRender = _sxBadgeAsyncRender; }
 
+
+// ════════ [S1096] 심화 측정 — 시즌3 L1/L2 잣대를 '이 종목 이력'에 재활용 ════════
+//  출처: Tools/Season3 l1_judge.js(발동빈도) · l2_judge.js(자카드 ≥0.80 중복제거) · enrich.js(농축비 = P(재료|장면)÷P(재료|전체))
+//  ★차이: 시즌3는 풀×앵커 전체를 재지만, 카드는 **이 종목 최근 WIN봉**을 표본으로 쓴다(단일종목 국소 잣대).
+//    따라서 시즌3 판정(L1 통과/L2 생존)과는 다른 수치 — 예측력 주장 아님, "지금 장면이 이 종목 기준 얼마나 이례적인가"의 서술.
+//  ★비용 실측(S1096): calcAllScreener(260봉) ~6ms → 150표본 ≈ 240ms(노드). 청크(20표본/틱)로 쪼개 UI 블로킹 회피.
+var _SX_MAT_DEEP_WIN = 300, _SX_MAT_DEEP_STEP = 2, _SX_MAT_DEEP_MIN = 260, _SX_MAT_DEEP_CHUNK = 20;
+var _SX_MAT_JAC_TH = 0.80;   // l2_judge.js와 동일 임계
+function _sxMatCodeOf(stock){ return (stock && (stock.code||stock.name)) || ''; }
+function _sxMatDeepStart(code, rows){
+  var L=window.SXFeatureLib; if(!L || typeof SXE==='undefined' || !SXE.calcAllScreener) return;
+  if(!Array.isArray(rows) || rows.length < _SX_MAT_DEEP_MIN+10) { window._sxMatDeep={code:code, done:true, ok:false, why:'이력 부족('+(rows?rows.length:0)+'봉 · '+(_SX_MAT_DEEP_MIN+10)+'봉 필요)'}; _sxMatDeepPaint(); return; }
+  var tok=(window._sxMatDeepTok=(window._sxMatDeepTok||0)+1);
+  var ids=L.binIds.slice();
+  var st={ code:code, done:false, ok:true, tok:tok, n:0, ids:ids,
+           cnt:new Array(ids.length).fill(0), vec:[], end:rows.length, prog:0 };
+  window._sxMatDeep=st;
+  var lo=Math.max(_SX_MAT_DEEP_MIN, rows.length-_SX_MAT_DEEP_WIN);
+  var total=Math.max(1, Math.ceil((rows.length-lo)/_SX_MAT_DEEP_STEP));
+  function step(){
+    if(window._sxMatDeepTok!==tok) return;            // 종목 전환 가드
+    var c=0;
+    while(st.end>lo && c<_SX_MAT_DEEP_CHUNK){
+      var win=rows.slice(Math.max(0, st.end-_SX_MAT_DEEP_MIN), st.end);
+      var bits=null;
+      try{ var ind=SXE.calcAllScreener(win,'day'); var v=L.evalAll(ind, win, win.length-1);
+           bits=ids.map(function(id){ return v[id]===1?1:0; }); }catch(_e){ bits=null; }
+      if(bits){ st.vec.push(bits); for(var k=0;k<ids.length;k++) if(bits[k]) st.cnt[k]++; st.n++; }
+      st.end-=_SX_MAT_DEEP_STEP; c++;
+    }
+    st.prog=Math.min(100, Math.round(100*(1-(st.end-lo)/Math.max(1,rows.length-lo))));
+    if(st.end>lo){ _sxMatDeepPaintProg(); setTimeout(step, 0); }
+    else { st.done=true; _sxMatDeepPaint(); }
+  }
+  setTimeout(step, 0);
+}
+// 현재 켜진 재료들에 대한 희소도·독립성 산출
+function _sxMatDeepStat(litIds){
+  var D=window._sxMatDeep; if(!D || !D.done || !D.ok || !D.n) return null;
+  var idx={}; D.ids.forEach(function(id,k){ idx[id]=k; });
+  var lit=litIds.filter(function(id){ return idx[id]!=null; });
+  var rate=function(id){ return D.cnt[idx[id]]/D.n; };
+  if(!lit.length) return { n:D.n, lit:0, mean:null, rarest:null, eff:0, dropped:[] };
+  var rates=lit.map(rate);
+  var mean=rates.reduce(function(a,b){return a+b;},0)/rates.length;
+  var ri=0; for(var i=1;i<rates.length;i++) if(rates[i]<rates[ri]) ri=i;
+  // l2_judge 그리디: 발동수 내림차순 → 이미 잔류분과 자카드 ≥0.80이면 탈락
+  var order=lit.slice().sort(function(a,b){ var d=D.cnt[idx[b]]-D.cnt[idx[a]]; return d||(a<b?-1:1); });
+  var keep=[], drop=[];
+  function jac(a,b){
+    var ka=idx[a], kb=idx[b], inter=0, uni=0;
+    for(var t=0;t<D.vec.length;t++){ var x=D.vec[t][ka], y=D.vec[t][kb]; if(x&&y) inter++; if(x||y) uni++; }
+    return uni?inter/uni:0;
+  }
+  order.forEach(function(id){
+    for(var k=0;k<keep.length;k++){ if(jac(id, keep[k])>=_SX_MAT_JAC_TH){ drop.push({id:id, with:keep[k]}); return; } }
+    keep.push(id);
+  });
+  return { n:D.n, lit:lit.length, mean:mean, rarest:{id:lit[ri], rate:rates[ri]}, eff:keep.length, dropped:drop, keep:keep };
+}
+function _sxMatDeepPaintProg(){
+  try{ var e=document.getElementById('sxMatDeepBox'); var D=window._sxMatDeep;
+    if(e&&D&&!D.done) e.innerHTML='<div style="font-size:9px;color:var(--text3)">🔬 이 종목 이력 측정 중… '+(D.prog||0)+'% <span style="font-size:8px">(표본 '+D.n+')</span></div>'; }catch(_e){}
+}
+function _sxMatDeepPaint(){ _sxMatRerender(); }
+if(typeof window!=='undefined'){ window._sxMatDeepStart=_sxMatDeepStart; }
+
 // ════════ [S1095] 📟 재료 전광판 — 79재료 SSOT(sx_feature_library.js) 실시간 점등 ════════
 //  분석탭에서 지금 이 종목의 재료가 몇 개 켜져 있는지 한눈에. 헤드=측정치+해석 / 본문=재료목록(접기).
 //  ★계산: indicators._advanced(=calcAllScreener 결과·rows/closes 포함)를 그대로 재사용 → 별도 fetch 0회.
@@ -4825,17 +4892,67 @@ function _buildMaterialBoardCard(stock, indicators){
   }
   h+='</div>';
 
-  // 4) 자동 해석
+  // 4) 심화 측정 (시즌3 L1/L2 재활용) — 이 종목 이력 기준 희소도·독립성
+  var _code=_sxMatCodeOf(stock);
+  var litIds=[]; binIds.forEach(function(id){ if(vals[id]===1) litIds.push(id); });
+  var D=window._sxMatDeep, DS=null;
+  if(D && D.code===_code && D.done && D.ok) DS=_sxMatDeepStat(litIds);
+  h+='<div id="sxMatDeepBox" style="padding:7px 9px;margin:5px 0;background:var(--surface2);border-radius:8px">';
+  if(!D || D.code!==_code){
+    h+='<div style="font-size:9px;color:'+T3+'">🔬 이 종목 이력 측정 준비 중…</div>';
+    setTimeout(function(){ try{ _sxMatDeepStart(_code, rows); }catch(_e){} }, 30);
+  } else if(!D.done){
+    h+='<div style="font-size:9px;color:'+T3+'">🔬 이 종목 이력 측정 중… '+(D.prog||0)+'%</div>';
+  } else if(!D.ok){
+    h+='<div style="font-size:9px;color:'+T3+'">🔬 심화 측정 불가 — '+_esc(D.why||'')+'</div>';
+  } else if(DS){
+    h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">'
+      + '<span style="font-size:9.5px;font-weight:700;color:'+T2+'">🔬 이 종목 기준 (최근 '+_SX_MAT_DEEP_WIN+'봉 · 표본 '+DS.n+')</span></div>';
+    if(!DS.lit) h+='<div style="font-size:9px;color:'+T3+'">켜진 재료가 없어 산출 없음</div>';
+    else {
+      var mp=(100*DS.mean).toFixed(0);
+      var rare=(100*DS.rarest.rate).toFixed(1);
+      var rc=(DS.mean<=0.10)?'#7c3aed':(DS.mean<=0.25?'#2563eb':T3);
+      h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">';
+      h+='<div style="padding:5px 7px;background:var(--surface);border-radius:7px"><div style="font-size:7.5px;color:'+T3+'">희소도(평균 발동률)</div>'
+        + '<div style="font-size:11px;font-weight:800;color:'+rc+'">'+mp+'%</div>'
+        + '<div style="font-size:7.5px;color:'+T3+'">가장 드문 불 '+_esc((L.byId[DS.rarest.id]||{}).label||DS.rarest.id)+' '+rare+'%</div></div>';
+      var ec=(DS.eff<DS.lit)?'#d97706':'#16a34a';
+      h+='<div style="padding:5px 7px;background:var(--surface);border-radius:7px"><div style="font-size:7.5px;color:'+T3+'">독립성(실효 재료)</div>'
+        + '<div style="font-size:11px;font-weight:800;color:'+ec+'">'+DS.eff+'<span style="font-size:9px;color:'+T3+'"> / '+DS.lit+'</span></div>'
+        + '<div style="font-size:7.5px;color:'+T3+'">'+(DS.dropped.length?('겹침 '+DS.dropped.length+'쌍 제외'):'중복 없음')+'</div></div>';
+      h+='</div>';
+      h+='<div style="font-size:7.5px;color:'+T3+';margin-top:4px;line-height:1.4">시즌3 <b>L1</b>(발동빈도)·<b>L2</b>(자카드 ≥'+_SX_MAT_JAC_TH+' 중복제거) 잣대를 이 종목 이력에 적용. 시즌3 판정과는 별개(단일종목 국소 잣대·예측력 아님).</div>';
+    }
+  }
+  h+='</div>';
+
+  // 5) 방향성 해설 — 어휘 우위 + 근거 재료 + 희소도·독립성 반영
   var bullSide=dirCnt.bull, bearSide=dirCnt.bear;
-  var msg, mcol;
-  if(litN===0){ msg='켜진 이진 재료가 없어요. 어느 쪽 어휘도 잡히지 않은 무신호 구간.'; mcol=T3; }
-  else if(dirCnt.os>=3 && bullSide>=3){ msg='<b>과매도 '+dirCnt.os+'</b> + <b>강세전환 '+bullSide+'</b> 동반 — 교과서적으론 반등 후보 국면.'; mcol='#2563eb'; }
-  else if(dirCnt.ob>=3 && bearSide===0){ msg='<b>과열 '+dirCnt.ob+'</b> 우세, 약세 어휘 없음 — 상승 연장 중이나 추격 위험 구간.'; mcol='#d97706'; }
-  else if(bearSide>bullSide){ msg='<b>약세 '+bearSide+'</b> > 강세 '+bullSide+' — 하락 어휘 우위.'; mcol='#dc2626'; }
-  else if(bullSide>bearSide){ msg='<b>강세 '+bullSide+'</b> > 약세 '+bearSide+' — 상승 어휘 우위.'; mcol='#16a34a'; }
-  else { msg='강세 '+bullSide+' = 약세 '+bearSide+' — 어휘가 팽팽함(혼조).'; mcol='#64748b'; }
+  var msg, mcol, sub='';
+  if(litN===0){ msg='켜진 이진 재료가 없어요. 어느 쪽 어휘도 잡히지 않은 <b>무신호</b> 구간.'; mcol=T3; }
+  else if(dirCnt.os>=3 && bullSide>=3){ msg='<b>과매도 '+dirCnt.os+'</b> + <b>강세전환 '+bullSide+'</b> 동반 — 교과서적으론 <b>반등 후보</b> 국면.'; mcol='#2563eb'; }
+  else if(dirCnt.ob>=3 && bearSide===0){ msg='<b>과열 '+dirCnt.ob+'</b> 우세, 약세 어휘 없음 — 상승 연장 중이나 <b>추격 위험</b> 구간.'; mcol='#d97706'; }
+  else if(bearSide>bullSide){ msg='<b>약세 '+bearSide+'</b> > 강세 '+bullSide+' — <b>하락 어휘 우위</b>.'; mcol='#dc2626'; }
+  else if(bullSide>bearSide){ msg='<b>강세 '+bullSide+'</b> > 약세 '+bearSide+' — <b>상승 어휘 우위</b>.'; mcol='#16a34a'; }
+  else { msg='강세 '+bullSide+' = 약세 '+bearSide+' — 어휘가 팽팽함(<b>혼조</b>).'; mcol='#64748b'; }
+  // 근거 재료 나열 (우세 방향 최대 5개)
+  var domi=(bearSide>bullSide)?'bear':((bullSide>bearSide)?'bull':(dirCnt.ob>=3?'ob':(dirCnt.os>=3?'os':null)));
+  if(domi && litN){
+    var names=litIds.filter(function(id){ return (_SX_MAT_DIR[id]||'neu')===domi; })
+      .map(function(id){ return (L.byId[id]||{}).label||id; });
+    if(names.length) sub+='<div style="font-size:8.5px;color:'+T3+';margin-top:4px">근거('+_SX_MAT_DIRKO[domi].ko+'): <b style="color:'+_SX_MAT_DIRKO[domi].col+'">'+_esc(names.slice(0,5).join(' · '))+'</b>'+(names.length>5?(' 외 '+(names.length-5)):'')+'</div>';
+  }
+  if(DS && DS.lit){
+    var tone=[];
+    if(DS.mean<=0.10) tone.push('이 종목에선 <b>드물게</b> 켜지는 조합(평균 발동률 '+(100*DS.mean).toFixed(0)+'%) — 이례적 장면');
+    else if(DS.mean>=0.40) tone.push('평소에도 자주 켜지는 <b>흔한 불</b>(평균 '+(100*DS.mean).toFixed(0)+'%) — 변별력 낮을 수 있음');
+    if(DS.eff<DS.lit) tone.push('점등 '+DS.lit+'개 중 서로 겹치는 걸 빼면 <b>실효 '+DS.eff+'개</b> — 개수만큼 정보가 늘진 않음');
+    if(tone.length) sub+='<div style="font-size:8.5px;color:'+T2+';margin-top:4px;line-height:1.5">↳ '+tone.join(' · ')+'</div>';
+  }
   h+='<div style="font-size:9.5px;line-height:1.55;color:'+T2+';padding:7px 9px;margin:5px 0;border-left:2px solid '+mcol+';background:var(--surface2);border-radius:0 7px 7px 0">'
-    + msg + '<div style="font-size:8px;color:'+T3+';margin-top:3px">규칙: 과매도3+강세3 → 반등후보 / 과열3+약세0 → 추격위험 / 그 외 강세·약세 다수결. 판정 아님.</div></div>';
+    + msg + sub
+    + '<div style="font-size:8px;color:'+T3+';margin-top:4px">규칙: 과매도3+강세3 → 반등후보 / 과열3+약세0 → 추격위험 / 그 외 강세·약세 다수결. <b>판정 아님</b> · 방향은 교과서 의미.</div></div>';
 
   // ── 재료 목록 (접기) ──
   var openList=!!(window._sxMatListOpen);
