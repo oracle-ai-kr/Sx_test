@@ -4704,7 +4704,13 @@ function _sxMatDeepStat(litIds){
     for(var k=0;k<keep.length;k++){ if(jac(id, keep[k])>=_SX_MAT_JAC_TH){ drop.push({id:id, with:keep[k]}); return; } }
     keep.push(id);
   });
-  return { n:D.n, lit:lit.length, mean:mean, rarest:{id:lit[ri], rate:rates[ri]}, eff:keep.length, dropped:drop, keep:keep };
+  // [S1096d] 전 쌍 최대 자카드 — 임계 0.80은 높아 '중복 없음'이 잦다. 0.78이었는지 0.31이었는지를 보여준다.
+  var maxJ=null, maxPair=null;
+  for(var a=0;a<lit.length;a++) for(var b=a+1;b<lit.length;b++){
+    var jv=jac(lit[a], lit[b]);
+    if(maxJ==null || jv>maxJ){ maxJ=jv; maxPair=[lit[a], lit[b]]; }
+  }
+  return { n:D.n, lit:lit.length, mean:mean, rarest:{id:lit[ri], rate:rates[ri]}, eff:keep.length, dropped:drop, keep:keep, maxJ:maxJ, maxPair:maxPair };
 }
 function _sxMatDeepPaintProg(){
   try{ var e=document.getElementById('sxMatDeepBox'); var D=window._sxMatDeep;
@@ -4862,7 +4868,8 @@ function _buildMaterialBoardCard(stock, indicators){
   var gAll={}, gLit={};
   L.features.forEach(function(f){ if(f.kind!=='bin') return; gAll[f.group]=(gAll[f.group]||0)+1; if(vals[f.id]===1) gLit[f.group]=(gLit[f.group]||0)+1; });
   if(exLightable.length){ gAll.extra=exLightable.length; if(exLit) gLit.extra=exLit; }
-  var gTop=Object.keys(gLit).map(function(g){ return {g:g, n:gLit[g], all:gAll[g]}; }).sort(function(a,b){ return b.n-a.n; }).slice(0,4);
+  var gAllLit=Object.keys(gLit).map(function(g){ return {g:g, n:gLit[g], all:gAll[g]}; }).sort(function(a,b){ return b.n-a.n; });
+  var gTop=gAllLit.slice(0,4), gRest=gAllLit.slice(4);   // [S1096c] 잘린 그룹도 카드 안에서 회계가 맞도록 표기
   var contOk=0; contIds.forEach(function(id){ if(vals[id]!=null) contOk++; });
 
   var pct=binN?Math.round(100*litN/binN):0;
@@ -4894,16 +4901,31 @@ function _buildMaterialBoardCard(stock, indicators){
   });
   h+='</div>';
 
-  // 3) 그룹 집중
+  // 3) 그룹 집중 — [S1096c] 상위 4개만 보이던 탓에 칩 합(8)과 점등수(9)가 안 맞아 보였다.
+  //   방향 줄은 이미 완전한 회계(강세+과매도+중립+과열+약세 = 점등)이므로, 그룹 줄도 카드 안에서 합이 맞게 잔여를 표기한다.
   h+='<div style="padding:7px 9px;margin:5px 0;background:var(--surface2);border-radius:8px">';
-  h+='<div style="font-size:9.5px;font-weight:700;color:'+T2+';margin-bottom:4px">그룹 집중</div>';
+  h+='<div style="display:flex;align-items:baseline;gap:5px;margin-bottom:4px">'
+    + '<span style="font-size:9.5px;font-weight:700;color:'+T2+'">그룹 집중</span>'
+    + (gAllLit.length?('<span style="margin-left:auto;font-size:8px;color:'+T3+'">점등 '+litN+' · '+gAllLit.length+'개 그룹</span>'):'')
+    + '</div>';
   if(!gTop.length) h+='<div style="font-size:9px;color:'+T3+'">점등된 재료 없음</div>';
   else { h+='<div style="display:flex;flex-wrap:wrap;gap:4px">';
     gTop.forEach(function(x){
       h+='<span style="font-size:9px;padding:3px 7px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text)">'
         + (_SX_MAT_GRPKO[x.g]||x.g) + ' <b style="color:var(--accent)">'+x.n+'</b><span style="color:'+T3+'">/'+x.all+'</span></span>';
     });
+    // 잔여 그룹 — 3개까지는 그대로(흐리게), 그 이상은 묶어서
+    if(gRest.length && gRest.length<=3){
+      gRest.forEach(function(x){
+        h+='<span style="font-size:9px;padding:3px 7px;border-radius:6px;background:transparent;border:1px dashed var(--border);color:'+T3+'">'
+          + (_SX_MAT_GRPKO[x.g]||x.g) + ' <b>'+x.n+'</b>/'+x.all+'</span>';
+      });
+    } else if(gRest.length){
+      var rs=gRest.reduce(function(a,x){ return a+x.n; },0);
+      h+='<span style="font-size:9px;padding:3px 7px;border-radius:6px;background:transparent;border:1px dashed var(--border);color:'+T3+'">외 '+gRest.length+'그룹 <b>'+rs+'</b></span>';
+    }
     h+='</div>';
+    h+='<div style="font-size:7.5px;color:'+T3+';margin-top:4px">점선 = 상위 4개 밖. 칩 합 = 점등수(방향 줄과 동일 회계).</div>';
   }
   h+='</div>';
 
@@ -4938,10 +4960,19 @@ function _buildMaterialBoardCard(stock, indicators){
         + '<div style="font-size:11px;font-weight:800;color:'+rc+'">'+mp+'%</div>'
         + '<div style="font-size:7.5px;color:'+T3+'">가장 드문 불 '+_esc((L.byId[DS.rarest.id]||{}).label||DS.rarest.id)+' '+rare+'% <b>('+Math.round(DS.rarest.rate*DS.n)+'회/'+DS.n+')</b></div></div>';
       var ec=(DS.eff<DS.lit)?'#d97706':'#16a34a';
+      var mj=(DS.maxJ!=null)?DS.maxJ.toFixed(2).replace(/^0/,''):null;
+      var mjc=(DS.maxJ==null)?T3:(DS.maxJ>=_SX_MAT_JAC_TH?'#dc2626':(DS.maxJ>=0.60?'#d97706':T3));
       h+='<div style="padding:5px 7px;background:var(--surface);border-radius:7px"><div style="font-size:7.5px;color:'+T3+'">독립성(실효 재료)</div>'
         + '<div style="font-size:11px;font-weight:800;color:'+ec+'">'+DS.eff+'<span style="font-size:9px;color:'+T3+'"> / '+DS.lit+'</span></div>'
-        + '<div style="font-size:7.5px;color:'+T3+'">'+(DS.dropped.length?('겹침 '+DS.dropped.length+'쌍 제외'):'중복 없음')+'</div></div>';
+        + '<div style="font-size:7.5px;color:'+T3+'">'+(DS.dropped.length?('겹침 '+DS.dropped.length+'쌍 제외'):'중복 없음')
+        + (mj?(' · 최대 <b style="color:'+mjc+'">'+mj+'</b>'):'')+'</div></div>';
       h+='</div>';
+      // 가장 가까운 쌍 — 임계에 얼마나 근접했는지 서술
+      if(DS.maxPair && DS.maxJ!=null){
+        var _nm=function(id){ return (L.byId[id]||{}).label||id; };
+        var near=(DS.maxJ>=_SX_MAT_JAC_TH)?'임계 초과(중복 처리)':((DS.maxJ>=0.60)?'임계 근접':'여유 있음');
+        h+='<div style="font-size:7.5px;color:'+T3+';margin-top:4px">가장 가까운 쌍 <b style="color:'+T2+'">'+_esc(_nm(DS.maxPair[0]))+' ↔ '+_esc(_nm(DS.maxPair[1]))+'</b> 자카드 <b style="color:'+mjc+'">'+DS.maxJ.toFixed(2)+'</b> ('+near+' · 임계 '+_SX_MAT_JAC_TH+')</div>';
+      }
       h+='<div style="font-size:7.5px;color:'+T3+';margin-top:4px;line-height:1.4">시즌3 <b>L1</b>(발동빈도)·<b>L2</b>(자카드 ≥'+_SX_MAT_JAC_TH+' 중복제거) 잣대를 이 종목 이력에 적용. 시즌3 판정과는 별개(단일종목 국소 잣대·예측력 아님). 재료 계산에 '+_SX_MAT_DEEP_MIN+'봉이 필요해 <b>실제 창 = 확보봉수 − '+_SX_MAT_DEEP_MIN+'</b>.</div>';
     }
   }
