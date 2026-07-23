@@ -220,7 +220,45 @@
     { id:'bbUpper',  label:'BB %B 1↑',       group:'thr', kind:'bin', layers:'3', value:function(ind){ var v=ind.bb?_num(ind.bb.pctB):null; return (v!=null&&v>1)?1:0; } },
     { id:'macdSigGc',label:'MACD 시그널 골든', group:'thr', kind:'bin', layers:'3', value:function(ind){ var m=ind.macd; if(!m) return 0; var a=_num(m.line), b=_num(m.sig); var pa=_prevOf(m.arr&&m.arr.line), pb=_prevOf(m.arr&&m.arr.sig); return (a!=null&&b!=null&&pa!=null&&pb!=null&&a>b&&pa<=pb)?1:0; } },
     { id:'macd0up',  label:'MACD 0선 상향',   group:'thr', kind:'bin', layers:'3', value:function(ind){ var m=ind.macd; if(!m) return 0; var a=_num(m.line), pa=_prevOf(m.arr&&m.arr.line); return (a!=null&&pa!=null&&a>0&&pa<=0)?1:0; } },
-    { id:'volMaGc',  label:'거래량 5×20 골든', group:'thr', kind:'bin', layers:'3', value:function(ind,rows,i){ var ix=_rowIx(rows,ind,i); if(ix<20) return 0; var a5=_volSma(rows,5,ix), a20=_volSma(rows,20,ix), p5=_volSma(rows,5,ix-1), p20=_volSma(rows,20,ix-1); return (a5!=null&&a20!=null&&p5!=null&&p20!=null&&a5>a20&&p5<=p20)?1:0; } }
+    { id:'volMaGc',  label:'거래량 5×20 골든', group:'thr', kind:'bin', layers:'3', value:function(ind,rows,i){ var ix=_rowIx(rows,ind,i); if(ix<20) return 0; var a5=_volSma(rows,5,ix), a20=_volSma(rows,20,ix), p5=_volSma(rows,5,ix-1), p20=_volSma(rows,20,ix-1); return (a5!=null&&a20!=null&&p5!=null&&p20!=null&&a5>a20&&p5<=p20)?1:0; } },
+
+    // ═══════════ [S1095c] 카드 탐색 발굴 27종 (layers '4') ═══════════
+    //  경위: 재료 전광판 '새 재료 탐색' A등급(재료가 안 쓰는 엔진 필드) 59개를 실측으로 선별.
+    //   ❌가격스케일 함정 15 제외 — 종가와 |r| 0.93~1.00(price·ma5/20/60/120·maAlign.short/mid/long·maDisparity.ma20/ma60·psychLevel.level·trueRange.val·stdDev.val).
+    //     절대 원화라 종목간 비교 불가 + 종목내 중앙값 이진화 시 시간축이 됨(l1_fire가 nvi/pvi에 로그비 쓴 것과 동일 이유).
+    //   ⚠기존 SSOT와 사실상 중복 5 제외 — maDisparity.disparity20≈dev20(r=1.00) · disparity60≈dev60(1.00) · regime.adx≈adx(1.00) · priceAction.prevHighBreak≈pcUp(1.00) · volPattern.volRatio≈volRatio(0.998).
+    //   ❌분산0 제외 — maAlignLT.gateOn은 480봉 전수 100% 참(재료가치 없음).
+    //   ✅채택 기준: 기존 79재료 중 최근접과 |r| < 0.7 (겹치면 새 정보가 아님). KR 100종 마지막봉 기준.
+    //  ⚠시즌3 영향: binIds/contIds가 곧 L0라서 이 추가는 **사전등록(PREREG) 사안**. L1 원장 재산출 시 재료 수가 73→다름.
+    //  ★매매 무영향 증명: _extractFeats733 shim은 _F733_KEYS 35개 고정 → 라이브러리 추가가 레시피 발동에 안 샌다(S1095c 60종 골든 동일).
+    { id:'maAlignBear', label:'MA 역배열',      group:'trend', kind:'bin', layers:'4', value:function(ind){ return (ind.maAlign&&ind.maAlign.bearish)?1:0; } },
+    { id:'ltBull',      label:'장기 정배열',     group:'trend', kind:'bin', layers:'4', value:function(ind){ return (ind.maAlignLT&&ind.maAlignLT.bullish)?1:0; } },
+    { id:'ltBear',      label:'장기 역배열',     group:'trend', kind:'bin', layers:'4', value:function(ind){ return (ind.maAlignLT&&ind.maAlignLT.bearish)?1:0; } },
+    { id:'regimeScore', label:'레짐 점수',       group:'trend', kind:'cont', layers:'4', value:function(ind){ return (ind.regime&&typeof ind.regime.score==='number'&&isFinite(ind.regime.score))?ind.regime.score:null; } },
+    { id:'maConv',      label:'MA 수렴',        group:'ma', kind:'bin', layers:'4', value:function(ind){ return (ind.maConv&&ind.maConv.converging)?1:0; } },
+    { id:'maSpread',    label:'MA 스프레드%',    group:'ma', kind:'cont', layers:'4', value:function(ind){ return (ind.maConv&&typeof ind.maConv.spread==='number'&&isFinite(ind.maConv.spread))?ind.maConv.spread:null; } },
+    { id:'candleBull',  label:'캔들 강세패턴',    group:'struct', kind:'bin', layers:'4', value:function(ind){ return (ind.candle&&ind.candle.bullish)?1:0; } },
+    { id:'candleBear',  label:'캔들 약세패턴',    group:'struct', kind:'bin', layers:'4', value:function(ind){ return (ind.candle&&ind.candle.bearish)?1:0; } },
+    { id:'candleScore', label:'캔들 점수',       group:'struct', kind:'cont', layers:'4', value:function(ind){ return (ind.candle&&typeof ind.candle.score==='number'&&isFinite(ind.candle.score))?ind.candle.score:null; } },
+    { id:'swingHH',     label:'고점 higher-high', group:'struct', kind:'bin', layers:'4', value:function(ind){ return (ind.swingStruct&&ind.swingStruct.higherHighs)?1:0; } },
+    { id:'swingLL',     label:'저점 lower-low',  group:'struct', kind:'bin', layers:'4', value:function(ind){ return (ind.swingStruct&&ind.swingStruct.lowerLows)?1:0; } },
+    { id:'tlbRev',      label:'삼선전환 반전',    group:'struct', kind:'bin', layers:'4', value:function(ind){ return (ind.threeLineBreak&&ind.threeLineBreak.reversal)?1:0; } },
+    { id:'tlbLines',    label:'삼선전환 선수',    group:'struct', kind:'cont', layers:'4', value:function(ind){ return (ind.threeLineBreak&&typeof ind.threeLineBreak.lines==='number'&&isFinite(ind.threeLineBreak.lines))?ind.threeLineBreak.lines:null; } },
+    { id:'psychNear',   label:'심리가격 근접',    group:'struct', kind:'bin', layers:'4', value:function(ind){ return (ind.psychLevel&&ind.psychLevel.near)?1:0; } },
+    { id:'pbScore',     label:'눌림목 점수',      group:'struct', kind:'cont', layers:'4', value:function(ind){ return (ind.pullback&&typeof ind.pullback.score==='number'&&isFinite(ind.pullback.score))?ind.pullback.score:null; } },
+    { id:'volPatBull',  label:'거래량패턴 강세',  group:'flow', kind:'bin', layers:'4', value:function(ind){ return (ind.volPattern&&ind.volPattern.bullish)?1:0; } },
+    { id:'volPatBear',  label:'거래량패턴 약세',  group:'flow', kind:'bin', layers:'4', value:function(ind){ return (ind.volPattern&&ind.volPattern.bearish)?1:0; } },
+    { id:'volPatScore', label:'거래량패턴 점수',  group:'flow', kind:'cont', layers:'4', value:function(ind){ return (ind.volPattern&&typeof ind.volPattern.score==='number'&&isFinite(ind.volPattern.score))?ind.volPattern.score:null; } },
+    { id:'newHighN',    label:'N봉 신고가',      group:'chase', kind:'bin', layers:'4', value:function(ind){ return (ind.priceAction&&ind.priceAction.newHighN)?1:0; } },
+    { id:'newLowN',     label:'N봉 신저가',      group:'chase', kind:'bin', layers:'4', value:function(ind){ return (ind.priceAction&&ind.priceAction.newLowN)?1:0; } },
+    { id:'newLow52',    label:'52주 신저가',     group:'chase', kind:'bin', layers:'4', value:function(ind){ return (ind.priceAction&&ind.priceAction.newLow52)?1:0; } },
+    { id:'rangeRate',   label:'레인지 비율%',    group:'chase', kind:'cont', layers:'4', value:function(ind){ return (ind.priceAction&&typeof ind.priceAction.rangeRate==='number'&&isFinite(ind.priceAction.rangeRate))?ind.priceAction.rangeRate:null; } },
+    { id:'intraRange',  label:'장중 변동폭%',    group:'chase', kind:'cont', layers:'4', value:function(ind){ return (ind.priceAction&&typeof ind.priceAction.intradayRange==='number'&&isFinite(ind.priceAction.intradayRange))?ind.priceAction.intradayRange:null; } },
+    { id:'paScore',     label:'가격행동 점수',    group:'chase', kind:'cont', layers:'4', value:function(ind){ return (ind.priceAction&&typeof ind.priceAction.score==='number'&&isFinite(ind.priceAction.score))?ind.priceAction.score:null; } },
+    { id:'bwNeutral',   label:'바이너리웨이브 중립', group:'momo', kind:'bin', layers:'4', value:function(ind){ return (ind.binaryWave&&ind.binaryWave.neutral)?1:0; } },
+    { id:'macdOsc',     label:'MACD 오실레이터',  group:'macd', kind:'cont', layers:'4', value:function(ind){ return (ind.macdOsc&&typeof ind.macdOsc.val==='number'&&isFinite(ind.macdOsc.val))?ind.macdOsc.val:null; } },
+    // ⚠gapReal: 엔진 priceAction.gapPct는 라이브러리 gapPct(단순 시가/전일종가)와 달리 **임계 넘은 진짜 갭만** 값을 낸다(480봉 중 일치 42) — 별개 재료로 등록.
+    { id:'gapReal',     label:'유효 갭%',        group:'chase', kind:'cont', layers:'4', value:function(ind){ return (ind.priceAction&&typeof ind.priceAction.gapPct==='number'&&isFinite(ind.priceAction.gapPct))?ind.priceAction.gapPct:null; } }
   ];
 
   // ── [S1095] 별칭 — 구 교차검증/레시피 키(②) → canonical. 실측 100% 동일 확인분만 등록. ──
@@ -265,6 +303,6 @@
     evalCont: evalCont,
     evalOne: evalOne,
     CROSS_NBAR: CROSS_NBAR,
-    version: 'S1095'  // [S1095] 79재료 통합 SSOT (①39+②9+③31, 별칭 2쌍 병합) · 크로스 확인창 4봉 통일 · volBreak 수리
+    version: 'S1095c'  // [S1095c] 106재료 — S1095 통합 SSOT 79 + 카드 탐색 발굴 27(layers'4'). 매매 무영향(shim 35키 고정)
   };
 })();
