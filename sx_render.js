@@ -4637,7 +4637,8 @@ if(typeof window!=='undefined'){ window._buildBadgeInventoryCard = _buildBadgeIn
 //    실측(S1095) evalAll(79재료·600봉) = 0.045ms → 동기 렌더 무해(자동). 수동 버튼 불필요.
 //  ★표시 전용 — 엔진/매매 판정에 일절 관여하지 않는다.
 //  ⚠방향 태그(강세/약세/과열/과매도)는 **교과서 의미 부여**지 측정된 수익방향이 아니다.
-//    (실측 반례 있음: diOverheat는 KR서 crash↑인데 수익꼬리 동반 · envDn은 시즌3 BH서 +0.60)
+//    (실측 반례: diOverheat는 KR서 crash↑인데 수익꼬리 동반 · envDn은 시즌3 BH서 +0.60)
+//  [S1095b] 추가재료 확장 — ①숫자에 임계 걸어 불켜짐 ②헤드 집계 포함(SSOT/추가 분리표기) ③방향 직접 지정 ④A/B 일괄등록.
 var _SX_MAT_DIR = {
   // 강세(교과서)
   stochSlowGc:'bull', diRebound:'bull', obvUp:'bull', chaikinGc:'bull', macdGc:'bull', macdHistUp:'bull',
@@ -4657,29 +4658,87 @@ var _SX_MAT_DIR = {
 var _SX_MAT_GRPKO = { osc:'오실레이터', ma:'이격·MA', vol:'변동성', trend:'추세', momo:'모멘텀', chase:'추격',
   flow:'수급·거래량', macd:'MACD', div:'다이버전스', struct:'구조', band:'밴드·채널', ichi:'일목', cross:'크로스', thr:'교과서임계', extra:'추가재료' };
 var _SX_MAT_DIRKO = { bull:{ko:'강세',col:'#16a34a'}, bear:{ko:'약세',col:'#dc2626'}, ob:{ko:'과열',col:'#d97706'}, os:{ko:'과매도',col:'#2563eb'}, neu:{ko:'중립',col:'#64748b'} };
+function _sxMatFmt(v){
+  if(v==null) return '—';
+  var a=Math.abs(v);
+  if(a>=1e6) return (v/1e6).toFixed(1)+'M';
+  if(a>=1e4) return Math.round(v/1e3)+'k';
+  if(a>=100) return String(Math.round(v));
+  return String(Math.round(v*100)/100);
+}
 
-// ── 사용자 추가재료(탐색으로 발견 → 확인 후 등록) — localStorage 보관. 경로기반 접근이라 라이브러리 무변경. ──
+// ── 사용자 추가재료 — localStorage 보관. 경로기반 접근이라 라이브러리 무변경. ──
+//   스키마: {id, path, kind:'bin'|'cont', dir:'bull|bear|ob|os|neu', op:null|'gt'|'lt', th:null|number}
+//   불켜짐 가능(lightable) = 이진 OR (연속 + 임계 설정됨). lightable만 헤드 집계에 들어간다.
 var _SX_MAT_EXTRA_KEY = 'SX_MAT_EXTRA';
 function _sxMatExtraGet(){ try{ var r=localStorage.getItem(_SX_MAT_EXTRA_KEY); var a=r?JSON.parse(r):[]; return Array.isArray(a)?a:[]; }catch(_e){ return []; } }
-function _sxMatExtraSave(a){ try{ localStorage.setItem(_SX_MAT_EXTRA_KEY, JSON.stringify(a)); }catch(_e){} }
+function _sxMatExtraSave(a){ try{ localStorage.setItem(_SX_MAT_EXTRA_KEY, JSON.stringify(a)); }catch(_e){ try{ if(typeof toast==='function') toast('저장 실패(용량 초과?)'); }catch(_e2){} } }
 function _sxMatPathVal(obj, path){
-  try{ var p=String(path).split('.'), v=obj; for(var k=0;k<p.length;k++){ if(v==null) return null; v=v[p[k]]; } 
+  try{ var p=String(path).split('.'), v=obj; for(var k=0;k<p.length;k++){ if(v==null) return null; v=v[p[k]]; }
     if(typeof v==='number') return isFinite(v)?v:null;
     if(typeof v==='boolean') return v?1:0;
     return null; }catch(_e){ return null; }
 }
+function _sxMatExtraEval(x, adv){
+  var raw=_sxMatPathVal(adv, x.path);
+  var lightable=(x.kind==='bin') || (x.op && x.th!=null);
+  var lit=null;
+  if(x.kind==='bin') lit=(raw===1);
+  else if(lightable && raw!=null) lit=(x.op==='gt' ? raw>x.th : raw<x.th);
+  else if(lightable) lit=false;
+  return { raw:raw, lit:lit, lightable:!!lightable };
+}
 function _sxMatAddExtra(path, kind){
   var a=_sxMatExtraGet();
   if(a.some(function(x){ return x.path===path; })){ try{ if(typeof toast==='function') toast('이미 추가된 재료예요'); }catch(_e){} return; }
-  a.push({ id:'x_'+path.replace(/\./g,'_'), path:path, kind:(kind==='bin'?'bin':'cont') });
+  a.push({ id:'x_'+path.replace(/\./g,'_'), path:path, kind:(kind==='bin'?'bin':'cont'), dir:'neu', op:null, th:null });
   _sxMatExtraSave(a); _sxMatRerender();
   try{ if(typeof toast==='function') toast('재료 추가됨 · '+path); }catch(_e){}
 }
+// [S1095b] 일괄등록 — 마지막 탐색결과(window._sxMatScanRes)에서 tier(A/B) 전체 또는 참·거짓만.
+function _sxMatAddBulk(tier, binOnly){
+  var R=window._sxMatScanRes; if(!R){ try{ if(typeof toast==='function') toast('먼저 탐색을 실행하세요'); }catch(_e){} return; }
+  var src=(tier==='A')?R.A:R.B;
+  var pick=src.filter(function(x){ return binOnly ? x.kind==='bin' : true; });
+  if(!pick.length){ try{ if(typeof toast==='function') toast('추가할 항목이 없어요'); }catch(_e){} return; }
+  if(typeof confirm==='function' && !confirm(tier+'등급 '+pick.length+'개를 목록에 추가할까요?\n(표시 전용 · 나중에 「전체 비우기」로 되돌릴 수 있어요)')) return;
+  var a=_sxMatExtraGet(), have={}; a.forEach(function(x){ have[x.path]=1; });
+  var n=0;
+  pick.forEach(function(x){ if(have[x.path]) return;
+    a.push({ id:'x_'+x.path.replace(/\./g,'_'), path:x.path, kind:x.kind, dir:'neu', op:null, th:null }); n++; });
+  _sxMatExtraSave(a); _sxMatRerender();
+  try{ if(typeof toast==='function') toast(n+'개 추가됨 (중복 '+(pick.length-n)+' 제외)'); }catch(_e){}
+}
 function _sxMatDelExtra(path){
   var a=_sxMatExtraGet().filter(function(x){ return x.path!==path; });
+  if(window._sxMatEditPath===path) window._sxMatEditPath=null;
   _sxMatExtraSave(a); _sxMatRerender();
 }
-if(typeof window!=='undefined'){ window._sxMatAddExtra=_sxMatAddExtra; window._sxMatDelExtra=_sxMatDelExtra; }
+function _sxMatClearExtras(){
+  if(typeof confirm==='function' && !confirm('추가재료를 전부 지울까요?')) return;
+  window._sxMatEditPath=null;
+  _sxMatExtraSave([]); _sxMatRerender();
+  try{ if(typeof toast==='function') toast('추가재료 비움'); }catch(_e){}
+}
+// [S1095b] 편집 패널 — 방향 지정 + (연속) 불켜짐 임계
+function _sxMatToggleEdit(path){ window._sxMatEditPath=(window._sxMatEditPath===path)?null:path; _sxMatRerender(); }
+function _sxMatSaveExtra(path){
+  var dEl=document.getElementById('sxMatEdDir'), oEl=document.getElementById('sxMatEdOp'), tEl=document.getElementById('sxMatEdTh');
+  var a=_sxMatExtraGet();
+  for(var i=0;i<a.length;i++){ if(a[i].path!==path) continue;
+    if(dEl) a[i].dir=dEl.value;
+    if(a[i].kind==='cont'){
+      var th=(tEl && tEl.value!=='')?parseFloat(tEl.value):NaN;
+      if(oEl && !isNaN(th)){ a[i].op=oEl.value; a[i].th=th; } else { a[i].op=null; a[i].th=null; }
+    }
+    break;
+  }
+  _sxMatExtraSave(a); window._sxMatEditPath=null; _sxMatRerender();
+  try{ if(typeof toast==='function') toast('설정 저장됨'); }catch(_e){}
+}
+if(typeof window!=='undefined'){ window._sxMatAddExtra=_sxMatAddExtra; window._sxMatDelExtra=_sxMatDelExtra;
+  window._sxMatAddBulk=_sxMatAddBulk; window._sxMatClearExtras=_sxMatClearExtras;
+  window._sxMatToggleEdit=_sxMatToggleEdit; window._sxMatSaveExtra=_sxMatSaveExtra; }
 
 // ── 카드 본체 ──
 function _buildMaterialBoardCard(stock, indicators){
@@ -4700,26 +4759,28 @@ function _buildMaterialBoardCard(stock, indicators){
   window._sxMatLast={ stock:stock, indicators:indicators };
 
   var vals={}; try{ vals=L.evalAll(adv, rows, idx); }catch(_e){ vals={}; }
-  // 추가재료 평가
   var extras=_sxMatExtraGet();
-  extras.forEach(function(x){ vals[x.id]=_sxMatPathVal(adv, x.path); });
+  var exEval={}; extras.forEach(function(x){ exEval[x.path]=_sxMatExtraEval(x, adv); });
 
-  // ── 집계 ──
-  var binIds=L.binIds.slice(), contIds=L.contIds.slice();
-  var lit=[], dirCnt={bull:0,bear:0,ob:0,os:0,neu:0};
-  binIds.forEach(function(id){ if(vals[id]===1){ lit.push(id); var d=_SX_MAT_DIR[id]||'neu'; dirCnt[d]++; } });
-  var litN=lit.length, binN=binIds.length;
-  // 그룹별 점등
+  // ── 집계 (SSOT + 추가 분리 후 합산) ──
+  var binIds=L.binIds, contIds=L.contIds;
+  var dirCnt={bull:0,bear:0,ob:0,os:0,neu:0};
+  var ssotLit=0;
+  binIds.forEach(function(id){ if(vals[id]===1){ ssotLit++; dirCnt[_SX_MAT_DIR[id]||'neu']++; } });
+  var exLightable=extras.filter(function(x){ return exEval[x.path].lightable; });
+  var exLit=0;
+  exLightable.forEach(function(x){ if(exEval[x.path].lit){ exLit++; dirCnt[x.dir||'neu']++; } });
+  var litN=ssotLit+exLit, binN=binIds.length+exLightable.length;
+
   var gAll={}, gLit={};
   L.features.forEach(function(f){ if(f.kind!=='bin') return; gAll[f.group]=(gAll[f.group]||0)+1; if(vals[f.id]===1) gLit[f.group]=(gLit[f.group]||0)+1; });
+  if(exLightable.length){ gAll.extra=exLightable.length; if(exLit) gLit.extra=exLit; }
   var gTop=Object.keys(gLit).map(function(g){ return {g:g, n:gLit[g], all:gAll[g]}; }).sort(function(a,b){ return b.n-a.n; }).slice(0,4);
-  // 연속재료 유효값 수
   var contOk=0; contIds.forEach(function(id){ if(vals[id]!=null) contOk++; });
 
-  // ── 헤드: 측정치 ──
   var pct=binN?Math.round(100*litN/binN):0;
   var h='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:7px">'
-    + '앱이 다루는 <b style="color:'+T2+'">재료 '+L.ids.length+'개</b>(SSOT · 이진 '+binN+' + 연속 '+contIds.length+')의 <b>현재봉 실시간 상태</b>. '
+    + '앱이 다루는 <b style="color:'+T2+'">재료 '+L.ids.length+'개</b>(SSOT · 이진 '+binIds.length+' + 연속 '+contIds.length+')의 <b>현재봉 실시간 상태</b>. '
     + '<b style="color:'+T2+'">표시 전용</b> — 엔진·매매 판정과 무관. 방향 태그는 <b>교과서 의미</b>지 측정된 수익방향이 아니에요.</div>';
 
   // 1) 점등 게이지
@@ -4732,10 +4793,11 @@ function _buildMaterialBoardCard(stock, indicators){
     if(!dirCnt[d]) return;
     h+='<div style="width:'+(100*dirCnt[d]/binN)+'%;background:'+_SX_MAT_DIRKO[d].col+'"></div>';
   });
-  h+='</div></div>';
+  h+='</div>';
+  if(exLightable.length) h+='<div style="font-size:8px;color:'+T3+';margin-top:4px">SSOT <b>'+ssotLit+'</b>/'+binIds.length+' · 추가재료 <b style="color:#7c3aed">'+exLit+'</b>/'+exLightable.length+'</div>';
+  h+='</div>';
 
   // 2) 방향 균형
-  var bullSide=dirCnt.bull, bearSide=dirCnt.bear;
   h+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:5px 0">';
   ['bull','os','neu','ob','bear'].forEach(function(d){
     var D=_SX_MAT_DIRKO[d];
@@ -4758,7 +4820,8 @@ function _buildMaterialBoardCard(stock, indicators){
   }
   h+='</div>';
 
-  // 4) 자동 해석 — 규칙 명시(과잉해석 금지)
+  // 4) 자동 해석
+  var bullSide=dirCnt.bull, bearSide=dirCnt.bear;
   var msg, mcol;
   if(litN===0){ msg='켜진 이진 재료가 없어요. 어느 쪽 어휘도 잡히지 않은 무신호 구간.'; mcol=T3; }
   else if(dirCnt.os>=3 && bullSide>=3){ msg='<b>과매도 '+dirCnt.os+'</b> + <b>강세전환 '+bullSide+'</b> 동반 — 교과서적으론 반등 후보 국면.'; mcol='#2563eb'; }
@@ -4775,55 +4838,95 @@ function _buildMaterialBoardCard(stock, indicators){
     + '<span id="sxMatListArrow" style="color:var(--accent);font-size:10px">'+(openList?'▼':'▶')+'</span>'
     + '<span style="font-size:10px;font-weight:800;color:var(--text)">재료 목록 ('+(L.ids.length+extras.length)+')</span>'
     + '<span style="margin-left:auto;font-size:8.5px;color:'+T3+'">연속값 '+contOk+'/'+contIds.length+' 유효</span></div>';
-  h+='<div id="sxMatListBody" style="display:'+(openList?'block':'none')+'">'+_sxMatListHtml(L, vals, extras)+'</div>';
+  h+='<div id="sxMatListBody" style="display:'+(openList?'block':'none')+'">'+_sxMatListHtml(L, vals, extras, exEval)+'</div>';
 
   // ── 탐색 ──
   h+='<div style="border-top:1px dashed var(--border);margin-top:8px;padding-top:8px">';
   h+='<button onclick="event.stopPropagation();_sxVib(8);_sxMatScanNew()" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #7c3aed;background:#7c3aed14;color:#7c3aed;cursor:pointer">🔍 새 재료 탐색</button>';
-  h+='<div style="font-size:8px;color:'+T3+';line-height:1.45;margin-top:4px">엔진(calcAllScreener) 필드를 훑어 <b>SSOT 79재료가 아직 안 쓰는 값</b>을 찾아요. 발견분은 확인 후 목록에 추가할 수 있어요(추가분은 이 기기에만 저장·표시 전용).</div>';
+  h+='<div style="font-size:8px;color:'+T3+';line-height:1.45;margin-top:4px">엔진(calcAllScreener) 필드를 훑어 <b>SSOT '+L.ids.length+'재료가 아직 안 쓰는 값</b>을 찾아요. 발견분은 확인 후 목록에 추가할 수 있어요(추가분은 이 기기에만 저장·표시 전용).</div>';
   h+='<div id="sxMatScanOut" style="margin-top:6px"></div></div>';
 
   var rightHtml='<span style="font-size:9.5px;font-weight:700;color:'+(litN?'#16a34a':T3)+'">'+litN+'/'+binN+' 점등</span>';
   return _sxExpCard('sxMatWrap','sxMatWrap_b', titleHtml, rightHtml, h);
 }
 
-// 재료 목록 HTML — 그룹별 칩. 이진=●/○ · 연속=값.
-function _sxMatListHtml(L, vals, extras){
+// 재료 목록 HTML — 그룹별 칩. 이진=●/○ · 연속=값 · 추가재료=편집 가능.
+function _sxMatListHtml(L, vals, extras, exEval){
   var T3='var(--text3)';
   var byG={};
   L.features.forEach(function(f){ (byG[f.group]=byG[f.group]||[]).push(f); });
-  (extras||[]).forEach(function(x){ (byG.extra=byG.extra||[]).push({ id:x.id, label:x.path, group:'extra', kind:x.kind, layers:'+', _extra:x }); });
+  (extras||[]).forEach(function(x){ (byG.extra=byG.extra||[]).push({ id:x.id, label:x.path, group:'extra', kind:x.kind, layers:'+', _x:x }); });
   var order=['osc','ma','vol','trend','momo','chase','flow','macd','div','struct','band','ichi','cross','thr','extra'];
   var h='';
   order.forEach(function(g){
     var arr=byG[g]; if(!arr||!arr.length) return;
-    var litN=arr.filter(function(f){ return f.kind==='bin' && vals[f.id]===1; }).length;
-    var binN=arr.filter(function(f){ return f.kind==='bin'; }).length;
+    var isEx=(g==='extra');
+    var litN, binN;
+    if(isEx){ var la=arr.filter(function(f){ return exEval[f._x.path].lightable; });
+      binN=la.length; litN=la.filter(function(f){ return exEval[f._x.path].lit; }).length; }
+    else { binN=arr.filter(function(f){ return f.kind==='bin'; }).length;
+      litN=arr.filter(function(f){ return f.kind==='bin' && vals[f.id]===1; }).length; }
     h+='<div style="margin:7px 0 3px;display:flex;align-items:baseline;gap:5px">'
       + '<span style="font-size:9.5px;font-weight:800;color:var(--text)">'+(_SX_MAT_GRPKO[g]||g)+'</span>'
-      + '<span style="font-size:8px;color:'+T3+'">'+arr.length+'개'+(binN?(' · 점등 '+litN+'/'+binN):'')+'</span></div>';
+      + '<span style="font-size:8px;color:'+T3+'">'+arr.length+'개'+(binN?(' · 점등 '+litN+'/'+binN):'')+'</span>'
+      + (isEx?('<span onclick="event.stopPropagation();_sxMatClearExtras()" style="margin-left:auto;font-size:8px;color:#dc2626;cursor:pointer;padding:2px 6px;border:1px solid var(--border);border-radius:5px">전체 비우기</span>'):'')
+      + '</div>';
     h+='<div style="display:flex;flex-wrap:wrap;gap:3px">';
     arr.forEach(function(f){
-      var v=vals[f.id];
-      var isBin=(f.kind==='bin');
-      var on=isBin?(v===1):(v!=null);
-      var d=_SX_MAT_DIR[f.id]||'neu';
-      var col=isBin?(on?_SX_MAT_DIRKO[d].col:T3):(v!=null?'var(--text)':T3);
-      var bg=isBin&&on?(_SX_MAT_DIRKO[d].col+'14'):'var(--surface2)';
-      var bd=isBin&&on?(_SX_MAT_DIRKO[d].col+'55'):'var(--border)';
-      var body;
-      if(isBin) body=(on?'●':'○')+' '+_esc(f.label);
-      else body=_esc(f.label)+' <b style="color:'+col+'">'+(v==null?'—':(Math.abs(v)>=100?Math.round(v):(Math.round(v*100)/100)))+'</b>';
+      var body, col, bg, bd, on, d;
+      if(isEx){
+        var x=f._x, ev=exEval[x.path];
+        d=x.dir||'neu'; on=(ev.lightable && ev.lit);
+        col=on?_SX_MAT_DIRKO[d].col:(ev.lightable?T3:'var(--text)');
+        bg=on?(_SX_MAT_DIRKO[d].col+'14'):'var(--surface2)';
+        bd=on?(_SX_MAT_DIRKO[d].col+'55'):'var(--border)';
+        body=(ev.lightable?((ev.lit?'●':'○')+' '):'')+_esc(x.path)
+          + (x.kind==='cont'?(' <b style="color:'+(on?col:'var(--text)')+'">'+_sxMatFmt(ev.raw)+'</b>'):'')
+          + (x.op?('<span style="font-size:7px;color:'+T3+'">'+(x.op==='gt'?'>':'<')+x.th+'</span>'):'');
+      } else {
+        var v=vals[f.id], isBin=(f.kind==='bin');
+        on=isBin?(v===1):(v!=null); d=_SX_MAT_DIR[f.id]||'neu';
+        col=isBin?(on?_SX_MAT_DIRKO[d].col:T3):(v!=null?'var(--text)':T3);
+        bg=isBin&&on?(_SX_MAT_DIRKO[d].col+'14'):'var(--surface2)';
+        bd=isBin&&on?(_SX_MAT_DIRKO[d].col+'55'):'var(--border)';
+        body=isBin?((on?'●':'○')+' '+_esc(f.label)):(_esc(f.label)+' <b style="color:'+col+'">'+_sxMatFmt(v)+'</b>');
+      }
       var lay=(f.layers==='+')?'<span style="font-size:7px;color:#7c3aed">추가</span>':'<span style="font-size:7px;color:'+T3+'">'+f.layers+'</span>';
       h+='<span style="display:inline-flex;align-items:center;gap:3px;padding:3px 6px;border-radius:6px;font-size:9px;background:'+bg+';color:'+col+';border:1px solid '+bd+'">'
         + body + lay
-        + (f._extra?('<b onclick="event.stopPropagation();_sxMatDelExtra(\''+f._extra.path+'\')" style="cursor:pointer;color:#dc2626;font-size:9px">×</b>'):'')
+        + (isEx?('<b onclick="event.stopPropagation();_sxMatToggleEdit(\''+f._x.path+'\')" style="cursor:pointer;color:#7c3aed;font-size:9px">⚙</b>'
+               + '<b onclick="event.stopPropagation();_sxMatDelExtra(\''+f._x.path+'\')" style="cursor:pointer;color:#dc2626;font-size:9px">×</b>'):'')
         + '</span>';
+      if(isEx && window._sxMatEditPath===f._x.path) h+=_sxMatEditHtml(f._x, exEval[f._x.path]);
     });
     h+='</div>';
   });
   h+='<div style="font-size:7.5px;color:'+T3+';margin-top:7px;line-height:1.45">칩 끝 숫자 = 출처층(<b>1</b> 재료라이브러리 · <b>2</b> 교차검증·레시피 · <b>3</b> 시즌3 L0). 색: '
-    + '<b style="color:#16a34a">강세</b> <b style="color:#2563eb">과매도</b> <b style="color:#64748b">중립</b> <b style="color:#d97706">과열</b> <b style="color:#dc2626">약세</b> — 교과서 의미.</div>';
+    + '<b style="color:#16a34a">강세</b> <b style="color:#2563eb">과매도</b> <b style="color:#64748b">중립</b> <b style="color:#d97706">과열</b> <b style="color:#dc2626">약세</b> — 교과서 의미. '
+    + '추가재료는 <b style="color:#7c3aed">⚙</b>로 방향·불켜짐 임계를 정할 수 있어요.</div>';
+  return h;
+}
+// [S1095b] 추가재료 편집 패널 — 방향 + (연속) 임계
+function _sxMatEditHtml(x, ev){
+  var T3='var(--text3)';
+  var h='<div style="flex:1 0 100%;margin:3px 0 5px;padding:8px 9px;background:var(--surface2);border:1px solid #7c3aed55;border-radius:8px">';
+  h+='<div style="font-size:9px;font-weight:800;color:var(--text);margin-bottom:5px">'+_esc(x.path)
+    + ' <span style="font-size:8px;color:'+T3+';font-weight:600">현재 '+(x.kind==='bin'?(ev.raw===1?'참':'거짓'):_sxMatFmt(ev.raw))+'</span></div>';
+  var sel='style="font-size:10px;padding:3px 5px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-weight:700"';
+  h+='<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px"><span style="font-size:9px;color:'+T3+';flex:0 0 34px">방향</span>';
+  h+='<select id="sxMatEdDir" '+sel+'>';
+  ['bull','os','neu','ob','bear'].forEach(function(d){ h+='<option value="'+d+'"'+(((x.dir||'neu')===d)?' selected':'')+'>'+_SX_MAT_DIRKO[d].ko+'</option>'; });
+  h+='</select><span style="font-size:7.5px;color:'+T3+'">켜졌을 때 이 색·집계로</span></div>';
+  if(x.kind==='cont'){
+    h+='<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px"><span style="font-size:9px;color:'+T3+';flex:0 0 34px">불켜짐</span>';
+    h+='<select id="sxMatEdOp" '+sel+'><option value="gt"'+((x.op!=='lt')?' selected':'')+'>&gt;</option><option value="lt"'+((x.op==='lt')?' selected':'')+'>&lt;</option></select>';
+    h+='<input type="number" id="sxMatEdTh" inputmode="decimal" value="'+(x.th==null?'':x.th)+'" placeholder="임계값" style="width:76px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:11px;text-align:center;background:var(--surface);color:var(--text)">';
+    h+='</div><div style="font-size:7.5px;color:'+T3+';margin-bottom:5px">임계값을 비우면 불 없이 값만 표시돼요.</div>';
+  }
+  h+='<div style="display:flex;gap:5px">';
+  h+='<button onclick="event.stopPropagation();_sxMatSaveExtra(\''+x.path+'\')" style="font-size:10px;font-weight:800;padding:5px 12px;border-radius:7px;border:1px solid #16a34a;background:#16a34a;color:#fff;cursor:pointer">적용</button>';
+  h+='<button onclick="event.stopPropagation();_sxMatToggleEdit(\''+x.path+'\')" style="font-size:10px;font-weight:700;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">닫기</button>';
+  h+='</div></div>';
   return h;
 }
 function _sxMatToggleList(){
@@ -4836,12 +4939,11 @@ function _sxMatRerender(){
   try{ var el=document.getElementById('sxMatWrap'); var Lst=window._sxMatLast;
     if(el && Lst && Lst.stock){
       el.outerHTML=_buildMaterialBoardCard(Lst.stock, Lst.indicators);
-      // 탐색 결과가 떠 있었으면 재렌더 후 복구(추가 직후 목록이 사라지는 UX 방지)
       if(window._sxMatScanOpen) setTimeout(function(){ try{ _sxMatScanNew(); }catch(_e2){} }, 0);
     } }catch(_e){}
 }
 
-// ── 탐색: 엔진 필드 중 SSOT 79재료가 안 쓰는 값 찾기 (gen_material_list.js 브라우저 이식) ──
+// ── 탐색: 엔진 필드 중 SSOT 재료가 안 쓰는 값 찾기 (gen_material_list.js 브라우저 이식) ──
 //   A등급 = 어느 재료도 참조 안 하는 필드(진짜 신규) / B등급 = 참조 필드의 미사용 서브키(변수경유 접근이면 오탐 가능)
 function _sxMatScanNew(){
   var out=document.getElementById('sxMatScanOut'); if(!out) return;
@@ -4851,7 +4953,6 @@ function _sxMatScanNew(){
   if(!L || !Lst){ out.innerHTML='<div style="font-size:9.5px;color:'+T3+'">재료 라이브러리/분석 데이터 없음</div>'; return; }
   var adv=(Lst.indicators && Lst.indicators._advanced) ? Lst.indicators._advanced : Lst.indicators;
   if(!adv){ out.innerHTML='<div style="font-size:9.5px;color:'+T3+'">지표 없음</div>'; return; }
-  // 1) 재료 소스에서 참조 경로 수집
   var usedField={}, usedPath={};
   L.features.forEach(function(f){
     var src=''; try{ src=f.value.toString(); }catch(_e){}
@@ -4884,25 +4985,34 @@ function _sxMatScanNew(){
       if(!fieldUsed) A.push(item);
     }
   });
+  window._sxMatScanRes={ A:A, B:B };   // [S1095b] 일괄등록용 보관
+  var aBin=A.filter(function(x){return x.kind==='bin';}).length, bBin=B.filter(function(x){return x.kind==='bin';}).length;
   var h='';
   h+='<div style="font-size:9px;color:'+T3+';margin-bottom:5px">엔진 필드 훑기 완료 — <b style="color:var(--text)">A '+A.length+'</b>(미참조 필드) · <b style="color:var(--text)">B '+B.length+'</b>(참조필드의 미사용 서브키)</div>';
+  function bulkBtns(tier, n, nb){
+    var s='<div style="display:flex;gap:4px;flex-wrap:wrap;margin:3px 0 5px">';
+    s+='<button onclick="event.stopPropagation();_sxVib(8);_sxMatAddBulk(\''+tier+'\',false)" style="font-size:9px;font-weight:800;padding:4px 9px;border-radius:6px;border:1px solid #16a34a;background:#16a34a14;color:#16a34a;cursor:pointer">＋ 전체 '+n+'개</button>';
+    s+='<button onclick="event.stopPropagation();_sxVib(8);_sxMatAddBulk(\''+tier+'\',true)" style="font-size:9px;font-weight:800;padding:4px 9px;border-radius:6px;border:1px solid #2563eb;background:#2563eb14;color:#2563eb;cursor:pointer">＋ 참·거짓만 '+nb+'개</button>';
+    s+='</div>';
+    return s;
+  }
   function rowsHtml(arr, tier){
     if(!arr.length) return '<div style="font-size:9px;color:'+T3+';padding:3px 0">없음</div>';
     var s='<div style="display:flex;flex-wrap:wrap;gap:3px">';
     arr.slice(0,60).forEach(function(x){
-      var vs=(typeof x.val==='boolean')?(x.val?'참':'거짓'):(Math.abs(x.val)>=100?Math.round(x.val):Math.round(x.val*100)/100);
+      var vs=(x.kind==='bin')?(x.val?'참':'거짓'):_sxMatFmt(x.val);
       s+='<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border-radius:6px;font-size:9px;background:var(--surface2);border:1px solid var(--border);color:var(--text)">'
-        + _esc(x.path)+' <b style="color:'+(tier==='A'?'#7c3aed':T3)+'">'+vs+'</b>'
+        + _esc(x.path)+' <b style="color:'+(x.kind==='bin'?'#2563eb':T3)+'">'+vs+'</b>'
         + '<b onclick="event.stopPropagation();_sxMatAddExtra(\''+x.path+'\',\''+x.kind+'\')" style="cursor:pointer;color:#16a34a">＋</b></span>';
     });
-    if(arr.length>60) s+='<span style="font-size:8px;color:'+T3+'">…외 '+(arr.length-60)+'</span>';
+    if(arr.length>60) s+='<span style="font-size:8px;color:'+T3+'">…외 '+(arr.length-60)+' (일괄등록엔 전부 포함)</span>';
     return s+'</div>';
   }
-  h+='<div style="font-size:9px;font-weight:800;color:#7c3aed;margin:6px 0 3px">A · 미참조 필드 (진짜 신규 후보)</div>'+rowsHtml(A,'A');
+  h+='<div style="font-size:9px;font-weight:800;color:#7c3aed;margin:6px 0 3px">A · 미참조 필드 (진짜 신규 후보)</div>'+bulkBtns('A',A.length,aBin)+rowsHtml(A,'A');
   h+='<div style="font-size:9px;font-weight:800;color:var(--text2);margin:8px 0 3px">B · 참조필드의 미사용 서브키</div>'
     + '<div style="font-size:7.5px;color:'+T3+';margin-bottom:3px">⚠재료가 <code>var a=ind.adx</code>처럼 변수로 받아 쓰면 여기 오탐으로 잡혀요. 추가 전 확인 필요.</div>'
-    + rowsHtml(B,'B');
-  h+='<div style="font-size:7.5px;color:'+T3+';margin-top:7px;line-height:1.45">＋ 누르면 목록에 추가돼요(이 기기 저장·표시 전용). 진짜 재료로 승격하려면 <b>sx_feature_library.js</b>에 등록해야 시즌2·3가 함께 씁니다.</div>';
+    + bulkBtns('B',B.length,bBin)+rowsHtml(B,'B');
+  h+='<div style="font-size:7.5px;color:'+T3+';margin-top:7px;line-height:1.45">＋ 누르면 목록에 추가돼요(이 기기 저장·표시 전용). <b>참·거짓</b>은 바로 불이 켜지고, <b>숫자</b>는 ⚙에서 임계를 정해야 불이 켜져요. 진짜 재료로 승격하려면 <b>sx_feature_library.js</b>에 등록해야 시즌2·3가 함께 씁니다.</div>';
   out.innerHTML=h;
 }
 if(typeof window!=='undefined'){ window._buildMaterialBoardCard=_buildMaterialBoardCard; window._sxMatToggleList=_sxMatToggleList; window._sxMatScanNew=_sxMatScanNew; window._sxMatRerender=_sxMatRerender; }
