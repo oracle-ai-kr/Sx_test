@@ -5276,6 +5276,11 @@ function _cvRender(R){
 }
 /* [S877] _ltStr733 → sx_recipe_core.js 이관(전역 동명 — 호출부 무변경) */   // _ltAlignStr 복제(단순 필드체크·MA계산 없음)
 // ════════ [S734] 🧪 재료 변별력 측정 — bear-deadcat 진입(게이트 타겟)을 결과로 가름(수익=진짜반등 / 손실=데드캣). 각 후보 재료가 두 그룹에서 평균 차이 나는지 → 차이 큰 재료=레시피 후보(진짜반등을 가리는 신호). 측정 전용·엔진 무변경. ════════
+// ★[S1095] 재료 SSOT = sx_feature_library.js (79재료). 재료를 찾을 땐 거기부터 볼 것.
+//   이 배열은 그 중 **교차검증 빌더가 노출하는 35개의 뷰**(=매매 어휘·`SXFeatureLib.layersHas('2')`와 1:1 일치 검증됨 S1095).
+//   값은 _extractFeats733(→라이브러리 위임 shim) 산출물에서 읽으므로 key 이름은 733 표기 유지(rsiDiv/obvDiv = 라이브러리 rsiDivBull/obvDivBull 별칭).
+//   ⚠재료를 새로 추가할 땐 라이브러리에 먼저 등록하고, 빌더에도 노출하려면 여기 한 줄 추가(라벨/타입은 라이브러리와 맞출 것).
+//   ⚠[S1095] volBreak(돌파+거래량동반)은 그간 ind.volumeMA를 숫자로 읽어 전수 0% 점등(죽은배선)이었고 S1095서 vma20 기준으로 수리됨 → 이제 표본이 잡힌다(과거 측정과 비교 시 주의).
 var _DISCRIM_FEATS = [
   { key:'volOsc',  label:'거래량 OSC',        type:'num' },
   { key:'cci',     label:'CCI',              type:'num' },
@@ -9804,7 +9809,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1094e';
+  window.SX_BUILD='S1095';
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
