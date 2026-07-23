@@ -4640,15 +4640,30 @@ if(typeof window!=='undefined'){ window._buildBadgeInventoryCard = _buildBadgeIn
 var _SX_MAT_DEEP_WIN = 300, _SX_MAT_DEEP_STEP = 2, _SX_MAT_DEEP_MIN = 260, _SX_MAT_DEEP_CHUNK = 20;
 var _SX_MAT_JAC_TH = 0.80;   // l2_judge.js와 동일 임계
 function _sxMatCodeOf(stock){ return (stock && (stock.code||stock.name)) || ''; }
-function _sxMatDeepStart(code, rows){
+// [S1096b] 캔들 확보 — fetchRows600(배지·레시피 카드와 동일 캐시 공유 · 추가 네트워크 거의 없음) 우선,
+//   실패 시 분석탭이 이미 가진 _advanced.rows 폴백. 분석탭은 200→400→600 점진확장이라 진입 직후엔 400봉인 경우가 잦다
+//   (실측: 400봉 → 실제창 140봉·표본 70). 600을 직접 받아 창을 일정하게 만든다.
+async function _sxMatDeepStart(code, rows, mk){
   var L=window.SXFeatureLib; if(!L || typeof SXE==='undefined' || !SXE.calcAllScreener) return;
-  if(!Array.isArray(rows) || rows.length < _SX_MAT_DEEP_MIN+10) { window._sxMatDeep={code:code, done:true, ok:false, why:'이력 부족('+(rows?rows.length:0)+'봉 · '+(_SX_MAT_DEEP_MIN+10)+'봉 필요)'}; _sxMatDeepPaint(); return; }
   var tok=(window._sxMatDeepTok=(window._sxMatDeepTok||0)+1);
+  window._sxMatDeep={ code:code, done:false, ok:true, tok:tok, n:0, prog:0, fetching:true, src:'', bars:0 };
+  _sxMatDeepPaintProg();
+  var use=rows, src='분석탭';
+  try{
+    if(window.SXCandleBT && SXCandleBT.fetchRows600){
+      var r6=await SXCandleBT.fetchRows600(mk||'kr','day',code);
+      if(Array.isArray(r6) && r6.length > (rows?rows.length:0)){ use=r6; src='fetch600'; }
+    }
+  }catch(_e){}
+  if(window._sxMatDeepTok!==tok) return;                       // 종목 전환 가드
+  rows=use;
+  if(!Array.isArray(rows) || rows.length < _SX_MAT_DEEP_MIN+10) { window._sxMatDeep={code:code, done:true, ok:false, why:'이력 부족('+(rows?rows.length:0)+'봉 · '+(_SX_MAT_DEEP_MIN+10)+'봉 필요)'}; _sxMatDeepPaint(); return; }
   var ids=L.binIds.slice();
-  var st={ code:code, done:false, ok:true, tok:tok, n:0, ids:ids,
+  var lo=Math.max(_SX_MAT_DEEP_MIN, rows.length-_SX_MAT_DEEP_WIN);
+  var st={ code:code, done:false, ok:true, tok:tok, n:0, ids:ids, src:src, bars:rows.length,
+           win:(rows.length-lo),                                  // [S1096b] 설계값 아닌 **실제 사용한 창**
            cnt:new Array(ids.length).fill(0), vec:[], end:rows.length, prog:0 };
   window._sxMatDeep=st;
-  var lo=Math.max(_SX_MAT_DEEP_MIN, rows.length-_SX_MAT_DEEP_WIN);
   var total=Math.max(1, Math.ceil((rows.length-lo)/_SX_MAT_DEEP_STEP));
   function step(){
     if(window._sxMatDeepTok!==tok) return;            // 종목 전환 가드
@@ -4898,16 +4913,21 @@ function _buildMaterialBoardCard(stock, indicators){
   var D=window._sxMatDeep, DS=null;
   if(D && D.code===_code && D.done && D.ok) DS=_sxMatDeepStat(litIds);
   h+='<div id="sxMatDeepBox" style="padding:7px 9px;margin:5px 0;background:var(--surface2);border-radius:8px">';
-  if(!D || D.code!==_code){
+  // [S1096b] 캐시키 = 종목 + 확보봉수. 분석탭이 400→600으로 확장되면 자동 재측정(옛 창에 고정되지 않게).
+  var _needRun = (!D || D.code!==_code || (D.done && D.ok && D.src!=='fetch600' && D.bars < rows.length));
+  if(_needRun){
     h+='<div style="font-size:9px;color:'+T3+'">🔬 이 종목 이력 측정 준비 중…</div>';
-    setTimeout(function(){ try{ _sxMatDeepStart(_code, rows); }catch(_e){} }, 30);
+    setTimeout(function(){ try{ _sxMatDeepStart(_code, rows, (stock&&(stock._mkt||stock.market))||'kr'); }catch(_e){} }, 30);
   } else if(!D.done){
-    h+='<div style="font-size:9px;color:'+T3+'">🔬 이 종목 이력 측정 중… '+(D.prog||0)+'%</div>';
+    h+='<div style="font-size:9px;color:'+T3+'">🔬 '+(D.fetching?'캔들 확보 중…':('이 종목 이력 측정 중… '+(D.prog||0)+'%'))+'</div>';
   } else if(!D.ok){
     h+='<div style="font-size:9px;color:'+T3+'">🔬 심화 측정 불가 — '+_esc(D.why||'')+'</div>';
   } else if(DS){
-    h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">'
-      + '<span style="font-size:9.5px;font-weight:700;color:'+T2+'">🔬 이 종목 기준 (최근 '+_SX_MAT_DEEP_WIN+'봉 · 표본 '+DS.n+')</span></div>';
+    var _thin=(DS.n<100);
+    h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;flex-wrap:wrap;gap:3px">'
+      + '<span style="font-size:9.5px;font-weight:700;color:'+T2+'">🔬 이 종목 기준</span>'
+      + '<span style="font-size:8px;color:'+T3+'">최근 '+(D.win||0)+'봉 · 표본 '+DS.n+' · 캔들 '+(D.bars||0)+'봉('+(D.src||'')+')</span></div>';
+    if(_thin) h+='<div style="font-size:8px;color:#d97706;margin-bottom:4px">⚠ 표본 '+DS.n+' — 해상도 '+(100/DS.n).toFixed(1)+'%p(1회 발동 단위). 참고용으로만 보세요.</div>';
     if(!DS.lit) h+='<div style="font-size:9px;color:'+T3+'">켜진 재료가 없어 산출 없음</div>';
     else {
       var mp=(100*DS.mean).toFixed(0);
@@ -4916,13 +4936,13 @@ function _buildMaterialBoardCard(stock, indicators){
       h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">';
       h+='<div style="padding:5px 7px;background:var(--surface);border-radius:7px"><div style="font-size:7.5px;color:'+T3+'">희소도(평균 발동률)</div>'
         + '<div style="font-size:11px;font-weight:800;color:'+rc+'">'+mp+'%</div>'
-        + '<div style="font-size:7.5px;color:'+T3+'">가장 드문 불 '+_esc((L.byId[DS.rarest.id]||{}).label||DS.rarest.id)+' '+rare+'%</div></div>';
+        + '<div style="font-size:7.5px;color:'+T3+'">가장 드문 불 '+_esc((L.byId[DS.rarest.id]||{}).label||DS.rarest.id)+' '+rare+'% <b>('+Math.round(DS.rarest.rate*DS.n)+'회/'+DS.n+')</b></div></div>';
       var ec=(DS.eff<DS.lit)?'#d97706':'#16a34a';
       h+='<div style="padding:5px 7px;background:var(--surface);border-radius:7px"><div style="font-size:7.5px;color:'+T3+'">독립성(실효 재료)</div>'
         + '<div style="font-size:11px;font-weight:800;color:'+ec+'">'+DS.eff+'<span style="font-size:9px;color:'+T3+'"> / '+DS.lit+'</span></div>'
         + '<div style="font-size:7.5px;color:'+T3+'">'+(DS.dropped.length?('겹침 '+DS.dropped.length+'쌍 제외'):'중복 없음')+'</div></div>';
       h+='</div>';
-      h+='<div style="font-size:7.5px;color:'+T3+';margin-top:4px;line-height:1.4">시즌3 <b>L1</b>(발동빈도)·<b>L2</b>(자카드 ≥'+_SX_MAT_JAC_TH+' 중복제거) 잣대를 이 종목 이력에 적용. 시즌3 판정과는 별개(단일종목 국소 잣대·예측력 아님).</div>';
+      h+='<div style="font-size:7.5px;color:'+T3+';margin-top:4px;line-height:1.4">시즌3 <b>L1</b>(발동빈도)·<b>L2</b>(자카드 ≥'+_SX_MAT_JAC_TH+' 중복제거) 잣대를 이 종목 이력에 적용. 시즌3 판정과는 별개(단일종목 국소 잣대·예측력 아님). 재료 계산에 '+_SX_MAT_DEEP_MIN+'봉이 필요해 <b>실제 창 = 확보봉수 − '+_SX_MAT_DEEP_MIN+'</b>.</div>';
     }
   }
   h+='</div>';
