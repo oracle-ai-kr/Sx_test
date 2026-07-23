@@ -10,6 +10,7 @@ function _loadEngines(cacheBuster) {
     importScripts(
       `sx_session.js?v=${cacheBuster || '1'}`,
       `sx_analysis_engine.js?v=${cacheBuster || '1'}`,
+      `sx_feature_library.js?v=${cacheBuster || '1'}`,   // [S1095] 재료 SSOT(79) — recipe_core의 _extractFeats733이 위임. 미로드 시 구 구현 폴백(조용한 전멸 방지)이지만 SSOT 경로를 타려면 필수. recipe_core보다 먼저.
       `sx_recipe_core.js?v=${cacheBuster || '1'}`,   // [S877] 레시피 코어(레지스트리+feats/match+votes) — 스캔 하이브리드 정합
       `sx_risk_core.js?v=${cacheBuster || '1'}`,   // [S1008] 위험 시그니처 SSOT — 안전필터 riskSignature가 사용(미로드=fail-open)
       `sx_conditions.js?v=${cacheBuster || '1'}`,
