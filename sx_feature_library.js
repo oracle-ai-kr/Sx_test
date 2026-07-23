@@ -166,6 +166,10 @@
     { id:'macdHist',    label:'MACD 히스토값',   group:'macd', kind:'cont', layers:'13', value:function(ind){ return (ind.macd)?_num(ind.macd.hist):null; } },
     { id:'macdNegStreak',label:'MACD 연속음전 수',group:'macd', kind:'cont', layers:'13', value:function(ind){ var h=ind.macd&&ind.macd.arr&&ind.macd.arr.hist; if(!h) return null; var n=0; for(var k=h.length-1;k>=0;k--){ if(h[k]<0) n++; else break; } return n; } },
     { id:'macdGc',      label:'MACD 골든크로스',  group:'macd', kind:'bin',  layers:'123', value:function(ind){ return (ind.macd&&typeof ind.macd.line==='number'&&typeof ind.macd.sig==='number'&&ind.macd.line>ind.macd.sig)?1:0; } },
+    // ❗[S1096d] macdHistUp ≡ macdGc — **수학적으로 동일**. 엔진 hist = line − sig (sx_analysis_engine.js:396)이므로
+    //   hist>0 ⟺ line>sig. 실측 320/320 100% 일치 · 자카드 1.000(SSOT 자기중복 감사 S1096d).
+    //   ⇒ 제거하지 않는다: ②교차검증 빌더가 노출하는 35키(_F733_KEYS)에 포함돼 UI 호환이 필요하고,
+    //     시즌3에선 **L2(자카드 ≥0.80)가 자동으로 떨군다**(L2가 실제로 일하는 증거). 예상 결과는 PREREG_S1096에 선언됨.
     { id:'macdHistUp',  label:'MACD 히스토 양',   group:'macd', kind:'bin',  layers:'2',   value:function(ind){ return (ind.macd&&typeof ind.macd.hist==='number'&&ind.macd.hist>0)?1:0; } },
     { id:'macdBelow0',  label:'MACD 영선아래',    group:'macd', kind:'bin',  layers:'123', value:function(ind){ return (ind.macd&&typeof ind.macd.line==='number'&&ind.macd.line<0)?1:0; } },
 
@@ -184,6 +188,7 @@
     { id:'pivotAbove', label:'피벗 P 상회',      group:'band', kind:'bin', layers:'3',  value:function(ind){ var l=ind.pivot&&ind.pivot.level; return (l==='P~R1'||l==='R1~R2'||l==='R2+')?1:0; } },
     { id:'ichiCloudUp',  label:'일목 구름위',     group:'ichi', kind:'bin', layers:'23', value:function(ind){ return (ind.ichimoku && ind.ichimoku.priceVsCloud==='above')?1:0; } },
     { id:'ichiTK',       label:'일목 전환>기준',   group:'ichi', kind:'bin', layers:'23', value:function(ind){ var t=ind.ichimoku&&ind.ichimoku.tenkan, k=ind.ichimoku&&ind.ichimoku.kijun; return (_num(t)!=null&&_num(k)!=null&&t>k)?1:0; } },
+    // ⚠[S1096d] ichiSignal ↔ ichiCloudUp 자카드 0.816(임계 0.80 초과) — 동일하진 않으나 L2서 한쪽 탈락 예상. PREREG_S1096 선언분.
     { id:'ichiSignal',   label:'일목 종합 신호',   group:'ichi', kind:'bin', layers:'3',  value:function(ind){ var s=ind.ichimoku&&ind.ichimoku.signal; return (s && s.type==='buy')?1:0; } },
     { id:'ichiCloudBull',label:'일목 양운',       group:'ichi', kind:'bin', layers:'3',  value:function(ind){ return (ind.ichimoku && ind.ichimoku.cloudTrend==='bullish')?1:0; } },
 
@@ -303,6 +308,6 @@
     evalCont: evalCont,
     evalOne: evalOne,
     CROSS_NBAR: CROSS_NBAR,
-    version: 'S1095c'  // [S1095c] 106재료 — S1095 통합 SSOT 79 + 카드 탐색 발굴 27(layers'4'). 매매 무영향(shim 35키 고정)
+    version: 'S1096d'  // [S1096d] 106재료 — S1095 통합 SSOT 79 + 발굴 27(layers'4'). 자기중복 감사: 이진 자카드≥0.80 2쌍(macdGc≡macdHistUp 동일 · ichiSignal↔ichiCloudUp 0.816) · 연속 |r|≥0.98 0쌍. 매매 무영향(shim 35키 고정)
   };
 })();
