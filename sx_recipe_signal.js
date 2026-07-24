@@ -69,7 +69,11 @@
 
   /* ───────── 종목 과거 스캔 (봉별 정렬+재료) · 캐시 ───────── */
   var _scanCache = {};
-  function _cacheKey(sym, rows){ return sym+'_'+rows.length+'_'+(rows.length?rows[rows.length-1].close:0); }
+  // [S1103] v3 어휘(43키) 동반 추출 옵트인. 기본 OFF — 켜면 봉당 evalOne이 35→78로 늘어난다.
+  //   ★캐시 키 분리 필수: 플래그 없이 캐시된 스캔이 재사용되면 fv3가 없는 채로 조용히 실패한다.
+  var _V3ON = false;
+  function _setV3(on){ _V3ON = !!on; }
+  function _cacheKey(sym, rows){ return sym+'_'+rows.length+'_'+(rows.length?rows[rows.length-1].close:0)+(_V3ON?'_v3':''); }
   async function _scanStock(sym, rows){
     var ck=_cacheKey(sym, rows); if(_scanCache[ck]) return _scanCache[ck];
     var arr=[], start=250;
@@ -82,11 +86,62 @@
         try{ _en=(typeof scrEntryScore==='function')?scrEntryScore(ind).score:null; }catch(_e2){}
         try{ _tp=(typeof scrTrendPure==='function')?scrTrendPure(ind).score:null; }catch(_e3){}
         try{ _up=(typeof scrUpsideScore==='function')?scrUpsideScore(ind).score:null; }catch(_e4){}
-        arr.push({ bar:bi, lt:_ltOf(ind), maBull:!!(ind.maAlign && ind.maAlign.bullish), maBear:!!(ind.maAlign && ind.maAlign.bearish), f:f, rd:_rd, en:_en, tp:_tp, up:_up });   // [S824] maBear=단기 역배(MA5<20<60) — 데드캣 단기쪼개기 측정용 · [S861] rd/en/tp/up
+        // [S1103] v3 특징은 같은 ind에서 뽑는다(별도 순회하면 calcAllScreener를 두 번 돌아 비용 2배).
+        //   ⚠ 호출 인자가 레거시와 다르다: _feats는 (ind, rows, bi)지만 v3는 원장 재현을 위해
+        //     (ind, slice, slice.length-1) — 원장이 250봉 슬라이스 기준으로 측정했기 때문.
+        var _fv3=null;
+        if(_V3ON && typeof _extractFeatsV3==='function'){ try{ _fv3=_extractFeatsV3(ind, slice, slice.length-1); }catch(_e5){ _fv3=null; } }
+        arr.push({ bar:bi, lt:_ltOf(ind), maBull:!!(ind.maAlign && ind.maAlign.bullish), maBear:!!(ind.maAlign && ind.maAlign.bearish), f:f, fv3:_fv3, rd:_rd, en:_en, tp:_tp, up:_up });   // [S824] maBear=단기 역배(MA5<20<60) — 데드캣 단기쪼개기 측정용 · [S861] rd/en/tp/up · [S1103] fv3
       } }
       if((bi-start)%40===39){ await new Promise(function(r){ setTimeout(r,0); }); }   // UI 양보
     }
     _scanCache[ck]=arr; return arr;
+  }
+
+  /* ───────── [S1103] 레거시 430 ↔ 세트 v3 봉단위 동시 스캔 (P6-2 라이브 대조) ─────────
+   *   한 번의 _scanStock 순회로 두 세트를 모두 판정한다(별도 순회 = calcAllScreener 2배).
+   *   반환: {lt|st: {bars,l,v,b,lr,vr}}  — bars=그 칸의 전체 판정봉(교집합률의 분모)
+   *   ★ b(둘 다 발동)의 귀무값은 0이 아니다. 발동률 p·q면 독립 가정에서도 p·q·bars만큼 겹친다.
+   *     S1085(중앙값차)·S1098(자카드)에 이은 같은 함정이라 소비처에서 반드시 기대치와 함께 볼 것.
+   */
+  async function _dualCellScan(sym, rows, mk){
+    if(!Array.isArray(rows) || rows.length<260) return null;
+    var prev=_V3ON; _setV3(true);
+    var ck=_cacheKey(sym, rows);                     // v3 전용 키(_v3 접미)
+    var scan=null; try{ scan=await _scanStock(sym, rows); }catch(e){ scan=null; }
+    _setV3(prev);
+    if(!Array.isArray(scan)){ try{ delete _scanCache[ck]; }catch(_x){} return null; }
+    var reals=_R().filter(function(r){ return r.kind==='real'; });
+    var G=(typeof window!=='undefined')?window:null;
+    var v3all=(G && G.RECIPES_V3_BY_MKT && G.RECIPES_V3_BY_MKT[mk] && G.RECIPES_V3_BY_MKT[mk].recipes) || [];
+    var byCell={};                                   // 칸별 후보 미리 쪼개기(봉마다 전수 순회 방지)
+    for(var z=0;z<v3all.length;z++){ var rz=v3all[z], kz=rz.cell.lt+'|'+rz.cell.st; (byCell[kz]=byCell[kz]||[]).push(rz); }
+    var H=15, out={};
+    for(var i=0;i<scan.length;i++){
+      var s=scan[i];
+      if(s.lt==='off' || !s.lt) continue;            // 웜업 미달 = 원장 모집단 밖
+      var lt=(s.lt==='bull'||s.lt==='bear')?s.lt:'mix';       // 'mixed'→'mix'
+      var st=s.maBull?'bull':(s.maBear?'bear':'mid');         // _sk SSOT
+      var key=lt+'|'+st;
+      var C=out[key]||(out[key]={bars:0,l:0,v:0,b:0,lr:{n:0,sum:0},vr:{n:0,sum:0}});
+      C.bars++;
+      var L=false,k;
+      for(k=0;k<reals.length;k++){ if(_fires(reals[k], s.f, s.lt, s.maBull)){ L=true; break; } }
+      var V=false, cand=byCell[key];
+      if(cand && s.fv3 && typeof _firesV3==='function'){
+        for(k=0;k<cand.length;k++){ if(_firesV3(cand[k], s.fv3, lt, st)){ V=true; break; } }
+      }
+      if(L) C.l++; if(V) C.v++; if(L&&V) C.b++;
+      if(L||V){                                      // h15 전방수익(발동 품질 비교용)
+        var bi=s.bar, ep=(rows[bi]&&typeof rows[bi].close==='number')?rows[bi].close:null;
+        var xr=rows[bi+H], ex=(xr&&typeof xr.close==='number')?xr.close:null;
+        if(ep>0 && ex>0){ var r=ex/ep-1; if(L){ C.lr.n++; C.lr.sum+=r; } if(V){ C.vr.n++; C.vr.sum+=r; } }
+      }
+    }
+    // [S1103] v3 스캔은 집계 후 즉시 버린다 — 안 버리면 종목당 스캔이 2벌(35키+78키) 상주해
+    //   대규모 풀에서 모바일 메모리를 압박한다. 레거시 캐시(_v3 없는 키)는 건드리지 않는다.
+    try{ delete _scanCache[ck]; }catch(_x2){}
+    return out;
   }
 
   /* ───────── 레시피 과거 적중 평가 ───────── */
@@ -822,6 +877,6 @@
     } catch(e){}
   }
 
-  window.SXRecipeSignal = { setPreview:_setPreview, ingScan:_ingScan, clearPreview:_clearPreview, previewInfo:_previewInfo, buildCard:buildCard, toggle:toggle, tab:_tab, catToggle:_catToggle, _populate:_populate, _pendingByCat:_pendingByCat, realFireBars:_realFireBars, realFireCells:_realFireCells, pullbackSignalBars:_pullbackSignalBars, hybridSignalBars:_hybridSignalBars, overlapScan:_overlapScan, profileScan:_profileScan, evalBar:_evalBar, baseRateScan:_baseRateScan, deadcatTrajScan:_deadcatTrajScan, deadcatConfirmScan:_deadcatConfirmScan, deadcatOverlapHzScan:_deadcatOverlapHzScan, deadcatHzBtScan:_deadcatHzBtScan, fireOnly:_fireOnlySet, recipesFor:_recipesFor };
+  window.SXRecipeSignal = { setPreview:_setPreview, ingScan:_ingScan, clearPreview:_clearPreview, previewInfo:_previewInfo, buildCard:buildCard, toggle:toggle, tab:_tab, catToggle:_catToggle, _populate:_populate, _pendingByCat:_pendingByCat, realFireBars:_realFireBars, realFireCells:_realFireCells, dualCellScan:_dualCellScan, setV3:_setV3, pullbackSignalBars:_pullbackSignalBars, hybridSignalBars:_hybridSignalBars, overlapScan:_overlapScan, profileScan:_profileScan, evalBar:_evalBar, baseRateScan:_baseRateScan, deadcatTrajScan:_deadcatTrajScan, deadcatConfirmScan:_deadcatConfirmScan, deadcatOverlapHzScan:_deadcatOverlapHzScan, deadcatHzBtScan:_deadcatHzBtScan, fireOnly:_fireOnlySet, recipesFor:_recipesFor };
   try{ Object.defineProperty(window.SXRecipeSignal,'RECIPES',{ get:function(){ return _R(); } }); }catch(_e){ window.SXRecipeSignal.RECIPES=RECIPES_BY_MKT.kr; }   // [S849] 구소비처 호환 — currentMarket 세트 동적 반환
 })();
