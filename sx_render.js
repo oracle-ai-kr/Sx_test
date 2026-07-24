@@ -10374,7 +10374,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1096e';   // [S1097] 문자열이 S1095에 멈춰 있었으나 실제 코드는 S1096e까지 반영됨 — 인수인계 §1 지적분 정정
+  window.SX_BUILD='S1103';   // [S1103] 🧬 빔서치 v2 카드(세트 v3 뷰어) 추가 — S1102는 앱 코드 무변경이라 S1096e 유지였음
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -16527,3 +16527,193 @@ function _restoreFromTfCache(stock, cached, tf){
   renderAnalysisResult(stock, scores, cached.indicators, cached.qs, new Date(), sectorItp, maAlignItp, basicItp);
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   [S1103] 🧬 빔서치 v2 카드 — 로더·뷰어 (계산하지 않는다)
+   PREREG_S1102_RCPX P6-2. 소비 데이터 = sx_recipes_v3.js의 두 전역:
+     RECIPES_V3_BY_MKT[mk].cells        셀×kind 판정 + 겹침 사다리(ladderFit/ladderHo)
+     RECIPES_V3_BY_MKT[mk].recipes      등록 66개(플래그 thrDrift/selfRef/windowCover)
+     RECIPES_V3_CARD.markets[mk]        P4 적합 요약(byCellKind) + 조합이론(catTest) + 홀드아웃 스탬프
+
+   ⚠ 셀 키 순서가 자료마다 다르다(S1103a 실측):
+       cells / byCellKind      = lt|st|kind   (예 bear|mid|up = 장기 하락장 · 단기 중립)
+       baseByCellWindow        = st|lt|window (예 mid|bull|new = 단기 중립 · 장기 상승장)
+       _sxRecipeV3Core().cell  = lt|st
+     뒤집으면 조용히 다른 셀 숫자가 들어간다. 이 카드는 전부 lt|st로 정규화해서 쓴다.
+
+   ⚠ 용어: 빔서치=v2(발굴 방법) · 세트=v3(산출물 66개). 다른 계보의 번호다.
+   ══════════════════════════════════════════════════════════════════════════ */
+var _BV2_SHORTS=['bull','bear','mid'], _BV2_LONGS=['bull','bear','mix'];
+var _BV2_SL={bull:'강세',bear:'약세',mid:'중립'}, _BV2_LL={bull:'상승장',bear:'하락장',mix:'횡보장'};
+function _bv2Esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k];}); }
+// 레거시 _fires 구조적 커버(9칸 중 4칸): lt===_wantLt(mix 배제) && !maBull(st bull 배제)
+function _bv2LegacyCovers(lt, st){ return (lt==='bull'||lt==='bear') && (st==='bear'||st==='mid'); }
+function _bv2Pct(a,b){ return b? (100*a/b) : null; }
+
+function _beamV2Render(mk){
+  var GRN='#16a34a',RED='#dc2626',AMB='#d97706',BLU='#2563eb',T2='var(--text2)',T3='var(--text3)';
+  var SET=(typeof window!=='undefined')?window.RECIPES_V3_BY_MKT:null;
+  var CARD=(typeof window!=='undefined')?window.RECIPES_V3_CARD:null;
+  if(!SET || !CARD) return '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:'+RED+'">⚠ v3 세트 미탑재 — sx_recipes_v3.js 로드 확인</div>';
+  var M=SET[mk], C=CARD.markets&&CARD.markets[mk];
+  if(!M || !C) return '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:'+AMB+'">🚧 '+_bv2Esc(String(mk).toUpperCase())+'는 S1102 발굴 대상이 아니다 (KR·US만 측정). COIN은 레거시 세트만 있다.</div>';
+  var recs=M.recipes||[], cells=M.cells||{}, bck=C.byCellKind||{};
+
+  // ── 셀별 등록 집계(lt|st 기준)
+  //   ⚠ cluster id는 셀×kind 스코프다. 셀만으로 dedup하면 같은 셀의 UP/DOWN 클러스터 0이
+  //     합쳐져 KR 19→17 · US 10→9로 과소집계된다(실측 확인). 반드시 lt|st|kind#cluster로 센다.
+  var reg={}, clAll={};
+  for(var i=0;i<recs.length;i++){ var r=recs[i], k=r.cell.lt+'|'+r.cell.st, kk2=k+'|'+r.kind;
+    if(!reg[k]) reg[k]={up:0,down:0,cl:{}};
+    if(r.kind==='down') reg[k].down++; else reg[k].up++;
+    if(r.cluster!=null){ reg[k].cl[r.kind+'#'+r.cluster]=1; clAll[kk2+'#'+r.cluster]=1; }
+  }
+  var clusterTot=0; for(var _c in clAll) clusterTot++;
+
+  // ── 헤더 스탬프
+  var frozen=(CARD.ts||'').slice(0,10);
+  var h='<div style="border:1px solid var(--border);border-radius:10px;padding:10px">';
+  h+='<div style="font-size:12px;font-weight:800;color:'+BLU+';margin-bottom:2px">🧬 빔서치 v2 — 레시피 최종확장</div>';
+  h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-bottom:6px">'
+    +'<b>빔서치 v2</b>=발굴 방법 · <b>세트 v3</b>=산출물 '+(CARD.total||0)+'개 · 대조 상대=레거시 430<br>'
+    +_bv2Esc(CARD.prereg||'')+' · 동결 '+_bv2Esc(frozen)+' · seed '+(C.seed!=null?C.seed:'?')+' · 시장 '+_bv2Esc(String(mk).toUpperCase())+'</div>';
+  h+='<div style="font-size:9px;color:'+T2+';background:var(--surface2);border-radius:6px;padding:6px 7px;line-height:1.6;margin-bottom:8px">'
+    +'후보 <b>'+(C.nCand||0)+'</b> → 홀드아웃 생존 <b>'+(C.survivedTotal||0)+'</b> → 보수 등록 <b>'+recs.length+'</b> (클러스터 '+clusterTot+')<br>'
+    +'<span style="color:'+T3+'">기준 = '+_bv2Esc(CARD.standard||'')+'</span></div>';
+
+  // ── 3×3 셀 그리드 (행=단기 st · 열=장기 lt · _gridRender와 같은 배치)
+  var grid='<div style="font-size:9px;font-weight:800;color:'+BLU+';margin:2px 0 4px">▦ 3×3 등록 분포 <span style="font-weight:500;color:'+T3+'">(초록 UP · 빨강 DOWN)</span></div>';
+  grid+='<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:280px"><tr><td style="padding:3px"></td>';
+  for(var l=0;l<_BV2_LONGS.length;l++) grid+='<td style="padding:3px 4px;text-align:center;font-size:9px;font-weight:800;color:'+T2+'">'+_BV2_LL[_BV2_LONGS[l]]+'</td>';
+  grid+='</tr>';
+  for(var s=0;s<_BV2_SHORTS.length;s++){ var SK=_BV2_SHORTS[s];
+    grid+='<tr><td style="padding:3px 4px;font-size:9px;font-weight:800;color:'+T2+';white-space:nowrap">'+_BV2_SL[SK]+'</td>';
+    for(var l2=0;l2<_BV2_LONGS.length;l2++){ var LK=_BV2_LONGS[l2], key=LK+'|'+SK, R=reg[key], cov=_bv2LegacyCovers(LK,SK);
+      var up=R?R.up:0, dn=R?R.down:0, tot=up+dn;
+      var bg = tot===0 ? 'var(--surface2)' : 'rgba(22,163,74,'+Math.min(0.30,0.06+tot/60).toFixed(2)+')';
+      if(tot>0 && dn>up) bg='rgba(220,38,38,'+Math.min(0.30,0.06+tot/60).toFixed(2)+')';
+      var bd = cov ? 'var(--border)' : AMB;
+      grid+='<td style="padding:4px 3px;text-align:center;border:1px solid '+bd+';background:'+bg+'">'
+        +'<div style="font-size:11px;font-weight:800;color:'+(tot?(dn>up?RED:GRN):T3)+'">'+(tot?tot:'—')+'</div>'
+        +'<div style="font-size:7.5px;color:'+T3+';line-height:1.2">'+(tot?('UP '+up+(dn?(' · DN '+dn):'')):'등록 0')+'</div>'
+        +(cov?'':'<div style="font-size:7px;color:'+AMB+';font-weight:800">레거시 침묵</div>')
+        +'</td>';
+    }
+    grid+='</tr>';
+  }
+  grid+='</table></div>';
+  // 커버리지 회계
+  var covN=0, silN=0;
+  for(var kk in reg){ var p=kk.split('|'); if(_bv2LegacyCovers(p[0],p[1])) covN+=reg[kk].up+reg[kk].down; else silN+=reg[kk].up+reg[kk].down; }
+  grid+='<div style="font-size:8px;color:'+T3+';line-height:1.55;margin-top:5px">'
+    +'주황 테두리 = <b>레거시 _fires가 구조적으로 침묵하는 칸</b>(lt===_wantLt이 횡보장 배제 + !maBull이 강세 배제 → 9칸 중 4칸만 커버).<br>'
+    +'대조 가능 <b>'+covN+'</b>개 · 레거시 침묵 <b>'+silN+'</b>개. 침묵칸은 교집합이 0인 게 당연해 <b>정보량이 없다</b> — 교집합률은 반드시 칸별로 볼 것.</div>';
+
+  // ── 셀×kind 판정표
+  var rows='';
+  var ordered=[];
+  for(var s3=0;s3<_BV2_SHORTS.length;s3++) for(var l3=0;l3<_BV2_LONGS.length;l3++){
+    var LK3=_BV2_LONGS[l3], SK3=_BV2_SHORTS[s3];
+    ['up','down'].forEach(function(kd){ ordered.push({lt:LK3,st:SK3,kind:kd,key:LK3+'|'+SK3+'|'+kd}); });
+  }
+  ordered.sort(function(a,b){ var ra=(reg[a.lt+'|'+a.st]||{}), rb=(reg[b.lt+'|'+b.st]||{});
+    var va=(a.kind==='up'?(ra.up||0):(ra.down||0)), vb=(b.kind==='up'?(rb.up||0):(rb.down||0)); return vb-va; });
+  for(var oi=0; oi<ordered.length; oi++){
+    var o=ordered[oi], cv=cells[o.key]||{}, bc=bck[o.key]||{}, R2=reg[o.lt+'|'+o.st]||{up:0,down:0,cl:{}};
+    var regN=(o.kind==='up'?R2.up:R2.down)||0;
+    if(!regN && !(bc.raw>0)) continue;                       // 후보도 통과도 없는 칸은 생략
+    var nCl=0; for(var _q in R2.cl){ if(_q.indexOf(o.kind+'#')===0) nCl++; }
+    var lab=_BV2_SL[o.st]+'·'+_BV2_LL[o.lt]+' '+(o.kind==='up'?'UP':'DOWN');
+    var sig=(cv.significant===true);
+    rows+='<div style="border-top:1px solid var(--border);padding:5px 0;font-size:10px">'
+      +'<div style="display:flex;justify-content:space-between;gap:6px"><span style="font-weight:800;color:'+T2+'">'+_bv2Esc(lab)+'</span>'
+      +'<span style="font-weight:800;color:'+(regN?(o.kind==='down'?RED:GRN):T3)+'">등록 '+regN+'</span></div>'
+      +'<div style="font-size:8.5px;color:'+T3+';line-height:1.5">후보 '+(bc.n!=null?bc.n:(cv.nCand!=null?cv.nCand:'?'))
+      +' · 원시통과 '+(bc.raw!=null?bc.raw:'?')+' · 홀드아웃 생존 '+(cv.survived!=null?cv.survived:'?')
+      +' · 클러스터 '+(regN?nCl:(bc.clusters!=null?bc.clusters:'?'))
+      +'<br>우연 max '+(bc.chanceMax!=null?bc.chanceMax:'?')+'(평균 '+(bc.chanceMean!=null?bc.chanceMean:'?')+')'
+      +' · p0상한 '+(cv.p0Upper!=null?cv.p0Upper.toFixed(4):'?')
+      +' · 보수유의 '+(sig?('<b style="color:'+GRN+'">O</b>'):('<span style="color:'+T3+'">X</span>'))
+      +(bc.lowSignal?(' · <span style="color:'+AMB+'">저신호 딱지</span>'):'')
+      +'</div></div>';
+  }
+
+  // ── 겹침 사다리
+  var lad='', ladPass=0, ladTot=0;
+  for(var ck in cells){ var cc=cells[ck]; if(cc.ladderFit==null) continue; ladTot++; if(cc.ladderPass) ladPass++; }
+  var ladRows='';
+  var ladKeys=Object.keys(cells).sort();
+  for(var li2=0; li2<ladKeys.length; li2++){
+    var lk2=ladKeys[li2], cl2=cells[lk2]; if(!cl2.ladderFit) continue;
+    var pp=lk2.split('|'), labL=_BV2_SL[pp[1]]+'·'+_BV2_LL[pp[0]]+' '+pp[2].toUpperCase();
+    var bl=['0','1','2','3+'], fitS='', hoS='';
+    for(var bi2=0;bi2<bl.length;bi2++){ var B=bl[bi2];
+      var fv=cl2.ladderFit[B], hv=cl2.ladderHo?cl2.ladderHo[B]:null;
+      fitS+='<span style="color:'+(fv&&fv.dm>0?GRN:(fv&&fv.dm<0?RED:T3))+'">'+B+':'+(fv?(fv.dm*100).toFixed(1):'—')+'</span> ';
+      hoS +='<span style="color:'+(hv&&hv.dm>0?GRN:(hv&&hv.dm<0?RED:T3))+'">'+B+':'+(hv?(hv.dm*100).toFixed(1):'—')+'</span> ';
+    }
+    ladRows+='<div style="border-top:1px solid var(--border);padding:4px 0;font-size:9px">'
+      +'<div style="font-weight:800;color:'+T2+'">'+_bv2Esc(labL)+' '+(cl2.ladderPass?'<span style="color:'+GRN+'">통과</span>':'<span style="color:'+T3+'">실패</span>')+(cl2.ladderMonotone?'':' <span style="color:'+T3+';font-weight:500">(단조✗)</span>')+'</div>'
+      +'<div style="font-size:8px;color:'+T3+'">적합 '+fitS+'</div>'
+      +'<div style="font-size:8px;color:'+T3+'">홀드 '+hoS+'</div></div>';
+  }
+  lad='<details style="margin-top:8px"><summary style="font-size:9px;font-weight:800;color:'+BLU+';cursor:pointer">🪜 겹침 사다리 — 통과 '+ladPass+'/'+ladTot+' <span style="font-weight:500;color:'+T3+'">(펼치기)</span></summary>'
+    +'<div style="font-size:8px;color:'+T3+';line-height:1.55;margin:4px 0">버킷별 평균차(%p). <b>표본 부족이 아니라 신호가 뒤집혔다</b> — 적합에서 −10~−15%p였던 DOWN 사다리가 홀드아웃에서 +4~+7%p로 부호 역전. <b>큰 in-sample 효과일수록 크게 무너졌다.</b> 프로젝트 통설(개별 불신·겹침 신뢰)과 반대 방향이라 <b>승격 단독 근거로 쓰지 않는다</b>(개별·사다리·집합이 갈리면 보류).</div>'
+    +ladRows+'</details>';
+
+  // ── 조합이론
+  var ct=C.catTest||{}, comb='';
+  if(ct.same_e){
+    // ★비율 방향: 가설이 "가로질러야(다른 용도가 모여야) 방향이 난다"이므로 분자는 cross다.
+    //   same/cross로 뒤집으면 역수(KR 1.172↔0.853)가 나와 동결 판정문과 어긋나고 효과 방향이 반대로 보인다.
+    var sr=ct.same_p/ct.same_e, cr=ct.cross_p/ct.cross_e, ratio=sr? (cr/sr):null;
+    // 로그비 95% CI — 동결 판정문 재현(KR [0.89,1.54] 확인)
+    var se=Math.sqrt(1/ct.cross_p - 1/ct.cross_e + 1/ct.same_p - 1/ct.same_e);
+    var lo=(ratio!=null)?ratio*Math.exp(-1.96*se):null, hi=(ratio!=null)?ratio*Math.exp(1.96*se):null;
+    var inBand=(ratio!=null && ratio>=0.67 && ratio<=1.5);
+    comb='<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">'
+      +'<div style="font-size:9px;font-weight:800;color:'+BLU+'">🧩 조합이론 — "칸(재료 용도)이 모여 조합이 되어야 방향이 된다"</div>'
+      +'<div style="font-size:8.5px;color:'+T3+';line-height:1.6;margin-top:3px">'
+      +'같은 용도 '+ct.same_p+'/'+ct.same_e.toLocaleString()+' · 다른 용도 '+ct.cross_p+'/'+ct.cross_e.toLocaleString()+'<br>'
+      +'통과율 비(다른÷같은) <b style="color:'+T2+'">'+(ratio!=null?ratio.toFixed(3):'?')+'</b>'
+      +' · 95% CI ['+(lo!=null?lo.toFixed(2):'?')+', '+(hi!=null?hi.toFixed(2):'?')+']<br>'
+      +'사전 선언 밴드 0.67~1.5 '+(inBand?('<b style="color:'+T2+'">안</b> = 차이 없음·<b>미지지</b>'):('<b style="color:'+AMB+'">밖</b>'))+'<br>'
+      +'⚠ <b>미지지이지 기각 아니다</b> — '+ct.same_p+' vs '+ct.cross_p+'의 정밀도 한계.<br>'
+      +'⚠ 분모 교란 주의: 적격쌍이 '+(ct.cross_e/ct.same_e).toFixed(1)+'배 차이라 <b>통과수 비로 보면 결론이 정반대</b>가 된다.</div></div>';
+  }
+
+  // ── 플래그·창 회계
+  var thrD=0, selfR=0, wNew=0, wVin=0, d2=0, d3=0;
+  for(var ri=0; ri<recs.length; ri++){ var rr=recs[ri], sc=rr.src||{};
+    if(sc.thrDriftAny) thrD++; if(sc.selfRef) selfR++;
+    if(sc.windowCover){ wNew+=(sc.windowCover.new||0); wVin+=(sc.windowCover.vin||0); }
+    if((rr.conds||[]).length<=2) d2++; else d3++;
+  }
+  var flags='<details style="margin-top:8px"><summary style="font-size:9px;font-weight:800;color:'+BLU+';cursor:pointer">🏷 플래그 · 창 회계 <span style="font-weight:500;color:'+T3+'">(펼치기)</span></summary>'
+    +'<div style="font-size:8.5px;color:'+T3+';line-height:1.7;margin-top:4px">'
+    +'깊이 2 <b>'+d2+'</b> · 깊이 3 <b>'+d3+'</b> <span style="color:'+AMB+'">(생존율은 깊이2가 높았다 — 다음엔 깊이3에 별도 정당화)</span><br>'
+    +'thrDrift <b>'+thrD+'</b>개(라이브 발동률 창 의존 관찰 대상) · selfRef <b>'+selfR+'</b>개(동어반복 검토 대상)<br>'
+    +'발동 분포 new '+wNew+' · vin '+wVin+'<br>'
+    +'적합 원장 '+_bv2Esc((C.fitLedgers||[]).join(' + '))+'<br>'
+    +'홀드아웃 '+_bv2Esc((C.holdoutLedgers||[]).join(' + '))+' · 종목 '+_bv2Esc((C.holdoutStocks||[]).join('/'))+' · 판정봉 '+(C.holdoutN!=null?C.holdoutN.toLocaleString():'?')+'<br>'
+    +'<span style="color:'+AMB+'">⚠ 홀드아웃 셔플 K='+(C.shuffleK!=null?C.shuffleK:'?')+' — p0 과신을 만들어 rule-of-three 상한으로 재계산했다. 다음 사전등록은 K≥20.</span><br>'
+    +'<span style="color:'+AMB+'">⚠ 저신호 딱지는 "통과 개수가 우연 범위"라는 뜻이지 후보 무가치가 아니다 — 등록 배제 사유로 쓰지 말 것(실제로 오경보를 냈다).</span>'
+    +'</div></details>';
+
+  // ── 라이브 대조 (미구현)
+  var live='<div style="margin-top:8px;border-top:1px dashed var(--border);padding-top:6px;font-size:8.5px;color:'+T3+';line-height:1.6">'
+    +'🚧 <b>라이브 대조(레거시 430 vs 세트 v3) 미구현</b> — 같은 스냅샷 1회 순회로 9칸 그리드 2벌 + 발동봉 수 + <b>칸별 교집합률</b>을 낼 예정.<br>'
+    +'전제: 레시피 스캔이 v3 어휘(43키)를 함께 뽑아야 한다 — 현재 스캔은 매매 어휘 35키만 뽑는다.</div>';
+
+  return h+grid
+    +'<div style="font-size:9px;font-weight:800;color:'+BLU+';margin:10px 0 2px">▤ 셀×kind 판정</div>'+rows
+    +lad+comb+flags+live+'</div>';
+}
+
+async function _beamV2Run(){
+  var el=document.getElementById('beamV2Result'); if(!el) return;
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+  el.style.display='block';
+  try{ el.innerHTML=_beamV2Render(mk); }
+  catch(e){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">⚠ 렌더 실패: '+_bv2Esc(String(e&&e.message||e))+'</div>'; }
+}
