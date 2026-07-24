@@ -1147,17 +1147,27 @@ function _sxRecipeV3Core(mk, ind, rows, idx){
     var inCell=[];
     for(i=0;i<set.length;i++){ var r0=set[i]; if(r0.cell && r0.cell.lt===lt && r0.cell.st===st) inCell.push(r0); }
     var base={ mk:mk, lt:lt, st:st, cell:lt+'|'+st, inCell:inCell.length, up:0, down:0,
-               fired:[], clusters:0, covered:_v3LegacyCovers(lt,st) };
+               fired:[], clusters:0, clUp:0, clDn:0, covered:_v3LegacyCovers(lt,st) };
     if(!inCell.length) return base;                       // 등록 레시피 없는 셀 = 정상적 무발동
     var f=_extractFeatsV3(ind, rows, idx); if(!f) return null;
-    var cl={}, nc=0;
+    // [S1104] 함정⑥ 재발 수정 — 클러스터 id는 **셀×kind 스코프**다(S1103b 뷰어에서 잡았던 그 함정).
+    //   cluster 번호만으로 dedup하면 같은 칸의 UP#0과 DOWN#0이 하나로 합쳐져 계보를 과소집계한다.
+    //   실측 충돌(S1104): KR bear|mid가 0·2번 공유 · US mix|bear가 0번 공유 → kind#cluster로 센다.
+    //   소비처 0건 상태에서 고쳤으므로 레거시·표시 어디에도 영향 없음. clUp/clDn은 추가 필드(표시용).
+    var cl={}, nc=0, clU={}, ncU=0, clD={}, ncD=0;
     for(i=0;i<inCell.length;i++){
       var rec=inCell[i]; if(!_firesV3(rec, f, lt, st)) continue;
-      if(rec.kind==='down') base.down++; else base.up++;
-      if(rec.cluster!=null && !cl[rec.cluster]){ cl[rec.cluster]=1; nc++; }
+      var isDn=(rec.kind==='down');
+      if(isDn) base.down++; else base.up++;
+      if(rec.cluster!=null){
+        var ck=rec.kind+'#'+rec.cluster;
+        if(!cl[ck]){ cl[ck]=1; nc++; }
+        if(isDn){ if(!clD[rec.cluster]){ clD[rec.cluster]=1; ncD++; } }
+        else    { if(!clU[rec.cluster]){ clU[rec.cluster]=1; ncU++; } }
+      }
       base.fired.push({ id:rec.id, kind:rec.kind, cluster:rec.cluster, conds:rec.conds, src:rec.src });
     }
-    base.clusters=nc;
+    base.clusters=nc; base.clUp=ncU; base.clDn=ncD;
     return base;
   }catch(e){ return null; }
 }
