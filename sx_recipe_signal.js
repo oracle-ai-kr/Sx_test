@@ -123,7 +123,7 @@
       var lt=(s.lt==='bull'||s.lt==='bear')?s.lt:'mix';       // 'mixed'→'mix'
       var st=s.maBull?'bull':(s.maBear?'bear':'mid');         // _sk SSOT
       var key=lt+'|'+st;
-      var C=out[key]||(out[key]={bars:0,l:0,v:0,b:0,lr:{n:0,sum:0},vr:{n:0,sum:0}});
+      var C=out[key]||(out[key]={bars:0,l:0,v:0,b:0,br:{n:0,sum:0},lr:{n:0,sum:0},vr:{n:0,sum:0}});
       C.bars++;
       var L=false,k;
       for(k=0;k<reals.length;k++){ if(_fires(reals[k], s.f, s.lt, s.maBull)){ L=true; break; } }
@@ -132,10 +132,16 @@
         for(k=0;k<cand.length;k++){ if(_firesV3(cand[k], s.fv3, lt, st)){ V=true; break; } }
       }
       if(L) C.l++; if(V) C.v++; if(L&&V) C.b++;
-      if(L||V){                                      // h15 전방수익(발동 품질 비교용)
-        var bi=s.bar, ep=(rows[bi]&&typeof rows[bi].close==='number')?rows[bi].close:null;
-        var xr=rows[bi+H], ex=(xr&&typeof xr.close==='number')?xr.close:null;
-        if(ep>0 && ex>0){ var r=ex/ep-1; if(L){ C.lr.n++; C.lr.sum+=r; } if(V){ C.vr.n++; C.vr.sum+=r; } }
+      // [S1103] h15 전방수익 — ★base(그 칸 전체 봉)를 반드시 함께 쌓는다.
+      //   발동봉 원시수익만 보면 "그 칸이 원래 잘 오르는 칸"인지 "신호가 골라낸 것"인지 안 갈린다.
+      //   실측: 중립·하락장 레거시 h15가 대표+관심 −1.17% → 발굴풀 +4.45%로 부호가 뒤집혔다
+      //   (같은 신호인데 종목 구성만 바뀜) = 원시수익 열은 신호가 아니라 풀을 재고 있었다.
+      var bi=s.bar, ep=(rows[bi]&&typeof rows[bi].close==='number')?rows[bi].close:null;
+      var xr=rows[bi+H], ex=(xr&&typeof xr.close==='number')?xr.close:null;
+      if(ep>0 && ex>0){ var r=ex/ep-1;
+        C.br.n++; C.br.sum+=r;                       // base = 칸 전체 봉(발동 여부 무관)
+        if(L){ C.lr.n++; C.lr.sum+=r; }
+        if(V){ C.vr.n++; C.vr.sum+=r; }
       }
     }
     // [S1103] v3 스캔은 집계 후 즉시 버린다 — 안 버리면 종목당 스캔이 2벌(35키+78키) 상주해
