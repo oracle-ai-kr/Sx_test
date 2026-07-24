@@ -10374,7 +10374,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1105';   // [S1105] 지평 정정(retLens=h15 고정 · S1103 함정⑩ 오류) — 카드 지평 문구 명시. S1104=v3 3×3 태그 배선
+  window.SX_BUILD='S1106';   // [S1106] 등록0≠무발동 문구 분기 + 칸 이름 _TREND_MATRIX SSOT 매핑. S1105=지평 h15 정정 · S1104=v3 3×3 태그 배선
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -16572,6 +16572,17 @@ function _restoreFromTfCache(stock, cached, tf){
      → 이 카드는 지평을 **h15로 명시**한다.
    ══════════════════════════════════════════════════════════════════════════ */
 var _V3_LL={bull:'상승장',bear:'하락장',mix:'횡보장'}, _V3_SL={bull:'강세',bear:'약세',mid:'중립'};
+// [S1106] 칸 이름 = `_TREND_MATRIX` SSOT(4477 · `_trendLabel`이 쓰는 그 테이블)를 그대로 당겨쓴다.
+//   하드코딩 미러 금지 — 이름이 바뀌면 이 카드도 자동으로 따라간다(탐색 아카이브 3×3 지도와 항상 같은 이름).
+//   ⚠ 키 이름이 계열마다 다르다: v3는 단기 'mid' · 장기 'mix'인데 `_TREND_MATRIX`는 **양쪽 다 'mixed'**다.
+//     (함정③ 'mixed'→'mix'의 거울상 — 여기선 되돌려야 한다. 안 되돌리면 조용히 빈 이름이 된다.)
+function _v3CellName(lt, st){
+  try{
+    var S=(st==='mid')?'mixed':st, L=(lt==='mix')?'mixed':lt;
+    var M=(typeof _TREND_MATRIX!=='undefined')?_TREND_MATRIX:null;
+    return (M && M[S] && M[S][L]) ? M[S][L] : '';
+  }catch(e){ return ''; }
+}
 function _v3Bucket(k){ return (k<=0)?'0':(k===1?'1':(k===2?'2':'3+')); }
 // [S1104] 소수 자리 — dm은 소수(0.03235=+3.2%p). |값|<1%p면 1자리로는 "−0.0"이 되어 읽히지 않아 2자리로 내린다.
 function _v3Pp(x){
@@ -16626,11 +16637,12 @@ function _v3TagCard(mk, qs, indicators){
     var curReg=reg[curKey]||{up:0,down:0};
 
     // ── ① 현재 칸 + 발동 요약 ──
+    var curName=_v3CellName(lt, st);
     var h='<div style="font-size:11.5px;color:'+T2+';line-height:1.6;margin-bottom:6px">'
-      +'<b style="color:var(--text)">현재 칸</b> &nbsp;<b style="color:'+BLU+'">'+esc(_V3_LL[lt]||lt)+' · '+esc(_V3_SL[st]||st)+'</b>'
-      +' <span style="font-size:9px;color:'+T3+'">('+esc(curKey)+')</span>'
-      +' &nbsp;· 이 칸 등록 <b>'+(curReg.up+curReg.down)+'</b>개'
-      +' <span style="font-size:9.5px;color:'+T3+'">(UP '+curReg.up+(curReg.down?(' · DOWN '+curReg.down):'')+')</span>'
+      +'<b style="color:var(--text)">현재 칸</b> &nbsp;<b style="color:'+BLU+';font-size:12.5px">'+esc(curName||'—')+'</b>'
+      +' <span style="font-size:9.5px;color:'+T3+'">'+esc(_V3_LL[lt]||lt)+' · '+esc(_V3_SL[st]||st)+' ('+esc(curKey)+')</span><br>'
+      +'이 칸 등록 <b>'+(curReg.up+curReg.down)+'</b>개'
+      +((curReg.up+curReg.down) ? (' <span style="font-size:9.5px;color:'+T3+'">(UP '+curReg.up+(curReg.down?(' · DOWN '+curReg.down):'')+')</span>') : '')
       +'</div>';
 
     var fired=R.up+R.down;
@@ -16653,13 +16665,20 @@ function _v3TagCard(mk, qs, indicators){
       }
       if(R.fired.length>shown) lst+='<div style="font-size:9px;color:'+T3+';margin-top:2px">… 외 '+(R.fired.length-shown)+'개</div>';
       h+=lst;
+    } else if(R.inCell===0){
+      // [S1106] ★"등록 0"과 "무발동"은 다른 상태다 — 라이브(삼성전자 bull|bear)에서 드러난 문구 버그.
+      //   발동할 대상이 없는 것을 "발동 안 했다(정상 1.6%)"로 말하면 침묵의 뜻이 뒤바뀐다.
+      //   등록 0 = S1102 측정에서 이 칸이 유의 셀로 뽑히지 않았다는 뜻 = **정보 없음**(좋다/나쁘다 아님).
+      h+='<div style="font-size:11px;color:'+T3+';line-height:1.6;padding:6px 9px;background:var(--surface2);border-radius:7px;margin-bottom:6px">'
+        +'이 칸은 <b>등록 0</b> — <b>발동할 대상 자체가 없다</b>(무발동과 다른 상태). '
+        +'S1102 측정에서 이 칸은 유의 셀로 뽑히지 않았다 → v3는 여기서 <b>아무 말도 하지 않는다</b>(정보 없음 · 좋다/나쁘다 아님).</div>';
     } else {
       h+='<div style="font-size:11px;color:'+T3+';line-height:1.6;padding:6px 9px;background:var(--surface2);border-radius:7px;margin-bottom:6px">'
-        +'이 칸에서 v3 <b>무발동</b> — 실측상 정상 상태다(발동봉 비율 KR 1.6% · US 1.3%).</div>';
+        +'이 칸 등록 '+R.inCell+'개 중 <b>무발동</b> — 조건 미충족이며 실측상 정상 상태다(발동봉 비율 KR 1.6% · US 1.3%).</div>';
     }
 
     // ── ② 겹침 사다리(홀드아웃) — 지금 버킷 강조 ──
-    //   ⚠ dm은 base 대비 평균 차(원시수익 아님 · 규율 5) · 지평은 등록 렌즈(retLens)이지 h15가 아니다(규율 6).
+    //   ⚠ dm은 base 대비 평균 차(원시수익 아님 · 규율 5) · 지평은 h15 고정이다(S1105 정정 — 구 주석은 함정⑩ 오류였다).
     var ladRow=function(kind, kFired){
       var C=cells[curKey+'|'+kind]; if(!C||!C.ladderHo) return '';
       var L=C.ladderHo, cur=_v3Bucket(kFired), segs=[], ks=['0','1','2','3+'];
@@ -16684,7 +16703,7 @@ function _v3TagCard(mk, qs, indicators){
 
     // ── ③ 미니 3×3 (행=단기 st · 열=장기 lt · 빔서치 카드와 같은 배치) ──
     var grid='<div style="border-top:1px dashed var(--border);margin-top:7px;padding-top:6px">'
-      +'<div style="font-size:9px;font-weight:800;color:'+BLU+';margin-bottom:4px">▦ 등록 분포 <span style="font-weight:500;color:'+T3+'">(현재 칸 강조 · 숫자=등록 수)</span></div>'
+      +'<div style="font-size:9px;font-weight:800;color:'+BLU+';margin-bottom:4px">▦ 등록 분포 <span style="font-weight:500;color:'+T3+'">(칸 이름=추세 SSOT · 현재 칸 강조 · 숫자=등록 수)</span></div>'
       +'<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:250px"><tr><td style="padding:2px"></td>';
     var LONGS=['bull','bear','mix'], SHORTS=['bull','bear','mid'];
     for(var l=0;l<LONGS.length;l++)
@@ -16698,9 +16717,10 @@ function _v3TagCard(mk, qs, indicators){
         var bg=isCur?'rgba(37,99,235,0.14)':'var(--surface2)';
         var bd=isCur?BLU:'var(--border)';
         grid+='<td style="padding:3px 2px;text-align:center;border:'+(isCur?'2px':'1px')+' solid '+bd+';background:'+bg+'">'
+          +'<div style="font-size:7.5px;line-height:1.2;font-weight:'+(isCur?'800':'600')+';color:'+(isCur?BLU:T3)+'">'+esc(_v3CellName(LK,SK))+'</div>'
           +'<div style="font-size:10.5px;font-weight:800;color:'+(tot?(isCur?BLU:T2):T3)+'">'+(tot?tot:'—')+'</div>'
           +'<div style="font-size:7px;color:'+T3+';line-height:1.15">'+(tot?('U'+up+(dn?('·D'+dn):'')):'등록0')+'</div>'
-          +(isCur?('<div style="font-size:7.5px;font-weight:800;color:'+(fired?(R.down>R.up?RED:GRN):T3)+'">'+(fired?('발동 '+fired):'무발동')+'</div>'):'')
+          +(isCur?('<div style="font-size:7.5px;font-weight:800;color:'+(fired?(R.down>R.up?RED:GRN):T3)+'">'+(fired?('발동 '+fired):(tot?'무발동':'대상없음'))+'</div>'):'')
           +'</td>';
       }
       grid+='</tr>';
