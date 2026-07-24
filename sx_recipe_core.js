@@ -1045,3 +1045,119 @@ function _sxRecipeVotesCore(mk, ind, rows, idx){
     return { votes:v, pure:pure, mixed:mixed, realK:rk, fakeK:fk };
   }catch(e){ return null; }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// [S1103] v3 표시층 병행 배선 — 레거시 무변경
+//   손대지 않은 것: _F733_KEYS(35 고정 차단막) · _extractFeats733 · _condMatch733
+//                   _fires · _wantLt · _sxRecipeVotesCore · _sxRecipeIngCore
+//   v3는 위 경로를 하나도 타지 않고 자기 추출기/매처를 쓴다.
+//
+//   ★소비 제한(PREREG S1102 §8-3): 표시층 전용. DOWN은 어떤 경로로도 BUY 투표 금지.
+//
+//   ★배선 전 실측한 조용한 실패 4건(전부 예외 없이 false가 되는 종류):
+//     ①어휘 — v3는 43키를 쓰는데 _F733_KEYS는 35 고정, 교집합 19뿐.
+//              24키가 shim에 없어 66개 중 58개(88%)가 영구 침묵.
+//              → 라이브러리(106)를 직접 evalOne. 매매 어휘는 35 그대로 둔다.
+//     ②type — v3 conds는 type:'cont'(160개)인데 _condMatch733은 'num'만 수치 비교하고
+//              나머지를 이진 취급(f[key]===1) → cont 조건 전부 false.
+//              → _condMatchV3에서 'cont' 처리(+'num' 별칭 관용).
+//     ③lt라벨 — _ltStr733은 'mixed'를 반환하는데 v3 cell.lt는 'mix' → 21개 영구 침묵.
+//              → 원장 생성기(rcpx_entries_S1102.js:58)와 동일하게 'mixed'→'mix' 정규화.
+//     ④off봉 — 원장은 lt==='off'(웜업 미달)를 모집단에서 제외했다.
+//              off를 mix로 접으면 측정한 적 없는 구간에서 발동 = 모집단 불일치.
+//              → _ltV3가 off를 null로 돌려 발동 자체를 막는다.
+// ══════════════════════════════════════════════════════════════════════════
+function _v3G(){ return (typeof window!=='undefined') ? window : ((typeof self!=='undefined') ? self : null); }
+function _v3Meta(){ var G=_v3G(); return (G && G.RECIPES_V3_META) || null; }
+// 지연 조회 — 스크립트 로드 순서에 의존하지 않는다. 워커(미로드)에선 null → 전 경로 무영향.
+function _v3SetOf(mk){
+  var G=_v3G(), R=G && G.RECIPES_V3_BY_MKT; if(!R) return null;
+  var s=R[mk]; return (s && Array.isArray(s.recipes)) ? s.recipes : null;
+}
+// 세트가 실제로 쓰는 키의 합집합을 세트에서 도출 — 세트를 갈아끼워도 자동 동기(하드코딩 금지)
+var _V3_KEYS_CACHE=null, _V3_KEYS_SRC=null, _V3_LIB_WARNED=false;
+function _v3Keys(){
+  var G=_v3G(), R=G && G.RECIPES_V3_BY_MKT; if(!R) return null;
+  if(_V3_KEYS_SRC===R && _V3_KEYS_CACHE) return _V3_KEYS_CACHE;
+  var seen={}, out=[];
+  for(var mk in R){ var rs=(R[mk] && R[mk].recipes) || [];
+    for(var i=0;i<rs.length;i++){ var cs=rs[i].conds||[];
+      for(var c=0;c<cs.length;c++){ var k=cs[c].key; if(k && !seen[k]){ seen[k]=1; out.push(k); } } } }
+  _V3_KEYS_SRC=R; _V3_KEYS_CACHE=out; return out;
+}
+// 라이브러리 106 직접 평가. 원장과 동일 규약: bool→1/0 · 비유한/결측→null(조건 불성립)
+function _extractFeatsV3(ind, rows, idx){
+  var G=_v3G(), L=G && G.SXFeatureLib;
+  if(!(L && L.evalOne && L.version && L.version >= 'S1096d')){
+    if(!_V3_LIB_WARNED){ _V3_LIB_WARNED=true; try{ console.warn('[S1103] SXFeatureLib(>=S1096d) 미탑재 — v3 표시 비활성'); }catch(_e){} }
+    return null;
+  }
+  var keys=_v3Keys(); if(!keys || !keys.length) return null;
+  var o={};
+  for(var i=0;i<keys.length;i++){
+    var v=null; try{ v=L.evalOne(keys[i], ind, rows, idx); }catch(_e){ v=null; }
+    if(v===true) v=1; else if(v===false) v=0;
+    // ★Math.fround — 원장(.bin)이 Float32 컬럼너이고 빔서치도 Float32로 비교했다.
+    //   등록된 cont 임계 160개는 100%가 float32 정확표현값(2.29→2.2899999618530273)이라
+    //   임계 자체가 float32 분위에서 나온 것이다. 라이브가 float64로 비교하면 경계봉에서 갈린다.
+    //   실측: fround 없이 KR 42개 중 6개가 발동수 +1(전부 bear|bear 경계봉 1개) → fround 적용 시 42/42 일치.
+    //   기준은 '정밀도'가 아니라 '동결된 측정의 재현'이다.
+    o[keys[i]] = (typeof v==='number' && isFinite(v)) ? Math.fround(v) : null;
+  }
+  return o;
+}
+function _condMatchV3(f, conds, mode){
+  if(!f || !conds || !conds.length) return false;   // 빈 conds=true(레거시)와 달리 false — 표시층 오탐 방지
+  var r=[];
+  for(var i=0;i<conds.length;i++){
+    var c=conds[i], v=f[c.key], ok;
+    if(c.type==='cont' || c.type==='num'){
+      ok = (typeof v==='number' && isFinite(v)) ? (c.dir==='lt' ? (v<c.th) : (v>c.th)) : false;
+    } else {
+      ok = (v===1 || v===true);
+    }
+    r.push(ok);
+  }
+  return (mode==='or') ? r.some(function(x){return x;}) : r.every(function(x){return x;});
+}
+function _ltV3(ind){
+  var s=null; try{ s=(typeof _ltStr733==='function') ? _ltStr733(ind && ind.maAlignLT) : null; }catch(_e){ return null; }
+  if(!s || s==='off') return null;                        // 함정④ 웜업 미달 = 원장 모집단 밖
+  return (s==='bull' || s==='bear') ? s : 'mix';          // 함정③ 'mixed'→'mix' (_lk SSOT)
+}
+function _stV3(ind){
+  var ma=(ind && ind.maAlign) || {};
+  return ma.bullish ? 'bull' : (ma.bearish ? 'bear' : 'mid');   // _sk SSOT (sx_render.js:7499)
+}
+// 레거시 _fires 구조적 커버리지: lt===_wantLt(bull|bear만) && !maBull(st bear|mid만) = 9칸 중 4칸
+//   → mix 열 3칸 + st bull 행 3칸은 레거시가 원천 침묵. 교집합률을 전체로 내면 분모가 오염된다.
+function _v3LegacyCovers(lt, st){ return (lt==='bull'||lt==='bear') && (st==='bear'||st==='mid'); }
+function _firesV3(rec, f, lt, st){
+  if(!rec || !rec.cell || !f || !lt || !st) return false;
+  if(lt!==rec.cell.lt || st!==rec.cell.st) return false;
+  return _condMatchV3(f, rec.conds, rec.mode);
+}
+// 집계 SSOT — 3×3 그리드 태그와 교차검증 카드가 공용으로 소비한다(각자 재구현 금지).
+function _sxRecipeV3Core(mk, ind, rows, idx){
+  try{
+    if(!ind || !Array.isArray(rows)) return null;
+    var set=_v3SetOf(mk); if(!set || !set.length) return null;
+    var lt=_ltV3(ind); if(!lt) return null;
+    var st=_stV3(ind), i;
+    var inCell=[];
+    for(i=0;i<set.length;i++){ var r0=set[i]; if(r0.cell && r0.cell.lt===lt && r0.cell.st===st) inCell.push(r0); }
+    var base={ mk:mk, lt:lt, st:st, cell:lt+'|'+st, inCell:inCell.length, up:0, down:0,
+               fired:[], clusters:0, covered:_v3LegacyCovers(lt,st) };
+    if(!inCell.length) return base;                       // 등록 레시피 없는 셀 = 정상적 무발동
+    var f=_extractFeatsV3(ind, rows, idx); if(!f) return null;
+    var cl={}, nc=0;
+    for(i=0;i<inCell.length;i++){
+      var rec=inCell[i]; if(!_firesV3(rec, f, lt, st)) continue;
+      if(rec.kind==='down') base.down++; else base.up++;
+      if(rec.cluster!=null && !cl[rec.cluster]){ cl[rec.cluster]=1; nc++; }
+      base.fired.push({ id:rec.id, kind:rec.kind, cluster:rec.cluster, conds:rec.conds, src:rec.src });
+    }
+    base.clusters=nc;
+    return base;
+  }catch(e){ return null; }
+}
