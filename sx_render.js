@@ -16759,8 +16759,9 @@ async function _bv2Compare(mk, sources, onProgress){
     if(!Array.isArray(rows)||rows.length<_floor){ await _trendBatchSleep(6); continue; }
     var cells=null; try{ cells=await SXRecipeSignal.dualCellScan(st.code,rows,mk); }catch(e2){}
     if(!cells){ await _trendBatchSleep(6); continue; }
-    for(var k in cells){ var c=cells[k], A=acc[k]||(acc[k]={bars:0,l:0,v:0,b:0,lr:{n:0,sum:0},vr:{n:0,sum:0}});
+    for(var k in cells){ var c=cells[k], A=acc[k]||(acc[k]={bars:0,l:0,v:0,b:0,br:{n:0,sum:0},lr:{n:0,sum:0},vr:{n:0,sum:0}});
       A.bars+=c.bars; A.l+=c.l; A.v+=c.v; A.b+=c.b;
+      A.br.n+=c.br.n; A.br.sum+=c.br.sum;
       A.lr.n+=c.lr.n; A.lr.sum+=c.lr.sum; A.vr.n+=c.vr.n; A.vr.sum+=c.vr.sum;
     }
     stocksUsed++; await _trendBatchSleep(10);
@@ -16789,26 +16790,41 @@ function _bv2LiveRender(res, poolLbl){
     var sparse=(comparable && (exp<5 || C.b<10));
     var tag = !cov ? ' <span style="color:'+AMB+';font-size:8px">레거시 침묵·대조불가</span>'
             : (nReg===0 ? ' <span style="color:'+T3+';font-size:8px">v3 등록 0·대조불가</span>' : '');
+    // h15는 원시수익이 아니라 ★칸 base 대비 차이로 본다(base=그 칸 전체 봉 평균).
+    //   원시값은 풀을 바꾸면 부호까지 뒤집힌다 — 신호가 아니라 종목 구성을 재게 된다.
+    var bm=C.br.n?(C.br.sum/C.br.n*100):null;
     var lm=C.lr.n?(C.lr.sum/C.lr.n*100):null, vm=C.vr.n?(C.vr.sum/C.vr.n*100):null;
+    var _d=function(m){ if(m==null||bm==null) return '';
+      var d=m-bm, col=(d>0?GRN:(d<0?RED:T3));
+      return ' · <span style="color:'+col+'">base대비 '+(d>0?'+':'')+d.toFixed(2)+'%p</span>'; };
     rows+='<div style="border-top:1px solid var(--border);padding:5px 0;font-size:9.5px">'
       +'<div style="display:flex;justify-content:space-between;gap:6px"><span style="font-weight:800;color:'+T2+'">'+_bv2Esc(lab)+tag+'</span>'
-      +'<span style="color:'+T3+';font-size:8.5px">봉 '+C.bars.toLocaleString()+'</span></div>'
+      +'<span style="color:'+T3+';font-size:8.5px">봉 '+C.bars.toLocaleString()+(bm!=null?(' · base h15 '+(bm>0?'+':'')+bm.toFixed(2)+'%'):'')+'</span></div>'
       +'<div style="font-size:8.5px;color:'+T3+';line-height:1.55">'
-      +'레거시 '+C.l+' ('+(100*p).toFixed(1)+'%)'+(lm!=null?(' · h15 '+(lm>0?'+':'')+lm.toFixed(2)+'%'):'')
-      +'<br>v3 '+C.v+' ('+(100*q).toFixed(1)+'%)'+(nReg?(' · 등록 '+nReg):'')+(vm!=null?(' · h15 '+(vm>0?'+':'')+vm.toFixed(2)+'%'):'')
+      +'레거시 '+C.l+' ('+(100*p).toFixed(1)+'%)'+_d(lm)
+      +'<br>v3 '+C.v+' ('+(100*q).toFixed(1)+'%)'+(nReg?(' · 등록 '+nReg):'')+_d(vm)
       +(comparable
         ? ('<br>겹침 <b style="color:'+T2+'">'+C.b+'</b> · 독립기대 '+exp.toFixed(1)
            +' · 리프트 '+(lift!=null?('<b style="color:'+(lift>1.3?GRN:(lift<0.7?RED:T2))+'">'+lift.toFixed(2)+'×</b>'):'—')
+           +((C.l+C.v-C.b)>0?(' · 자카드 '+(100*C.b/(C.l+C.v-C.b)).toFixed(1)+'%'):'')
            +(sparse?' <span style="color:'+AMB+'">⚠소표본</span>':''))
         : '')
       +'</div></div>';
   }
   var totLift=(sumE>0)?(sumB/sumE):null;
+  var inSample=/발굴풀/.test(String(poolLbl||''));
   var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.6;margin:4px 0 6px">'
     +'풀 '+_bv2Esc(poolLbl||'')+' · 종목 '+res.stocksUsed+' · 봉단위 동시 판정.<br>'
     +'<b>겹침의 귀무값은 0이 아니다</b> — 발동률 p·q면 완전 독립이어도 p·q·봉수만큼 겹친다. '
-    +'그래서 겹침 수가 아니라 <b>리프트(관측÷독립기대)</b>로 본다. 1× 부근 = 서로 무관한 신호.<br>'
-    +'<span style="color:'+AMB+'">대조불가 칸(레거시 구조적 침묵)은 리프트 계산·합산에서 제외한다.</span></div>';
+    +'그래서 겹침 수가 아니라 <b>리프트(관측÷독립기대)</b>로 본다. 1× 부근 = 서로 무관한 신호. '
+    +'자카드 = 둘 중 하나라도 터진 봉 중 함께 터진 비율.<br>'
+    +'h15는 원시수익이 아니라 <b>칸 base 대비 차이</b>다 — 원시값은 풀만 바꿔도 부호가 뒤집혀(실측) 신호가 아니라 종목 구성을 재게 된다.<br>'
+    +'<b style="color:'+AMB+'">⚠ h15는 v3가 등록된 지표가 아니다</b> — 빔서치 v2는 <code>retLens</code>(시장×풀별 렌즈 구간)를 최적화했다. '
+    +'여기서 v3의 base대비가 음수여도 동결 판정과 모순이 아니다(다른 지평). 지평을 바꾸면 결론이 뒤집힐 수 있다는 건 이 프로젝트가 이미 겪은 일이다.<br>'
+    +'<span style="color:'+AMB+'">대조불가 칸(레거시 구조적 침묵)은 리프트 계산·합산에서 제외한다.</span>'
+    +(inSample?('<br><b style="color:'+RED+'">⚠ in-sample</b> — 발굴풀은 v3가 적합된 바로 그 풀이다. '
+      +'리프트·자카드(구조 질문)는 유효하지만 <b>v3의 base대비 수치는 성과 근거로 쓸 수 없다.</b>'):'')
+    +'</div>';
   var tot='<div style="border-top:2px solid var(--border);padding-top:5px;margin-top:3px;font-size:9.5px;font-weight:800;color:'+T2+'">'
     +'대조가능 칸 합계 리프트 '+(totLift!=null?totLift.toFixed(2)+'×':'—')
     +' <span style="font-weight:500;color:'+T3+'">(겹침 '+sumB+' / 기대 '+sumE.toFixed(1)+')</span></div>';
