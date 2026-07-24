@@ -16821,11 +16821,30 @@ function _bv2LiveRender(res, poolLbl){
 async function _bv2CompareRun(mega){
   var el=document.getElementById('bv2LiveResult'); if(!el) return;
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
-  var sources=mega?['mega']:['rep','watch'], poolLbl=mega?'발굴풀':'대표+관심';
+  var snapOn=!!(window.SXCandleBT && SXCandleBT.snapMode && SXCandleBT.snapMode());
+  // [S1103] 발굴풀은 스냅샷 전제 — _gridRun과 같은 규약(스냅샷 ON=발굴풀 / OFF=대표+관심).
+  //   라이브에서 발굴풀을 돌리면 120종을 API로 긁어 사실상 불가.
+  if(mega && !snapOn){
+    el.innerHTML='<div style="font-size:9px;color:#d97706;padding:6px;line-height:1.6">'
+      +'⚠ 발굴풀 대조는 <b>스냅샷 ON</b>이 전제야 — 라이브로는 120종을 API로 받아야 해서 사실상 불가.<br>'
+      +'모드바에서 📂 스냅샷을 켜고 다시 누르거나, 우선 <b>⚖ 대표+관심 대조</b>로 확인해줘.</div>';
+    return;
+  }
+  if(mega){   // 스냅샷 ON인데 해당 시장 미로드면 자동 로드(_gridRun과 동일 처리)
+    if(SXCandleBT.snapHas && !SXCandleBT.snapHas(mk)){
+      el.innerHTML='<div style="font-size:9px;color:#2563eb;padding:6px;font-weight:800">📂 '+String(mk).toUpperCase()+' 스냅샷 자동 로드…</div>';
+      var _sr=await _snapLoad(mk);
+      if(!_sr.ok){ el.innerHTML='<div style="font-size:9px;color:#dc2626;padding:6px">📂 '+_bv2Esc(_sr.reason)+'</div>'; return; }
+      if(typeof _snapBadge==='function') _snapBadge();
+    }
+  }
+  var sources=mega?['mega']:['rep','watch'];
+  var poolLbl=mega?'발굴풀(스냅샷)':('대표+관심'+(snapOn?'(스냅샷)':'(라이브)'));
   el.innerHTML='<div style="font-size:9px;color:var(--text2);padding:6px">⏳ 대조 준비…</div>';
   var res;
   try{ res=await _bv2Compare(mk, sources, function(i,t,n){ el.innerHTML='<div style="font-size:9px;color:var(--text2);padding:6px">⏳ '+poolLbl+' 대조 '+i+'/'+t+' · '+(n||'')+'</div>'; }); }
   catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
   window._bv2LiveLast={mk:mk, poolLbl:poolLbl, res:res};
+  if(typeof _sxMeasStash==='function'){ try{ _sxMeasStash('bv2live_'+mk,{poolLbl:poolLbl,res:res}); }catch(_e){} }
   el.innerHTML=_bv2LiveRender(res, poolLbl);
 }
