@@ -10374,7 +10374,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1103';   // [S1103] 🧬 빔서치 v2 카드(세트 v3 뷰어) 추가 — S1102는 앱 코드 무변경이라 S1096e 유지였음
+  window.SX_BUILD='S1105';   // [S1105] 지평 정정(retLens=h15 고정 · S1103 함정⑩ 오류) — 카드 지평 문구 명시. S1104=v3 3×3 태그 배선
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -14947,6 +14947,9 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       })()}
     </div>
 
+    ${/* [S1104] v3 3×3 태그 카드 — 표시 전용(판정/투표 무관) · 문자열만 반환(부작용 0) */
+      (typeof _v3TagCard==='function') ? _v3TagCard(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs, indicators) : ''}
+
     ${(()=>{
       if(!qs) return '';
       const regime = qs.regime;
@@ -16543,6 +16546,187 @@ function _restoreFromTfCache(stock, cached, tf){
 
    ⚠ 용어: 빔서치=v2(발굴 방법) · 세트=v3(산출물 66개). 다른 계보의 번호다.
    ══════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════
+   [S1104] 🧬 v3 3×3 태그 — 분석탭 (P6-1 마지막 조각)
+   "지금 이 종목이 어느 칸이고, 그 칸에서 v3가 무엇을 짚었나"만 표시한다.
+
+   ★소비 제한(PREREG S1102 §8-3 · 절대): 표시층 전용.
+     votes·cv2·배너·판정·Season 2 어디에도 들어가지 않는다. DOWN은 BUY 투표 금지.
+     이 함수는 문자열만 반환하고 stock·_scores4에 아무것도 쓰지 않는다(부작용 0).
+
+   집계는 코어 SSOT `_sxRecipeV3Core`만 호출한다(재구현 금지 · S1103 주석).
+   비용: 현재봉 1회 · 라이브러리 43키 evalOne — 실측 무시 가능.
+
+   ★실측 근거(S1104 오프라인 하네스 · snap 40종×최근 30봉):
+     KR 판정봉 1,200 중 발동봉 19(1.6%) · US 1,200 중 15(1.3%) → **무발동이 정상 상태**다.
+     그래서 이 카드의 기본 화면은 "발동 없음"이고, 그때도 칸·등록·사다리를 보여준다.
+     발동 시 개수는 1~10으로 크게 튄다(상관 레시피 동반 발화) → 독립 계보 수를 반드시 병기.
+
+   ⚠ 셀 키 순서: cells/byCellKind = lt|st|kind · _sxRecipeV3Core().cell = lt|st.
+     뒤집으면 조용히 다른 칸 숫자가 들어간다. 이 카드는 전부 lt|st로 정규화해 쓴다.
+
+   ★[S1105] 지평 정정 — S1103 함정⑩("retLens=시장×풀별 렌즈라 h15는 등록 지평이 아니다")은 **틀렸다**.
+     S1102 원장의 `retLens`는 `cR(15)` = **h15 고정**이다(rcpx_entries_S1102.js:74).
+     PREREG §3-3 "렌즈 = h15 단일 고정 · 시장별·셀별·kind별 자유도 없음"과 일치.
+     이름만 S864 v1 어휘(_LENS_BY_MKT)를 물려받았고 의미는 다르다 — 같은 이름 다른 뜻.
+     → 이 카드는 지평을 **h15로 명시**한다.
+   ══════════════════════════════════════════════════════════════════════════ */
+var _V3_LL={bull:'상승장',bear:'하락장',mix:'횡보장'}, _V3_SL={bull:'강세',bear:'약세',mid:'중립'};
+function _v3Bucket(k){ return (k<=0)?'0':(k===1?'1':(k===2?'2':'3+')); }
+// [S1104] 소수 자리 — dm은 소수(0.03235=+3.2%p). |값|<1%p면 1자리로는 "−0.0"이 되어 읽히지 않아 2자리로 내린다.
+function _v3Pp(x){
+  if(x==null || !isFinite(x)) return '—';
+  var v=100*x;
+  return (v>=0?'+':'') + v.toFixed(Math.abs(v)<1 ? 2 : 1);
+}
+
+function _v3TagCard(mk, qs, indicators){
+  var GRN='#16a34a', RED='#dc2626', AMB='#d97706', BLU='#2563eb', T2='var(--text2)', T3='var(--text3)';
+  // ⚠ 조건 라벨은 'dev60<q25'처럼 부등호를 담고 있다 — 이스케이프를 빠뜨리면 태그로 먹혀 조건이 조용히 사라진다
+  //   (S1104 프리뷰에서 폴백 경로가 실제로 라벨을 삼키는 것을 확인). 폴백도 반드시 escape한다.
+  var esc=(typeof _bv2Esc==='function') ? _bv2Esc : function(x){
+    return String(x==null?'':x).replace(/[&<>"]/g,function(k){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k]; });
+  };
+  var wrap=function(body){
+    return '<div class="anal-header-card" style="margin-top:10px">'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap">'
+      +'<span style="font-size:13px;font-weight:800;color:var(--text)">🧬 v3 3×3 태그</span>'
+      +'<span style="font-size:8px;font-weight:800;color:#fff;background:'+BLU+';border-radius:9px;padding:2px 7px">표시 전용 · 판정 무관</span>'
+      +'</div>'+body+'</div>';
+  };
+  var mute=function(t){ return wrap('<div style="font-size:10px;color:'+T3+';line-height:1.55">'+t+'</div>'); };
+  try{
+    var tf=(typeof _analTF!=='undefined')?_analTF:'day';
+    if(tf!=='day') return '';                                  // 세트는 일봉 원장 산출물 — 다른 TF는 모집단 밖
+    var ind=qs&&qs.ind;
+    var rows=(indicators&&indicators._advanced&&Array.isArray(indicators._advanced.rows))?indicators._advanced.rows:null;
+    if(!ind||!rows||!rows.length) return '';
+
+    // ── 침묵 사유를 분리해서 말한다(S1103 §3-4 교훈: "조용히 없는" 상태 금지) ──
+    var SET=(typeof window!=='undefined')?window.RECIPES_V3_BY_MKT:null;
+    if(!SET) return mute('⚠ v3 세트 미탑재 — <b>sx_recipes_v3.js</b> 로드/캐시버스터 확인');
+    var M=SET[mk];
+    if(!M||!M.recipes||!M.recipes.length)
+      return mute('🚧 '+esc(String(mk).toUpperCase())+'는 v3 발굴 대상이 아니다 (S1102는 KR·US만 측정). 이 시장은 레거시 세트만 있다.');
+    var ltChk=(typeof _ltV3==='function')?_ltV3(ind):null;
+    if(!ltChk) return mute('웜업 미달 — 장기 배열(MA60/120/200)이 아직 서지 않아 칸 자체가 정해지지 않는다. 원장도 이 구간을 모집단에서 제외했으므로 v3는 판정하지 않는다.');
+    var R=(typeof _sxRecipeV3Core==='function')?_sxRecipeV3Core(mk, ind, rows, rows.length-1):null;
+    if(!R) return mute('⚠ v3 판정 불가 — SXFeatureLib(≥S1096d) 탑재 확인');
+
+    var recs=M.recipes, cells=M.cells||{}, META=(typeof window!=='undefined')?window.RECIPES_V3_META:null;
+    var lt=R.lt, st=R.st, curKey=lt+'|'+st;
+
+    // ── 셀별 등록 집계(lt|st) ──
+    var reg={};
+    for(var i=0;i<recs.length;i++){
+      var r0=recs[i], k0=r0.cell.lt+'|'+r0.cell.st;
+      if(!reg[k0]) reg[k0]={up:0,down:0};
+      if(r0.kind==='down') reg[k0].down++; else reg[k0].up++;
+    }
+    var curReg=reg[curKey]||{up:0,down:0};
+
+    // ── ① 현재 칸 + 발동 요약 ──
+    var h='<div style="font-size:11.5px;color:'+T2+';line-height:1.6;margin-bottom:6px">'
+      +'<b style="color:var(--text)">현재 칸</b> &nbsp;<b style="color:'+BLU+'">'+esc(_V3_LL[lt]||lt)+' · '+esc(_V3_SL[st]||st)+'</b>'
+      +' <span style="font-size:9px;color:'+T3+'">('+esc(curKey)+')</span>'
+      +' &nbsp;· 이 칸 등록 <b>'+(curReg.up+curReg.down)+'</b>개'
+      +' <span style="font-size:9.5px;color:'+T3+'">(UP '+curReg.up+(curReg.down?(' · DOWN '+curReg.down):'')+')</span>'
+      +'</div>';
+
+    var fired=R.up+R.down;
+    if(fired>0){
+      var parts=[];
+      if(R.up>0)   parts.push('<b style="color:'+GRN+'">🟢 UP '+R.up+'</b> <span style="font-size:9px;color:'+T3+'">(독립 계보 '+(R.clUp!=null?R.clUp:'?')+')</span>');
+      if(R.down>0) parts.push('<b style="color:'+RED+'">🔴 DOWN '+R.down+'</b> <span style="font-size:9px;color:'+T3+'">(독립 계보 '+(R.clDn!=null?R.clDn:'?')+')</span>');
+      h+='<div style="font-size:11.5px;line-height:1.6;padding:6px 9px;background:var(--surface2);border-radius:7px;margin-bottom:6px">'
+        +parts.join(' &nbsp;·&nbsp; ')+'</div>';
+      // 발동 목록 — 무엇이 짚었는지(조건 라벨은 등록 원문 그대로)
+      var lst='', shown=Math.min(R.fired.length, 6);
+      for(var f=0; f<shown; f++){
+        var fr=R.fired[f], col=(fr.kind==='down')?RED:GRN;
+        var lab=(fr.conds||[]).map(function(c){ return esc(c.label||c.key); }).join(' · ');
+        var sn=(fr.src&&fr.src.holdout&&fr.src.holdout.n!=null)?fr.src.holdout.n:null;
+        lst+='<div style="font-size:9.5px;color:'+T3+';line-height:1.5;margin-top:2px">'
+          +'<span style="color:'+col+';font-weight:800">'+(fr.kind==='down'?'▼':'▲')+'</span> '
+          +'<span style="color:'+T2+'">'+esc(fr.id)+'</span> <span style="font-size:9px">계보'+(fr.cluster!=null?fr.cluster:'-')+'</span>'
+          +'<br><span style="margin-left:11px">'+lab+(sn!=null?(' <span style="font-size:8.5px">· 홀드아웃 n'+sn+'</span>'):'')+'</span></div>';
+      }
+      if(R.fired.length>shown) lst+='<div style="font-size:9px;color:'+T3+';margin-top:2px">… 외 '+(R.fired.length-shown)+'개</div>';
+      h+=lst;
+    } else {
+      h+='<div style="font-size:11px;color:'+T3+';line-height:1.6;padding:6px 9px;background:var(--surface2);border-radius:7px;margin-bottom:6px">'
+        +'이 칸에서 v3 <b>무발동</b> — 실측상 정상 상태다(발동봉 비율 KR 1.6% · US 1.3%).</div>';
+    }
+
+    // ── ② 겹침 사다리(홀드아웃) — 지금 버킷 강조 ──
+    //   ⚠ dm은 base 대비 평균 차(원시수익 아님 · 규율 5) · 지평은 등록 렌즈(retLens)이지 h15가 아니다(규율 6).
+    var ladRow=function(kind, kFired){
+      var C=cells[curKey+'|'+kind]; if(!C||!C.ladderHo) return '';
+      var L=C.ladderHo, cur=_v3Bucket(kFired), segs=[], ks=['0','1','2','3+'];
+      for(var b=0;b<ks.length;b++){
+        var e=L[ks[b]], on=(ks[b]===cur);
+        // 표본 없는 버킷을 조용히 빼면 사다리 모양이 왜곡된다 — '—'로 결측을 드러낸다
+        if(!e){ segs.push('<span style="color:'+T3+';'+(on?'font-weight:800':'')+'">'+ks[b]+' —</span>'); continue; }
+        var col=on?((e.dm>=0)?GRN:RED):T3;
+        segs.push('<span style="color:'+col+';'+(on?'font-weight:800':'')+'">'+ks[b]+' '+_v3Pp(e.dm)+(on?('<span style="font-size:8.5px">(n'+e.n+')</span>'):'')+'</span>');
+      }
+      if(!segs.length) return '';
+      return '<div style="font-size:9.5px;color:'+T3+';line-height:1.55;margin-top:3px">'
+        +'<b style="color:'+T2+'">'+(kind==='down'?'DOWN':'UP')+' 사다리</b> '+segs.join(' · ')+' <span style="font-size:8.5px">%p</span>'
+        +' <span style="font-size:8.5px">← 지금 '+cur+'</span></div>';
+    };
+    var lad=(curReg.up?ladRow('up', R.up):'')+(curReg.down?ladRow('down', R.down):'');
+    if(lad){
+      h+='<div style="border-top:1px dashed var(--border);margin-top:7px;padding-top:6px">'
+        +'<div style="font-size:9px;font-weight:800;color:'+BLU+'">📶 발동 개수별 홀드아웃 성적 <span style="font-weight:500;color:'+T3+'">(지평 h15)</span></div>'+lad
+        +'<div style="font-size:8.5px;color:'+T3+';line-height:1.45;margin-top:3px">동결 홀드아웃 원장 · <b>칸 base 대비 평균 차</b>(원시수익 아님) · 지평 <b>h15 고정</b>(PREREG §3-3 — 시장·셀·kind별 렌즈 자유도 없음). h5/h10/h20은 부기록이라 주판정을 뒤집지 못한다.</div></div>';
+    }
+
+    // ── ③ 미니 3×3 (행=단기 st · 열=장기 lt · 빔서치 카드와 같은 배치) ──
+    var grid='<div style="border-top:1px dashed var(--border);margin-top:7px;padding-top:6px">'
+      +'<div style="font-size:9px;font-weight:800;color:'+BLU+';margin-bottom:4px">▦ 등록 분포 <span style="font-weight:500;color:'+T3+'">(현재 칸 강조 · 숫자=등록 수)</span></div>'
+      +'<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:250px"><tr><td style="padding:2px"></td>';
+    var LONGS=['bull','bear','mix'], SHORTS=['bull','bear','mid'];
+    for(var l=0;l<LONGS.length;l++)
+      grid+='<td style="padding:2px 3px;text-align:center;font-size:8.5px;font-weight:800;color:'+T2+'">'+esc(_V3_LL[LONGS[l]])+'</td>';
+    grid+='</tr>';
+    for(var s=0;s<SHORTS.length;s++){
+      var SK=SHORTS[s];
+      grid+='<tr><td style="padding:2px 3px;font-size:8.5px;font-weight:800;color:'+T2+';white-space:nowrap">'+esc(_V3_SL[SK])+'</td>';
+      for(var l2=0;l2<LONGS.length;l2++){
+        var LK=LONGS[l2], key=LK+'|'+SK, G=reg[key], up=G?G.up:0, dn=G?G.down:0, tot=up+dn, isCur=(key===curKey);
+        var bg=isCur?'rgba(37,99,235,0.14)':'var(--surface2)';
+        var bd=isCur?BLU:'var(--border)';
+        grid+='<td style="padding:3px 2px;text-align:center;border:'+(isCur?'2px':'1px')+' solid '+bd+';background:'+bg+'">'
+          +'<div style="font-size:10.5px;font-weight:800;color:'+(tot?(isCur?BLU:T2):T3)+'">'+(tot?tot:'—')+'</div>'
+          +'<div style="font-size:7px;color:'+T3+';line-height:1.15">'+(tot?('U'+up+(dn?('·D'+dn):'')):'등록0')+'</div>'
+          +(isCur?('<div style="font-size:7.5px;font-weight:800;color:'+(fired?(R.down>R.up?RED:GRN):T3)+'">'+(fired?('발동 '+fired):'무발동')+'</div>'):'')
+          +'</td>';
+      }
+      grid+='</tr>';
+    }
+    grid+='</table></div></div>';
+    h+=grid;
+
+    // ── ④ 레거시 커버 안내 ──
+    if(!R.covered){
+      h+='<div style="font-size:9px;color:'+AMB+';line-height:1.5;margin-top:6px;padding:5px 8px;border:1px solid '+AMB+'44;border-radius:6px">'
+        +'⚠ <b>레거시 미커버 칸</b> — 기존 세트(430)는 이 칸에서 원천 침묵한다(9칸 중 4칸만 커버). '
+        +'단 이곳이 "v3가 새로 연 영역"이라는 뜻은 아니다. 빔서치 v1은 풀 추가 전에 멈춘 <b>미완성</b> 상태라, '
+        +'“아직 안 간 곳”일 수 있다 — 이 표시로는 둘이 갈리지 않는다.</div>';
+    }
+
+    // ── ⑤ 규율 푸터 ──
+    var stamp=(META&&META.ts)?String(META.ts).slice(0,10):'';
+    h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-top:7px;border-top:1px solid var(--border);padding-top:6px">'
+      +'세트 v3 '+((META&&META.total)||66)+'개 · '+esc((META&&META.prereg)||'PREREG_S1102_RCPX')+' 동결 '+esc(stamp)+'<br>'
+      +'이 카드는 <b>표시만</b> 한다 — C 판정·votes·배너·시즌2 어디에도 반영되지 않는다. '
+      +'<b>DOWN은 하락 관측이지 매도 지시가 아니다.</b> 발동 개수는 상관 레시피가 함께 터져 부풀 수 있어 독립 계보 수를 병기했다 — 현 기준하 보임.</div>';
+
+    return wrap(h);
+  }catch(e){ return ''; }
+}
+
 var _BV2_SHORTS=['bull','bear','mid'], _BV2_LONGS=['bull','bear','mix'];
 var _BV2_SL={bull:'강세',bear:'약세',mid:'중립'}, _BV2_LL={bull:'상승장',bear:'하락장',mix:'횡보장'};
 function _bv2Esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k];}); }
