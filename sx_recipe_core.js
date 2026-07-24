@@ -926,14 +926,31 @@ var _F733_KEYS = ['rsi','stochK','cci','bbPctB','volOsc','adx','rsiDiv','obvDiv'
   'macdGc','macdHistUp','macdBelow0','diBear','sarBear','envDn','envUp','ichiCloudUp','ichiTK','diRebound','diOverheat',
   'stochSlowGc','gx5_9','gx5_20','gx5_60','settle20','volBreak','dev20','dev60','dev120','dev200','ma5slope'];
 var _F733_WARNED = false;
-function _extractFeats733(ind, rows, idx){
+// ── [S1108] 발굴 전용 확장 어휘 (1단계 · 이진 22종) ────────────────────────────────
+//   ★매매 어휘(_F733_KEYS 35)는 손대지 않는다 — 라이브러리 확장이 매매로 새지 않는 차단막을 유지.
+//   _extractFeats733(ind, rows, idx, disc=true)로 호출할 때만 합쳐진다. 소비처는 발굴 entries 1곳(sx_render:6041).
+//   선발 근거(S1108 B1 심사 · 발굴풀 188종 · deadcat 7,061봉 / pullback 21,206봉 · 수익률 미조회):
+//     ① L1 퇴화 제외 — ltBull/ltBear(앵커 동어반복) massBulge demarkPerf newLow52
+//     ② L2 중복 제외(κ≥0.7) — stochOS20≡nearSup · cciOB100≡envUp · ichiSignal≡ichiCloudUp · macdHistUp≡macdGc
+//     ③ 기존 연속 어휘로 표현 가능한 레벨컷 9종 후순위 — rsiOS30/rsiOB70/stochOB80/cciOS100/mfiOS20/mfiOB80/adx25/bbLower/bbUpper
+//        (rsi·stochK·cci·mfi·adx·bbPctB가 이미 연속으로 있어 v1 임계탐색의 특수사례일 뿐)
+//     ④ 연속 31종은 2단계 이후 — 재료당 자유도 46(분위23×방향2) 추가라 별도 단계로 쪼갠다
+//     ⑤ deadCross 제외 — 시즌2 청산 신호(시즌3 L0도 같은 이유로 제외). 넣으면 어휘 58 → C=30,856로 MAXTEST 초과
+//   ⚠전부 이진이라 임계 탐색 부담 증가 0. 어휘 35+22=57 → C(57,3)=29,260 (MAXTEST 30,000 이내)
+var _F733_DISC_ADD = ['pcUp','pivotAbove','newHighN','newLowN','rsiDivBear','chaikinGc','volPatBull','volPatBear',
+  'ichiCloudBull','maConv','bwNeutral','candleBull','candleBear','swingHH','swingLL','tlbRev','psychNear',
+  'rsi50up','macdSigGc','macd0up','volMaGc','maAlignBear'];
+var _F733_DISC_WARNED = false;
+function _extractFeats733(ind, rows, idx, disc){
   var G=(typeof window!=='undefined')?window:((typeof self!=='undefined')?self:null);
   var L=G && G.SXFeatureLib;
   if(L && L.evalOne && L.version && L.version >= 'S1095'){
-    var o={};
-    for(var k=0;k<_F733_KEYS.length;k++){ var key=_F733_KEYS[k]; o[key]=L.evalOne(key, ind, rows, idx); }
+    var o={}, KS=disc ? _F733_KEYS.concat(_F733_DISC_ADD) : _F733_KEYS;
+    for(var k=0;k<KS.length;k++){ var key=KS[k]; o[key]=L.evalOne(key, ind, rows, idx); }
     return o;
   }
+  // [S1108] 발굴 확장 어휘는 라이브러리 없이 산출 불가 — 폴백에서 조용히 사라지면 재료가 없는 것처럼 보인다(규율 9: 조용한 실패).
+  if(disc && !_F733_DISC_WARNED){ _F733_DISC_WARNED=true; try{ console.error('[S1108] SXFeatureLib 미로드 — 발굴 확장 재료 '+_F733_DISC_ADD.length+'종이 전부 null이 됩니다. 발굴 결과를 신뢰하지 마세요.'); }catch(_e){} }
   if(!_F733_WARNED){ _F733_WARNED=true; try{ console.warn('[S1095] SXFeatureLib 미로드 — _extractFeats733 구 구현 폴백(드리프트 주의)'); }catch(_e){} }
   return _extractFeats733_legacy(ind, rows, idx);
 }
