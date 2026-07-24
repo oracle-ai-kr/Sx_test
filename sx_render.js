@@ -5884,7 +5884,33 @@ var _DISCRIM_FEATS = [
   { key:'ichiTK',      label:'일목 전환>기준',     type:'bool' },
   { key:'diRebound',   label:'DI 투매소진(강추세)', type:'bool' },
   { key:'diOverheat',  label:'DI 상승과열(강추세)', type:'bool' },
-  { key:'stochSlowGc', label:'슬로우스토 골든',     type:'bool' }
+  { key:'stochSlowGc', label:'슬로우스토 골든',     type:'bool' },
+  // ── [S1108] 1단계 발굴 확장 · 이진 22종 ──────────────────────────────────────────
+  //   근거·제외논리 = sx_recipe_core.js `_F733_DISC_ADD` 주석 / 상세 = 문제점_대장 L-03 · V1_도구_명세 §8
+  //   ★매매 어휘(_F733_KEYS)엔 안 들어간다. 발굴 경로만 disc=true로 받는다.
+  //   전부 이진 → 임계 탐색(numFeats) 미참여 · 자유도 추가 0 · 빌더/빔서치는 type='bin'으로 자동 수용.
+  { key:'candleBull',    label:'캔들 강세패턴',      type:'bool' },
+  { key:'candleBear',    label:'캔들 약세패턴',      type:'bool' },
+  { key:'swingHH',       label:'고점 higher-high', type:'bool' },
+  { key:'swingLL',       label:'저점 lower-low',   type:'bool' },
+  { key:'tlbRev',        label:'삼선전환 반전',      type:'bool' },
+  { key:'psychNear',     label:'심리가격 근접',      type:'bool' },
+  { key:'newHighN',      label:'N봉 신고가',        type:'bool' },
+  { key:'newLowN',       label:'N봉 신저가',        type:'bool' },
+  { key:'pcUp',          label:'가격채널 상단돌파',   type:'bool' },
+  { key:'pivotAbove',    label:'피벗 P 상회',       type:'bool' },
+  { key:'chaikinGc',     label:'차이킨 골든',        type:'bool' },
+  { key:'volPatBull',    label:'거래량패턴 강세',     type:'bool' },
+  { key:'volPatBear',    label:'거래량패턴 약세',     type:'bool' },
+  { key:'volMaGc',       label:'거래량 5×20 골든',   type:'bool' },
+  { key:'rsi50up',       label:'RSI 50 상향',      type:'bool' },
+  { key:'rsiDivBear',    label:'RSI 약세다이버',     type:'bool' },
+  { key:'macdSigGc',     label:'MACD 시그널 골든',   type:'bool' },
+  { key:'macd0up',       label:'MACD 0선 상향',     type:'bool' },
+  { key:'ichiCloudBull', label:'일목 양운',          type:'bool' },
+  { key:'maConv',        label:'MA 수렴',           type:'bool' },
+  { key:'maAlignBear',   label:'MA 역배열',          type:'bool' },
+  { key:'bwNeutral',     label:'바이너리웨이브 중립',  type:'bool' }
 ];
 /* [S918] _smaLast733/_goldenX733 → sx_recipe_core.js 이관(워커-안전 SSOT) — 워커 rcpK 조용한 전멸 수정.
    window 로드순서: core가 render보다 먼저(sx_screener.html 9행 vs 52행)라 전역 해결 유지.
@@ -6038,7 +6064,7 @@ async function _btDiscrimBracket(mk, source, onProgress){
       var ltAlign=_ltStr733(ind.maAlignLT), maBull=!!(ind.maAlign && ind.maAlign.bullish);
       if(!(ltAlign===_poolLt && !maBull)) continue;   // 선택 풀만 · 공통 단기약세
       var ep=(rows[bi] && typeof rows[bi].close==='number')?rows[bi].close:null; if(ep==null) continue;
-      var f=_extractFeats733(ind, rows, bi);
+      var f=_extractFeats733(ind, rows, bi, true);   // [S1108] disc=true — 발굴 전용 확장 어휘(_F733_DISC_ADD 22종) 포함. 매매 경로는 인자 없이 호출하므로 35종 유지.
       var ei=bi;
       var _nRet=function(N){ var j=ei+N; if(j>=rows.length || !rows[j] || typeof rows[j].close!=='number') return null; return rows[j].close > ep; };   // 진입(봉 종가) 후 N봉 종가 > 진입가
       var _n3=_nRet(3), _n5=_nRet(5), _n10=_nRet(10);
@@ -10374,7 +10400,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1106';   // [S1106] 등록0≠무발동 문구 분기 + 칸 이름 _TREND_MATRIX SSOT 매핑. S1105=지평 h15 정정 · S1104=v3 3×3 태그 배선
+  window.SX_BUILD='S1108';   // [S1106] 등록0≠무발동 문구 분기 + 칸 이름 _TREND_MATRIX SSOT 매핑. S1105=지평 h15 정정 · S1104=v3 3×3 태그 배선
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
