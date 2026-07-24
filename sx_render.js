@@ -16700,10 +16700,17 @@ function _beamV2Render(mk){
     +'<span style="color:'+AMB+'">⚠ 저신호 딱지는 "통과 개수가 우연 범위"라는 뜻이지 후보 무가치가 아니다 — 등록 배제 사유로 쓰지 말 것(실제로 오경보를 냈다).</span>'
     +'</div></details>';
 
-  // ── 라이브 대조 (미구현)
-  var live='<div style="margin-top:8px;border-top:1px dashed var(--border);padding-top:6px;font-size:8.5px;color:'+T3+';line-height:1.6">'
-    +'🚧 <b>라이브 대조(레거시 430 vs 세트 v3) 미구현</b> — 같은 스냅샷 1회 순회로 9칸 그리드 2벌 + 발동봉 수 + <b>칸별 교집합률</b>을 낼 예정.<br>'
-    +'전제: 레시피 스캔이 v3 어휘(43키)를 함께 뽑아야 한다 — 현재 스캔은 매매 어휘 35키만 뽑는다.</div>';
+  // ── 라이브 대조
+  var last=(typeof window!=='undefined')?window._bv2LiveLast:null;
+  var lastHtml=(last && last.mk===mk) ? _bv2LiveRender(last.res, last.poolLbl) : '';
+  var live='<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">'
+    +'<div style="font-size:9px;font-weight:800;color:'+BLU+';margin-bottom:4px">⚖ 라이브 대조 — 레거시 430 ↔ 세트 v3</div>'
+    +'<div style="font-size:8px;color:'+T3+';line-height:1.55;margin-bottom:6px">같은 봉을 1회 순회해 두 세트를 함께 판정한다. '
+    +'겹침은 <b>리프트(관측÷독립기대)</b>로 읽는다 — 겹침 수만 보면 발동률이 낮을수록 항상 "새 신호"로 보인다.</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">'
+    +'<button onclick="_sxVib(12);window._bv2CompareRun&&_bv2CompareRun(false)" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:10.5px;font-weight:700;cursor:pointer;background:#2563eb14;color:#2563eb;border:1px solid #2563eb66">⚖ 대표+관심 대조</button>'
+    +'<button onclick="_sxVib(12);window._bv2CompareRun&&_bv2CompareRun(true)" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:10.5px;font-weight:700;cursor:pointer;background:#0d948814;color:#0d9488;border:1px solid #0d948866">🌍 발굴풀 대조</button>'
+    +'</div><div id="bv2LiveResult">'+lastHtml+'</div></div>';
 
   return h+grid
     +'<div style="font-size:9px;font-weight:800;color:'+BLU+';margin:10px 0 2px">▤ 셀×kind 판정</div>'+rows
@@ -16716,4 +16723,109 @@ async function _beamV2Run(){
   el.style.display='block';
   try{ el.innerHTML=_beamV2Render(mk); }
   catch(e){ el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">⚠ 렌더 실패: '+_bv2Esc(String(e&&e.message||e))+'</div>'; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   [S1103] 라이브 대조 — 레거시 430 ↔ 세트 v3 (P6-2 후반)
+   같은 스냅샷·같은 봉을 1회 순회해 두 세트를 함께 판정한다(SXRecipeSignal.dualCellScan).
+
+   ★교집합의 귀무값은 0이 아니다.
+     레거시 발동률 p, v3 발동률 q면 두 신호가 완전히 독립이어도 p·q·bars만큼은 겹친다.
+     따라서 "교집합률 3%"만 보면 항상 "거의 안 겹친다=새 신호"로 읽히는 착시가 생긴다.
+     S1085(중앙값차)·S1098(자카드)에 이은 세 번째 같은 함정 —
+     관측 겹침을 반드시 **독립 기대치**와 나란히 놓고 리프트로 본다.
+
+   ★분모 주의: 레거시가 구조적으로 침묵하는 칸(mix 열·강세 행)은 겹침이 0인 게 당연하다.
+     전체 평균에 섞으면 정보량 0인 칸이 "새 신호" 증거처럼 보인다 → 칸별로만 판정.
+   ══════════════════════════════════════════════════════════════════════════ */
+async function _bv2Compare(mk, sources, onProgress){
+  if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return {ok:false,reason:'캔들 fetch 미탑재'};
+  if(!(window.SXRecipeSignal&&SXRecipeSignal.dualCellScan)) return {ok:false,reason:'동시 스캔 미탑재(sx_recipe_signal.js 갱신 필요)'};
+  if(typeof window.RECIPES_V3_BY_MKT==='undefined') return {ok:false,reason:'v3 세트 미탑재'};
+  var list=[],seen={};
+  for(var si=0;si<sources.length;si++){ var source=sources[si],part=[];
+    if(source==='mega') part=(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]).map(function(x){return Array.isArray(x)?{code:x[0],name:x[1]}:{code:String(x),name:String(x)};});
+    else if(source==='watch'){ try{ part=(typeof _getWatchlist==='function'?(_getWatchlist(mk)||[]):[]).map(function(s){return {code:s.code,name:s.name||s.code};}); }catch(_){part=[];} }
+    else { try{ var p=(window.SXCandleBT&&SXCandleBT.getRepPool)?SXCandleBT.getRepPool(mk):[]; part=(p||[]).map(function(x){return {code:x[0],name:x[1]};}); }catch(_){part=[];} }
+    for(var pi=0;pi<part.length;pi++){ var it=part[pi]; if(it&&it.code&&!seen[it.code]){seen[it.code]=1;list.push(it);} }
+  }
+  if(!list.length) return {ok:false,reason:'대상 풀 비어있음'};
+  var CAP=(sources.indexOf('mega')>=0)?120:40, use=list.slice(0,CAP);
+  var _tgt=(typeof _btTargetBars==='function')?_btTargetBars(mk,'day'):600, _floor=Math.floor(_tgt*0.95);
+  var acc={}, stocksUsed=0;
+  for(var i=0;i<use.length;i++){
+    var st=use[i]; if(onProgress) onProgress(i+1,use.length,st.name); await _trendBatchSleep(0);
+    var rows=null; try{ rows=await SXCandleBT.fetchRows600(mk,'day',st.code); }catch(e){}
+    if(!Array.isArray(rows)||rows.length<_floor){ await _trendBatchSleep(6); continue; }
+    var cells=null; try{ cells=await SXRecipeSignal.dualCellScan(st.code,rows,mk); }catch(e2){}
+    if(!cells){ await _trendBatchSleep(6); continue; }
+    for(var k in cells){ var c=cells[k], A=acc[k]||(acc[k]={bars:0,l:0,v:0,b:0,lr:{n:0,sum:0},vr:{n:0,sum:0}});
+      A.bars+=c.bars; A.l+=c.l; A.v+=c.v; A.b+=c.b;
+      A.lr.n+=c.lr.n; A.lr.sum+=c.lr.sum; A.vr.n+=c.vr.n; A.vr.sum+=c.vr.sum;
+    }
+    stocksUsed++; await _trendBatchSleep(10);
+  }
+  if(stocksUsed<3) return {ok:false,reason:'유효 종목 3개 미만 — 대조 불가'};
+  return {ok:true, cells:acc, stocksUsed:stocksUsed, mk:mk, ts:new Date().toISOString()};
+}
+
+function _bv2LiveRender(res, poolLbl){
+  var GRN='#16a34a',RED='#dc2626',AMB='#d97706',BLU='#2563eb',T2='var(--text2)',T3='var(--text3)';
+  if(!res) return '';
+  if(!res.ok) return '<div style="font-size:9px;color:'+RED+';padding:4px 0">⚠ '+_bv2Esc(res.reason||'실패')+'</div>';
+  var keys=[]; for(var s=0;s<_BV2_SHORTS.length;s++) for(var l=0;l<_BV2_LONGS.length;l++){ var k=_BV2_LONGS[l]+'|'+_BV2_SHORTS[s]; if(res.cells[k]) keys.push(k); }
+  // 그 칸에 v3 등록이 아예 없는 경우와 "등록은 있는데 발동 0"을 구분한다(전자는 대조 대상이 아님)
+  var SETM=(typeof window!=='undefined' && window.RECIPES_V3_BY_MKT)?window.RECIPES_V3_BY_MKT[res.mk]:null;
+  var regCnt={}; if(SETM&&SETM.recipes) for(var ri=0;ri<SETM.recipes.length;ri++){ var rk=SETM.recipes[ri].cell.lt+'|'+SETM.recipes[ri].cell.st; regCnt[rk]=(regCnt[rk]||0)+1; }
+  var rows='', anomaly=0, sumB=0, sumE=0;
+  for(var i=0;i<keys.length;i++){
+    var k=keys[i], C=res.cells[k], pp=k.split('|'), cov=_bv2LegacyCovers(pp[0],pp[1]);
+    var nReg=regCnt[k]||0, comparable=(cov && nReg>0);
+    var lab=_BV2_SL[pp[1]]+'·'+_BV2_LL[pp[0]];
+    var p=C.bars?C.l/C.bars:0, q=C.bars?C.v/C.bars:0;
+    var exp=C.bars*p*q, lift=(exp>0)?(C.b/exp):null;
+    if(comparable){ sumB+=C.b; sumE+=exp; }
+    if(!cov && C.l>0) anomaly++;                       // 침묵칸에서 레거시가 터지면 커버리지 모델이 틀린 것
+    var sparse=(comparable && (exp<5 || C.b<10));
+    var tag = !cov ? ' <span style="color:'+AMB+';font-size:8px">레거시 침묵·대조불가</span>'
+            : (nReg===0 ? ' <span style="color:'+T3+';font-size:8px">v3 등록 0·대조불가</span>' : '');
+    var lm=C.lr.n?(C.lr.sum/C.lr.n*100):null, vm=C.vr.n?(C.vr.sum/C.vr.n*100):null;
+    rows+='<div style="border-top:1px solid var(--border);padding:5px 0;font-size:9.5px">'
+      +'<div style="display:flex;justify-content:space-between;gap:6px"><span style="font-weight:800;color:'+T2+'">'+_bv2Esc(lab)+tag+'</span>'
+      +'<span style="color:'+T3+';font-size:8.5px">봉 '+C.bars.toLocaleString()+'</span></div>'
+      +'<div style="font-size:8.5px;color:'+T3+';line-height:1.55">'
+      +'레거시 '+C.l+' ('+(100*p).toFixed(1)+'%)'+(lm!=null?(' · h15 '+(lm>0?'+':'')+lm.toFixed(2)+'%'):'')
+      +'<br>v3 '+C.v+' ('+(100*q).toFixed(1)+'%)'+(nReg?(' · 등록 '+nReg):'')+(vm!=null?(' · h15 '+(vm>0?'+':'')+vm.toFixed(2)+'%'):'')
+      +(comparable
+        ? ('<br>겹침 <b style="color:'+T2+'">'+C.b+'</b> · 독립기대 '+exp.toFixed(1)
+           +' · 리프트 '+(lift!=null?('<b style="color:'+(lift>1.3?GRN:(lift<0.7?RED:T2))+'">'+lift.toFixed(2)+'×</b>'):'—')
+           +(sparse?' <span style="color:'+AMB+'">⚠소표본</span>':''))
+        : '')
+      +'</div></div>';
+  }
+  var totLift=(sumE>0)?(sumB/sumE):null;
+  var head='<div style="font-size:8.5px;color:'+T3+';line-height:1.6;margin:4px 0 6px">'
+    +'풀 '+_bv2Esc(poolLbl||'')+' · 종목 '+res.stocksUsed+' · 봉단위 동시 판정.<br>'
+    +'<b>겹침의 귀무값은 0이 아니다</b> — 발동률 p·q면 완전 독립이어도 p·q·봉수만큼 겹친다. '
+    +'그래서 겹침 수가 아니라 <b>리프트(관측÷독립기대)</b>로 본다. 1× 부근 = 서로 무관한 신호.<br>'
+    +'<span style="color:'+AMB+'">대조불가 칸(레거시 구조적 침묵)은 리프트 계산·합산에서 제외한다.</span></div>';
+  var tot='<div style="border-top:2px solid var(--border);padding-top:5px;margin-top:3px;font-size:9.5px;font-weight:800;color:'+T2+'">'
+    +'대조가능 칸 합계 리프트 '+(totLift!=null?totLift.toFixed(2)+'×':'—')
+    +' <span style="font-weight:500;color:'+T3+'">(겹침 '+sumB+' / 기대 '+sumE.toFixed(1)+')</span></div>';
+  var chk='<div style="font-size:8px;color:'+(anomaly?RED:T3)+';margin-top:4px">'
+    +(anomaly?('⚠ 정합성 경고: 레거시 침묵칸 '+anomaly+'곳에서 레거시가 발동했다 — 커버리지 모델 재점검 필요')
+             :'✓ 정합성: 레거시 침묵칸에서 레거시 발동 0 — _fires 커버리지 모델과 일치')+'</div>';
+  return head+rows+tot+chk;
+}
+
+async function _bv2CompareRun(mega){
+  var el=document.getElementById('bv2LiveResult'); if(!el) return;
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+  var sources=mega?['mega']:['rep','watch'], poolLbl=mega?'발굴풀':'대표+관심';
+  el.innerHTML='<div style="font-size:9px;color:var(--text2);padding:6px">⏳ 대조 준비…</div>';
+  var res;
+  try{ res=await _bv2Compare(mk, sources, function(i,t,n){ el.innerHTML='<div style="font-size:9px;color:var(--text2);padding:6px">⏳ '+poolLbl+' 대조 '+i+'/'+t+' · '+(n||'')+'</div>'; }); }
+  catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
+  window._bv2LiveLast={mk:mk, poolLbl:poolLbl, res:res};
+  el.innerHTML=_bv2LiveRender(res, poolLbl);
 }
