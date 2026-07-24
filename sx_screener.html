@@ -6,8 +6,9 @@
 <title>SX Screener</title>
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
 <script src="sx_analysis_engine.js?v=52"></script>
-<script src="sx_recipe_core.js?v=5"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 -->
+<script src="sx_recipe_core.js?v=6"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 · [S1103] v3 배선 추가로 v5→v6 -->
 <script src="sx_feature_library.js?v=6"></script><!-- [S999→S1057] 통합 재료 라이브러리 SSOT — 레시피+위험 공용 -->
+<script src="sx_recipes_v3.js?v=2"></script><!-- [S1103] v3 레시피 66개(S1102 동결) — 표시층 전용 · 워커 미로드(스캔 무영향) · DOWN은 BUY 투표 금지 -->
 <script src="sx_risk_core.js?v=1"></script><!-- [S1004] 위험 시그니처 SSOT — 시즌1(배지/게이트)·시즌2(보유 경고) 공용 · 3시장×3중검증 -->
 <script src="sx_exec_core.js?v=1"></script><!-- [S1017] 실행 SSOT — 레시피 진입+이중ATR+MA청산 · 시즌1 BT/분석탭 · 시즌2 자동매매 공유(b 일원화) -->
 <script src="sx_interpret.js?v=47"></script>
@@ -52,7 +53,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=432"></script>
+<script src="sx_render.js?v=433"></script>
 <script src="sx_recipe_signal.js?v=49"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1958,6 +1959,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
                 <button onclick="_sxVib(12);window._recipeFakeDownRun&&_recipeFakeDownRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#dc262614;color:#dc2626;border:1px solid #dc262666">🔴 가짜반등 하락</button><!-- [S883] -->
                 <button onclick="_sxVib(12);window._recipeTransitRiskRun&&_recipeTransitRiskRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#ca8a0414;color:#ca8a04;border:1px solid #ca8a0466">🟡 전이형 위험</button><!-- [S885] -->
                 <button onclick="_sxVib(12);window._recipeTransitGridRun&&_recipeTransitGridRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#47556914;color:#475569;border:1px solid #47556966">🔲 전이형 격자</button><!-- [S886] -->
+                <button onclick="_sxVib(12);window._beamV2Run&&_beamV2Run()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#7c3aed14;color:#7c3aed;border:1px solid #7c3aed66">🧬 빔서치 v2</button><!-- [S1103] 세트 v3 뷰어 -->
                 <button onclick="_sxVib(12);window._maCrossFitRun&&_maCrossFitRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#db277714;color:#db2777;border:1px solid #db277766">🎚️ MA크로스 적합성</button><!-- [S887] -->
                 <button onclick="_sxVib(12);window._dispRegimeRun&&_dispRegimeRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0891b214;color:#0891b2;border:1px solid #0891b266">📊 시장평균·이격도</button><!-- [S888] -->
                 <button onclick="_sxVib(12);window._volRegimeRun&&_volRegimeRun()" style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:14px;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;background:#0891b214;color:#0891b2;border:1px solid #0891b266">🌊 변동성별 N10 진짜비율</button>
@@ -1973,6 +1975,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
               <div id="entryTimingResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S1030] -->
               <div id="betaResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S1033] -->
               <div id="gridResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S1034] -->
+              <div id="beamV2Result" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S1103] -->
               <div id="recipeContamResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S857] -->
               <div id="recipeMixDirResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S858] -->
               <div id="recipeCompanionResult" style="display:none;margin-top:4px;margin-bottom:12px"></div><!-- [S861] -->
