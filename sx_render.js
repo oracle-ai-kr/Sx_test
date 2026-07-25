@@ -5925,17 +5925,25 @@ var _SXV_LATE_FROM=6, _SXV_LATE_TO=10, _SXV_SURV_TO=10;
 //   coin deadcat 초기 반짝 t+2~3(리프트 +11/9p) 후 침식 → [2..7] / coin pullback 피크 t+10(59%·+19p) → [5..12]
 //   ★순환 주의: 렌즈를 정한 데이터로 검증하는 구조 → 등록 시 기간반분 부호일치(h1/h2 기록) 필수 + 사후 out-of-sample 재검.
 //   기존 retLate([+6..+10])·n3/n5/n10/hold는 비교 baseline으로 유지(타 소비처 무영향).
+// [S1109] bullrun(단기강세)·sidebear(장기횡보+단기중립/약세) 렌즈 = 잠정 [6..10] — t+k 프로파일 미측정이라 retLate 창과 동일하게 둠.
+//   부수효과: 이 두 풀은 임계 탐색(retLate [6..10])과 빔서치 게이트(retLens)가 같은 창 = L-13 지평 불일치 없음. 프로파일 측정 후 재조정할 것.
 var _LENS_BY_MKT = {
-  kr:   { deadcat:{from:8, to:15}, pullback:{from:10, to:20} },
-  us:   { deadcat:{from:8, to:15}, pullback:{from:2,  to:7}  },
-  coin: { deadcat:{from:2, to:7 }, pullback:{from:5,  to:12} }
+  kr:   { deadcat:{from:8, to:15}, pullback:{from:10, to:20}, bullrun:{from:6, to:10}, sidebear:{from:6, to:10} },
+  us:   { deadcat:{from:8, to:15}, pullback:{from:2,  to:7},  bullrun:{from:6, to:10}, sidebear:{from:6, to:10} },
+  coin: { deadcat:{from:2, to:7 }, pullback:{from:5,  to:12}, bullrun:{from:6, to:10}, sidebear:{from:6, to:10} }
 };
 function _lensFor(mk, poolKey){ var m=_LENS_BY_MKT[mk]||_LENS_BY_MKT.kr; return m[poolKey]||{from:_SXV_LATE_FROM, to:_SXV_LATE_TO}; }
 function _dpMeta(){
-  var p=(typeof window!=='undefined' && window._sxDiscrimPool==='pullback')?'pullback':'deadcat';
-  if(p==='pullback') return { key:'pullback', lt:'bull', poolName:'정배열+단기조정', short:'눌림목', good:'눌림목', bad:'되돌림', goodShort:'눌림', badShort:'되돌', icon:'🔵' };
+  // [S1109] 4풀 확장 — match(lt,maBull)=앵커 술어(수집부 단일 소비). 기존 2풀은 동작 불변(ltAlign===lt && !maBull과 동치).
+  //   신규 2풀 근거: L-06 커버리지 공백(공백 4칸 중 3칸=단기강세) · L-18(KR 정배 75% 구간 어휘 5.7%) · S880 전이형(장기 mixed).
+  //   bullrun은 장기 무관(사용자 정의 "단기 MA 강세") — 대신 변별력 결과에 장기 구성비 표기(모집단 투명성).
+  var p=(typeof window!=='undefined')?window._sxDiscrimPool:null;
+  if(p!=='pullback'&&p!=='bullrun'&&p!=='sidebear') p='deadcat';
+  if(p==='pullback') return { key:'pullback', lt:'bull', poolName:'정배열+단기조정', short:'눌림목', good:'눌림목', bad:'되돌림', goodShort:'눌림', badShort:'되돌', icon:'🔵', match:function(lt,mb){ return lt==='bull' && !mb; } };
+  if(p==='bullrun')  return { key:'bullrun',  lt:'*',     poolName:'단기 MA 강세(장기 무관)', short:'강세장', good:'진짜지속', bad:'꺾임', goodShort:'지속', badShort:'꺾임', icon:'🟢', match:function(lt,mb){ return !!mb; } };
+  if(p==='sidebear') return { key:'sidebear', lt:'mixed', poolName:'장기횡보+단기중립/약세', short:'횡보약세', good:'진짜반등', bad:'가짜반등', goodShort:'진짜', badShort:'가짜', icon:'🟡', match:function(lt,mb){ return lt==='mixed' && !mb; } };
   // [S780] 명칭 통일: 데드캣→가짜반등 (풀 토글 HTML 버튼 + short + 게이트 라벨). 풀 key/poolName/lt는 내부값이라 유지.
-  return { key:'deadcat', lt:'bear', poolName:'역배열+단기약세', short:'가짜반등', good:'진짜반등', bad:'가짜반등', goodShort:'진짜', badShort:'가짜', icon:'🔴' };
+  return { key:'deadcat', lt:'bear', poolName:'역배열+단기약세', short:'가짜반등', good:'진짜반등', bad:'가짜반등', goodShort:'진짜', badShort:'가짜', icon:'🔴', match:function(lt,mb){ return lt==='bear' && !mb; } };
 }
 function _sxRenderDiscrimPoolUI(){
   if(typeof document==='undefined') return;
@@ -5943,12 +5951,14 @@ function _sxRenderDiscrimPoolUI(){
   function _act(el,on,col){ if(!el) return; el.style.background=on?(col+'1F'):'transparent'; el.style.color=on?col:'var(--text3)'; el.style.borderColor=on?col:'var(--border)'; el.style.fontWeight=on?'800':'600'; }
   _act(document.getElementById('dcPoolChipDead'), DP.key==='deadcat', '#dc2626');
   _act(document.getElementById('dcPoolChipPull'), DP.key==='pullback', '#2563eb');
+  _act(document.getElementById('dcPoolChipBull'), DP.key==='bullrun', '#16a34a');   // [S1109]
+  _act(document.getElementById('dcPoolChipSide'), DP.key==='sidebear', '#d97706');  // [S1109]
   var ps=document.getElementById('dcPoolMeasureSec'); if(ps) ps.style.display=(DP.key==='deadcat')?'block':'none';   // 게이트 비교는 데드캣 전용
   var ds=document.getElementById('dcAuditDesc'); if(ds) ds.innerHTML=DP.poolName+' 진입에서 <b>'+DP.good+' vs '+DP.bad+'</b>을 가르는 재료를 찾는 측정 묶음. 측정 전용·엔진 무변경.';
 }
 function _sxSetDiscrimPool(mode){
   if(typeof window==='undefined') return;
-  window._sxDiscrimPool=(mode==='pullback')?'pullback':'deadcat';
+  window._sxDiscrimPool=(mode==='pullback'||mode==='bullrun'||mode==='sidebear')?mode:'deadcat';   // [S1109] 4풀
   window._sxLastDiscrimEntries=null;   // 이전 풀 entries 무효 → 재실행 유도
   ['btDiscrimResult','btThreshResult','btEnsembleResult','btBuilderResult'].forEach(function(id){ var e=document.getElementById(id); if(e){ e.innerHTML=''; e.style.display='none'; } });
   _sxRenderDiscrimPoolUI();
@@ -6040,7 +6050,7 @@ async function _btDiscrimBracket(mk, source, onProgress){
   var CAP=(source==='all')?130:(source==='mega'?220:20), use=list.slice(0,CAP);   // [S846] 발굴 풀 220종(KR 200 여유)   // [S833] 확장 풀은 130종(측정 도구와 동일)
   var _tgt=(typeof _btTargetBars==='function')?_btTargetBars(mk,'day'):600, _floor=Math.floor(_tgt*0.95);
   var entries=[], stocksUsed=0, excluded=[];
-  var _poolLt=_dpMeta().lt;   // 'bear'(데드캣=역배열) | 'bull'(눌림목=정배열)
+  var _poolMatch=_dpMeta().match;   // [S1109] 풀 앵커 술어 — deadcat(bear·약세)/pullback(bull·약세)/bullrun(단기강세·장기무관)/sidebear(mixed·약세)
   // [S774] 연속 outcome 구간 — 단일봉 스냅샷의 3대 약점(① 단일봉 노이즈 ② 크기소실 ③ 유지=2점) 해소용.
   //   후반평균: [+_LATE_FROM.._LATE_TO] 종가수익률 평균 → 음봉 1개가 1/구간폭으로 희석(①) + 연속·크기보존(②) + 후반만 봐 초반 팝에 안 속음(③).
   //   생존비율: [+1.._SURV_TO] 중 종가>진입가 봉 비율 → 전 구간 집계라 2점 스냅샷의 빈틈 제거(③).
@@ -6062,7 +6072,7 @@ async function _btDiscrimBracket(mk, source, onProgress){
       try { slice=rows.slice(Math.max(0, bi-249), bi+1); ind=SXE.calcAllScreener(slice,'day'); } catch(_eC){ continue; }
       if(!ind) continue;
       var ltAlign=_ltStr733(ind.maAlignLT), maBull=!!(ind.maAlign && ind.maAlign.bullish);
-      if(!(ltAlign===_poolLt && !maBull)) continue;   // 선택 풀만 · 공통 단기약세
+      if(!_poolMatch(ltAlign, maBull)) continue;   // [S1109] 선택 풀 앵커만 (기존 2풀은 ltAlign===lt && !maBull과 동치 — 동작 불변)
       var ep=(rows[bi] && typeof rows[bi].close==='number')?rows[bi].close:null; if(ep==null) continue;
       var f=_extractFeats733(ind, rows, bi, true);   // [S1108] disc=true — 발굴 전용 확장 어휘(_F733_DISC_ADD 22종) 포함. 매매 경로는 인자 없이 호출하므로 35종 유지.
       var ei=bi;
@@ -6082,7 +6092,7 @@ async function _btDiscrimBracket(mk, source, onProgress){
       var _lzSum=0,_lzCnt=0;
       for(var _zk=_LZ.from;_zk<=_LZ.to;_zk++){ var _zr=_cR(_zk); if(_zr!=null){ _lzSum+=_zr; _lzCnt++; } }
       var _retLens=(_lzCnt>0)?(_lzSum/_lzCnt):null;
-      entries.push({ f:f, n3:_n3, n5:_n5, n10:_n10, hold:_hold, retN10:_retN10, retLate:_retLate, surv:_surv, retLens:_retLens, lensUp:(_retLens!=null?_retLens>0:null), bi:bi });   // [S864] retLens/lensUp/bi(기간반분용)
+      entries.push({ f:f, n3:_n3, n5:_n5, n10:_n10, hold:_hold, retN10:_retN10, retLate:_retLate, surv:_surv, retLens:_retLens, lensUp:(_retLens!=null?_retLens>0:null), bi:bi, lt:ltAlign });   // [S864] retLens/lensUp/bi(기간반분용) · [S1109] lt=장기레짐(bullrun 구성비 표기용)
       _used=true;
       if((bi & 31)===0) await _trendBatchSleep(0);   // 주기적 UI 양보(긴 스캔)
     }
@@ -6817,7 +6827,9 @@ function _btDiscrimRender(rep, watch, mk){
   // ===== 주력: IC 변별력 (연속 outcome) =====
   out+='<div style="font-size:11px;font-weight:800;color:#0891b2;margin-bottom:4px">🧪 재료 IC 변별력 · '+DP.icon+DP.short+'풀 · 연속 outcome · '+String(mk).toUpperCase()+'</div>';
   out+='<div style="font-size:8.5px;color:'+T3+';line-height:1.45;margin-bottom:5px">각 재료와 outcome의 <b>순위상관(IC)</b>. <b>후반평균</b>=진입 후 [+'+ (_SXV_LATE_FROM+'..+'+_SXV_LATE_TO) +'] 종가수익률 평균(음봉 1개 희석·크기보존·초반 팝 안 속음=주력) · <b>종착</b>=N10 단일봉 수익률(연속화) · <b>생존</b>=10봉 중 종가>진입가 비율. <b style="color:'+GRN+'">+</b>=재료↑일수록 '+DP.good+'(수익↑) · <b style="color:'+RED+'">−</b>=재료↑일수록 '+DP.bad+'. |IC|≥0.10 유의·4축 ablation과 동일 척도.</div>';
-  out+='<div style="font-size:8px;color:'+T3+';margin-bottom:6px">표본 '+nOut+'봉 · 풀 전체 후반평균 <b style="color:'+(mLate>0?GRN:RED)+'">'+_pct(mLate)+'</b> · 종착 '+_pct(mN10)+' · 생존 <b>'+(mSurv==null?'-':Math.round(100*mSurv)+'%')+'</b> (이게 기저 — 재료 IC는 이 위에서의 +/− 기울기)</div>';
+  var _ltMix='';   // [S1109] bullrun=장기 무관 앵커라 모집단이 어떤 장기레짐으로 섞였는지 표기(모집단 투명성 — 규율: 앵커 명시)
+  if(DP.key==='bullrun'){ var _lc={bull:0,mixed:0,bear:0}; entries.forEach(function(e){ if(e.lt==='bull')_lc.bull++; else if(e.lt==='mixed')_lc.mixed++; else if(e.lt==='bear')_lc.bear++; }); var _lp=function(x){return entries.length?Math.round(100*x/entries.length):0;}; _ltMix=' · <b style="color:var(--text2)">장기구성</b> 정배 '+_lp(_lc.bull)+'%·혼조 '+_lp(_lc.mixed)+'%·역배 '+_lp(_lc.bear)+'%'; }
+  out+='<div style="font-size:8px;color:'+T3+';margin-bottom:6px">표본 '+nOut+'봉 · 풀 전체 후반평균 <b style="color:'+(mLate>0?GRN:RED)+'">'+_pct(mLate)+'</b> · 종착 '+_pct(mN10)+' · 생존 <b>'+(mSurv==null?'-':Math.round(100*mSurv)+'%')+'</b>'+_ltMix+' (이게 기저 — 재료 IC는 이 위에서의 +/− 기울기)</div>';
   out+='<div style="display:grid;grid-template-columns:1.3fr repeat(3,0.9fr);gap:3px 4px;font-size:9px;align-items:center">';
   out+='<div style="font-weight:800;color:var(--text2)">재료</div>';
   OUTS.forEach(function(o){ out+='<div style="font-weight:800;color:var(--text2);text-align:center">'+o.label+'</div>'; });
@@ -10400,7 +10412,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1108';   // [S1106] 등록0≠무발동 문구 분기 + 칸 이름 _TREND_MATRIX SSOT 매핑. S1105=지평 h15 정정 · S1104=v3 3×3 태그 배선
+  window.SX_BUILD='S1109';   // [S1109] 검증풀 4풀 확장(bullrun·sidebear)+빌더 진짜하락(decline) 스캔. S1108=발굴 어휘 22종 · S1106=등록0≠무발동 문구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -10616,16 +10628,21 @@ function _sxBuilderAutoScan(scanMode){
     return { label:D.label, key:D.key, type:D.type, cond:c, n3:_rate(m,'n3'), n5:_rate(m,'n5'), n10:_rate(m,'n10'), hold:_rate(m,'hold'), late:_ag.late, surv:_ag.surv, n:m.length };
   }).filter(function(r){ return r.n10!=null && r.n>0; });
   results.forEach(function(r){ r.dN10=(r.n10!=null&&baseN10!=null)?(r.n10-baseN10):null; });
-  if(scanMode==='deadcat'){ results.sort(function(a,b){ return (a.late==null?9:a.late)-(b.late==null?9:b.late); }); }   // [S783] 가짜반등 = 후반평균 오름차순(가장 추락한 순)
+  if(scanMode==='deadcat'||scanMode==='decline'){ results.sort(function(a,b){ return (a.late==null?9:a.late)-(b.late==null?9:b.late); }); }   // [S783] 가짜반등 · [S1109] 진짜하락 = 후반평균 오름차순(가장 추락한 순)
   else { results.sort(function(a,b){ return (b.late==null?-9:b.late)-(a.late==null?-9:a.late); }); }   // [S783] 진짜반등 = 후반평균 내림차순(가장 상승한 순)
   var ok=results.filter(function(r){return r.n>=30;}), low=results.filter(function(r){return r.n<30;});
+  var _sparkOf=function(r){ return ((r.n3!=null&&allN3!=null&&r.n3>=allN3)||(r.n5!=null&&allN5!=null&&r.n5>=allN5)); };   // [S1109] 반짝 정의 SSOT — 가짜반등(반짝O)·진짜하락(반짝X)이 공유(배타 분할 보장)
+  var _crashOf=function(r){ return ((r.n10!=null&&allN10!=null&&r.n10<allN10)||(r.hold!=null&&r.hold<(allHold!=null?allHold+0.08:0.5))); };   // [S771][S848] 기존 crash 정의 그대로
   var passGate = (scanMode==='deadcat')
-    ? ok.filter(function(r){ var spark=((r.n3!=null&&allN3!=null&&r.n3>=allN3)||(r.n5!=null&&allN5!=null&&r.n5>=allN5)); var crash=((r.n10!=null&&allN10!=null&&r.n10<allN10)||(r.hold!=null&&r.hold<(allHold!=null?allHold+0.08:0.5))); return spark&&crash; })   // [S771] 데드캣 완화 · [S848] 유지 절대치→베이스 상대(+8%p): kr 50.4%·us 47.2%(기존 50%와 동등=재실행 불필요) · coin 34.7%(무사통과 차단)
+    ? ok.filter(function(r){ return _sparkOf(r)&&_crashOf(r); })   // [S771] 데드캣 완화 · [S848] 유지 절대치→베이스 상대(+8%p): kr 50.4%·us 47.2%(기존 50%와 동등=재실행 불필요) · coin 34.7%(무사통과 차단)
+    : (scanMode==='decline')
+    ? ok.filter(function(r){ return (!_sparkOf(r))&&_crashOf(r); })   // [S1109] 진짜하락 = 반짝 없이 추락 — 같은 crash·반대 spark라 가짜반등과 배타
     : ok.filter(function(r){return r.dN10!=null && r.dN10>0 && r.hold!=null && r.hold>=0.5;});   // [S768b] 진짜반등: 표본30+ · N10▲ · 유지≥50%
   // [S783] 도트 방향 필터 — 가짜반등 모드는 🔴추락(late<0)만, 진짜반등 모드는 🟢오름(late>0)만 노출 (헛짚음·보합 숨김). '정말 가짜반등' 탐색이라 표면패턴이 아닌 실제 결과(후반평균 부호)로 최종 판정.
-  var pass = passGate.filter(function(r){ var d=_dcFitGrade(r.late, r.surv, r.n, allLate).dir; return scanMode==='deadcat' ? d<0 : d>0; });
-  var _isDC=(scanMode==='deadcat');
-  var passLbl=_isDC?'🔴 가짜반등 (실추락)':'🟢 진짜반등 (실상승)', passCond=_isDC?'후반평균 음수만 · 추락 큰 순':'후반평균 양수만 · 상승 큰 순', passCol=_isDC?RED:GRN;
+  var pass = passGate.filter(function(r){ var d=_dcFitGrade(r.late, r.surv, r.n, allLate).dir; return (scanMode==='deadcat'||scanMode==='decline') ? d<0 : d>0; });   // [S1109] 진짜하락도 실추락 방향
+  var _isDC=(scanMode==='deadcat'), _isDN=(scanMode==='decline');   // [S1109]
+  var DKR='#7f1d1d';   // [S1109] 진짜하락 색(짙은 적갈 — 가짜반등 RED와 구분)
+  var passLbl=_isDC?'🔴 가짜반등 (실추락)':_isDN?'🔻 진짜하락 (반짝없이 추락)':'🟢 진짜반등 (실상승)', passCond=(_isDC||_isDN)?'후반평균 음수만 · 추락 큰 순':'후반평균 양수만 · 상승 큰 순', passCol=_isDC?RED:_isDN?DKR:GRN;
   var okFail=ok.length-passGate.length, dirFail=passGate.length-pass.length;
   var _fitOf=function(r){ return _dcFitGrade(r.late, r.surv, r.n, allLate); };   // [S779]
   var _fitCounts={진짜:0,가짜:0,애매:0}; pass.forEach(function(r){ var d=_fitOf(r).dir; _fitCounts[d>0?'진짜':d<0?'가짜':'애매']++; });
@@ -10637,7 +10654,7 @@ function _sxBuilderAutoScan(scanMode){
     // [S783] 후반평균(late)을 1차 지표로 표시 — 정렬 키이자 방향 판정(가짜=음수/진짜=양수)
     var firstTxt=(r.late!=null)?('후반 '+(r.late>=0?'+':'')+(100*r.late).toFixed(1)+'%'):'후반 —';
     var firstCol=(r.late==null)?T3:(r.late>0.005?GRN:r.late<-0.005?RED:T3);
-    var n10c=_isDC?((r.n10!=null&&allN10!=null&&r.n10<allN10)?RED:'var(--text)'):((r.n10!=null&&baseN10!=null&&r.n10>baseN10)?GRN:'var(--text)');
+    var n10c=(_isDC||_isDN)?((r.n10!=null&&allN10!=null&&r.n10<allN10)?RED:'var(--text)'):((r.n10!=null&&baseN10!=null&&r.n10>baseN10)?GRN:'var(--text)');   // [S1109] 진짜하락도 하락 강조
     var condTxt=(r.type==='num')?(' <span style="font-size:8px;color:'+T3+'">'+(r.cond.dir==='lt'?'<':'>')+r.cond.th+'</span>'):'';
     return '<div style="display:flex;align-items:center;gap:5px;padding:5px 7px;margin:2px 0;background:var(--surface2);border-radius:6px'+(dim?';opacity:.5':'')+'">'
       +'<span style="color:'+_fit.col+';font-size:11px;flex-shrink:0" title="'+_fit.label+'">●</span>'
@@ -10649,13 +10666,13 @@ function _sxBuilderAutoScan(scanMode){
       +'</div>';
   };
   if(!results.length){ h+='<div style="font-size:9.5px;color:'+T3+';padding:6px">후보 없음 (모든 재료가 이미 체크됨).</div>'; }
-  else if(!pass.length){ h+='<div style="font-size:9.5px;color:'+T3+';padding:8px 6px;line-height:1.5">'+passLbl+' 없음 <span style="font-size:8px">('+passCond+')</span><br>게이트 미해당 '+okFail+'개 · 방향불일치(헛짚음/보합) '+dirFail+'개 · 표본부족 '+low.length+'개.'+(dirFail>0?(_isDC?' 게이트는 통과했지만 실제론 안 떨어진(헛짚음) 후보뿐 — 베이스를 바꿔보세요.':' 게이트는 통과했지만 실제론 안 오른 후보뿐 — 베이스를 바꿔보세요.'):(ok.length?(_isDC?' 가짜반등 패턴(반짝 후 추락)이 없어요 — 베이스를 바꿔보세요.':' 베이스보다 N10 올리는 후보가 없어요 — 베이스 조건을 바꿔보세요.'):''))+'</div>'; }
+  else if(!pass.length){ h+='<div style="font-size:9.5px;color:'+T3+';padding:8px 6px;line-height:1.5">'+passLbl+' 없음 <span style="font-size:8px">('+passCond+')</span><br>게이트 미해당 '+okFail+'개 · 방향불일치(헛짚음/보합) '+dirFail+'개 · 표본부족 '+low.length+'개.'+(dirFail>0?((_isDC||_isDN)?' 게이트는 통과했지만 실제론 안 떨어진(헛짚음) 후보뿐 — 베이스를 바꿔보세요.':' 게이트는 통과했지만 실제론 안 오른 후보뿐 — 베이스를 바꿔보세요.'):(ok.length?(_isDC?' 가짜반등 패턴(반짝 후 추락)이 없어요 — 베이스를 바꿔보세요.':_isDN?' 진짜하락 패턴(반짝 없이 추락)이 없어요 — 베이스를 바꿔보세요.':' 베이스보다 N10 올리는 후보가 없어요 — 베이스 조건을 바꿔보세요.'):''))+'</div>'; }
   else {
     h+='<div style="font-size:8.5px;font-weight:800;color:'+passCol+';margin:6px 0 3px">'+passLbl+' '+pass.length+'개 <span style="color:'+T3+';font-weight:500">· '+passCond+'</span></div>';
     h+=pass.map(function(r){return _row(r,false);}).join('');
     h+='<div style="font-size:8px;color:'+T3+';margin:5px 0 0">그 외: 게이트 미해당 '+okFail+'개 · 방향불일치(헛짚음/보합) '+dirFail+'개 · 표본부족 '+low.length+'개 (숨김)</div>';
   }
-  h+='<div style="font-size:8px;color:'+T3+';margin-top:6px;line-height:1.4">'+(_isDC?('가짜반등=N3나 N5는 기저↑(반짝)인데 N10은 기저↓ 또는 유지50%-(추락). <b style="color:'+RED+'">N5 빨강+N10 빨강</b>=전형적. 전체기저 N5 '+(allN5!=null?Math.round(100*allN5)+'%':'-')+'·N10 '+(allN10!=null?Math.round(100*allN10)+'%':'-')+'.'):('합격=베이스보다 N10 오르고(▲)+유지 50%+ · 표본 30+. 좋은 후보 <b>체크→베이스 추가→재탐색</b>.'))+' <b style="color:'+passCol+'">💾로 JSON 저장</b> <span style="font-size:8px">(후반평균·적합도 포함)</span>.</div>';
+  h+='<div style="font-size:8px;color:'+T3+';margin-top:6px;line-height:1.4">'+(_isDC?('가짜반등=N3나 N5는 기저↑(반짝)인데 N10은 기저↓ 또는 유지50%-(추락). <b style="color:'+RED+'">N5 빨강+N10 빨강</b>=전형적. 전체기저 N5 '+(allN5!=null?Math.round(100*allN5)+'%':'-')+'·N10 '+(allN10!=null?Math.round(100*allN10)+'%':'-')+'.'):_isDN?('진짜하락=반짝 없이(N3·N5 기저 미만) N10 기저↓/유지 저하 — <b style="color:'+DKR+'">가짜반등(반짝 후 추락)과 배타</b>. 회피/차단 필터 후보 발굴용. 전체기저 N5 '+(allN5!=null?Math.round(100*allN5)+'%':'-')+'·N10 '+(allN10!=null?Math.round(100*allN10)+'%':'-')+'.'):('합격=베이스보다 N10 오르고(▲)+유지 50%+ · 표본 30+. 좋은 후보 <b>체크→베이스 추가→재탐색</b>.'))+' <b style="color:'+passCol+'">💾로 JSON 저장</b> <span style="font-size:8px">(후반평균·적합도 포함)</span>.</div>';
   h+='<div style="font-size:8px;color:'+T3+';margin-top:3px;line-height:1.45"><b>실제 후반평균 방향 일치분만 노출</b> — 가짜반등 모드=<b style="color:#dc2626">●추락(음수)</b>만, 진짜반등 모드=<b style="color:#16a34a">●오름(양수)</b>만. 후반평균 순 정렬(가짜=추락 큰 순/진짜=상승 큰 순). 게이트 통과해도 반대방향(헛짚음)·보합(●)은 숨김 — 표면패턴이 아닌 <b>실제 결과</b>로 최종 판정.</div>';
   out.innerHTML=h;
 }
@@ -10671,10 +10688,11 @@ function _sxBuilderBeamScan(scanMode){
   setTimeout(function(){ try{ _sxBeamRun(scanMode, out); }catch(e){ out.innerHTML='<div style="font-size:9.5px;color:#dc2626;padding:6px">탐색 오류: '+String(e&&e.message||e)+'</div>'; } }, 30);
 }
 function _sxBeamRun(scanMode, out){
-  var MAXDEPTH=(scanMode==='deadcat')?4:3, NMIN=(scanMode==='deadcat')?30:50, MAXTEST=30000;   // [S789] 진짜=강티어(깊이≤3·n≥50), 가짜=그대로(깊이≤4·n≥30) · 안전 상한
+  var MAXDEPTH=(scanMode==='deadcat')?4:3, NMIN=(scanMode==='deadcat')?30:50, MAXTEST=30000;   // [S789] 진짜=강티어(깊이≤3·n≥50), 가짜=그대로(깊이≤4·n≥30) · 안전 상한 · [S1109] decline(진짜하락)=강티어 거울이라 3/50 공유
   var GRN='#16a34a',RED='#dc2626',T3='var(--text3)';
   var DP=_dpMeta(), BD=_dpBuilderDefaults();
-  var _isDC=(scanMode==='deadcat');
+  var _isDC=(scanMode==='deadcat'), _isDN=(scanMode==='decline');   // [S1109] decline=진짜하락(반짝 없이 추락) 전수
+  var DKR='#7f1d1d';   // [S1109] 진짜하락 색
   var entries=window._sxLastDiscrimEntries;
   var uni=entries.filter(function(e){return e.n10!=null;});
   if(uni.length && typeof uni[0].retLens==='undefined'){ out.innerHTML='<div style="font-size:9.5px;color:#dc2626;padding:6px">entries 구버전(렌즈 필드 없음) — 🧪 재료 변별력을 다시 실행하세요. [S864]</div>'; return; }
@@ -10712,9 +10730,10 @@ function _sxBeamRun(scanMode, out){
   var gatePass=function(s){
     // [S864] 렌즈 게이트 — n10/late 앵커를 시장×풀 렌즈(lens rate·retLens)로 교체. hold(N5·N10 이진)는 초반 생존 강건성 앵커로 유지(상대화 그대로).
     if(_isDC){ var spark=((s.n3!=null&&allN3!=null&&s.n3>=allN3)||(s.n5!=null&&allN5!=null&&s.n5>=allN5)); var crash=((s.lens!=null&&allLens!=null&&s.lens<allLens)||(s.hold!=null&&s.hold<(allHold!=null?allHold+0.08:0.5))); return spark&&crash; }   // 가짜: 반짝 + 렌즈 추락([S848] 유지 상대화 유지 · fake 2.0 조건부 채굴은 후속)
+    if(_isDN){ var _sp=((s.n3!=null&&allN3!=null&&s.n3>=allN3)||(s.n5!=null&&allN5!=null&&s.n5>=allN5)); return (!_sp) && (s.lens!=null&&allLens!=null&&s.lens<=allLens-0.15) && (s.hold!=null&&s.hold<=(allHold!=null?allHold-0.15:0.40)) && (s.retLens!=null&&allRetLens!=null&&s.retLens<=allRetLens-0.03); }   // [S1109] 진짜하락 강티어 거울: 반짝 없음 · 렌즈율 기저−15%p · 유지 기저−15%p · 렌즈평균 기저−3%p (진짜반등 게이트의 부호 반전 — 임계는 대칭이 원칙 근거)
     return (s.lens!=null&&allLens!=null&&s.lens>=allLens+0.15) && (s.hold!=null&&s.hold>=(allHold!=null?allHold+0.15:0.60)) && (s.retLens!=null&&allRetLens!=null&&s.retLens>=allRetLens+0.03);   // 진짜 강티어: 렌즈율 기저+15%p · 유지 기저+15%p · 렌즈평균 기저+3%p
   };
-  var dirOK=function(s){ var d=_dcFitGrade(s.retLens, s.surv, s.n, allRetLens).dir; return _isDC ? d<0 : d>0; };   // [S864] 방향판정도 렌즈 기준
+  var dirOK=function(s){ var d=_dcFitGrade(s.retLens, s.surv, s.n, allRetLens).dir; return (_isDC||_isDN) ? d<0 : d>0; };   // [S864] 방향판정도 렌즈 기준 · [S1109] 진짜하락=추락 방향
   var collect=function(conds, keys, depth, s){ if(depth>=2 && gatePass(s) && dirOK(s)){ results.push({conds:conds, keys:keys, depth:depth, n:s.n, late:s.late, surv:s.surv, n3:s.n3, n5:s.n5, n10:s.n10, hold:s.hold, lens:s.lens, retLens:s.retLens, h1:s.h1, h1n:s.h1n, h2:s.h2, h2n:s.h2n}); } };   // [S864] 렌즈·반분 필드 수집
 
   var queue=[];
@@ -10742,7 +10761,7 @@ function _sxBeamRun(scanMode, out){
       if(cur.depth+1<MAXDEPTH) queue.push({conds:conds, keys:nk, depth:cur.depth+1});
     }
   }
-  results.sort(function(a,b){ return _isDC ? ((a.retLens==null?9:a.retLens)-(b.retLens==null?9:b.retLens)) : ((b.retLens==null?-9:b.retLens)-(a.retLens==null?-9:a.retLens)); });   // [S864] 렌즈 크기순
+  results.sort(function(a,b){ return (_isDC||_isDN) ? ((a.retLens==null?9:a.retLens)-(b.retLens==null?9:b.retLens)) : ((b.retLens==null?-9:b.retLens)-(a.retLens==null?-9:a.retLens)); });   // [S864] 렌즈 크기순 · [S1109] 하락은 추락 큰 순
 
   // JSON 저장 — 각 조합의 전체 conds 포함(자체완결, bool→bin 변환). 💾 다운로드 그대로 사용.
   if(typeof window!=='undefined'){
@@ -10754,13 +10773,13 @@ function _sxBeamRun(scanMode, out){
       passCount:results.length, ts:new Date().toISOString() };
   }
 
-  var passLbl=_isDC?'🔴 가짜반등 (실추락)':'🟢 진짜반등 (실상승)', passCol=_isDC?RED:GRN;
+  var passLbl=_isDC?'🔴 가짜반등 (실추락)':_isDN?'🔻 진짜하락 (반짝없이 추락)':'🟢 진짜반등 (실상승)', passCol=_isDC?RED:_isDN?DKR:GRN;   // [S1109]
   var seedLbl=exhaustive?'전수(씨앗 없음)':('씨앗 '+base.map(function(c){return c.label+(c.type==='num'?(c.dir==='lt'?'<'+c.th:'>'+c.th):'');}).join(' · '));
   var h='<div style="font-size:9px;color:'+T3+';margin-bottom:5px;line-height:1.4">🌳 <b style="color:#15803d">'+seedLbl+'</b> · <b style="color:#0e7490">렌즈 [+'+_LZB.from+'..+'+_LZB.to+']</b> · 탐색 '+tests+'조합'+(capped?' <b style="color:'+RED+'">(상한 '+MAXTEST+' 도달 — 일부만)</b>':'')+' · 렌즈기저 '+(allRetLens!=null?((allRetLens>=0?'+':'')+(100*allRetLens).toFixed(1)+'%'):'-')+' · 후반 '+(allLate!=null?((allLate>=0?'+':'')+(100*allLate).toFixed(1)+'%'):'-')+'</div>';
   if(!results.length){ h+='<div style="font-size:9.5px;color:'+T3+';padding:8px 6px;line-height:1.5">'+passLbl+' 조합 없음 — '+(exhaustive?'이 풀에서 방향일치+게이트 통과 조합이 안 나왔어요.':'씨앗을 바꾸거나 무체크(전수)로 돌려보세요.')+'</div>'; }
   else {
     var DISP=Math.min(results.length, 50);
-    h+='<div style="font-size:8.5px;font-weight:800;color:'+passCol+';margin:6px 0 3px">'+passLbl+' '+results.length+'개'+(results.length>DISP?(' <span style="color:'+T3+';font-weight:500">· 상위 '+DISP+' 표시(전체는 💾 JSON)</span>'):'')+' · '+(_isDC?'추락 큰 순':'상승 큰 순')+'</div>';
+    h+='<div style="font-size:8.5px;font-weight:800;color:'+passCol+';margin:6px 0 3px">'+passLbl+' '+results.length+'개'+(results.length>DISP?(' <span style="color:'+T3+';font-weight:500">· 상위 '+DISP+' 표시(전체는 💾 JSON)</span>'):'')+' · '+((_isDC||_isDN)?'추락 큰 순':'상승 큰 순')+'</div>';
     for(var k=0;k<DISP;k++){ var r=results[k]; var _fit=_dcFitGrade(r.retLens,r.surv,r.n,allRetLens);   // [S864]
       var firstTxt=(r.retLens!=null)?('렌즈 '+(r.retLens>=0?'+':'')+(100*r.retLens).toFixed(1)+'%'):'렌즈 —';   // [S864]
       var firstCol=(r.retLens==null)?T3:(r.retLens>0.005?GRN:r.retLens<-0.005?RED:T3);
@@ -10773,7 +10792,7 @@ function _sxBeamRun(scanMode, out){
         +'</div>';
     }
   }
-  h+='<div style="font-size:8px;color:'+T3+';margin-top:6px;line-height:1.45">씨앗(체크) 있으면 <b>그 재료 포함 조합만</b>, 없으면 <b>전수</b>. '+(_isDC?'<b>가짜</b>=패턴게이트(깊이≤4·n≥30·반짝후추락)':'<b>진짜=강티어</b>(깊이≤3·n≥50·N10기저+15%p·유지60%·후반기저+3%p)')+' 통과만 수집 · <b>실제 후반평균 방향</b> 필터 · MACD 쌍둥이 제외. <b style="color:'+passCol+'">💾 JSON</b>으로 전체 저장 → 업로드.</div>';
+  h+='<div style="font-size:8px;color:'+T3+';margin-top:6px;line-height:1.45">씨앗(체크) 있으면 <b>그 재료 포함 조합만</b>, 없으면 <b>전수</b>. '+(_isDC?'<b>가짜</b>=패턴게이트(깊이≤4·n≥30·반짝후추락)':_isDN?'<b>하락=강티어 거울</b>(깊이≤3·n≥50·반짝없음·렌즈율/유지 기저−15%p·렌즈평균 기저−3%p)':'<b>진짜=강티어</b>(깊이≤3·n≥50·N10기저+15%p·유지60%·후반기저+3%p)')+' 통과만 수집 · <b>실제 후반평균 방향</b> 필터 · MACD 쌍둥이 제외. <b style="color:'+passCol+'">💾 JSON</b>으로 전체 저장 → 업로드.</div>';
   out.innerHTML=h;
 }
 if(typeof window!=='undefined'){ window._sxBuilderBeamScan=_sxBuilderBeamScan; }
@@ -10904,7 +10923,7 @@ if(typeof window!=='undefined'){ window._btEnsembleRun=_btEnsembleRun; }
 // [S754] 빌더 기본 방향/임계값 — 풀별 분리. 데드캣=낮은 쪽(< 투매·워시아웃) / 눌림목=높은 쪽(> 모멘텀 유지). 임계값은 N10 임계값 분석값(표본 작아 정답 아님·시작점). 부호 반전이 핵심.
 var _BUILDER_DEFAULTS_DEADCAT  = { volOsc:{dir:'lt',th:-39.6}, cci:{dir:'lt',th:143}, rsi:{dir:'lt',th:61},  bbPctB:{dir:'lt',th:1},   stochK:{dir:'lt',th:83}, adx:{dir:'gt',th:20}, dev20:{dir:'lt',th:0}, dev60:{dir:'lt',th:0}, dev120:{dir:'lt',th:0}, dev200:{dir:'lt',th:0}, ma5slope:{dir:'gt',th:0}, mfi:{dir:'lt',th:40}, vr:{dir:'lt',th:100} };
 var _BUILDER_DEFAULTS_PULLBACK = { volOsc:{dir:'gt',th:8},     cci:{dir:'gt',th:158}, rsi:{dir:'gt',th:59},  bbPctB:{dir:'gt',th:1.1}, stochK:{dir:'gt',th:67}, adx:{dir:'gt',th:20}, dev20:{dir:'gt',th:8}, dev60:{dir:'gt',th:0}, dev120:{dir:'gt',th:0}, dev200:{dir:'gt',th:0}, ma5slope:{dir:'gt',th:0}, mfi:{dir:'gt',th:60}, vr:{dir:'gt',th:100} };
-function _dpBuilderDefaults(){ return (_dpMeta().key==='pullback') ? _BUILDER_DEFAULTS_PULLBACK : _BUILDER_DEFAULTS_DEADCAT; }
+function _dpBuilderDefaults(){ var k=_dpMeta().key; return (k==='pullback'||k==='bullrun') ? _BUILDER_DEFAULTS_PULLBACK : _BUILDER_DEFAULTS_DEADCAT; }   // [S1109] bullrun=정배쪽 기본값 · sidebear=약세쪽. 어차피 📐 컷 복사가 풀별 실측으로 덮어씀 — 시작값일 뿐.
 function _btBuilderRun(){
   var el=document.getElementById('btBuilderResult'); if(!el) return;
   el.style.display='block';
@@ -10927,7 +10946,7 @@ function _btBuilderUI(){
   h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.4;margin-bottom:6px">재료 켜고 임계값·방향 조정 → 조합의 '+DP.good+' 비율·표본 즉시. AND(모두)/OR(하나라도). <b>표본 30 미만 경고</b>(과적합).</div>';
   var _pbtn='style="font-size:9px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2)"';
   h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px">';
-  if(DP.key==='pullback'){
+  if(DP.key==='pullback'||DP.key==='bullrun'){   // [S1109] bullrun도 정배쪽 프리셋
     h+='<button onclick="_sxBuilderPreset(\'bbonly\')" '+_pbtn+'>BB%B 단독</button>';
     h+='<button onclick="_sxBuilderPreset(\'momentum\')" '+_pbtn+'>RSI+BB+이격도</button>';
   } else {
@@ -10955,7 +10974,7 @@ function _btBuilderUI(){
   });
   h+='</div>';
   h+='<div id="sxbEvalOut" style="margin-top:8px"></div>';
-  h+='<div style="border-top:1px dashed var(--border);margin-top:10px;padding-top:8px"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px"><button onclick="_sxBuilderAutoScan(\'rebound\')" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #0ea5e9;background:#0ea5e9;color:#fff;cursor:pointer">🔍 진짜반등</button><button onclick="_sxBuilderAutoScan(\'deadcat\')" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #dc2626;background:#dc262614;color:#dc2626;cursor:pointer">🔴 가짜반등</button><button onclick="_sxAutoScanDownload()" style="font-size:10px;font-weight:700;padding:6px 9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">💾 JSON</button><button onclick="_sxYAxisValidate()" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #7c3aed;background:#7c3aed14;color:#7c3aed;cursor:pointer">🎯 Y축검증</button><button onclick="_sxBuilderBeamScan(\'rebound\')" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #16a34a;background:#16a34a14;color:#16a34a;cursor:pointer">🌳 진짜전수</button><button onclick="_sxBuilderBeamScan(\'deadcat\')" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #dc2626;background:#dc262614;color:#dc2626;cursor:pointer">🌳 가짜전수</button></div><div style="font-size:8.5px;color:var(--text3);line-height:1.4;margin-bottom:3px">체크=베이스 · 미체크 하나씩 추가 · <b style="color:#dc2626">가짜반등=N5↑N10↓(거울상)</b></div><div id="sxbAutoOut" style="margin-top:4px"></div></div>';
+  h+='<div style="border-top:1px dashed var(--border);margin-top:10px;padding-top:8px"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px"><button onclick="_sxBuilderAutoScan(\'rebound\')" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #0ea5e9;background:#0ea5e9;color:#fff;cursor:pointer">🔍 진짜반등</button><button onclick="_sxBuilderAutoScan(\'deadcat\')" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #dc2626;background:#dc262614;color:#dc2626;cursor:pointer">🔴 가짜반등</button><button onclick="_sxBuilderAutoScan(\'decline\')" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #7f1d1d;background:#7f1d1d14;color:#7f1d1d;cursor:pointer">🔻 진짜하락</button><button onclick="_sxAutoScanDownload()" style="font-size:10px;font-weight:700;padding:6px 9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">💾 JSON</button><button onclick="_sxYAxisValidate()" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #7c3aed;background:#7c3aed14;color:#7c3aed;cursor:pointer">🎯 Y축검증</button><button onclick="_sxBuilderBeamScan(\'rebound\')" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #16a34a;background:#16a34a14;color:#16a34a;cursor:pointer">🌳 진짜전수</button><button onclick="_sxBuilderBeamScan(\'deadcat\')" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #dc2626;background:#dc262614;color:#dc2626;cursor:pointer">🌳 가짜전수</button><button onclick="_sxBuilderBeamScan(\'decline\')" style="font-size:10px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid #7f1d1d;background:#7f1d1d14;color:#7f1d1d;cursor:pointer">🌳 하락전수</button></div><div style="font-size:8.5px;color:var(--text3);line-height:1.4;margin-bottom:3px">체크=베이스 · 미체크 하나씩 추가 · <b style="color:#dc2626">가짜반등=N5↑N10↓(거울상)</b> · <b style="color:#7f1d1d">진짜하락=반짝없이 추락(가짜와 배타)</b></div><div id="sxbAutoOut" style="margin-top:4px"></div></div>';
   h+='</div>';
   return h;
 }
