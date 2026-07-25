@@ -53,7 +53,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=441"></script>
+<script src="sx_render.js?v=442"></script><!-- [S1109] 검증풀 4풀+진짜하락 스캔 -->
 <script src="sx_recipe_signal.js?v=51"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1892,11 +1892,15 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
           <span style="flex-shrink:0;font-size:9px;font-weight:700;color:var(--text3);margin-left:6px">측정 모음</span>
         </div>
         <div id="dcAuditBody" style="display:none;margin-top:10px" data-loaded="1">
-          <div style="display:flex;align-items:center;gap:6px;margin:0 0 10px">
-            <!-- [S780] 데드캣→가짜반등 명칭 통일 -->
-            <span style="font-size:9px;font-weight:700;color:var(--text3);flex-shrink:0">검증 풀 <span style="font-weight:500;color:#7c3aed">(레시피 재료발굴용)</span></span>
-            <button id="dcPoolChipDead" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('deadcat')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:800;line-height:1.25;cursor:pointer;background:#dc26261F;color:#dc2626;border:1px solid #dc2626">🔴 바닥확인 <span style="font-weight:500;font-size:8.5px">하락장·약세</span></button>
-            <button id="dcPoolChipPull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('pullback')" style="flex:1;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🔵 눌림목 <span style="font-weight:500;font-size:8.5px">상승장·약세</span></button>
+          <div style="margin:0 0 10px">
+            <!-- [S780] 데드캣→가짜반등 명칭 통일 · [S1109] 4풀 확장 — 강세장(단기 MA 강세·장기 무관=L-06 공백 3칸)·횡보약세(장기 mixed·전이형). 기존 2풀과 합쳐 lt 판정 가능한 전 봉 분할 -->
+            <div style="font-size:9px;font-weight:700;color:var(--text3);margin-bottom:5px">검증 풀 <span style="font-weight:500;color:#7c3aed">(레시피 재료발굴용)</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button id="dcPoolChipDead" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('deadcat')" style="flex:1 1 46%;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:800;line-height:1.25;cursor:pointer;background:#dc26261F;color:#dc2626;border:1px solid #dc2626">🔴 바닥확인 <span style="font-weight:500;font-size:8.5px">하락장·약세</span></button>
+              <button id="dcPoolChipPull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('pullback')" style="flex:1 1 46%;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🔵 눌림목 <span style="font-weight:500;font-size:8.5px">상승장·약세</span></button>
+              <button id="dcPoolChipBull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('bullrun')" style="flex:1 1 46%;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🟢 강세장 <span style="font-weight:500;font-size:8.5px">단기 MA 강세</span></button>
+              <button id="dcPoolChipSide" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('sidebear')" style="flex:1 1 46%;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🟡 횡보약세 <span style="font-weight:500;font-size:8.5px">장기횡보·단기중립/약세</span></button>
+            </div>
           </div>
           <div id="dcAuditDesc" style="font-size:8.5px;color:var(--text3);line-height:1.45;margin-bottom:10px">바닥확인(하락장·약세) 진입에서 <b>진짜반등 vs 가짜반등</b>을 가르는 재료를 찾는 측정 묶음. <b style="color:#16a34a">BT 무관 — 풀 조건 만족 모든 봉을 순수 데이터로 측정</b>.</div>
             <!-- [S975] 측정 도구 재구성 — 4그룹 + 탐색 아카이브(접힘). 버튼/함수/result-div 전부 보존. -->
