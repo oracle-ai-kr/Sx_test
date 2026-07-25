@@ -6607,6 +6607,10 @@ async function _snapCreate(mode, vintage){
     return;
   }
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+  // [S1109b] 코인은 생성=합집합 강제(현재·빈티지 공통) — 발굴풀 60종 중 33종이 2024+ 상장이라 disc 스냅(60종)과 합집합 빈티지(209종)의 종목 지반이 어긋남(사용자 실측: 변별력 /60 vs /209 → 창 간 비교 오염).
+  //   ★대가 명시: 코인 종목축 홀드아웃(_OOS_POOL.coin)은 발굴 지반에 상시 편입 = 종목 OOS 소멸(코인 한정 — 합집합 빈티지 탐색으로 이미 사실상 소모된 것의 공식화). 시간축 OOS(baseDate 이후 캔들)는 유지. KR/US는 disc 유지(종목 홀드아웃 보존).
+  var _coinPromo=false;
+  if(mk==='coin' && !_oos && !_uni){ _uni=true; _coinPromo=true; }
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)){ if(el) el.innerHTML='캔들 fetch 미연결'; return; }
   if(SXCandleBT.snapMode&&SXCandleBT.snapMode()){ if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#d97706;font-weight:700">📦 생성은 라이브 데이터로 해야 함 — 먼저 📂 스냅샷 모드를 꺼줘</div>'; return; }
   var _srcPool=_uni?_poolUnionList(mk)   // [S1078]
@@ -6649,7 +6653,8 @@ async function _snapCreate(mode, vintage){
                     :' ✓ 룩어헤드 없음 · 창 도달'+(_gapD!=null?' ('+_gapD+'일 이내)':''));
     _vinNote='<br><b style="color:'+_col+'">🕰 빈티지 요청 '+_vin+' → 실제 최종봉 '+(maxDate||'?')+_msg+'</b>';
   }
-  if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">📦 <b>'+fname+'</b> 생성 완료 — '+String(mk).toUpperCase()+' '+n+'종 · 기준일 '+(maxDate||'?')+' · 미수록(봉수미달) '+excluded.length+'종'+_vinNote+'<br>→ <b>snap_'+mk+(_oos?'_oos':'')+(_vin?'_vin':'')+'.json</b>으로 이름 바꿔 repo 루트에 커밋 (OOS/빈티지는 별도 파일명)</div>';
+  var _promoNote=_coinPromo?'<br><b style="color:#0f766e">🔗 코인 자동 합집합(발굴+OOS)</b> — 합집합 빈티지와 종목 지반 정합(창 간 비교용). 종목축 OOS는 코인 한정 발굴 편입·시간축 OOS는 유지 [S1109b]':'';
+  if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:var(--text2);line-height:1.6">📦 <b>'+fname+'</b> 생성 완료 — '+String(mk).toUpperCase()+' '+n+'종 · 기준일 '+(maxDate||'?')+' · 미수록(봉수미달) '+excluded.length+'종'+_vinNote+_promoNote+'<br>→ <b>manifest.latest.'+mk+'</b>가 가리키는 파일명으로 repo 루트에 커밋 (poolKind가 스냅 안에 자기서술 — 로드 시 풀 자동 교체) · OOS/빈티지는 별도 파일명·슬롯</div>';
 }
 // [S1076] 빈티지 창 스위치 — _snapLoad 호출처가 25곳(전 측정 브래킷)이라 인자를 늘리는 대신 단일 플래그로 통일.
 //   ON이면 manifest.vintage[mk]를 로드 → 변별력·게이트·발동·빔서치가 전부 자동으로 홀드아웃 창을 본다.
@@ -10412,7 +10417,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1109';   // [S1109] 검증풀 4풀 확장(bullrun·sidebear)+빌더 진짜하락(decline) 스캔. S1108=발굴 어휘 22종 · S1106=등록0≠무발동 문구
+  window.SX_BUILD='S1109b';   // [S1109b] 코인 스냅 생성=합집합 강제(종목 지반 정합). S1109=검증풀 4풀+진짜하락 스캔 · S1108=발굴 어휘 22종
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
