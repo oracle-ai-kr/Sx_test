@@ -6,7 +6,7 @@
 <title>SX Screener</title>
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
 <script src="sx_analysis_engine.js?v=52"></script>
-<script src="sx_cell_data.js?v=1"></script><!-- [S1110] 칸 사다리 데이터 --><script src="sx_recipe_core.js?v=9"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 · [S1103] v3 배선 추가로 v5→v6 · [S1104] 클러스터 kind 스코프 수정으로 v6→v7 -->
+<script src="sx_cell_data.js?v=2"></script><!-- [S1111] axisGen 태그 --><script src="sx_recipe_core.js?v=10"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 · [S1103] v3 배선 추가로 v5→v6 · [S1104] 클러스터 kind 스코프 수정으로 v6→v7 -->
 <script src="sx_feature_library.js?v=6"></script><!-- [S999→S1057] 통합 재료 라이브러리 SSOT — 레시피+위험 공용 -->
 <script src="sx_recipes_v3.js?v=2"></script><!-- [S1103] v3 레시피 66개(S1102 동결) — 표시층 전용 · 워커 미로드(스캔 무영향) · DOWN은 BUY 투표 금지 -->
 <script src="sx_risk_core.js?v=1"></script><!-- [S1004] 위험 시그니처 SSOT — 시즌1(배지/게이트)·시즌2(보유 경고) 공용 · 3시장×3중검증 -->
@@ -53,7 +53,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=450"></script><!-- [S1110] core v4 칸 사다리 신호 -->
+<script src="sx_render.js?v=451"></script><!-- [S1111] 단기축 신축 세대(발굴)+axisGen -->
 <script src="sx_recipe_signal.js?v=51"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1863,7 +1863,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <details style="background:var(--surface);border:1px solid #0ea5e966;border-radius:12px;padding:8px 12px;margin-bottom:6px"><!-- [S1109h] 레시피 로드맵 안내 카드 -->
         <summary style="font-size:11px;font-weight:800;cursor:pointer;color:#0369a1">🗺️ 레시피 로드맵 <span style="font-weight:500;font-size:9px;color:var(--text3)">발굴→병합→사다리→판정 (탭해서 열기)</span></summary>
         <div style="font-size:9.5px;color:var(--text2);line-height:1.7;margin-top:6px">
-          <b>⓪ 풀 준비</b> — 발굴풀 스냅(코인=합집합 자동). <b style="color:#b45309">풀이 바뀌면(매매목록 등) 그 풀에서 재발굴이 원칙</b>(레시피=발굴 풀 한정 최적화).<br>
+          <b>⓪ 풀 준비</b> — 발굴풀 스냅(코인=합집합 자동). <b style="color:#b45309">풀이 바뀌면(매매목록 등) 그 풀에서 재발굴이 원칙</b>(레시피=발굴 풀 한정 최적화). ★현 축 세대(S1111): 발굴·칸=단기 <b>5&gt;10&gt;20</b> / 레거시(C게이트·구 레시피)=5&gt;20&gt;60 이원화 — 어휘·규칙엔 axisGen 세대 병기.<br>
           <b>① 전수 실행</b> — 빌더에서 🌳진짜/가짜/하락 전수 × 검증 풀 4개 토글 × 창(📂스냅·🕰창A·창B) → 각각 💾 JSON. (시장당 최대 3×4×3=36파일)<br>
           <b>② 📚 레시피 병합</b> — 전수 JSON들 여러 개 선택(누적 가능·창/시장/종류 섞어도 됨) → ⚗️ 병합 → 💾 sx_vocab 저장. <span style="color:var(--text3)">산출물을 이 카드에 다시 넣지 말 것.</span><br>
           <b>③ 진단 카드 📁</b> — sx_vocab 로드 → 12분류 표 확인. <span style="color:var(--text3)">시장 바꾸면 재로드.</span><br>
@@ -1923,7 +1923,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
             <div style="display:flex;flex-wrap:wrap;gap:6px">
               <button id="dcPoolChipDead" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('deadcat')" style="flex:1 1 46%;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:800;line-height:1.25;cursor:pointer;background:#dc26261F;color:#dc2626;border:1px solid #dc2626">🔴 바닥확인 <span style="font-weight:500;font-size:8.5px">하락장·약세</span></button>
               <button id="dcPoolChipPull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('pullback')" style="flex:1 1 46%;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🔵 눌림목 <span style="font-weight:500;font-size:8.5px">상승장·약세</span></button>
-              <button id="dcPoolChipBull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('bullrun')" style="flex:1 1 46%;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🟢 강세장 <span style="font-weight:500;font-size:8.5px">단기 MA 강세</span></button>
+              <button id="dcPoolChipBull" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('bullrun')" style="flex:1 1 46%;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🟢 강세장 <span style="font-weight:500;font-size:8.5px">단기 5&gt;10&gt;20</span></button>
               <button id="dcPoolChipSide" onclick="_sxVib(10);window._sxSetDiscrimPool&&_sxSetDiscrimPool('sidebear')" style="flex:1 1 46%;padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:600;line-height:1.25;cursor:pointer;background:transparent;color:var(--text3);border:1px solid var(--border)">🟡 횡보약세 <span style="font-weight:500;font-size:8.5px">장기횡보·단기중립/약세</span></button>
             </div>
           </div>
