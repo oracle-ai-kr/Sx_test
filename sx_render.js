@@ -10634,7 +10634,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1111b';   // [S1111b] 세대 태그 전파(전수 stash·병합 혼합 차단·사다리 산출) — 재주행 전 오염 방지. S1111=신축 세대 전환
+  window.SX_BUILD='S1111d';   // [S1111d] 실행 시작=stash 무효화(stale 저장 차단). S1111c=파일명 종류+창 · S1111b=세대 태그
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -10861,6 +10861,7 @@ function _sxBuilderAutoScan(scanMode){
     ? ok.filter(function(r){ return (!_sparkOf(r))&&_crashOf(r); })   // [S1109] 진짜하락 = 반짝 없이 추락 — 같은 crash·반대 spark라 가짜반등과 배타
     : ok.filter(function(r){return r.dN10!=null && r.dN10>0 && r.hold!=null && r.hold>=0.5;});   // [S768b] 진짜반등: 표본30+ · N10▲ · 유지≥50%
   // [S783] 도트 방향 필터 — 가짜반등 모드는 🔴추락(late<0)만, 진짜반등 모드는 🟢오름(late>0)만 노출 (헛짚음·보합 숨김). '정말 가짜반등' 탐색이라 표면패턴이 아닌 실제 결과(후반평균 부호)로 최종 판정.
+  if(typeof window!=='undefined') window._sxAutoScanPass=null;   // [S1111d] 단일 탐색도 동일 가드(결과 확정 전 stash 비움)
   var pass = passGate.filter(function(r){ var d=_dcFitGrade(r.late, r.surv, r.n, allLate).dir; return (scanMode==='deadcat'||scanMode==='decline') ? d<0 : d>0; });   // [S1109] 진짜하락도 실추락 방향
   var _isDC=(scanMode==='deadcat'), _isDN=(scanMode==='decline');   // [S1109]
   var DKR='#7f1d1d';   // [S1109] 진짜하락 색(짙은 적갈 — 가짜반등 RED와 구분)
@@ -10913,6 +10914,7 @@ function _sxBeamRun(scanMode, out){
   var MAXDEPTH=(scanMode==='deadcat')?4:3, NMIN=(scanMode==='deadcat')?30:50, MAXTEST=30000;   // [S789] 진짜=강티어(깊이≤3·n≥50), 가짜=그대로(깊이≤4·n≥30) · 안전 상한 · [S1109] decline(진짜하락)=강티어 거울이라 3/50 공유
   var GRN='#16a34a',RED='#dc2626',T3='var(--text3)';
   var DP=_dpMeta(), BD=_dpBuilderDefaults();
+  if(typeof window!=='undefined') window._sxAutoScanPass=null;   // [S1111d] 실행 시작=stash 무효화 — 실행 중/실패 상태에서 💾가 직전 결과(다른 모드)를 몰래 저장하던 함정 차단(사용자 적발: 가짜 stash가 '하락'으로 중복 저장)
   var _isDC=(scanMode==='deadcat'), _isDN=(scanMode==='decline');   // [S1109] decline=진짜하락(반짝 없이 추락) 전수
   var DKR='#7f1d1d';   // [S1109] 진짜하락 색
   var entries=window._sxLastDiscrimEntries;
@@ -11026,7 +11028,10 @@ function _sxAutoScanDownload(){
     var blob=new Blob([JSON.stringify(d,null,2)], {type:'application/json'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
-    a.href=url; a.download='sx_autoscan_'+(d.mkt||'kr')+'_'+(d.pool||'pool')+'_'+Date.now()+'.json';   // [S846] 시장 포함(3시장 핸드오프 구분)
+    // [S1111c] 파일명 자기서술 — 종류(real/fake/down)+창(snap/vinA/vinB)까지 박아 폴더 수동 분류 불필요. 내부 scanMode '가짜=deadcat'이 풀명과 충돌하던 혼동 해소(파일명은 kind 표기).
+    var _kd=(d.scanMode==='deadcat')?'fake':((d.scanMode==='decline')?'down':'real');
+    var _wl='snap'; try{ var _sn=d.snap||{}; if(_sn.vintage){ _wl=_sn.set?('vin'+_sn.set):('vin'+String(_sn.vintage).replace(/[^0-9]/g,'').slice(0,8)); } }catch(_){}
+    a.href=url; a.download='sx_autoscan_'+(d.mkt||'kr')+'_'+(d.pool||'pool')+'_'+_kd+'_'+_wl+'_'+Date.now()+'.json';   // [S846] 시장 · [S1111c] 종류·창
     document.body.appendChild(a); a.click();
     setTimeout(function(){ try{document.body.removeChild(a); URL.revokeObjectURL(url);}catch(_){}}, 200);
   }catch(e){ try{alert('다운로드 실패: '+(e&&e.message||e));}catch(_){} }
