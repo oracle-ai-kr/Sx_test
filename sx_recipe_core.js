@@ -1196,10 +1196,21 @@ function _sxRecipeV3Core(mk, ind, rows, idx){
 //   ★소비 제한: 표시(브리핑) 전용 — C 판정/votes 미배선(A/B 후 결정). DOWN·FAKE는 어떤 경로로도 BUY 투표 금지(S1102 §8-3 계승).
 //   ★in-sample 주의: 규칙 28건은 3창 적합 — 최종 검증=시간축 OOS(2026-07 스냅 이후 캔들).
 function _cellCondOk733(f,c){ var v=f?f[c.key]:null; if(c.type==='num'){ if(typeof v!=='number'||!isFinite(v)) return false; return c.dir==='lt' ? v<c.th : v>c.th; } return !!v; }
-function _cellKeyOf(ind){
+function _cellKeyOf(ind, rows, idx, axisGen){
+  // [S1111] axisGen: 'ma52060'(구축=엔진 maAlign 5>20>60·기본 폴백) | 'ma51020'(신축=rows 직접 5>10>20).
+  //   칸 배지는 로드된 SX_CELL_DATA.meta.axisGen을 따라감 — 데이터-판정 세대 정합 자동(구 데이터=구 판정·신 데이터 배포 순간 신 판정).
   try{
     var lt=_ltStr733(ind&&ind.maAlignLT); if(lt!=='bear'&&lt!=='bull'&&lt!=='mixed') return null;
-    var ma=ind&&ind.maAlign; var s=(ma&&ma.bullish)?'bull':((ma&&ma.bearish)?'bear':'mixed');
+    var s;
+    if(axisGen==='ma51020'){
+      if(!Array.isArray(rows)||idx==null) return null;
+      var end=idx+1; if(end<20||end>rows.length) return null;
+      var sm=function(p){ var su=0; for(var q=end-p;q<end;q++){ var r=rows[q]; var cc=(r&&(r.close!=null?r.close:r[4])); if(typeof cc!=='number'||!isFinite(cc)) return null; su+=cc; } return su/p; };
+      var a=sm(5), b=sm(10), d=sm(20); if(a==null||b==null||d==null) return null;
+      s=(a>b&&b>d)?'bull':((a<b&&b<d)?'bear':'mixed');
+    } else {
+      var ma=ind&&ind.maAlign; s=(ma&&ma.bullish)?'bull':((ma&&ma.bearish)?'bear':'mixed');
+    }
     return s+'|'+lt;
   }catch(e){ return null; }
 }
@@ -1207,7 +1218,7 @@ function _sxCellSignalCore(mk, ind, rows, idx){
   try{
     var D=(typeof SX_CELL_DATA!=='undefined')?SX_CELL_DATA:((typeof window!=='undefined'&&window.SX_CELL_DATA)||null);
     if(!D||!D.rules) return null;
-    var ck=_cellKeyOf(ind); if(!ck) return null;
+    var ck=_cellKeyOf(ind, rows, idx, (D.meta&&D.meta.axisGen)||'ma52060'); if(!ck) return null;   // [S1111] 데이터 세대 추종
     var rules=[]; for(var i=0;i<D.rules.length;i++){ var r=D.rules[i]; if(r.mkt===mk&&r.cell===ck) rules.push(r); }
     if(!rules.length) return { cell:ck, lbl:null, sig:[] };
     var f=_extractFeats733(ind, rows, idx, true);   // 발굴 어휘(disc) 포함 추출 — vocab conds가 참조
