@@ -6057,7 +6057,8 @@ async function _btDiscrimBracket(mk, source, onProgress){
   //   구간 늘리려면 아래 3숫자만 변경(루프 바운드 자동 추종). N3/N5/N10/유지(이진)는 비교 baseline으로 그대로 둠.
   var _LATE_FROM=_SXV_LATE_FROM, _LATE_TO=_SXV_LATE_TO, _SURV_TO=_SXV_SURV_TO;
   var _LZ=_lensFor(mk, _dpMeta().key);   // [S864] 시장×풀 지평 렌즈 — retLens/lensUp 산출 창
-  var _OUT_HORIZON=Math.max(10, _LATE_TO, _SURV_TO, _LZ.to);   // 루프 tail 가드 — 미래봉 부족 방지 ([S864] 렌즈 포함)
+  var _LZMAXTO=_LZ.to; if(window._sxGridMode){ ['deadcat','pullback','bullrun','sidebear'].forEach(function(pk){ var z=_lensFor(mk,pk); if(z&&z.to>_LZMAXTO) _LZMAXTO=z.to; }); }   // [S1109d] grid=전 풀 렌즈 커버
+  var _OUT_HORIZON=Math.max(10, _LATE_TO, _SURV_TO, _LZMAXTO);   // 루프 tail 가드 — 미래봉 부족 방지 ([S864] 렌즈 포함)
   // [S762] ★측정 BT 완전 독립 — runBtEngine·params·조기청산 의존 제거. 풀 조건(역배열/정배열 + 단기약세) 만족하는 '모든 봉'을 진입점으로 스캔 → BT 진입·청산과 무관한 순수 데이터. 진입가=그 봉 종가. pnl(BT 청산손익) 제거 → N3/N5/N10/유지만.
   for(var i=0;i<use.length;i++){
     var s=use[i];
@@ -6072,7 +6073,8 @@ async function _btDiscrimBracket(mk, source, onProgress){
       try { slice=rows.slice(Math.max(0, bi-249), bi+1); ind=SXE.calcAllScreener(slice,'day'); } catch(_eC){ continue; }
       if(!ind) continue;
       var ltAlign=_ltStr733(ind.maAlignLT), maBull=!!(ind.maAlign && ind.maAlign.bullish);
-      if(!_poolMatch(ltAlign, maBull)) continue;   // [S1109] 선택 풀 앵커만 (기존 2풀은 ltAlign===lt && !maBull과 동치 — 동작 불변)
+      var _sAx=(ind.maAlign&&ind.maAlign.bullish)?'bull':((ind.maAlign&&ind.maAlign.bearish)?'bear':'mixed');   // [S1109d] 단기축 3분 — _trendLabel과 동일 판정(칸 태그)
+      if(!window._sxGridMode && !_poolMatch(ltAlign, maBull)) continue;   // [S1109] 선택 풀 앵커만 · [S1109d] grid 모드=전 봉 수집(칸 태그로 사후 분해)
       var ep=(rows[bi] && typeof rows[bi].close==='number')?rows[bi].close:null; if(ep==null) continue;
       var f=_extractFeats733(ind, rows, bi, true);   // [S1108] disc=true — 발굴 전용 확장 어휘(_F733_DISC_ADD 22종) 포함. 매매 경로는 인자 없이 호출하므로 35종 유지.
       var ei=bi;
@@ -6092,7 +6094,9 @@ async function _btDiscrimBracket(mk, source, onProgress){
       var _lzSum=0,_lzCnt=0;
       for(var _zk=_LZ.from;_zk<=_LZ.to;_zk++){ var _zr=_cR(_zk); if(_zr!=null){ _lzSum+=_zr; _lzCnt++; } }
       var _retLens=(_lzCnt>0)?(_lzSum/_lzCnt):null;
-      entries.push({ f:f, n3:_n3, n5:_n5, n10:_n10, hold:_hold, retN10:_retN10, retLate:_retLate, surv:_surv, retLens:_retLens, lensUp:(_retLens!=null?_retLens>0:null), bi:bi, lt:ltAlign });   // [S864] retLens/lensUp/bi(기간반분용) · [S1109] lt=장기레짐(bullrun 구성비 표기용)
+      var _rlb=null;   // [S1109d] grid 모드: 풀별 렌즈 평균 — 후보를 '발굴 풀 렌즈'로 평가하기 위함(칸별 렌즈 재최적화 금지=순환 방지)
+      if(window._sxGridMode){ _rlb={}; ['deadcat','pullback','bullrun','sidebear'].forEach(function(pk){ var z=_lensFor(mk,pk); if(z.from===_LZ.from&&z.to===_LZ.to){ _rlb[pk]=_retLens; return; } var su=0,ct=0; for(var q=z.from;q<=z.to;q++){ var rr=_cR(q); if(rr!=null){su+=rr;ct++;} } _rlb[pk]=(ct>0)?(su/ct):null; }); }
+      entries.push({ f:f, n3:_n3, n5:_n5, n10:_n10, hold:_hold, retN10:_retN10, retLate:_retLate, surv:_surv, retLens:_retLens, lensUp:(_retLens!=null?_retLens>0:null), bi:bi, lt:ltAlign, s:_sAx, rlb:_rlb });   // [S864] retLens/lensUp/bi · [S1109] lt · [S1109d] s(단기축)+rlb(풀별 렌즈)
       _used=true;
       if((bi & 31)===0) await _trendBatchSleep(0);   // 주기적 UI 양보(긴 스캔)
     }
@@ -10350,6 +10354,110 @@ function _rcpPvUi(){
 }
 if(typeof window!=='undefined'){
   window._rcpPvFile=_rcpPvFile; window._rcpPvToggle=_rcpPvToggle; window._rcpPvUi=_rcpPvUi;
+
+// ════════ [S1109d] 🧩 칸별 강건성 — 진단 카드 프리뷰 세트를 3×3 SSOT 칸별로 재평가 ════════
+//   배경(전수분석 S1109·D-08): 3창 동시 재현 0 · 창A(하락) 겉돎 → "레짐 불문 보편 조합" 대신 조합별 유효 칸(cellMask)을 명시하는 설계.
+//   방법: grid 수집(풀 필터 없음·전 봉·칸 태그 s×lt) → 후보 conds를 엔트리 f에 AND 적용 → 칸별 n/렌즈율/렌즈평균을 **칸 기저 대비**(L-16).
+//   렌즈=후보의 발굴 풀 렌즈 유지. 창 전환은 📂/🕰 그대로 — 시장×창마다 1회 실행 → 📋 JSON 내보내 오프라인 병합·마스크 판정.
+var _sxGridEntries=null, _sxGridResult=null;
+function _gcondOk(f,c){ var v=f?f[c.key]:null; if(c.type==='num'){ if(typeof v!=='number'||!isFinite(v)) return false; return c.dir==='lt' ? v<c.th : v>c.th; } return !!v; }
+var _GRID_S=['bull','bear','mixed'], _GRID_L=['bull','bear','mixed'];
+function _gridCellLbl(sx,lx){ return (typeof _TREND_MATRIX!=='undefined'&&_TREND_MATRIX[sx]&&_TREND_MATRIX[sx][lx])?_TREND_MATRIX[sx][lx]:(sx+'|'+lx); }
+async function _sxGridRobustRun(){
+  var el=document.getElementById('btDiscrimResult'); if(el) el.style.display='block';
+  if(typeof _rcpPvState==='undefined'||!_rcpPvState||!_rcpPvState.set||!_rcpPvState.set.length){ if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#d97706;font-weight:700">🧩 먼저 <b>레시피 사용성 진단</b>에 후보 JSON을 불러와줘 (미리보기 ON은 불필요 — 로드만으로 충분)</div>'; return; }
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+  window._sxGridMode=1; var res=null;
+  try{ res=await _btDiscrimBracket(mk,'mega',function(i,n,nm){ if(el) el.innerHTML='<div style="text-align:center;padding:14px;color:#0f766e;font-size:12px;font-weight:800">🧩 칸별 수집(전 봉) '+i+'/'+n+'<div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:4px">'+nm+'</div></div>'; }); }
+  finally{ window._sxGridMode=0; }
+  if(!res||!res.ok){ if(el) el.innerHTML='🧩 수집 실패: '+((res&&res.reason)||'?'); return; }
+  _sxGridEntries={ mk:mk, snap:(typeof _snapInfo==='function'?_snapInfo():null), n:res.entries.length, entries:res.entries, ts:new Date().toISOString() };
+  // ── 평가 [S1109e] — 판정 단위=칸별 겹침 사다리(세트·D-08 개정). 개별 byCell은 알갱이로 병행 산출.
+  var ents=res.entries, set=_rcpPvState.set;
+  var pools={}; set.forEach(function(r){ pools[r.pool]=1; });
+  var cats={}; set.forEach(function(r){ var ck=r.pool+'-'+r.kind; (cats[ck]=cats[ck]||[]).push(r); });
+  var base={}; Object.keys(pools).forEach(function(pk){ base[pk]={}; });
+  var perRec={}; for(var pi=0;pi<set.length;pi++) perRec[pi]={};
+  var ladder={}; for(var ck0 in cats) ladder[ck0]={};
+  var _BK=function(k){ return k>=4?'4+':String(k); };
+  for(var i=0;i<ents.length;i++){
+    var e=ents[i], cell=e.s+'|'+e.lt;
+    for(var pk in pools){ var v=(e.rlb&&e.rlb[pk]!=null)?e.rlb[pk]:null; var b=base[pk][cell]||(base[pk][cell]={N:0,up:0,sum:0,cnt:0}); b.N++; if(v!=null){ b.cnt++; b.sum+=v; if(v>0) b.up++; } }
+    var kByCat={};
+    for(var ri=0;ri<set.length;ri++){ var r=set[ri];
+      var okc=true; for(var ci=0;ci<r.conds.length;ci++){ if(!_gcondOk(e.f, r.conds[ci])){ okc=false; break; } }
+      if(!okc) continue;
+      var ckk=r.pool+'-'+r.kind; kByCat[ckk]=(kByCat[ckk]||0)+1;
+      var v2=(e.rlb&&e.rlb[r.pool]!=null)?e.rlb[r.pool]:null;
+      var pr=perRec[ri][cell]||(perRec[ri][cell]={n:0,up:0,sum:0,cnt:0}); pr.n++; if(v2!=null){ pr.cnt++; pr.sum+=v2; if(v2>0) pr.up++; }
+    }
+    for(var ck2 in cats){ var kk=kByCat[ck2]||0, pool2=ck2.split('-')[0];
+      var vv=(e.rlb&&e.rlb[pool2]!=null)?e.rlb[pool2]:null;
+      var L=ladder[ck2][cell]||(ladder[ck2][cell]={});
+      var slot=L[_BK(kk)]||(L[_BK(kk)]={n:0,up:0,sum:0,cnt:0}); slot.n++; if(vv!=null){ slot.cnt++; slot.sum+=vv; if(vv>0) slot.up++; }
+    }
+    if((i&1023)===0){ if(el) el.innerHTML='<div style="text-align:center;padding:14px;color:#0f766e;font-size:12px;font-weight:800">🧩 사다리 평가 '+i+'/'+ents.length+'</div>'; await _trendBatchSleep(0); }
+  }
+  var _agg=function(o,b3){ var rate=o.cnt?(o.up/o.cnt):null, mean=o.cnt?(o.sum/o.cnt):null;
+    var bRate=(b3&&b3.cnt)?(b3.up/b3.cnt):null, bMean=(b3&&b3.cnt)?(b3.sum/b3.cnt):null;
+    return { n:o.n, rate:(rate!=null?Math.round(rate*1000)/10:null), mean:(mean!=null?Math.round(mean*10000)/100:null),
+      dLens:(rate!=null&&bRate!=null)?Math.round((rate-bRate)*1000)/10:null, dRet:(mean!=null&&bMean!=null)?Math.round((mean-bMean)*10000)/100:null }; };
+  var baseOut={};
+  for(var pk2 in base){ baseOut[pk2]={}; for(var ck4 in base[pk2]){ var b4=base[pk2][ck4]; baseOut[pk2][ck4]={ N:b4.N, rate:b4.cnt?Math.round(b4.up/b4.cnt*1000)/10:null, mean:b4.cnt?Math.round(b4.sum/b4.cnt*10000)/100:null }; } }
+  var ladderOut={};
+  for(var ck5 in ladder){ ladderOut[ck5]={}; var pool5=ck5.split('-')[0];
+    for(var cell5 in ladder[ck5]){ var LO={}; for(var bk5 in ladder[ck5][cell5]) LO[bk5]=_agg(ladder[ck5][cell5][bk5], base[pool5][cell5]); ladderOut[ck5][cell5]=LO; } }
+  var candsOut=[];
+  for(var ri2=0;ri2<set.length;ri2++){ var r2=set[ri2], by={};
+    for(var cell2 in perRec[ri2]) by[cell2]=_agg(perRec[ri2][cell2], base[r2.pool][cell2]);
+    candsOut.push({ id:r2.id||('c'+ri2), pool:r2.pool, kind:r2.kind, label:r2.label||'', conds:r2.conds, byCell:by }); }
+  _sxGridResult={ tool:'gridRobust', ver:(window.SX_BUILD||''), mkt:mk, snap:_sxGridEntries.snap, preview:_rcpPvState.name, nEntries:ents.length, base:baseOut, ladder:ladderOut, cands:candsOut, ts:new Date().toISOString() };
+  _sxGridRobustRender();
+}
+function _sxGridRobustRender(){
+  var el=document.getElementById('btDiscrimResult'); if(!el) return;
+  var R=_sxGridResult; if(!R){ el.innerHTML='🧩 결과 없음'; return; }
+  var T3='var(--text3)', GRN='#16a34a', RED='#dc2626';
+  var h='<div style="border:1px solid #0d948866;border-radius:12px;padding:10px 12px">';
+  h+='<div style="font-size:11px;font-weight:800;color:#0f766e;margin-bottom:2px">🧩 칸별 겹침 사다리 — '+R.mkt.toUpperCase()+' · 어휘 '+R.cands.length+'개 · 전봉 '+R.nEntries+'</div>';
+  h+='<div style="font-size:8.5px;color:'+T3+';margin-bottom:6px">'+(R.snap&&R.snap.date?('창 '+(R.snap.vintage||R.snap.date)+(R.snap.set?(' · 창'+R.snap.set):'')):'라이브')+' · 세트 '+(R.preview||'')+' · 셀값=<b>칸 기저 대비 Δ렌즈평균</b>(n) · real은 k↑=Δ↑, fake/down은 k↑=Δ↓가 정상 · <b>n<10 흐림</b> · 판정은 오프라인(3창 병합 후)</div>';
+  var rowL={bull:'강세',bear:'약세',mixed:'중립'}, colL={bull:'상승',bear:'하락',mixed:'횡보'};
+  var BKS=['0','1','2','3','4+'];
+  var catKeys=Object.keys(R.ladder).sort();
+  for(var ci=0;ci<catKeys.length;ci++){ var cat=catKeys[ci], pool=cat.split('-')[0], kind=cat.split('-')[1];
+    h+='<div style="border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin-bottom:6px">';
+    h+='<div style="font-size:9.5px;font-weight:800;color:var(--text2);margin-bottom:3px">'+cat+' <span style="font-weight:500;color:'+T3+'">('+(kind==='real'?'k↑=Δ↑ 기대':'k↑=Δ↓ 기대')+')</span></div>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:8px;text-align:center"><tr><td style="color:'+T3+';text-align:left">칸</td>';
+    for(var bi2=0;bi2<BKS.length;bi2++) h+='<td style="color:'+T3+'">k'+BKS[bi2]+'</td>';
+    h+='<td style="color:'+T3+'">단조</td></tr>';
+    for(var si=0;si<_GRID_S.length;si++){ for(var li=0;li<_GRID_L.length;li++){
+      var sx=_GRID_S[si], lx=_GRID_L[li], cell=sx+'|'+lx;
+      var bN=(R.base[pool]&&R.base[pool][cell])?R.base[pool][cell].N:0;
+      var L=R.ladder[cat][cell];
+      if(!L||bN<50) continue;
+      h+='<tr><td style="text-align:left;color:var(--text2);font-size:7.5px;font-weight:700">'+_gridCellLbl(sx,lx)+'<span style="color:'+T3+';font-weight:400"> '+bN+'</span></td>';
+      var means=[];
+      for(var bi3=0;bi3<BKS.length;bi3++){ var d=L[BKS[bi3]];
+        if(!d||!d.n){ h+='<td style="color:var(--border)">·</td>'; means.push(null); continue; }
+        var col=(d.dRet!=null)?(d.dRet>0?GRN:RED):T3, dim=(d.n<10)?'opacity:.4;':'';
+        h+='<td style="'+dim+'padding:1px"><b style="color:'+col+'">'+(d.dRet!=null?((d.dRet>0?'+':'')+d.dRet.toFixed(1)):'-')+'</b><span style="color:'+T3+';font-size:6.5px"> '+d.n+'</span></td>';
+        means.push((d.n>=10)?d.dRet:null); }
+      var seq=means.filter(function(x){return x!=null;});
+      var mono='−';
+      if(seq.length>=3){ var up=true,dn=true; for(var q=1;q<seq.length;q++){ if(seq[q]<seq[q-1]) up=false; if(seq[q]>seq[q-1]) dn=false; }
+        mono=(kind==='real')?(up?'✓':'✗'):(dn?'✓':'✗'); }
+      h+='<td style="font-weight:800">'+mono+'</td></tr>';
+    } }
+    h+='</table></div>'; }
+  h+='<div style="margin-top:6px"><span onclick="_sxVib(10);window._sxGridExport&&_sxGridExport()" style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:12px;border:1px dashed #0d948888;cursor:pointer;background:var(--surface2);color:#0f766e">📋 JSON 내보내기</span> <span style="font-size:8px;color:'+T3+'">시장×창(스냅/창A/창B)마다 실행 — JSON엔 사다리+개별 byCell 전체 포함</span></div>';
+  h+='</div>';
+  el.innerHTML=h;
+}
+function _sxGridExport(){
+  if(!_sxGridResult) return;
+  try{ var blob=new Blob([JSON.stringify(_sxGridResult)],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='sx_gridrobust_'+_sxGridResult.mkt+'_'+Date.now()+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){try{document.body.removeChild(a);URL.revokeObjectURL(url);}catch(_){}},200); }catch(e){ alert('내보내기 실패: '+(e&&e.message||e)); }
+}
+if(typeof window!=='undefined'){ window._sxGridRobustRun=_sxGridRobustRun; window._sxGridExport=_sxGridExport; }
 }
 // ════════ [S869] 공용 모드 바 — 운영 모드 스위치(스냅샷·레시피·게이트·MACD·판정지평 h)를 교차검증 탭 최상단으로 승격(카드 밖 공용화).
 //   상태 SSOT=전역 플래그, UI 동기화=_sxModeSyncAll(): data-sxmode/data-ph 달린 모든 요소(바+카드 pill)를 플래그 기준으로 일괄 재스타일 — 어디서 눌러도 양쪽 동기.
@@ -10421,7 +10529,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1109c';   // [S1109c] 코인 발굴풀=합집합 상시(라이브 포함)+스냅 fetch 캐시버스트. S1109b=코인 생성 합집합 · S1109=4풀+진짜하락
+  window.SX_BUILD='S1109e';   // [S1109e] 🧩=칸별 겹침 사다리(세트 단위·D-08 개정). S1109d=칸별 개별 · S1109c=코인 합집합 · S1109=4풀+진짜하락
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
