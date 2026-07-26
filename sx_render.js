@@ -10458,6 +10458,93 @@ function _sxGridExport(){
   try{ var blob=new Blob([JSON.stringify(_sxGridResult)],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='sx_gridrobust_'+_sxGridResult.mkt+'_'+Date.now()+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){try{document.body.removeChild(a);URL.revokeObjectURL(url);}catch(_){}},200); }catch(e){ alert('내보내기 실패: '+(e&&e.message||e)); }
 }
 if(typeof window!=='undefined'){ window._sxGridRobustRun=_sxGridRobustRun; window._sxGridExport=_sxGridExport; }
+
+// ════════ [S1109f] 📚 어휘 통합(vocab builder) — 전수 JSON들을 병합해 어휘 세트를 만드는 오프라인 도구의 앱 내재화 ════════
+//   배경(D-08 부칙): 레시피는 발굴 종목풀에 한정 최적화(S725/S867 계보) — 풀이 바뀌면(예: 매매목록 풀) 그 풀에서 재발굴이 원칙.
+//   재발굴 파이프라인을 앱 안에서 완결: [풀 스냅] → [4풀 전수(진짜/가짜/하락)] → [📚 어휘 통합] → [진단 카드 로드] → [🧩 사다리] → 판정.
+//   병합 규칙(S1109e 오프라인과 동일): 시그니처(재료+방향) dedup(우선순위 현행>창A>창B>기타빈티지·동순위 n큰것) → 효과순 정렬 → J≥0.5 클러스터 cap → 카테고리 상한.
+var _sxVocabRaw=[], _sxVocabOut=null;
+function _vbSig(conds){ var a=[]; for(var i=0;i<conds.length;i++){ var c=conds[i]; a.push((c.type==='num'&&c.dir)?(c.key+':'+c.dir):c.key); } a.sort(); return a.join('+'); }
+function _vbKeyset(conds){ var o={}; for(var i=0;i<conds.length;i++){ var c=conds[i]; o[(c.type==='num'&&c.dir)?(c.key+':'+c.dir):c.key]=1; } return o; }
+function _vbJac(a,b){ var i=0,na=0,nb=0,k; for(k in a){na++; if(b[k])i++;} for(k in b)nb++; var u=na+nb-i; return u?i/u:0; }
+function _vbKind(sm){ return sm==='deadcat'?'fake':(sm==='decline'?'down':'real'); }
+function _vbWinPri(j){ var v=j.snap&&j.snap.vintage, st=j.snap&&j.snap.set; return !v?0:(st==='A'?1:(st==='B'?2:3)); }
+function _vbWinLbl(j){ var v=j.snap&&j.snap.vintage, st=j.snap&&j.snap.set; return !v?'snap':(st?('vin_'+st):('vin_'+v)); }
+function _sxVocabFiles(input){
+  var fl=input&&input.files?Array.prototype.slice.call(input.files):[]; input.value='';
+  if(!fl.length) return;
+  var st=document.getElementById('vocabBuildStatus');
+  var done=0, added=0, bad=0;
+  var next=function(ix){
+    if(ix>=fl.length){
+      if(st){ var mkts={}, wins={}, modes={}; _sxVocabRaw.forEach(function(r){ mkts[r.mkt]=(mkts[r.mkt]||0)+1; wins[r.winLbl]=(wins[r.winLbl]||0)+1; modes[r.kind]=(modes[r.kind]||0)+1; });
+        st.innerHTML='적재 <b>'+_sxVocabRaw.length+'</b>파일'+(bad?(' · <span style="color:#dc2626">인식실패 '+bad+'</span>'):'')+' — 시장 '+JSON.stringify(mkts)+' · 창 '+JSON.stringify(wins)+' · 종류 '+JSON.stringify(modes)+' <span style="color:var(--text3)">(추가 선택=누적 · 🧹=비움)</span>'; }
+      return; }
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{ var j=JSON.parse(rd.result);
+        if(j&&Array.isArray(j.passed)&&j.pool&&j.mkt&&j.scanMode){ _sxVocabRaw.push({ mkt:j.mkt, pool:j.pool, kind:_vbKind(j.scanMode), pri:_vbWinPri(j), winLbl:_vbWinLbl(j), passed:j.passed, fname:fl[ix].name }); added++; }
+        else bad++;
+      }catch(e){ bad++; }
+      done++; if(st&&(done&3)===0) st.innerHTML='읽는 중 '+done+'/'+fl.length+'…';
+      setTimeout(function(){ next(ix+1); },0);
+    };
+    rd.onerror=function(){ bad++; setTimeout(function(){ next(ix+1); },0); };
+    rd.readAsText(fl[ix]);
+  };
+  next(0);
+}
+function _sxVocabClear(){ _sxVocabRaw=[]; _sxVocabOut=null; var st=document.getElementById('vocabBuildStatus'); if(st) st.innerHTML='비움'; var rs=document.getElementById('vocabBuildResult'); if(rs) rs.innerHTML=''; }
+function _sxVocabBuild(){
+  var rs=document.getElementById('vocabBuildResult');
+  if(!_sxVocabRaw.length){ if(rs) rs.innerHTML='<div style="font-size:9.5px;color:#d97706;font-weight:700">먼저 전수 JSON들을 불러와줘 (sx_autoscan_*.json — 여러 개 선택 가능)</div>'; return; }
+  var capC=parseInt((document.getElementById('vocabCapCluster')||{}).value)||1;
+  var capT=parseInt((document.getElementById('vocabCapTotal')||{}).value)||40;
+  // 1) (mkt,cat) 시그니처 dedup — 우선순위 창 → n
+  var by={};   // by[mkt][cat][sig]={rec,pri,n,winLbl}
+  _sxVocabRaw.forEach(function(src){
+    var cat=src.pool+'-'+src.kind;
+    var M=by[src.mkt]||(by[src.mkt]={}); var C=M[cat]||(M[cat]={});
+    for(var i=0;i<src.passed.length;i++){ var p=src.passed[i]; if(!p||!Array.isArray(p.conds)) continue;
+      var sg=_vbSig(p.conds), cur=C[sg];
+      if(!cur || src.pri<cur.pri || (src.pri===cur.pri && (p.n||0)>(cur.rec.n||0))) C[sg]={ rec:p, pri:src.pri, winLbl:src.winLbl };
+    }
+  });
+  // 2) 카테고리별: 효과순 → 클러스터 → cap
+  var sets={}, report=[];
+  for(var mkt in by){ sets[mkt]={};
+    var catKeys=Object.keys(by[mkt]).sort();
+    for(var ci=0;ci<catKeys.length;ci++){ var cat=catKeys[ci], kind=cat.split('-')[1];
+      var items=[]; for(var sg2 in by[mkt][cat]) items.push({ sig:sg2, rec:by[mkt][cat][sg2].rec, winLbl:by[mkt][cat][sg2].winLbl });
+      items.sort(function(a,b){ var ea=(a.rec.retLens!=null?a.rec.retLens:-9)*(kind==='real'?1:-1), eb=(b.rec.retLens!=null?b.rec.retLens:-9)*(kind==='real'?1:-1); return eb-ea; });
+      var ksets=items.map(function(it){ return _vbKeyset(it.rec.conds); });
+      var cl=new Array(items.length).fill(-1), nc=0;
+      for(var i2=0;i2<items.length;i2++){ if(cl[i2]>=0) continue; cl[i2]=nc;
+        for(var k2=i2+1;k2<items.length;k2++){ if(cl[k2]<0 && _vbJac(ksets[i2],ksets[k2])>=0.5) cl[k2]=nc; }
+        nc++; }
+      var used={}, picked=[];
+      for(var i3=0;i3<items.length;i3++){ if(picked.length>=capT) break;
+        var g=cl[i3]; if((used[g]||0)>=capC) continue; used[g]=(used[g]||0)+1;
+        var r=items[i3].rec;
+        picked.push({ conds:r.conds, n:r.n, lens:(r.lens!=null?r.lens:null), retLens:(r.retLens!=null?r.retLens:null), h1:(r.h1!=null?r.h1:null), h2:(r.h2!=null?r.h2:null), depth:(r.depth!=null?r.depth:null), sig:items[i3].sig, srcWin:items[i3].winLbl, cluster:cl[i3] }); }
+      sets[mkt][cat]=picked;
+      report.push({ mkt:mkt, cat:cat, raw:items.length, clusters:nc, picked:picked.length });
+    } }
+  var files=_sxVocabRaw.map(function(r){ return r.fname; });
+  _sxVocabOut={ meta:{ tool:'beam_vocab', ver:(window.SX_BUILD||''), ts:new Date().toISOString(), params:{ capCluster:capC, capTotal:capT }, philosophy:'D-08개정: 판정=칸별 겹침 사다리(세트) — 개별 게이트는 빔통과+dedup+클러스터/상한만', nFiles:files.length }, sets:sets };
+  if(rs){ var h='<div style="font-size:9px;color:var(--text2);margin:4px 0"><b>병합 결과</b> (합집합 → 클러스터 → cap'+capC+'/'+capT+')</div>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:8px;text-align:right"><tr style="color:var(--text3)"><td style="text-align:left">시장·카테고리</td><td>합집합</td><td>클러스터</td><td>어휘</td></tr>';
+    report.forEach(function(r0){ h+='<tr><td style="text-align:left;color:var(--text2)">'+r0.mkt+' '+r0.cat+'</td><td>'+r0.raw+'</td><td>'+r0.clusters+'</td><td style="font-weight:800">'+r0.picked+'</td></tr>'; });
+    h+='</table>';
+    var tot={}; for(var m3 in sets){ var t=0; for(var c3 in sets[m3]) t+=sets[m3][c3].length; tot[m3]=t; }
+    h+='<div style="font-size:9px;color:var(--text2);margin-top:4px">시장별 어휘: '+JSON.stringify(tot)+' — <span onclick="_sxVib(10);window._sxVocabExport&&_sxVocabExport()" style="font-weight:800;padding:3px 10px;border-radius:12px;border:1px dashed #7c3aed88;cursor:pointer;background:var(--surface2);color:#6d28d9">💾 어휘 JSON 저장</span> <span style="color:var(--text3)">→ 진단 카드 📁로 로드 → 🧩 사다리</span></div>';
+    rs.innerHTML=h; }
+}
+function _sxVocabExport(){
+  if(!_sxVocabOut) return;
+  try{ var blob=new Blob([JSON.stringify(_sxVocabOut)],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='sx_vocab_'+Date.now()+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){try{document.body.removeChild(a);URL.revokeObjectURL(url);}catch(_){}},200); }catch(e){ alert('저장 실패: '+(e&&e.message||e)); }
+}
+if(typeof window!=='undefined'){ window._sxVocabFiles=_sxVocabFiles; window._sxVocabBuild=_sxVocabBuild; window._sxVocabClear=_sxVocabClear; window._sxVocabExport=_sxVocabExport; }
 }
 // ════════ [S869] 공용 모드 바 — 운영 모드 스위치(스냅샷·레시피·게이트·MACD·판정지평 h)를 교차검증 탭 최상단으로 승격(카드 밖 공용화).
 //   상태 SSOT=전역 플래그, UI 동기화=_sxModeSyncAll(): data-sxmode/data-ph 달린 모든 요소(바+카드 pill)를 플래그 기준으로 일괄 재스타일 — 어디서 눌러도 양쪽 동기.
@@ -10529,7 +10616,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1109e';   // [S1109e] 🧩=칸별 겹침 사다리(세트 단위·D-08 개정). S1109d=칸별 개별 · S1109c=코인 합집합 · S1109=4풀+진짜하락
+  window.SX_BUILD='S1109f';   // [S1109f] 📚 어휘 통합 카드(전수 JSON 병합 내재화·D-08 부칙: 풀 바뀌면 재발굴). S1109e=칸별 사다리 · S1109c=코인 합집합
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
