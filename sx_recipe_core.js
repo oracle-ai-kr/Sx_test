@@ -1188,3 +1188,39 @@ function _sxRecipeV3Core(mk, ind, rows, idx){
     return base;
   }catch(e){ return null; }
 }
+
+
+// ════════ [S1110] core v4 — 칸 사다리 신호(cell ladder) ════════
+//   데이터: sx_cell_data.js(전역 SX_CELL_DATA — rules 28·채택 카테고리 어휘). 데이터 없으면 null(워커 등 미로드 컨텍스트 안전).
+//   판정: 현재 봉의 칸(단기 s × 장기 lt — _trendLabel 축과 동일 판정) → 채택 규칙 조회 → 카테고리별 동시발동 k → k≥kStarN=hit.
+//   ★소비 제한: 표시(브리핑) 전용 — C 판정/votes 미배선(A/B 후 결정). DOWN·FAKE는 어떤 경로로도 BUY 투표 금지(S1102 §8-3 계승).
+//   ★in-sample 주의: 규칙 28건은 3창 적합 — 최종 검증=시간축 OOS(2026-07 스냅 이후 캔들).
+function _cellCondOk733(f,c){ var v=f?f[c.key]:null; if(c.type==='num'){ if(typeof v!=='number'||!isFinite(v)) return false; return c.dir==='lt' ? v<c.th : v>c.th; } return !!v; }
+function _cellKeyOf(ind){
+  try{
+    var lt=_ltStr733(ind&&ind.maAlignLT); if(lt!=='bear'&&lt!=='bull'&&lt!=='mixed') return null;
+    var ma=ind&&ind.maAlign; var s=(ma&&ma.bullish)?'bull':((ma&&ma.bearish)?'bear':'mixed');
+    return s+'|'+lt;
+  }catch(e){ return null; }
+}
+function _sxCellSignalCore(mk, ind, rows, idx){
+  try{
+    var D=(typeof SX_CELL_DATA!=='undefined')?SX_CELL_DATA:((typeof window!=='undefined'&&window.SX_CELL_DATA)||null);
+    if(!D||!D.rules) return null;
+    var ck=_cellKeyOf(ind); if(!ck) return null;
+    var rules=[]; for(var i=0;i<D.rules.length;i++){ var r=D.rules[i]; if(r.mkt===mk&&r.cell===ck) rules.push(r); }
+    if(!rules.length) return { cell:ck, lbl:null, sig:[] };
+    var f=_extractFeats733(ind, rows, idx, true);   // 발굴 어휘(disc) 포함 추출 — vocab conds가 참조
+    var out=[], lbl=rules[0].cellLbl;
+    for(var j=0;j<rules.length;j++){ var ru=rules[j];
+      var vs=((D.vocab[mk]||{})[ru.cat])||[], k=0;
+      for(var q=0;q<vs.length;q++){ var cs=vs[q].conds, ok=true;
+        for(var ci=0;ci<cs.length;ci++){ if(!_cellCondOk733(f,cs[ci])){ ok=false; break; } }
+        if(ok) k++;
+      }
+      out.push({ cat:ru.cat, kind:ru.kind, k:k, kStar:ru.kStar, kStarN:ru.kStarN, topD:ru.topD, repro:ru.repro, hit:(k>=ru.kStarN) });
+    }
+    return { cell:ck, lbl:lbl, sig:out };
+  }catch(e){ return null; }
+}
+if(typeof window!=='undefined'){ window._sxCellSignalCore=_sxCellSignalCore; window._cellKeyOf=_cellKeyOf; }
