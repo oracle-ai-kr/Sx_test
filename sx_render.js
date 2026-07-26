@@ -6596,6 +6596,10 @@ function _poolUnionSet(on, mk){
   return (_DISCOVERY_POOL[mk]||[]).length;
 }
 if(typeof window!=='undefined'){ window._poolUnionSet=_poolUnionSet; window._poolIsUnion=_poolIsUnion; }
+// [S1109c] 코인 발굴 모집단 = 합집합(발굴60+OOS149=209종·중복0) **상시** — 라이브·스냅 생성·스냅 로드 전부 동일 지반(L-20 완결).
+//   정적 병합이라 _poolUnionSet의 캡처(_POOL_ORIG)도 병합본을 '원본'으로 잡음 → 구 disc 스냅 로드 후 복원돼도 60으로 안 떨어짐.
+//   구 disc 스냅(60종)을 로드하면 진행 /209에 149종 미수록 제외로 표시됨 — 스냅 재생성(합집합) 안내 신호.
+if(typeof _DISCOVERY_POOL!=='undefined' && _DISCOVERY_POOL.coin){ _DISCOVERY_POOL.coin=_poolUnionList('coin'); }
 
 async function _snapCreate(mode, vintage){
   var _oos=(mode==='oos');   // [S1048] OOS 스냅2 모드
@@ -6677,7 +6681,7 @@ async function _snapLoad(mk){
     if(!_vf) return { ok:false, reason:'🕰 창'+_SNAP_SET+' ON인데 manifest.vintageSets.'+_SNAP_SET+'.'+mk+' 미등록 — 해당 창 스냅을 커밋하고 manifest에 등록해줘. (라이브로 조용히 폴백하지 않음)' };
   } else if(!mani||!mani.latest||!mani.latest[mk]) return { ok:false, reason:'snap_manifest.json 없음 또는 latest.'+mk+' 미등록 — 📦 생성 → repo 커밋 → manifest 갱신 순서로' };
   var file=_SNAP_VIN?_vf:mani.latest[mk], snap=null;   // [S1076]·[S1079]
-  try{ var r2=await fetch(file); if(r2&&r2.ok) snap=await r2.json(); }catch(e2){}
+  try{ var r2=await fetch(file+(file.indexOf('?')>=0?'&':'?')+'t='+Date.now(),{cache:'no-store'}); if(r2&&r2.ok) snap=await r2.json(); }catch(e2){}   // [S1109c] 스냅 본문도 캐시버스트 — 같은 파일명 덮어쓰기 커밋이 GH Pages/브라우저 캐시로 옛 60종을 계속 서빙하던 것 차단
   if(!snap||snap.kind!=='sx_candle_snapshot'||!snap.stocks) return { ok:false, reason:file+' 로드 실패(미커밋? 형식?)' };
   if(snap.mkt!==mk) return { ok:false, reason:file+' 시장 불일치('+snap.mkt+')' };
   if(_SNAP_VIN && !snap.vintage) return { ok:false, reason:file+' 에 vintage 필드 없음 — 빈티지 스냅이 아님(라이브 스냅을 vintage 슬롯에 잘못 등록?)' };   // [S1076] 자기서술 대조
@@ -10417,7 +10421,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1109b';   // [S1109b] 코인 스냅 생성=합집합 강제(종목 지반 정합). S1109=검증풀 4풀+진짜하락 스캔 · S1108=발굴 어휘 22종
+  window.SX_BUILD='S1109c';   // [S1109c] 코인 발굴풀=합집합 상시(라이브 포함)+스냅 fetch 캐시버스트. S1109b=코인 생성 합집합 · S1109=4풀+진짜하락
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
