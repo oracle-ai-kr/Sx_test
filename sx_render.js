@@ -10623,7 +10623,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1109h';   // [S1109h] 🗺️ 레시피 로드맵 안내 카드(html). S1109g=병합 개명·12카테고리 · S1109f=병합 카드 · S1109e=칸별 사다리
+  window.SX_BUILD='S1110';   // [S1110] core v4 — 칸 사다리 신호(SX_CELL_DATA 소비·표시 전용 배지). S1109i=판정 28건 · S1109h=로드맵 카드
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -12951,6 +12951,20 @@ function _sxbVolaSafeWhy(){
 }
 window._sxbVolaSafeWhy = _sxbVolaSafeWhy;
 
+// [S1110] 🧩 칸 사다리 배지 토스트 — 규칙별 k/k*·상단Δ·재현창 + 원칙(표시 전용·in-sample)
+function _sxbCellSigWhy(){
+  const B=window._sxBoard; const cs=B&&B._cellSig; if(!cs) return;
+  let m='🧩 칸 사다리 신호 · 칸 ['+(cs.lbl||cs.cell)+']\n';
+  if(!cs.sig.length){ m+='이 칸엔 채택 규칙 없음.'; }
+  else cs.sig.forEach(function(x){
+    const t=x.kind==='real'?'진입후보':(x.kind==='down'?'회피(하락)':'가짜경보');
+    m+='\n'+(x.hit?'●':'○')+' '+x.cat+' — 발동 '+x.k+'/'+x.kStar+(x.hit?' ✓ '+t:' (미달)')+' · 과거 상단Δ '+(x.topD>0?'+':'')+x.topD+'%p · 재현 '+((x.repro||[]).join('+')||'-');
+  });
+  m+='\n\n※ 3×3 칸별 겹침 사다리(cell_rules 28·S1109 판정) — 표시 전용, C/자동매매 미배선. DOWN·FAKE는 매수 투표 금지. in-sample 적합이라 최종 검증은 시간축 OOS.';
+  if(typeof toast==='function') toast(m); if(typeof _sxVib==='function') _sxVib(8);
+}
+window._sxbCellSigWhy=_sxbCellSigWhy;
+
 // [S727] 구조 위험 배지 토스트 — 역배열/단기약세 설명 + C 매수 차단 여부
 function _sxbStructRiskWhy(){
   // [S903] 배너 상태별 설명 — S879 5분기+S880 전이형과 정합. 렌더 stash(window._sxbBanner903) 우선, 없으면 구 로직(신호보드 structRisk) 폴백.
@@ -13762,8 +13776,23 @@ function _sxbHTML(){
       if(!_sr.maBull){ const _RC='#dc2626'; _structRiskBadge = `<span class="sxb-badge" style="color:${_RC};background:${_RC}1A;border:1px solid ${_RC};cursor:pointer" onclick="event.stopPropagation();_sxbStructRiskWhy&&_sxbStructRiskWhy()">🔴 데드캣 위험</span>`; }
       else { const _RC='#f59e0b'; _structRiskBadge = `<span class="sxb-badge" style="color:${_RC};background:${_RC}1A;border:1px solid ${_RC};cursor:pointer" onclick="event.stopPropagation();_sxbStructRiskWhy&&_sxbStructRiskWhy()">🟠 역배열·단기반등</span>`; }
     } }
+  // [S1110] 🧩 칸 사다리 배지 — 현재 봉의 칸에 채택 규칙(cell_rules 28)이 있을 때만. hit 우선순위 down>fake>real(위험 먼저). 표시 전용·클릭=설명.
+  let _cellSigBadge = '';
+  { const _cs = B._cellSig;
+    if(_cs && _cs.sig && _cs.sig.length){
+      const _hits=_cs.sig.filter(x=>x.hit);
+      if(_hits.length){
+        const _dn=_hits.find(x=>x.kind==='down'), _fk=_hits.find(x=>x.kind==='fake'), _rl=_hits.find(x=>x.kind==='real');
+        const _pick=_dn||_fk||_rl; const _CC=_dn?'#7f1d1d':(_fk?'#ea580c':'#16a34a');
+        const _tag=_dn?'회피':(_fk?'가짜경보':'신호');
+        _cellSigBadge = `<span class="sxb-badge" style="color:${_CC};background:${_CC}1A;border:1px solid ${_CC};cursor:pointer" onclick="event.stopPropagation();_sxbCellSigWhy&&_sxbCellSigWhy()">🧩 ${_cs.lbl||''} ${_tag} k${_pick.k}≥${_pick.kStar}</span>`;
+      } else {
+        const _mx=_cs.sig.reduce((a,x)=>(x.k>a.k?x:a),_cs.sig[0]);
+        _cellSigBadge = `<span class="sxb-badge" style="color:var(--text3);background:var(--surface2);border:1px solid var(--border);cursor:pointer" onclick="event.stopPropagation();_sxbCellSigWhy&&_sxbCellSigWhy()">🧩 ${_cs.lbl||''} k${_mx.k}/${_mx.kStar}</span>`;
+      }
+    } }
   const _dirBadges  = `${transBadge}${_transitionBadge}`;                         // 방향 판정 (좌)
-  const _warnBadges = `${_structRiskBadge}${whipBadge}${_dumpBadge}${_safetyBadge}${_mixBadge}${_mtfBadge}<span id="sxMacroSoonSlot">${_sxMacroBadgeHTML(_sxMacroEvents().find(e=>e.mode==='soon'))}</span><span id="sxMacroResultSlot">${_sxMacroBadgeHTML(_sxMacroEvents().find(e=>e.mode==='result'))}</span>`; // [S727] 구조위험 선두 · 경고·이벤트 (우)
+  const _warnBadges = `${_structRiskBadge}${_cellSigBadge}${whipBadge}${_dumpBadge}${_safetyBadge}${_mixBadge}${_mtfBadge}<span id="sxMacroSoonSlot">${_sxMacroBadgeHTML(_sxMacroEvents().find(e=>e.mode==='soon'))}</span><span id="sxMacroResultSlot">${_sxMacroBadgeHTML(_sxMacroEvents().find(e=>e.mode==='result'))}</span>`; // [S727] 구조위험 선두 · 경고·이벤트 (우)
   // [S1045] 변동성 안전 렌즈 승격 — ATR 기반 · 무조건부/매수신호 조건부 crashLift 모두에서 검증된 유일 안전 재료. 종합점수(미검증 집계)와 분리된 서술 헤드.
   const _volaSafe = (function(){
     const _g=(groups.find(g=>g.id==='trend')||{items:[]}); const _it=_g.items.find(x=>x.k==='변동성');
@@ -14178,7 +14207,7 @@ function _computeDist5(stock, indicators, qs, scoreMom, btScore, tf){
 
 function _buildScoreBoard(scores, sv4, structPos, pbScore, D, verdict, lowConf, extras){
   extras = extras || {};
-  window._sxBoard = { verdict: verdict||null, trendLabel: (extras && extras.trendLabel) || null, lowConf: !!lowConf, lowConfReasons: (extras && extras._lowConfReasons) || [], dumpWarn: (extras && extras.dumpWarn) || null, mixWarn: (extras && extras.mixWarn) || null, groups: _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras), _structRisk: { lt: (sv4 && sv4.ltAlign) || 'off', maBull: !!(sv4 && sv4.maAlignBull) } }; // [S727] 구조 위험 배지용(역배열/단기약세) [S982] trendLabel=SSOT 헤드용
+  window._sxBoard = { verdict: verdict||null, trendLabel: (extras && extras.trendLabel) || null, lowConf: !!lowConf, lowConfReasons: (extras && extras._lowConfReasons) || [], dumpWarn: (extras && extras.dumpWarn) || null, mixWarn: (extras && extras.mixWarn) || null, groups: _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras), _structRisk: { lt: (sv4 && sv4.ltAlign) || 'off', maBull: !!(sv4 && sv4.maAlignBull) }, _cellSig: (sv4 && sv4.cellSig) || null }; // [S727] 구조 위험 배지용 [S982] trendLabel SSOT [S1110] 칸 사다리 신호(표시 전용)
   return `<div class="sxb" id="sxScoreBoard">${_sxbHTML()}</div>`;
 }
 
@@ -14340,7 +14369,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       totalTrades: stock._btResult ? stock._btResult.totalTrades : null
     }) : null;
     // [S868] 레시피 하이브리드 주입 — 일봉만(레시피=일봉 발굴). 실패=미주입=레거시(안전).
-    if(_analTF==='day'){ try{ var _rows868=(indicators&&indicators._advanced&&indicators._advanced.rows)||null; if(qs&&qs.ind&&_rows868&&_rows868.length){ var _rsig8=_sxRecipeSigFor(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1); if(_rsig8){ _scores4.recipeSig=_rsig8; if((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES){ try{ _scores4.cv2=_cv2ComputeAll(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1, _rsig8, indicators._advanced); }catch(_eCv8){} try{ _scores4.trendPos=_cv2TrendPosition(qs.ind, _rows868, _rows868.length-1); }catch(_eTp8){} } } } }catch(_eR8){} }
+    if(_analTF==='day'){ try{ var _rows868=(indicators&&indicators._advanced&&indicators._advanced.rows)||null; if(qs&&qs.ind&&_rows868&&_rows868.length){ var _rsig8=_sxRecipeSigFor(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1); if(_rsig8){ _scores4.recipeSig=_rsig8; if((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES){ try{ _scores4.cv2=_cv2ComputeAll(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1, _rsig8, indicators._advanced); }catch(_eCv8){} try{ _scores4.trendPos=_cv2TrendPosition(qs.ind, _rows868, _rows868.length-1); }catch(_eTp8){} } } try{ _scores4.cellSig=(typeof _sxCellSignalCore==='function')?_sxCellSignalCore(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1):null; }catch(_eCS8){} } }catch(_eR8){} }
     _svVerdict = SXC.unifiedVerdictV2(_btStateKey, _scores4, _svMom, _btStForVerdict);
     stock._svVerdict = _svVerdict; // 차트 마커용 저장
     // [S455] 차트 보라마커 = A+안전필터(qs.action) 기준. C(_svVerdict 9종판정)은 검토영역 유지.
@@ -16697,7 +16726,7 @@ async function _fetchMultiTfBackground(stock){
           winRate: btResult ? btResult.winRate : null,
           totalTrades: btResult ? btResult.totalTrades : null
         }) : null;
-        if(t.k==='day'){ try{ var _rowsB8=indicators._advanced.rows; if(qs&&qs.ind&&_rowsB8&&_rowsB8.length){ var _rsB8=_sxRecipeSigFor(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1); if(_rsB8){ _scores4.recipeSig=_rsB8; if((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES){ try{ _scores4.cv2=_cv2ComputeAll(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1, _rsB8, indicators._advanced); }catch(_eCvB8){} try{ _scores4.trendPos=_cv2TrendPosition(qs.ind, _rowsB8, _rowsB8.length-1); }catch(_eTpB8){} } } } }catch(_eB8){} }   // [S868] 일봉만 · [S903] cv2/trendPos 동반 주입 — TF 전환 복원 시 메인(11742)과 판정 정합(경로별 불일치 해소)
+        if(t.k==='day'){ try{ var _rowsB8=indicators._advanced.rows; if(qs&&qs.ind&&_rowsB8&&_rowsB8.length){ var _rsB8=_sxRecipeSigFor(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1); if(_rsB8){ _scores4.recipeSig=_rsB8; if((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES){ try{ _scores4.cv2=_cv2ComputeAll(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1, _rsB8, indicators._advanced); }catch(_eCvB8){} try{ _scores4.trendPos=_cv2TrendPosition(qs.ind, _rowsB8, _rowsB8.length-1); }catch(_eTpB8){} } } try{ _scores4.cellSig=(typeof _sxCellSignalCore==='function')?_sxCellSignalCore(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1):null; }catch(_eCSB8){} } }catch(_eB8){} }   // [S868] 일봉만 · [S903] cv2/trendPos 동반 주입 — TF 전환 복원 시 메인(11742)과 판정 정합(경로별 불일치 해소)
         svVerdict = SXC.unifiedVerdictV2(_btStateKey, _scores4, scoreMom, _btStForVerdict);
       }
 
