@@ -6036,6 +6036,7 @@ var _DISCOVERY_POOL = {
   ]
 };
 
+function _smaLast733ForAxis(rows,p){ if(!Array.isArray(rows)||rows.length<p) return null; var su=0; for(var q=rows.length-p;q<rows.length;q++){ var r=rows[q]; var c=(r&&(r.close!=null?r.close:r[4])); if(typeof c!=='number'||!isFinite(c)) return null; su+=c; } return su/p; }   // [S1111] 신축 단기축용 SMA(rows: 객체/배열 겸용)
 async function _btDiscrimBracket(mk, source, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, reason:'캔들 fetch 미연결' };
   if(!(typeof SXE!=='undefined'&&SXE.calcAllScreener)) return { ok:false, reason:'엔진 미로드' };
@@ -6072,8 +6073,13 @@ async function _btDiscrimBracket(mk, source, onProgress){
       var slice, ind;
       try { slice=rows.slice(Math.max(0, bi-249), bi+1); ind=SXE.calcAllScreener(slice,'day'); } catch(_eC){ continue; }
       if(!ind) continue;
-      var ltAlign=_ltStr733(ind.maAlignLT), maBull=!!(ind.maAlign && ind.maAlign.bullish);
-      var _sAx=(ind.maAlign&&ind.maAlign.bullish)?'bull':((ind.maAlign&&ind.maAlign.bearish)?'bear':'mixed');   // [S1109d] 단기축 3분 — _trendLabel과 동일 판정(칸 태그)
+      var ltAlign=_ltStr733(ind.maAlignLT);
+      // [S1111] 단기축 세대 교체(발굴 경로): 구축 5>20>60(엔진 maAlign) → ★신축 5>10>20(rows 직접·MA20>60 지연으로 V자 초입이 '중립' 오분류되던 것 교정).
+      //   실측 근거(3시장 스냅·h10): KR 중립→강세 승격군 +3.80%(중립유지 +3.11%) · 강등군 +3.34%(강세유지 +4.46%) = 양방향 정보 재분류 · 추가상승 base +4.95→+5.16% 응집. D-09.
+      //   ⚠엔진 maAlign(레거시 C 게이트·298레시피·배지 인벤토리)은 구축 유지 — 이원화 상태. 레거시 전환은 별도 아크(A/B 필수).
+      var _m5s=_smaLast733ForAxis(slice,5), _m10s=_smaLast733ForAxis(slice,10), _m20s=_smaLast733ForAxis(slice,20);
+      var _sAx=(_m5s!=null&&_m10s!=null&&_m20s!=null)?((_m5s>_m10s&&_m10s>_m20s)?'bull':((_m5s<_m10s&&_m10s<_m20s)?'bear':'mixed')):'mixed';
+      var maBull=(_sAx==='bull');   // [S1111] 풀 앵커(!maBull 등)도 신축 세대 — 4풀·칸·사다리 = 신축(ma51020) 세대로 통일
       if(!window._sxGridMode && !_poolMatch(ltAlign, maBull)) continue;   // [S1109] 선택 풀 앵커만 · [S1109d] grid 모드=전 봉 수집(칸 태그로 사후 분해)
       var ep=(rows[bi] && typeof rows[bi].close==='number')?rows[bi].close:null; if(ep==null) continue;
       var f=_extractFeats733(ind, rows, bi, true);   // [S1108] disc=true — 발굴 전용 확장 어휘(_F733_DISC_ADD 22종) 포함. 매매 경로는 인자 없이 호출하므로 35종 유지.
@@ -10623,7 +10629,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1110';   // [S1110] core v4 — 칸 사다리 신호(SX_CELL_DATA 소비·표시 전용 배지). S1109i=판정 28건 · S1109h=로드맵 카드
+  window.SX_BUILD='S1111';   // [S1111] 단기축 세대 교체(발굴=신축 5>10>20·D-09)+axisGen 가드+배지 감시라벨. S1110=core v4 칸 신호
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -13788,7 +13794,8 @@ function _sxbHTML(){
         _cellSigBadge = `<span class="sxb-badge" style="color:${_CC};background:${_CC}1A;border:1px solid ${_CC};cursor:pointer" onclick="event.stopPropagation();_sxbCellSigWhy&&_sxbCellSigWhy()">🧩 ${_cs.lbl||''} ${_tag} k${_pick.k}≥${_pick.kStar}</span>`;
       } else {
         const _mx=_cs.sig.reduce((a,x)=>(x.k>a.k?x:a),_cs.sig[0]);
-        _cellSigBadge = `<span class="sxb-badge" style="color:var(--text3);background:var(--surface2);border:1px solid var(--border);cursor:pointer" onclick="event.stopPropagation();_sxbCellSigWhy&&_sxbCellSigWhy()">🧩 ${_cs.lbl||''} k${_mx.k}/${_mx.kStar}</span>`;
+        const _wt=_mx.kind==='down'?'회피감시':(_mx.kind==='fake'?'경보감시':'신호감시');   // [S1111] 미달 상태에도 종류 표기 — 채워지면 좋은지 나쁜지 즉독
+        _cellSigBadge = `<span class="sxb-badge" style="color:var(--text3);background:var(--surface2);border:1px solid var(--border);cursor:pointer" onclick="event.stopPropagation();_sxbCellSigWhy&&_sxbCellSigWhy()">🧩 ${_cs.lbl||''} ${_wt} k${_mx.k}/${_mx.kStar}</span>`;
       }
     } }
   const _dirBadges  = `${transBadge}${_transitionBadge}`;                         // 방향 판정 (좌)
