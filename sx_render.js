@@ -10422,7 +10422,7 @@ async function _sxGridRobustRun(){
   for(var ri2=0;ri2<set.length;ri2++){ var r2=set[ri2], by={};
     for(var cell2 in perRec[ri2]) by[cell2]=_agg(perRec[ri2][cell2], base[r2.pool][cell2]);
     candsOut.push({ id:r2.id||('c'+ri2), pool:r2.pool, kind:r2.kind, label:r2.label||'', conds:r2.conds, byCell:by }); }
-  _sxGridResult={ tool:'gridRobust', ver:(window.SX_BUILD||''), mkt:mk, snap:_sxGridEntries.snap, preview:_rcpPvState.name, nEntries:ents.length, base:baseOut, ladder:ladderOut, cands:candsOut, ts:new Date().toISOString() };
+  _sxGridResult={ tool:'gridRobust', ver:(window.SX_BUILD||''), axisGen:'ma51020', mkt:mk, snap:_sxGridEntries.snap, preview:_rcpPvState.name, nEntries:ents.length, base:baseOut, ladder:ladderOut, cands:candsOut, ts:new Date().toISOString() };
   _sxGridRobustRender();
 }
 function _sxGridRobustRender(){
@@ -10490,12 +10490,14 @@ function _sxVocabFiles(input){
     if(ix>=fl.length){
       if(st){ var mkts={}, wins={}, modes={}; _sxVocabRaw.forEach(function(r){ mkts[r.mkt]=(mkts[r.mkt]||0)+1; wins[r.winLbl]=(wins[r.winLbl]||0)+1; modes[r.kind]=(modes[r.kind]||0)+1; });
         var _mis=window._vbMis||0; window._vbMis=0;
-        st.innerHTML='적재 <b>'+_sxVocabRaw.length+'</b>파일'+(bad?(' · <span style="color:#dc2626">인식실패 '+bad+'</span>'):'')+(_mis?(' · <span style="color:#d97706">⚠ 병합 산출물(sx_vocab/v2메타) '+_mis+'개 — 이 카드가 아니라 아래 <b>진단 카드 📁</b>에 로드</span>'):'')+' — 시장 '+JSON.stringify(mkts)+' · 창 '+JSON.stringify(wins)+' · 종류 '+JSON.stringify(modes)+' <span style="color:var(--text3)">(추가 선택=누적 · 🧹=비움)</span>'; }
+        var ags={}; _sxVocabRaw.forEach(function(r){ ags[r.ag]=(ags[r.ag]||0)+1; });
+        var agTxt=Object.keys(ags).length>1?' · <b style="color:#dc2626">⚠축 세대 혼합 '+JSON.stringify(ags)+' — 병합 차단됨(한 세대만 넣어줘)</b>':' · 축 '+Object.keys(ags).join('');
+        st.innerHTML='적재 <b>'+_sxVocabRaw.length+'</b>파일'+(bad?(' · <span style="color:#dc2626">인식실패 '+bad+'</span>'):'')+(_mis?(' · <span style="color:#d97706">⚠ 병합 산출물(sx_vocab/v2메타) '+_mis+'개 — 이 카드가 아니라 아래 <b>진단 카드 📁</b>에 로드</span>'):'')+agTxt+' — 시장 '+JSON.stringify(mkts)+' · 창 '+JSON.stringify(wins)+' · 종류 '+JSON.stringify(modes)+' <span style="color:var(--text3)">(추가 선택=누적 · 🧹=비움)</span>'; }
       return; }
     var rd=new FileReader();
     rd.onload=function(){
       try{ var j=JSON.parse(rd.result);
-        if(j&&Array.isArray(j.passed)&&j.pool&&j.mkt&&j.scanMode){ _sxVocabRaw.push({ mkt:j.mkt, pool:j.pool, kind:_vbKind(j.scanMode), pri:_vbWinPri(j), winLbl:_vbWinLbl(j), passed:j.passed, fname:fl[ix].name }); added++; }
+        if(j&&Array.isArray(j.passed)&&j.pool&&j.mkt&&j.scanMode){ _sxVocabRaw.push({ mkt:j.mkt, pool:j.pool, kind:_vbKind(j.scanMode), pri:_vbWinPri(j), winLbl:_vbWinLbl(j), passed:j.passed, fname:fl[ix].name, ag:(j.axisGen||'ma52060') }); added++; }   // [S1111b] ag=축 세대(구파일 폴백 ma52060)
         else if(j&&j.sets){ window._vbMis=(window._vbMis||0)+1; }   // [S1109g] 병합 산출물(sx_vocab/v2메타)을 여기 다시 넣은 경우 — 안내 분리
         else bad++;
       }catch(e){ bad++; }
@@ -10511,6 +10513,9 @@ function _sxVocabClear(){ _sxVocabRaw=[]; _sxVocabOut=null; var st=document.getE
 function _sxVocabBuild(){
   var rs=document.getElementById('vocabBuildResult');
   if(!_sxVocabRaw.length){ if(rs) rs.innerHTML='<div style="font-size:9.5px;color:#d97706;font-weight:700">먼저 전수 JSON들을 불러와줘 (sx_autoscan_*.json — 여러 개 선택 가능)</div>'; return; }
+  var _ags={}; _sxVocabRaw.forEach(function(r){ _ags[r.ag]=1; });
+  var _agList=Object.keys(_ags);
+  if(_agList.length>1){ if(rs) rs.innerHTML='<div style="font-size:9.5px;color:#dc2626;font-weight:700">⚠ 축 세대 혼합('+_agList.join(' + ')+') — 병합 중단. 구축(ma52060·기존 파일)과 신축(ma51020·S1111+) 전수는 모집단 정의가 달라 섞을 수 없어. 🧹 비우고 한 세대만 다시 넣어줘.</div>'; return; }   // [S1111b] 세대 오염 방지
   var capC=parseInt((document.getElementById('vocabCapCluster')||{}).value)||1;
   var capT=parseInt((document.getElementById('vocabCapTotal')||{}).value)||40;
   // 1) (mkt,cat) 시그니처 dedup — 우선순위 창 → n
@@ -10544,7 +10549,7 @@ function _sxVocabBuild(){
       report.push({ mkt:mkt, cat:cat, raw:items.length, clusters:nc, picked:picked.length });
     } }
   var files=_sxVocabRaw.map(function(r){ return r.fname; });
-  _sxVocabOut={ meta:{ tool:'beam_vocab', ver:(window.SX_BUILD||''), ts:new Date().toISOString(), params:{ capCluster:capC, capTotal:capT }, philosophy:'D-08개정: 판정=칸별 겹침 사다리(세트) — 개별 게이트는 빔통과+dedup+클러스터/상한만', nFiles:files.length }, sets:sets };
+  _sxVocabOut={ meta:{ tool:'beam_vocab', ver:(window.SX_BUILD||''), axisGen:(_agList[0]||'ma52060'), ts:new Date().toISOString(), params:{ capCluster:capC, capTotal:capT }, philosophy:'D-08개정: 판정=칸별 겹침 사다리(세트) — 개별 게이트는 빔통과+dedup+클러스터/상한만', nFiles:files.length }, sets:sets };
   if(rs){ var h='<div style="font-size:9px;color:var(--text2);margin:4px 0"><b>병합 결과</b> (합집합 → 클러스터 → cap'+capC+'/'+capT+')</div>';
     h+='<table style="width:100%;border-collapse:collapse;font-size:8px;text-align:right"><tr style="color:var(--text3)"><td style="text-align:left">시장·카테고리</td><td>합집합</td><td>클러스터</td><td>어휘</td></tr>';
     report.forEach(function(r0){ h+='<tr><td style="text-align:left;color:var(--text2)">'+r0.mkt+' '+r0.cat+'</td><td>'+r0.raw+'</td><td>'+r0.clusters+'</td><td style="font-weight:800">'+r0.picked+'</td></tr>'; });
@@ -10629,7 +10634,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1111';   // [S1111] 단기축 세대 교체(발굴=신축 5>10>20·D-09)+axisGen 가드+배지 감시라벨. S1110=core v4 칸 신호
+  window.SX_BUILD='S1111b';   // [S1111b] 세대 태그 전파(전수 stash·병합 혼합 차단·사다리 산출) — 재주행 전 오염 방지. S1111=신축 세대 전환
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -10863,7 +10868,7 @@ function _sxBuilderAutoScan(scanMode){
   var okFail=ok.length-passGate.length, dirFail=passGate.length-pass.length;
   var _fitOf=function(r){ return _dcFitGrade(r.late, r.surv, r.n, allLate); };   // [S779]
   var _fitCounts={진짜:0,가짜:0,애매:0}; pass.forEach(function(r){ var d=_fitOf(r).dir; _fitCounts[d>0?'진짜':d<0?'가짜':'애매']++; });
-  if(typeof window!=='undefined'){ window._sxAutoScanPass={ mkt:((typeof currentMarket!=='undefined')?currentMarket:'kr'), snap:((typeof _snapInfo==='function')?_snapInfo():null), scanMode:scanMode, pool:DP.key, poolName:DP.poolName, mode:mode, base:base.map(function(c){return {key:c.key,label:c.label,type:c.type,dir:(c.type==='num'?c.dir:null),th:(c.type==='num'?c.th:null)};}), baseStats:{n10:baseN10,hold:baseHold,n:baseN, allN3:allN3,allN5:allN5,allN10:allN10,allHold:allHold, allLate:allLate,baseLate:baseLate, fitCounts:_fitCounts}, passed:pass.map(function(r){return {label:r.label,key:r.cond.key,type:r.type,dir:(r.type==='num'?r.cond.dir:null),th:(r.type==='num'?r.cond.th:null),n3:r.n3,n5:r.n5,n10:r.n10,hold:r.hold,late:r.late,surv:r.surv,fit:_fitOf(r).label,n:r.n,dN10:r.dN10};}), passCount:pass.length, ts:new Date().toISOString() }; }
+  if(typeof window!=='undefined'){ window._sxAutoScanPass={ axisGen:'ma51020', mkt:((typeof currentMarket!=='undefined')?currentMarket:'kr'), snap:((typeof _snapInfo==='function')?_snapInfo():null), scanMode:scanMode, pool:DP.key, poolName:DP.poolName, mode:mode, base:base.map(function(c){return {key:c.key,label:c.label,type:c.type,dir:(c.type==='num'?c.dir:null),th:(c.type==='num'?c.th:null)};}), baseStats:{n10:baseN10,hold:baseHold,n:baseN, allN3:allN3,allN5:allN5,allN10:allN10,allHold:allHold, allLate:allLate,baseLate:baseLate, fitCounts:_fitCounts}, passed:pass.map(function(r){return {label:r.label,key:r.cond.key,type:r.type,dir:(r.type==='num'?r.cond.dir:null),th:(r.type==='num'?r.cond.th:null),n3:r.n3,n5:r.n5,n10:r.n10,hold:r.hold,late:r.late,surv:r.surv,fit:_fitOf(r).label,n:r.n,dN10:r.dN10};}), passCount:pass.length, ts:new Date().toISOString() }; }
   var baseLbl = base.length ? base.map(function(c){return c.label+(c.type==='num'?(c.dir==='lt'?'<'+c.th:'>'+c.th):'');}).join(' · ') : '(없음 — 단일 재료 탐색)';
   var h='<div style="font-size:9px;color:'+T3+';margin-bottom:5px;line-height:1.4">베이스: <b style="color:var(--text2)">'+baseLbl+'</b>'+(base.length?('<br>베이스 단독 N10 <b style="color:var(--text)">'+(baseN10!=null?Math.round(100*baseN10)+'%':'-')+'</b>'+(baseHold!=null?(' · 유지 '+Math.round(100*baseHold)+'%'):'')+' · 표본 '+baseN):'')+'</div>';
   var _row=function(r, dim){
@@ -10982,7 +10987,7 @@ function _sxBeamRun(scanMode, out){
 
   // JSON 저장 — 각 조합의 전체 conds 포함(자체완결, bool→bin 변환). 💾 다운로드 그대로 사용.
   if(typeof window!=='undefined'){
-    window._sxAutoScanPass={ tool:'beam', mkt:((typeof currentMarket!=='undefined')?currentMarket:'kr'), snap:((typeof _snapInfo==='function')?_snapInfo():null), scanMode:scanMode, pool:DP.key, poolName:DP.poolName, mode:'and', exhaustive:exhaustive, lens:{from:_LZB.from,to:_LZB.to},   // [S864]
+    window._sxAutoScanPass={ tool:'beam', axisGen:'ma51020', mkt:((typeof currentMarket!=='undefined')?currentMarket:'kr'), snap:((typeof _snapInfo==='function')?_snapInfo():null), scanMode:scanMode, pool:DP.key, poolName:DP.poolName, mode:'and', exhaustive:exhaustive, lens:{from:_LZB.from,to:_LZB.to},   // [S864] · [S1111b] axisGen=수집기 단기축 세대(신축 5>10>20)
       seed: base.map(function(c){return {key:c.key,label:c.label,type:(c.type==='num'?'num':'bin'),dir:(c.type==='num'?c.dir:null),th:(c.type==='num'?c.th:null)};}),
       baseStats:{allN3:allN3,allN5:allN5,allN10:allN10,allHold:allHold,allLate:allLate, allLens:allLens, allRetLens:allRetLens, biMed:_biMed, tests:tests, capped:capped},   // [S864]
       passed: results.map(function(r){ return { conds:r.conds.map(function(c){return {key:c.key,type:(c.type==='num'?'num':'bin'),dir:(c.type==='num'?c.dir:null),th:(c.type==='num'?c.th:null),label:c.label};}),
