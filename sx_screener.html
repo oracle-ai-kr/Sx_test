@@ -53,7 +53,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=447"></script><!-- [S1109f] 어휘 통합 카드 · S1109e 칸별 사다리 -->
+<script src="sx_render.js?v=449"></script><!-- [S1109h] 로드맵 카드 · S1109g 병합 개명·12카테고리 -->
 <script src="sx_recipe_signal.js?v=51"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1860,15 +1860,28 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <div class="anal-body">
       <!-- [S748] 깊이 분석 카드 호스트 — 분석탭에서 이동(MA크로스전이·신호판단검증·C판정검증). 종목분석 렌더(analBody)가 현재종목 (stock,indicators)로 채움. analPage2는 analBody와 형제라 종목분석 렌더가 덮지 않음. -->
       <div id="sxModeBar" style="margin-bottom:6px"></div><!-- [S869] 공용 모드 바 -->
+      <details style="background:var(--surface);border:1px solid #0ea5e966;border-radius:12px;padding:8px 12px;margin-bottom:6px"><!-- [S1109h] 레시피 로드맵 안내 카드 -->
+        <summary style="font-size:11px;font-weight:800;cursor:pointer;color:#0369a1">🗺️ 레시피 로드맵 <span style="font-weight:500;font-size:9px;color:var(--text3)">발굴→병합→사다리→판정 (탭해서 열기)</span></summary>
+        <div style="font-size:9.5px;color:var(--text2);line-height:1.7;margin-top:6px">
+          <b>⓪ 풀 준비</b> — 발굴풀 스냅(코인=합집합 자동). <b style="color:#b45309">풀이 바뀌면(매매목록 등) 그 풀에서 재발굴이 원칙</b>(레시피=발굴 풀 한정 최적화).<br>
+          <b>① 전수 실행</b> — 빌더에서 🌳진짜/가짜/하락 전수 × 검증 풀 4개 토글 × 창(📂스냅·🕰창A·창B) → 각각 💾 JSON. (시장당 최대 3×4×3=36파일)<br>
+          <b>② 📚 레시피 병합</b> — 전수 JSON들 여러 개 선택(누적 가능·창/시장/종류 섞어도 됨) → ⚗️ 병합 → 💾 sx_vocab 저장. <span style="color:var(--text3)">산출물을 이 카드에 다시 넣지 말 것.</span><br>
+          <b>③ 진단 카드 📁</b> — sx_vocab 로드 → 12분류 표 확인. <span style="color:var(--text3)">시장 바꾸면 재로드.</span><br>
+          <b>④ 🧩 칸별 사다리</b> — <b>시장×창(스냅/창A/창B) = 9회</b> 실행, 각각 📋 JSON 내보내기.<br>
+          <b>⑤ 판정(오프라인)</b> — 사다리 JSON 9개 병합 → 칸 채택: <b>단조✓ + 상단(k3/4+) 리프트 + 빈티지 ≥1창 재현</b> → 최종 세트(cellMask).<br>
+          <b>⑥ 예정</b> — core v4: cellMask 소비(칸 대조 발동·votes).<br>
+          <span style="font-size:8.5px;color:var(--text3)">원칙: 판정 단위=<b>겹침 사다리</b>(개별 레시피 아님·S835/D-04) · 효과=<b>칸 기저 대비</b>(L-16) · 렌즈=발굴 풀 렌즈 고정(순환 방지) · n&lt;20=저파워(배제 아님) · 세 창은 기개방 in-sample — 최종 판정은 시간축 OOS.</span>
+        </div>
+      </details>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:6px"><!-- [S1109f] 📚 어휘 통합 — 전수 JSON 병합(오프라인 도구 내재화·매매목록 풀 재발굴 대비) -->
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:11px;font-weight:800">📚 어휘 통합</span>
+          <span style="font-size:11px;font-weight:800">📚 레시피 병합</span><!-- [S1109g] 개명: 어휘 통합→레시피 병합 -->
           <label style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:12px;border:1px dashed #0e749088;cursor:pointer;background:var(--surface2);color:#0e7490">📁 전수 JSON들<input type="file" accept=".json,application/json" multiple onchange="window._sxVocabFiles&&_sxVocabFiles(this)" style="display:none"></label>
           <span onclick="_sxVib(10);window._sxVocabBuild&&_sxVocabBuild()" style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:12px;border:1px solid #7c3aed66;cursor:pointer;background:#7c3aed14;color:#6d28d9">⚗️ 병합</span>
           <span onclick="_sxVib(10);window._sxVocabClear&&_sxVocabClear()" style="font-size:9.5px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--text3)">🧹</span>
           <span style="font-size:8px;color:var(--text3)">클러스터당 <input id="vocabCapCluster" type="number" value="1" min="1" max="4" style="width:32px;font-size:9px;padding:2px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--text)"> · 카테고리 상한 <input id="vocabCapTotal" type="number" value="40" min="5" max="200" style="width:44px;font-size:9px;padding:2px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--text)"></span>
         </div>
-        <div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-top:4px">전수 결과(sx_autoscan_*.json — 진짜/가짜/하락 · 여러 창·풀)를 <b>여러 개 선택</b>해 병합: 시그니처(재료+방향) dedup(현행&gt;창A&gt;창B) → J≥0.5 클러스터 → 상한. 산출=어휘 JSON → 아래 진단 카드에 로드 → 🧩 사다리. <b>풀이 바뀌면(매매목록 등) 그 풀 전수로 어휘 재발굴이 원칙</b>(레시피=발굴 풀 한정 최적화).</div>
+        <div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-top:4px">전수 결과(sx_autoscan_*.json — 진짜/가짜/하락 · 여러 창·풀)를 <b>여러 개 선택</b>해 병합: 시그니처(재료+방향) dedup(현행&gt;창A&gt;창B) → J≥0.5 클러스터 → 상한. 산출=<b>병합 레시피 JSON(sx_vocab_*)</b> → <b>아래 진단 카드 📁에 로드</b> → 🧩 사다리. ⚠산출물을 이 카드에 다시 넣지 말 것. <b>풀이 바뀌면(매매목록 등) 그 풀 전수로 레시피 재발굴이 원칙</b>(레시피=발굴 풀 한정 최적화).</div>
         <div id="vocabBuildStatus" style="font-size:9px;color:var(--text2);margin-top:5px"></div>
         <div id="vocabBuildResult" style="margin-top:4px"></div>
       </div>
