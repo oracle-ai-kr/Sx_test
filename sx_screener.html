@@ -53,7 +53,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=446"></script><!-- [S1109e] 칸별 겹침 사다리 · S1109c 코인 합집합 · S1109 4풀+진짜하락 -->
+<script src="sx_render.js?v=447"></script><!-- [S1109f] 어휘 통합 카드 · S1109e 칸별 사다리 -->
 <script src="sx_recipe_signal.js?v=51"></script>
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1860,6 +1860,18 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <div class="anal-body">
       <!-- [S748] 깊이 분석 카드 호스트 — 분석탭에서 이동(MA크로스전이·신호판단검증·C판정검증). 종목분석 렌더(analBody)가 현재종목 (stock,indicators)로 채움. analPage2는 analBody와 형제라 종목분석 렌더가 덮지 않음. -->
       <div id="sxModeBar" style="margin-bottom:6px"></div><!-- [S869] 공용 모드 바 -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:6px"><!-- [S1109f] 📚 어휘 통합 — 전수 JSON 병합(오프라인 도구 내재화·매매목록 풀 재발굴 대비) -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:800">📚 어휘 통합</span>
+          <label style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:12px;border:1px dashed #0e749088;cursor:pointer;background:var(--surface2);color:#0e7490">📁 전수 JSON들<input type="file" accept=".json,application/json" multiple onchange="window._sxVocabFiles&&_sxVocabFiles(this)" style="display:none"></label>
+          <span onclick="_sxVib(10);window._sxVocabBuild&&_sxVocabBuild()" style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:12px;border:1px solid #7c3aed66;cursor:pointer;background:#7c3aed14;color:#6d28d9">⚗️ 병합</span>
+          <span onclick="_sxVib(10);window._sxVocabClear&&_sxVocabClear()" style="font-size:9.5px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--text3)">🧹</span>
+          <span style="font-size:8px;color:var(--text3)">클러스터당 <input id="vocabCapCluster" type="number" value="1" min="1" max="4" style="width:32px;font-size:9px;padding:2px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--text)"> · 카테고리 상한 <input id="vocabCapTotal" type="number" value="40" min="5" max="200" style="width:44px;font-size:9px;padding:2px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--text)"></span>
+        </div>
+        <div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-top:4px">전수 결과(sx_autoscan_*.json — 진짜/가짜/하락 · 여러 창·풀)를 <b>여러 개 선택</b>해 병합: 시그니처(재료+방향) dedup(현행&gt;창A&gt;창B) → J≥0.5 클러스터 → 상한. 산출=어휘 JSON → 아래 진단 카드에 로드 → 🧩 사다리. <b>풀이 바뀌면(매매목록 등) 그 풀 전수로 어휘 재발굴이 원칙</b>(레시피=발굴 풀 한정 최적화).</div>
+        <div id="vocabBuildStatus" style="font-size:9px;color:var(--text2);margin-top:5px"></div>
+        <div id="vocabBuildResult" style="margin-top:4px"></div>
+      </div>
       <div id="rcpPreviewCard"></div><!-- [S872] 레시피 사용성 진단 -->
       <div id="cvDeepCardsHost" style="margin-bottom:4px"></div>
       <!-- [S1035] 📈 추세 지속 탐색 (신설 카드 — 강세 지형 재료 발굴, 반등 카드와 별개 주제) · [S1036] 접기/펼치기 기본접힘 -->
