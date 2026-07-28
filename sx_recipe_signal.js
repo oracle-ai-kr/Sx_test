@@ -73,7 +73,10 @@
   //   ★캐시 키 분리 필수: 플래그 없이 캐시된 스캔이 재사용되면 fv3가 없는 채로 조용히 실패한다.
   var _V3ON = false;
   function _setV3(on){ _V3ON = !!on; }
-  function _cacheKey(sym, rows){ return sym+'_'+rows.length+'_'+(rows.length?rows[rows.length-1].close:0)+(_V3ON?'_v3':''); }
+  // [S1116] 칸 사다리 신호 동반 추출 옵트인(매매전략 카드용) — _V3ON과 같은 패턴. 켜면 봉당 _sxCellSignalCore 1회(disc 어휘 추출+칸 규칙 평가·calcAllScreener 대비 미미).
+  //   ★캐시 키 분리(_cs) 필수 — 플래그 없이 캐시된 스캔에는 cs가 없어 조용히 실패한다(v3와 동일 함정).
+  var _CELLON = false, _CELLMK = 'kr';
+  function _cacheKey(sym, rows){ return sym+'_'+rows.length+'_'+(rows.length?rows[rows.length-1].close:0)+(_V3ON?'_v3':'')+(_CELLON?'_cs':''); }
   async function _scanStock(sym, rows){
     var ck=_cacheKey(sym, rows); if(_scanCache[ck]) return _scanCache[ck];
     var arr=[], start=250;
@@ -91,7 +94,17 @@
         //     (ind, slice, slice.length-1) — 원장이 250봉 슬라이스 기준으로 측정했기 때문.
         var _fv3=null;
         if(_V3ON && typeof _extractFeatsV3==='function'){ try{ _fv3=_extractFeatsV3(ind, slice, slice.length-1); }catch(_e5){ _fv3=null; } }
-        arr.push({ bar:bi, lt:_ltOf(ind), maBull:!!(ind.maAlign && ind.maAlign.bullish), maBear:!!(ind.maAlign && ind.maAlign.bearish), f:f, fv3:_fv3, rd:_rd, en:_en, tp:_tp, up:_up });   // [S824] maBear=단기 역배(MA5<20<60) — 데드캣 단기쪼개기 측정용 · [S861] rd/en/tp/up · [S1103] fv3
+        // [S1116] 칸 사다리 신호(매매전략 카드) — SX_CELL_DATA(S1114 신축 29규칙) 현재 봉의 칸 평가. r/d/f = real/down/fake 히트(k>=k*).
+        var _cs=null;
+        if(_CELLON && typeof _sxCellSignalCore==='function'){
+          try{ var _c0=_sxCellSignalCore(_CELLMK, ind, rows, bi);
+            if(_c0){ var _r7=0,_d7=0,_f7=0, _sgA=_c0.sig||[];
+              for(var _q7=0;_q7<_sgA.length;_q7++){ var _sg=_sgA[_q7]; if(_sg&&_sg.hit){ if(_sg.kind==='real')_r7=1; else if(_sg.kind==='down')_d7=1; else if(_sg.kind==='fake')_f7=1; } }
+              _cs={c:_c0.cell, r:_r7, d:_d7, f:_f7};
+            }
+          }catch(_ec){ _cs=null; }
+        }
+        arr.push({ bar:bi, lt:_ltOf(ind), maBull:!!(ind.maAlign && ind.maAlign.bullish), maBear:!!(ind.maAlign && ind.maAlign.bearish), f:f, fv3:_fv3, cs:_cs, rd:_rd, en:_en, tp:_tp, up:_up });   // [S824] maBear=단기 역배(MA5<20<60) — 데드캣 단기쪼개기 측정용 · [S861] rd/en/tp/up · [S1103] fv3 · [S1116] cs
       } }
       if((bi-start)%40===39){ await new Promise(function(r){ setTimeout(r,0); }); }   // UI 양보
     }
@@ -279,6 +292,35 @@
       for(var d=0;d<dcF.length;d++){ if(_fires(dcF[d], s.f, s.lt, s.maBull)){ dcFake[s.bar]=true; break; } }
     }
     return {pbReal:pbReal, pbFake:pbFake, dcReal:dcReal, dcFake:dcFake};
+  }
+
+  /* ───────── [S1116] 전략조합 신호 봉맵 — 매매전략 카드 통합 엔진용 ─────────
+   *   한 번의 _scanStock(_cs 키)으로 레거시 4맵(pb/dc × real/fake) + 칸 사다리 3맵(real/down/fake)을 동시 산출.
+   *   칸 신호 = SX_CELL_DATA(S1114 신축 29규칙·in-sample 적합) k≥k* 히트. DOWN/FAKE 매수투표 금지(S1102 §8-3) 계승 —
+   *   소비측(_stratBt)에서 down/fake는 청산·회피 전용, real만 진입. 같은 rows → BT 봉 인덱스 1:1.
+   *   반환 {pbReal,pbFake,dcReal,dcFake,cellReal,cellDown,cellFake} 각 {barIdx:true}.
+   */
+  async function _stratSignalBars(sym, rows, mk){
+    var EMPTY={pbReal:{},pbFake:{},dcReal:{},dcFake:{},cellReal:{},cellDown:{},cellFake:{}};
+    if(!Array.isArray(rows) || rows.length<260) return EMPTY;
+    var _pv=_CELLON, _pm=_CELLMK; _CELLON=true; _CELLMK=(mk==='us'||mk==='coin')?mk:'kr';
+    var scan=null;
+    try{ scan=await _scanStock(sym, rows); }catch(e){ scan=null; }
+    finally{ _CELLON=_pv; _CELLMK=_pm; }
+    if(!Array.isArray(scan)) return EMPTY;
+    var pbR=_R().filter(function(r){ return r.kind==='real' && r.pool==='pullback'; });
+    var pbF=_R().filter(function(r){ return r.kind==='fake' && r.pool==='pullback'; });
+    var dcRr=_R().filter(function(r){ return r.kind==='real' && r.pool==='deadcat'; });
+    var dcFf=_R().filter(function(r){ return r.kind==='fake' && r.pool==='deadcat'; });
+    var out={pbReal:{},pbFake:{},dcReal:{},dcFake:{},cellReal:{},cellDown:{},cellFake:{}};
+    for(var i=0;i<scan.length;i++){ var s=scan[i];
+      for(var a=0;a<pbR.length;a++){ if(_fires(pbR[a], s.f, s.lt, s.maBull)){ out.pbReal[s.bar]=true; break; } }
+      for(var b=0;b<pbF.length;b++){ if(_fires(pbF[b], s.f, s.lt, s.maBull)){ out.pbFake[s.bar]=true; break; } }
+      for(var c=0;c<dcRr.length;c++){ if(_fires(dcRr[c], s.f, s.lt, s.maBull)){ out.dcReal[s.bar]=true; break; } }
+      for(var d=0;d<dcFf.length;d++){ if(_fires(dcFf[d], s.f, s.lt, s.maBull)){ out.dcFake[s.bar]=true; break; } }
+      if(s.cs){ if(s.cs.r) out.cellReal[s.bar]=true; if(s.cs.d) out.cellDown[s.bar]=true; if(s.cs.f) out.cellFake[s.bar]=true; }
+    }
+    return out;
   }
 
   /* ───────── [S809] 겹침 측정 — 봉별 real 레시피 동시발동 수 + N10 후반평균 적중 ─────────
@@ -883,6 +925,6 @@
     } catch(e){}
   }
 
-  window.SXRecipeSignal = { setPreview:_setPreview, ingScan:_ingScan, clearPreview:_clearPreview, previewInfo:_previewInfo, buildCard:buildCard, toggle:toggle, tab:_tab, catToggle:_catToggle, _populate:_populate, _pendingByCat:_pendingByCat, realFireBars:_realFireBars, realFireCells:_realFireCells, dualCellScan:_dualCellScan, setV3:_setV3, pullbackSignalBars:_pullbackSignalBars, hybridSignalBars:_hybridSignalBars, overlapScan:_overlapScan, profileScan:_profileScan, evalBar:_evalBar, baseRateScan:_baseRateScan, deadcatTrajScan:_deadcatTrajScan, deadcatConfirmScan:_deadcatConfirmScan, deadcatOverlapHzScan:_deadcatOverlapHzScan, deadcatHzBtScan:_deadcatHzBtScan, fireOnly:_fireOnlySet, recipesFor:_recipesFor };
+  window.SXRecipeSignal = { setPreview:_setPreview, stratSignalBars:_stratSignalBars, ingScan:_ingScan, clearPreview:_clearPreview, previewInfo:_previewInfo, buildCard:buildCard, toggle:toggle, tab:_tab, catToggle:_catToggle, _populate:_populate, _pendingByCat:_pendingByCat, realFireBars:_realFireBars, realFireCells:_realFireCells, dualCellScan:_dualCellScan, setV3:_setV3, pullbackSignalBars:_pullbackSignalBars, hybridSignalBars:_hybridSignalBars, overlapScan:_overlapScan, profileScan:_profileScan, evalBar:_evalBar, baseRateScan:_baseRateScan, deadcatTrajScan:_deadcatTrajScan, deadcatConfirmScan:_deadcatConfirmScan, deadcatOverlapHzScan:_deadcatOverlapHzScan, deadcatHzBtScan:_deadcatHzBtScan, fireOnly:_fireOnlySet, recipesFor:_recipesFor };
   try{ Object.defineProperty(window.SXRecipeSignal,'RECIPES',{ get:function(){ return _R(); } }); }catch(_e){ window.SXRecipeSignal.RECIPES=RECIPES_BY_MKT.kr; }   // [S849] 구소비처 호환 — currentMarket 세트 동적 반환
 })();
