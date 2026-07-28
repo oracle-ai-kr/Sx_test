@@ -10636,7 +10636,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1114';   // [S1114] 신축 cell_data(29규칙) 배포 + D-1 헤더-배지 세대 정합(_trendLabel sOverride). S1112~13=신축 판정 관문1 통과
+  window.SX_BUILD='S1115';   // [S1115] 🧩 칸 사다리 v2 카드(v3 UI 승계·엔진 교체·사용자 제안)+해석 문구 축 동적화. S1114=신축 배포+D-1
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15130,8 +15130,9 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
             const _flagTxt = _tl.slopeFlag ? ` · <b style="color:${_tl.slopeFlag==='천장권'?C.red:C.blue}">${_tl.slopeFlag==='천장권'?'⚠️천장권':'🔼바닥권'}</b>` : '';
             const _dispTxt = (_pos && _pos.disp!=null) ? ` · 이격도 ${_pos.disp.toFixed(0)} (${_pos.qLabel})` : '';
             const _gudoBody = `단기 <b>${_tl.shortLabel}</b> · 장기 <b>${_tl.longLabel}</b>${_flagTxt}${_dispTxt}`;
-            const _eShort = _tl.short==='bull' ? '단기 이평선(5·20·60)이 상승 순서라 지금 힘이 실려요(강세).'
-              : _tl.short==='bear' ? '단기 이평선(5·20·60)이 하락 순서라 지금 힘이 빠졌어요(약세).'
+            const _maTxt15=((typeof window!=='undefined'&&window.SX_CELL_DATA&&window.SX_CELL_DATA.meta&&window.SX_CELL_DATA.meta.axisGen==='ma51020')&&_sOv15)?'5·10·20':'5·20·60';   // [S1115] 축 세대 동적 표기(D-2 소부채)
+            const _eShort = _tl.short==='bull' ? '단기 이평선('+_maTxt15+')이 상승 순서라 지금 힘이 실려요(강세).'
+              : _tl.short==='bear' ? '단기 이평선('+_maTxt15+')이 하락 순서라 지금 힘이 빠졌어요(약세).'
               : '단기 이평선이 뒤섞여 방향이 애매해요(중립).';
             const _eLong = _tl.long==='bull' ? ' 장기선(60·120·200)은 아직 상승 순서(상승장)예요.'
               : _tl.long==='bear' ? ' 장기선(60·120·200)도 하락 순서(하락장)예요.'
@@ -15253,8 +15254,8 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       })()}
     </div>
 
-    ${/* [S1104] v3 3×3 태그 카드 — 표시 전용(판정/투표 무관) · 문자열만 반환(부작용 0) */
-      (typeof _v3TagCard==='function') ? _v3TagCard(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs, indicators) : ''}
+    ${/* [S1115] 🧩 칸 사다리 v2 카드 — v3 카드 UI 승계·엔진=SX_CELL_DATA(29규칙·신축). v3(_v3TagCard)는 호출 해제=자연 퇴역 */
+      (typeof _cellLadderCard==='function') ? _cellLadderCard(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs, indicators) : ''}
 
     ${(()=>{
       if(!qs) return '';
@@ -16895,6 +16896,75 @@ function _v3Pp(x){
   if(x==null || !isFinite(x)) return '—';
   var v=100*x;
   return (v>=0?'+':'') + v.toFixed(Math.abs(v)<1 ? 2 : 1);
+}
+
+// ════════ [S1115] 🧩 칸 사다리 v2 카드 — v3 3×3 태그 카드의 UI 승계·엔진 교체(사용자 제안) ════════
+//   데이터=SX_CELL_DATA(29규칙·ma51020) · 판정=_sxCellSignalCore(데이터 세대 추종). 표시 전용 — C/votes/시즌2 미반영.
+//   v3 카드(_v3TagCard·RECIPES_V3_BY_MKT)는 호출 해제로 자연 퇴역(코드·리포 보존=알갱이). 침묵 사유 분리(S1103 교훈)·"등록0≠무발동"(S1106) 계승.
+function _cellLadderCard(mk, qs, indicators){
+  var GRN='#16a34a', RED='#dc2626', AMB='#ea580c', BLU='#2563eb', DKR='#7f1d1d', T2='var(--text2)', T3='var(--text3)';
+  var esc=(typeof _bv2Esc==='function') ? _bv2Esc : function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k]; }); };
+  var wrap=function(body){
+    return '<div class="anal-header-card" style="margin-top:10px">'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap">'
+      +'<span style="font-size:13px;font-weight:800;color:var(--text)">🧩 칸 사다리 v2</span>'
+      +'<span style="font-size:8px;font-weight:800;color:#fff;background:'+BLU+';border-radius:9px;padding:2px 7px">표시 전용 · 판정 무관</span>'
+      +'<span style="font-size:8px;font-weight:700;color:'+T3+'">실험</span>'
+      +'</div>'+body+'</div>';
+  };
+  var mute=function(t){ return wrap('<div style="font-size:10px;color:'+T3+';line-height:1.55">'+t+'</div>'); };
+  try{
+    var tf=(typeof _analTF!=='undefined')?_analTF:'day';
+    if(tf!=='day') return '';
+    var ind=qs&&qs.ind;
+    var rows=(indicators&&indicators._advanced&&Array.isArray(indicators._advanced.rows))?indicators._advanced.rows:null;
+    if(!ind||!rows||!rows.length) return '';
+    var D=(typeof window!=='undefined')?window.SX_CELL_DATA:null;
+    if(!D||!D.rules) return mute('⚠ 칸 데이터 미탑재 — <b>sx_cell_data.js</b> 로드/캐시버스터 확인');
+    var cs=(typeof _sxCellSignalCore==='function')?_sxCellSignalCore(mk, ind, rows, rows.length-1):null;
+    if(!cs) return mute('웜업 미달 — 장기 배열(MA60/120/200)이 서지 않아 칸이 정해지지 않는다. 원장도 이 구간을 모집단에서 제외했으므로 판정하지 않는다.');
+    // ── 시장별 3×3 규칙 분포 ──
+    var reg={}, mktRules=0;
+    for(var i=0;i<D.rules.length;i++){ var r=D.rules[i]; if(r.mkt!==mk) continue; mktRules++;
+      var o=reg[r.cell]||(reg[r.cell]={real:0,fake:0,down:0}); o[r.kind]=(o[r.kind]||0)+1; }
+    if(!mktRules) return mute('🚧 '+esc(String(mk).toUpperCase())+'는 채택 규칙 0 — 이 시장은 판정 라운드에서 채택 칸이 없었다.');
+    var CLBL=(cs.lbl||'')||cs.cell;
+    var h='<div style="font-size:11.5px;color:'+T2+';line-height:1.6;margin-bottom:6px">'
+      +'<b style="color:var(--text)">현재 칸</b> &nbsp;<b style="color:'+BLU+';font-size:12.5px">'+esc(CLBL)+'</b>'
+      +' <span style="font-size:9.5px;color:'+T3+'">('+esc(cs.cell)+')</span><br>'
+      +'이 칸 규칙 <b>'+cs.sig.length+'</b>개</div>';
+    if(cs.sig.length){
+      for(var j=0;j<cs.sig.length;j++){ var g=cs.sig[j];
+        var col=g.kind==='real'?GRN:(g.kind==='down'?DKR:AMB);
+        var tag=g.kind==='real'?'진입후보':(g.kind==='down'?'회피(하락 관측)':'가짜 경보');
+        var pct=Math.min(100, Math.round(100*g.k/Math.max(1,g.kStarN)));
+        h+='<div style="padding:6px 9px;background:var(--surface2);border-radius:7px;margin-bottom:5px;border-left:3px solid '+col+(g.hit?'':'55')+'">'
+          +'<div style="font-size:10.5px;line-height:1.5"><b style="color:'+col+'">'+(g.hit?'●':'○')+' '+esc(g.cat)+'</b>'
+          +' <span style="color:'+T2+'">발동 <b>'+g.k+'</b>/'+esc(g.kStar)+(g.hit?(' <b style="color:'+col+'">✓ '+tag+'</b>'):' <span style="font-size:9px;color:'+T3+'">('+tag+' 감시)</span>')+'</span></div>'
+          +'<div style="height:4px;background:var(--border);border-radius:2px;margin:4px 0 2px"><div style="height:4px;width:'+pct+'%;background:'+col+';border-radius:2px"></div></div>'
+          +'<div style="font-size:8.5px;color:'+T3+'">과거 상단Δ '+(g.topD>0?'+':'')+g.topD+'%p · 재현 '+esc((g.repro||[]).join('+')||'-')+'</div></div>';
+      }
+    } else {
+      h+='<div style="font-size:10px;color:'+T3+';line-height:1.55;padding:6px 9px;background:var(--surface2);border-radius:7px;margin-bottom:6px">이 칸은 <b>채택 규칙 0</b> — 판정할 대상 자체가 없다(무발동과 다른 상태). 판정 라운드에서 이 칸은 기준(단조+리프트+재현)을 넘은 카테고리가 없었다 → <b>아무 말도 하지 않는다</b>(정보 없음 · 좋다/나쁘다 아님).</div>';
+    }
+    // ── 3×3 분포 그리드(칸 이름=SSOT · 현재 칸 강조) ──
+    var SL={bull:'강세',bear:'약세',mixed:'중립'}, LL={bull:'상승장',bear:'하락장',mixed:'횡보장'};
+    h+='<div style="font-size:9px;font-weight:700;color:'+T3+';margin:6px 0 3px">▦ 채택 규칙 분포 <span style="font-weight:400">(숫자=규칙 수 · R진입/F경보/D회피)</span></div>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:8.5px;text-align:center">';
+    h+='<tr><td></td><td style="color:'+T3+'">상승장</td><td style="color:'+T3+'">하락장</td><td style="color:'+T3+'">횡보장</td></tr>';
+    var SS=['bull','bear','mixed'], LS=['bull','bear','mixed'];
+    for(var si=0;si<3;si++){ var sx=SS[si]; h+='<tr><td style="color:'+T3+';font-size:8px">'+SL[sx]+'</td>';
+      for(var li=0;li<3;li++){ var lx=LS[li], ck=sx+'|'+lx, rr=reg[ck], cur=(ck===cs.cell);
+        var nm=(typeof _TREND_MATRIX!=='undefined'&&_TREND_MATRIX[sx]&&_TREND_MATRIX[sx][lx])?_TREND_MATRIX[sx][lx]:ck;
+        var cnt=rr?((rr.real?('R'+rr.real):'')+(rr.fake?(' F'+rr.fake):'')+(rr.down?(' D'+rr.down):'')).trim():'—';
+        h+='<td style="padding:5px 2px;border:1px solid '+(cur?BLU:'var(--border)')+';'+(cur?'background:'+BLU+'14;':'')+'">'
+          +'<div style="font-size:8px;color:'+(cur?BLU:T2)+';font-weight:'+(cur?'800':'600')+'">'+esc(nm)+'</div>'
+          +'<div style="font-size:8.5px;font-weight:800;color:'+(rr?'var(--text)':T3)+'">'+esc(cnt)+'</div></td>'; }
+      h+='</tr>'; }
+    h+='</table>';
+    h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.6;margin-top:6px">세트 v2 '+D.rules.length+'규칙 · '+esc((D.meta&&D.meta.axisGen)||'')+' 세대(단기 5&gt;10&gt;20) · S1114 판정. 이 카드는 <b>표시만</b> 한다 — C 판정·votes·시즌2 어디에도 반영되지 않는다. <b>D(회피)는 하락 관측이지 매도 지시가 아니다.</b> 규칙은 in-sample 적합 — 시간축 OOS 축적 중(현 기준하 보임).</div>';
+    return wrap(h);
+  }catch(e){ return ''; }
 }
 
 function _v3TagCard(mk, qs, indicators){
