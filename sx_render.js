@@ -4492,8 +4492,10 @@ function _ma60Slope(closes, lookback){
     return (now-prev)/prev*100;
   }catch(e){ return null; }
 }
-function _trendLabel(maAlign, maAlignLT, ma60Slope){
-  var s = maAlign ? (maAlign.bullish ? 'bull' : maAlign.bearish ? 'bear' : 'mixed') : 'mixed';         // 단기 5/20/60
+function _trendLabel(maAlign, maAlignLT, ma60Slope, sOverride){
+  // [S1114·D-1] sOverride('bull'|'bear'|'mixed'): 칸 배지(cellSig — 데이터 세대 추종)의 단기축을 헤더에 물려 헤더=배지 정합.
+  //   구축 데이터에선 cellSig 단기축=maAlign과 동치라 무영향, 신축 데이터 배포 순간 헤더가 자동 신축 전환.
+  var s = (sOverride==='bull'||sOverride==='bear'||sOverride==='mixed') ? sOverride : (maAlign ? (maAlign.bullish ? 'bull' : maAlign.bearish ? 'bear' : 'mixed') : 'mixed');   // [S1114·D-1]         // 단기 5/20/60
   var l = (maAlignLT && maAlignLT.gateOn) ? (maAlignLT.bullish ? 'bull' : maAlignLT.bearish ? 'bear' : 'mixed') : 'mixed'; // 장기 60/120/200
   var shortLabel = s==='bull' ? '강세' : s==='bear' ? '약세' : '중립';
   var longLabel  = l==='bull' ? '상승장' : l==='bear' ? '하락장' : '횡보장';
@@ -10634,7 +10636,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1111d';   // [S1111d] 실행 시작=stash 무효화(stale 저장 차단). S1111c=파일명 종류+창 · S1111b=세대 태그
+  window.SX_BUILD='S1114';   // [S1114] 신축 cell_data(29규칙) 배포 + D-1 헤더-배지 세대 정합(_trendLabel sOverride). S1112~13=신축 판정 관문1 통과
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -14386,7 +14388,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       totalTrades: stock._btResult ? stock._btResult.totalTrades : null
     }) : null;
     // [S868] 레시피 하이브리드 주입 — 일봉만(레시피=일봉 발굴). 실패=미주입=레거시(안전).
-    if(_analTF==='day'){ try{ var _rows868=(indicators&&indicators._advanced&&indicators._advanced.rows)||null; if(qs&&qs.ind&&_rows868&&_rows868.length){ var _rsig8=_sxRecipeSigFor(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1); if(_rsig8){ _scores4.recipeSig=_rsig8; if((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES){ try{ _scores4.cv2=_cv2ComputeAll(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1, _rsig8, indicators._advanced); }catch(_eCv8){} try{ _scores4.trendPos=_cv2TrendPosition(qs.ind, _rows868, _rows868.length-1); }catch(_eTp8){} } } try{ _scores4.cellSig=(typeof _sxCellSignalCore==='function')?_sxCellSignalCore(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1):null; }catch(_eCS8){} } }catch(_eR8){} }
+    if(_analTF==='day'){ try{ var _rows868=(indicators&&indicators._advanced&&indicators._advanced.rows)||null; if(qs&&qs.ind&&_rows868&&_rows868.length){ var _rsig8=_sxRecipeSigFor(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1); if(_rsig8){ _scores4.recipeSig=_rsig8; if((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES){ try{ _scores4.cv2=_cv2ComputeAll(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1, _rsig8, indicators._advanced); }catch(_eCv8){} try{ _scores4.trendPos=_cv2TrendPosition(qs.ind, _rows868, _rows868.length-1); }catch(_eTp8){} } } try{ _scores4.cellSig=(typeof _sxCellSignalCore==='function')?_sxCellSignalCore(((typeof currentMarket!=='undefined')?currentMarket:'kr'), qs.ind, _rows868, _rows868.length-1):null; window._sxLastCellSig=_scores4.cellSig||null; }catch(_eCS8){} } }catch(_eR8){} }
     _svVerdict = SXC.unifiedVerdictV2(_btStateKey, _scores4, _svMom, _btStForVerdict);
     stock._svVerdict = _svVerdict; // 차트 마커용 저장
     // [S455] 차트 보라마커 = A+안전필터(qs.action) 기준. C(_svVerdict 9종판정)은 검토영역 유지.
@@ -14786,7 +14788,8 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     const _tr982 = (indicators && indicators._advanced && Array.isArray(indicators._advanced.rows)) ? indicators._advanced.rows : null;
     if(_ti982 && _tr982 && _tr982.length && typeof _trendLabel==='function' && typeof _ma60Slope==='function'){
       const _tcl982 = _tr982.map(x => Array.isArray(x)?x[4]:(x && x.close!=null?x.close:(x?x.c:0)));
-      _boardExtras.trendLabel = _trendLabel(_ti982.maAlign, _ti982.maAlignLT, _ma60Slope(_tcl982, 10));
+      { var _cs14=(typeof window!=='undefined')?window._sxLastCellSig:null; var _sOv14=(_cs14&&_cs14.cell)?_cs14.cell.split('|')[0]:null;   // [S1114·D-1] 배지 칸의 단기축 물림(동일 종목 렌더 직전 계산분)
+      _boardExtras.trendLabel = _trendLabel(_ti982.maAlign, _ti982.maAlignLT, _ma60Slope(_tcl982, 10), _sOv14); }
     }
   } catch(_e982){}
   // [S456] 매수신호 혼조 — A(qs.action)와 B(btState)가 당일/최근2봉에 반대로 행동.
@@ -15067,7 +15070,8 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           // [S971] 추세 표시 = SSOT _trendLabel (단기 5/20/60 + 장기 60/120/200 + 60MA 기울기) — 차트 기준. 레시피 레짐과 별개.
           const _tlClose = _rows.map(function(r){ return (r && typeof r.close==='number') ? r.close : 0; });
           const _tlSlope = (typeof _ma60Slope==='function') ? _ma60Slope(_tlClose, 10) : null;
-          const _tl = (typeof _trendLabel==='function') ? _trendLabel(_ind.maAlign, _ind.maAlignLT, _tlSlope) : null;
+          const _cs15=(typeof window!=='undefined')?window._sxLastCellSig:null; const _sOv15=(_cs15&&_cs15.cell)?_cs15.cell.split('|')[0]:null;   // [S1114·D-1]
+          const _tl = (typeof _trendLabel==='function') ? _trendLabel(_ind.maAlign, _ind.maAlignLT, _tlSlope, _sOv15) : null;
           const _recipeScope = !!_ing;   // 레시피 적용(maAlignLT 정/역) — 횡보/데이터부족이면 ②③ 생략
           const _conf  = (_votes && _recipeScope && typeof _cv2Confidence==='function') ? _cv2Confidence(_lt, _votes.realK, _votes.pure) : null; // ④맥락
 
@@ -16743,7 +16747,7 @@ async function _fetchMultiTfBackground(stock){
           winRate: btResult ? btResult.winRate : null,
           totalTrades: btResult ? btResult.totalTrades : null
         }) : null;
-        if(t.k==='day'){ try{ var _rowsB8=indicators._advanced.rows; if(qs&&qs.ind&&_rowsB8&&_rowsB8.length){ var _rsB8=_sxRecipeSigFor(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1); if(_rsB8){ _scores4.recipeSig=_rsB8; if((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES){ try{ _scores4.cv2=_cv2ComputeAll(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1, _rsB8, indicators._advanced); }catch(_eCvB8){} try{ _scores4.trendPos=_cv2TrendPosition(qs.ind, _rowsB8, _rowsB8.length-1); }catch(_eTpB8){} } } try{ _scores4.cellSig=(typeof _sxCellSignalCore==='function')?_sxCellSignalCore(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1):null; }catch(_eCSB8){} } }catch(_eB8){} }   // [S868] 일봉만 · [S903] cv2/trendPos 동반 주입 — TF 전환 복원 시 메인(11742)과 판정 정합(경로별 불일치 해소)
+        if(t.k==='day'){ try{ var _rowsB8=indicators._advanced.rows; if(qs&&qs.ind&&_rowsB8&&_rowsB8.length){ var _rsB8=_sxRecipeSigFor(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1); if(_rsB8){ _scores4.recipeSig=_rsB8; if((typeof globalThis!=='undefined')&&globalThis.SX_CV2_AXES){ try{ _scores4.cv2=_cv2ComputeAll(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1, _rsB8, indicators._advanced); }catch(_eCvB8){} try{ _scores4.trendPos=_cv2TrendPosition(qs.ind, _rowsB8, _rowsB8.length-1); }catch(_eTpB8){} } } try{ _scores4.cellSig=(typeof _sxCellSignalCore==='function')?_sxCellSignalCore(currentMarket, qs.ind, _rowsB8, _rowsB8.length-1):null; window._sxLastCellSig=_scores4.cellSig||null; }catch(_eCSB8){} } }catch(_eB8){} }   // [S868] 일봉만 · [S903] cv2/trendPos 동반 주입 — TF 전환 복원 시 메인(11742)과 판정 정합(경로별 불일치 해소)
         svVerdict = SXC.unifiedVerdictV2(_btStateKey, _scores4, scoreMom, _btStForVerdict);
       }
 
