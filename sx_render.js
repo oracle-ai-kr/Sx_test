@@ -10636,7 +10636,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1115';   // [S1115] 🧩 칸 사다리 v2 카드(v3 UI 승계·엔진 교체·사용자 제안)+해석 문구 축 동적화. S1114=신축 배포+D-1
+  window.SX_BUILD='S1115b';   // [S1115b] 규칙0 칸 라벨 SSOT 폴백. S1115=칸 사다리 v2 카드
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -16928,7 +16928,8 @@ function _cellLadderCard(mk, qs, indicators){
     for(var i=0;i<D.rules.length;i++){ var r=D.rules[i]; if(r.mkt!==mk) continue; mktRules++;
       var o=reg[r.cell]||(reg[r.cell]={real:0,fake:0,down:0}); o[r.kind]=(o[r.kind]||0)+1; }
     if(!mktRules) return mute('🚧 '+esc(String(mk).toUpperCase())+'는 채택 규칙 0 — 이 시장은 판정 라운드에서 채택 칸이 없었다.');
-    var CLBL=(cs.lbl||'')||cs.cell;
+    var CLBL=cs.lbl;   // [S1115b] 규칙 없는 칸은 core가 lbl=null — SSOT에서 직접 도출(NAVER 기술적반등서 'bull|bear' 노출 수정)
+    if(!CLBL){ try{ var _pp=cs.cell.split('|'); CLBL=(typeof _TREND_MATRIX!=='undefined'&&_TREND_MATRIX[_pp[0]])?_TREND_MATRIX[_pp[0]][_pp[1]]:cs.cell; }catch(_e){ CLBL=cs.cell; } }
     var h='<div style="font-size:11.5px;color:'+T2+';line-height:1.6;margin-bottom:6px">'
       +'<b style="color:var(--text)">현재 칸</b> &nbsp;<b style="color:'+BLU+';font-size:12.5px">'+esc(CLBL)+'</b>'
       +' <span style="font-size:9.5px;color:'+T3+'">('+esc(cs.cell)+')</span><br>'
