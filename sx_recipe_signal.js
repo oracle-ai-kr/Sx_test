@@ -99,7 +99,7 @@
         if(_CELLON && typeof _sxCellSignalCore==='function'){
           try{ var _c0=_sxCellSignalCore(_CELLMK, ind, rows, bi);
             if(_c0){ var _r7=0,_d7=0,_f7=0, _sgA=_c0.sig||[];
-              for(var _q7=0;_q7<_sgA.length;_q7++){ var _sg=_sgA[_q7]; if(_sg&&_sg.hit){ if(_sg.kind==='real')_r7=1; else if(_sg.kind==='down')_d7=1; else if(_sg.kind==='fake')_f7=1; } }
+              for(var _q7=0;_q7<_sgA.length;_q7++){ var _sg=_sgA[_q7]; if(_sg&&_sg.hit){ if(_sg.kind==='real')_r7++; else if(_sg.kind==='down')_d7=1; else if(_sg.kind==='fake')_f7=1; } }   // [S1117] real=히트 개수
               _cs={c:_c0.cell, r:_r7, d:_d7, f:_f7};
             }
           }catch(_ec){ _cs=null; }
@@ -298,7 +298,7 @@
    *   한 번의 _scanStock(_cs 키)으로 레거시 4맵(pb/dc × real/fake) + 칸 사다리 3맵(real/down/fake)을 동시 산출.
    *   칸 신호 = SX_CELL_DATA(S1114 신축 29규칙·in-sample 적합) k≥k* 히트. DOWN/FAKE 매수투표 금지(S1102 §8-3) 계승 —
    *   소비측(_stratBt)에서 down/fake는 청산·회피 전용, real만 진입. 같은 rows → BT 봉 인덱스 1:1.
-   *   반환 {pbReal,pbFake,dcReal,dcFake,cellReal,cellDown,cellFake} 각 {barIdx:true}.
+   *   반환 {pbReal,pbFake,dcReal,dcFake,cellReal,cellDown,cellFake} — real 3맵은 {barIdx:동시발동 개수}([S1117]·truthy 호환), fake/down은 {barIdx:true}.
    */
   async function _stratSignalBars(sym, rows, mk){
     var EMPTY={pbReal:{},pbFake:{},dcReal:{},dcFake:{},cellReal:{},cellDown:{},cellFake:{}};
@@ -314,11 +314,15 @@
     var dcFf=_R().filter(function(r){ return r.kind==='fake' && r.pool==='deadcat'; });
     var out={pbReal:{},pbFake:{},dcReal:{},dcFake:{},cellReal:{},cellDown:{},cellFake:{}};
     for(var i=0;i<scan.length;i++){ var s=scan[i];
-      for(var a=0;a<pbR.length;a++){ if(_fires(pbR[a], s.f, s.lt, s.maBull)){ out.pbReal[s.bar]=true; break; } }
+      // [S1117] real 맵 값 = 동시발동 개수(겹침 임계 minK용·truthy라 S1116 소비측 호환). fake는 청산/혼재 판정용이라 boolean 유지(break 조기종료).
+      //   ⚠L-15/L-17 주의: 절대 개수는 세트종속·부분집합 팽창 영향 — 임계값은 세트 바뀌면 재측정.
+      var kPb=0; for(var a=0;a<pbR.length;a++){ if(_fires(pbR[a], s.f, s.lt, s.maBull)) kPb++; }
+      if(kPb) out.pbReal[s.bar]=kPb;
       for(var b=0;b<pbF.length;b++){ if(_fires(pbF[b], s.f, s.lt, s.maBull)){ out.pbFake[s.bar]=true; break; } }
-      for(var c=0;c<dcRr.length;c++){ if(_fires(dcRr[c], s.f, s.lt, s.maBull)){ out.dcReal[s.bar]=true; break; } }
+      var kDc=0; for(var c=0;c<dcRr.length;c++){ if(_fires(dcRr[c], s.f, s.lt, s.maBull)) kDc++; }
+      if(kDc) out.dcReal[s.bar]=kDc;
       for(var d=0;d<dcFf.length;d++){ if(_fires(dcFf[d], s.f, s.lt, s.maBull)){ out.dcFake[s.bar]=true; break; } }
-      if(s.cs){ if(s.cs.r) out.cellReal[s.bar]=true; if(s.cs.d) out.cellDown[s.bar]=true; if(s.cs.f) out.cellFake[s.bar]=true; }
+      if(s.cs){ if(s.cs.r) out.cellReal[s.bar]=s.cs.r; if(s.cs.d) out.cellDown[s.bar]=true; if(s.cs.f) out.cellFake[s.bar]=true; }
     }
     return out;
   }
