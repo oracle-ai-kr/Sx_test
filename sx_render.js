@@ -2423,6 +2423,86 @@ function _stratPoolJson(){
   }catch(e){}
 }
 if(typeof window!=='undefined'){ window._stratPoolRun=_stratPoolRun; window._stratPoolJson=_stratPoolJson; window._stratPoolSetSrc=_stratPoolSetSrc; }
+// ═══════════ [S1119] 🧪 재료 조건(빔서치 어휘) — 크로스 상세 모드의 매수(AND)/매도(OR) 커스텀 게이트 ═══════════
+//   재료표=_DISCRIM_FEATS(자유 조합 빌더와 동일 어휘=feats733) · 평가=SXRecipeSignal.customCondBars(스캔 캐시 공유).
+//   ★적용 범위: 카드 단일 BT + 상세 모달만(window._xmatApply 게이트) — 배치 BT(3324)·물타기 진단(10645)은 미반영(동기 경로 보호·UI 각주).
+//   ★웜업: 재료는 스캔 시작(250봉) 이후만 평가 — 그 전 봉은 매수 차단·매도 무발동. 임계 기본값=빌더 시작값(측정치 아님·시작점).
+const _XMAT_VER=1;
+function _xmatStore(mk){
+  let st={_ver:_XMAT_VER, buy:{}, sell:{}};
+  try{ const raw=localStorage.getItem('SX_XMAT_'+mk); if(raw){ const o=JSON.parse(raw); if(o && o._ver===_XMAT_VER){ st.buy=(o.buy&&typeof o.buy==='object')?o.buy:{}; st.sell=(o.sell&&typeof o.sell==='object')?o.sell:{}; } } }catch(_){}
+  return st;
+}
+function _xmatSave(mk,st){ try{ localStorage.setItem('SX_XMAT_'+mk, JSON.stringify(st)); }catch(_){} }
+function _xmatDefFor(side,key){ const t=(side==='buy')?((typeof _BUILDER_DEFAULTS_PULLBACK!=='undefined')?_BUILDER_DEFAULTS_PULLBACK:{}):((typeof _BUILDER_DEFAULTS_DEADCAT!=='undefined')?_BUILDER_DEFAULTS_DEADCAT:{}); return t[key]||{dir:'lt',th:0}; }
+function _xmatConds(st,side){
+  const m=(st&&st[side])||{}, out=[];
+  const F=(typeof _DISCRIM_FEATS!=='undefined')?_DISCRIM_FEATS:[];
+  F.forEach(D=>{ const e=m[D.key]; if(!e||!e.on) return;
+    if(D.type==='num'){ const d=_xmatDefFor(side,D.key); const dir=(e.dir==='gt'||e.dir==='lt')?e.dir:d.dir; const th=(e.th!=null&&isFinite(+e.th))?+e.th:+d.th; if(!isFinite(th)) return; out.push({key:D.key,type:'num',dir:dir,th:th,label:D.label}); }
+    else out.push({key:D.key,type:'bool',label:D.label}); });
+  return out;
+}
+function _xmatSig(bc,sc){ return JSON.stringify({b:bc.map(c=>[c.key,c.dir||'',(c.th!=null?c.th:'')]),s:sc.map(c=>[c.key,c.dir||'',(c.th!=null?c.th:'')])}); }
+function _xmatMut(side,key,fn){ const ctx=window._sxTrendCtx; if(!ctx) return; const mk=ctx.market; const st=_xmatStore(mk); const m=st[side]; const e=m[key]||(m[key]={}); fn(e); _xmatSave(mk,st); _trendRerender(); }
+function _xmatTg(side,key){ _xmatMut(side,key,e=>{ e.on=e.on?0:1; }); }
+function _xmatDir(side,key,v){ _xmatMut(side,key,e=>{ e.dir=(v==='gt')?'gt':'lt'; }); }
+function _xmatTh(side,key,v){ const n=+v; if(!isFinite(n)) return; _xmatMut(side,key,e=>{ e.th=n; }); }
+function _xmatClear(side){ const ctx=window._sxTrendCtx; if(!ctx) return; const mk=ctx.market; const st=_xmatStore(mk); st[side]={}; _xmatSave(mk,st); _trendRerender(); }
+function _xmatFold(side){ const k=(side==='buy')?'_xmatOpenB':'_xmatOpenS'; window[k]=!window[k]; _trendRerender(); }
+function _trendXmatEnsure(cb){
+  window._trendXmatFireCache=window._trendXmatFireCache||{};
+  const key=_trendRcpKey(); if(!key){ cb&&cb(null); return; }
+  const ctx=window._sxTrendCtx; if(!ctx||!ctx.rows){ cb&&cb(null); return; }
+  const st=_xmatStore(ctx.market);
+  const bc=_xmatConds(st,'buy'), scc=_xmatConds(st,'sell');
+  const sig=_xmatSig(bc,scc);
+  const c=window._trendXmatFireCache[key];
+  if(c && c!=='pending' && c.sig===sig){ cb&&cb(c); return; }
+  if(c==='pending') return;
+  if(!(bc.length||scc.length)){ window._trendXmatFireCache[key]={sig:sig, buy:null, sell:null}; cb&&cb(window._trendXmatFireCache[key]); return; }
+  if(!(window.SXRecipeSignal && SXRecipeSignal.customCondBars)){ window._trendXmatFireCache[key]={sig:sig, buy:null, sell:null}; cb&&cb(null); return; }
+  window._trendXmatFireCache[key]='pending';
+  const sym=(ctx.name||'')+'|'+ctx.market;
+  setTimeout(async function(){
+    let r=null; try{ r=await SXRecipeSignal.customCondBars(sym, ctx.rows, ctx.market, bc, scc); }catch(e){ r=null; }
+    window._trendXmatFireCache[key]={sig:sig, buy:(r&&r.buy)||null, sell:(r&&r.sell)||null};
+    cb&&cb(window._trendXmatFireCache[key]);
+  },10);
+}
+function _xmatSectionHtml(market){
+  if(typeof _DISCRIM_FEATS==='undefined') return '';
+  const st=_xmatStore(market);
+  const bc=_xmatConds(st,'buy'), scc=_xmatConds(st,'sell');
+  const openB=!!window._xmatOpenB, openS=!!window._xmatOpenS;
+  const cache=(window._trendXmatFireCache||{})[(typeof _trendRcpKey==='function')?_trendRcpKey():''];
+  const pending=(cache==='pending');
+  const side=(sd,open,conds,title,col)=>{
+    const m=st[sd]||{}; let rows='';
+    if(open){
+      _DISCRIM_FEATS.forEach(D=>{ if(D.type!=='num') return;
+        const e=m[D.key]||{}; const on=!!e.on;
+        const d=_xmatDefFor(sd,D.key); const dir=(e.dir==='gt'||e.dir==='lt')?e.dir:d.dir; const th=(e.th!=null&&isFinite(+e.th))?e.th:d.th;
+        rows+=`<div style="display:flex;align-items:center;gap:5px;margin:3px 0;font-size:10px"><input type="checkbox" ${on?'checked':''} onchange="_xmatTg('${sd}','${D.key}')" style="width:15px;height:15px"><span style="flex:0 0 84px;color:var(--text)">${D.label}</span><select onchange="_xmatDir('${sd}','${D.key}',this.value)" style="font-size:11px;padding:2px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--text)"><option value="lt"${dir==='lt'?' selected':''}>&lt;</option><option value="gt"${dir==='gt'?' selected':''}>&gt;</option></select><input type="number" value="${th}" inputmode="decimal" onchange="_xmatTh('${sd}','${D.key}',this.value)" style="width:58px;padding:3px;border:1px solid var(--border);border-radius:5px;font-size:11px;text-align:center;background:var(--surface);color:var(--text)"></div>`;
+      });
+      rows+=`<div style="font-size:8.5px;font-weight:700;color:var(--text3);margin:6px 0 2px">불리언 재료 (있음=참)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 6px">`;
+      _DISCRIM_FEATS.forEach(D=>{ if(D.type!=='bool') return; const on=!!((m[D.key]||{}).on);
+        rows+=`<label style="display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--text)"><input type="checkbox" ${on?'checked':''} onchange="_xmatTg('${sd}','${D.key}')" style="width:14px;height:14px">${D.label}</label>`; });
+      rows+=`</div><div style="margin-top:5px"><span onclick="_sxVib(9);window._xmatClear&&_xmatClear('${sd}')" style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:8px;cursor:pointer;background:var(--surface2);color:var(--text3);border:1px solid var(--border)">비우기</span></div>`;
+    }
+    return `<div style="margin-top:6px;border:1px solid var(--border);border-radius:8px;padding:6px 8px"><div onclick="_sxVib(8);window._xmatFold&&_xmatFold('${sd}')" style="cursor:pointer;display:flex;align-items:center;gap:6px"><span style="font-size:10px;font-weight:800;color:${col}">${open?'▼':'▶'} ${title}</span><span style="font-size:9px;color:${conds.length?col:'var(--text3)'};font-weight:700">${conds.length?(conds.length+'개 적용'):'미적용'}</span></div>${open?`<div style="margin-top:4px">${rows}</div>`:''}</div>`;
+  };
+  const lbl=c=>c.label+(c.type==='num'?((c.dir==='lt'?'<':'>')+c.th):'');
+  return `<div style="margin:8px 0;padding:8px;border:1px dashed #7c3aed66;border-radius:10px">`
+    +`<div style="font-size:10.5px;font-weight:800;color:#7c3aed">🧪 재료 조건 <span style="font-weight:500;font-size:8.5px;color:var(--text3)">빔서치 어휘(자유 조합 빌더 동일) · 진입봉 기준</span></div>`
+    +`<div style="font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:2px">이 카드 BT·상세 모달에만 적용 — <b>배치 BT·물타기 진단 미반영</b> · 재료는 250봉 웜업 후 평가(초반 진입 제외) · 임계 기본값=빌더 시작값(측정치 아님)</div>`
+    +(pending?`<div style="font-size:9px;color:#7c3aed;margin-top:4px">🧪 재료 스캔 중… (봉별 판정 · 첫 회만 무겁고 임계 수정은 즉시)</div>`:'')
+    +side('buy',openB,bc,'🟢 매수 재료 · 모두 충족(AND)','#16a34a')
+    +side('sell',openS,scc,'🔴 매도 재료 · 하나라도(OR) — 데드크로스에 추가','#e8365a')
+    +((bc.length||scc.length)?`<div style="font-size:8.5px;color:var(--text2);margin-top:5px;line-height:1.4">적용: ${bc.length?('매수['+bc.map(lbl).join('·')+']'):''}${(bc.length&&scc.length)?' · ':''}${scc.length?('매도['+scc.map(lbl).join('·')+']'):''}</div>`:'')
+    +`</div>`;
+}
+if(typeof window!=='undefined'){ window._xmatTg=_xmatTg; window._xmatDir=_xmatDir; window._xmatTh=_xmatTh; window._xmatClear=_xmatClear; window._xmatFold=_xmatFold; }
 // 레시피 BT — real 진입/fake 청산/1포지션/순수. 통계·반환 형식은 _trendBt와 동일(그리드·모달·물타기 재사용).
 function _trendBtRecipe(rows, fire){
   const n=rows.length, close=rows.map(r=>+(r.close!=null?r.close:r.c));
@@ -2678,7 +2758,24 @@ function _trendBt(rows,cfg,bbP){
   const _regCache={};
   const _isStrong=(i)=>{ let r=_regCache[i]; if(r===undefined){ try{ r=(typeof _btRegimeAt==='function')?_btRegimeAt(rows,i):'side'; }catch(_){ r='side'; } _regCache[i]=r; } return r==='bull'||r==='up'; };
   // 매수: 이벤트형(기존6)=최근N봉 OR-윈도우, 상태형(신규3)=진입봉 기준. 조건간 AND.
+  // [S1119] 🧪 재료 조건 바인딩 — window._xmatApply(카드 단일 BT 게이트)일 때만. 배치/물타기/풀 도구는 플래그 미설정=미반영.
+  let _xmB=null,_xmS=null;
+  if(typeof window!=='undefined' && window._xmatApply && typeof _xmatStore==='function'){
+    const _xst=_xmatStore((cfg&&cfg._market)||'kr');
+    const _xbC=_xmatConds(_xst,'buy'), _xsC=_xmatConds(_xst,'sell');
+    if(_xbC.length||_xsC.length){
+      const _xc=(window._trendXmatFireCache||{})[_trendRcpKey()];
+      const _xsig=_xmatSig(_xbC,_xsC);
+      if(!_xc || _xc==='pending' || _xc.sig!==_xsig){
+        const _lcX=(rows.length?+(rows[rows.length-1].close!=null?rows[rows.length-1].close:rows[rows.length-1].c):0);
+        return { winRate:0,pf:0,totalPnl:0,totalTrades:0,avgWin:0,avgLoss:0,mdd:0,expectancy:0,trades:[],open:null,lastClose:_lcX,predHit:null,predFires:0,predDcHit:null,predDcFires:0,predDday:null,predDdayProb:null,predDdayType:null,predExitNow:false,_xmatPending:true };
+      }
+      _xmB=_xbC.length?(_xc.buy||{}):null;
+      _xmS=_xsC.length?(_xc.sell||{}):null;
+    }
+  }
   const auxOk=(i)=>{
+    if(_xmB && !_xmB[i]) return false;   // [S1119] 🧪 재료 매수(AND) — 진입 전 경로(gc·예측·재진입·기울기) 일괄 게이트 · 웜업 전 봉=차단
     if(!need.length) return true;
     const N=Math.max(1,cfg.n||3), lo=Math.max(0,i-N+1);
     const any=fn=>{ for(let j=lo;j<=i;j++) if(fn(j)) return true; return false; };
@@ -2696,6 +2793,7 @@ function _trendBt(rows,cfg,bbP){
   };
   // 매도(조기청산): 선택 조건 중 하나라도 현재봉에서 참이면 청산 (OR). 미선택 시 false → 데드크로스만.
   const sellHit=(i)=>{
+    if(_xmS && _xmS[i]) return true;   // [S1119] 🧪 재료 매도(OR) — 데드크로스에 추가 · 재진입 해제조건(!sellHit)에도 동일 적용
     if(!sneed.length) return false;
     if(SEL.rsiDc && rsi[i]!=null&&rsiSig[i]!=null&&rsi[i]<rsiSig[i]) return true;
     if(SEL.macdDc && mac.macd[i]!=null&&mac.sig[i]!=null&&mac.macd[i]<mac.sig[i]) return true;
@@ -2921,14 +3019,15 @@ function _trendRenderInner(){
   const _stockKey=ctx.name||'';
   if(window._trendLastStock!==_stockKey){ window._trendGuardOverride={}; window._trendLastStock=_stockKey; }
   const _ov=!!(window._trendGuardOverride&&window._trendGuardOverride[_stockKey]);
-  const _btOn=_trendBt(rows,cfg,_bbp);
+  window._xmatApply=true; let _btOn; try{ _btOn=_trendBt(rows,cfg,_bbp); } finally { window._xmatApply=false; }   // [S1119] 재료 조건=카드 BT에만(플래그 게이트)
   if(_trendEngine==='recipe' && _btOn._rcpPending){ _trendRcpEnsure(function(){ _trendRerender(); }); }   // [S816] 레시피 발동맵 async 확보 후 재렌더
   if(_trendEngine==='hybrid' && _btOn._hybPending){ _trendHybEnsure(function(){ _trendRerender(); }); }   // [S1058] 하이브리드 발동맵 async 확보 후 재렌더
   if(_trendEngine==='strat' && _btOn._stratPending){ _trendStratEnsure(function(){ _trendRerender(); }); }   // [S1116] 전략 조합 신호맵(레거시4+칸3) async 확보 후 재렌더
+  if(_trendEngine==='cross' && _btOn._xmatPending){ _trendXmatEnsure(function(){ _trendRerender(); }); }   // [S1119] 재료 조건 봉맵 async 확보 후 재렌더
   // [S628~S630] 선행 가드 — ON이 OFF보다 손해면 손해 표시 + 종목 진입 시 임시 OFF(🔮 탭으로 강제 ON 가능)
   let _guardBadge='', _guardHurt=false, _btOff=null;
   if(cfg.predict && _trendEngine==='cross'){
-    try{ _btOff=_trendBt(rows,Object.assign({},cfg,{predict:false}),_bbp); }catch(_g){ _btOff=null; }
+    try{ window._xmatApply=true; try{ _btOff=_trendBt(rows,Object.assign({},cfg,{predict:false}),_bbp); } finally { window._xmatApply=false; } }catch(_g){ _btOff=null; }   // [S1119]
     if(_btOff){
       const dE=+(_btOn.expectancy-_btOff.expectancy).toFixed(2);
       const rM=_btOff.mdd>0?_btOn.mdd/_btOff.mdd:1, dM=_btOn.mdd-_btOff.mdd;
@@ -3186,7 +3285,8 @@ function _trendRenderInner(){
     const noteRcp=`<div style="font-size:9px;color:var(--text3);margin-top:9px;border-top:1px solid var(--border);padding-top:6px">실험 지표 · 정식 판정과 무관 · 📊 <b>정배열 레시피 엔진</b> · 정배열 진짜반등 종가 진입 → 정배열 가짜반등 종가 청산 · 1포지션(보유 중 추가신호 무시) · SL/TP 없음(순수 신호) · <b style="color:${_trBarsCol}">[${_trBars}봉 기준]</b></div>`;
     return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+engRow+stateRcp+grid+noteRcp+`</div>`;
   }
-  return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+maRow+chipBuy+chipSell+predRow+engRow+_guardBadge+stateRow+grid+note+batchSection+`</div>`;   // [S699] 접기 래퍼 · [S752] 실험 칩을 매수/매도 섹션 body 안으로(접으면 같이 감춤) · 🔮크로스 예측만 매도 섹션 다음 별도(항상 보임) · [S817] engRow=엔진 토글(크로스예측 아래)
+  const xmatSec=(typeof _xmatSectionHtml==='function')?_xmatSectionHtml(market):'';   // [S1119] 🧪 재료 조건(빔서치 어휘)
+  return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+maRow+chipBuy+chipSell+xmatSec+predRow+engRow+_guardBadge+stateRow+grid+note+batchSection+`</div>`;   // [S699] 접기 래퍼 · [S752] 실험 칩 배치 · [S817] engRow=엔진 토글 · [S1119] xmatSec=재료 조건
 }
 function _buildTrendCard(stock,indicators){
   let rows=(indicators&&indicators._advanced&&Array.isArray(indicators._advanced.rows))?indicators._advanced.rows
@@ -3418,7 +3518,7 @@ function _trendRefreshDetail(){
     const cfg=_trendCfg(ctx.market);
     const _eff=(typeof ctx.effPredict!=='undefined')?ctx.effPredict:null;
     const _cfgUse=(_eff===false && cfg.predict)?Object.assign({},cfg,{predict:false}):cfg;
-    const bt=_trendBt(ctx.rows,_cfgUse,_trendBbParams(ctx.market));
+    window._xmatApply=true; let bt; try{ bt=_trendBt(ctx.rows,_cfgUse,_trendBbParams(ctx.market)); } finally { window._xmatApply=false; }   // [S1119]
     const box=ov.firstElementChild; if(box) box.innerHTML=_trendDetailInner(bt,_cfgUse,ctx);
   }catch(_){}
 }
@@ -3623,7 +3723,7 @@ function _trendDetailInner(bt,cfg,ctx){
   // [S632] 골든/데드 예측 적중률 — 모달에선 예측 토글과 무관하게 강제 ON으로 측정해 둘 다 표기
   let accBlock='';
   if(!bt._hybrid && !bt._recipe) try{   // [S1060] 예측 적중률=크로스 모드 전용(하이브리드/레시피는 예측 미계산→숨김)
-    const _accBt = cfg.predict ? bt : _trendBt(ctx.rows, Object.assign({},cfg,{predict:true}), _trendBbParams(ctx.market));
+    const _accBt = cfg.predict ? bt : (()=>{ window._xmatApply=true; try{ return _trendBt(ctx.rows, Object.assign({},cfg,{predict:true}), _trendBbParams(ctx.market)); } finally { window._xmatApply=false; } })();   // [S1119]
     const _ac=(v)=>v==null?'var(--text3)':(v>=65?'#22c55e':v>=50?'#f59e0b':'#ef4444');
     const _gh=_accBt.predHit, _gf=_accBt.predFires||0, _dh=_accBt.predDcHit, _df=_accBt.predDcFires||0;
     accBlock=`<div style="font-size:11px;font-weight:800;color:var(--text);margin:4px 0 4px">🔮 크로스 예측 적중률 <span style="font-size:9px;font-weight:500;color:var(--text3)">(발화→실제 교차 3봉내 도래 · 룩어헤드 차단)</span></div>`
@@ -3649,7 +3749,7 @@ function _trendOpenDetail(){
   // [S634] 카드와 동일 effective bt — 가드 자동OFF/오버라이드 반영. effPredict===false면 예측 강제 OFF.
   const _eff=(ctx&&typeof ctx.effPredict!=='undefined')?ctx.effPredict:null;
   const _cfgUse=(_eff===false && cfg.predict)?Object.assign({},cfg,{predict:false}):cfg;
-  const bt=_trendBt(ctx.rows,_cfgUse,_trendBbParams(ctx.market));
+  window._xmatApply=true; let bt; try{ bt=_trendBt(ctx.rows,_cfgUse,_trendBbParams(ctx.market)); } finally { window._xmatApply=false; }   // [S1119]
   _trendCloseDetail();
   const ov=document.createElement('div'); ov.id='sxTrendBTOverlay';
   ov.setAttribute('style','position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:18px');
@@ -11106,7 +11206,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1118';   // [S1118] 풀 전체 배치 BT(관심/대표 합산·진입원별 분해 합산·거래 JSON). S1117=Σ임계·N봉컷·칸fake·마찰 · S1116=3모드 통합
+  window.SX_BUILD='S1119';   // [S1119] 크로스 상세 🧪 재료 조건(빔서치 어휘 매수AND/매도OR·카드 BT 한정). S1118=풀 배치 BT · S1117=Σ임계 외 · S1116=3모드 통합
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
