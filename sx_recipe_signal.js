@@ -327,6 +327,32 @@
     return out;
   }
 
+  /* ───────── [S1119] 커스텀 재료 조건 봉맵 — 크로스 상세 '🧪 재료 조건'용 ─────────
+   *   conds 스키마 = 자유 조합 빌더 동일: {key,type:'num',dir:'lt'|'gt',th} / {key,type:'bool'} — feats733(s.f) 어휘.
+   *   buy=모두 충족(AND) · sell=하나라도(OR). 스캔은 _cs 키로 전략 카드와 캐시 공유(첫 회만 무겁고 임계 수정=재매핑만).
+   *   반환 {buy:{barIdx:true}|null, sell:{barIdx:true}|null} — 웜업(스캔 시작 전) 봉은 맵에 없음(소비측이 차단 처리).
+   */
+  async function _customCondBars(sym, rows, mk, buy, sell){
+    var EMPTY={buy:null, sell:null};
+    if(!Array.isArray(rows) || rows.length<260) return EMPTY;
+    var hasB=Array.isArray(buy)&&buy.length>0, hasS=Array.isArray(sell)&&sell.length>0;
+    if(!hasB && !hasS) return EMPTY;
+    var _pv=_CELLON, _pm=_CELLMK; _CELLON=true; _CELLMK=(mk==='us'||mk==='coin')?mk:'kr';
+    var scan=null;
+    try{ scan=await _scanStock(sym, rows); }catch(e){ scan=null; }
+    finally{ _CELLON=_pv; _CELLMK=_pm; }
+    if(!Array.isArray(scan)) return EMPTY;
+    var _ck=function(c,f){ var v=f?f[c.key]:null;
+      if(c.type==='num'){ if(v==null || !isFinite(v)) return false; return c.dir==='lt' ? v<c.th : v>c.th; }
+      return v===1; };
+    var mB=hasB?{}:null, mS=hasS?{}:null;
+    for(var i=0;i<scan.length;i++){ var s=scan[i]; if(!s||!s.f) continue;
+      if(hasB){ var ok=true; for(var a=0;a<buy.length;a++){ if(!_ck(buy[a], s.f)){ ok=false; break; } } if(ok) mB[s.bar]=true; }
+      if(hasS){ for(var b=0;b<sell.length;b++){ if(_ck(sell[b], s.f)){ mS[s.bar]=true; break; } } }
+    }
+    return {buy:mB, sell:mS};
+  }
+
   /* ───────── [S809] 겹침 측정 — 봉별 real 레시피 동시발동 수 + N10 후반평균 적중 ─────────
    *   _realFireBars와 동일 _scanStock 캐시 공유. 차이: break(1개라도) 대신 발동 레시피 수(k)를 끝까지 카운트.
    *   _fires가 정렬+단기약세 매칭하니 역배봉=deadcat-{real,fake}만·정배봉=pullback-{real,fake}만 자동 집계(풀 구분 공짜).
@@ -929,6 +955,6 @@
     } catch(e){}
   }
 
-  window.SXRecipeSignal = { setPreview:_setPreview, stratSignalBars:_stratSignalBars, ingScan:_ingScan, clearPreview:_clearPreview, previewInfo:_previewInfo, buildCard:buildCard, toggle:toggle, tab:_tab, catToggle:_catToggle, _populate:_populate, _pendingByCat:_pendingByCat, realFireBars:_realFireBars, realFireCells:_realFireCells, dualCellScan:_dualCellScan, setV3:_setV3, pullbackSignalBars:_pullbackSignalBars, hybridSignalBars:_hybridSignalBars, overlapScan:_overlapScan, profileScan:_profileScan, evalBar:_evalBar, baseRateScan:_baseRateScan, deadcatTrajScan:_deadcatTrajScan, deadcatConfirmScan:_deadcatConfirmScan, deadcatOverlapHzScan:_deadcatOverlapHzScan, deadcatHzBtScan:_deadcatHzBtScan, fireOnly:_fireOnlySet, recipesFor:_recipesFor };
+  window.SXRecipeSignal = { setPreview:_setPreview, stratSignalBars:_stratSignalBars, customCondBars:_customCondBars, ingScan:_ingScan, clearPreview:_clearPreview, previewInfo:_previewInfo, buildCard:buildCard, toggle:toggle, tab:_tab, catToggle:_catToggle, _populate:_populate, _pendingByCat:_pendingByCat, realFireBars:_realFireBars, realFireCells:_realFireCells, dualCellScan:_dualCellScan, setV3:_setV3, pullbackSignalBars:_pullbackSignalBars, hybridSignalBars:_hybridSignalBars, overlapScan:_overlapScan, profileScan:_profileScan, evalBar:_evalBar, baseRateScan:_baseRateScan, deadcatTrajScan:_deadcatTrajScan, deadcatConfirmScan:_deadcatConfirmScan, deadcatOverlapHzScan:_deadcatOverlapHzScan, deadcatHzBtScan:_deadcatHzBtScan, fireOnly:_fireOnlySet, recipesFor:_recipesFor };
   try{ Object.defineProperty(window.SXRecipeSignal,'RECIPES',{ get:function(){ return _R(); } }); }catch(_e){ window.SXRecipeSignal.RECIPES=RECIPES_BY_MKT.kr; }   // [S849] 구소비처 호환 — currentMarket 세트 동적 반환
 })();
