@@ -272,7 +272,31 @@
     { id:'bwNeutral',   label:'바이너리웨이브 중립', group:'momo', kind:'bin', layers:'4', value:function(ind){ return (ind.binaryWave&&ind.binaryWave.neutral)?1:0; } },
     { id:'macdOsc',     label:'MACD 오실레이터',  group:'macd', kind:'cont', layers:'4', value:function(ind){ return (ind.macdOsc&&typeof ind.macdOsc.val==='number'&&isFinite(ind.macdOsc.val))?ind.macdOsc.val:null; } },
     // ⚠gapReal: 엔진 priceAction.gapPct는 라이브러리 gapPct(단순 시가/전일종가)와 달리 **임계 넘은 진짜 갭만** 값을 낸다(480봉 중 일치 42) — 별개 재료로 등록.
-    { id:'gapReal',     label:'유효 갭%',        group:'chase', kind:'cont', layers:'4', value:function(ind){ return (ind.priceAction&&typeof ind.priceAction.gapPct==='number'&&isFinite(ind.priceAction.gapPct))?ind.priceAction.gapPct:null; } }
+    { id:'gapReal',     label:'유효 갭%',        group:'chase', kind:'cont', layers:'4', value:function(ind){ return (ind.priceAction&&typeof ind.priceAction.gapPct==='number'&&isFinite(ind.priceAction.gapPct))?ind.priceAction.gapPct:null; } },
+    // ── [S1122] 거울상 재료 — 상승계 불리언의 하락 대칭 19 + 상태 bull 미러 4(macdAbove0·diBull·sarBull·maAlignBull). 기존 정의 무변경(측정 연속성)·layers'2'(매매/교차 어휘). ──
+    { id:'dx5_9', label:'데드크로스 5×9', group:'cross', kind:'bin', layers:'2', value:function(ind,rows,i){ var c=_ctx(ind,rows,i); return c?_crossed(c.cl, c.ix, 5, 9, CROSS_NBAR, 'dead'):0; } },
+    { id:'dx5_60', label:'데드크로스 5×60', group:'cross', kind:'bin', layers:'2', value:function(ind,rows,i){ var c=_ctx(ind,rows,i); return c?_crossed(c.cl, c.ix, 5, 60, CROSS_NBAR, 'dead'):0; } },
+    { id:'obvDivBear', label:'OBV 하락다이버', group:'div', kind:'bin', layers:'2', value:function(ind){ return (ind.obv&&ind.obv.div==='bearish')?1:0; } },
+    { id:'obvDown', label:'OBV 하락추세', group:'flow', kind:'bin', layers:'2', value:function(ind){ return (ind.obv&&ind.obv.trend==='down')?1:0; } },
+    { id:'nearRes', label:'저항선 근접', group:'struct', kind:'bin', layers:'2', value:function(ind){ return (ind.trend&&ind.trend.struct&&ind.trend.struct.nearResistance)?1:0; } },
+    { id:'settle20Dn', label:'MA20 이탈안착(하락)', group:'cross', kind:'bin', layers:'2', value:function(ind,rows,i){ var c=_ctx(ind,rows,i); if(!c) return 0; var m=_sma(c.cl,20,c.ix), mp=_sma(c.cl,20,c.ix-1), cN=c.cl[c.ix], cP=c.cl[c.ix-1], c3=c.cl[c.ix-3]; return (m!=null&&mp!=null&&cN<m&&cP<mp&&c3!=null&&cN<c3)?1:0; } },
+    { id:'volBreakDn', label:'붕괴+거래량동반', group:'cross', kind:'bin', layers:'2', value:function(ind,rows,i){ var c=_ctx(ind,rows,i); if(!c) return 0; var m=_sma(c.cl,20,c.ix), mp=_sma(c.cl,20,c.ix-1), cN=c.cl[c.ix], cP=c.cl[c.ix-1], c3=c.cl[c.ix-3]; var settled=(m!=null&&mp!=null&&cN<m&&cP<mp&&c3!=null&&cN<c3); if(!settled) return 0; var ix=_rowIx(rows,ind,i); var vol=(ix>=0&&rows[ix])?_num(rows[ix].volume):null; var vm=ind.volumeMA; var vMA=(typeof vm==='number')?vm:(vm?_num(vm.vma20):null); return (vol!=null && vMA!=null && vMA>0 && vol>vMA)?1:0; } },
+    { id:'macdDead', label:'MACD 데드크로스', group:'macd', kind:'bin', layers:'2', value:function(ind){ return (ind.macd&&typeof ind.macd.line==='number'&&typeof ind.macd.sig==='number'&&ind.macd.line<ind.macd.sig)?1:0; } },
+    { id:'macdHistDn', label:'MACD 히스토 음', group:'macd', kind:'bin', layers:'2', value:function(ind){ return (ind.macd&&typeof ind.macd.hist==='number'&&ind.macd.hist<0)?1:0; } },
+    { id:'macdAbove0', label:'MACD 영선위', group:'macd', kind:'bin', layers:'2', value:function(ind){ return (ind.macd&&typeof ind.macd.line==='number'&&ind.macd.line>0)?1:0; } },
+    { id:'diBull', label:'DI 상승우위', group:'trend', kind:'bin', layers:'2', value:function(ind){ return (ind.adx&&typeof ind.adx.pdi==='number'&&typeof ind.adx.mdi==='number'&&ind.adx.pdi>ind.adx.mdi)?1:0; } },
+    { id:'sarBull', label:'PSAR 상승', group:'trend', kind:'bin', layers:'2', value:function(ind){ return (ind.psar&&ind.psar.trend==='up')?1:0; } },
+    { id:'ichiCloudDn', label:'일목 구름아래', group:'ichi', kind:'bin', layers:'2', value:function(ind){ return (ind.ichimoku && ind.ichimoku.priceVsCloud==='below')?1:0; } },
+    { id:'ichiTKDn', label:'일목 전환<기준', group:'ichi', kind:'bin', layers:'2', value:function(ind){ var t=ind.ichimoku&&ind.ichimoku.tenkan, k=ind.ichimoku&&ind.ichimoku.kijun; return (_num(t)!=null&&_num(k)!=null&&t<k)?1:0; } },
+    { id:'ichiCloudBear', label:'일목 음운', group:'ichi', kind:'bin', layers:'2', value:function(ind){ return (ind.ichimoku && ind.ichimoku.cloudTrend==='bearish')?1:0; } },
+    { id:'stochSlowDead', label:'슬로우스토 데드', group:'osc', kind:'bin', layers:'2', value:function(ind){ return (ind.stochSlow && ind.stochSlow.cross==='dead')?1:0; } },
+    { id:'chaikinDead', label:'차이킨 데드', group:'flow', kind:'bin', layers:'2', value:function(ind){ return (ind.chaikinOsc && ind.chaikinOsc.cross==='dead')?1:0; } },
+    { id:'pcDn', label:'가격채널 하단이탈', group:'band', kind:'bin', layers:'2', value:function(ind){ return (ind.priceChannel && ind.priceChannel.position==='breakout_down')?1:0; } },
+    { id:'pivotBelow', label:'피벗 P 하회', group:'band', kind:'bin', layers:'2', value:function(ind){ var l=ind.pivot&&ind.pivot.level; return (l==='S1~P'||l==='S1~S2'||l==='S2-')?1:0; } },
+    { id:'rsi50dn', label:'RSI 50 하향', group:'thr', kind:'bin', layers:'2', value:function(ind){ var a=ind.rsi?_num(ind.rsi.val):null, b=_prevOf(ind.rsi&&ind.rsi.arr); return (a!=null&&b!=null&&a<50&&b>=50)?1:0; } },
+    { id:'volMaDead', label:'거래량 5×20 데드', group:'thr', kind:'bin', layers:'2', value:function(ind,rows,i){ var ix=_rowIx(rows,ind,i); if(ix<20) return 0; var a5=_volSma(rows,5,ix), a20=_volSma(rows,20,ix), p5=_volSma(rows,5,ix-1), p20=_volSma(rows,20,ix-1); return (a5!=null&&a20!=null&&p5!=null&&p20!=null&&a5<a20&&p5>=p20)?1:0; } },
+    { id:'tlbRevDn', label:'삼선전환 하락반전', group:'struct', kind:'bin', layers:'2', value:function(ind){ var t=ind.threeLineBreak; return (t&&t.reversal&&t.direction==='down')?1:0; } },
+    { id:'maAlignBull', label:'MA 정배열', group:'trend', kind:'bin', layers:'2', value:function(ind){ return (ind.maAlign&&ind.maAlign.bullish)?1:0; } }
   ];
 
   // ── [S1095] 별칭 — 구 교차검증/레시피 키(②) → canonical. 실측 100% 동일 확인분만 등록. ──
@@ -317,6 +341,6 @@
     evalCont: evalCont,
     evalOne: evalOne,
     CROSS_NBAR: CROSS_NBAR,
-    version: 'S1096d'  // [S1096d] 106재료 — S1095 통합 SSOT 79 + 발굴 27(layers'4'). 자기중복 감사: 이진 자카드≥0.80 2쌍(macdGc≡macdHistUp 동일 · ichiSignal↔ichiCloudUp 0.816) · 연속 |r|≥0.98 0쌍. 매매 무영향(shim 35키 고정)
+    version: 'S1122'  // [S1122] 129재료(106+거울상 23·layers'2'). 이전: [S1096d] 106재료 — S1095 통합 SSOT 79 + 발굴 27(layers'4'). 자기중복 감사: 이진 자카드≥0.80 2쌍(macdGc≡macdHistUp 동일 · ichiSignal↔ichiCloudUp 0.816) · 연속 |r|≥0.98 0쌍. 매매 무영향(shim 35키 고정)
   };
 })();
