@@ -939,7 +939,9 @@ var _F733_WARNED = false;
 //   ⚠전부 이진이라 임계 탐색 부담 증가 0. 어휘 35+22=57 → C(57,3)=29,260 (MAXTEST 30,000 이내)
 var _F733_DISC_ADD = ['pcUp','pivotAbove','newHighN','newLowN','rsiDivBear','chaikinGc','volPatBull','volPatBear',
   'ichiCloudBull','maConv','bwNeutral','candleBull','candleBear','swingHH','swingLL','tlbRev','psychNear',
-  'rsi50up','macdSigGc','macd0up','volMaGc','maAlignBear'];
+  'rsi50up','macdSigGc','macd0up','volMaGc','maAlignBear',
+  // [S1122] 거울상 확장 — deadCross(라이브러리 기존)+신규 23. 카드 재료 조건·자유 조합 빌더 어휘 대칭. 기존 298 레시피 conds는 base 35키만 참조=무영향.
+  'deadCross','dx5_9','dx5_60','obvDivBear','obvDown','nearRes','settle20Dn','volBreakDn','macdDead','macdHistDn','macdAbove0','diBull','sarBull','ichiCloudDn','ichiTKDn','ichiCloudBear','stochSlowDead','chaikinDead','pcDn','pivotBelow','rsi50dn','volMaDead','tlbRevDn','maAlignBull'];
 var _F733_DISC_WARNED = false;
 function _extractFeats733(ind, rows, idx, disc){
   var G=(typeof window!=='undefined')?window:((typeof self!=='undefined')?self:null);
