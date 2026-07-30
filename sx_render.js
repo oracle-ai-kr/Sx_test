@@ -11326,7 +11326,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1122';   // [S1122] 거울상 재료 23종(라이브러리 129)+deadCross 편입·스캔 disc=true(발굴 22종 잠복 갭 해소). S1121=큐레이션·교과서 임계 · S1120=칸 바구니
+  window.SX_BUILD='S1123';   // [S1123] 하락전수 수치 양방향 후보(빌더 컷 거울·decline만·dedup 방향 인지). S1122=거울상 재료+disc 갭 해소 · S1121=큐레이션
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11627,6 +11627,12 @@ function _sxBeamRun(scanMode, out){
     return {key:D.key,type:'bool',label:D.label};
   };
   var allCands=_DISCRIM_FEATS.filter(function(D){return D.key!=='macdHistUp';}).map(condOf);
+  if(_isDN){   // [S1123] 하락전수=수치 재료 양방향 후보 — 빌더 컷(반등 최적)의 거울 방향 추가. 불리언은 S1122 거울상으로 이미 양방향·수치만 방향 고정이던 비대칭 해소. 진짜/가짜 모드=무변경(재현성).
+    var _flips=[];
+    allCands.forEach(function(c){ if(c.type==='num') _flips.push({key:c.key, type:'num', dir:(c.dir==='lt'?'gt':'lt'), th:c.th, label:c.label}); });
+    allCands=allCands.concat(_flips);
+  }
+  var _tk=function(c){ return (_isDN && c.type==='num') ? (c.key+':'+c.dir) : c.key; };   // [S1123] dedup 토큰 — decline만 방향 접미(canon 충돌 방지)·타 모드 바이트 동일
   // 씨앗 = 체크된 재료
   var base=[], seedKeys={};
   _DISCRIM_FEATS.forEach(function(D){ var en=document.getElementById('sxbEn_'+D.key); if(en&&en.checked){ var c=condOf(D); base.push(c); seedKeys[D.key]=1; } });
@@ -11654,11 +11660,11 @@ function _sxBeamRun(scanMode, out){
 
   var queue=[];
   if(!exhaustive){
-    var bk=base.map(function(c){return c.key;}); visited[canon(bk)]=1;
+    var bk=base.map(_tk); visited[canon(bk)]=1;
     var bs=statOf(base); collect(base, bk, base.length, bs);
     if(bs.n>=NMIN && base.length<MAXDEPTH) queue.push({conds:base, keys:bk, depth:base.length});
   } else {
-    allCands.forEach(function(c){ visited[c.key]=1; var s=statOf([c]); if(s.n>=NMIN && 1<MAXDEPTH) queue.push({conds:[c], keys:[c.key], depth:1}); });
+    allCands.forEach(function(c){ visited[_tk(c)]=1; var s=statOf([c]); if(s.n>=NMIN && 1<MAXDEPTH) queue.push({conds:[c], keys:[_tk(c)], depth:1}); });
   }
   // BFS 확장 — n≥30인 것만 깊이 추가(단조 가지치기)
   while(queue.length){
@@ -11666,8 +11672,8 @@ function _sxBeamRun(scanMode, out){
     var cur=queue.shift();
     if(cur.depth>=MAXDEPTH) continue;
     for(var i=0;i<allCands.length;i++){
-      var c=allCands[i]; if(cur.keys.indexOf(c.key)>=0) continue;
-      var nk=cur.keys.concat([c.key]); var ck=canon(nk);
+      var c=allCands[i]; if(cur.keys.some(function(k){return k.split(':')[0]===c.key;})) continue;   // [S1123] 같은 재료의 반대방향 결합(공집합) 방지 — 베이스 키 기준 배제
+      var nk=cur.keys.concat([_tk(c)]); var ck=canon(nk);
       if(visited[ck]) continue; visited[ck]=1;
       if(tests>=MAXTEST){ capped=true; break; }
       tests++;
@@ -11708,7 +11714,7 @@ function _sxBeamRun(scanMode, out){
         +'</div>';
     }
   }
-  h+='<div style="font-size:8px;color:'+T3+';margin-top:6px;line-height:1.45">씨앗(체크) 있으면 <b>그 재료 포함 조합만</b>, 없으면 <b>전수</b>. '+(_isDC?'<b>가짜</b>=패턴게이트(깊이≤4·n≥30·반짝후추락)':_isDN?'<b>하락=강티어 거울</b>(깊이≤3·n≥50·반짝없음·렌즈율/유지 기저−15%p·렌즈평균 기저−3%p)':'<b>진짜=강티어</b>(깊이≤3·n≥50·N10기저+15%p·유지60%·후반기저+3%p)')+' 통과만 수집 · <b>실제 후반평균 방향</b> 필터 · MACD 쌍둥이 제외. <b style="color:'+passCol+'">💾 JSON</b>으로 전체 저장 → 업로드.</div>';
+  h+='<div style="font-size:8px;color:'+T3+';margin-top:6px;line-height:1.45">씨앗(체크) 있으면 <b>그 재료 포함 조합만</b>, 없으면 <b>전수</b>. '+(_isDC?'<b>가짜</b>=패턴게이트(깊이≤4·n≥30·반짝후추락)':_isDN?'<b>하락=강티어 거울</b>(깊이≤3·n≥50·반짝없음·렌즈율/유지 기저−15%p·렌즈평균 기저−3%p·수치 양방향 후보[S1123])':'<b>진짜=강티어</b>(깊이≤3·n≥50·N10기저+15%p·유지60%·후반기저+3%p)')+' 통과만 수집 · <b>실제 후반평균 방향</b> 필터 · MACD 쌍둥이 제외. <b style="color:'+passCol+'">💾 JSON</b>으로 전체 저장 → 업로드.</div>';
   out.innerHTML=h;
 }
 if(typeof window!=='undefined'){ window._sxBuilderBeamScan=_sxBuilderBeamScan; }
