@@ -5187,15 +5187,18 @@ function _cellStage(maAlign, shortKey){
   if(m5 == null || m60 == null || !(m60 > 0)) return null;
   var gap = (m5 - m60) / m60 * 100;
   if(gap >= 0) return null;                                  // 전환(기본) — 접미 없음
-  return { run:true, gap:gap, warn:(shortKey === 'bull') };
+  return { run:true, gap:gap, warn:(shortKey === 'bull') };   // [S1128] warn은 산출만 하고 **표시에 쓰지 않는다**(KR 전용 근거 · 시장별 분기 시 재사용)
 }
 //  base=칸 이름 원본(불변). 반환은 **표시 문자열 전용** — 로직 키로 절대 쓰지 말 것(_TREND_TYPE/_TREND_DESC 조회는 원본으로).
 function _cellLabelDisplay(base, maAlign, shortKey){
   var st = _cellStage(maAlign, shortKey);
   if(!st || !base) return base;
-  //  [S1126b] 경고 표기는 **아이콘**으로. 색(_TREND_DESC.c)은 이미 9칸에 의미가 할당돼 있어
-  //  덮어쓰면 기존 뜻이 깨지고, 기술적반등(기본 orange)은 경고색과 충돌해 구분도 안 된다.
-  return base + ' \u00B7 ' + (st.warn ? '\u26A0' : '') + '진행 ' + st.gap.toFixed(0) + '%';
+  //  [S1128] 경고 표기 **철회**. US/COIN 확인 측정에서 근거가 무너졌다:
+  //    Δ방향(구조 악화)은 3시장 27칸 전부 양(+0.06~+0.70)으로 일관하나 — 즉 모든 칸에 해당해 차별 표기가 안 됨
+  //    Δ수익은 시장마다 부호가 갈린다: bull|mixed KR +1.33 / US −0.58 / COIN +0.03 ·
+  //                                    bear|bear  KR −1.92 / US −0.22 / COIN **+0.89**
+  //  → 경고는 KR 전용 규칙이었다. 수익 함의는 **말하지 않는다**. 접미는 순수 서술만 남긴다.
+  return base + ' \u00B7 진행 ' + st.gap.toFixed(0) + '%';
 }
 if(typeof window!=='undefined'){ window._cellStage=_cellStage; window._cellLabelDisplay=_cellLabelDisplay; }
 function _ma60Slope(closes, lookback){
@@ -11383,7 +11386,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1127';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1128';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
