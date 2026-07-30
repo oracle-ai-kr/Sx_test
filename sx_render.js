@@ -2101,7 +2101,7 @@ function _trendStratEnsure(cb){
   },10);
 }
 // 통합 BT — 반환 형식 _trendBt 동일(그리드·모달·물타기·차트마커 재사용). 수식은 _trendBtHybrid/_trendBt(S623 kNN) verbatim 이식.
-function _stratBt(rows, sig, cfg, sc, bbP){
+function _stratBt(rows, sig, cfg, sc, bbP, cellCtx){
   const n=rows.length; const _s=cfg.s||5, _l=cfg.l||20; if(!n || n<Math.max(30,_l+5)) return null;
   const close=rows.map(r=>+(r.close!=null?r.close:r.c));
   const maS=_trSma(close,_s), maL=_trSma(close,_l);
@@ -2112,8 +2112,12 @@ function _stratBt(rows, sig, cfg, sc, bbP){
   const cR=(sig&&sig.cellReal)||{}, cD=(sig&&sig.cellDown)||{}, cF=(sig&&sig.cellFake)||{};
   const _minK=(+sc.minK>=2)?Math.min(3,Math.round(+sc.minK)):1;               // [S1117] real 겹침 임계(레거시 pb/dc만·칸/크로스 미적용)
   const _feeP=(sc.fee && isFinite(+sc.feePct) && +sc.feePct>0)?+sc.feePct:0;   // [S1117] 왕복 마찰 %(청산 거래에 감산·보유중 평가는 무마찰)
+  const _cc=(cellCtx && cellCtx.cellOf && cellCtx.baskets)?cellCtx:null;        // [S1120] 🧺 칸 바구니 라우팅(진입/청산 토글=칸별·파라미터=전역 공유·grid3 무시)
+  const _ccKeys=_cc?Object.keys(_cc.baskets):[];
+  const _ccAnyAtr=_cc?_ccKeys.some(k=>{const b=_cc.baskets[k];return b&&b.ex&&b.ex.atr;}):false;
+  const _ccAnyBv=_cc?_ccKeys.some(k=>{const b=_cc.baskets[k];return b&&b.en&&b.en.bv;}):false;
   const _mk=(cfg&&cfg._market)||'kr', _isCoin=(_mk==='coin'), _use3x3=(_mk==='kr'||_isCoin);   // [S1063] 레짐 축: KR·COIN=3×3 · US=_btRegimeAt (하이브리드 동일)
-  const _g3=!!sc.grid3;
+  const _g3=!!sc.grid3 && !_cc;   // [S1120] 바구니=라우팅 그 자체 → 3×3 게이트 무시
   const _coinSlopeUp=(i)=>(i>=10 && maR60[i]!=null && maR60[i-10]!=null && maR60[i]>maR60[i-10]);
   const _regCache={};
   const _regGet=(i)=>{ let r=_regCache[i]; if(r===undefined){
@@ -2127,7 +2131,8 @@ function _stratBt(rows, sig, cfg, sc, bbP){
   const _pctB=(i)=>{ const m=maBB20[i],s=stdBB[i]; if(m==null||s==null||s<=0) return 0.5; return (close[i]-(m-2*s))/(4*s); };
   const _dev20=(i)=>{ const m=maBB20[i]; return (m!=null&&m>0)?(close[i]/m-1)*100:0; };
   // bullVol 진입(시즌2 이식 S1073 verbatim·KR 전용·상호배타 최하순위)
-  const _bvOn=!!(cfg&&cfg.bullVol&&_mk==='kr');
+  const _bvOnSc=!!(cfg&&cfg.bullVol&&_mk==='kr');
+  const _bvOn=_bvOnSc || (_ccAnyBv && _mk==='kr');   // [S1120] 인프라: 바구니 bv도 프리컴퓨트
   let _bvOk=null;
   if(_bvOn){
     const _v=rows.map(r=>+(r.volume!=null?r.volume:(r.v!=null?r.v:0)));
@@ -2145,8 +2150,9 @@ function _stratBt(rows, sig, cfg, sc, bbP){
   }
   // 이중 ATR 청산(S1073 verbatim)
   const _a2On=!!(cfg&&cfg.atr2), _aI=(+(cfg&&cfg.atrInit)>0)?+cfg.atrInit:2, _aT=(+(cfg&&cfg.atrTrail)>0)?+cfg.atrTrail:3;
+  const _a2Infra=_a2On||_ccAnyAtr;   // [S1120] 바구니 ATR도 인프라 프리컴퓨트
   let _atr14=null;
-  if(_a2On){
+  if(_a2Infra){
     const _hi=rows.map(r=>+(r.high!=null?r.high:(r.h!=null?r.h:(r.close!=null?r.close:r.c))));
     const _lo=rows.map(r=>+(r.low!=null?r.low:(r.l!=null?r.l:(r.close!=null?r.close:r.c))));
     const _tr=new Array(n).fill(0);
@@ -2213,13 +2219,15 @@ function _stratBt(rows, sig, cfg, sc, bbP){
     const gc=(i>0&&maS[i]!=null&&maL[i]!=null&&maS[i-1]!=null&&maL[i-1]!=null&&maS[i]>maL[i]&&maS[i-1]<=maL[i-1]);
     const dx=(i>0&&maXS[i]!=null&&maXL[i]!=null&&maXS[i-1]!=null&&maXL[i-1]!=null&&maXS[i]<maXL[i]&&maXS[i-1]>=maXL[i-1]);
     const _rg=_regGet(i), bullSide=(_rg==='up'), bearSide=(_rg==='down');
-    const _downNow=!!(sc.exDown && cD[i]);   // 칸 down = 그 봉 신규진입 차단 + 보유 청산(회피 트랙 — 매수투표 아님)
+    let _bk;   // [S1120] 이 봉의 바구니: undefined=바구니모드 아님 · null=진입금지(칸 미확정/선택칸 외) · obj=해당 칸 바구니
+    if(_cc){ const _ckI=_cc.cellOf[i]; _bk=(_ckI && (!_cc.only || _ckI===_cc.only)) ? (_cc.baskets[_ckI]||null) : null; }
+    const _downNow=_cc ? !!(_bk && _bk.ex && _bk.ex.down && cD[i]) : !!(sc.exDown && cD[i]);   // 칸 down=신규진입 차단(바구니 모드=그 봉 칸 기준) · 청산은 포지션 바구니 기준(아래)
     const _fkNow=!!(pbF[i]||dcF[i]);         // 혼재차단(pure)·가짜청산 공용
     if(pos==null){
       let enter=null, _pl=0;
       if(!_downNow){
-        if(_rangeOn && _isFlat(i) && _pctB(i)<=0.2 && _dev20(i)<-8) enter='range';   // [S1064] 횡보장 BB하단 평균회귀
-        if(!enter && sc.cross){
+        if((_cc?(!!(_bk&&_bk.en.bb)&&(_mk==='kr'||_mk==='us')):_rangeOn) && _isFlat(i) && _pctB(i)<=0.2 && _dev20(i)<-8) enter='range';   // [S1064] 횡보장 BB하단 평균회귀
+        if(!enter && (_cc?!!(_bk&&_bk.en.cross):sc.cross)){
           const okReg=!_g3 || (bullSide && (!_isCoin || _coinSlopeUp(i)));           // 3×3 ON: 상승장만(+COIN 60MA 기울기)
           if(okReg){
             if(_predOn){ _pl=_predGc(i); }
@@ -2227,35 +2235,43 @@ function _stratBt(rows, sig, cfg, sc, bbP){
             else if(gc) enter='trend';
           }
         }
-        if(!enter && sc.dc && (dcR[i]||0)>=_minK && (!_g3||bearSide) && !(sc.pure&&_fkNow)) enter='deadcat';     // 역배 real(자체 lt게이트+3×3 ON시 하락장) · [S1117] 겹침≥minK
-        if(!enter && sc.pb && (pbR[i]||0)>=_minK && (!_g3||bullSide) && !(sc.pure&&_fkNow)) enter='pullback';    // 정배 real(3×3 ON시 상승장) · [S1117] 겹침≥minK
-        if(!enter && sc.cell && cR[i]) enter='cell';                                                // 칸 real=자체 칸 게이트(3×3 무관)
-        if(!enter && _bvOn && _bvOk && _bvOk[i]) enter='bullvol';                                   // 상호배타 최하순위(S1073)
+        if(!enter && (_cc?!!(_bk&&_bk.en.dc):sc.dc) && (dcR[i]||0)>=_minK && (!_g3||bearSide) && !(sc.pure&&_fkNow)) enter='deadcat';     // 역배 real(자체 lt게이트+3×3 ON시 하락장) · [S1117] 겹침≥minK
+        if(!enter && (_cc?!!(_bk&&_bk.en.pb):sc.pb) && (pbR[i]||0)>=_minK && (!_g3||bullSide) && !(sc.pure&&_fkNow)) enter='pullback';    // 정배 real(3×3 ON시 상승장) · [S1117] 겹침≥minK
+        if(!enter && (_cc?!!(_bk&&_bk.en.cell):sc.cell) && cR[i]) enter='cell';                                                // 칸 real=자체 칸 게이트(3×3 무관)
+        if(!enter && (_cc?!!(_bk&&_bk.en.bv):_bvOnSc) && _bvOk && _bvOk[i]) enter='bullvol';                                   // 상호배타 최하순위(S1073)
       }
       if(enter){
-        if(_nextOpen){ const j=i+1; if(j<n && _opens[j]>0){ pos={entry:_opens[j], entryIdx:j, src:enter, entryATR:(_a2On&&_atr14&&_atr14[j]>0)?_atr14[j]:0, peak:_opens[j]}; if(_pl>0){ pos.pred=true; pos.sigIdx=i; pos.predLead=_pl; } } }
-        else if(close[i]>0){ pos={entry:close[i], entryIdx:i, src:enter, entryATR:(_a2On&&_atr14&&_atr14[i]>0)?_atr14[i]:0, peak:close[i]}; if(_pl>0){ pos.pred=true; pos.sigIdx=i; pos.predLead=_pl; } }
+        if(_nextOpen){ const j=i+1; if(j<n && _opens[j]>0){ pos={entry:_opens[j], entryIdx:j, src:enter, bk:(_cc?_bk:undefined), cellKey:(_cc&&_cc.cellOf[i])||'', entryATR:(_a2Infra&&_atr14&&_atr14[j]>0)?_atr14[j]:0, peak:_opens[j]}; if(_pl>0){ pos.pred=true; pos.sigIdx=i; pos.predLead=_pl; } } }
+        else if(close[i]>0){ pos={entry:close[i], entryIdx:i, src:enter, bk:(_cc?_bk:undefined), cellKey:(_cc&&_cc.cellOf[i])||'', entryATR:(_a2Infra&&_atr14&&_atr14[i]>0)?_atr14[i]:0, peak:close[i]}; if(_pl>0){ pos.pred=true; pos.sigIdx=i; pos.predLead=_pl; } }
       }
     } else {
-      if(_a2On && close[i]>pos.peak) pos.peak=close[i];
-      const _a2Hit=(_a2On && pos.entryATR>0 && close[i]>0 && close[i] <= Math.max(pos.entry-_aI*pos.entryATR, pos.peak-_aT*pos.entryATR));
+      if(_a2Infra && close[i]>pos.peak) pos.peak=close[i];
+      const _BX=(pos.bk&&pos.bk.ex)?pos.bk.ex:null;   // [S1120] 포지션=진입 칸 바구니의 청산 규칙을 끝까지(칸 이동해도 유지)
+      const _exAtrP=_BX?!!_BX.atr:_a2On;
+      const _a2Hit=(_exAtrP && pos.entryATR>0 && close[i]>0 && close[i] <= Math.max(pos.entry-_aI*pos.entryATR, pos.peak-_aT*pos.entryATR));
+      const _exDeadP=_BX?!!_BX.dead:sc.exDead;
+      const _graceP=_BX?(_BX.grace?((sc.deadGrace>0)?sc.deadGrace:10):0):(sc.deadGrace||0);
+      const _exFakeP=_BX?!!_BX.fake:sc.exFake;
+      const _exCFP=_BX?!!_BX.cfake:sc.exCellFake;
+      const _exDwnP=_BX?!!_BX.down:sc.exDown;
+      const _nbarP=_BX?(_BX.nbar?((sc.exNBars>0)?sc.exNBars:15):0):(sc.exNBars||0);
       const held=i-pos.entryIdx;
       let xr=null;
       if(pos.src==='range'){ if(_pctB(i)>=0.5) xr='bb'; else if(held>=20) xr='cap'; }   // range 포지션 청산은 레그 정의에 고정(BB중단/20봉캡)
       else {
         if(pos.pred && (i-pos.sigIdx>=_LBL) && !(maS[i]>maL[i])) xr='predfail';                                          // 예측 미확정 손절(kNN 자체 규칙)
-        else if(sc.exDead && dx && held>(sc.deadGrace||0)) xr='dead';
-        else if(sc.exFake && _fkNow) xr='fake';
-        else if(sc.exCellFake && cF[i]) xr='cfake';                                                                       // [S1117] 칸 fake 경보 청산(진입차단 아님·매수투표 금지 계승)
-        else if(_downNow) xr='down';
-        else if(sc.exNBars>0 && held>=sc.exNBars) xr='nbar';                                                              // [S1117] 보유 N봉 컷(15=역배 최적보유 S838 재현용·range 제외)
+        else if(_exDeadP && dx && held>_graceP) xr='dead';
+        else if(_exFakeP && _fkNow) xr='fake';
+        else if(_exCFP && cF[i]) xr='cfake';                                                                       // [S1117] 칸 fake 경보 청산(진입차단 아님·매수투표 금지 계승)
+        else if(_exDwnP && cD[i]) xr='down';   // [S1120] 청산=포지션 바구니 기준
+        else if(_nbarP>0 && held>=_nbarP) xr='nbar';                                                              // [S1117] 보유 N봉 컷(15=역배 최적보유 S838 재현용·range 제외)
         else if(_g3 && _isCoin && pos.src==='trend' && maS[i]!=null && close[i]<maS[i]) xr='ma5';                          // [S1063] COIN 추세 빠른청산(3×3 라우팅의 일부)
         else if(_predOn && pos.src==='trend' && _predDc(i)>0) xr='predx';
       }
       if(!xr && _a2Hit) xr='atr';
       if(xr && close[i]>0){
         const ex=close[i], pnl=+(((ex/pos.entry-1)*100)-_feeP).toFixed(2);   // [S1117] 왕복 마찰 감산(근사: 수익률−fee%p)
-        trades.push({ entry:pos.entry, exit:ex, pnl, bars:held, entryIdx:pos.entryIdx, exitIdx:i, src:pos.src, xr:xr, pred:!!pos.pred, predExit:(xr==='predx'), a2:(xr==='atr'),
+        trades.push({ entry:pos.entry, exit:ex, pnl, bars:held, entryIdx:pos.entryIdx, exitIdx:i, src:pos.src, xr:xr, cell:pos.cellKey||'', pred:!!pos.pred, predExit:(xr==='predx'), a2:(xr==='atr'),
           entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'', exitDate:(rows[i]&&(rows[i].date||rows[i].t))||'' });
         pos=null;
       }
@@ -2324,7 +2340,13 @@ function _stratBreakdownHtml(bt){
     chips+=`<span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text2)">${_stratSrcLbl(k)} <b>${o.n}건</b> · 승${wr}% · <b style="color:${c}">${avg>=0?'+':''}${avg}%</b></span>`; });
   const xrOrder=['dead','fake','cfake','down','nbar','atr','bb','cap','ma5','predfail','predx'];
   const xrTxt=xrOrder.filter(k=>xr[k]).map(k=>`${_stratXrLbl(k)} ${xr[k]}`).join(' · ');
-  return `<div style="margin-top:7px"><div style="font-size:9px;font-weight:800;color:var(--text2);margin-bottom:4px">진입원별 <span style="font-weight:500;color:var(--text3)">(평균=건당)</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">${chips}</div>${xrTxt?`<div style="font-size:9px;color:var(--text3);margin-top:5px">청산 사유: ${xrTxt}</div>`:''}</div>`;
+  const byCell={};   // [S1120] 진입 칸별 분해(바구니 모드에서 trades.cell 존재 시)
+  bt.trades.forEach(t=>{ if(!t.cell) return; const o=byCell[t.cell]||(byCell[t.cell]={n:0,w:0,sum:0}); o.n++; if(t.pnl>0)o.w++; o.sum+=t.pnl; });
+  let cellChips='';
+  Object.keys(byCell).sort().forEach(k=>{ const o=byCell[k]; const wr=Math.round(o.w/o.n*100), avg=+(o.sum/o.n).toFixed(2); const c=avg>=0?'#22c55e':'#e8365a';
+    cellChips+=`<span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:10px;background:var(--surface2);border:1px solid #7c3aed44;color:var(--text2)">🧺${(typeof _cbCellShort==='function')?_cbCellShort(k):k} <b>${o.n}건</b> · 승${wr}% · <b style="color:${c}">${avg>=0?'+':''}${avg}%</b></span>`; });
+  const cellRow=cellChips?`<div style="font-size:9px;font-weight:800;color:var(--text2);margin:6px 0 4px">칸별 <span style="font-weight:500;color:var(--text3)">(진입 칸·단기|장기)</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">${cellChips}</div>`:'';
+  return `<div style="margin-top:7px"><div style="font-size:9px;font-weight:800;color:var(--text2);margin-bottom:4px">진입원별 <span style="font-weight:500;color:var(--text3)">(평균=건당)</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">${chips}</div>${cellRow}${xrTxt?`<div style="font-size:9px;color:var(--text3);margin-top:5px">청산 사유: ${xrTxt}</div>`:''}</div>`;
 }
 // ═══════════ [S1118] 풀 전체 배치 BT — 현 전략 조합을 풀(관심목록/대표풀) 전체에 돌려 합산(n=1 일화 탈출) ═══════════
 //   fetch=SXCandleBT.fetchRows600(스냅 모드 자동 존중: ON=냉동 캐시 전용·미수록 스킵) · 신호=stratSignalBars(스캔 캐시 공유 → 첫 실행만 무겁고 재실행·조합변경 재실행은 빠름).
@@ -2334,7 +2356,8 @@ function _stratComboSig(sc,cfg){
   return JSON.stringify({ b:['cross','pb','dc','cell','bb','grid3','pure','exDead','exFake','exDown','exCellFake'].map(k=>sc[k]?1:0),
     g:sc.deadGrace||0, k:sc.minK||1, nb:sc.exNBars||0, fe:(sc.fee?+sc.feePct:0),
     ma:[cfg.s,cfg.l,cfg.xCross?cfg.xs:0,cfg.xCross?cfg.xl:0], o:[cfg.nextOpen,cfg.predict,cfg.bullVol,cfg.atr2].map(x=>x?1:0),
-    a:[+cfg.atrInit||2,+cfg.atrTrail||3], pl:cfg.predLead||1 });
+    a:[+cfg.atrInit||2,+cfg.atrTrail||3], pl:cfg.predLead||1,
+    cb:((typeof window!=='undefined'&&window._cbModeV&&window._cbModeV!=='off')?{m:window._cbModeV,s:(window._cbModeV==='one'?(window._cbSelV||''):''),c:(function(){ try{ const ctx=window._sxTrendCtx; return ctx?_cbStore(ctx.market).cells:{}; }catch(_){ return {}; } })()}:0) });   // [S1120] 바구니 상태=조합 시그 일부
 }
 function _stratPoolAgg(trades, perStock){
   const n=trades.length; let w=0,gw=0,gl=0,sum=0;
@@ -2365,7 +2388,7 @@ async function _stratPoolRun(){
     const CAP=130, truncated=list.length>CAP; list=list.slice(0,CAP);
     const snapOn=!!(SXCandleBT.snapMode&&SXCandleBT.snapMode());
     const _aRun=_stratActive(sc,cfg,mk);
-    const desc='진입['+(_aRun.en.join('·')||'없음')+(sc.grid3?' +🔲3×3':'')+(sc.pure?' +⚖️혼재':'')+((cfg.predict&&sc.cross)?' +🔮kNN':'')+'] → 청산['+(_aRun.ex.join('·')||'없음')+'] · 진입 '+(cfg.nextOpen?'다음봉 시가':'종가');
+    const desc='진입['+(_aRun.en.join('·')||'없음')+(sc.grid3?' +🔲3×3':'')+(sc.pure?' +⚖️혼재':'')+((cfg.predict&&sc.cross)?' +🔮kNN':'')+'] → 청산['+(_aRun.ex.join('·')||'없음')+'] · 진입 '+(cfg.nextOpen?'다음봉 시가':'종가')+((window._cbModeV&&window._cbModeV!=='off')?(' · 🧺'+(window._cbModeV==='one'?('칸['+_cbCellShort(window._cbSelV||'bull|bull')+']'):'9칸 라우팅')+' — 바구니 모드(위 진입/청산 표기 대신 칸별 바구니 적용)'):'');
     const allTrades=[], perStock=[], openList=[]; let skipped=0;
     for(let i=0;i<list.length;i++){
       out=document.getElementById('sxStratPoolOut'); if(!out){ return; }   // 탭 이동 등으로 소실 시 중단
@@ -2376,7 +2399,7 @@ async function _stratPoolRun(){
       if(!Array.isArray(rows)||rows.length<260){ skipped++; continue; }
       let sig=null; try{ sig=await SXRecipeSignal.stratSignalBars(st.code+'|'+mk, rows, mk); }catch(e){ sig=null; }
       if(!sig){ skipped++; continue; }
-      let bt=null; try{ bt=_stratBt(rows, sig, cfg, sc, null); }catch(e){ bt=null; }
+      let bt=null; try{ const _ccP=(typeof _cbCtxBuild==='function')?_cbCtxBuild(mk, sig):undefined; bt=_stratBt(rows, sig, cfg, sc, null, _ccP); }catch(e){ bt=null; }   // [S1120] 바구니 모드 반영(칸=종목별 cellOf)
       if(!bt){ skipped++; continue; }
       (bt.trades||[]).forEach(t=>{ allTrades.push({code:st.code,name:st.name,src:t.src||'',xr:t.xr||'',pnl:t.pnl,bars:t.bars,ed:t.entryDate||'',xd:t.exitDate||''}); });
       if(bt.open) openList.push({name:st.name,src:bt.open.src||'',pnl:bt.open.pnl,bars:bt.open.bars});
@@ -2503,6 +2526,65 @@ function _xmatSectionHtml(market){
     +`</div>`;
 }
 if(typeof window!=='undefined'){ window._xmatTg=_xmatTg; window._xmatDir=_xmatDir; window._xmatTh=_xmatTh; window._xmatClear=_xmatClear; window._xmatFold=_xmatFold; }
+// ═══════════ [S1120] 🧺 칸 바구니 — 3×3 칸(단기|장기·칸 사다리 정의와 동일)별 진입/청산 블록 조립 = 사용자 라우팅 ═══════════
+//   바구니=블록 ON/OFF만 저장 · 파라미터(유예N·⏱N·ATR배수·Σ임계·혼재차단·kNN·💸)는 카드 전역 설정 공유.
+//   포지션은 '진입 칸'의 바구니 청산 규칙을 끝까지 따름(칸 이동해도 유지 — 3×3 라우팅의 기존 관례와 동일).
+//   칸 판정=stratSignalBars의 cellOf(cs.c) — 웜업(스캔 전 ~250봉) 봉은 칸 미확정=진입 제외. 모드: off/one(선택 칸만)/all(9칸 라우팅).
+const _CB_VER=1;
+const _CB_AX=['bull','mixed','bear'];
+const _CB_SHORT={bull:'정',mixed:'혼',bear:'역'};
+function _cbCellShort(k){ const p=String(k||'').split('|'); return (_CB_SHORT[p[0]]||'?')+'|'+(_CB_SHORT[p[1]]||'?'); }   // 단기|장기
+function _cbStore(mk){ let st={_ver:_CB_VER,cells:{}}; try{ const raw=localStorage.getItem('SX_CELLBK_'+mk); if(raw){ const o=JSON.parse(raw); if(o&&o._ver===_CB_VER&&o.cells&&typeof o.cells==='object') st.cells=o.cells; } }catch(_){} return st; }
+function _cbSave(mk,st){ try{ localStorage.setItem('SX_CELLBK_'+mk, JSON.stringify(st)); }catch(_){} }
+function _cbGet(st,key){ const c=(st.cells||{})[key]||{}; return { en:Object.assign({cross:0,dc:0,pb:0,cell:0,bb:0,bv:0},c.en||{}), ex:Object.assign({dead:0,grace:0,fake:0,cfake:0,down:0,nbar:0,atr:0},c.ex||{}) }; }
+function _cbBasketsAll(mk){ const st=_cbStore(mk); const b={}; _CB_AX.forEach(s=>_CB_AX.forEach(l=>{ const k=s+'|'+l; b[k]=_cbGet(st,k); })); return b; }
+function _cbEnCount(b){ return ['cross','dc','pb','cell','bb','bv'].reduce((a,k)=>a+(b.en[k]?1:0),0); }
+function _cbTg(grp,k){ const ctx=window._sxTrendCtx; if(!ctx) return; const mk=ctx.market; const sel=window._cbSelV||'bull|bull'; const st=_cbStore(mk); const c=st.cells[sel]||(st.cells[sel]={en:{},ex:{}}); const g=c[grp]||(c[grp]={}); g[k]=g[k]?0:1; _cbSave(mk,st); _trendRerender(); }
+function _cbSelCell(key){ window._cbSelV=key; if(!window._cbOpenV) window._cbOpenV=true; _trendRerender(); }
+function _cbSetMode(m){ window._cbModeV=(m==='one'||m==='all')?m:'off'; _trendRerender(); }
+function _cbClearSel(){ const ctx=window._sxTrendCtx; if(!ctx) return; const mk=ctx.market; const sel=window._cbSelV||'bull|bull'; const st=_cbStore(mk); delete st.cells[sel]; _cbSave(mk,st); _trendRerender(); }
+function _cbFold(){ window._cbOpenV=!window._cbOpenV; _trendRerender(); }
+function _cbCtxBuild(mk, sig){
+  const m=window._cbModeV||'off';
+  if(m==='off' || !sig || !sig.cellOf) return undefined;
+  return { cellOf:sig.cellOf, baskets:_cbBasketsAll(mk), only:(m==='one'?(window._cbSelV||'bull|bull'):null) };
+}
+function _cbSectionHtml(market){
+  const mode=window._cbModeV||'off';
+  const sel=window._cbSelV||'bull|bull';
+  const open=!!window._cbOpenV;
+  const st=_cbStore(market);
+  const nCfg=_CB_AX.reduce((a,s)=>a+_CB_AX.reduce((x,l)=>x+((st.cells[s+'|'+l]&&_cbEnCount(_cbGet(st,s+'|'+l)))?1:0),0),0);
+  const modeLbl=mode==='off'?'OFF':(mode==='one'?('칸['+_cbCellShort(sel)+']'):'9칸 라우팅');
+  const _mChip=(on,lab,m)=>`<span onclick="_sxVib(9);window._cbSetMode&&_cbSetMode('${m}')" style="font-size:9px;font-weight:800;padding:4px 9px;border-radius:10px;cursor:pointer;${on?'background:#7c3aed;color:#fff':'background:var(--surface2);color:#7c3aed;border:1px solid #7c3aed55'}">${lab}</span>`;
+  let body='';
+  if(open){
+    body+=`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:6px 0"><span style="font-size:9px;font-weight:800;color:var(--text3)">모드</span>${_mChip(mode==='off','OFF','off')}${_mChip(mode==='one','선택 칸만','one')}${_mChip(mode==='all','9칸 라우팅','all')}</div>`;
+    let g=`<div style="display:grid;grid-template-columns:38px repeat(3,1fr);gap:3px;margin-bottom:6px;max-width:290px">`;
+    g+=`<div></div>`+_CB_AX.map(s=>`<div style="font-size:8.5px;font-weight:800;color:var(--text3);text-align:center">단기 ${_CB_SHORT[s]}</div>`).join('');
+    _CB_AX.forEach(l=>{
+      g+=`<div style="font-size:8.5px;font-weight:800;color:var(--text3);display:flex;align-items:center">장기 ${_CB_SHORT[l]}</div>`;
+      _CB_AX.forEach(s=>{ const k=s+'|'+l; const b=_cbGet(st,k); const en=_cbEnCount(b); const isSel=(k===sel);
+        g+=`<div onclick="_sxVib(8);window._cbSelCell&&_cbSelCell('${k}')" style="cursor:pointer;text-align:center;padding:8px 0;border-radius:8px;font-size:11px;font-weight:800;${isSel?'background:#7c3aed;color:#fff;border:1px solid #7c3aed':'background:var(--surface2);color:'+(en?'#7c3aed':'var(--text3)')+';border:1px solid '+(en?'#7c3aed66':'var(--border)')}">${en?('진'+en):'·'}</div>`; });
+    });
+    g+=`</div>`;
+    body+=g;
+    const b=_cbGet(st,sel);
+    const _bChip=(on,lab,grp,k,col)=>`<span onclick="_sxVib(9);window._cbTg&&_cbTg('${grp}','${k}')" style="font-size:10px;font-weight:800;padding:5px 10px;border-radius:14px;border:1px solid;cursor:pointer;${on?`background:${col};color:#fff;border-color:${col}`:`background:var(--surface2);color:${col};border-color:${col}55`}">${on?'☑':'☐'} ${lab}</span>`;
+    body+=`<div style="font-size:9.5px;font-weight:800;color:var(--text)">선택: 단기 ${_CB_SHORT[sel.split('|')[0]]||'?'} × 장기 ${_CB_SHORT[sel.split('|')[1]]||'?'} <span onclick="_sxVib(9);window._cbClearSel&&_cbClearSel()" style="font-size:8.5px;font-weight:700;color:var(--text3);border:1px solid var(--border);border-radius:8px;padding:2px 8px;cursor:pointer;margin-left:6px">칸 비우기</span></div>`;
+    body+=`<div style="margin-top:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:#16a34a;min-width:28px">진입</span>`
+      +_bChip(!!b.en.cross,'📈 크로스','en','cross','#0ea5e9')+_bChip(!!b.en.dc,'🔻 역배','en','dc','#dc2626')+_bChip(!!b.en.pb,'🟢 정배','en','pb','#16a34a')
+      +_bChip(!!b.en.cell,'🧩 칸','en','cell','#7c3aed')+((market==='kr'||market==='us')?_bChip(!!b.en.bb,'🌀 BB','en','bb','#0891b2'):'')+(market==='kr'?_bChip(!!b.en.bv,'🔊 bullVol','en','bv','#7c3aed'):'')+`</div>`;
+    body+=`<div style="margin-top:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:#e8365a;min-width:28px">청산</span>`
+      +_bChip(!!b.ex.dead,'데드','ex','dead','#e8365a')+(b.ex.dead?_bChip(!!b.ex.grace,'유예','ex','grace','#d97706'):'')
+      +_bChip(!!b.ex.fake,'가짜','ex','fake','#dc2626')+_bChip(!!b.ex.cfake,'🧩fake','ex','cfake','#b45309')
+      +_bChip(!!b.ex.down,'⛔down','ex','down','#dc2626')+_bChip(!!b.ex.nbar,'⏱N봉','ex','nbar','#0d9488')+_bChip(!!b.ex.atr,'🛡️ATR','ex','atr','#0891b2')+`</div>`;
+    body+=`<div style="font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:6px">바구니=블록 ON/OFF만 · <b>파라미터는 카드 전역 공유</b>(유예=전역값·0이면 10 / ⏱N=전역값·0이면 15 / ATR배수·Σ임계·혼재차단·kNN·💸=카드 설정) · 칸=칸 사다리 정의 동일(단기|장기·웜업 전 봉 진입 제외) · 바구니 모드에선 위 진입/청산 토글과 🔲3×3 대신 <b>칸별 바구니</b> 적용 · 포지션은 진입 칸 규칙 유지</div>`;
+    if(mode!=='off'){ body+=`<div style="font-size:8.5px;color:#d97706;margin-top:3px">🧺 바구니 모드 활성 — 아래 통계·분해가 ${mode==='one'?('칸['+_cbCellShort(sel)+'] 단독'):'9칸 라우팅'} 결과 · in-sample·조합 탐색용(칸 선택 자체도 탐색 표면=과적합 주의)</div>`; }
+  }
+  return `<div style="margin-top:9px;border-top:1px dashed var(--border);padding-top:8px"><div onclick="_sxVib(8);window._cbFold&&_cbFold()" style="cursor:pointer;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:9.5px;font-weight:800;color:#7c3aed">${open?'▼':'▶'} 🧺 칸 바구니</span><span style="font-size:9px;font-weight:700;color:${mode!=='off'?'#7c3aed':'var(--text3)'}">${modeLbl}</span><span style="font-size:8.5px;color:var(--text3)">구성 ${nCfg}칸 · 3×3 라우팅 조립</span></div>${body}</div>`;
+}
+if(typeof window!=='undefined'){ window._cbTg=_cbTg; window._cbSelCell=_cbSelCell; window._cbSetMode=_cbSetMode; window._cbClearSel=_cbClearSel; window._cbFold=_cbFold; }
 // 레시피 BT — real 진입/fake 청산/1포지션/순수. 통계·반환 형식은 _trendBt와 동일(그리드·모달·물타기 재사용).
 function _trendBtRecipe(rows, fire){
   const n=rows.length, close=rows.map(r=>+(r.close!=null?r.close:r.c));
@@ -2695,7 +2777,8 @@ function _trendBt(rows,cfg,bbP){
       const lc=(rows.length?+(rows[rows.length-1].close!=null?rows[rows.length-1].close:rows[rows.length-1].c):0);
       return { winRate:0,pf:0,totalPnl:0,totalTrades:0,avgWin:0,avgLoss:0,mdd:0,expectancy:0,trades:[],open:null,lastClose:lc,predHit:null,predFires:0,predDcHit:null,predDcFires:0,predDday:null,predDdayProb:null,predDdayType:null,predExitNow:false,_strat:true,_stratPending:true };
     }
-    return _stratBt(rows, sig, cfg, _stratCfg((cfg&&cfg._market)||'kr'), bbP);
+    const _ccD=(typeof _cbCtxBuild==='function')?_cbCtxBuild((cfg&&cfg._market)||'kr', sig):undefined;   // [S1120] 칸 바구니
+    return _stratBt(rows, sig, cfg, _stratCfg((cfg&&cfg._market)||'kr'), bbP, _ccD);
   }
   if(_trendEngine==='hybrid'){
     const key=_trendRcpKey(), sig=(window._trendHybFireCache||{})[key];
@@ -3243,7 +3326,7 @@ function _trendRenderInner(){
     if(sc.minK>1) _cavParts.push('Σ임계=절대 개수·세트종속(L-15/L-17) — 겹침3+ 근거는 구 세트 측정·현 세트 재측정용');
     if(sc.deadGrace>0&&cfg.atr2) _cavParts.push('🤖 시즌2 프리셋=근사(시즌2는 장중가·tradable 격리 — 카드는 종가·전체 세트)');
     const cavS=_cavParts.length?`<div style="font-size:8.5px;color:#d97706;margin-top:4px;line-height:1.5">${_cavParts.join(' · ')}</div>`:'';
-    const noteS=`<div style="font-size:9px;color:var(--text3);margin-top:9px;border-top:1px solid var(--border);padding-top:6px">실험 지표 · 정식 판정과 무관 · 🧪 <b>전략 조합</b> — 진입[${_aN.en.join('·')||'없음'}]${sc.grid3?' +🔲3×3':''}${sc.pure?' +⚖️혼재차단':''}${(cfg.predict&&sc.cross)?' +🔮kNN':''} → 청산[${_aN.ex.join('·')||'없음'}] · 진입 ${cfg.nextOpen?'다음봉 시가':'종가'} · ${sc.fee?('💸왕복 '+sc.feePct+'%p 반영'):'무마찰'} · 1포지션 · <b style="color:${_trBarsCol}">[${_trBars}봉 기준]</b>${cavS}</div>`;
+    const noteS=`<div style="font-size:9px;color:var(--text3);margin-top:9px;border-top:1px solid var(--border);padding-top:6px">실험 지표 · 정식 판정과 무관 · 🧪 <b>전략 조합</b> — 진입[${_aN.en.join('·')||'없음'}]${sc.grid3?' +🔲3×3':''}${sc.pure?' +⚖️혼재차단':''}${(cfg.predict&&sc.cross)?' +🔮kNN':''} → 청산[${_aN.ex.join('·')||'없음'}] · 진입 ${cfg.nextOpen?'다음봉 시가':'종가'} · ${sc.fee?('💸왕복 '+sc.feePct+'%p 반영'):'무마찰'}${(window._cbModeV&&window._cbModeV!=='off')?(' · 🧺'+(window._cbModeV==='one'?('칸['+_cbCellShort(window._cbSelV||'bull|bull')+']'):'9칸 라우팅')):''} · 1포지션 · <b style="color:${_trBarsCol}">[${_trBars}봉 기준]</b>${cavS}</div>`;
     // [S1118] 📦 풀 전체 배치 BT 섹션 — 소스 칩(관심/대표)·실행·JSON·직전 결과 복원(+조합 변경 감지)
     const _plSrc=window._stratPoolSrc||'watch';
     const _plq=window._stratPoolLast;
@@ -3259,7 +3342,8 @@ function _trendRenderInner(){
       +`</div>`
       +`<div id="sxStratPoolOut">${_plMine?((_plStale?`<div style="font-size:9px;color:#d97706;margin-top:5px">⚠ 조합이 바뀜 — 아래는 이전 설정(${_plq.desc}) 결과 · ▶ 재실행</div>`:'')+_stratPoolHtml(_plq)):`<div style="font-size:9px;color:var(--text3);margin-top:5px">현 조합을 풀 전체에 돌려 합산 — n=1 일화 탈출 · 첫 실행만 무겁고(종목당 봉별 스캔) 재실행·조합 변경 후 재실행은 스캔 캐시로 빠름</div>`}</div>`
       +`</div>`;
-    return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+engRowS+presetRow+maRow+entryRowS+gateRowS+exitRowS+stateS+grid+bdS+poolRowS+noteS+`</div>`;
+    const cbSec=(typeof _cbSectionHtml==='function')?_cbSectionHtml(market):'';   // [S1120] 🧺 칸 바구니
+    return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+engRowS+presetRow+maRow+entryRowS+gateRowS+exitRowS+cbSec+stateS+grid+bdS+poolRowS+noteS+`</div>`;
   }
   if(_engHyb){
     let stHyb;
@@ -3673,7 +3757,7 @@ function _trendDetailInner(bt,cfg,ctx){
   const _scM = bt._strat ? _stratCfg(ctx.market) : null;   // [S1116] 전략 조합 모달 서브·레짐표 축 결정용
   const _aM = _scM ? _stratActive(_scM, cfg, ctx.market) : null;
   const sub = bt._strat
-    ? `<div style="${_subStyle}">🧪 전략 조합 · 진입[${(_aM&&_aM.en.join('·'))||'—'}]${(_scM&&_scM.grid3)?' +🔲3×3':''}${(_scM&&_scM.pure)?' +⚖️혼재차단':''} → 청산[${(_aM&&_aM.ex.join('·'))||'—'}] · 진입 ${cfg.nextOpen?'다음봉 시가':'종가'}${(_scM&&_scM.fee)?(' · 💸'+_scM.feePct+'%p'):''}${nm}</div>`
+    ? `<div style="${_subStyle}">🧪 전략 조합 · 진입[${(_aM&&_aM.en.join('·'))||'—'}]${(_scM&&_scM.grid3)?' +🔲3×3':''}${(_scM&&_scM.pure)?' +⚖️혼재차단':''} → 청산[${(_aM&&_aM.ex.join('·'))||'—'}] · 진입 ${cfg.nextOpen?'다음봉 시가':'종가'}${(_scM&&_scM.fee)?(' · 💸'+_scM.feePct+'%p'):''}${(typeof window!=='undefined'&&window._cbModeV&&window._cbModeV!=='off')?(' · 🧺'+(window._cbModeV==='one'?('칸['+_cbCellShort(window._cbSelV||'bull|bull')+']'):'9칸')):''}${nm}</div>`
     : bt._hybrid
     ? `<div style="${_subStyle}">🔀 레짐 라우팅 · ${cfg.s}MA×${cfg.l}MA · 진입 ${cfg.nextOpen?'다음봉 시가':'종가'} · ${_hybRouteText(ctx.market,'sub')} · 청산=데드크로스 ∪ 가짜반등${nm}</div>`
     : bt._recipe
@@ -11206,7 +11290,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1119';   // [S1119] 크로스 상세 🧪 재료 조건(빔서치 어휘 매수AND/매도OR·카드 BT 한정). S1118=풀 배치 BT · S1117=Σ임계 외 · S1116=3모드 통합
+  window.SX_BUILD='S1120';   // [S1120] 🧺 칸 바구니(3×3 칸별 진입/청산 조립 라우팅·one/all·풀배치 연동). S1119=재료 조건 · S1118=풀 배치 · S1117=Σ임계 외 · S1116=통합
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
