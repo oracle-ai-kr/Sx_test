@@ -41,7 +41,7 @@
 
   /* ───────── 평가 헬퍼 (전역 재사용) ───────── */
   function _calc(slice){ try { return (typeof SXE!=='undefined' && SXE.calcAllScreener) ? SXE.calcAllScreener(slice,'day') : null; } catch(e){ return null; } }
-  function _feats(ind, rows, i){ try { return (typeof _extractFeats733==='function') ? _extractFeats733(ind, rows, i) : null; } catch(e){ return null; } }
+  function _feats(ind, rows, i){ try { return (typeof _extractFeats733==='function') ? _extractFeats733(ind, rows, i, true) : null; } catch(e){ return null; } }   // [S1122] disc=true — 발굴 확장+거울상 어휘까지 추출(S1119 재료 조건 카드가 57키 표시하며 base 35키만 평가하던 잠복 갭 해소)
   /* [S877] _match → core 이관 */
   /* [S877] _ltOf → sx_recipe_core.js 이관(전역 동명 — 호출부 무변경) */
   function _curTf(){ try { return (typeof _analTF!=='undefined' && _analTF) ? _analTF : 'day'; } catch(e){ return 'day'; } }
