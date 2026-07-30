@@ -11326,7 +11326,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1123';   // [S1123] 하락전수 수치 양방향 후보(빌더 컷 거울·decline만·dedup 방향 인지). S1122=거울상 재료+disc 갭 해소 · S1121=큐레이션
+  window.SX_BUILD='S1124';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -11721,7 +11721,7 @@ if(typeof window!=='undefined'){ window._sxBuilderBeamScan=_sxBuilderBeamScan; }
 // [S768b] 💾 합격 결과 JSON 다운로드 — 스크린샷 한계 대응. window._sxAutoScanPass(베이스+합격후보 상세)를 파일로 저장 → 사용자가 Claude에 업로드 → 분석.
 function _sxAutoScanDownload(){
   var d=(typeof window!=='undefined')?window._sxAutoScanPass:null;
-  if(!d || !d.passed || !d.passed.length){ try{alert('합격 결과가 없습니다 — 먼저 🔍 자동탐색을 실행해 합격 후보(✅)가 나와야 저장됩니다.');}catch(_){} return; }
+  if(!d || !d.passed){ try{alert('스캔 결과가 없습니다 — 먼저 🔍 탐색/🌳 전수를 실행하세요.');}catch(_){} return; }   // [S1124] 스캔 미실행/무효화(S1111d)만 차단 — 0건 통과도 저장 허용(영결과=이 풀·게이트에서 없었다는 기록=알갱이 원칙·파일명 _PASS0 구분)
   try{
     var blob=new Blob([JSON.stringify(d,null,2)], {type:'application/json'});
     var url=URL.createObjectURL(blob);
@@ -11729,7 +11729,8 @@ function _sxAutoScanDownload(){
     // [S1111c] 파일명 자기서술 — 종류(real/fake/down)+창(snap/vinA/vinB)까지 박아 폴더 수동 분류 불필요. 내부 scanMode '가짜=deadcat'이 풀명과 충돌하던 혼동 해소(파일명은 kind 표기).
     var _kd=(d.scanMode==='deadcat')?'fake':((d.scanMode==='decline')?'down':'real');
     var _wl='snap'; try{ var _sn=d.snap||{}; if(_sn.vintage){ _wl=_sn.set?('vin'+_sn.set):('vin'+String(_sn.vintage).replace(/[^0-9]/g,'').slice(0,8)); } }catch(_){}
-    a.href=url; a.download='sx_autoscan_'+(d.mkt||'kr')+'_'+(d.pool||'pool')+'_'+_kd+'_'+_wl+'_'+Date.now()+'.json';   // [S846] 시장 · [S1111c] 종류·창
+    var _p0=(d.passed.length===0)?'_PASS0':'';   // [S1124] 0건 백업 구분
+    a.href=url; a.download='sx_autoscan_'+(d.mkt||'kr')+'_'+(d.pool||'pool')+'_'+_kd+'_'+_wl+_p0+'_'+Date.now()+'.json';   // [S846] 시장 · [S1111c] 종류·창 · [S1124] _PASS0
     document.body.appendChild(a); a.click();
     setTimeout(function(){ try{document.body.removeChild(a); URL.revokeObjectURL(url);}catch(_){}}, 200);
   }catch(e){ try{alert('다운로드 실패: '+(e&&e.message||e));}catch(_){} }
