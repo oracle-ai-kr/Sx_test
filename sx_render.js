@@ -5146,6 +5146,33 @@ var _TREND_MATRIX = {   // [S974] 사용자 확정 용어 — 진입(약세칸)�
 };
 // [S974] 신호 타입 — 추격(상승) vs 저가매수(반등). 4핵심만 정의(혼조=null).
 var _TREND_TYPE = { '추가상승':'상승', '눌림목':'반등', '기술적반등':'반등', '바닥확인':'반등' };
+
+// ════════ [S1126] 칸 표시 라벨 — 전환/진행 접미 ════════
+//  ★`_TREND_MATRIX`(칸 이름)는 **내부 키로 동결**한다. 개명하면 ①sx_cell_data.js(S1114 데이터)의 키
+//    ②`_TREND_TYPE`·`_TREND_DESC`(둘 다 칸 이름 문자열이 키) ③동명이의(추가상승=4축 Upside ·
+//    눌림목=레시피 pullback)까지 한꺼번에 어긋난다. 그래서 이름은 그대로 두고 **표시 직전에 접미만** 붙인다.
+//  축 = MA5 × MA60  〔S1125 측정: 부호 지속 중앙 21봉으로 종가(12봉)보다 안정 · 수익 분리력은 오히려 우위〕
+//  컷 = 부호(파라미터 0 — 사후조정 여지 없음)
+//  톤 = 단기 강세칸이면 경고(Δ방향 +0.34·Δ수익 +1.3%p로 구조·수익 둘 다 악화)
+//       단기 약세/중립칸이면 중립(Δ수익 −0.8~−1.9%p로 '진행' 쪽 후속 수익이 오히려 **높다**)
+//  ⚠예측 함의 문구 금지 — 약세 계열에서 '진행'은 과매도 반등 자리다. "더 빠질 것" 류의 서술을 붙이지 말 것.
+//  ⚠in-sample(KR 발굴풀·스냅 0701). 원장 OOS 확인 전까지 서술로만 쓴다.
+var _CELL_STAGE_ON = true;   // 킬스위치
+function _cellStage(maAlign, shortKey){
+  if(!_CELL_STAGE_ON || !maAlign) return null;
+  var m5 = maAlign.short, m60 = maAlign.ma60;
+  if(m5 == null || m60 == null || !(m60 > 0)) return null;
+  var gap = (m5 - m60) / m60 * 100;
+  if(gap >= 0) return null;                                  // 전환(기본) — 접미 없음
+  return { run:true, gap:gap, warn:(shortKey === 'bull') };
+}
+//  base=칸 이름 원본(불변). 반환은 **표시 문자열 전용** — 로직 키로 절대 쓰지 말 것(_TREND_TYPE/_TREND_DESC 조회는 원본으로).
+function _cellLabelDisplay(base, maAlign, shortKey){
+  var st = _cellStage(maAlign, shortKey);
+  if(!st || !base) return base;
+  return base + ' \u00B7 진행 ' + st.gap.toFixed(0) + '%';
+}
+if(typeof window!=='undefined'){ window._cellStage=_cellStage; window._cellLabelDisplay=_cellLabelDisplay; }
 function _ma60Slope(closes, lookback){
   // 60MA 기울기(%) = (sma60[now] − sma60[now−lookback]) / sma60[now−lookback] × 100
   try{
@@ -5171,7 +5198,8 @@ function _trendLabel(maAlign, maAlignLT, ma60Slope, sOverride){
     if(l==='bull' && ma60Slope < -TH) slopeFlag = '천장권';
     else if(l==='bear' && ma60Slope > TH) slopeFlag = '바닥권';
   }
-  return { short:s, long:l, shortLabel:shortLabel, longLabel:longLabel, trend:trend, sigType:(_TREND_TYPE[trend]||null), slopeFlag:slopeFlag, ma60Slope:ma60Slope };
+  // [S1126] trend는 **원본 유지**(_TREND_TYPE·_TREND_DESC가 이 문자열을 키로 쓴다). 접미는 trendDisp로 분리.
+  return { short:s, long:l, shortLabel:shortLabel, longLabel:longLabel, trend:trend, trendDisp:_cellLabelDisplay(trend, maAlign, s), stage:_cellStage(maAlign, s), sigType:(_TREND_TYPE[trend]||null), slopeFlag:slopeFlag, ma60Slope:ma60Slope };
 }
 
 // ★시제품 API — 순수 함수. adv(=_advanced, calcAllScreener 결과)만 공급하면 동일 판정. 그 풀×종류 레시피 중 하나라도 재료충족 + 풀일치 = 발동. 반환: {inPool, fired, matchCount, total, matched, def}
@@ -11326,7 +11354,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1124';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1126';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15796,10 +15824,12 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           };
           const _td = (_tl && _TREND_DESC[_tl.trend]) ? _TREND_DESC[_tl.trend] : { c:C.gray, hl:(_tl?_tl.trend:'분석 대기'), ez:'' };
           let _badgeC = _td.c, _headC = _td.c;
+          if(_tl && _tl.stage && _tl.stage.warn) _badgeC = C.orange;   // [S1126] 단기 강세칸인데 5선<60선 = 이상신호(경고톤). slopeFlag가 있으면 아래에서 덮어씀
           if(_tl && _tl.slopeFlag==='천장권'){ _badgeC=C.red; _headC=C.red; }
           else if(_tl && _tl.slopeFlag==='바닥권'){ _badgeC=C.blue; }
-          const _badge = _tl ? (_tl.trend + (_tl.slopeFlag ? ' '+(_tl.slopeFlag==='천장권'?'⚠️':'🔼')+_tl.slopeFlag : '')) : '분석 대기';
+          const _badge = _tl ? ((_tl.trendDisp||_tl.trend) + (_tl.slopeFlag ? ' '+(_tl.slopeFlag==='천장권'?'⚠️':'🔼')+_tl.slopeFlag : '')) : '분석 대기';   // [S1126] 표시는 trendDisp(진행 접미)
           let _headline = _td.hl;
+          if(_tl && _tl.stage && _tl.stage.run) _headline += ' · 이미 진행(5선이 60선 ' + _tl.stage.gap.toFixed(0) + '%)';   // [S1126] 서술 전용 — 예측 함의 금지
           if(_tl && _tl.slopeFlag==='천장권') _headline += ' · ⚠️60MA 꺾여 하락 전환 조짐';
           else if(_tl && _tl.slopeFlag==='바닥권') _headline += ' · 🔼60MA 다지는 바닥권';
           let _eHead = _td.ez;
@@ -17628,7 +17658,7 @@ function _cellLadderCard(mk, qs, indicators){
     var CLBL=cs.lbl;   // [S1115b] 규칙 없는 칸은 core가 lbl=null — SSOT에서 직접 도출(NAVER 기술적반등서 'bull|bear' 노출 수정)
     if(!CLBL){ try{ var _pp=cs.cell.split('|'); CLBL=(typeof _TREND_MATRIX!=='undefined'&&_TREND_MATRIX[_pp[0]])?_TREND_MATRIX[_pp[0]][_pp[1]]:cs.cell; }catch(_e){ CLBL=cs.cell; } }
     var h='<div style="font-size:11.5px;color:'+T2+';line-height:1.6;margin-bottom:6px">'
-      +'<b style="color:var(--text)">현재 칸</b> &nbsp;<b style="color:'+BLU+';font-size:12.5px">'+esc(CLBL)+'</b>'
+      +'<b style="color:var(--text)">현재 칸</b> &nbsp;<b style="color:'+BLU+';font-size:12.5px">'+esc((typeof _cellLabelDisplay==='function')?_cellLabelDisplay(CLBL, (ind&&ind.maAlign), String(cs.cell).split('|')[0]):CLBL)+'</b>'   /* [S1126] 표시 접미 */
       +' <span style="font-size:9.5px;color:'+T3+'">('+esc(cs.cell)+')</span><br>'
       +'이 칸 규칙 <b>'+cs.sig.length+'</b>개</div>';
     if(cs.sig.length){
