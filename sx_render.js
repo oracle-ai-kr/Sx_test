@@ -5145,7 +5145,30 @@ var _TREND_MATRIX = {   // [S974] 사용자 확정 용어 — 진입(약세칸)�
   mixed: { bull:'상승세약화', bear:'하락세약화', mixed:'횡보장유지' }        // 단기 중립
 };
 // [S974] 신호 타입 — 추격(상승) vs 저가매수(반등). 4핵심만 정의(혼조=null).
-var _TREND_TYPE = { '추가상승':'상승', '눌림목':'반등', '기술적반등':'반등', '바닥확인':'반등' };
+// ════════ [S1127] 키/표기명 분리 — 축 키가 유일한 식별자, 한글 이름은 UI 전용 파생물 ════════
+//  원칙: **로직·데이터·판정은 전부 축 키(`단기|장기`)**. 한글 이름은 `_TREND_MATRIX` 한 곳에서만
+//        도출한다(표기명 SSOT). 이름을 바꿔야 하면 _TREND_MATRIX 1줄만 고치면 된다.
+//  배경: S1126까지 한글 이름을 **키로 쓰는 곳이 3군데**였다(_TREND_TYPE · _TREND_DESC · 헤드 색판정).
+//        `sx_cell_data.js`의 `cellLbl`도 키(`cell`)에서 파생 가능한 미러다 → 읽는 쪽에서 무시한다.
+function _cellName(cellKey){
+  try{ var p=String(cellKey).split('|');
+    return (_TREND_MATRIX[p[0]] && _TREND_MATRIX[p[0]][p[1]]) || cellKey;
+  }catch(e){ return cellKey; }
+}
+// 신호 타입 — 추격(상승) vs 저가매수(반등). 4핵심만 정의(혼조=null). [S1127] 키 = 축 조합.
+var _TREND_TYPE = { 'bull|bull':'상승', 'bear|bull':'반등', 'bull|bear':'반등', 'bear|bear':'반등' };
+// [S1127] 자가검증 — 9칸 키가 표기명·서술 테이블에서 전부 해석되는지. 누락은 조용한 undefined(S526급)라 로드 시 잡는다.
+function _cellKeySelfCheck(descTable){
+  var AX=['bull','bear','mixed'], bad=[];
+  for(var i=0;i<3;i++) for(var j=0;j<3;j++){
+    var k=AX[i]+'|'+AX[j];
+    if(_cellName(k)===k) bad.push(k+'(표기명)');
+    if(descTable && !descTable[k]) bad.push(k+'(서술)');
+  }
+  if(bad.length) console.warn('[S1127] 칸 키 해석 실패:', bad.join(' · '));
+  return bad;
+}
+if(typeof window!=='undefined'){ window._cellName=_cellName; window._cellKeySelfCheck=_cellKeySelfCheck; }
 
 // ════════ [S1126] 칸 표시 라벨 — 전환/진행 접미 ════════
 //  ★`_TREND_MATRIX`(칸 이름)는 **내부 키로 동결**한다. 개명하면 ①sx_cell_data.js(S1114 데이터)의 키
@@ -5170,7 +5193,9 @@ function _cellStage(maAlign, shortKey){
 function _cellLabelDisplay(base, maAlign, shortKey){
   var st = _cellStage(maAlign, shortKey);
   if(!st || !base) return base;
-  return base + ' \u00B7 진행 ' + st.gap.toFixed(0) + '%';
+  //  [S1126b] 경고 표기는 **아이콘**으로. 색(_TREND_DESC.c)은 이미 9칸에 의미가 할당돼 있어
+  //  덮어쓰면 기존 뜻이 깨지고, 기술적반등(기본 orange)은 경고색과 충돌해 구분도 안 된다.
+  return base + ' \u00B7 ' + (st.warn ? '\u26A0' : '') + '진행 ' + st.gap.toFixed(0) + '%';
 }
 if(typeof window!=='undefined'){ window._cellStage=_cellStage; window._cellLabelDisplay=_cellLabelDisplay; }
 function _ma60Slope(closes, lookback){
@@ -5199,7 +5224,8 @@ function _trendLabel(maAlign, maAlignLT, ma60Slope, sOverride){
     else if(l==='bear' && ma60Slope > TH) slopeFlag = '바닥권';
   }
   // [S1126] trend는 **원본 유지**(_TREND_TYPE·_TREND_DESC가 이 문자열을 키로 쓴다). 접미는 trendDisp로 분리.
-  return { short:s, long:l, shortLabel:shortLabel, longLabel:longLabel, trend:trend, trendDisp:_cellLabelDisplay(trend, maAlign, s), stage:_cellStage(maAlign, s), sigType:(_TREND_TYPE[trend]||null), slopeFlag:slopeFlag, ma60Slope:ma60Slope };
+  var cellKey = s+'|'+l;   // [S1127] 유일 식별자. trend(한글)는 표시 파생물이며 로직 키로 쓰지 않는다.
+  return { short:s, long:l, cellKey:cellKey, shortLabel:shortLabel, longLabel:longLabel, trend:trend, trendDisp:_cellLabelDisplay(trend, maAlign, s), stage:_cellStage(maAlign, s), sigType:(_TREND_TYPE[cellKey]||null), slopeFlag:slopeFlag, ma60Slope:ma60Slope };
 }
 
 // ★시제품 API — 순수 함수. adv(=_advanced, calcAllScreener 결과)만 공급하면 동일 판정. 그 풀×종류 레시피 중 하나라도 재료충족 + 풀일치 = 발동. 반환: {inPool, fired, matchCount, total, matched, def}
@@ -8320,7 +8346,10 @@ function _gridRender(res, mk, poolLbl){
   if(!res) return '';
   if(!res.ok) return '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">🗺 '+(res.reason||'측정 실패')+'</div>';
   var SL={bull:'강세',bear:'약세',mid:'중립'}, LL={bull:'상승장',bear:'하락장',mix:'횡보장'};
-  var TN={bull:{bull:'추가상승',bear:'기술적반등',mix:'상승세전환'},bear:{bull:'눌림목',bear:'바닥확인',mix:'하락세전환'},mid:{bull:'상승세약화',bear:'하락세약화',mix:'횡보장유지'}};
+  // [S1127] 하드코딩 미러 제거 — 표기명은 _cellName(SSOT) 한 곳에서만 나온다.
+//   ⚠키 계열 번역 필수: 여기 단기축은 'mid' · 장기축은 'mix'인데 SSOT는 **양쪽 다 'mixed'**다(S1106 함정③과 동일).
+var _tnKey=function(sk,lk){ return ((sk==='mid'?'mixed':sk)+'|'+(lk==='mix'?'mixed':lk)); };
+var TN={ get:function(sk,lk){ return (typeof _cellName==='function')?_cellName(_tnKey(sk,lk)):_tnKey(sk,lk); } };
   var _mean=function(c){return c.n?c.sum/c.n*100:null;}, _win=function(c){return c.n?c.win/c.n*100:null;};
   var esc=function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k];}); };
   var tot=res.totalSig||0;
@@ -8333,7 +8362,7 @@ function _gridRender(res, mk, poolLbl){
       var bg = nn===0?'var(--surface2)':(m15==null?'var(--surface)':(m15>0?('rgba(22,163,74,'+Math.min(0.28,Math.abs(m15)/40).toFixed(2)+')'):('rgba(220,38,38,'+Math.min(0.28,Math.abs(m15)/40).toFixed(2)+')')));
       var spa=(nn>0&&nn<20);
       heat+='<td style="padding:4px 3px;text-align:center;border:1px solid var(--border);background:'+bg+'">'
-        +'<div style="font-size:7.5px;color:'+T3+';line-height:1.1">'+esc(TN[SK][LK])+'</div>'
+        +'<div style="font-size:7.5px;color:'+T3+';line-height:1.1">'+esc(TN.get(SK,LK))+'</div>'
         +'<div style="font-size:11px;font-weight:800;color:'+(m15!=null?(m15>0?GRN:RED):T3)+'">'+(m15!=null?(m15>0?'+':'')+m15.toFixed(1)+'%':'–')+'</div>'
         +'<div style="font-size:7.5px;color:'+T3+'">n'+nn+(spa?'⚠':'')+' · '+freq.toFixed(0)+'%</div></td>';
     }
@@ -8342,7 +8371,7 @@ function _gridRender(res, mk, poolLbl){
   heat+='</table></div>';
   var arr=[];
   for(var s2=0;s2<res.SHORTS.length;s2++) for(var l3=0;l3<res.LONGS.length;l3++){ var SK2=res.SHORTS[s2],LK2=res.LONGS[l3],cc=res.grid.all[SK2][LK2];
-    arr.push({sk:SK2,lk:LK2,name:TN[SK2][LK2],n:cc.n,m10:_mean(cc[10]),w15:_win(cc[15]),m15:_mean(cc[15]),
+    arr.push({sk:SK2,lk:LK2,name:TN.get(SK2,LK2),n:cc.n,m10:_mean(cc[10]),w15:_win(cc[15]),m15:_mean(cc[15]),
       oos:(function(){var a=_mean(res.grid.early[SK2][LK2][15]),b=_mean(res.grid.late[SK2][LK2][15]);return {e:a,l:b,rob:(a!=null&&b!=null&&((a>0&&b>0)||(a<0&&b<0)))};})()}); }
   arr.sort(function(a,b){ return (b.m15==null?-999:b.m15)-(a.m15==null?-999:a.m15); });
   var rank='';
@@ -11093,7 +11122,7 @@ if(typeof window!=='undefined'){
 var _sxGridEntries=null, _sxGridResult=null;
 function _gcondOk(f,c){ var v=f?f[c.key]:null; if(c.type==='num'){ if(typeof v!=='number'||!isFinite(v)) return false; return c.dir==='lt' ? v<c.th : v>c.th; } return !!v; }
 var _GRID_S=['bull','bear','mixed'], _GRID_L=['bull','bear','mixed'];
-function _gridCellLbl(sx,lx){ return (typeof _TREND_MATRIX!=='undefined'&&_TREND_MATRIX[sx]&&_TREND_MATRIX[sx][lx])?_TREND_MATRIX[sx][lx]:(sx+'|'+lx); }
+function _gridCellLbl(sx,lx){ return (typeof _cellName==='function')?_cellName(sx+'|'+lx):(sx+'|'+lx); }   // [S1127] 표기명 SSOT 경유
 async function _sxGridRobustRun(){
   var el=document.getElementById('btDiscrimResult'); if(el) el.style.display='block';
   if(typeof _rcpPvState==='undefined'||!_rcpPvState||!_rcpPvState.set||!_rcpPvState.set.length){ if(el) el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#d97706;font-weight:700">🧩 먼저 <b>레시피 사용성 진단</b>에 후보 JSON을 불러와줘 (미리보기 ON은 불필요 — 로드만으로 충분)</div>'; return; }
@@ -11354,7 +11383,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1126';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1127';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -14436,8 +14465,9 @@ function _sxbHTML(){
   // [S982] SSOT 트렌드가 있으면 헤드 메인 라벨 = 3×3 트렌드(차트 기준). 방향 배지도 단기 강세/약세로(축 count "방향혼조" 대체). 없으면 점수 tone/count 폴백.
   const _sxTl = (window._sxBoard && window._sxBoard.trendLabel) || null;
   const _headTone = _sxTl ? {
-    t: _sxTl.trend + (_sxTl.slopeFlag ? ' '+(_sxTl.slopeFlag==='천장권'?'⚠️':'🔼')+_sxTl.slopeFlag : '') + (_sxTl.sigType?' ['+_sxTl.sigType+'형]':''),
-    c: _sxTl.slopeFlag==='천장권'?'#dc2626':_sxTl.slopeFlag==='바닥권'?'#2563eb':_sxTl.trend==='추가상승'?'#16a34a':_sxTl.trend==='눌림목'?'#2563eb':_sxTl.trend==='기술적반등'?'#ea580c':_sxTl.trend==='바닥확인'?'#64748b':_sxTl.long==='mixed'?'#9333ea':'#64748b'
+    // [S1127] 표시=trendDisp(진행 접미) · 색판정=cellKey(축 키). 한글 이름은 어디에서도 키로 쓰지 않는다.
+    t: (_sxTl.trendDisp||_sxTl.trend) + (_sxTl.slopeFlag ? ' '+(_sxTl.slopeFlag==='천장권'?'⚠️':'🔼')+_sxTl.slopeFlag : '') + (_sxTl.sigType?' ['+_sxTl.sigType+'형]':''),
+    c: _sxTl.slopeFlag==='천장권'?'#dc2626':_sxTl.slopeFlag==='바닥권'?'#2563eb':_sxTl.cellKey==='bull|bull'?'#16a34a':_sxTl.cellKey==='bear|bull'?'#2563eb':_sxTl.cellKey==='bull|bear'?'#ea580c':_sxTl.cellKey==='bear|bear'?'#64748b':_sxTl.long==='mixed'?'#9333ea':'#64748b'
   } : tone;
   const _dirLbl = _sxTl ? ('단기 '+_sxTl.shortLabel) : bl;
   const _dirCol = _sxTl ? (_sxTl.short==='bull'?'#ea580c':_sxTl.short==='bear'?'#2563eb':'#64748b') : bc;
@@ -15812,19 +15842,19 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           // ── 배지 + 헤드라인 = 추세(_trendLabel SSOT · 차트 기준) ──
           //   [S971] 배지/헤드라인 = 추세(단기×장기×기울기) — MA카드와 동일 기준. 신호 발동 여부는 ②로 분리(레시피에 과의존 방지).
           const _TREND_DESC = {
-            '추가상승':          { c:C.green,  hl:'장기 상승장 · 단기 강세 — 추가상승 (추세 지속)', ez:'큰 흐름도 위쪽이고 단기도 힘이 실려, 계속 오르는(추가상승) 자리예요.' },
-            '눌림목':            { c:C.blue,   hl:'장기 상승장 · 단기 눌림 — 눌림목 (반등 기대)', ez:'큰 흐름은 위쪽인데 단기적으로 잠깐 쉬어가는(눌림목) 자리예요. 다시 오를지 보는 저가매수 구간이에요.' },
-            '기술적반등':        { c:C.orange, hl:'장기 하락장 · 단기 강세 — 기술적반등 (주의)', ez:'큰 흐름은 아래쪽인데 단기적으로 잠깐 튀어오르는(기술적반등) 중이에요. 짧게 끝날 수 있어 주의가 필요해요.' },
-            '바닥확인':          { c:C.gray,   hl:'장기 하락장 · 단기 약세 — 바닥확인 중', ez:'큰 흐름도 아래쪽이고 단기도 약해, 바닥을 찾는(바닥확인) 구간이에요. 반등은 아직이에요.' },
-            '상승세전환': { c:C.yellow, hl:'횡보장 · 단기 강세 — 상승세 전환 시도', ez:'방향 없던 횡보에서 단기가 위로 돌아 상승세로 전환하려는 조짐이에요.' },
-            '하락세전환': { c:C.orange, hl:'횡보장 · 단기 약세 — 하락세 전환 시도', ez:'방향 없던 횡보에서 단기가 아래로 돌아 하락세로 전환하려는 조짐이에요.' },
-            '상승세약화':   { c:C.blue,   hl:'장기 상승장 · 단기 뒤섞임 — 상승세 약화', ez:'큰 흐름은 위쪽인데 단기 이평선이 뒤섞여 상승세가 흔들리는 중이에요.' },
-            '하락세약화':   { c:C.gray,   hl:'장기 하락장 · 단기 뒤섞임 — 하락세 약화', ez:'큰 흐름은 아래쪽인데 단기가 뒤섞여 하락세가 주춤하는 중이에요.' },
-            '횡보장유지':   { c:C.purple, hl:'장·단기 모두 뒤섞임 — 횡보장 유지', ez:'큰 흐름도 단기도 뚜렷한 방향이 없어 옆으로 횡보하는 구간이에요.' }
+            'bull|bull':          { c:C.green,  hl:'장기 상승장 · 단기 강세 — 추가상승 (추세 지속)', ez:'큰 흐름도 위쪽이고 단기도 힘이 실려, 계속 오르는(추가상승) 자리예요.' },
+            'bear|bull':            { c:C.blue,   hl:'장기 상승장 · 단기 눌림 — 눌림목 (반등 기대)', ez:'큰 흐름은 위쪽인데 단기적으로 잠깐 쉬어가는(눌림목) 자리예요. 다시 오를지 보는 저가매수 구간이에요.' },
+            'bull|bear':        { c:C.orange, hl:'장기 하락장 · 단기 강세 — 기술적반등 (주의)', ez:'큰 흐름은 아래쪽인데 단기적으로 잠깐 튀어오르는(기술적반등) 중이에요. 짧게 끝날 수 있어 주의가 필요해요.' },
+            'bear|bear':          { c:C.gray,   hl:'장기 하락장 · 단기 약세 — 바닥확인 중', ez:'큰 흐름도 아래쪽이고 단기도 약해, 바닥을 찾는(바닥확인) 구간이에요. 반등은 아직이에요.' },
+            'bull|mixed': { c:C.yellow, hl:'횡보장 · 단기 강세 — 상승세 전환 시도', ez:'방향 없던 횡보에서 단기가 위로 돌아 상승세로 전환하려는 조짐이에요.' },
+            'bear|mixed': { c:C.orange, hl:'횡보장 · 단기 약세 — 하락세 전환 시도', ez:'방향 없던 횡보에서 단기가 아래로 돌아 하락세로 전환하려는 조짐이에요.' },
+            'mixed|bull':   { c:C.blue,   hl:'장기 상승장 · 단기 뒤섞임 — 상승세 약화', ez:'큰 흐름은 위쪽인데 단기 이평선이 뒤섞여 상승세가 흔들리는 중이에요.' },
+            'mixed|bear':   { c:C.gray,   hl:'장기 하락장 · 단기 뒤섞임 — 하락세 약화', ez:'큰 흐름은 아래쪽인데 단기가 뒤섞여 하락세가 주춤하는 중이에요.' },
+            'mixed|mixed':   { c:C.purple, hl:'장·단기 모두 뒤섞임 — 횡보장 유지', ez:'큰 흐름도 단기도 뚜렷한 방향이 없어 옆으로 횡보하는 구간이에요.' }
           };
-          const _td = (_tl && _TREND_DESC[_tl.trend]) ? _TREND_DESC[_tl.trend] : { c:C.gray, hl:(_tl?_tl.trend:'분석 대기'), ez:'' };
+          if(typeof _cellKeySelfCheck==='function' && !window.__sxCellChecked){ window.__sxCellChecked=1; _cellKeySelfCheck(_TREND_DESC); }   // [S1127]
+          const _td = (_tl && _TREND_DESC[_tl.cellKey]) ? _TREND_DESC[_tl.cellKey] : { c:C.gray, hl:(_tl?_tl.trend:'분석 대기'), ez:'' };
           let _badgeC = _td.c, _headC = _td.c;
-          if(_tl && _tl.stage && _tl.stage.warn) _badgeC = C.orange;   // [S1126] 단기 강세칸인데 5선<60선 = 이상신호(경고톤). slopeFlag가 있으면 아래에서 덮어씀
           if(_tl && _tl.slopeFlag==='천장권'){ _badgeC=C.red; _headC=C.red; }
           else if(_tl && _tl.slopeFlag==='바닥권'){ _badgeC=C.blue; }
           const _badge = _tl ? ((_tl.trendDisp||_tl.trend) + (_tl.slopeFlag ? ' '+(_tl.slopeFlag==='천장권'?'⚠️':'🔼')+_tl.slopeFlag : '')) : '분석 대기';   // [S1126] 표시는 trendDisp(진행 접미)
@@ -17613,8 +17643,8 @@ var _V3_LL={bull:'상승장',bear:'하락장',mix:'횡보장'}, _V3_SL={bull:'�
 function _v3CellName(lt, st){
   try{
     var S=(st==='mid')?'mixed':st, L=(lt==='mix')?'mixed':lt;
-    var M=(typeof _TREND_MATRIX!=='undefined')?_TREND_MATRIX:null;
-    return (M && M[S] && M[S][L]) ? M[S][L] : '';
+    // [S1127] _cellName 경유 — 매트릭스 직접 참조 제거
+    return (typeof _cellName==='function') ? _cellName(S+'|'+L) : '';   // [S1127] 표기명 SSOT 경유
   }catch(e){ return ''; }
 }
 function _v3Bucket(k){ return (k<=0)?'0':(k===1?'1':(k===2?'2':'3+')); }
@@ -17655,8 +17685,8 @@ function _cellLadderCard(mk, qs, indicators){
     for(var i=0;i<D.rules.length;i++){ var r=D.rules[i]; if(r.mkt!==mk) continue; mktRules++;
       var o=reg[r.cell]||(reg[r.cell]={real:0,fake:0,down:0}); o[r.kind]=(o[r.kind]||0)+1; }
     if(!mktRules) return mute('🚧 '+esc(String(mk).toUpperCase())+'는 채택 규칙 0 — 이 시장은 판정 라운드에서 채택 칸이 없었다.');
-    var CLBL=cs.lbl;   // [S1115b] 규칙 없는 칸은 core가 lbl=null — SSOT에서 직접 도출(NAVER 기술적반등서 'bull|bear' 노출 수정)
-    if(!CLBL){ try{ var _pp=cs.cell.split('|'); CLBL=(typeof _TREND_MATRIX!=='undefined'&&_TREND_MATRIX[_pp[0]])?_TREND_MATRIX[_pp[0]][_pp[1]]:cs.cell; }catch(_e){ CLBL=cs.cell; } }
+    var CLBL=(typeof _cellName==='function')?_cellName(cs.cell):cs.lbl;   // [S1127] cell_data cellLbl 미러 무시 — 키에서 도출   // [S1115b] 규칙 없는 칸은 core가 lbl=null — SSOT에서 직접 도출(NAVER 기술적반등서 'bull|bear' 노출 수정)
+    // [S1127] 폴백 제거 — _cellName이 키 미해석 시 키 자체를 돌려주므로 null이 될 수 없다(S1115b 폴백 흡수).
     var h='<div style="font-size:11.5px;color:'+T2+';line-height:1.6;margin-bottom:6px">'
       +'<b style="color:var(--text)">현재 칸</b> &nbsp;<b style="color:'+BLU+';font-size:12.5px">'+esc((typeof _cellLabelDisplay==='function')?_cellLabelDisplay(CLBL, (ind&&ind.maAlign), String(cs.cell).split('|')[0]):CLBL)+'</b>'   /* [S1126] 표시 접미 */
       +' <span style="font-size:9.5px;color:'+T3+'">('+esc(cs.cell)+')</span><br>'
@@ -17683,7 +17713,7 @@ function _cellLadderCard(mk, qs, indicators){
     var SS=['bull','bear','mixed'], LS=['bull','bear','mixed'];
     for(var si=0;si<3;si++){ var sx=SS[si]; h+='<tr><td style="color:'+T3+';font-size:8px">'+SL[sx]+'</td>';
       for(var li=0;li<3;li++){ var lx=LS[li], ck=sx+'|'+lx, rr=reg[ck], cur=(ck===cs.cell);
-        var nm=(typeof _TREND_MATRIX!=='undefined'&&_TREND_MATRIX[sx]&&_TREND_MATRIX[sx][lx])?_TREND_MATRIX[sx][lx]:ck;
+        var nm=(typeof _cellName==='function')?_cellName(ck):ck;   // [S1127] 표기명 SSOT 경유
         var cnt=rr?((rr.real?('R'+rr.real):'')+(rr.fake?(' F'+rr.fake):'')+(rr.down?(' D'+rr.down):'')).trim():'—';
         h+='<td style="padding:5px 2px;border:1px solid '+(cur?BLU:'var(--border)')+';'+(cur?'background:'+BLU+'14;':'')+'">'
           +'<div style="font-size:8px;color:'+(cur?BLU:T2)+';font-weight:'+(cur?'800':'600')+'">'+esc(nm)+'</div>'
