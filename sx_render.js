@@ -2463,7 +2463,8 @@ const _XMAT_TB={
   sell:{ volOsc:{dir:'lt',th:0}, cci:{dir:'lt',th:-100}, rsi:{dir:'gt',th:70}, bbPctB:{dir:'gt',th:1}, stochK:{dir:'gt',th:80}, adx:{dir:'lt',th:20}, dev20:{dir:'gt',th:5}, dev60:{dir:'gt',th:10}, dev120:{dir:'gt',th:15}, dev200:{dir:'gt',th:20}, ma5slope:{dir:'lt',th:0}, mfi:{dir:'gt',th:80}, vr:{dir:'gt',th:450} }
 };
 // [S1121] 불리언 방향 큐레이션: b=상승계(매수만)·s=하락계(매도만)·bs=중립(양쪽). 카드 전용 — 자유 조합 빌더·레시피는 무영향(전체 어휘 유지).
-const _XMAT_BSIDE={ rsiDiv:'b',obvDiv:'b',obvUp:'b',nearSup:'b',squeeze:'bs',gx5_9:'b',gx5_20:'b',gx5_60:'b',settle20:'b',volBreak:'b',macdGc:'b',macdHistUp:'b',macdBelow0:'s',diBear:'s',sarBear:'s',envDn:'s',envUp:'s',ichiCloudUp:'b',ichiTK:'b',diRebound:'b',diOverheat:'s',stochSlowGc:'b',candleBull:'b',candleBear:'s',swingHH:'b',swingLL:'s',tlbRev:'b',psychNear:'bs',newHighN:'b',newLowN:'s',pcUp:'b',pivotAbove:'b',chaikinGc:'b',volPatBull:'b',volPatBear:'s',volMaGc:'b',rsi50up:'b',rsiDivBear:'s',macdSigGc:'b',macd0up:'b',ichiCloudBull:'b',maConv:'bs',maAlignBear:'s',bwNeutral:'bs' };
+const _XMAT_BSIDE={ rsiDiv:'b',obvDiv:'b',obvUp:'b',nearSup:'b',squeeze:'bs',gx5_9:'b',gx5_20:'b',gx5_60:'b',settle20:'b',volBreak:'b',macdGc:'b',macdHistUp:'b',macdBelow0:'s',diBear:'s',sarBear:'s',envDn:'s',envUp:'s',ichiCloudUp:'b',ichiTK:'b',diRebound:'b',diOverheat:'s',stochSlowGc:'b',candleBull:'b',candleBear:'s',swingHH:'b',swingLL:'s',tlbRev:'b',psychNear:'bs',newHighN:'b',newLowN:'s',pcUp:'b',pivotAbove:'b',chaikinGc:'b',volPatBull:'b',volPatBear:'s',volMaGc:'b',rsi50up:'b',rsiDivBear:'s',macdSigGc:'b',macd0up:'b',ichiCloudBull:'b',maConv:'bs',maAlignBear:'s',bwNeutral:'bs',
+  deadCross:'s',dx5_9:'s',dx5_60:'s',obvDivBear:'s',obvDown:'s',nearRes:'s',settle20Dn:'s',volBreakDn:'s',macdDead:'s',macdHistDn:'s',macdAbove0:'b',diBull:'b',sarBull:'b',ichiCloudDn:'s',ichiTKDn:'s',ichiCloudBear:'s',stochSlowDead:'s',chaikinDead:'s',pcDn:'s',pivotBelow:'s',rsi50dn:'s',volMaDead:'s',tlbRevDn:'s',maAlignBull:'b' };   // [S1122] 거울상
 function _xmatBoolOk(side,key){ const c=_XMAT_BSIDE[key]||'bs'; return c==='bs' || (side==='buy'?c==='b':c==='s'); }
 function _xmatDefFor(side,key){ const tb=_XMAT_TB[(side==='buy')?'buy':'sell']; if(tb&&tb[key]) return tb[key]; const t=(side==='buy')?((typeof _BUILDER_DEFAULTS_PULLBACK!=='undefined')?_BUILDER_DEFAULTS_PULLBACK:{}):((typeof _BUILDER_DEFAULTS_DEADCAT!=='undefined')?_BUILDER_DEFAULTS_DEADCAT:{}); return t[key]||{dir:'lt',th:0}; }
 function _xmatConds(st,side){
@@ -6576,7 +6577,32 @@ var _DISCRIM_FEATS = [
   { key:'ichiCloudBull', label:'일목 양운',          type:'bool' },
   { key:'maConv',        label:'MA 수렴',           type:'bool' },
   { key:'maAlignBear',   label:'MA 역배열',          type:'bool' },
-  { key:'bwNeutral',     label:'바이너리웨이브 중립',  type:'bool' }
+  { key:'bwNeutral',     label:'바이너리웨이브 중립',  type:'bool' },
+  // [S1122] 거울상 재료 — 상승계의 하락 대칭 20(deadCross 편입+신규 19) + 상태 bull 미러 4
+  { key:'deadCross',     label:'데드크로스 5×20',    type:'bool' },
+  { key:'dx5_9',         label:'데드크로스 5×9',     type:'bool' },
+  { key:'dx5_60',        label:'데드크로스 5×60',    type:'bool' },
+  { key:'obvDivBear',    label:'OBV 하락다이버전스',  type:'bool' },
+  { key:'obvDown',       label:'OBV 하락추세',       type:'bool' },
+  { key:'nearRes',       label:'저항선 근접',        type:'bool' },
+  { key:'settle20Dn',    label:'MA20 이탈안착(하락)', type:'bool' },
+  { key:'volBreakDn',    label:'붕괴+거래량동반',     type:'bool' },
+  { key:'macdDead',      label:'MACD 데드크로스',    type:'bool' },
+  { key:'macdHistDn',    label:'MACD 히스토 음',     type:'bool' },
+  { key:'macdAbove0',    label:'MACD 영선위',       type:'bool' },
+  { key:'diBull',        label:'DI 상승우위',        type:'bool' },
+  { key:'sarBull',       label:'PSAR 상승',         type:'bool' },
+  { key:'ichiCloudDn',   label:'일목 구름아래',       type:'bool' },
+  { key:'ichiTKDn',      label:'일목 전환<기준',      type:'bool' },
+  { key:'ichiCloudBear', label:'일목 음운',          type:'bool' },
+  { key:'stochSlowDead', label:'슬로우스토 데드',     type:'bool' },
+  { key:'chaikinDead',   label:'차이킨 데드',        type:'bool' },
+  { key:'pcDn',          label:'가격채널 하단이탈',    type:'bool' },
+  { key:'pivotBelow',    label:'피벗 P 하회',        type:'bool' },
+  { key:'rsi50dn',       label:'RSI 50 하향',       type:'bool' },
+  { key:'volMaDead',     label:'거래량 5×20 데드',   type:'bool' },
+  { key:'tlbRevDn',      label:'삼선전환 하락반전',   type:'bool' },
+  { key:'maAlignBull',   label:'MA 정배열',          type:'bool' }
 ];
 /* [S918] _smaLast733/_goldenX733 → sx_recipe_core.js 이관(워커-안전 SSOT) — 워커 rcpK 조용한 전멸 수정.
    window 로드순서: core가 render보다 먼저(sx_screener.html 9행 vs 52행)라 전역 해결 유지.
@@ -11300,7 +11326,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1121';   // [S1121] 바구니 그리드=사다리 배치 정합·측정창 각주·재료 교과서 임계·불리언 방향 큐레이션. S1120=칸 바구니 · S1119=재료 조건
+  window.SX_BUILD='S1122';   // [S1122] 거울상 재료 23종(라이브러리 129)+deadCross 편입·스캔 disc=true(발굴 22종 잠복 갭 해소). S1121=큐레이션·교과서 임계 · S1120=칸 바구니
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
