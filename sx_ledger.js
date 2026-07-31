@@ -147,6 +147,8 @@
       };
       req.onsuccess = function () {
         _db = req.result;
+        try { requestPersist(); } catch (_) {}   // [S1138] DB 확보 직후 1회 — 자동 퇴거 방어
+
         _db.onversionchange = function () { try { _db.close(); } catch (_) {} _db = null; };
         resolve(_db);
       };
@@ -169,6 +171,41 @@
       req.onsuccess = function () { res(req.result); };
       req.onerror = function () { rej(req.error || new Error('IDB 요청 실패')); };
     });
+  }
+
+  // ─────────────────────────────────────────────────────────
+  //  3b. 저장 내구성 — 자동 퇴거 방어 [S1138]
+  //
+  //  ★안드로이드 저장공간이 부족하면 브라우저가 **예고 없이** origin 데이터를 통째로 지운다.
+  //    원장은 유일한 표본외 검증 경로라 조용히 증발하면 대체 경로가 없다(카드 숫자는 전부 in-sample).
+  //  ⚠persist()가 막는 건 **자동 퇴거뿐**이다. 사용자가 직접 지우는 경로는 그대로 열려 있다:
+  //    Chrome 인터넷 사용 기록 삭제(쿠키 및 사이트 데이터) · 사이트 설정 데이터 삭제 · 앱 데이터 삭제/재설치.
+  //    → 내구성의 나머지는 **내보내기**(dump)로 사용자가 직접 떠야 한다.
+  // ─────────────────────────────────────────────────────────
+  var _persist = null;   // null=미시도 · {ok,already,why}
+
+  function requestPersist() {
+    if (_persist) return Promise.resolve(_persist);
+    try {
+      var st = global.navigator && global.navigator.storage;
+      if (!st || !st.persist || !st.persisted) { _persist = { ok: false, why: '브라우저 미지원' }; return Promise.resolve(_persist); }
+      return st.persisted().then(function (already) {
+        if (already) { _persist = { ok: true, already: true }; return _persist; }
+        return st.persist().then(function (granted) {
+          _persist = { ok: !!granted, already: false, why: granted ? null : '브라우저가 거부(사이트 사용량이 쌓이면 재시도 시 승인될 수 있음)' };
+          return _persist;
+        });
+      }).catch(function (e) { _persist = { ok: false, why: String((e && e.message) || e) }; return _persist; });
+    } catch (e) { _persist = { ok: false, why: String((e && e.message) || e) }; return Promise.resolve(_persist); }
+  }
+  function persistState() { return _persist; }
+
+  function estimate() {   // 사용량 진단 — 원장이 얼마나 차지하는지
+    try {
+      var st = global.navigator && global.navigator.storage;
+      if (!st || !st.estimate) return Promise.resolve(null);
+      return st.estimate().catch(function () { return null; });
+    } catch (_) { return Promise.resolve(null); }
   }
 
   // ─────────────────────────────────────────────────────────
@@ -474,6 +511,7 @@
     get: get, list: list, dueCount: dueCount, stats: stats,
     rotate: rotate, rolled: rolled,
     selfCheck: selfCheck, _selfCheck: _sc,
+    requestPersist: requestPersist, persistState: persistState, estimate: estimate,
     dump: dump, wipe: wipe,
     _todayKst: _todayKst, _d10: _d10,
     _BIN: _BIN, _MBIN: _MBIN, _NBIN: _NBIN
