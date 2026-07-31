@@ -354,6 +354,34 @@
   }
 
   // ─────────────────────────────────────────────────────────
+  //  7b. 폐기 [S1139] — 지우지 않고 표시만 더한다
+  // ─────────────────────────────────────────────────────────
+  //  기준봉 규칙이 바뀌는 등으로 **기록 자체가 무효**가 된 건을 처리한다.
+  //  pred/naive/human은 그대로 두고 void 표시만 추가 = 추가만 원칙 유지.
+  //  "왜 폐기됐는지"가 남아야 나중에 표본이 갑자기 준 이유를 설명할 수 있다.
+  function voidRec(k, why) {
+    return _tx(STORE, 'readwrite').then(function (o) {
+      return _wrap(o.s.get(k)).then(function (cur) {
+        if (!cur) throw new Error('없는 슬롯: ' + k);
+        if (cur.void) return cur;
+        cur.void = true;
+        cur.voidWhy = String(why || '사유 미기재');
+        cur.voidAt = Date.now();
+        return _wrap(o.s.put(cur)).then(function () { return cur; });
+      });
+    });
+  }
+  //  빌드 단위 일괄 폐기 — ver가 cutoff보다 오래된 레코드 전부.
+  function voidOlderThan(cutoffVer, why) {
+    return list({ includeVoid: true }).then(function (all) {
+      var targets = all.filter(function (r) { return !r.void && String(r.ver || '') < String(cutoffVer); });
+      var chain = Promise.resolve(), n = 0;
+      targets.forEach(function (r) { chain = chain.then(function () { return voidRec(r.key, why).then(function () { n++; }); }); });
+      return chain.then(function () { return { voided: n }; });
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────
   //  8. 읽기
   // ─────────────────────────────────────────────────────────
   function get(k) {
@@ -366,6 +394,7 @@
     return _tx(STORE, 'readonly').then(function (o) {
       return _wrap(o.s.getAll()).then(function (all) {
         var out = (all || []).filter(function (r) {
+          if (r.void && !opt.includeVoid) return false;   // [S1139] 폐기분은 기본 제외
           if (opt.mkt && r.mkt !== opt.mkt) return false;
           if (opt.code && r.code !== opt.code) return false;
           if (opt.q != null && r.q !== +opt.q) return false;
@@ -510,6 +539,7 @@
     put: put, setHuman: setHuman, score: score,
     get: get, list: list, dueCount: dueCount, stats: stats,
     rotate: rotate, rolled: rolled,
+    voidRec: voidRec, voidOlderThan: voidOlderThan,
     selfCheck: selfCheck, _selfCheck: _sc,
     requestPersist: requestPersist, persistState: persistState, estimate: estimate,
     dump: dump, wipe: wipe,
