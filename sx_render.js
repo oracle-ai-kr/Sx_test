@@ -4846,7 +4846,7 @@ var _MAE_B_FALLBACK = 0.44;
 var _MAE_HS = [3, 5, 10];
 function _maeCalc(rows, curAtrPct){
   try{
-    if(!rows || rows.length < 140 || !(curAtrPct > 0)) return null;
+    if(!rows || rows.length < 140) return null;
     var n = rows.length, i, k, hi=[], lo=[], cl=[];
     for(i=0;i<n;i++){ var r=rows[i]; hi.push(+r.high||0); lo.push(+r.low||0); cl.push(+r.close||0); }
     var tr = new Array(n).fill(0);
@@ -4854,7 +4854,11 @@ function _maeCalc(rows, curAtrPct){
     var atr = new Array(n).fill(null), acc=0, c=0;
     for(i=1;i<n;i++){ acc+=tr[i]; c++; if(c>14){ acc-=tr[i-14]; c=14; }
       if(c===14 && cl[i]>0) atr[i] = acc/14/cl[i]*100; }
-    var out = {};
+    // [S1131b] 현재 ATR을 **여기서 뽑는다**. 카드로 넘어오는 indicators가 평탄화본이라
+    //   `indicators.atr.pct`가 없을 수 있다(S526급 조용한 실패) → 외부 의존을 없앤다.
+    if(!(curAtrPct > 0)){ for(i=n-1;i>=0;i--){ if(atr[i]!=null){ curAtrPct=atr[i]; break; } } }
+    if(!(curAtrPct > 0)) return null;
+    var out = { _atrNow: curAtrPct };
     for(var z=0; z<_MAE_HS.length; z++){
       var H = _MAE_HS[z], rH = Math.sqrt(H), sxy=0, sxx=0, ratios=[], sumAct=0, cnt=0;
       for(i=20;i<n-H;i++){
@@ -4880,10 +4884,13 @@ function _buildMaeCard(stock, indicators){
     var adv = (indicators && indicators._advanced) ? indicators._advanced : null;
     var rows = (adv && Array.isArray(adv.rows)) ? adv.rows
              : ((stock && Array.isArray(stock._lastAnalCandles)) ? stock._lastAnalCandles : null);
-    var atrPct = (indicators && indicators.atr && indicators.atr.pct > 0) ? indicators.atr.pct : null;
-    if(!rows || !atrPct) return '';
+    var atrPct = (indicators && indicators.atr && indicators.atr.pct > 0) ? indicators.atr.pct
+               : ((adv && adv.atr && adv.atr.pct > 0) ? adv.atr.pct : null);
+    if(!rows){ try{ window._sxMaeDbg={ok:false, why:'rows 없음', hasAdv:!!adv, advKeys:adv?Object.keys(adv).slice(0,25):null}; }catch(_){} return ''; }
     var R = _maeCalc(rows, atrPct);
-    if(!R) return '';
+    if(!R){ try{ window._sxMaeDbg={ok:false, why:'_maeCalc null', rows:rows.length, atrPct:atrPct}; }catch(_){} return ''; }
+    atrPct = R._atrNow;
+    try{ window._sxMaeDbg={ok:true, rows:rows.length, atrPct:atrPct}; }catch(_){}
     var px = +rows[rows.length-1].close || 0;
     var esc = function(x){ return String(x==null?'':x).replace(/[&<>"]/g, function(k){
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k]; }); };
@@ -11491,7 +11498,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1131';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1131b';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
