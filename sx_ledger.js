@@ -36,6 +36,11 @@
   var STORE_AGG = 'agg';
   var CAP_PER_Q = 5000;          // §5 회전 상한 — 질문별 최근 5000건
   var VER = 'S1135';             // 카드/원장 버전 스탬프
+  //  [S1145] 기준봉 규칙이 바뀐 빌드. 이보다 오래된 레코드는 **계산 봉과 기록 봉이 갈려 있어**
+  //    채점해도 무의미하다. 가드를 호출부가 아니라 여기 두는 이유: 자동 채점(S1144)은 앱 시작 시
+  //    조용히 돌기 때문에, 사용자가 폐기 버튼을 누를 틈도 없이 잘못 채점될 수 있다.
+  //    채점은 멱등(st=1 고정)이라 한 번 박히면 되돌릴 수 없다 — 들어오는 길목을 다 막아야 한다.
+  var BASE_RULE_VER = 'S1139';
 
   // ─────────────────────────────────────────────────────────
   //  1. 질문 정의 (동결)
@@ -336,6 +341,9 @@
       return _wrap(o.s.get(k)).then(function (cur) {
         if (!cur) throw new Error('없는 슬롯: ' + k);
         if (cur.st === 1) return cur;               // 이미 채점됨 — 멱등
+        if (String(cur.ver || '') < BASE_RULE_VER) {
+          throw new Error('구버전 기준봉(' + (cur.ver || '?') + ') — 채점 불가, 폐기 대상');
+        }
         var a = +actual, q = cur.q;
 
         var truth = !!_BIN[q](cur, a);
@@ -550,7 +558,7 @@
     key: key, dueEst: dueEst,
     put: put, setHuman: setHuman, score: score,
     get: get, list: list, dueCount: dueCount, stats: stats,
-    rotate: rotate, rolled: rolled,
+    rotate: rotate, rolled: rolled, BASE_RULE_VER: BASE_RULE_VER,
     voidRec: voidRec, voidOlderThan: voidOlderThan,
     selfCheck: selfCheck, _selfCheck: _sc,
     requestPersist: requestPersist, persistState: persistState, estimate: estimate,
