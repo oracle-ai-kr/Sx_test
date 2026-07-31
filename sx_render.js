@@ -5183,11 +5183,21 @@ function _predEnsure(rec){
 //  ★왜 실수까지 남기나: `aligned` 불리언만 남기면 "조건 안/밖"은 알아도 "얼마나 안쪽인지"를 잃는다.
 //    나중에 "이격이 극단일 때 특히 틀렸나" 같은 질문이 오면 답할 데이터가 없다(알갱이 원칙).
 //    지금 안 넣으면 옛 레코드엔 영영 없어서 구간이 갈린다 — 쌓이기 전에 넣는 게 싸다.
+//  [S1143] 자릿수 보존 반올림 — 고정 소수 3자리로 자르면 코인 저가 코드(0.0001234)가 0이 된다.
+//    c0(기준봉 종가)를 저장하기 시작하면서 실제 문제가 된다.
+function _predRound(v){
+  if(!isFinite(v)) return null;
+  var a=Math.abs(v);
+  if(a===0) return 0;
+  if(a>=1000) return Math.round(v);
+  if(a>=1) return Math.round(v*1000)/1000;
+  return +v.toPrecision(6);
+}
 function _predCtx(o){
   var out={}, k, v;
   for(k in o){ if(!Object.prototype.hasOwnProperty.call(o,k)) continue;
     v=o[k]; if(v==null || (typeof v==='number' && !isFinite(v))) continue;
-    out[k]=(typeof v==='number') ? Math.round(v*1000)/1000 : v; }
+    out[k]=(typeof v==='number') ? _predRound(v) : v; }
   return Object.keys(out).length ? out : null;
 }
 function _predPick(k, choice){
@@ -5320,7 +5330,11 @@ function _predScoreRun(mkt, onProg){
             if(idx<0){ R.skipped++; R.why['기준봉 없음']=(R.why['기준봉 없음']||0)+1; return; }
             var A=_predActual(rec.q, cl, idx, rec.H);
             if(!A.ok){ R.skipped++; R.why[A.why]=(R.why[A.why]||0)+1; return; }
-            return SXLedger.score(rec.key, A.val).then(function(){ R.scored++; })
+            // [S1143] 채점 시점 실측 부가값 — 기준봉 최종 종가 + (q2)최종 기울기.
+            //   pred는 안 건드린다. 이걸로 "픽 당시 봉이 확정이었나"가 시계 없이 판정된다.
+            var _post={ c0Final:cl[idx] };
+            if(rec.q===2){ var _SF=_dbSlArr(cl); if(_SF[idx]!=null) _post.s0Final=_SF[idx]; }
+            return SXLedger.score(rec.key, A.val, _post).then(function(){ R.scored++; })
                    .catch(function(){ R.fail++; });
           });
         });
@@ -5664,24 +5678,28 @@ function _buildDistBoardCard(stock, indicators){
     // [S1136] 예측 원장 슬롯 — 기준봉(마지막 확정봉) 기준으로 모델 예측을 자동 기록한다.
     //   사람 예측은 게이트를 통과해야 수치가 열린다. 모델 기록은 사람 행동과 무관하게 진행된다.
     var _pb=_predBase(rows), _code=(stock&&stock.code)||'';
+    // [S1143] 기준봉 종가를 같이 남긴다. 채점 때 최종 종가와 비교하면 **그 봉이 형성 중이었는지**가
+    //   시계 없이 데이터로 확정된다. `intraday`는 KST 달력 비교라 US/COIN에선 못 믿는다:
+    //   US는 KST 새벽이면 미국 장중인데 날짜가 하루 밀려 "익일픽"으로 찍히고, COIN은 00~09시가 같다.
+    var _c0=(cl && cl.length) ? cl[cl.length-1] : null;
     var _gV=null,_gS=null,_gP=null,_kV=null,_kS=null,_kP=null;
     if(_pb && _code && window.SXLedger){
       if(V && V.base!=null){
         _kV=SXLedger.key(_dbMkt,_code,_pb.date,1,HV);
         _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:1,H:HV,pred:V.ratio,naive:V.base,
-                     aligned:(V.n>=80),ctx:_predCtx({wNow:V.wNow,rel:V.relNow,prev:V.prevNow,pctl:V.pctl,n:V.n}),intraday:_pb.intraday,ver:window.SX_BUILD});
+                     aligned:(V.n>=80),ctx:_predCtx({wNow:V.wNow,rel:V.relNow,prev:V.prevNow,pctl:V.pctl,n:V.n,c0:_c0}),intraday:_pb.intraday,ver:window.SX_BUILD});
         _gV=_predGate(_kV,1);
       }
       if(S){
         _kS=SXLedger.key(_dbMkt,_code,_pb.date,2,HS);
         _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:2,H:HS,pred:S.sPred,naive:S.flipBase,
-                     aligned:(S.inCond===true),ctx:_predCtx({s0:S.s0,delta:S.delta,adv:S.advNow,advPctl:S.advPctl,n:S.n}),intraday:_pb.intraday,ver:window.SX_BUILD});
+                     aligned:(S.inCond===true),ctx:_predCtx({s0:S.s0,delta:S.delta,adv:S.advNow,advPctl:S.advPctl,n:S.n,c0:_c0}),intraday:_pb.intraday,ver:window.SX_BUILD});
         _gS=_predGate(_kS,2);
       }
       if(P && P.golden && P.qs && P.medAll!=null){
         _kP=SXLedger.key(_dbMkt,_code,_pb.date,4,0);
         _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:4,H:0,pred:P.qs[P.qi].rem,naive:P.medAll,
-                     aligned:!P.few,ctx:_predCtx({gap:P.gap,age:P.age,qi:P.qi,n:P.n}),intraday:_pb.intraday,ver:window.SX_BUILD});
+                     aligned:!P.few,ctx:_predCtx({gap:P.gap,age:P.age,qi:P.qi,n:P.n,c0:_c0}),intraday:_pb.intraday,ver:window.SX_BUILD});
         _gP=_predGate(_kP,4);
       }
     }
@@ -12460,7 +12478,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1142';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1143';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
