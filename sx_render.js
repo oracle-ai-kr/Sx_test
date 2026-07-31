@@ -4834,6 +4834,111 @@ function _buildMaSlopeCard(stock, indicators){
   }catch(_e){ return ''; }
 }
 
+// ═══════════ [S1131] 예상 최대 손실(MAE) 카드 — 측정 근거: Q5 (3시장 확인) ═══════════
+//  예측자:  MAE ≈ b · ATR% · √H   (파라미터 **1개** · 절편 없음)
+//  ★√H 법칙 실측: MAE/√H 가 지평에 걸쳐 일정 — KR 2.345/2.348/2.275 · US 1.583/1.620/1.620 · COIN 3.293/3.321/3.358
+//  ★b 실측: KR .436 / US .463 / COIN .427 → **시장 무관 근사 0.44**. 시장별로 다른 건 변동성 상수뿐.
+//  ★순위 정보는 파라미터 0개 물리식(ATR·√H)이 다 준다(스피어만 KR .374/.341/.339 vs 상수 나이브 ≈0).
+//    b는 **수준(스케일)만** 보정한다. 절편을 넣으면 순위가 흐트러져 오히려 나빠졌다.
+//  ⚠크기 예측이며 **방향이 아니다**. 방향 축은 전부 기각됐다(Q3·Q6·캔들전이·차트예측).
+//  ⚠in-sample 기반. b는 이 종목 과거로 워크포워드 산출하고 표본 부족 시 시장상수로 폴백한다.
+var _MAE_B_FALLBACK = 0.44;
+var _MAE_HS = [3, 5, 10];
+function _maeCalc(rows, curAtrPct){
+  try{
+    if(!rows || rows.length < 140 || !(curAtrPct > 0)) return null;
+    var n = rows.length, i, k, hi=[], lo=[], cl=[];
+    for(i=0;i<n;i++){ var r=rows[i]; hi.push(+r.high||0); lo.push(+r.low||0); cl.push(+r.close||0); }
+    var tr = new Array(n).fill(0);
+    for(i=1;i<n;i++) tr[i] = Math.max(hi[i]-lo[i], Math.abs(hi[i]-cl[i-1]), Math.abs(lo[i]-cl[i-1]));
+    var atr = new Array(n).fill(null), acc=0, c=0;
+    for(i=1;i<n;i++){ acc+=tr[i]; c++; if(c>14){ acc-=tr[i-14]; c=14; }
+      if(c===14 && cl[i]>0) atr[i] = acc/14/cl[i]*100; }
+    var out = {};
+    for(var z=0; z<_MAE_HS.length; z++){
+      var H = _MAE_HS[z], rH = Math.sqrt(H), sxy=0, sxx=0, ratios=[], sumAct=0, cnt=0;
+      for(i=20;i<n-H;i++){
+        if(atr[i]==null || !(cl[i]>0)) continue;
+        var mn=0;
+        for(k=i+1;k<=i+H;k++){ var rr=(lo[k]-cl[i])/cl[i]*100; if(rr<mn) mn=rr; }
+        var act=-mn, pred=atr[i]*rH;
+        if(!(pred>0)) continue;
+        sxy+=pred*act; sxx+=pred*pred; ratios.push(act/pred); sumAct+=act; cnt++;
+      }
+      if(cnt < 60){ out[H]=null; continue; }
+      var b = (sxx>0) ? sxy/sxx : _MAE_B_FALLBACK, self = (sxx>0);
+      ratios.sort(function(a,b2){ return a-b2; });
+      var q = function(p){ return ratios[Math.min(ratios.length-1, Math.floor(ratios.length*p))]; };
+      var base = curAtrPct*rH;
+      out[H] = { n:cnt, b:b, self:self, exp:b*base, med:q(0.5)*base, p90:q(0.90)*base, naive:sumAct/cnt };
+    }
+    return out;
+  }catch(_e){ return null; }
+}
+function _buildMaeCard(stock, indicators){
+  try{
+    var adv = (indicators && indicators._advanced) ? indicators._advanced : null;
+    var rows = (adv && Array.isArray(adv.rows)) ? adv.rows
+             : ((stock && Array.isArray(stock._lastAnalCandles)) ? stock._lastAnalCandles : null);
+    var atrPct = (indicators && indicators.atr && indicators.atr.pct > 0) ? indicators.atr.pct : null;
+    if(!rows || !atrPct) return '';
+    var R = _maeCalc(rows, atrPct);
+    if(!R) return '';
+    var px = +rows[rows.length-1].close || 0;
+    var esc = function(x){ return String(x==null?'':x).replace(/[&<>"]/g, function(k){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k]; }); };
+    var T3='var(--text3)', T2='var(--text2)', RED='#dc2626', AMB='#d97706';
+    var rowsHtml='', bShown=null, nShown=0;
+    for(var z=0; z<_MAE_HS.length; z++){
+      var H=_MAE_HS[z], d=R[H];
+      if(!d){ continue; }
+      if(bShown==null){ bShown=d.b; nShown=d.n; }
+      var stop = px>0 ? Math.round(px*(1-d.exp/100)) : null;
+      rowsHtml += '<tr>'
+        + '<td style="padding:4px 6px;font-weight:800;color:var(--text)">'+H+'봉</td>'
+        + '<td style="padding:4px 6px;text-align:right;font-weight:800;color:'+AMB+'">-'+d.exp.toFixed(1)+'%</td>'
+        + '<td style="padding:4px 6px;text-align:right;color:'+T2+'">-'+d.med.toFixed(1)+'%</td>'
+        + '<td style="padding:4px 6px;text-align:right;font-weight:700;color:'+RED+'">-'+d.p90.toFixed(1)+'%</td>'
+        + '<td style="padding:4px 6px;text-align:right;color:'+T3+'">-'+d.naive.toFixed(1)+'%</td>'
+        + '<td style="padding:4px 6px;text-align:right;color:'+T3+';font-size:9.5px">'+(stop?stop.toLocaleString():'—')+'</td>'
+        + '</tr>';
+    }
+    if(!rowsHtml) return '';
+    var _titleHtml = '<span style="font-size:13px;font-weight:800;color:var(--text)">🩹 예상 최대 손실</span>'
+      + '<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:'+T3+';border:1px solid var(--border);margin-left:6px">실험</span>'
+      + '<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-left:4px">표시 전용 · 판정 무관</span>';
+    var _rightHtml = '<span style="font-size:10px;font-weight:700;color:'+T3+'">ATR '+atrPct.toFixed(1)+'%</span>';
+    var _body =
+        '<div style="font-size:10px;color:'+T2+';line-height:1.5;margin-bottom:6px">'
+      +   '진입 후 지평 안에서 <b>가장 깊이 물리는 폭</b>. 방향이 아니라 <b>크기</b> 예측이다. '
+      +   '분포가 <b>우측으로 크게 치우쳐</b> 있으니 평균만 보지 말 것 — 중앙과 상위10%를 함께 봐야 한다.'
+      + '</div>'
+      + '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:10.5px;min-width:300px">'
+      +   '<tr style="border-bottom:1px solid var(--border)">'
+      +     '<th style="padding:4px 6px;text-align:left;font-size:9px;color:'+T3+'">보유</th>'
+      +     '<th style="padding:4px 6px;text-align:right;font-size:9px;color:'+T3+'">평균</th>'
+      +     '<th style="padding:4px 6px;text-align:right;font-size:9px;color:'+T3+'">중앙</th>'
+      +     '<th style="padding:4px 6px;text-align:right;font-size:9px;color:'+T3+'">나쁠 때<br>(상위10%)</th>'
+      +     '<th style="padding:4px 6px;text-align:right;font-size:9px;color:'+T3+'">나이브<br>(과거평균)</th>'
+      +     '<th style="padding:4px 6px;text-align:right;font-size:9px;color:'+T3+'">손절선<br>(평균기준)</th>'
+      +   '</tr>' + rowsHtml
+      + '</table></div>'
+      + '<div style="margin-top:8px;font-size:9.5px;color:'+T3+';line-height:1.6;border-top:1px solid var(--border);padding-top:7px">'
+      +   '<b>식</b> MAE ≈ b × ATR% × √지평 — 파라미터 <b>1개</b>. '
+      +   '이 종목 b=<b>'+(bShown!=null?bShown.toFixed(2):'—')+'</b> (표본 '+nShown+'봉 · 시장상수 '+_MAE_B_FALLBACK+'). '
+      +   '순위는 파라미터 0개 물리식(ATR×√지평)이 전부 주고 b는 <b>수준만</b> 보정한다.<br>'
+      +   '<b>실측</b> √지평 법칙이 KR·US·COIN 세 시장에서 성립하고 b는 <b>0.42~0.46</b>으로 거의 불변. '
+      +   '순위 상관 0.34 vs 나이브(과거평균 고정) ≈0 · 예측 5분위별 실제값 단조.<br>'
+      +   '<b>어림</b> 5봉 보유 ≈ ATR 1개 · 20봉 보유 ≈ ATR 2개. '
+      +   '지금 쓰는 손절 규칙(ATR 2배)은 사실상 <b>20봉 보유</b>를 가정한 값이다.<br>'
+      +   '⚠ <b>크기 예측이며 방향이 아니다</b> — 방향 축은 전부 기각됐다(지지·저항 / 칸 전이 / 캔들전이 / 차트예측). '
+      +   '⚠ 저가 기준이라 장중 노이즈를 포함한다. 코인은 10봉 이상에서 예측력이 약해진다. '
+      +   '⚠ in-sample 기반 · C 판정·votes·시즌2 어디에도 반영되지 않는다.'
+      + '</div>';
+    return _sxExpCard('sxMaeCardWrap', 'sxMaeCardWrap_b', _titleHtml, _rightHtml, _body);
+  }catch(_e){ return ''; }
+}
+
 // ===== [S742] 반등 사이클 (실험 카드) — 추세구조(X)×반등품질(Y)을 도넛 링에 매핑. 마커가 사이클(바닥반등→눌림목→되돌림→데드캣)을 시계방향 순환. 독립 표시 카드(C 판정·BT·점수 무관). =====
 //   X(추세): 장기배열 maAlignLT(±60) + 단기배열 maAlign(±25) + 20일추세%(±15). 하락− ↔ 상승+
 //   Y(품질)[S760·측정기반]: 진짜반등(+: 소진축=거래량OSC<−40 or ADX<19 둘중 max·위치=CCI<80/RSI<57) − 데드캣(−: 골든크로스 5×20/5×9 반짝·되돌림 dumpWarn·OBV하락·약세다이버·저항근접)
@@ -11386,7 +11491,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1128';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1131';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15576,7 +15681,8 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     ${_buildScoreBoard(scores, stock._svScores4, _boardStruct, _boardPb, _boardDeltas, stock._svVerdict, _lowConf, _boardExtras)}
     ${_buildTransitionCard(stock, indicators)}
     ${_buildTrendCard(stock, indicators)}
-    ${_buildReboundCycleCard(stock, indicators)}
+    ${_buildMaeCard(stock, indicators)}
+          ${_buildReboundCycleCard(stock, indicators)}
     ${_buildMaSlopeCard(stock, indicators)}
     ${(typeof window!=='undefined' && window.SXRecipeSignal) ? SXRecipeSignal.buildCard(stock, indicators) : ''}
     ${_buildChartPredictCard(stock, indicators)}
