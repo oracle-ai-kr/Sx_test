@@ -5026,7 +5026,11 @@ function _buildDistBoardCard(stock, indicators){
     var _titleHtml='<span style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap">🔭 분포 보드</span>'
       + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:var(--surface2);color:'+T3+';border:1px solid var(--border);margin-left:5px;white-space:nowrap">실험</span>'
       + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-left:3px;white-space:nowrap">표시 전용</span>';
-    var _rightHtml='<span style="font-size:9.5px;font-weight:700;color:'+T3+';white-space:nowrap">크기·구조·시간</span>';
+    // [S1133] 꺾임 축이 측정 조건 밖이면 헤더에 표기 — 접힌 상태에서도 보이게.
+    var _rightHtml=((S && S.inCond===false)
+        ? '<span style="font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px;background:#fffbeb;color:'+AMB+';border:1px solid #fde68a;margin-right:5px;white-space:nowrap">꺾임 조건밖</span>'
+        : '')
+      + '<span style="font-size:9.5px;font-weight:700;color:'+T3+';white-space:nowrap">크기·구조·시간</span>';
     var _body=
         '<div style="font-size:10px;color:'+T2+';line-height:1.5;margin-bottom:4px">'
       +   '측정을 통과한 축만 올라간다. <b>방향(어느 쪽으로 갈까)은 여기 없다</b> — 지지·저항, 칸 전이, '
@@ -5136,7 +5140,11 @@ function _buildMaeCard(stock, indicators){
     var _extrap = false, _exH = null;
     for(var y=0; y<_MAE_HS.length; y++){ var _h=_MAE_HS[y];
       if(R[_h] && _tq[_h] && R[_h].exp > _tq[_h]){ _extrap = true; if(_exH==null) _exH=_h; } }
-    var _rightHtml = '<span style="font-size:10px;font-weight:700;color:'+T3+';white-space:nowrap">ATR '+atrPct.toFixed(1)+'%'
+    // [S1133] 외삽 뱃지는 **헤더에** 둔다 — 접힌 상태에서도 "이 숫자 믿지 말라"가 보여야 한다.
+    var _rightHtml = (_extrap
+        ? '<span style="font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px;background:#fef2f2;color:'+RED+';border:1px solid #fecaca;margin-right:5px;white-space:nowrap">⚠외삽</span>'
+        : '')
+      + '<span style="font-size:10px;font-weight:700;color:'+T3+';white-space:nowrap">ATR '+atrPct.toFixed(1)+'%'
       + (_pctl!=null ? ' <span style="font-weight:600;font-size:9px">(이력 '+_pctl+'%)</span>' : '') + '</span>';
     var _warn = _extrap
       ? '<div style="font-size:10px;font-weight:700;color:'+RED+';background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:7px 9px;margin-bottom:7px;line-height:1.5">'
@@ -11726,7 +11734,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1132b';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1133';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
