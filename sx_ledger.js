@@ -326,7 +326,11 @@
   // ─────────────────────────────────────────────────────────
   //  저장된 레코드에서 pred/naive/ctx를 읽어서 판정한다. 호출자는 actual만 준다.
   //  = 사후에 pred를 유리하게 고쳐 넣을 경로가 **구조적으로 없다**.
-  function score(k, actual) {
+  //  post = 채점 시점에 캔들에서 새로 재는 부가값(c0Final·s0Final 등). pred/naive는 손대지 않는다.
+  //  [S1143] 왜 필요한가: 장중에 찍으면 ctx.s0가 **미완성 봉의 기울기**라 최종 캔들 어디에도 없다.
+  //    q2 정답 판정이 그 값에 묶여 있어서, 나중에 캔들만으로 재현이 불가능해진다.
+  //    채점 때 최종값을 같이 남겨야 "얼마나 갈렸나"를 물을 수 있다(알갱이 원칙).
+  function score(k, actual, post) {
     if (actual == null || isNaN(+actual)) return Promise.reject(new Error('actual 없음'));
     return _tx(STORE, 'readwrite').then(function (o) {
       return _wrap(o.s.get(k)).then(function (cur) {
@@ -348,6 +352,14 @@
         cur.nerr = Math.abs(a - cur.naive);
         cur.st = 1;
         cur.scoredAt = Date.now();
+        if (post && typeof post === 'object') {
+          cur.post = post;
+          // 기준봉이 픽 당시 이미 확정이었나 — 시계가 아니라 종가 일치로 판정한다.
+          if (cur.ctx && cur.ctx.c0 != null && post.c0Final != null) {
+            var d0 = Math.abs(post.c0Final - cur.ctx.c0);
+            cur.formed = (d0 / Math.max(1e-12, Math.abs(post.c0Final))) < 1e-6;
+          }
+        }
         return _wrap(o.s.put(cur)).then(function () { return cur; });
       });
     });
