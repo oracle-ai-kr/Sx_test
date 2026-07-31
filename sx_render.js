@@ -5339,7 +5339,12 @@ function _predScoreRun(mkt, onProg, opt){
             var _post={ c0Final:cl[idx] };
             if(rec.q===2){ var _SF=_dbSlArr(cl); if(_SF[idx]!=null) _post.s0Final=_SF[idx]; }
             return SXLedger.score(rec.key, A.val, _post).then(function(sc){ R.scored++; R.rows.push(sc); })
-                   .catch(function(){ R.fail++; });
+                   .catch(function(e){
+                     // [S1145] 구버전은 실패가 아니라 **보류**다 — 폐기하면 사라진다.
+                     var m=String((e&&e.message)||e);
+                     if(/구버전 기준봉/.test(m)){ R.skipped++; R.old=(R.old||0)+1; R.why['구버전 — 폐기 필요']=(R.why['구버전 — 폐기 필요']||0)+1; }
+                     else R.fail++;
+                   });
           });
         });
         return chain;
@@ -5727,7 +5732,11 @@ function _predPanelHtml(){
     + '<button onclick="_predPanelRefresh()" style="padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:'+T2+';font-size:10px;font-weight:800;cursor:pointer">새로고침</button>'
     + '</div>';
   // [S1139] 기준봉 규칙 변경 전(S1139 미만) 레코드 폐기. 계산 봉과 기록 봉이 갈려 있어 채점해도 무의미하다.
-  body += '<div style="margin-top:5px"><button onclick="_predPanelVoidOld()" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:'+T3+';font-size:9.5px;font-weight:700;cursor:pointer">🗑 구버전(S1139 이전) 기록 폐기 — 기준봉 규칙이 달라 채점 불가</button></div>';
+  // [S1145] 구버전이 남아 있으면 경고색으로 띄운다 — 원장이 이제 이걸 채점 거부하므로 방치하면 영영 대기로 남는다.
+  var _oldN=(L&&L.pend)?L.pend.filter(function(r){ return String(r.ver||'')<SXLedger.BASE_RULE_VER; }).length:0;
+  body += '<div style="margin-top:5px"><button onclick="_predPanelVoidOld()" style="width:100%;padding:'+(_oldN?'9px':'6px')+';border-radius:6px;border:1px solid '+(_oldN?'#e3493b':'var(--border)')+';background:'+(_oldN?'#e3493b':'var(--surface2)')+';color:'+(_oldN?'#fff':T3)+';font-size:9.5px;font-weight:'+(_oldN?'800':'700')+';cursor:pointer">'
+    + (_oldN?('🗑 구버전 '+_oldN+'건 폐기 필요 — 기준봉 규칙이 달라 채점되지 않는다'):'🗑 구버전(S1139 이전) 기록 폐기')
+    + '</button></div>';
   body += '<div id="sxPredPanelMsg" style="margin-top:5px;font-size:9.5px;color:'+T2+';line-height:1.6">'+(P.msg||'')+'</div>';
   body += '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:9px;color:'+T3+';line-height:1.6">'
     + '⚠ 채점은 <b>현재 시장('+((typeof currentMarket!=='undefined')?currentMarket.toUpperCase():'KR')+')</b>만 돈다 — 캔들 조회가 시장에 묶여 있다. 다른 시장은 탭을 바꾸고 다시 돌릴 것.<br>'
@@ -12583,7 +12592,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1144';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1145';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
