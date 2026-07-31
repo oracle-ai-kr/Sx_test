@@ -5220,6 +5220,10 @@ function _dbRerenderCard(){
     var el=document.getElementById('sxDistBoardWrap'), L=window._sxDbLast;
     if(el && L && L.stock) el.outerHTML=_buildDistBoardCard(L.stock, L.indicators);
   }catch(_e){}
+  try{   // [S1146] MAE 카드도 같은 원장 캐시를 쓰므로 함께 다시 그린다
+    var e2=document.getElementById('sxMaeCardWrap'), M=window._sxMaeLast;
+    if(e2 && M && M.stock) e2.outerHTML=_buildMaeCard(M.stock, M.indicators);
+  }catch(_e2){}
 }
 
 //  D-표기 — dueEst까지 남은 날(근사). §10대로 "대기 추정"이며 실제 채점은 일괄 fetch로 확정된다.
@@ -5275,7 +5279,7 @@ function _predGate(k, q){
 // ═══════════ [S1137] 채점기 — 지평 도달분을 실제값으로 채점 ═══════════
 //  ★라벨은 반드시 위의 SSOT(_dbBandW/_dbSlArr/_dbCross/_dbRemFrom)로만 만든다. 재구현 금지.
 //  ★pred는 손대지 않는다 — SXLedger.score()가 저장된 rec에서 읽어 판정하므로 여기선 actual만 넘긴다.
-function _predActual(q, cl, i, H){
+function _predActual(q, cl, i, H, rows){
   try{
     if(!Array.isArray(cl) || i<0 || i>=cl.length) return { ok:false, why:'기준봉 인덱스 밖' };
     if(q===1){
@@ -5295,6 +5299,15 @@ function _predActual(q, cl, i, H){
       // 상한 안에 데드크로스가 안 나왔는데 봉도 아직 상한만큼 안 쌓였으면 = 진행중. 절단값을 실측으로 쓰면 안 된다.
       if(R.censored && (i+_DB_SPELL_CAP) > cl.length-1) return { ok:false, why:'아직 진행중' };
       return { ok:true, val:R.rem };
+    }
+    if(q===5){
+      if(!rows) return { ok:false, why:'저가 배열 없음' };
+      var _lo=[], _cl2=[];
+      for(var z=0;z<rows.length;z++){ _lo.push(+rows[z].low||0); _cl2.push(+(rows[z].close!=null?rows[z].close:rows[z].c)||0); }
+      if(i+H > rows.length-1) return { ok:false, why:'지평 미도달' };
+      var mv=_maeActual(_cl2, _lo, i, H);
+      if(mv==null) return { ok:false, why:'MAE 산출 불가' };
+      return { ok:true, val:mv };
     }
     return { ok:false, why:'q'+q+'는 채점기 미구현' };
   }catch(e){ return { ok:false, why:String((e&&e.message)||e) }; }
@@ -5332,7 +5345,7 @@ function _predScoreRun(mkt, onProg, opt){
           chain=chain.then(function(){
             var idx=_predFindIdx(rows, rec.date);
             if(idx<0){ R.skipped++; R.why['기준봉 없음']=(R.why['기준봉 없음']||0)+1; return; }
-            var A=_predActual(rec.q, cl, idx, rec.H);
+            var A=_predActual(rec.q, cl, idx, rec.H, rows);
             if(!A.ok){ R.skipped++; R.why[A.why]=(R.why[A.why]||0)+1; return; }
             // [S1143] 채점 시점 실측 부가값 — 기준봉 최종 종가 + (q2)최종 기울기.
             //   pred는 안 건드린다. 이걸로 "픽 당시 봉이 확정이었나"가 시계 없이 판정된다.
@@ -5917,6 +5930,17 @@ var _MAE_HS = [3, 5, 10];
 //   자기 이력 백분위로 외삽을 판정하면 안 된다 — 조용한 종목이 '평범한 수준'으로 올라도 100%가 나온다.
 //   판정 기준은 "우리가 잰 범위를 넘느냐"여야 한다.
 var _MAE_TOPQ = { kr:{3:6.93,5:8.36,10:11.05}, us:{3:4.46,5:5.71,10:7.75}, coin:{3:6.77,5:8.58,10:11.37} };
+// [S1146] MAE 라벨 SSOT — 카드(_maeCalc)와 채점기(_predActual)가 **같은 함수**를 쓴다.
+//   MAE = 이후 H봉 저가가 기준봉 종가 대비 얼마나 밑으로 내려갔나(최대). 0 이하로는 안 간다.
+//   ★종가가 아니라 **저가**를 쓴다 — 채점기가 종가로 재면 값이 체계적으로 작게 나오는데,
+//     그러면 모델이 실제보다 과대예측한 것처럼 보인다(조용한 편향).
+function _maeActual(cl, lo, i, H){
+  if(!cl || !lo || i<0 || (i+H) > cl.length-1) return null;
+  if(!(cl[i]>0)) return null;
+  var mn=0;
+  for(var k=i+1;k<=i+H;k++){ var rr=(lo[k]-cl[i])/cl[i]*100; if(rr<mn) mn=rr; }
+  return -mn;
+}
 function _maeCalc(rows, curAtrPct){
   try{
     if(!rows || rows.length < 140) return null;
@@ -5941,9 +5965,8 @@ function _maeCalc(rows, curAtrPct){
       var H = _MAE_HS[z], rH = Math.sqrt(H), sxy=0, sxx=0, ratios=[], sumAct=0, cnt=0;
       for(i=20;i<n-H;i++){
         if(atr[i]==null || !(cl[i]>0)) continue;
-        var mn=0;
-        for(k=i+1;k<=i+H;k++){ var rr=(lo[k]-cl[i])/cl[i]*100; if(rr<mn) mn=rr; }
-        var act=-mn, pred=atr[i]*rH;
+        var act=_maeActual(cl, lo, i, H), pred=atr[i]*rH;   // [S1146] 라벨은 SSOT 경유 — 채점기와 같은 함수
+        if(act==null) continue;
         if(!(pred>0)) continue;
         sxy+=pred*act; sxx+=pred*pred; ratios.push(act/pred); sumAct+=act; cnt++;
       }
@@ -5989,6 +6012,30 @@ function _buildMaeCard(stock, indicators){
         + '</tr>';
     }
     if(!rowsHtml) return '';
+    // ═══ [S1146] 예측 원장 슬롯 — H3/5/10 전부 모델 기록, 사람 픽은 **H5만**.
+    //   H5로 잡는 이유: 겹침(결론) 실험이 "변동 확대(q1 H5) × MAE(q5 H5)"라 **지평이 같아야** 성립한다.
+    //   PREREG §4 함정 3 — 지평 불일치. H3/H10은 지평이 달라 겹침에 못 쓴다(모델 표본으로만 남긴다).
+    try{ window._sxMaeLast = { stock:stock, indicators:indicators }; }catch(_eM){}
+    var _mkt0 = (stock && (stock._mkt || stock.market)) || (typeof currentMarket!=='undefined' ? currentMarket : 'kr');
+    var _tq0 = _MAE_TOPQ[_mkt0] || _MAE_TOPQ.kr;
+    var _pbM=_predBase(rows), _codeM=(stock&&stock.code)||'', _gM=null, _kM=null;
+    if(_pbM && _codeM && window.SXLedger){
+      for(var w=0; w<_MAE_HS.length; w++){
+        var _h2=_MAE_HS[w], _d2=R[_h2]; if(!_d2) continue;
+        _predEnsure({ mkt:_mkt0, code:_codeM, date:_pbM.date, q:5, H:_h2,
+          pred:_d2.exp, naive:_d2.naive,
+          aligned:(_tq0[_h2]!=null ? (_d2.exp <= _tq0[_h2]) : null),   // 측정 상단 안인가(=외삽 아님)
+          ctx:_predCtx({ atr:atrPct, atrPctl:R._atrPctl, b:_d2.b, self:(_d2.self?1:0), n:_d2.n, c0:px }),
+          intraday:_pbM.intraday, ver:window.SX_BUILD });
+      }
+      if(R[5]){ _kM=SXLedger.key(_mkt0,_codeM,_pbM.date,5,5); _gM=_predGate(_kM,5); }
+    }
+    if(_gM && !_gM.open){
+      return _sxExpCard('sxMaeCardWrap','sxMaeCardWrap_b',
+        '<span style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap">🩹 예상 최대 손실</span>'
+        + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:var(--surface2);color:'+T3+';border:1px solid var(--border);margin-left:5px">실험</span>',
+        '', _gM.gate);
+    }
     var _titleHtml = '<span style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap">🩹 예상 최대 손실</span>'
       + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:var(--surface2);color:'+T3+';border:1px solid var(--border);margin-left:5px;white-space:nowrap">실험</span>'
       + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-left:3px;white-space:nowrap">표시 전용</span>';
@@ -6009,7 +6056,7 @@ function _buildMaeCard(stock, indicators){
         + '⚠ <b>외삽 구간</b> — '+_exH+'봉 예측이 '+String(_mkt).toUpperCase()+' 실측 최상위 5분위 평균('+_tq[_exH].toFixed(1)+'%)을 넘는다. '
         + '그 위는 <b>측정되지 않은 구간</b>이라 크기를 그대로 믿으면 안 된다. 순위(어느 쪽이 더 위험한가)는 여전히 유효하다.'
         + '</div>' : '';
-    var _body = _warn +
+    var _body = (_gM?_gM.gate:'') + _warn +
         '<div style="font-size:10px;color:'+T2+';line-height:1.5;margin-bottom:6px">'
       +   '진입 후 지평 안에서 <b>가장 깊이 물리는 폭</b>. 방향이 아니라 <b>크기</b> 예측이다. '
       +   '분포가 <b>우측으로 크게 치우쳐</b> 있으니 평균만 보지 말 것 — 중앙과 상위10%를 함께 봐야 한다.'
@@ -12592,7 +12639,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1145';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1146';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
