@@ -5546,12 +5546,12 @@ function _predAutoScore(force){
 
     SXLedger.list({ mkt:mk, st:0 }).then(function(pend){
       var mine=pend.filter(function(r){ return r.human!=null; });
-      if(!mine.length){ try{ localStorage.setItem(gk,today); }catch(_e){} return; }
+      if(!mine.length){ try{ localStorage.setItem(gk,today); }catch(_e){} _predBackupNudge(); return; }
       return _predScoreRun(mk, null, { pickedOnly:true }).then(function(R){
         try{ localStorage.setItem(gk,today); }catch(_e){}
-        if(!R || !R.scored) return;                      // 지평 미도달이면 조용히 넘어간다
+        if(!R || !R.scored){ _predBackupNudge(); return; }   // 채점할 게 없으면 백업 알림 차례
         return SXLedger.stats({ mkt:mk }).then(function(st){
-          _predResultPopup(R.rows, st);
+          _predResultPopup(R.rows, st);      // [S1149] 채점 결과가 우선 — 백업 알림은 다음 진입으로 미룬다
           try{ _predPanelRefresh(); }catch(_e2){}
         });
       });
@@ -5706,6 +5706,264 @@ function _predExportSummary(){
   }).catch(function(e){ window._sxPredPanel.msg='요약 실패: '+((e&&e.message)||e); _predPanelRefresh(); });
 }
 
+// ═══════════ [S1148] 채점 이력 — 사용자가 실제로 보는 화면 ═══════════
+//  문제: 원장에 다 쌓이는데 사용자가 볼 수 있는 건 "지금 상태"뿐이었다.
+//    채점 팝업은 닫으면 끝, 대기 목록은 미채점만, 채점된 건 집계 숫자에 흡수돼 사라진다.
+//    "내가 두산에서 뭐라고 찍었더라"를 확인할 데가 없었다 → 매일 찍을 이유가 약해진다.
+//  ★파일 내보내기는 분석용(원자료)이고, 이 화면이 사용자용이다. 역할을 나눈다.
+var _HIST_FILTERS = [
+  { k:'all',  t:'전체' },
+  { k:'mine', t:'내가 찍은 것' },
+  { k:'miss', t:'내가 틀린 것' },
+  { k:'beat', t:'내가 모델을 이긴 것' }
+];
+
+function _predHistOpen(){
+  if(!window.SXLedger) return;
+  try{ _sxVib(10); }catch(_e){}
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+  SXLedger.list({ mkt:mk, st:1 }).then(function(rows){
+    rows.sort(function(a,b){ return (b.scoredAt||0)-(a.scoredAt||0); });
+    window._sxHist={ rows:rows, filter:'all', limit:25, mkt:mk };
+    _predHistRender();
+  }).catch(function(){});
+}
+function _predHistRender(){
+  var H=window._sxHist; if(!H) return;
+  var ov=document.getElementById('sxHistOverlay');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='sxHistOverlay';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;'
+      +'align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(2px)';
+    ov.addEventListener('click',function(e){ if(e.target===ov) _predHistClose(); });
+    document.body.appendChild(ov);
+    try{ history.pushState({view:'sxHist'},''); }catch(_){}
+    ov._popHandler=function(){ var x=document.getElementById('sxHistOverlay'); if(x){ try{ x.remove(); }catch(_){} } window._sxHist=null; };
+    window.addEventListener('popstate', ov._popHandler, {once:true});
+  }
+  ov.innerHTML=_predHistHtml();
+}
+function _predHistClose(){ try{ history.back(); }catch(_e){ var x=document.getElementById('sxHistOverlay'); if(x) x.remove(); window._sxHist=null; } }
+function _predHistFilter(k){ try{ _sxVib(6); }catch(_e){} window._sxHist.filter=k; window._sxHist.limit=25; _predHistRender(); }
+function _predHistMore(){ window._sxHist.limit+=25; _predHistRender(); }
+
+function _predHistPick(H2){
+  var f=H2.filter;
+  return H2.rows.filter(function(r){
+    if(f==='mine') return r.hhit!=null;
+    if(f==='miss') return r.hhit===false;
+    if(f==='beat') return r.hhit===true && r.hit===false;
+    return true;
+  });
+}
+function _predHistHtml(){
+  var H=window._sxHist, T3='var(--text3)', T2='var(--text2)', GRN='#16a34a', RED='#e3493b';
+  var rows=_predHistPick(H);
+
+  // ── 축별 내 성적 — "어느 축에 감이 있나"가 이 화면의 1차 값어치 ──
+  var acc={};
+  H.rows.forEach(function(r){
+    var g=acc[r.q]||(acc[r.q]={ n:0, hit:0, hn:0, hhit:0, beat:0 });
+    g.n++; if(r.hit) g.hit++;
+    if(r.hhit!=null){ g.hn++; if(r.hhit) g.hhit++; if(r.hhit && !r.hit) g.beat++; }
+  });
+  var top='';
+  var qs=Object.keys(acc).sort();
+  if(qs.length){
+    top='<div style="font-size:9.5px;font-weight:800;color:'+T3+';margin:2px 0 4px">축별 성적</div>'
+      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:9.5px">'
+      + '<tr style="color:'+T3+'"><th style="text-align:left;padding:2px 4px">축</th><th style="padding:2px 4px">내 적중</th>'
+      + '<th style="padding:2px 4px">모델</th><th style="padding:2px 4px">역전</th></tr>';
+    qs.forEach(function(q){
+      var g=acc[q], nm=(SXLedger.Q[q]&&SXLedger.Q[q].name)||('q'+q);
+      var hp=g.hn?(g.hhit/g.hn*100):null, mp=g.n?(g.hit/g.n*100):null;
+      var better=(hp!=null&&mp!=null&&hp>mp);
+      top += '<tr style="border-top:1px solid var(--border)">'
+        + '<td style="padding:3px 4px;color:var(--text2)">'+nm+'</td>'
+        + '<td style="padding:3px 4px;text-align:center;font-weight:800;color:'+(better?GRN:'var(--text)')+'">'
+        +   (hp!=null?(hp.toFixed(0)+'%<span style="font-weight:400;color:'+T3+'">('+g.hn+')</span>'):'—')+'</td>'
+        + '<td style="padding:3px 4px;text-align:center;color:'+T2+'">'+(mp!=null?mp.toFixed(0)+'%':'—')+'</td>'
+        + '<td style="padding:3px 4px;text-align:center;color:'+(g.beat?GRN:T3)+'">'+(g.beat||'—')+'</td>'
+        + '</tr>';
+    });
+    top += '</table></div>'
+      + '<div style="margin-top:4px;font-size:9px;color:'+T3+';line-height:1.6">'
+      + '<b>역전</b> = 내가 맞고 모델이 틀린 건수. 표본이 적으면 전부 우연이다 — 20건 넘어가야 얘기가 된다.</div>';
+  }
+
+  // ── 필터 ──
+  var fbar='<div style="display:flex;gap:4px;margin:9px 0 2px;flex-wrap:wrap">';
+  _HIST_FILTERS.forEach(function(f){
+    var on=(H.filter===f.k);
+    fbar+='<button onclick="_predHistFilter(\''+f.k+'\')" style="padding:4px 8px;border-radius:999px;font-size:9.5px;font-weight:800;cursor:pointer;'
+      +'border:1px solid '+(on?'var(--accent)':'var(--border)')+';background:'+(on?'var(--accent)':'var(--surface2)')+';color:'+(on?'#fff':T2)+'">'+f.t+'</button>';
+  });
+  fbar+='</div>';
+
+  // ── 목록 ──
+  var body='';
+  if(!rows.length){
+    body='<div style="padding:14px 0;font-size:10px;color:'+T3+';line-height:1.6;text-align:center">'
+      + (H.rows.length?'이 조건에 해당하는 게 없다.':'아직 채점된 예측이 없다. 지평이 도달하면 여기 쌓인다.')+'</div>';
+  } else {
+    rows.slice(0,H.limit).forEach(function(r){
+      var lb=_PRED_LABELS[r.q]||['예','아니오'], def=SXLedger.Q[r.q]||{};
+      var say=function(b){ return b?lb[0]:lb[1]; };
+      var mcall=(r.hit===true)?r.truth:!r.truth;
+      var mine=(r.human==null)?null:((r.human==='pass')?'패스':say(r.human==='yes'));
+      var sd=r.scoredAt?new Date(r.scoredAt).toISOString().slice(5,10):'';
+      body += '<div style="border-top:1px solid var(--border);padding:7px 0">'
+        + '<div style="display:flex;align-items:baseline;gap:6px">'
+        +   '<span style="font-size:11px;font-weight:800;color:var(--text)">'+(_predName(r.code)||r.code)+'</span>'
+        +   '<span style="font-size:9px;color:'+T3+'">'+(def.name||'')+(r.H?(' H'+r.H):'')+'</span>'
+        +   '<span style="margin-left:auto;font-size:8.5px;color:'+T3+'">기준 '+r.date.slice(5)+' → 채점 '+sd+'</span>'
+        + '</div>'
+        + '<div style="margin-top:3px;font-size:10px;color:'+T2+';line-height:1.7">'
+        +   '정답 <b style="color:var(--text)">'+say(r.truth)+'</b>'
+        +   (mine!=null?(' · 나 <b style="color:'+(r.hhit==null?T3:(r.hhit?GRN:RED))+'">'+mine+(r.hhit==null?'':(r.hhit?' ✓':' ✗'))+'</b>'):'')
+        +   ' · 모델 <b style="color:'+(r.hit?GRN:RED)+'">'+say(mcall)+(r.hit?' ✓':' ✗')+'</b>'
+        +   ' · 나이브 <span style="color:'+(r.nhit?GRN:RED)+'">'+(r.nhit?'✓':'✗')+'</span>'
+        + '</div>'
+        + (r.formed===false?'<div style="margin-top:1px;font-size:8.5px;color:#d97706">봉 형성 중에 찍은 건</div>':'')
+        + '</div>';
+    });
+    if(rows.length>H.limit)
+      body+='<div style="padding:8px 0;text-align:center"><span onclick="_predHistMore()" style="font-size:10px;color:var(--accent);font-weight:800;cursor:pointer">더 보기 ('+(rows.length-H.limit)+'건 남음)</span></div>';
+  }
+
+  return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;width:100%;max-width:380px;'
+    + 'max-height:92vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.5)">'
+    + '<div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border)">'
+    +   '<span style="font-size:13px;font-weight:800;color:var(--text)">📜 채점 이력</span>'
+    +   '<span style="font-size:9.5px;color:'+T3+'">'+H.mkt.toUpperCase()+' · '+H.rows.length+'건</span>'
+    +   '<span onclick="_predHistClose()" style="margin-left:auto;font-size:17px;cursor:pointer;color:'+T3+';padding:0 3px">✕</span>'
+    + '</div>'
+    + '<div style="flex:1;overflow-y:auto;padding:10px 14px 14px">'+top+fbar+body+'</div></div>';
+}
+
+// ═══════════ [S1149] 가져오기 UI + 백업 팝업 ═══════════
+function _predImportPick(){
+  try{ _sxVib(10); }catch(_e){}
+  var inp=document.getElementById('sxPredImportInput');
+  if(!inp){
+    inp=document.createElement('input'); inp.type='file'; inp.accept='application/json,.json';
+    inp.id='sxPredImportInput'; inp.style.display='none';
+    inp.addEventListener('change', function(){
+      var f=inp.files && inp.files[0]; inp.value='';
+      if(f) _predImportRun(f);
+    });
+    document.body.appendChild(inp);
+  }
+  inp.click();
+}
+function _predImportRun(file){
+  var P=window._sxPredPanel; P.msg='읽는 중… '+file.name; _predPanelRefresh();
+  var fr=new FileReader();
+  fr.onload=function(){
+    var payload;
+    try{ payload=JSON.parse(String(fr.result)); }
+    catch(e){ P.msg='가져오기 실패: JSON을 읽을 수 없습니다'; _predPanelRefresh(); return; }
+    SXLedger.importAll(payload).then(function(R){
+      window._sxImportResult=R;
+      P.msg='가져오기 완료 — 추가 '+R.added+' · 동일 '+R.same+' · 충돌 '+R.conflict+(R.invalid?(' · 무효 '+R.invalid):'');
+      _predPanelRefresh();
+      _predImportPopup(R, file.name);
+    }).catch(function(e){ P.msg='가져오기 실패: '+((e&&e.message)||e); _predPanelRefresh(); });
+  };
+  fr.onerror=function(){ P.msg='파일을 열 수 없습니다'; _predPanelRefresh(); };
+  fr.readAsText(file);
+}
+function _predImportPopup(R, fname){
+  var T3='var(--text3)', T2='var(--text2)';
+  var rowH=function(t,v,c){ return '<div style="display:flex;padding:3px 0;font-size:11px"><span style="color:'+T2+'">'+t+'</span>'
+    +'<b style="margin-left:auto;color:'+(c||'var(--text)')+'">'+v+'건</b></div>'; };
+  var inner='<div style="padding:14px 16px">'
+    + '<div style="font-size:13px;font-weight:800;color:var(--text)">📥 가져오기 결과</div>'
+    + '<div style="margin-top:2px;font-size:9px;color:'+T3+';word-break:break-all">'+String(fname||'')+'</div>'
+    + '<div style="margin-top:10px">'
+    +   rowH('새로 추가', R.added, '#16a34a')
+    +   rowH('이미 있음 (내용 동일)', R.same, T3)
+    +   rowH('충돌 (내용 다름)', R.conflict, R.conflict?'#d97706':T3)
+    +   (R.invalid?rowH('형식 오류', R.invalid, '#e3493b'):'')
+    + '</div>'
+    + (R.conflict
+       ? '<div style="margin-top:9px;padding:8px 10px;border-radius:7px;background:#fffbeb;border:1px solid #fcd34d;font-size:9.5px;color:#92400e;line-height:1.6">'
+         + '충돌 '+R.conflict+'건은 <b>이 휴대폰에 있는 기록을 그대로 두었습니다.</b> 파일 쪽 내용은 반영하지 않았습니다.<br>'
+         + '같은 예측을 두 기기에서 다르게 기록했을 때 생깁니다. 나중에 바꿔치기가 되지 않도록 기존 기록을 우선합니다.</div>'
+       : '')
+    + '<button onclick="_predImportClose()" style="width:100%;margin-top:12px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:800;cursor:pointer">확인</button>'
+    + '</div>';
+  _predSimpleOverlay('sxImportOverlay', inner);
+}
+function _predImportClose(){ _predSimpleClose('sxImportOverlay'); }
+
+//  단순 오버레이 헬퍼 — 가져오기 결과·백업 알림이 공유한다
+function _predSimpleOverlay(id, innerHtml){
+  var old=document.getElementById(id); if(old) old.remove();
+  var ov=document.createElement('div'); ov.id=id;
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;'
+    +'align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(2px)';
+  ov.innerHTML='<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;width:100%;max-width:350px;'
+    +'max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.5)">'+innerHtml+'</div>';
+  ov.addEventListener('click',function(e){ if(e.target===ov) _predSimpleClose(id); });
+  document.body.appendChild(ov);
+  try{ history.pushState({view:id},''); }catch(_){}
+  ov._popHandler=function(){ var x=document.getElementById(id); if(x){ try{ x.remove(); }catch(_){} } };
+  window.addEventListener('popstate', ov._popHandler, {once:true});
+  try{ _sxVib(12); }catch(_e){}
+}
+function _predSimpleClose(id){ try{ history.back(); }catch(_e){ var x=document.getElementById(id); if(x) x.remove(); } }
+
+// ── 백업 알림 팝업 ──
+//  ★자동으로 뜨지만 **다운로드는 사용자 탭으로만** 일어난다. 사용자 동작 없는 다운로드는
+//    브라우저가 막을 수 있어 조용히 실패한다 — 알리는 건 자동, 저장은 탭.
+//  ★문구에 원장/픽/캔들 같은 내부 용어를 쓰지 않는다. 왜 해야 하는지부터 말한다.
+var _PRED_SNOOZE_KEY='SX_PRED_BACKUP_SNOOZE';
+var _PRED_SNOOZE_DAYS=3;
+
+function _predBackupNudge(){
+  try{
+    if(!window.SXLedger) return;
+    var age=_predExportAgeDays();
+    if(age!=null && age<_PRED_EXPORT_DAYS) return;                 // 최근에 백업함
+    var today=SXLedger._todayKst();
+    try{
+      var sn=localStorage.getItem(_PRED_SNOOZE_KEY);
+      if(sn && sn>=today) return;                                  // 미룸 기간 중
+    }catch(_e){}
+    SXLedger.list({ includeVoid:true }).then(function(all){
+      var picks=all.filter(function(r){ return r.human!=null && !r.void; }).length;
+      if(picks<10) return;                                          // 픽이 적으면 굳이 안 띄운다
+      var scored=all.filter(function(r){ return r.st===1 && !r.void; }).length;
+      _predBackupPopup(picks, scored, age);
+    }).catch(function(){});
+  }catch(_e){}
+}
+function _predBackupPopup(picks, scored, age){
+  var T3='var(--text3)';
+  var inner='<div style="padding:16px 17px">'
+    + '<div style="font-size:14px;font-weight:800;color:var(--text)">💾 예측 기록 백업</div>'
+    + '<div style="margin-top:10px;font-size:11.5px;color:var(--text2);line-height:1.75">'
+    +   '지금까지 찍은 예측 <b style="color:var(--text)">'+picks+'건</b>이 이 휴대폰 안에만 저장돼 있습니다.'
+    +   '<br><br>브라우저 사이트 데이터를 지우거나 앱을 다시 설치하면 <b>전부 사라지고, 되살릴 방법이 없습니다.</b>'
+    +   '<br><br>파일로 저장해두시면 나중에 적중률을 확인하거나 다른 기기에서 이어볼 수 있습니다.'
+    + '</div>'
+    + '<div style="margin-top:10px;font-size:9.5px;color:'+T3+'">채점 완료 '+scored+'건 · 마지막 백업 '
+    +   (age==null?'없음':(age+'일 전'))+'</div>'
+    + '<button onclick="_predBackupNow()" style="width:100%;margin-top:14px;padding:11px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-size:12.5px;font-weight:800;cursor:pointer">지금 백업 (파일로 저장)</button>'
+    + '<div style="margin-top:9px;text-align:center"><span onclick="_predBackupLater()" style="font-size:10.5px;color:'+T3+';cursor:pointer;text-decoration:underline">나중에 ('+_PRED_SNOOZE_DAYS+'일 후 다시)</span></div>'
+    + '</div>';
+  _predSimpleOverlay('sxBackupOverlay', inner);
+}
+function _predBackupNow(){ _predSimpleClose('sxBackupOverlay'); setTimeout(function(){ _predExportFile(); }, 120); }
+function _predBackupLater(){
+  try{
+    var t=Date.parse(SXLedger._todayKst()+'T00:00:00Z')+_PRED_SNOOZE_DAYS*86400000;
+    localStorage.setItem(_PRED_SNOOZE_KEY, new Date(t).toISOString().slice(0,10));
+  }catch(_e){}
+  _predSimpleClose('sxBackupOverlay');
+}
+
 function _predPanelVoidOld(){
   if(!window.SXLedger) return;
   try{ _sxVib(12); }catch(_e){}
@@ -5751,6 +6009,7 @@ function _predPanelHtml(){
     body += '<div style="margin-top:5px;font-size:9px;color:'+T3+';line-height:1.6">'
       + '★<b>이득</b>이 이 표의 전부다 — 모델이 나이브를 못 넘으면 카드 숫자는 장식이다. '
       + '수명·손실 축의 나이브는 정의상 50%(중앙값이 자기를 넘을 수 없음)라 그게 정상 기저선이다.</div>';
+    body += '<button onclick="_predHistOpen()" style="width:100%;margin-top:6px;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--accent);font-size:10.5px;font-weight:800;cursor:pointer">📜 채점 이력 보기 — 지난 예측·축별 성적</button>';
   } else {
     body += '<div style="font-size:10px;color:'+T3+';padding:4px 0;line-height:1.6">아직 채점된 건이 없다. 분포 보드를 연 종목이 쌓이고 지평이 도달하면 여기에 나온다.</div>';
   }
@@ -5831,7 +6090,8 @@ function _predPanelHtml(){
   body += '<div style="margin-top:6px;display:flex;gap:6px">'
     + '<button onclick="_predExportFile()" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:'+T2+';font-size:10px;font-weight:800;cursor:pointer">⬇ 원장 파일 내보내기</button>'
     + '<button onclick="_predExportSummary()" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:'+T2+';font-size:10px;font-weight:800;cursor:pointer">📋 요약 복사</button>'
-    + '</div>';
+    + '</div>'
+    + '<div style="margin-top:5px"><button onclick="_predImportPick()" style="width:100%;padding:7px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:'+T3+';font-size:9.5px;font-weight:700;cursor:pointer">📥 백업 파일 가져오기 — 기존 기록은 덮어쓰지 않는다</button></div>';
   var _ageD=_predExportAgeDays(), _tot=(L&&L.total)||0;
   if(_tot>0 && (_ageD==null || _ageD>=_PRED_EXPORT_DAYS)){
     body += '<div style="margin-top:5px;padding:7px 9px;border-radius:7px;background:#fef3c7;border:1px solid #fcd34d;font-size:9.5px;color:#92400e;line-height:1.6">'
@@ -12727,7 +12987,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1147';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1149';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
