@@ -52,16 +52,24 @@
   // ─────────────────────────────────────────────────────────
   var Q = {
     1: { key: 'vol',   name: '변동 확대', hs: [5],       unit: '%',
-         ask: '5봉 뒤 밴드폭이 지금보다 넓어질까?',
+         ask: '5거래일 뒤 밴드폭이 지금보다 넓어질까?',
+         askHistory: [{ until: 'S1154', ask: '5봉 뒤 밴드폭이 지금보다 넓어질까?' }],
          src: '분포 보드 · 합성 회귀(폭 수준 + 폭 관성)' },
     2: { key: 'slope', name: 'MA5 꺾임',  hs: [5],       unit: '%',
-         ask: '5봉 뒤 MA5 기울기 부호가 뒤집힐까?',
+         // ★'뒤집힐까'만 있으면 **무엇 대비인지**가 문장에 없어 매번 되짚어야 했다. 기준을 문장 안으로.
+         ask: '5거래일 뒤 MA5 기울기가 지금과 반대 방향일까?',
+         askHistory: [{ until: 'S1154', ask: '5봉 뒤 MA5 기울기 부호가 뒤집힐까?' }],
          src: '분포 보드 · 되돌림 Δ=−s0' },
     4: { key: 'spell', name: '잔존 봉수', hs: [0],       unit: '봉',
-         ask: '다음 데드크로스까지 평소보다 오래 갈까?',
+         ask: '다음 데드크로스까지 평소보다 오래 갈까?',   // 사건형이라 지평이 없다 — '5거래일' 통일 대상 아님
          src: '분포 보드 · 이격 갭 단독' },
     5: { key: 'mae',   name: '최대 손실', hs: [3, 5, 10], unit: '%',
-         ask: 'H봉 안에서 평소보다 깊게 빠질까?',
+         // [S1154] 'H봉' → '5봉'. H는 코드 기호일 뿐 사용자가 알 이유가 없고, 다른 문항은 전부
+         //   '5봉 뒤'라 여기만 튀었다. 사람에게 묻는 건 H5뿐이므로(_predAskable) 문구를 5봉으로 고정한다.
+         //   ★문구 변경 이력을 남긴다 — 나중에 답이 갈릴 때 문구 차이인지 판단 차이인지 구분해야 한다.
+         ask: '5거래일 안에 최저가가 평소보다 깊을까?',
+         askHistory: [{ until: 'S1153', ask: 'H봉 안에서 평소보다 깊게 빠질까?' },
+                      { until: 'S1154', ask: '5봉 안에서 평소보다 깊게 빠질까?' }],
          src: 'MAE 카드 · 0.44·ATR%·√H' }
   };
 
@@ -362,10 +370,18 @@
         cur.scoredAt = Date.now();
         if (post && typeof post === 'object') {
           cur.post = post;
-          // 기준봉이 픽 당시 이미 확정이었나 — 시계가 아니라 종가 일치로 판정한다.
-          if (cur.ctx && cur.ctx.c0 != null && post.c0Final != null) {
-            var d0 = Math.abs(post.c0Final - cur.ctx.c0);
-            cur.formed = (d0 / Math.max(1e-12, Math.abs(post.c0Final))) < 1e-6;
+          // 기준봉이 픽 당시 이미 확정이었나 — 시계가 아니라 **값 일치**로 판정한다.
+          // [S1152] 앵커를 여러 개 둔다. c0(기준봉 종가)는 S1143부터라, 그 이전 레코드는
+          //   c0가 없어 영영 판정 불가였다. 그런데 ctx에 이미 기준봉에서 뽑은 값이 들어 있다 —
+          //   q2는 s0(기울기), q1은 wNow(밴드폭). 이걸 채점 때 다시 재서 비교하면 같은 판정이 된다.
+          //   ★기존 레코드를 고치지 않고도 소급 적용된다(값은 이미 저장돼 있었다).
+          var _anchors = [['c0','c0Final'], ['s0','s0Final'], ['wNow','wNowFinal']];
+          for (var ai = 0; ai < _anchors.length; ai++) {
+            var was = cur.ctx ? cur.ctx[_anchors[ai][0]] : null, now = post[_anchors[ai][1]];
+            if (was == null || now == null) continue;
+            cur.formed = (Math.abs(now - was) / Math.max(1e-9, Math.abs(now))) < 1e-9;
+            cur.formedBy = _anchors[ai][0];    // 무엇으로 판정했는지 남긴다
+            break;
           }
         }
         return _wrap(o.s.put(cur)).then(function () { return cur; });
