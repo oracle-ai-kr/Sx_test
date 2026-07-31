@@ -5129,6 +5129,8 @@ function _predBlindToggle(){
   _dbRerenderCard();
 }
 
+//  [S1142] 선택지 라벨 SSOT — 분포 보드 게이트와 설문 모달이 공유한다.
+var _PRED_LABELS = { 1:['확대','축소'], 2:['뒤집힌다','유지된다'], 4:['오래 간다','짧다'], 5:['더 깊다','얕다'] };
 window._sxPredCache = window._sxPredCache || {};   // ledgerKey -> rec | 'none' | 'busy'
 window._sxPredDraft = window._sxPredDraft || {};   // ledgerKey -> 'yes'|'no'|'pass'  (예비 선택 · 미기록)
 
@@ -5225,8 +5227,9 @@ function _predDLabel(rec){
 //  게이트 렌더 — 반환 {gate:HTML, open:bool}
 //    open=false면 호출부가 **수치를 아예 만들지 않는다**(DOM에도 안 들어간다).
 //    숨김이 아니라 미생성이어야 blind가 실제로 성립한다.
-function _predGate(k, q, yesTxt, noTxt){
+function _predGate(k, q){
   var T3='var(--text3)', T2='var(--text2)';
+  var _lb=_PRED_LABELS[q]||['예','아니오'], yesTxt=_lb[0], noTxt=_lb[1];   // [S1142] 라벨 SSOT — 카드와 설문 모달이 같은 표를 쓴다
   if(!_PRED_BLIND_ON) return { open:true, gate:'' };
   var rec = window._sxPredCache[k];
   if(rec==='nolib' || rec==='none') return { open:true, gate:'' };      // 원장 못 쓰면 그냥 보여준다
@@ -5388,6 +5391,107 @@ function _predOpenStock(code, name){
   }catch(e){ try{ if(typeof toast==='function') toast('이동 실패'); }catch(_){} }
 }
 
+// ═══════════ [S1142] 예측 설문 모달 — "무엇을 해야 하나"를 한 화면으로 ═══════════
+//  문제: 조건검색탭에서 종목을 눌러 분석탭에 가도 분포 보드가 긴 페이지 어딘가에 묻혀 있어
+//        무엇을 찍어야 하는지 알 수 없었다. 카드를 찾아 들어가는 동선 자체가 장벽이었다.
+//  ★구현이 싼 이유: 원장 레코드에 pred/naive가 **이미 저장돼 있다.** 모달은 다시 계산하지 않고
+//    질문을 띄우고 답만 받는다. 지표 재계산·캔들 재조회 전부 불필요.
+//  ★blind 유지: 모달은 pred/naive를 절대 그리지 않는다. 질문과 선택지만 보여준다.
+
+function _predQuizOpen(codeOrNull){
+  if(!window.SXLedger) return;
+  try{ _sxVib(10); }catch(_e){}
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+  SXLedger.list({ mkt:mk, st:0 }).then(function(all){
+    var recs=all.filter(function(r){ return r.human==null && (!codeOrNull || r.code===codeOrNull); });
+    if(!recs.length){ try{ if(typeof toast==='function') toast('찍을 게 없습니다'); }catch(_){} return; }
+    // 종목끼리 붙여 정렬 — 같은 종목 질문이 연달아 나와야 맥락이 안 끊긴다
+    recs.sort(function(a,b){ return a.code<b.code?-1:a.code>b.code?1:(a.q-b.q); });
+    window._sxQuiz={ recs:recs, idx:0, draft:null, done:0 };
+    _predQuizRender();
+  }).catch(function(){});
+}
+function _predQuizRender(){
+  var Q=window._sxQuiz; if(!Q) return;
+  var ov=document.getElementById('sxQuizOverlay');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='sxQuizOverlay';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;'
+      +'align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(2px)';
+    ov.addEventListener('click',function(e){ if(e.target===ov) _predQuizClose(); });
+    document.body.appendChild(ov);
+    try{ history.pushState({view:'sxQuiz'},''); }catch(_){}
+    ov._popHandler=function(){ _predQuizDestroy(); };
+    window.addEventListener('popstate', ov._popHandler, {once:true});
+  }
+  ov.innerHTML=_predQuizHtml();
+}
+function _predQuizHtml(){
+  var Q=window._sxQuiz, T3='var(--text3)', T2='var(--text2)';
+  var box=function(inner){ return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;'
+    +'width:100%;max-width:360px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.5)">'+inner+'</div>'; };
+
+  // ── 완료 화면 ──
+  if(Q.idx>=Q.recs.length){
+    return box('<div style="padding:18px 16px;text-align:center">'
+      + '<div style="font-size:26px">✅</div>'
+      + '<div style="margin-top:6px;font-size:14px;font-weight:800;color:var(--text)">'+Q.done+'건 기록됐다</div>'
+      + '<div style="margin-top:5px;font-size:10px;color:'+T3+';line-height:1.6">수정할 수 없다. 지평이 도달하면 조건검색탭에서 일괄 채점하면 된다.</div>'
+      + '<button onclick="_predQuizClose()" style="width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:800;cursor:pointer">닫기</button>'
+      + '</div>');
+  }
+
+  var r=Q.recs[Q.idx], nm=_predName(r.code)||r.code;
+  var def=SXLedger.Q[r.q]||{}, lb=_PRED_LABELS[r.q]||['예','아니오'];
+  var btn=function(v,txt){
+    var on=(Q.draft===v);
+    return '<button onclick="_predQuizPick(\''+v+'\')" style="flex:1;padding:12px 4px;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer;'
+      +'border:1px solid '+(on?'var(--accent)':'var(--border)')+';background:'+(on?'var(--accent)':'var(--surface2)')+';color:'+(on?'#fff':'var(--text2)')+'">'+txt+'</button>';
+  };
+  return box(
+      '<div style="display:flex;align-items:center;gap:8px;padding:13px 15px;border-bottom:1px solid var(--border)">'
+    +   '<span style="font-size:13px;font-weight:800;color:var(--text)">'+nm+'</span>'
+    +   '<span style="font-size:9px;color:'+T3+'">'+r.code+'</span>'
+    +   '<span style="margin-left:auto;font-size:10px;font-weight:800;color:'+T3+'">'+(Q.idx+1)+' / '+Q.recs.length+'</span>'
+    +   '<span onclick="_predQuizClose()" style="font-size:17px;cursor:pointer;color:'+T3+';padding:0 3px">✕</span>'
+    + '</div>'
+    + '<div style="flex:1;overflow-y:auto;padding:16px 15px">'
+    +   '<div style="font-size:9.5px;font-weight:800;color:'+T3+'">'+(def.name||'')+(r.H?(' · '+r.H+'봉 지평'):'')+' · 기준봉 '+r.date+(r.intraday?' · <span style="color:#d97706">당일</span>':'')+'</div>'
+    +   '<div style="margin-top:9px;font-size:14px;font-weight:800;color:var(--text);line-height:1.5">🙈 '+(def.ask||'')+'</div>'
+    +   '<div style="margin-top:5px;font-size:9.5px;color:'+T3+';line-height:1.6">모델 예측은 가려져 있다 — 먼저 보면 비교가 죽는다. 찍으면 분석탭 카드가 열린다.</div>'
+    +   '<div style="display:flex;gap:6px;margin-top:14px">'+btn('yes',lb[0])+btn('no',lb[1])+btn('pass','패스')+'</div>'
+    +   (Q.draft
+        ? '<button onclick="_predQuizConfirm()" style="width:100%;margin-top:8px;padding:11px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:800;cursor:pointer">확인 — 기록 (수정 불가)</button>'
+        : '<div style="margin-top:8px;font-size:9.5px;color:'+T3+';text-align:center">고르면 확인 버튼이 나온다</div>')
+    +   '<div style="margin-top:12px;text-align:center"><span onclick="_predQuizSkip()" style="font-size:10px;color:'+T3+';cursor:pointer;text-decoration:underline">이건 건너뛰기</span></div>'
+    + '</div>');
+}
+function _predQuizPick(v){ try{ _sxVib(6); }catch(_e){} window._sxQuiz.draft=v; _predQuizRender(); }
+function _predQuizSkip(){ var Q=window._sxQuiz; Q.idx++; Q.draft=null; _predQuizRender(); }
+function _predQuizConfirm(){
+  var Q=window._sxQuiz, r=Q.recs[Q.idx], v=Q.draft;
+  if(!v) return;
+  try{ _sxVib(12); }catch(_e){}
+  SXLedger.setHuman(r.key, v).then(function(rec){
+    // [S1142] 캐시 쓰기는 **기록과 분리**한다. 여기서 터지면 기록은 됐는데 실패로 분류돼
+    //   done 카운트가 틀어지고 사용자에게 "실패"가 뜬다(기록은 이미 잠긴 뒤라 재시도도 불가).
+    try{ window._sxPredCache=window._sxPredCache||{}; window._sxPredCache[r.key]=rec; }catch(_ec){}
+    Q.done++; Q.idx++; Q.draft=null; _predQuizRender();
+  }).catch(function(e){
+    try{ if(typeof toast==='function') toast('기록 실패: '+((e&&e.message)||e)); }catch(_){}
+    Q.idx++; Q.draft=null; _predQuizRender();
+  });
+}
+function _predQuizClose(){
+  try{ history.back(); }catch(_e){ _predQuizDestroy(); }
+}
+function _predQuizDestroy(){
+  var ov=document.getElementById('sxQuizOverlay'); if(ov){ try{ ov.remove(); }catch(_){} }
+  window._sxQuiz=null;
+  try{ _predPanelRefresh(); }catch(_e){}
+  try{ _dbRerenderCard(); }catch(_e2){}
+}
+
 function _predPanelVoidOld(){
   if(!window.SXLedger) return;
   try{ _sxVib(12); }catch(_e){}
@@ -5437,48 +5541,64 @@ function _predPanelHtml(){
     body += '<div style="font-size:10px;color:'+T3+';padding:4px 0;line-height:1.6">아직 채점된 건이 없다. 분포 보드를 연 종목이 쌓이고 지평이 도달하면 여기에 나온다.</div>';
   }
 
-  // ── 대기 목록 ── [S1140] 종목 단위로 묶는다. 레코드를 낱개로 늘어놓으면 같은 종목이 4줄씩 차지해
-  //   "왜 다 같은 데로 들어가지"가 된다. 탭 대상도 종목 하나로 명확해진다.
-  if(L && L.pend && L.pend.length){
-    var grp={}, order=[];
-    L.pend.forEach(function(r){ if(!grp[r.code]){ grp[r.code]=[]; order.push(r.code); } grp[r.code].push(r); });
-    var showN=Math.min(order.length,6);
-    body += '<div style="font-size:9.5px;font-weight:800;color:'+T3+';margin:9px 0 3px">'
-          + '대기 '+L.pend.length+'건 · '+order.length+'종목 (채점 임박순)</div>';
-    // 범례 — 무엇을 해야 하는 건지 목록만 보고 알 수 있어야 한다
-    body += '<div style="font-size:8.5px;color:'+T3+';line-height:1.6;margin-bottom:4px">'
-          + '<b style="color:#d97706">🙈 미픽</b> = 아직 안 찍어서 <b>카드 수치가 잠겨 있음</b>(탭 → 찍으면 열림) · '
-          + '<b style="color:var(--accent)">✍ 픽함</b> = 찍었고 채점 대기 · <span style="color:'+T3+'">— 패스</span></div>';
-    order.slice(0,showN).forEach(function(code){
-      var rs=grp[code], nm=_predName(code);
-      var nUn=0,nPk=0,nPs=0;
-      rs.forEach(function(r){ if(r.human==null) nUn++; else if(r.human==='pass') nPs++; else nPk++; });
-      var sum=[];
-      if(nUn) sum.push('<span style="color:#d97706;font-weight:800">🙈 '+nUn+'</span>');
-      if(nPk) sum.push('<span style="color:var(--accent);font-weight:800">✍ '+nPk+'</span>');
-      if(nPs) sum.push('<span style="color:'+T3+'">— '+nPs+'</span>');
-      body += '<div style="border-top:1px solid var(--border);padding:5px 0">'
-        + '<div onclick="_predOpenStock(\''+code+'\')" style="display:flex;align-items:center;gap:6px;cursor:pointer">'
-        +   '<span style="font-size:11px;font-weight:800;color:var(--text)">'+(nm||code)+'</span>'
-        +   (nm?('<span style="font-size:9px;color:'+T3+'">'+code+'</span>'):'')
-        +   '<span style="margin-left:auto;font-size:9.5px;display:flex;gap:5px">'+sum.join('')+'</span>'
-        +   '<span style="font-size:9px;color:var(--accent);font-weight:800">분석 ›</span>'
-        + '</div>';
-      rs.forEach(function(r){
-        var Qn=(SXLedger.Q[r.q]&&SXLedger.Q[r.q].name)||('q'+r.q);
-        var bg = r.human==null ? '#d97706' : (r.human==='pass' ? T3 : 'var(--accent)');
-        var bt = r.human==null ? '🙈' : (r.human==='pass' ? '—' : '✍');
-        body += '<div style="display:flex;align-items:center;gap:5px;padding:2px 0 2px 8px;font-size:9px;color:'+T2+'">'
-          +   '<span style="color:'+bg+';font-weight:800;min-width:12px">'+bt+'</span>'
-          +   '<span>'+Qn+(r.H?(' H'+r.H):'')+'</span>'
-          +   '<span style="color:'+T3+'">'+r.date.slice(5)+'</span>'
-          +   (r.intraday?'<span style="color:#d97706">당일</span>':'')
-          +   '<span style="margin-left:auto;color:'+T3+'">'+_predDLabel(r)+'</span>'
+  // ── 대기 목록 ── [S1141] **픽한 것만 보여준다.**
+  //   자동 기록(모델 단독)은 종목을 열기만 해도 축마다 쌓여서, 낱개로 다 보여주면 목록이 노이즈가 된다.
+  //   기록은 계속한다 — 모델 OOS 채점이 원장의 1차 목적이라 지우면 안 된다. 표시만 접는다.
+  if(L && L.pend){
+    var picked=L.pend.filter(function(r){ return r.human!=null; });
+    var autoN=L.pend.length-picked.length;
+
+    // [S1142] 설문 진입 — 카드를 찾아 들어가지 않고 여기서 바로 찍는다.
+    if(autoN){
+      body += '<button onclick="_predQuizOpen()" style="width:100%;margin:8px 0 2px;padding:11px;border-radius:9px;border:none;'
+            + 'background:#d97706;color:#fff;font-size:12px;font-weight:800;cursor:pointer">✍ 안 찍은 예측 '+autoN+'건 찍기</button>'
+            + '<div style="font-size:9px;color:'+T3+';line-height:1.6;margin-bottom:4px">질문만 한 화면씩 뜬다 — 모델 예측은 가려진 채로. 건너뛰기 가능.</div>';
+    }
+    if(picked.length){
+      var grp={}, order=[];
+      picked.forEach(function(r){ if(!grp[r.code]){ grp[r.code]=[]; order.push(r.code); } grp[r.code].push(r); });
+      var showN=Math.min(order.length,8);
+      body += '<div style="font-size:9.5px;font-weight:800;color:'+T3+';margin:9px 0 3px">'
+            + '내가 찍은 것 '+picked.length+'건 · '+order.length+'종목 (채점 임박순)</div>';
+      order.slice(0,showN).forEach(function(code){
+        var rs=grp[code], nm=_predName(code), nPk=0, nPs=0;
+        rs.forEach(function(r){ if(r.human==='pass') nPs++; else nPk++; });
+        var sum=[];
+        if(nPk) sum.push('<span style="color:var(--accent);font-weight:800">✍ '+nPk+'</span>');
+        if(nPs) sum.push('<span style="color:'+T3+'">— '+nPs+'</span>');
+        body += '<div style="border-top:1px solid var(--border);padding:5px 0">'
+          + '<div onclick="_predOpenStock(\''+code+'\')" style="display:flex;align-items:center;gap:6px;cursor:pointer">'
+          +   '<span style="font-size:11px;font-weight:800;color:var(--text)">'+(nm||code)+'</span>'
+          +   (nm?('<span style="font-size:9px;color:'+T3+'">'+code+'</span>'):'')
+          +   '<span style="margin-left:auto;font-size:9.5px;display:flex;gap:5px">'+sum.join('')+'</span>'
+          +   '<span style="font-size:9px;color:var(--accent);font-weight:800">분석 ›</span>'
           + '</div>';
+        rs.forEach(function(r){
+          var Qn=(SXLedger.Q[r.q]&&SXLedger.Q[r.q].name)||('q'+r.q);
+          var pk = r.human==='pass' ? '—' : (r.human==='yes'?'✍ 예':'✍ 아니오');
+          var pc = r.human==='pass' ? T3 : 'var(--accent)';
+          body += '<div style="display:flex;align-items:center;gap:5px;padding:2px 0 2px 8px;font-size:9px;color:'+T2+'">'
+            +   '<span style="color:'+pc+';font-weight:800;min-width:42px">'+pk+'</span>'
+            +   '<span>'+Qn+(r.H?(' H'+r.H):'')+'</span>'
+            +   '<span style="color:'+T3+'">'+r.date.slice(5)+'</span>'
+            +   (r.intraday?'<span style="color:#d97706">당일</span>':'')
+            +   '<span style="margin-left:auto;color:'+T3+'">'+_predDLabel(r)+'</span>'
+            + '</div>';
+        });
+        body += '</div>';
       });
-      body += '</div>';
-    });
-    if(order.length>showN) body += '<div style="font-size:9px;color:'+T3+';padding:3px 5px">…외 '+(order.length-showN)+'종목</div>';
+      if(order.length>showN) body += '<div style="font-size:9px;color:'+T3+';padding:3px 5px">…외 '+(order.length-showN)+'종목</div>';
+    } else {
+      body += '<div style="font-size:10px;color:'+T3+';padding:6px 0;line-height:1.6;border-top:1px solid var(--border);margin-top:8px">'
+            + '아직 찍은 게 없다. 분석탭 <b>분포 보드</b>에서 축을 하나 찍으면 여기 올라온다.</div>';
+    }
+
+    // 자동 기록은 건수만 — 목록에 안 펼친다
+    if(autoN){
+      body += '<div style="margin-top:6px;font-size:9px;color:'+T3+';line-height:1.6">'
+            + '🤖 자동 기록 <b>'+autoN+'건</b> (모델 단독 · 목록 생략) — 종목을 열면 축마다 쌓인다. '
+            + '채점은 같이 돌아가고 결과는 위 집계표에 합산된다.</div>';
+    }
   }
 
   // ── 실행 ──
@@ -5550,19 +5670,19 @@ function _buildDistBoardCard(stock, indicators){
         _kV=SXLedger.key(_dbMkt,_code,_pb.date,1,HV);
         _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:1,H:HV,pred:V.ratio,naive:V.base,
                      aligned:(V.n>=80),ctx:_predCtx({wNow:V.wNow,rel:V.relNow,prev:V.prevNow,pctl:V.pctl,n:V.n}),intraday:_pb.intraday,ver:window.SX_BUILD});
-        _gV=_predGate(_kV,1,'확대','축소');
+        _gV=_predGate(_kV,1);
       }
       if(S){
         _kS=SXLedger.key(_dbMkt,_code,_pb.date,2,HS);
         _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:2,H:HS,pred:S.sPred,naive:S.flipBase,
                      aligned:(S.inCond===true),ctx:_predCtx({s0:S.s0,delta:S.delta,adv:S.advNow,advPctl:S.advPctl,n:S.n}),intraday:_pb.intraday,ver:window.SX_BUILD});
-        _gS=_predGate(_kS,2,'뒤집힌다','유지된다');
+        _gS=_predGate(_kS,2);
       }
       if(P && P.golden && P.qs && P.medAll!=null){
         _kP=SXLedger.key(_dbMkt,_code,_pb.date,4,0);
         _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:4,H:0,pred:P.qs[P.qi].rem,naive:P.medAll,
                      aligned:!P.few,ctx:_predCtx({gap:P.gap,age:P.age,qi:P.qi,n:P.n}),intraday:_pb.intraday,ver:window.SX_BUILD});
-        _gP=_predGate(_kP,4,'오래 간다','짧다');
+        _gP=_predGate(_kP,4);
       }
     }
     var body='';
@@ -12340,7 +12460,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1140';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1142';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
