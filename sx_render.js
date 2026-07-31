@@ -5130,6 +5130,13 @@ function _predBlindToggle(){
 }
 
 //  [S1142] 선택지 라벨 SSOT — 분포 보드 게이트와 설문 모달이 공유한다.
+//  [S1153] 사람에게 물을 슬롯 — **지평을 5봉으로 통일한다.**
+//  q5는 모델이 H3/5/10을 전부 기록하지만 사람에겐 H5만 묻는다:
+//   ①질문이 5봉으로 통일돼 사용자가 매번 지평을 다시 이해할 필요가 없다
+//   ②한 종목에 5문항이 되던 게 3문항으로 줄어 대충 찍을 유혹이 준다
+//   ③겹침(결론) 실험이 q1 H5 × q5 H5라 어차피 H5끼리만 성립한다(PREREG §4 함정 3)
+//  H3/H10은 모델 표본으로 계속 쌓이고 JSON에 그대로 들어간다 — 측정에는 다 필요하다.
+function _predAskable(q, H){ return !(+q===5 && +H!==5); }
 var _PRED_LABELS = { 1:['확대','축소'], 2:['뒤집힌다','유지된다'], 4:['오래 간다','짧다'], 5:['더 깊다','얕다'] };
 window._sxPredCache = window._sxPredCache || {};   // ledgerKey -> rec | 'none' | 'busy'
 window._sxPredDraft = window._sxPredDraft || {};   // ledgerKey -> 'yes'|'no'|'pass'  (예비 선택 · 미기록)
@@ -5349,8 +5356,12 @@ function _predScoreRun(mkt, onProg, opt){
             if(!A.ok){ R.skipped++; R.why[A.why]=(R.why[A.why]||0)+1; return; }
             // [S1143] 채점 시점 실측 부가값 — 기준봉 최종 종가 + (q2)최종 기울기.
             //   pred는 안 건드린다. 이걸로 "픽 당시 봉이 확정이었나"가 시계 없이 판정된다.
-            var _post={ c0Final:cl[idx] };
-            if(rec.q===2){ var _SF=_dbSlArr(cl); if(_SF[idx]!=null) _post.s0Final=_SF[idx]; }
+            // [S1152] 기록 때와 **같은 반올림**을 통과시킨다. ctx는 _predCtx로 절사돼 있어서
+            //   원본과 직접 비교하면 항상 미세하게 어긋나 formed가 늘 false로 나온다.
+            var _pf={ c0Final:cl[idx] };
+            if(rec.q===2){ var _SF=_dbSlArr(cl); if(_SF[idx]!=null) _pf.s0Final=_SF[idx]; }
+            if(rec.q===1){ var _WF=_dbBandW(cl); if(_WF[idx]!=null) _pf.wNowFinal=_WF[idx]; }
+            var _post=_predCtx(_pf) || {};
             return SXLedger.score(rec.key, A.val, _post).then(function(sc){ R.scored++; R.rows.push(sc); })
                    .catch(function(e){
                      // [S1145] 구버전은 실패가 아니라 **보류**다 — 폐기하면 사라진다.
@@ -5439,7 +5450,7 @@ function _predQuizOpen(codeOrNull){
   try{ _sxVib(10); }catch(_e){}
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
   SXLedger.list({ mkt:mk, st:0 }).then(function(all){
-    var recs=all.filter(function(r){ return r.human==null && (!codeOrNull || r.code===codeOrNull); });
+    var recs=all.filter(function(r){ return r.human==null && _predAskable(r.q,r.H) && (!codeOrNull || r.code===codeOrNull); });
     if(!recs.length){ try{ if(typeof toast==='function') toast('찍을 게 없습니다'); }catch(_){} return; }
     // 종목끼리 붙여 정렬 — 같은 종목 질문이 연달아 나와야 맥락이 안 끊긴다
     recs.sort(function(a,b){ return a.code<b.code?-1:a.code>b.code?1:(a.q-b.q); });
@@ -5493,7 +5504,8 @@ function _predQuizHtml(){
     + '</div>'
     + '<div style="flex:1;overflow-y:auto;padding:16px 15px">'
     +   '<div style="font-size:9.5px;font-weight:800;color:'+T3+'">'+(def.name||'')+(r.H?(' · '+r.H+'봉 지평'):'')+' · 기준봉 '+r.date+(r.intraday?' · <span style="color:#d97706">당일</span>':'')+'</div>'
-    +   '<div style="margin-top:9px;font-size:14px;font-weight:800;color:var(--text);line-height:1.5">🙈 '+(def.ask||'')+'</div>'
+    +   '<div style="margin-top:9px;font-size:14px;font-weight:800;color:var(--text);line-height:1.5">🙈 '+_predAskHtml(def.ask)+'</div>'
+    +   _predQuizHint(r)
     +   '<div style="margin-top:5px;font-size:9.5px;color:'+T3+';line-height:1.6">모델 예측은 가려져 있다 — 먼저 보면 비교가 죽는다. 찍으면 분석탭 카드가 열린다.</div>'
     +   '<div style="display:flex;gap:6px;margin-top:14px">'+btn('yes',lb[0])+btn('no',lb[1])+btn('pass','패스')+'</div>'
     +   (Q.draft
@@ -5501,6 +5513,38 @@ function _predQuizHtml(){
         : '<div style="margin-top:8px;font-size:9.5px;color:'+T3+';text-align:center">고르면 확인 버튼이 나온다</div>')
     +   '<div style="margin-top:12px;text-align:center"><span onclick="_predQuizSkip()" style="font-size:10px;color:'+T3+';cursor:pointer;text-decoration:underline">이건 건너뛰기</span></div>'
     + '</div>');
+}
+//  [S1153] 현재 상태 보조선 — 차트를 보면 아는 사실이라 blind와 무관하다(가리는 건 **모델 예측**뿐).
+//  "부호가 뒤집힐까"만 있으면 지금 어느 쪽인지를 매번 되짚어야 해서 질문이 추상적으로 읽힌다.
+//  ★정식 질문문(Q[q].ask)은 건드리지 않는다 — 바꾸면 이전 기록이 다른 문구로 받은 답이 돼 비교가 흐려진다.
+//  [S1155] 비교 기준 어구를 굵게. 질문이 읽히는 핵심은 "무엇 대비인가"이고, 셋의 공통 뼈대다.
+//  ★ask 원문에 HTML을 넣지 않는다 — JSON 내보내기·기각 서고 등 다른 소비처가 평문을 기대한다.
+var _ASK_EMPH = ['지금보다', '지금과 반대', '평소보다'];
+function _predAskHtml(ask){
+  var t=String(ask||'');
+  for(var i=0;i<_ASK_EMPH.length;i++){
+    var k=_ASK_EMPH[i];
+    if(t.indexOf(k)>=0) return t.split(k).join('<b style="color:var(--accent)">'+k+'</b>');
+  }
+  return t;
+}
+function _predQuizHint(r){
+  try{
+    var c=r.ctx||{}, T3='var(--text3)';
+    var t='';
+    if(+r.q===2 && c.s0!=null){
+      t = (c.s0<0) ? ('지금 = <b>내려가는 중</b> (MA5 3봉 기울기 '+c.s0+'%)')
+                   : ('지금 = <b>올라가는 중</b> (MA5 3봉 기울기 +'+c.s0+'%)');
+    } else if(+r.q===1 && c.wNow!=null){
+      t = '지금 = 밴드폭 <b>'+c.wNow+'%</b>'+(c.pctl!=null?(' · 이 종목 이력 '+c.pctl+'%'):'');
+    } else if(+r.q===5 && c.atr!=null){
+      t = '평소 = <b>이 종목 과거 평균 낙폭</b> · 지금 ATR '+c.atr+'%'+(c.atrPctl!=null?(' (이력 '+c.atrPctl+'%)'):'');
+    } else if(+r.q===4 && c.gap!=null){
+      t = '평소 = <b>갭을 안 보고 답한 중앙값</b> · 지금 MA5·MA20 갭 '+c.gap+'%';
+    }
+    if(!t) return '';
+    return '<div style="margin-top:6px;padding:6px 8px;border-radius:6px;background:var(--surface2);font-size:9.5px;color:'+T3+';line-height:1.6">'+t+'</div>';
+  }catch(_e){ return ''; }
 }
 function _predQuizPick(v){ try{ _sxVib(6); }catch(_e){} window._sxQuiz.draft=v; _predQuizRender(); }
 function _predQuizSkip(){ var Q=window._sxQuiz; Q.idx++; Q.draft=null; _predQuizRender(); }
@@ -6081,12 +6125,14 @@ function _predPanelHtml(){
   //   기록은 계속한다 — 모델 OOS 채점이 원장의 1차 목적이라 지우면 안 된다. 표시만 접는다.
   if(L && L.pend){
     var picked=L.pend.filter(function(r){ return r.human!=null; });
-    var autoN=L.pend.length-picked.length;
+    var unpick=L.pend.filter(function(r){ return r.human==null; });
+    var askN=unpick.filter(function(r){ return _predAskable(r.q,r.H); }).length;   // [S1153] 실제 물을 문항 수
+    var autoN=unpick.length;
 
     // [S1142] 설문 진입 — 카드를 찾아 들어가지 않고 여기서 바로 찍는다.
-    if(autoN){
+    if(askN){
       body += '<button onclick="_predQuizOpen()" style="width:100%;margin:8px 0 2px;padding:11px;border-radius:9px;border:none;'
-            + 'background:#d97706;color:#fff;font-size:12px;font-weight:800;cursor:pointer">✍ 안 찍은 예측 '+autoN+'건 찍기</button>'
+            + 'background:#d97706;color:#fff;font-size:12px;font-weight:800;cursor:pointer">✍ 안 찍은 예측 '+askN+'건 찍기</button>'
             + '<div style="font-size:9px;color:'+T3+';line-height:1.6;margin-bottom:4px">질문만 한 화면씩 뜬다 — 모델 예측은 가려진 채로. 건너뛰기 가능.</div>';
     }
     if(picked.length){
@@ -13053,7 +13099,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1151';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1155';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
