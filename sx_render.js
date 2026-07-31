@@ -4834,6 +4834,110 @@ function _buildMaSlopeCard(stock, indicators){
   }catch(_e){ return ''; }
 }
 
+// ═══════════ [S1134] 기각 서고 — 재봤는데 안 나온 축 + 그 자리의 대체제 ═══════════
+//  "기각 = 화면에서 빼라"가 아니라 **"모델 대신 나이브를 올려라"**.
+//  모델이 나이브를 못 넘었다는 건 나이브가 최선이라는 뜻이고, 최선을 표시하는 것은 정당하다.
+//  ★대체제 사용 원칙(동결): ①예측 아니라 **서술**로 표기 ②**측정 창 병기** ③레짐 의존 명시
+function _raHoldBase(cl){
+  try{
+    var n=cl.length, out={}, HS=[1,5,10,20];
+    for(var z=0;z<HS.length;z++){
+      var H=HS[z], up=0, tot=0;
+      for(var i=0;i<n-H;i++){ if(!(cl[i]>0)) continue; tot++; if(cl[i+H]>cl[i]) up++; }
+      out[H]= tot>=100 ? { up:up/tot*100, n:tot } : null;
+    }
+    return out;
+  }catch(_e){ return null; }
+}
+function _raGapNow(cl){
+  try{
+    var n=cl.length, i, P=[5,10,20,60,120,200], M={};
+    for(var z=0;z<P.length;z++){ var p=P[z]; M[p]=new Array(n).fill(null);
+      for(i=p-1;i<n;i++) M[p][i]=_dbSma(cl,p,i); }
+    var pairs=[[5,10],[10,20],[60,120],[120,200]];
+    var series=[];
+    for(i=210;i<n;i++){
+      var mn=null, ok=true;
+      for(var k=0;k<pairs.length;k++){ var a=M[pairs[k][0]][i], b=M[pairs[k][1]][i];
+        if(a==null||!(b>0)){ ok=false; break; }
+        var g=Math.abs(a-b)/b*100; if(mn==null||g<mn) mn=g; }
+      if(ok&&mn!=null) series.push({i:i, g:mn});
+    }
+    if(series.length<80) return null;
+    var now=series[series.length-1].g;
+    var srt=series.map(function(x){return x.g;}).sort(function(x,y){return x-y;});
+    var lt=0; for(i=0;i<srt.length;i++){ if(srt[i]<now) lt++; else break; }
+    return { gap:now, pctl:Math.round(lt/srt.length*100), n:series.length };
+  }catch(_e){ return null; }
+}
+function _buildRejectArchiveCard(stock, indicators){
+  try{
+    var adv=(indicators&&indicators._advanced)?indicators._advanced:null;
+    var rows=(adv&&Array.isArray(adv.rows))?adv.rows
+           :((stock&&Array.isArray(stock._lastAnalCandles))?stock._lastAnalCandles:null);
+    if(!rows||rows.length<260) return '';
+    var cl=[]; for(var i=0;i<rows.length;i++) cl.push(+rows[i].close||0);
+    var HB=_raHoldBase(cl), GP=_raGapNow(cl);
+    var T3='var(--text3)', T2='var(--text2)', RED='#dc2626', AMB='#d97706', GRY='#64748b';
+    var blk=function(title, verdict, evid, alt){
+      return '<div style="padding:9px 0;border-bottom:1px solid var(--border)">'
+        + '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">'
+        +   '<span style="font-size:11.5px;font-weight:800;color:var(--text)">'+title+'</span>'
+        +   '<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;background:#f1f5f9;color:'+GRY+';border:1px solid var(--border);white-space:nowrap">'+verdict+'</span>'
+        + '</div>'
+        + '<div style="margin-top:3px;font-size:9.5px;color:'+T3+';line-height:1.5">'+evid+'</div>'
+        + (alt? '<div style="margin-top:5px;padding:6px 8px;background:var(--surface2);border-radius:7px;font-size:10px;color:'+T2+';line-height:1.55">'+alt+'</div>' : '')
+        + '</div>';
+    };
+    var body='';
+    // ① 방향 예측
+    var hbTxt='';
+    if(HB){ var ps=[];
+      [1,5,10,20].forEach(function(H){ if(HB[H]) ps.push(H+'봉 <b>'+HB[H].up.toFixed(0)+'%</b>'); });
+      hbTxt = ps.length ? ('<b>대신 — 이 종목 보유기간별 상승 비율</b><br>'+ps.join(' · ')
+        + ' <span style="color:'+T3+'">(과거 '+cl.length+'봉 창 · 서술이며 예측 아님)</span>'
+        + '<br><span style="color:'+AMB+'">⚠ 레짐 의존이다. 같은 지표가 KR 20봉 57% · <b>COIN 20봉 33%</b>로 뒤집힌다 — 창의 성질이지 일반 법칙이 아니다.</span>') : '';
+    }
+    body += blk('방향 — 어느 쪽으로 갈까', '4종 전부 기각',
+      '캔들전이 kNN · 캔들전이 LR · 차트예측 방향 · 지지·저항. '
+      + 'KR·US <b>24셀 중 나이브를 넘은 셀 0개</b>(최대 +0.4%p). 모델은 워크포워드 나이브와 <b>±0.5%p 이내 비등</b> = 정보 0. '
+      + '138차원 kNN·로지스틱·아날로그 모두 동일. 모델을 바꿔도 지평을 바꿔도(1~20봉) 재현된다.',
+      hbTxt);
+    // ② 지지·저항
+    body += blk('지지·저항 — 버틸까 뚫릴까', '기각 (동전던지기)',
+      '터치 0.5% · 배리어 ±2% · 이벤트 전수 8,626건. 16셀 중 최고 <b>+0.9%p</b>로 미탑재선(+2%p) 아래. '
+      + '<b>선형확률모델도 똑같이 실패</b>했다 — kNN만 진 게 아니라 기저율이 곧 천장이다.',
+      '<b>대신 — 측정된 기저율</b> (KR 발굴풀 · in-sample)<br>'
+      + 'MA20 지지 터치 994회 → 유지 <b>49.4%</b> / 관통 <b>50.6%</b><br>'
+      + 'MA60 저항 터치 507회 → 유지 <b>43.0%</b> / 관통 <b>57.0%</b><br>'
+      + '<span style="color:'+AMB+'">→ 저항은 <b>뚫리는 쪽이 우세</b>. 지지는 근거 없음 — 지지선 믿고 물타기 할 근거가 없다는 뜻이다.</span>');
+    // ③ 칸 전이
+    var gpTxt = GP ? ('<b>대신 — 전이 임박도(순위만)</b><br>'
+      + '현재 최소 인접갭 <b>'+GP.gap.toFixed(2)+'%</b> (이력 '+GP.pctl+'% · 낮을수록 임박)<br>'
+      + '<span style="color:'+T3+'">칸 체류 <b>중앙 3봉</b>(KR·US·COIN 동일) · 전이 기저 5봉 64% / 10봉 85% / 20봉 97%</span>') : '';
+    body += blk('칸 전이 — 칸이 바뀔까', '이진 판정 기각 · 순위는 유효',
+      '전이 기저가 64~97%로 극단이라 <b>이진으로 물으면 안 되는 질문</b>이었다. '
+      + '다수클래스를 넘은 건 H5 최소갭 +1.2%p뿐. 다만 예측 5분위별 실제 전이율은 '
+      + '<b>48.5 → 74.5%</b>로 단조라 <b>순위 정보는 있다</b>.',
+      gpTxt);
+    var _titleHtml='<span style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap">🗄 기각 서고</span>'
+      + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:var(--surface2);color:'+T3+';border:1px solid var(--border);margin-left:5px;white-space:nowrap">실험</span>';
+    var _rightHtml='<span style="font-size:9.5px;font-weight:700;color:'+T3+';white-space:nowrap">재봤는데 안 나온 축</span>';
+    var _body=
+        '<div style="font-size:10px;color:'+T2+';line-height:1.55;margin-bottom:4px">'
+      +   '여기 있는 축은 <b>측정해서 기각된 것</b>이다. 없어서 안 보여주는 게 아니라 '
+      +   '<b>재봤더니 나이브를 못 넘어서</b> 안 올린다. 무엇을 믿지 말아야 하는지도 정보다.'
+      + '</div>'
+      + body
+      + '<div style="margin-top:8px;font-size:9.5px;color:'+T3+';line-height:1.6">'
+      +   '<b>대체제 원칙</b> ①예측이 아니라 <b>서술</b>로 읽을 것 ②<b>측정 창</b>을 함께 볼 것 '
+      +   '③기저율은 <b>레짐 의존</b>이라 창이 바뀌면 뒤집힌다.<br>'
+      +   '⚠ in-sample 기반 · C 판정·votes·시즌2 어디에도 반영되지 않는다.'
+      + '</div>';
+    return _sxExpCard('sxRejArchWrap','sxRejArchWrap_b',_titleHtml,_rightHtml,_body);
+  }catch(_e){ return ''; }
+}
+
 // ═══════════ [S1132] 분포 보드 — Q1 변동성 확대 · Q2 MA5 꺾임 · Q4 잔존 수명 ═══════════
 //  세 축 전부 **크기/구조/시간**이며 방향이 아니다. 방향 축은 전부 기각됐다.
 //  각 예측자는 나이브를 넘은 것만 올라간다(s1125_result.md 판정선 §3).
@@ -11734,7 +11838,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1133';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1134';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15926,6 +16030,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     ${_buildTrendCard(stock, indicators)}
     ${_buildDistBoardCard(stock, indicators)}
           ${_buildMaeCard(stock, indicators)}
+          ${_buildRejectArchiveCard(stock, indicators)}
           ${_buildReboundCycleCard(stock, indicators)}
     ${_buildMaSlopeCard(stock, indicators)}
     ${(typeof window!=='undefined' && window.SXRecipeSignal) ? SXRecipeSignal.buildCard(stock, indicators) : ''}
