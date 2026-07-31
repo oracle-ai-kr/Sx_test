@@ -4834,6 +4834,213 @@ function _buildMaSlopeCard(stock, indicators){
   }catch(_e){ return ''; }
 }
 
+// ═══════════ [S1132] 분포 보드 — Q1 변동성 확대 · Q2 MA5 꺾임 · Q4 잔존 수명 ═══════════
+//  세 축 전부 **크기/구조/시간**이며 방향이 아니다. 방향 축은 전부 기각됐다.
+//  각 예측자는 나이브를 넘은 것만 올라간다(s1125_result.md 판정선 §3).
+var _DB_HS = { vol:[3,5,10], slope:[2,3,5] };
+// [S1132b] Q2 측정 조건 컷 = **시장 전체 |dev5_20| 분포의 상위 20%** (측정 하네스와 동일해야 인용이 성립).
+//   종목별 자기 이력 컷을 쓰면 답이 달라진다(하이닉스 9.8%: 시장기준 '안' / 종목기준 '밖').
+var _DB_ADV_CUT = { kr:9.07, us:5.79, coin:8.76 };
+function _dbSma(a,p,i){ if(i-p+1<0) return null; var t=0; for(var k=i-p+1;k<=i;k++) t+=a[k]; return t/p; }
+function _dbMed(a){ var b=a.slice().sort(function(x,y){return x-y;}); var n=b.length;
+  return n%2 ? b[(n-1)/2] : (b[n/2-1]+b[n/2])/2; }
+
+// ── Q1: 변동성 확대 — 합성 회귀 a + b1·rel + b2·prev (파라미터 2) ──
+//    실측: 기저 49.3% → 68.4%(KR H3) · US 67.7 · COIN 66.7 — 3시장 확인
+//    구조: H3=관성 지배 · H10=평균회귀 지배 · 합성이 전 지평 최상위
+function _dbVol(cl, H){
+  try{
+    var n=cl.length, i, W=new Array(n).fill(null);
+    for(i=19;i<n;i++){ var m=_dbSma(cl,20,i); if(!(m>0)) continue;
+      var s2=0; for(var k=i-19;k<=i;k++){ var d=cl[k]-m; s2+=d*d; }
+      W[i]=4*Math.sqrt(s2/20)/m*100; }
+    var ROLL=250, obs=[], relNow=null, prevNow=null, up=0, tot=0;
+    for(i=ROLL+20;i<n;i++){
+      if(W[i]==null||!(W[i]>0)||W[i-H]==null||!(W[i-H]>0)) continue;
+      var h=[]; for(var q=i-ROLL+1;q<=i;q++){ if(W[q]!=null&&W[q]>0) h.push(W[q]); }
+      if(h.length<ROLL*0.8) continue;
+      var rel=Math.log(W[i]/_dbMed(h)), prev=Math.log(W[i]/W[i-H]);
+      if(i+H<=n-1 && W[i+H]!=null && W[i+H]>0){
+        var lab=Math.log(W[i+H]/W[i]); obs.push([rel,prev,lab]); tot++; if(lab>0) up++;
+      }
+      if(i===n-1){ relNow=rel; prevNow=prev; }
+    }
+    if(obs.length<80 || relNow==null) return null;
+    // 3x3 정규방정식 (1, rel, prev)
+    var G=[[0,0,0],[0,0,0],[0,0,0]], b=[0,0,0];
+    for(var t2=0;t2<obs.length;t2++){ var x=[1,obs[t2][0],obs[t2][1]], y=obs[t2][2];
+      for(var r=0;r<3;r++){ for(var c=0;c<3;c++) G[r][c]+=x[r]*x[c]; b[r]+=x[r]*y; } }
+    for(r=1;r<3;r++) G[r][r]+=1e-4;
+    var A=[]; for(r=0;r<3;r++){ A.push(G[r].slice()); A[r].push(b[r]); }
+    for(r=0;r<3;r++){ var pv=r; for(k=r+1;k<3;k++) if(Math.abs(A[k][r])>Math.abs(A[pv][r])) pv=k;
+      if(Math.abs(A[pv][r])<1e-12) return null; var tmp=A[r]; A[r]=A[pv]; A[pv]=tmp;
+      for(k=r+1;k<3;k++){ var f=A[k][r]/A[r][r]; for(c=r;c<=3;c++) A[k][c]-=f*A[r][c]; } }
+    var w=[0,0,0];
+    for(r=2;r>=0;r--){ var sm=A[r][3]; for(c=r+1;c<3;c++) sm-=A[r][c]*w[c]; w[r]=sm/A[r][r]; }
+    var pred=w[0]+w[1]*relNow+w[2]*prevNow;
+    return { pred:pred, ratio:(Math.exp(pred)-1)*100, wNow:W[n-1], relNow:relNow,
+             base:tot? up/tot*100 : null, n:obs.length,
+             pctl: (function(){ var h2=[]; for(var q=0;q<n;q++) if(W[q]!=null&&W[q]>0) h2.push(W[q]);
+                    h2.sort(function(x,y){return x-y;}); var lt=0;
+                    for(q=0;q<h2.length;q++){ if(h2[q]<W[n-1]) lt++; else break; }
+                    return h2.length? Math.round(lt/h2.length*100):null; })() };
+  }catch(_e){ return null; }
+}
+
+// ── Q2: MA5 꺾임 — 되돌림 Δ=−s0 (파라미터 0) + 수준 OLS 보정 ──
+//    실측 3시장: 방향적중 H5 KR 81.0 / US 80.2 / COIN 80.2
+//    ★꺾임 ≠ 하락 — 부호반전은 38~45%뿐. 절반 이상은 '상승 속도 소멸'이다.
+var _dbMkt='kr';
+function _dbSlope(cl, H){
+  try{
+    // ★측정 조건: Q2는 **|dev5_20| 상위 20%** 장면에서만 측정됐다(급하게 벌어진 국면).
+    //   카드는 무조건 전 구간을 쓰므로, 현재가 그 조건 밖이면 **측정치를 그대로 주장하면 안 된다.**
+    var n=cl.length, i, m5=new Array(n).fill(null), m20=new Array(n).fill(null);
+    for(i=4;i<n;i++) m5[i]=_dbSma(cl,5,i);
+    for(i=19;i<n;i++) m20[i]=_dbSma(cl,20,i);
+    var _adv=[], _advNow=null;
+    for(i=20;i<n;i++){ if(m5[i]!=null&&m20[i]>0){ var a2=Math.abs((m5[i]-m20[i])/m20[i]*100); _adv.push(a2); if(i===n-1) _advNow=a2; } }
+    var _inCond=null, _advPctl=null;
+    if(_adv.length>50 && _advNow!=null){
+      var _srt=_adv.slice().sort(function(x,y){return x-y;});
+      var _lt=0; for(var _q=0;_q<_srt.length;_q++){ if(_srt[_q]<_advNow) _lt++; else break; }
+      _advPctl=Math.round(_lt/_srt.length*100);          // 자기 이력 백분위는 **정보용**
+      var _mk=(typeof _dbMkt==='string')?_dbMkt:'kr';
+      _inCond=(_advNow >= ((_DB_ADV_CUT[_mk]!=null)?_DB_ADV_CUT[_mk]:_DB_ADV_CUT.kr));   // 판정은 **시장 컷**
+    }
+    var sl=function(i2){ return (m5[i2]!=null&&m5[i2-3]>0)? (m5[i2]-m5[i2-3])/m5[i2-3]*100 : null; };
+    var sxy=0,sxx=0,sy=0,sx=0,cnt=0, flip=0;
+    for(i=30;i<n-H;i++){
+      var a=sl(i), b2=sl(i+H); if(a==null||b2==null) continue;
+      var lab=b2-a; sxy+=a*lab; sxx+=a*a; sy+=lab; sx+=a; cnt++;
+      if((b2>0?1:(b2<0?-1:0)) !== (a>0?1:(a<0?-1:0))) flip++;
+    }
+    if(cnt<60) return null;
+    var den=cnt*sxx-sx*sx; if(Math.abs(den)<1e-9) return null;
+    var bb=(cnt*sxy-sx*sy)/den, aa=(sy-bb*sx)/cnt;
+    var s0=sl(n-1); if(s0==null) return null;
+    var dPred=aa+bb*s0, sPred=s0+dPred;
+    return { s0:s0, sPred:sPred, delta:dPred, flipBase:flip/cnt*100, n:cnt, inCond:_inCond, advPctl:_advPctl, advNow:_advNow };
+  }catch(_e){ return null; }
+}
+
+// ── Q4: 잔존 수명 — 이격 갭 단독(파라미터 0 순위) · 갭 5분위 경험분포로 제시 ──
+//    실측: 갭 스피어만 0.338 vs 상수 나이브 0.052 · 5분위 완전 단조(9.9→18.5봉)
+//    ★체류기간(age)은 정보 없음(corr −0.064) — 회귀에 넣으면 오히려 나빠진다(0.338→0.303)
+function _dbSpell(cl){
+  try{
+    var n=cl.length, i, W=60;
+    var m5=new Array(n).fill(null), m20=new Array(n).fill(null);
+    for(i=4;i<n;i++) m5[i]=_dbSma(cl,5,i);
+    for(i=19;i<n;i++) m20[i]=_dbSma(cl,20,i);
+    var dead=new Array(n).fill(false), st=null, spell=new Array(n).fill(null);
+    for(i=21;i<n;i++){
+      if(m5[i]==null||m20[i]==null||m5[i-1]==null||m20[i-1]==null) continue;
+      if(m5[i]>m20[i] && m5[i-1]<=m20[i-1]) st=i;
+      if(m5[i]<m20[i] && m5[i-1]>=m20[i-1]){ dead[i]=true; st=null; }
+      if(m5[i]>m20[i] && st!=null) spell[i]=st;
+    }
+    if(spell[n-1]==null) return { golden:false };
+    var obs=[];
+    for(i=25;i<n-W;i++){
+      if(spell[i]==null||!(m20[i]>0)) continue;
+      var rem=W; for(var j=i+1;j<=i+W;j++){ if(dead[j]){ rem=j-i; break; } }
+      obs.push([(m5[i]-m20[i])/m20[i]*100, rem]);
+    }
+    if(obs.length<60) return { golden:true, few:true, age:(n-1)-spell[n-1],
+                               gap:(m5[n-1]-m20[n-1])/m20[n-1]*100 };
+    obs.sort(function(a,b2){ return a[0]-b2[0]; });
+    var gapNow=(m5[n-1]-m20[n-1])/m20[n-1]*100, qi=0, qs=[];
+    for(var g=0;g<5;g++){ var a2=Math.floor(g*obs.length/5), b3=Math.floor((g+1)*obs.length/5);
+      var seg=obs.slice(a2,b3);
+      qs.push({ lo:seg[0][0], hi:seg[seg.length-1][0], n:seg.length,
+                rem:seg.reduce(function(t,r){return t+r[1];},0)/seg.length });
+      if(gapNow>=seg[0][0]) qi=g; }
+    return { golden:true, age:(n-1)-spell[n-1], gap:gapNow, qi:qi, qs:qs, n:obs.length };
+  }catch(_e){ return null; }
+}
+
+function _buildDistBoardCard(stock, indicators){
+  try{
+    var adv=(indicators&&indicators._advanced)?indicators._advanced:null;
+    var rows=(adv&&Array.isArray(adv.rows))?adv.rows
+           :((stock&&Array.isArray(stock._lastAnalCandles))?stock._lastAnalCandles:null);
+    if(!rows||rows.length<330) return '';
+    var cl=[]; for(var i=0;i<rows.length;i++) cl.push(+rows[i].close||0);
+    var HV=5, HS=5;
+    _dbMkt=(stock&&(stock._mkt||stock.market))||((typeof currentMarket!=='undefined')?currentMarket:'kr');
+    var V=_dbVol(cl,HV), S=_dbSlope(cl,HS), P=_dbSpell(cl);
+    if(!V && !S && !P) return '';
+    var T3='var(--text3)', T2='var(--text2)', GRN='#16a34a', RED='#dc2626', AMB='#d97706', BLU='#2563eb';
+    var sec=function(icon,name,head,sub,note){
+      return '<div style="padding:8px 0;border-bottom:1px solid var(--border)">'
+        + '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">'
+        +   '<span style="font-size:10px;font-weight:800;color:'+T3+';min-width:44px">'+icon+' '+name+'</span>'
+        +   '<span style="font-size:11.5px;font-weight:800;color:var(--text)">'+head+'</span>'
+        + '</div>'
+        + '<div style="margin-top:3px;font-size:10px;color:'+T2+';line-height:1.5">'+sub+'</div>'
+        + (note?'<div style="margin-top:3px;font-size:9.5px;color:'+T3+';line-height:1.5">'+note+'</div>':'')
+        + '</div>';
+    };
+    var body='';
+    if(V){
+      var dir=V.ratio>=0?'확대':'축소', dc=V.ratio>=0?AMB:BLU;
+      body+=sec('📏','변동',
+        '<span style="color:'+dc+'">'+dir+' 쪽 '+(V.ratio>=0?'+':'')+V.ratio.toFixed(0)+'%</span>'
+        + ' <span style="font-size:10px;font-weight:600;color:'+T3+'">('+HV+'봉 후 밴드폭)</span>',
+        '현재 밴드폭 <b>'+V.wNow.toFixed(1)+'%</b>'+(V.pctl!=null?' (이력 '+V.pctl+'%)':'')
+        + ' · 과거 확대 기저 <b>'+(V.base!=null?V.base.toFixed(0):'—')+'%</b>',
+        '합성 회귀(폭 수준 + 폭 관성) · 3시장 실측 방향적중 <b>62~68%</b> vs 기저 49% · 표본 '+V.n+'봉');
+    }
+    if(S){
+      var soft=(S.s0>0&&S.sPred>0)||(S.s0<0&&S.sPred<0);
+      body+=sec('📉','꺾임',
+        '<span style="color:var(--text)">'+(S.s0>=0?'+':'')+S.s0.toFixed(1)+'% → '
+        + '<span style="color:'+(S.sPred>=0?GRN:RED)+'">'+(S.sPred>=0?'+':'')+S.sPred.toFixed(1)+'%</span></span>'
+        + ' <span style="font-size:10px;font-weight:600;color:'+T3+'">(MA5 기울기 · '+HS+'봉 후)</span>',
+        (soft?'방향은 유지하며 <b>완만해지는</b> 쪽':'부호가 <b>뒤집히는</b> 쪽')
+        + ' · 과거 부호반전 기저 <b>'+S.flipBase.toFixed(0)+'%</b>',
+        '⚠ <b>꺾임 ≠ 하락</b> — 부호반전은 38~45%뿐이고 절반 이상은 <b>상승 속도 소멸</b>이다. '
+        + '되돌림 물리식(기울기는 유계라 0으로 수렴).<br>'
+        + (S.inCond === true
+            ? '현재 이격 <b>'+S.advNow.toFixed(1)+'%</b>(이력 '+S.advPctl+'%) — <b>측정 조건 안</b>(상위 20%). 3시장 방향적중 <b>80~81%</b>가 적용되는 구간이다.'
+            : (S.inCond === false
+                ? '⚠ 현재 이격 <b>'+S.advNow.toFixed(1)+'%</b>(이력 '+S.advPctl+'%) — <b>측정 조건 밖</b>이다. 3시장 80~81%는 '
+                  + '<b>이격 상위 20%</b> 장면에서 잰 값이라 여기 그대로 적용되지 않는다. 참고용으로만 볼 것.'
+                : '이격 조건 판정 불가 — 참고용.')));
+    }
+    if(P&&P.golden&&P.qs){
+      var q=P.qs[P.qi];
+      body+=sec('⏳','수명',
+        '<span style="color:var(--text)">잔존 <b>'+q.rem.toFixed(0)+'봉</b> 부근</span>'
+        + ' <span style="font-size:10px;font-weight:600;color:'+T3+'">(5×20 골든 · 갭 '+(P.qi+1)+'분위)</span>',
+        '현재 갭 <b>'+P.gap.toFixed(1)+'%</b> · 이 구간(' + q.lo.toFixed(1)+'~'+q.hi.toFixed(1)+'%) 과거 '+q.n+'회 평균',
+        '⚠ <b>체류기간은 정보가 없다</b>(상관 −0.06) — 지금 '+P.age+'봉째라는 사실은 잔존을 말해주지 않는다. '
+        + '<b>갭을 봐야 한다</b>(순위상관 0.34 vs 상수 0.05 · 5분위 단조 9.9→18.5봉)');
+    } else if(P&&P.golden){
+      body+=sec('⏳','수명','표본 부족','5×20 골든 '+P.age+'봉째 · 갭 '+(P.gap!=null?P.gap.toFixed(1)+'%':'—'),'');
+    } else if(P){
+      body+=sec('⏳','수명','<span style="color:'+T3+'">해당 없음</span>','5×20 골든 상태가 아니다 — 이 질문은 골든 구간에서만 성립한다','');
+    }
+    if(!body) return '';
+    var _titleHtml='<span style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap">🔭 분포 보드</span>'
+      + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:var(--surface2);color:'+T3+';border:1px solid var(--border);margin-left:5px;white-space:nowrap">실험</span>'
+      + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-left:3px;white-space:nowrap">표시 전용</span>';
+    var _rightHtml='<span style="font-size:9.5px;font-weight:700;color:'+T3+';white-space:nowrap">크기·구조·시간</span>';
+    var _body=
+        '<div style="font-size:10px;color:'+T2+';line-height:1.5;margin-bottom:4px">'
+      +   '측정을 통과한 축만 올라간다. <b>방향(어느 쪽으로 갈까)은 여기 없다</b> — 지지·저항, 칸 전이, '
+      +   '캔들전이, 차트예측 모두 나이브를 못 넘어 기각됐다.'
+      + '</div>'
+      + body
+      + '<div style="margin-top:8px;font-size:9.5px;color:'+T3+';line-height:1.6">'
+      +   '⚠ in-sample 기반 · C 판정·votes·시즌2 어디에도 반영되지 않는다. '
+      +   '각 축의 계수는 <b>이 종목 과거</b>로 산출한다(라벨 확정분만).'
+      + '</div>';
+    return _sxExpCard('sxDistBoardWrap','sxDistBoardWrap_b',_titleHtml,_rightHtml,_body);
+  }catch(_e){ return ''; }
+}
+
 // ═══════════ [S1131] 예상 최대 손실(MAE) 카드 — 측정 근거: Q5 (3시장 확인) ═══════════
 //  예측자:  MAE ≈ b · ATR% · √H   (파라미터 **1개** · 절편 없음)
 //  ★√H 법칙 실측: MAE/√H 가 지평에 걸쳐 일정 — KR 2.345/2.348/2.275 · US 1.583/1.620/1.620 · COIN 3.293/3.321/3.358
@@ -4844,6 +5051,10 @@ function _buildMaSlopeCard(stock, indicators){
 //  ⚠in-sample 기반. b는 이 종목 과거로 워크포워드 산출하고 표본 부족 시 시장상수로 폴백한다.
 var _MAE_B_FALLBACK = 0.44;
 var _MAE_HS = [3, 5, 10];
+// [S1131c] **측정된 상단** = 각 시장 실측 최상위 5분위의 실제 평균 MAE(%). 이 위는 검증 안 된 구간.
+//   자기 이력 백분위로 외삽을 판정하면 안 된다 — 조용한 종목이 '평범한 수준'으로 올라도 100%가 나온다.
+//   판정 기준은 "우리가 잰 범위를 넘느냐"여야 한다.
+var _MAE_TOPQ = { kr:{3:6.93,5:8.36,10:11.05}, us:{3:4.46,5:5.71,10:7.75}, coin:{3:6.77,5:8.58,10:11.37} };
 function _maeCalc(rows, curAtrPct){
   try{
     if(!rows || rows.length < 140) return null;
@@ -4858,7 +5069,12 @@ function _maeCalc(rows, curAtrPct){
     //   `indicators.atr.pct`가 없을 수 있다(S526급 조용한 실패) → 외부 의존을 없앤다.
     if(!(curAtrPct > 0)){ for(i=n-1;i>=0;i--){ if(atr[i]!=null){ curAtrPct=atr[i]; break; } } }
     if(!(curAtrPct > 0)) return null;
-    var out = { _atrNow: curAtrPct };
+    // [S1131c] 현재 ATR이 이 종목 이력에서 어디인가. 상단 밖이면 **측정 표본을 넘어선 외삽**이다.
+    var _hist=[]; for(i=0;i<n;i++){ if(atr[i]!=null) _hist.push(atr[i]); }
+    _hist.sort(function(a,b2){ return a-b2; });
+    var _lt=0; for(i=0;i<_hist.length;i++){ if(_hist[i] < curAtrPct) _lt++; else break; }
+    var _pct = _hist.length ? Math.round(_lt/_hist.length*100) : null;
+    var out = { _atrNow: curAtrPct, _atrPctl: _pct };
     for(var z=0; z<_MAE_HS.length; z++){
       var H = _MAE_HS[z], rH = Math.sqrt(H), sxy=0, sxx=0, ratios=[], sumAct=0, cnt=0;
       for(i=20;i<n-H;i++){
@@ -4911,11 +5127,23 @@ function _buildMaeCard(stock, indicators){
         + '</tr>';
     }
     if(!rowsHtml) return '';
-    var _titleHtml = '<span style="font-size:13px;font-weight:800;color:var(--text)">🩹 예상 최대 손실</span>'
-      + '<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:'+T3+';border:1px solid var(--border);margin-left:6px">실험</span>'
-      + '<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-left:4px">표시 전용 · 판정 무관</span>';
-    var _rightHtml = '<span style="font-size:10px;font-weight:700;color:'+T3+'">ATR '+atrPct.toFixed(1)+'%</span>';
-    var _body =
+    var _titleHtml = '<span style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap">🩹 예상 최대 손실</span>'
+      + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:var(--surface2);color:'+T3+';border:1px solid var(--border);margin-left:5px;white-space:nowrap">실험</span>'
+      + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-left:3px;white-space:nowrap">표시 전용</span>';
+    var _pctl = R._atrPctl;
+    var _mkt = (stock && (stock._mkt || stock.market)) || (typeof currentMarket !== 'undefined' ? currentMarket : 'kr');
+    var _tq = _MAE_TOPQ[_mkt] || _MAE_TOPQ.kr;
+    var _extrap = false, _exH = null;
+    for(var y=0; y<_MAE_HS.length; y++){ var _h=_MAE_HS[y];
+      if(R[_h] && _tq[_h] && R[_h].exp > _tq[_h]){ _extrap = true; if(_exH==null) _exH=_h; } }
+    var _rightHtml = '<span style="font-size:10px;font-weight:700;color:'+T3+';white-space:nowrap">ATR '+atrPct.toFixed(1)+'%'
+      + (_pctl!=null ? ' <span style="font-weight:600;font-size:9px">(이력 '+_pctl+'%)</span>' : '') + '</span>';
+    var _warn = _extrap
+      ? '<div style="font-size:10px;font-weight:700;color:'+RED+';background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:7px 9px;margin-bottom:7px;line-height:1.5">'
+        + '⚠ <b>외삽 구간</b> — '+_exH+'봉 예측이 '+String(_mkt).toUpperCase()+' 실측 최상위 5분위 평균('+_tq[_exH].toFixed(1)+'%)을 넘는다. '
+        + '그 위는 <b>측정되지 않은 구간</b>이라 크기를 그대로 믿으면 안 된다. 순위(어느 쪽이 더 위험한가)는 여전히 유효하다.'
+        + '</div>' : '';
+    var _body = _warn +
         '<div style="font-size:10px;color:'+T2+';line-height:1.5;margin-bottom:6px">'
       +   '진입 후 지평 안에서 <b>가장 깊이 물리는 폭</b>. 방향이 아니라 <b>크기</b> 예측이다. '
       +   '분포가 <b>우측으로 크게 치우쳐</b> 있으니 평균만 보지 말 것 — 중앙과 상위10%를 함께 봐야 한다.'
@@ -11498,7 +11726,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1131b';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1132b';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15688,7 +15916,8 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     ${_buildScoreBoard(scores, stock._svScores4, _boardStruct, _boardPb, _boardDeltas, stock._svVerdict, _lowConf, _boardExtras)}
     ${_buildTransitionCard(stock, indicators)}
     ${_buildTrendCard(stock, indicators)}
-    ${_buildMaeCard(stock, indicators)}
+    ${_buildDistBoardCard(stock, indicators)}
+          ${_buildMaeCard(stock, indicators)}
           ${_buildReboundCycleCard(stock, indicators)}
     ${_buildMaSlopeCard(stock, indicators)}
     ${(typeof window!=='undefined' && window.SXRecipeSignal) ? SXRecipeSignal.buildCard(stock, indicators) : ''}
