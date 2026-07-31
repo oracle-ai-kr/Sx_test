@@ -5559,14 +5559,14 @@ function _predAutoScore(force){
   }catch(_e){}
 }
 
-function _predResultPopup(rows, stats){
+function _predResultPopup(rows, stats, preview){
   if(!rows || !rows.length) return;
   var ov=document.getElementById('sxResultOverlay'); if(ov) ov.remove();
   ov=document.createElement('div'); ov.id='sxResultOverlay';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;'
     +'align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(2px)';
   ov.addEventListener('click',function(e){ if(e.target===ov) _predResultClose(); });
-  ov.innerHTML=_predResultHtml(rows, stats);
+  ov.innerHTML=_predResultHtml(rows, stats, preview);
   document.body.appendChild(ov);
   try{ history.pushState({view:'sxResult'},''); }catch(_){}
   ov._popHandler=function(){ var x=document.getElementById('sxResultOverlay'); if(x){ try{ x.remove(); }catch(_){} } };
@@ -5575,9 +5575,15 @@ function _predResultPopup(rows, stats){
 }
 function _predResultClose(){ try{ history.back(); }catch(_e){ var x=document.getElementById('sxResultOverlay'); if(x) x.remove(); } }
 
-function _predResultHtml(rows, stats){
+function _predResultHtml(rows, stats, preview){
   var T3='var(--text3)', T2='var(--text2)', GRN='#16a34a', RED='#e3493b';
   var body='';
+  // [S1151] 미리보기 안내는 **팝업 안쪽에도** 둔다. 바깥 뱃지만으론 내용이 그럴싸해서 오해를 부른다.
+  if(preview){
+    body += '<div style="margin:6px 0 2px;padding:7px 9px;border-radius:7px;background:#fffbeb;border:1px solid #fcd34d;'
+      + 'font-size:9.5px;color:#92400e;line-height:1.6">화면 모양을 보기 위한 <b>예시</b>입니다. 아래 적중/오답 표시는 '
+      + '실제 결과가 아니라 임의로 섞어놓은 것입니다.</div>';
+  }
   rows.forEach(function(r){
     var lb=_PRED_LABELS[r.q]||['예','아니오'];
     var def=SXLedger.Q[r.q]||{};
@@ -5983,20 +5989,34 @@ function _predPreviewPopup(kind){
   Promise.all([SXLedger.list({mkt:mk, st:1}), SXLedger.list({mkt:mk, st:0}), SXLedger.stats({mkt:mk})])
     .then(function(a){
       var done=a[0]||[], pend=a[1]||[], st=a[2]||[];
-      var rows=done.slice(0,5);
-      if(!rows.length){
-        // 아직 채점된 게 없다 → 대기분으로 **모양만** 만든다. 저장하지 않는다.
-        rows=pend.filter(function(r){ return r.human!=null; }).slice(0,3).map(function(r){
-          var o2={}; for(var k in r) o2[k]=r[k];
-          o2.truth=(r.human==='yes'); o2.hit=false; o2.nhit=false;
-          o2.hhit=(r.human==='pass')?null:true; o2.scoredAt=Date.now();
-          return o2;
-        });
+      if(done.length){ _predResultPopup(done.slice(0,5), st); return; }   // 진짜가 있으면 그걸 보여준다
+
+      // ── 예시 생성 ── 저장하지 않는다.
+      //  ★적중을 섞는다. 전부 "사람 ✓ / 모델 ✗"로 만들면 실제로 그런 결과가 난 것처럼 읽힌다.
+      //    색 조합(초록/빨강)이 실제로 어떻게 보이는지도 섞여야 확인된다.
+      var src=pend.slice(0,3);
+      if(!src.length){ try{ if(typeof toast==='function') toast('기록된 예측이 있어야 모양을 볼 수 있습니다'); }catch(_){} return; }
+      var rows=src.map(function(r,ix){
+        var o2={}; for(var k in r) o2[k]=r[k];
+        var hum=(r.human!=null)?r.human:(ix%2?'no':'yes');
+        o2.human=hum; o2.scoredAt=Date.now()-ix*86400000;
+        var said=(hum==='yes');
+        if(ix%3===0){ o2.truth=said;  o2.hhit=true;  o2.hit=false; o2.nhit=false; }   // 사람 O · 모델 X
+        else if(ix%3===1){ o2.truth=!said; o2.hhit=false; o2.hit=true;  o2.nhit=true; }  // 사람 X · 모델 O
+        else { o2.truth=said; o2.hhit=true; o2.hit=true; o2.nhit=false; }               // 둘 다 O
+        if(hum==='pass') o2.hhit=null;
+        return o2;
+      });
+      // 집계 블록도 비어 있으면 예시로 채운다 — 실제 팝업엔 항상 붙는 부분이라 모양을 봐야 한다.
+      if(!st.length){
+        st=[{ q:1, name:(SXLedger.Q[1]&&SXLedger.Q[1].name)||'변동 확대',
+              n:24, hitPct:66.7, nhitPct:50.0, edge:16.7, hhitPct:58.3, hn:12 },
+            { q:2, name:(SXLedger.Q[2]&&SXLedger.Q[2].name)||'MA5 꺾임',
+              n:24, hitPct:54.2, nhitPct:58.3, edge:-4.1, hhitPct:66.7, hn:12 }];
       }
-      if(!rows.length){ try{ if(typeof toast==='function') toast('찍은 예측이 있어야 모양을 볼 수 있습니다'); }catch(_){} return; }
-      _predResultPopup(rows, st);
+      _predResultPopup(rows, st, true);
       var ov=document.getElementById('sxResultOverlay');
-      if(ov && !done.length){
+      if(ov){
         var b=document.createElement('div');
         b.style.cssText='position:absolute;top:8px;left:50%;transform:translateX(-50%);background:#d97706;color:#fff;'
           +'font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:999px;z-index:1';
@@ -13033,7 +13053,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1150';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1151';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
