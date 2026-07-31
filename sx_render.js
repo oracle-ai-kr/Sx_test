@@ -5308,13 +5308,17 @@ function _predFindIdx(rows, d10){
   return -1;
 }
 //  일괄 채점 — 현재 시장의 미채점분만. fetchCandles가 currentMarket에 묶여 있어 시장을 섞을 수 없다.
-function _predScoreRun(mkt, onProg){
+function _predScoreRun(mkt, onProg, opt){
+  opt=opt||{};
   if(!window.SXLedger) return Promise.resolve({ err:'원장 미로드' });
   if(typeof fetchCandles!=='function') return Promise.resolve({ err:'fetchCandles 없음' });
   return SXLedger.list({ mkt:mkt, st:0 }).then(function(pend){
+    // [S1144] pickedOnly = 사람이 찍은 것만. 자동 채점은 이 모드로만 돈다 —
+    //   자동 기록까지 포함하면 진입할 때마다 수십~수백 종목 fetch가 걸린다(모바일).
+    if(opt.pickedOnly) pend=pend.filter(function(r){ return r.human!=null; });
     var byCode={}; pend.forEach(function(r){ (byCode[r.code]=byCode[r.code]||[]).push(r); });
     var codes=Object.keys(byCode);
-    var R={ n:pend.length, codes:codes.length, scored:0, skipped:0, fail:0, why:{} };
+    var R={ n:pend.length, codes:codes.length, scored:0, skipped:0, fail:0, why:{}, rows:[] };
     var ci=0;
     var step=function(){
       if(ci>=codes.length) return Promise.resolve(R);
@@ -5334,7 +5338,7 @@ function _predScoreRun(mkt, onProg){
             //   pred는 안 건드린다. 이걸로 "픽 당시 봉이 확정이었나"가 시계 없이 판정된다.
             var _post={ c0Final:cl[idx] };
             if(rec.q===2){ var _SF=_dbSlArr(cl); if(_SF[idx]!=null) _post.s0Final=_SF[idx]; }
-            return SXLedger.score(rec.key, A.val, _post).then(function(){ R.scored++; })
+            return SXLedger.score(rec.key, A.val, _post).then(function(sc){ R.scored++; R.rows.push(sc); })
                    .catch(function(){ R.fail++; });
           });
         });
@@ -5504,6 +5508,107 @@ function _predQuizDestroy(){
   window._sxQuiz=null;
   try{ _predPanelRefresh(); }catch(_e){}
   try{ _dbRerenderCard(); }catch(_e2){}
+}
+
+// ═══════════ [S1144] 진입 시 자동 채점 — 결과를 안 보면 원장은 안 돌아간다 ═══════════
+//  문제: 채점을 사람이 기억해서 눌러야 했다. 한 달 잊으면 지평 도달분이 쌓여만 있고,
+//        결과를 늦게 볼수록 배움이 흐려진다(그 장면의 기억이 이미 사라진 뒤라 "왜 틀렸나"를 못 물음).
+//  ★범위 = **내가 찍은 것만.** 자동 기록까지 돌리면 진입할 때마다 수십~수백 fetch가 걸린다.
+//    모델 표본은 급할 게 없어서 수동 버튼으로 충분하다. 픽 결과만 즉시성이 값어치가 있다.
+//  ★하루 1회. 백그라운드로 돌고 앱을 막지 않는다. 새로 채점된 게 0건이면 팝업도 안 뜬다.
+//  ⚠현재 시장만 — fetchCandles가 currentMarket에 묶여 있다. 다른 시장은 탭 바꾸면 그때 돈다.
+var _PRED_AUTO_KEY='SX_PRED_AUTOSCORE';
+
+function _predAutoScore(force){
+  try{
+    if(!window.SXLedger || typeof fetchCandles!=='function') return;
+    var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+    var today=SXLedger._todayKst(), gk=_PRED_AUTO_KEY+'_'+mk;
+    if(!force){ try{ if(localStorage.getItem(gk)===today) return; }catch(_e){} }
+
+    SXLedger.list({ mkt:mk, st:0 }).then(function(pend){
+      var mine=pend.filter(function(r){ return r.human!=null; });
+      if(!mine.length){ try{ localStorage.setItem(gk,today); }catch(_e){} return; }
+      return _predScoreRun(mk, null, { pickedOnly:true }).then(function(R){
+        try{ localStorage.setItem(gk,today); }catch(_e){}
+        if(!R || !R.scored) return;                      // 지평 미도달이면 조용히 넘어간다
+        return SXLedger.stats({ mkt:mk }).then(function(st){
+          _predResultPopup(R.rows, st);
+          try{ _predPanelRefresh(); }catch(_e2){}
+        });
+      });
+    }).catch(function(){});
+  }catch(_e){}
+}
+
+function _predResultPopup(rows, stats){
+  if(!rows || !rows.length) return;
+  var ov=document.getElementById('sxResultOverlay'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='sxResultOverlay';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;'
+    +'align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(2px)';
+  ov.addEventListener('click',function(e){ if(e.target===ov) _predResultClose(); });
+  ov.innerHTML=_predResultHtml(rows, stats);
+  document.body.appendChild(ov);
+  try{ history.pushState({view:'sxResult'},''); }catch(_){}
+  ov._popHandler=function(){ var x=document.getElementById('sxResultOverlay'); if(x){ try{ x.remove(); }catch(_){} } };
+  window.addEventListener('popstate', ov._popHandler, {once:true});
+  try{ _sxVib(14); }catch(_e){}
+}
+function _predResultClose(){ try{ history.back(); }catch(_e){ var x=document.getElementById('sxResultOverlay'); if(x) x.remove(); } }
+
+function _predResultHtml(rows, stats){
+  var T3='var(--text3)', T2='var(--text2)', GRN='#16a34a', RED='#e3493b';
+  var body='';
+  rows.forEach(function(r){
+    var lb=_PRED_LABELS[r.q]||['예','아니오'];
+    var def=SXLedger.Q[r.q]||{};
+    var say=function(b){ return b?lb[0]:lb[1]; };
+    var mcall=(r.hit===true)?r.truth:!r.truth;          // hit=(모델콜===정답) → 역산
+    var mine=(r.human==='pass') ? '패스' : say(r.human==='yes');
+    var mineOk=(r.hhit==null)?null:r.hhit;
+    body += '<div style="border-top:1px solid var(--border);padding:8px 0">'
+      + '<div style="display:flex;align-items:baseline;gap:6px">'
+      +   '<span style="font-size:11.5px;font-weight:800;color:var(--text)">'+(_predName(r.code)||r.code)+'</span>'
+      +   '<span style="font-size:9.5px;color:'+T3+'">'+(def.name||'')+(r.H?(' H'+r.H):'')+' · '+r.date.slice(5)+'</span>'
+      + '</div>'
+      + '<div style="margin-top:3px;font-size:10px;color:'+T2+';line-height:1.7">'
+      +   '정답 <b style="color:var(--text)">'+say(r.truth)+'</b><br>'
+      +   '내 예측 <b style="color:'+(mineOk==null?T3:(mineOk?GRN:RED))+'">'+mine+' '+(mineOk==null?'—':(mineOk?'✓':'✗'))+'</b>'
+      +   ' · 모델 <b style="color:'+(r.hit?GRN:RED)+'">'+say(mcall)+' '+(r.hit?'✓':'✗')+'</b>'
+      +   ' · 나이브 <span style="color:'+(r.nhit?GRN:RED)+'">'+(r.nhit?'✓':'✗')+'</span>'
+      + '</div>'
+      + (r.formed===false?'<div style="margin-top:2px;font-size:9px;color:#d97706">⚠ 봉이 형성 중일 때 찍은 건 — 모델도 미완성 봉으로 계산했다</div>':'')
+      + '</div>';
+  });
+
+  var acc='';
+  if(stats && stats.length){
+    acc='<div style="margin-top:9px;padding-top:8px;border-top:1px dashed var(--border)">'
+      + '<div style="font-size:9.5px;font-weight:800;color:'+T3+';margin-bottom:3px">누적</div>';
+    stats.forEach(function(g){
+      var ec=(g.edge==null)?T3:(g.edge>0?GRN:(g.edge<0?RED:T3));
+      acc += '<div style="font-size:9.5px;color:'+T2+';line-height:1.7">'+g.name+' <span style="color:'+T3+'">n='+g.n+'</span> · '
+        + '모델 <b>'+(g.hitPct!=null?g.hitPct.toFixed(0)+'%':'—')+'</b> · 나이브 '+(g.nhitPct!=null?g.nhitPct.toFixed(0)+'%':'—')
+        + ' · <b style="color:'+ec+'">이득 '+(g.edge!=null?((g.edge>0?'+':'')+g.edge.toFixed(1)+'%p'):'—')+'</b>'
+        + (g.hhitPct!=null?(' · 나 <b>'+g.hhitPct.toFixed(0)+'%</b>('+g.hn+')'):'')
+        + '</div>';
+    });
+    acc += '<div style="margin-top:4px;font-size:9px;color:'+T3+';line-height:1.6">'
+        + '표본이 적을 땐 전부 노이즈다. <b>이득</b>이 0 근처를 오래 맴돌면 모델이 나이브를 못 넘는다는 뜻.</div>'
+        + '</div>';
+  }
+
+  return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;width:100%;max-width:360px;'
+    + 'max-height:90vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.5)">'
+    + '<div style="display:flex;align-items:center;gap:8px;padding:13px 15px;border-bottom:1px solid var(--border)">'
+    +   '<span style="font-size:13px;font-weight:800;color:var(--text)">⚖ 채점 결과 '+rows.length+'건</span>'
+    +   '<span onclick="_predResultClose()" style="margin-left:auto;font-size:17px;cursor:pointer;color:'+T3+';padding:0 3px">✕</span>'
+    + '</div>'
+    + '<div style="flex:1;overflow-y:auto;padding:4px 15px 14px">'+body+acc+'</div>'
+    + '<div style="padding:10px 15px;border-top:1px solid var(--border)">'
+    +   '<button onclick="_predResultClose()" style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:800;cursor:pointer">확인</button>'
+    + '</div></div>';
 }
 
 function _predPanelVoidOld(){
@@ -12478,7 +12583,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1143';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1144';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
