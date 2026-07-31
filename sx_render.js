@@ -4954,10 +4954,7 @@ function _dbMed(a){ var b=a.slice().sort(function(x,y){return x-y;}); var n=b.le
 //    구조: H3=관성 지배 · H10=평균회귀 지배 · 합성이 전 지평 최상위
 function _dbVol(cl, H){
   try{
-    var n=cl.length, i, W=new Array(n).fill(null);
-    for(i=19;i<n;i++){ var m=_dbSma(cl,20,i); if(!(m>0)) continue;
-      var s2=0; for(var k=i-19;k<=i;k++){ var d=cl[k]-m; s2+=d*d; }
-      W[i]=4*Math.sqrt(s2/20)/m*100; }
+    var n=cl.length, i, W=_dbBandW(cl);   // [S1137] 밴드폭 정의는 SSOT(_dbBandW) 경유 — 채점기와 같은 함수
     var ROLL=250, obs=[], relNow=null, prevNow=null, up=0, tot=0;
     for(i=ROLL+20;i<n;i++){
       if(W[i]==null||!(W[i]>0)||W[i-H]==null||!(W[i-H]>0)) continue;
@@ -4999,9 +4996,7 @@ function _dbSlope(cl, H){
   try{
     // ★측정 조건: Q2는 **|dev5_20| 상위 20%** 장면에서만 측정됐다(급하게 벌어진 국면).
     //   카드는 무조건 전 구간을 쓰므로, 현재가 그 조건 밖이면 **측정치를 그대로 주장하면 안 된다.**
-    var n=cl.length, i, m5=new Array(n).fill(null), m20=new Array(n).fill(null);
-    for(i=4;i<n;i++) m5[i]=_dbSma(cl,5,i);
-    for(i=19;i<n;i++) m20[i]=_dbSma(cl,20,i);
+    var n=cl.length, i, _M=_dbMAs(cl), m5=_M.m5, m20=_M.m20;   // [S1137] SSOT 경유
     var _adv=[], _advNow=null;
     for(i=20;i<n;i++){ if(m5[i]!=null&&m20[i]>0){ var a2=Math.abs((m5[i]-m20[i])/m20[i]*100); _adv.push(a2); if(i===n-1) _advNow=a2; } }
     var _inCond=null, _advPctl=null;
@@ -5012,7 +5007,8 @@ function _dbSlope(cl, H){
       var _mk=(typeof _dbMkt==='string')?_dbMkt:'kr';
       _inCond=(_advNow >= ((_DB_ADV_CUT[_mk]!=null)?_DB_ADV_CUT[_mk]:_DB_ADV_CUT.kr));   // 판정은 **시장 컷**
     }
-    var sl=function(i2){ return (m5[i2]!=null&&m5[i2-3]>0)? (m5[i2]-m5[i2-3])/m5[i2-3]*100 : null; };
+    var _SL=_dbSlArr(cl,m5);                                    // [S1137] 기울기 정의도 SSOT 경유
+    var sl=function(i2){ return (i2>=0 && i2<_SL.length) ? _SL[i2] : null; };
     var sxy=0,sxx=0,sy=0,sx=0,cnt=0, flip=0;
     for(i=30;i<n-H;i++){
       var a=sl(i), b2=sl(i+H); if(a==null||b2==null) continue;
@@ -5031,24 +5027,64 @@ function _dbSlope(cl, H){
 // ── Q4: 잔존 수명 — 이격 갭 단독(파라미터 0 순위) · 갭 5분위 경험분포로 제시 ──
 //    실측: 갭 스피어만 0.338 vs 상수 나이브 0.052 · 5분위 완전 단조(9.9→18.5봉)
 //    ★체류기간(age)은 정보 없음(corr −0.064) — 회귀에 넣으면 오히려 나빠진다(0.338→0.303)
+// ═══════════ [S1137] 라벨 정의 SSOT — 카드와 채점기가 **같은 함수**를 쓴다 ═══════════
+//  ★왜 분리하나: 채점기가 라벨을 재구현하면 두 정의가 조용히 어긋난다. 그러면 "모델이 틀렸다"가
+//    실제로는 "채점 기준이 다르다"가 되고, 원장 결론 전체가 무효가 된다.
+//    S1127에서 8349줄 `TN` 하드코딩 미러(9칸 이름 통째 복제 + 키 계열까지 달랐음)를 발견한 선례가 있다.
+//    카드(_dbVol/_dbSlope/_dbSpell)와 채점기(_predActual)는 아래 4개 말고 다른 경로로 라벨을 만들면 안 된다.
+var _DB_SPELL_CAP = 60;      // 잔존봉수 상한(=우측 절단). _dbSpell의 W와 동일해야 한다.
+
+function _dbMAs(cl){
+  var n=cl.length, i, m5=new Array(n).fill(null), m20=new Array(n).fill(null);
+  for(i=4;i<n;i++) m5[i]=_dbSma(cl,5,i);
+  for(i=19;i<n;i++) m20[i]=_dbSma(cl,20,i);
+  return { m5:m5, m20:m20 };
+}
+//  밴드폭(%) — 20MA ±2σ 폭. q1의 라벨 원천.
+function _dbBandW(cl){
+  var n=cl.length, i, W=new Array(n).fill(null);
+  for(i=19;i<n;i++){ var m=_dbSma(cl,20,i); if(!(m>0)) continue;
+    var s2=0; for(var k=i-19;k<=i;k++){ var d=cl[k]-m; s2+=d*d; }
+    W[i]=4*Math.sqrt(s2/20)/m*100; }
+  return W;
+}
+//  MA5 3봉 기울기(%) — q2의 라벨 원천.
+function _dbSlArr(cl, m5){
+  var n=cl.length, i, S=new Array(n).fill(null);
+  if(!m5) m5=_dbMAs(cl).m5;
+  for(i=7;i<n;i++){ if(m5[i]!=null && m5[i-3]>0) S[i]=(m5[i]-m5[i-3])/m5[i-3]*100; }
+  return S;
+}
+//  5×20 크로스 — dead/spell. q4의 라벨 원천.
+function _dbCross(cl, m5, m20){
+  var n=cl.length, i;
+  if(!m5||!m20){ var M=_dbMAs(cl); m5=M.m5; m20=M.m20; }
+  var dead=new Array(n).fill(false), st=null, spell=new Array(n).fill(null);
+  for(i=21;i<n;i++){
+    if(m5[i]==null||m20[i]==null||m5[i-1]==null||m20[i-1]==null) continue;
+    if(m5[i]>m20[i] && m5[i-1]<=m20[i-1]) st=i;
+    if(m5[i]<m20[i] && m5[i-1]>=m20[i-1]){ dead[i]=true; st=null; }
+    if(m5[i]>m20[i] && st!=null) spell[i]=st;
+  }
+  return { dead:dead, spell:spell, m5:m5, m20:m20 };
+}
+//  i봉에서 다음 데드크로스까지 잔존봉수. cap 안에 안 나오면 censored(우측 절단).
+function _dbRemFrom(dead, i, cap){
+  var C=cap||_DB_SPELL_CAP;
+  for(var j=i+1;j<=i+C;j++){ if(dead[j]) return { rem:j-i, censored:false }; }
+  return { rem:C, censored:true };
+}
+
 function _dbSpell(cl){
   try{
-    var n=cl.length, i, W=60;
-    var m5=new Array(n).fill(null), m20=new Array(n).fill(null);
-    for(i=4;i<n;i++) m5[i]=_dbSma(cl,5,i);
-    for(i=19;i<n;i++) m20[i]=_dbSma(cl,20,i);
-    var dead=new Array(n).fill(false), st=null, spell=new Array(n).fill(null);
-    for(i=21;i<n;i++){
-      if(m5[i]==null||m20[i]==null||m5[i-1]==null||m20[i-1]==null) continue;
-      if(m5[i]>m20[i] && m5[i-1]<=m20[i-1]) st=i;
-      if(m5[i]<m20[i] && m5[i-1]>=m20[i-1]){ dead[i]=true; st=null; }
-      if(m5[i]>m20[i] && st!=null) spell[i]=st;
-    }
+    var n=cl.length, i, W=_DB_SPELL_CAP;
+    var _M=_dbMAs(cl), m5=_M.m5, m20=_M.m20;
+    var _C=_dbCross(cl,m5,m20), dead=_C.dead, spell=_C.spell;
     if(spell[n-1]==null) return { golden:false };
     var obs=[];
     for(i=25;i<n-W;i++){
       if(spell[i]==null||!(m20[i]>0)) continue;
-      var rem=W; for(var j=i+1;j<=i+W;j++){ if(dead[j]){ rem=j-i; break; } }
+      var rem=_dbRemFrom(dead,i,W).rem;
       obs.push([(m5[i]-m20[i])/m20[i]*100, rem]);
     }
     if(obs.length<60) return { golden:true, few:true, age:(n-1)-spell[n-1],
@@ -5060,12 +5096,340 @@ function _dbSpell(cl){
       qs.push({ lo:seg[0][0], hi:seg[seg.length-1][0], n:seg.length,
                 rem:seg.reduce(function(t,r){return t+r[1];},0)/seg.length });
       if(gapNow>=seg[0][0]) qi=g; }
-    return { golden:true, age:(n-1)-spell[n-1], gap:gapNow, qi:qi, qs:qs, n:obs.length };
+    // [S1136] medAll = **무조건 중앙 잔존봉수** = q4의 나이브. 갭을 안 보고 "늘 이만큼"이라고만 답하는 기준선.
+    //   원장 이진화가 "나이브 초과"이므로 이 값이 곧 채점 임계다(sx_ledger.js _BIN[4]).
+    var _rs=obs.map(function(o){ return o[1]; }).sort(function(x,y){ return x-y; });
+    var _medAll=_rs.length ? (_rs.length%2 ? _rs[(_rs.length-1)/2] : (_rs[_rs.length/2-1]+_rs[_rs.length/2])/2) : null;
+    return { golden:true, age:(n-1)-spell[n-1], gap:gapNow, qi:qi, qs:qs, n:obs.length, medAll:_medAll };
   }catch(_e){ return null; }
+}
+
+// ═══════════ [S1136] 예측 원장 배선 — 분석탭 사람 예측 UX ═══════════
+//  설계 동결본: PREREG_S1125_predcards.md §10 · 저장층: sx_ledger.js (S1135)
+//
+//  ★강제 blind — 카드 수치는 기본 비공개. 사람이 찍어야 열린다.
+//    원장에 들어가는 모든 사람 예측이 구조적으로 blind이므로 "사람이 도구 없이 얼마나 하나"가
+//    항상 깨끗하게 비교된다. 수치를 먼저 보면 앵커링이 걸려 그 비교가 통째로 죽는다.
+//  ★모델 예측은 사람과 무관하게 자동 기록된다 — 원장의 1차 목적은 **모델의 OOS 채점**이고,
+//    현재 카드 숫자는 전부 in-sample이라 이 경로 말고는 검증할 방법이 없다.
+//  ★2단 확정(선택→확인) · 확정 즉시 잠금 · 수정 불가. 봉인(재열람 차단)은 하지 않는다.
+//  ★pass도 기록한다 — "사람이 판단 불가라고 느낀 장면" 부분집합이 그 자체로 질문거리(§10).
+//    yes/no만 두면 애매한 장면에서 억지 이진이 섞여 사람 적중률이 실제보다 낮게 나오고,
+//    그게 모델 승리로 오독된다.
+//
+//  ⚠킬스위치 `SX_PRED_BLIND=0` → 수치는 항상 보이되 **사람 예측 UI 자체가 사라진다**.
+//    수치를 본 뒤의 예측은 blind가 아니므로 원장에 넣지 않는다. 도피로는 두되 오염은 막는다.
+//    (모델 자동 기록은 blind와 무관하게 계속된다)
+
+var _PRED_BLIND_ON = (function(){ try{ return localStorage.getItem('SX_PRED_BLIND')!=='0'; }catch(_e){ return true; } })();
+function _predBlindToggle(){
+  _PRED_BLIND_ON = !_PRED_BLIND_ON;
+  try{ localStorage.setItem('SX_PRED_BLIND', _PRED_BLIND_ON?'1':'0'); }catch(_e){}
+  try{ if(typeof toast==='function') toast(_PRED_BLIND_ON?'가림 ON — 찍어야 열립니다':'가림 OFF — 사람 예측은 기록되지 않습니다'); }catch(_e2){}
+  _dbRerenderCard();
+}
+
+window._sxPredCache = window._sxPredCache || {};   // ledgerKey -> rec | 'none' | 'busy'
+window._sxPredDraft = window._sxPredDraft || {};   // ledgerKey -> 'yes'|'no'|'pass'  (예비 선택 · 미기록)
+
+//  기준봉 판정 (§10) — 오늘 봉이 아직 형성 중이면 마지막 **확정**봉은 그 전 봉이고, 픽은 intraday.
+//  장중 픽을 막지 않고 태그만 단다: 새는 것을 막는 대신 측정 대상으로 전환한다.
+function _predBase(rows){
+  try{
+    if(!Array.isArray(rows) || !rows.length) return null;
+    var _dOf=function(r){ return String((r && (r.date!=null?r.date:(r.t!=null?r.t:r.d))) || ''); };
+    var last=rows[rows.length-1], d=_dOf(last);
+    if(!d) return null;
+    var forming = (typeof _btIsToday==='function') ? _btIsToday(d) : false;
+    if(forming){
+      if(rows.length<2) return null;
+      var pd=_dOf(rows[rows.length-2]);
+      return pd ? { date:pd, intraday:true } : null;
+    }
+    return { date:d, intraday:false };
+  }catch(_e){ return null; }
+}
+
+//  슬롯 확보 — 캐시에 없으면 원장 조회 → 없으면 모델 예측 기록 → 캐시 채우고 카드 재렌더.
+//  카드 빌드는 동기라서 첫 렌더는 '준비중'이 뜨고, 원장 응답 후 한 번 더 그려진다.
+function _predEnsure(rec){
+  try{
+    if(!window.SXLedger) return 'nolib';
+    var k = SXLedger.key(rec.mkt, rec.code, rec.date, rec.q, rec.H);
+    var c = window._sxPredCache[k];
+    if(c !== undefined) return c;
+    window._sxPredCache[k] = 'busy';
+    SXLedger.get(k).then(function(found){
+      if(found){ window._sxPredCache[k]=found; _dbRerenderCard(); return; }
+      return SXLedger.put(rec).then(function(saved){ window._sxPredCache[k]=saved; _dbRerenderCard(); });
+    }).catch(function(e){
+      window._sxPredCache[k]='none';
+      try{ console.warn('[S1136] 원장 기록 실패', k, e && e.message); }catch(_){}
+      _dbRerenderCard();
+    });
+    return 'busy';
+  }catch(_e){ return 'nolib'; }
+}
+
+function _predPick(k, choice){
+  try{ _sxVib(6); }catch(_e){}
+  window._sxPredDraft[k] = choice;
+  _dbRerenderCard();
+}
+function _predConfirm(k){
+  var ch = window._sxPredDraft[k];
+  if(!ch || !window.SXLedger) return;
+  try{ _sxVib(12); }catch(_e){}
+  SXLedger.setHuman(k, ch).then(function(rec){
+    window._sxPredCache[k]=rec; delete window._sxPredDraft[k]; _dbRerenderCard();
+  }).catch(function(e){
+    try{ if(typeof toast==='function') toast('기록 실패: '+(e&&e.message)); }catch(_){}
+  });
+}
+function _dbRerenderCard(){
+  try{
+    var el=document.getElementById('sxDistBoardWrap'), L=window._sxDbLast;
+    if(el && L && L.stock) el.outerHTML=_buildDistBoardCard(L.stock, L.indicators);
+  }catch(_e){}
+}
+
+//  D-표기 — dueEst까지 남은 날(근사). §10대로 "대기 추정"이며 실제 채점은 일괄 fetch로 확정된다.
+function _predDLabel(rec){
+  try{
+    if(!rec || !rec.dueEst) return '';
+    if(rec.st===1) return (rec.hhit==null ? '채점됨' : (rec.hhit?'○ 적중':'× 빗나감'));
+    var t=Date.parse(rec.dueEst+'T00:00:00Z'), now=Date.parse(SXLedger._todayKst()+'T00:00:00Z');
+    if(isNaN(t)||isNaN(now)) return '';
+    var d=Math.round((t-now)/86400000);
+    return d>0 ? ('D-'+d+' 추정') : '채점 대기';
+  }catch(_e){ return ''; }
+}
+
+//  게이트 렌더 — 반환 {gate:HTML, open:bool}
+//    open=false면 호출부가 **수치를 아예 만들지 않는다**(DOM에도 안 들어간다).
+//    숨김이 아니라 미생성이어야 blind가 실제로 성립한다.
+function _predGate(k, q, yesTxt, noTxt){
+  var T3='var(--text3)', T2='var(--text2)';
+  if(!_PRED_BLIND_ON) return { open:true, gate:'' };
+  var rec = window._sxPredCache[k];
+  if(rec==='nolib' || rec==='none') return { open:true, gate:'' };      // 원장 못 쓰면 그냥 보여준다
+  if(rec==='busy' || rec===undefined){
+    return { open:false, gate:'<div style="font-size:10px;color:'+T3+';padding:6px 0">원장 준비중…</div>' };
+  }
+  if(rec.human != null){                                                // 확정됨 → 공개 + 한 줄
+    var lbl = rec.human==='yes'?yesTxt : (rec.human==='no'?noTxt:'패스');
+    var col = rec.human==='pass' ? T3 : 'var(--accent)';
+    return { open:true, gate:'<div style="margin-bottom:5px;font-size:10px;color:'+T2+'">'
+      + '내 예측: <b style="color:'+col+'">'+lbl+'</b> · 잠김'
+      + (rec.intraday?' · <span style="color:#d97706">장중</span>':'')
+      + ' · <span style="color:'+T3+'">'+_predDLabel(rec)+'</span></div>' };
+  }
+  // 미기록 → 가린 채 3선택
+  var Q = SXLedger.Q[q] || {}, draft = window._sxPredDraft[k] || null;
+  var btn=function(v,txt){
+    var on=(draft===v);
+    return '<button onclick="_predPick(\''+k+'\',\''+v+'\')" style="flex:1;padding:7px 4px;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;'
+      + 'border:1px solid '+(on?'var(--accent)':'var(--border)')+';background:'+(on?'var(--accent)':'var(--surface2)')+';color:'+(on?'#fff':'var(--text2)')+'">'+txt+'</button>';
+  };
+  return { open:false, gate:
+      '<div style="padding:7px 9px;border-radius:8px;background:var(--surface2);border:1px dashed var(--border)">'
+    +   '<div style="font-size:10.5px;font-weight:700;color:var(--text);line-height:1.5">🙈 '+(Q.ask||'')+'</div>'
+    +   '<div style="margin-top:2px;font-size:9px;color:'+T3+'">찍어야 수치가 열린다 — 먼저 보면 비교가 죽는다</div>'
+    +   '<div style="display:flex;gap:5px;margin-top:6px">'+btn('yes',yesTxt)+btn('no',noTxt)+btn('pass','패스')+'</div>'
+    +   (draft
+          ? '<button onclick="_predConfirm(\''+k+'\')" style="width:100%;margin-top:5px;padding:7px;border-radius:7px;border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:800;cursor:pointer">확인 — 기록하고 열기 (수정 불가)</button>'
+          : '')
+    + '</div>' };
+}
+
+// ═══════════ [S1137] 채점기 — 지평 도달분을 실제값으로 채점 ═══════════
+//  ★라벨은 반드시 위의 SSOT(_dbBandW/_dbSlArr/_dbCross/_dbRemFrom)로만 만든다. 재구현 금지.
+//  ★pred는 손대지 않는다 — SXLedger.score()가 저장된 rec에서 읽어 판정하므로 여기선 actual만 넘긴다.
+function _predActual(q, cl, i, H){
+  try{
+    if(!Array.isArray(cl) || i<0 || i>=cl.length) return { ok:false, why:'기준봉 인덱스 밖' };
+    if(q===1){
+      var W=_dbBandW(cl), t=i+H;
+      if(t>cl.length-1) return { ok:false, why:'지평 미도달' };
+      if(!(W[i]>0)||!(W[t]>0)) return { ok:false, why:'밴드폭 산출 불가' };
+      return { ok:true, val:(W[t]/W[i]-1)*100 };            // 카드 pred(ratio)와 같은 단위
+    }
+    if(q===2){
+      var S=_dbSlArr(cl), t2=i+H;
+      if(t2>cl.length-1) return { ok:false, why:'지평 미도달' };
+      if(S[t2]==null) return { ok:false, why:'기울기 산출 불가' };
+      return { ok:true, val:S[t2] };                        // 카드 pred(sPred)와 같은 단위
+    }
+    if(q===4){
+      var C=_dbCross(cl), R=_dbRemFrom(C.dead, i, _DB_SPELL_CAP);
+      // 상한 안에 데드크로스가 안 나왔는데 봉도 아직 상한만큼 안 쌓였으면 = 진행중. 절단값을 실측으로 쓰면 안 된다.
+      if(R.censored && (i+_DB_SPELL_CAP) > cl.length-1) return { ok:false, why:'아직 진행중' };
+      return { ok:true, val:R.rem };
+    }
+    return { ok:false, why:'q'+q+'는 채점기 미구현' };
+  }catch(e){ return { ok:false, why:String((e&&e.message)||e) }; }
+}
+function _predFindIdx(rows, d10){
+  for(var i=rows.length-1;i>=0;i--){
+    var r=rows[i], rd=String((r.date!=null?r.date:(r.t!=null?r.t:r.d))||'').slice(0,10);
+    if(/^\d{8}$/.test(rd)) rd=rd.slice(0,4)+'-'+rd.slice(4,6)+'-'+rd.slice(6,8);
+    if(rd===d10) return i;
+  }
+  return -1;
+}
+//  일괄 채점 — 현재 시장의 미채점분만. fetchCandles가 currentMarket에 묶여 있어 시장을 섞을 수 없다.
+function _predScoreRun(mkt, onProg){
+  if(!window.SXLedger) return Promise.resolve({ err:'원장 미로드' });
+  if(typeof fetchCandles!=='function') return Promise.resolve({ err:'fetchCandles 없음' });
+  return SXLedger.list({ mkt:mkt, st:0 }).then(function(pend){
+    var byCode={}; pend.forEach(function(r){ (byCode[r.code]=byCode[r.code]||[]).push(r); });
+    var codes=Object.keys(byCode);
+    var R={ n:pend.length, codes:codes.length, scored:0, skipped:0, fail:0, why:{} };
+    var ci=0;
+    var step=function(){
+      if(ci>=codes.length) return Promise.resolve(R);
+      var code=codes[ci++];
+      try{ onProg && onProg({ i:ci, n:codes.length, code:code, scored:R.scored }); }catch(_){}
+      return Promise.resolve(fetchCandles(code, 600, 'day')).catch(function(){ return null; }).then(function(rows){
+        if(!rows||!rows.length){ R.fail+=byCode[code].length; R.why['캔들 없음']=(R.why['캔들 없음']||0)+byCode[code].length; return; }
+        var cl=rows.map(function(r){ return +(r.close!=null?r.close:r.c); });
+        var chain=Promise.resolve();
+        byCode[code].forEach(function(rec){
+          chain=chain.then(function(){
+            var idx=_predFindIdx(rows, rec.date);
+            if(idx<0){ R.skipped++; R.why['기준봉 없음']=(R.why['기준봉 없음']||0)+1; return; }
+            var A=_predActual(rec.q, cl, idx, rec.H);
+            if(!A.ok){ R.skipped++; R.why[A.why]=(R.why[A.why]||0)+1; return; }
+            return SXLedger.score(rec.key, A.val).then(function(){ R.scored++; })
+                   .catch(function(){ R.fail++; });
+          });
+        });
+        return chain;
+      }).then(step);
+    };
+    return step();
+  });
+}
+
+// ═══════════ [S1137] 조건검색탭 원장 패널 ═══════════
+window._sxPredPanel = window._sxPredPanel || { open:false, busy:false, msg:'', last:null };
+
+function _predPanelToggle(){ try{ _sxVib(8); }catch(_e){} window._sxPredPanel.open=!window._sxPredPanel.open; _predPanelRefresh(); }
+function _predPanelRefresh(){
+  var el=document.getElementById('sxPredPanel'); if(!el) return;
+  el.innerHTML=_predPanelHtml();
+  if(!window.SXLedger) return;
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+  Promise.all([SXLedger.dueCount(), SXLedger.list({mkt:mk,st:0}), SXLedger.stats({mkt:mk})])
+    .then(function(a){ window._sxPredPanel.last={ due:a[0], pend:a[1], stats:a[2], mkt:mk };
+      var e2=document.getElementById('sxPredPanel'); if(e2) e2.innerHTML=_predPanelHtml(); })
+    .catch(function(){});
+}
+function _predPanelScore(){
+  var P=window._sxPredPanel; if(P.busy) return;
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+  P.busy=true; P.msg='채점 준비중…'; _predPanelRefresh();
+  _predScoreRun(mk, function(p){ P.msg='채점중 '+p.i+'/'+p.n+' · '+p.code+' (완료 '+p.scored+')';
+    var e=document.getElementById('sxPredPanelMsg'); if(e) e.textContent=P.msg; })
+  .then(function(R){
+    P.busy=false;
+    P.msg = R.err ? ('실패: '+R.err)
+      : ('채점 '+R.scored+'건 완료 · 보류 '+R.skipped+'건'+(R.fail?(' · 실패 '+R.fail+'건'):'')
+         + (Object.keys(R.why||{}).length ? (' — '+Object.keys(R.why).map(function(k){return k+' '+R.why[k];}).join(', ')) : ''));
+    _predPanelRefresh();
+  }).catch(function(e){ P.busy=false; P.msg='실패: '+((e&&e.message)||e); _predPanelRefresh(); });
+}
+//  종목 클릭 → 분석탭. sx_screener.html의 sxSelectStock 패턴을 그대로 탄다(있으면 그 인덱스·없으면 push).
+function _predOpenStock(code, name){
+  try{ _sxVib(10); }catch(_e){}
+  try{
+    if(typeof sxSelectStock==='function'){ sxSelectStock(code, name||code, (typeof currentMarket!=='undefined'?currentMarket:'kr')); return; }
+    if(typeof searchResults!=='undefined' && typeof openAnalysis==='function'){
+      var ix=searchResults.findIndex(function(s){ return s.code===code; });
+      if(ix>=0){ openAnalysis(ix); return; }
+    }
+    if(typeof toast==='function') toast('종목 이동 불가');
+  }catch(e){ try{ if(typeof toast==='function') toast('이동 실패'); }catch(_){} }
+}
+
+function _predPanelHtml(){
+  var T3='var(--text3)', T2='var(--text2)', P=window._sxPredPanel, L=P.last;
+  if(!window.SXLedger){
+    return '<div style="margin:8px 0;padding:8px 10px;border-radius:9px;background:var(--surface);border:1px solid var(--border);font-size:10px;color:'+T3+'">🗂 예측 원장 — 저장소를 열 수 없습니다(시크릿 모드에선 비활성)</div>';
+  }
+  var due = L ? L.due : null;
+  var head = '<div onclick="_predPanelToggle()" style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:9px 11px">'
+    + '<span style="font-size:11px;font-weight:800;color:var(--text)">🗂 예측 원장</span>'
+    + (due ? '<span style="font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:999px;background:var(--accent);color:#fff">채점 대기 '+due+'</span>' : '')
+    + '<span style="margin-left:auto;font-size:10px;color:'+T3+'">'+(P.open?'▼':'▶')+'</span>'
+    + '</div>';
+  if(!P.open){
+    return '<div style="margin:8px 0;border-radius:9px;background:var(--surface);border:1px solid var(--border)">'+head+'</div>';
+  }
+
+  var body='';
+  // ── 집계 ──
+  if(L && L.stats && L.stats.length){
+    body += '<div style="font-size:9.5px;font-weight:800;color:'+T3+';margin:2px 0 4px">채점 결과 — '+L.mkt.toUpperCase()+'</div>';
+    body += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:9.5px">'
+      + '<tr style="color:'+T3+'"><th style="text-align:left;padding:2px 4px">축</th><th style="padding:2px 4px">n</th>'
+      + '<th style="padding:2px 4px">모델</th><th style="padding:2px 4px">나이브</th><th style="padding:2px 4px">이득</th><th style="padding:2px 4px">사람</th></tr>';
+    L.stats.forEach(function(g){
+      var ec = (g.edge==null)?T3:(g.edge>0?'#16a34a':(g.edge<0?'#e3493b':T3));
+      body += '<tr style="border-top:1px solid var(--border)">'
+        + '<td style="padding:3px 4px;color:var(--text2)">'+g.name+'</td>'
+        + '<td style="padding:3px 4px;text-align:center;color:'+T3+'">'+g.n+'</td>'
+        + '<td style="padding:3px 4px;text-align:center;font-weight:800;color:var(--text)">'+(g.hitPct!=null?g.hitPct.toFixed(0)+'%':'—')+'</td>'
+        + '<td style="padding:3px 4px;text-align:center;color:'+T2+'">'+(g.nhitPct!=null?g.nhitPct.toFixed(0)+'%':'—')+'</td>'
+        + '<td style="padding:3px 4px;text-align:center;font-weight:800;color:'+ec+'">'+(g.edge!=null?((g.edge>0?'+':'')+g.edge.toFixed(1)+'%p'):'—')+'</td>'
+        + '<td style="padding:3px 4px;text-align:center;color:'+T2+'">'+(g.hhitPct!=null?(g.hhitPct.toFixed(0)+'%<span style="color:'+T3+'">('+g.hn+')</span>'):'—')+'</td>'
+        + '</tr>';
+    });
+    body += '</table></div>';
+    body += '<div style="margin-top:5px;font-size:9px;color:'+T3+';line-height:1.6">'
+      + '★<b>이득</b>이 이 표의 전부다 — 모델이 나이브를 못 넘으면 카드 숫자는 장식이다. '
+      + '수명·손실 축의 나이브는 정의상 50%(중앙값이 자기를 넘을 수 없음)라 그게 정상 기저선이다.</div>';
+  } else {
+    body += '<div style="font-size:10px;color:'+T3+';padding:4px 0;line-height:1.6">아직 채점된 건이 없다. 분포 보드를 연 종목이 쌓이고 지평이 도달하면 여기에 나온다.</div>';
+  }
+
+  // ── 대기 목록 ──
+  if(L && L.pend && L.pend.length){
+    var show=L.pend.slice(0,12);
+    body += '<div style="font-size:9.5px;font-weight:800;color:'+T3+';margin:9px 0 3px">대기 '+L.pend.length+'건 (채점 임박순 · 상위 '+show.length+')</div>';
+    show.forEach(function(r){
+      var Qn=(SXLedger.Q[r.q]&&SXLedger.Q[r.q].name)||('q'+r.q);
+      body += '<div onclick="_predOpenStock(\''+r.code+'\')" style="display:flex;align-items:center;gap:6px;padding:4px 5px;border-top:1px solid var(--border);cursor:pointer">'
+        + '<span style="font-size:10px;font-weight:700;color:var(--text);min-width:56px">'+r.code+'</span>'
+        + '<span style="font-size:9.5px;color:'+T2+'">'+Qn+(r.H?(' H'+r.H):'')+'</span>'
+        + '<span style="font-size:9px;color:'+T3+'">'+r.date+'</span>'
+        + (r.human?'<span style="font-size:9px;color:var(--accent)">'+(r.human==='pass'?'패스':'픽')+'</span>':'')
+        + (r.intraday?'<span style="font-size:9px;color:#d97706">장중</span>':'')
+        + '<span style="margin-left:auto;font-size:9px;color:'+T3+'">'+_predDLabel(r)+'</span>'
+        + '</div>';
+    });
+    if(L.pend.length>show.length) body += '<div style="font-size:9px;color:'+T3+';padding:3px 5px">…외 '+(L.pend.length-show.length)+'건</div>';
+  }
+
+  // ── 실행 ──
+  body += '<div style="margin-top:9px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+    + '<button onclick="_predPanelScore()"'+(P.busy?' disabled':'')+' style="flex:1;min-width:130px;padding:8px;border-radius:7px;border:none;font-size:11px;font-weight:800;cursor:'+(P.busy?'wait':'pointer')+';background:'+(P.busy?'var(--surface2)':'var(--accent)')+';color:'+(P.busy?T3:'#fff')+'">'
+    +   (P.busy?'채점중…':'⚖ 지평 도달분 일괄 채점')+'</button>'
+    + '<button onclick="_predPanelRefresh()" style="padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:'+T2+';font-size:10px;font-weight:800;cursor:pointer">새로고침</button>'
+    + '</div>';
+  body += '<div id="sxPredPanelMsg" style="margin-top:5px;font-size:9.5px;color:'+T2+';line-height:1.6">'+(P.msg||'')+'</div>';
+  body += '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:9px;color:'+T3+';line-height:1.6">'
+    + '⚠ 채점은 <b>현재 시장('+((typeof currentMarket!=='undefined')?currentMarket.toUpperCase():'KR')+')</b>만 돈다 — 캔들 조회가 시장에 묶여 있다. 다른 시장은 탭을 바꾸고 다시 돌릴 것.<br>'
+    + 'D-표기는 <b>추정</b>이다(거래일 근사). 실제 도달 여부는 채점이 캔들로 확인하고, 미도달분은 "보류"로 남는다.</div>';
+
+  return '<div style="margin:8px 0;border-radius:9px;background:var(--surface);border:1px solid var(--border)">'
+    + head + '<div style="padding:0 11px 11px">'+body+'</div></div>';
 }
 
 function _buildDistBoardCard(stock, indicators){
   try{
+    try{ window._sxDbLast = { stock:stock, indicators:indicators }; }catch(_eL){}   // [S1136] 원장 응답 후 카드만 재렌더하기 위한 인자 보관
+
     var adv=(indicators&&indicators._advanced)?indicators._advanced:null;
     var rows=(adv&&Array.isArray(adv.rows))?adv.rows
            :((stock&&Array.isArray(stock._lastAnalCandles))?stock._lastAnalCandles:null);
@@ -5076,27 +5440,65 @@ function _buildDistBoardCard(stock, indicators){
     var V=_dbVol(cl,HV), S=_dbSlope(cl,HS), P=_dbSpell(cl);
     if(!V && !S && !P) return '';
     var T3='var(--text3)', T2='var(--text2)', GRN='#16a34a', RED='#dc2626', AMB='#d97706', BLU='#2563eb';
-    var sec=function(icon,name,head,sub,note){
+    var sec=function(icon,name,head,sub,note,gate){
       return '<div style="padding:8px 0;border-bottom:1px solid var(--border)">'
         + '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">'
         +   '<span style="font-size:10px;font-weight:800;color:'+T3+';min-width:44px">'+icon+' '+name+'</span>'
         +   '<span style="font-size:11.5px;font-weight:800;color:var(--text)">'+head+'</span>'
         + '</div>'
+        + (gate||'')
         + '<div style="margin-top:3px;font-size:10px;color:'+T2+';line-height:1.5">'+sub+'</div>'
         + (note?'<div style="margin-top:3px;font-size:9.5px;color:'+T3+';line-height:1.5">'+note+'</div>':'')
         + '</div>';
     };
+    // [S1136] 가려진 축 — 수치를 **만들지 않고** 게이트만 그린다(숨김이 아니라 미생성이어야 blind가 성립).
+    var secG=function(icon,name,gateHtml){
+      return '<div style="padding:8px 0;border-bottom:1px solid var(--border)">'
+        + '<div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:10px;font-weight:800;color:'+T3+';min-width:44px">'+icon+' '+name+'</span></div>'
+        + '<div style="margin-top:5px">'+gateHtml+'</div>'
+        + '</div>';
+    };
+    // [S1136] 예측 원장 슬롯 — 기준봉(마지막 확정봉) 기준으로 모델 예측을 자동 기록한다.
+    //   사람 예측은 게이트를 통과해야 수치가 열린다. 모델 기록은 사람 행동과 무관하게 진행된다.
+    var _pb=_predBase(rows), _code=(stock&&stock.code)||'';
+    var _gV=null,_gS=null,_gP=null,_kV=null,_kS=null,_kP=null;
+    if(_pb && _code && window.SXLedger){
+      if(V && V.base!=null){
+        _kV=SXLedger.key(_dbMkt,_code,_pb.date,1,HV);
+        _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:1,H:HV,pred:V.ratio,naive:V.base,
+                     aligned:(V.n>=80),ctx:{wNow:V.wNow},intraday:_pb.intraday,ver:window.SX_BUILD});
+        _gV=_predGate(_kV,1,'확대','축소');
+      }
+      if(S){
+        _kS=SXLedger.key(_dbMkt,_code,_pb.date,2,HS);
+        _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:2,H:HS,pred:S.sPred,naive:S.flipBase,
+                     aligned:(S.inCond===true),ctx:{s0:S.s0},intraday:_pb.intraday,ver:window.SX_BUILD});
+        _gS=_predGate(_kS,2,'뒤집힌다','유지된다');
+      }
+      if(P && P.golden && P.qs && P.medAll!=null){
+        _kP=SXLedger.key(_dbMkt,_code,_pb.date,4,0);
+        _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:4,H:0,pred:P.qs[P.qi].rem,naive:P.medAll,
+                     aligned:!P.few,ctx:{gap:P.gap,age:P.age},intraday:_pb.intraday,ver:window.SX_BUILD});
+        _gP=_predGate(_kP,4,'오래 간다','짧다');
+      }
+    }
     var body='';
     if(V){
+      if(_gV && !_gV.open){ body+=secG('📏','변동',_gV.gate); }
+      else{
       var dir=V.ratio>=0?'확대':'축소', dc=V.ratio>=0?AMB:BLU;
       body+=sec('📏','변동',
         '<span style="color:'+dc+'">'+dir+' 쪽 '+(V.ratio>=0?'+':'')+V.ratio.toFixed(0)+'%</span>'
         + ' <span style="font-size:10px;font-weight:600;color:'+T3+'">('+HV+'봉 후 밴드폭)</span>',
         '현재 밴드폭 <b>'+V.wNow.toFixed(1)+'%</b>'+(V.pctl!=null?' (이력 '+V.pctl+'%)':'')
         + ' · 과거 확대 기저 <b>'+(V.base!=null?V.base.toFixed(0):'—')+'%</b>',
-        '합성 회귀(폭 수준 + 폭 관성) · 3시장 실측 방향적중 <b>62~68%</b> vs 기저 49% · 표본 '+V.n+'봉');
+        '합성 회귀(폭 수준 + 폭 관성) · 3시장 실측 방향적중 <b>62~68%</b> vs 기저 49% · 표본 '+V.n+'봉',
+        (_gV?_gV.gate:''));
+      }
     }
     if(S){
+      if(_gS && !_gS.open){ body+=secG('📉','꺾임',_gS.gate); }
+      else{
       var soft=(S.s0>0&&S.sPred>0)||(S.s0<0&&S.sPred<0);
       body+=sec('📉','꺾임',
         '<span style="color:var(--text)">'+(S.s0>=0?'+':'')+S.s0.toFixed(1)+'% → '
@@ -5111,16 +5513,23 @@ function _buildDistBoardCard(stock, indicators){
             : (S.inCond === false
                 ? '⚠ 현재 이격 <b>'+S.advNow.toFixed(1)+'%</b>(이력 '+S.advPctl+'%) — <b>측정 조건 밖</b>이다. 3시장 80~81%는 '
                   + '<b>이격 상위 20%</b> 장면에서 잰 값이라 여기 그대로 적용되지 않는다. 참고용으로만 볼 것.'
-                : '이격 조건 판정 불가 — 참고용.')));
+                : '이격 조건 판정 불가 — 참고용.')),
+        (_gS?_gS.gate:''));
+      }
     }
     if(P&&P.golden&&P.qs){
+      if(_gP && !_gP.open){ body+=secG('⏳','수명',_gP.gate); }
+      else{
       var q=P.qs[P.qi];
       body+=sec('⏳','수명',
         '<span style="color:var(--text)">잔존 <b>'+q.rem.toFixed(0)+'봉</b> 부근</span>'
         + ' <span style="font-size:10px;font-weight:600;color:'+T3+'">(5×20 골든 · 갭 '+(P.qi+1)+'분위)</span>',
-        '현재 갭 <b>'+P.gap.toFixed(1)+'%</b> · 이 구간(' + q.lo.toFixed(1)+'~'+q.hi.toFixed(1)+'%) 과거 '+q.n+'회 평균',
+        '현재 갭 <b>'+P.gap.toFixed(1)+'%</b> · 이 구간(' + q.lo.toFixed(1)+'~'+q.hi.toFixed(1)+'%) 과거 '+q.n+'회 평균'
+        + (P.medAll!=null?' · 갭 무시 나이브 <b>'+P.medAll.toFixed(0)+'봉</b>':''),
         '⚠ <b>체류기간은 정보가 없다</b>(상관 −0.06) — 지금 '+P.age+'봉째라는 사실은 잔존을 말해주지 않는다. '
-        + '<b>갭을 봐야 한다</b>(순위상관 0.34 vs 상수 0.05 · 5분위 단조 9.9→18.5봉)');
+        + '<b>갭을 봐야 한다</b>(순위상관 0.34 vs 상수 0.05 · 5분위 단조 9.9→18.5봉)',
+        (_gP?_gP.gate:''));
+      }
     } else if(P&&P.golden){
       body+=sec('⏳','수명','표본 부족','5×20 골든 '+P.age+'봉째 · 갭 '+(P.gap!=null?P.gap.toFixed(1)+'%':'—'),'');
     } else if(P){
@@ -5144,6 +5553,16 @@ function _buildDistBoardCard(stock, indicators){
       + '<div style="margin-top:8px;font-size:9.5px;color:'+T3+';line-height:1.6">'
       +   '⚠ in-sample 기반 · C 판정·votes·시즌2 어디에도 반영되지 않는다. '
       +   '각 축의 계수는 <b>이 종목 과거</b>로 산출한다(라벨 확정분만).'
+      + '</div>'
+      // [S1136] 원장 안내 + 가림 토글. 가림을 끄면 사람 예측은 기록되지 않는다(blind 아닌 예측은 비교가 안 됨).
+      + '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+      +   '<span style="font-size:9px;color:'+T3+';line-height:1.5;flex:1;min-width:150px">'
+      +     '🗂 이 예측은 <b>원장</b>에 기록돼 지평 도달 후 채점된다 — 질의일이 항상 스냅 이후라 <b>표본외</b>다. '
+      +     (_pb ? ('기준봉 <b>'+_pb.date+'</b>'+(_pb.intraday?' · <span style="color:#d97706">장중 픽(태그됨)</span>':'')) : '기준봉 판정 불가')
+      +   '</span>'
+      +   '<button onclick="_predBlindToggle()" style="font-size:9px;font-weight:800;padding:3px 7px;border-radius:5px;cursor:pointer;'
+      +     'border:1px solid var(--border);background:var(--surface2);color:'+(_PRED_BLIND_ON?'var(--accent)':T3)+'">'
+      +     (_PRED_BLIND_ON?'🙈 가림 ON':'👁 가림 OFF') + '</button>'
       + '</div>';
     return _sxExpCard('sxDistBoardWrap','sxDistBoardWrap_b',_titleHtml,_rightHtml,_body);
   }catch(_e){ return ''; }
@@ -11838,7 +12257,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1134';   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1137';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
