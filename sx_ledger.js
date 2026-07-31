@@ -565,6 +565,64 @@
   }
 
   // ─────────────────────────────────────────────────────────
+  //  9c. 가져오기 [S1149] — **현재 기기가 항상 이긴다**
+  // ─────────────────────────────────────────────────────────
+  //  ★덮어쓰지 않는다. 같은 슬롯이 양쪽에 다르게 있으면 파일 쪽을 버리고 충돌로 보고만 한다.
+  //    덮어쓰기를 허용하는 순간 "사후에 유리한 값으로 바꾸기"가 가능해지고,
+  //    원장이 지켜온 불변식(예측 수정 불가)이 통째로 무너진다. 복원 편의보다 이게 위다.
+  //  ★그래서 가능한 것: 초기화 후 복원(전부 신규) · 기기 두 대 병합 · 옛 파일 실수 로드(무해)
+  //    가능하지 않은 것: 현재 기록을 파일 것으로 교체(그건 wipe 후 가져오기로, 의도적으로만)
+  //  ⚠파일을 손으로 고쳐 넣는 건 막지 못한다. 자기 연구 도구라 위협 모형 밖이다.
+  var _CMP_FIELDS = ['pred','naive','human','actual','st','void','truth','hit','nhit','hhit'];
+
+  function _sameRec(a, b) {
+    for (var i = 0; i < _CMP_FIELDS.length; i++) {
+      var f = _CMP_FIELDS[i], x = a[f], y = b[f];
+      if (x == null && y == null) continue;
+      if (typeof x === 'number' && typeof y === 'number') { if (Math.abs(x - y) > 1e-9) return false; continue; }
+      if (x !== y) return false;
+    }
+    return true;
+  }
+
+  function importAll(payload) {
+    return ready().then(function () {
+      if (!payload || payload.kind !== 'sx_pred_ledger_export') {
+        throw new Error('원장 내보내기 파일이 아니다 (kind 불일치)');
+      }
+      var recs = payload.records;
+      if (!Array.isArray(recs)) throw new Error('records 배열 없음');
+      var R = { total: recs.length, added: 0, same: 0, conflict: 0, invalid: 0, conflicts: [] };
+      var chain = Promise.resolve();
+      recs.forEach(function (rec) {
+        chain = chain.then(function () {
+          if (!rec || !rec.key || !rec.mkt || !rec.code || !rec.date || !Q[+rec.q]) { R.invalid++; return; }
+          if (rec.pred == null || rec.naive == null) { R.invalid++; return; }
+          return _tx(STORE, 'readwrite').then(function (o) {
+            return _wrap(o.s.get(rec.key)).then(function (cur) {
+              if (!cur) {
+                var row = {};
+                for (var k in rec) if (Object.prototype.hasOwnProperty.call(rec, k)) row[k] = rec[k];
+                row.imported = true;                       // 어디서 왔는지 남긴다
+                return _wrap(o.s.add(row)).then(function () { R.added++; })
+                       .catch(function () { R.invalid++; });
+              }
+              if (_sameRec(cur, rec)) { R.same++; return; }
+              R.conflict++;
+              if (R.conflicts.length < 50) {
+                R.conflicts.push({ key: rec.key,
+                  mine: { human: cur.human, actual: cur.actual, st: cur.st, pred: cur.pred, void: !!cur.void },
+                  file: { human: rec.human, actual: rec.actual, st: rec.st, pred: rec.pred, void: !!rec.void } });
+              }
+            });
+          });
+        });
+      });
+      return chain.then(function () { return R; });
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────
   //  10. 자가검증 — 로드 시 1회. 조용한 실패를 막는다(S526/S1127 선례).
   // ─────────────────────────────────────────────────────────
   function selfCheck() {
@@ -617,7 +675,7 @@
     voidRec: voidRec, voidOlderThan: voidOlderThan,
     selfCheck: selfCheck, _selfCheck: _sc,
     requestPersist: requestPersist, persistState: persistState, estimate: estimate,
-    dump: dump, wipe: wipe, exportAll: exportAll, _BIN_DESC: _BIN_DESC,
+    dump: dump, wipe: wipe, exportAll: exportAll, importAll: importAll, _BIN_DESC: _BIN_DESC,
     _todayKst: _todayKst, _d10: _d10,
     _BIN: _BIN, _MBIN: _MBIN, _NBIN: _NBIN
   };
