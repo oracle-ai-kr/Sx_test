@@ -5629,6 +5629,83 @@ function _predResultHtml(rows, stats){
     + '</div></div>';
 }
 
+// ═══════════ [S1147] 내보내기 — 원장을 이 기기 밖으로 꺼내는 유일한 경로 ═══════════
+//  원장은 IndexedDB에만 있어서, 분석하려면(또는 남에게 보여주려면) 파일/텍스트로 꺼내야 한다.
+//  ★백업이자 **통로**다. 내구성만의 문제가 아니라, 꺼내지 않으면 아무도 결과를 볼 수 없다.
+var _PRED_EXPORT_KEY='SX_PRED_LASTEXPORT';
+var _PRED_EXPORT_DAYS=30;      // 이 기간 지나면 패널에 백업 알림
+
+function _predExportConsts(){
+  return { MAE_TOPQ:(typeof _MAE_TOPQ!=='undefined'?_MAE_TOPQ:null),
+           MAE_HS:(typeof _MAE_HS!=='undefined'?_MAE_HS:null),
+           MAE_B_FALLBACK:(typeof _MAE_B_FALLBACK!=='undefined'?_MAE_B_FALLBACK:null),
+           DB_ADV_CUT:(typeof _DB_ADV_CUT!=='undefined'?_DB_ADV_CUT:null),
+           SPELL_CAP:(typeof _DB_SPELL_CAP!=='undefined'?_DB_SPELL_CAP:null) };
+}
+function _predMarkExported(){
+  try{ localStorage.setItem(_PRED_EXPORT_KEY, SXLedger._todayKst()); }catch(_e){}
+}
+function _predExportAgeDays(){
+  try{
+    var d=localStorage.getItem(_PRED_EXPORT_KEY); if(!d) return null;   // null = 한 번도 안 함
+    var t=Date.parse(d+'T00:00:00Z'), now=Date.parse(SXLedger._todayKst()+'T00:00:00Z');
+    if(isNaN(t)||isNaN(now)) return null;
+    return Math.round((now-t)/86400000);
+  }catch(_e){ return null; }
+}
+
+function _predExportFile(){
+  if(!window.SXLedger) return;
+  try{ _sxVib(12); }catch(_e){}
+  var P=window._sxPredPanel; P.msg='내보내는 중…'; _predPanelRefresh();
+  SXLedger.exportAll({ build:(window.SX_BUILD||null), consts:_predExportConsts() }).then(function(payload){
+    var txt=JSON.stringify(payload, null, 1);
+    var name='sx_ledger_'+SXLedger._todayKst().replace(/-/g,'')+'_'+payload.counts.total+'건.json';
+    var blob=new Blob([txt], {type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download=name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ try{ document.body.removeChild(a); URL.revokeObjectURL(url); }catch(_){} }, 1500);
+    _predMarkExported();
+    P.msg='내보냄: '+name+' ('+Math.round(txt.length/1024)+'KB · 폐기·회전집계 포함)';
+    _predPanelRefresh();
+  }).catch(function(e){ P.msg='내보내기 실패: '+((e&&e.message)||e); _predPanelRefresh(); });
+}
+
+//  요약 — 채팅에 바로 붙일 수 있는 짧은 텍스트. 원자료가 아니라 "지금 어떻게 되고 있나"용.
+function _predExportSummary(){
+  if(!window.SXLedger) return;
+  try{ _sxVib(10); }catch(_e){}
+  var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+  Promise.all([SXLedger.stats({mkt:mk}), SXLedger.list({mkt:mk, includeVoid:true})]).then(function(a){
+    var st=a[0]||[], all=a[1]||[];
+    var nVoid=0,nPick=0,nPass=0,nIntra=0,nPend=0,nForm=0,nUnform=0;
+    all.forEach(function(r){ if(r.void){nVoid++;return;}
+      if(r.human==='pass') nPass++; else if(r.human!=null) nPick++;
+      if(r.intraday) nIntra++; if(r.st!==1) nPend++;
+      if(r.formed===true) nForm++; else if(r.formed===false) nUnform++; });
+    var L=['SIGNAL X 예측원장 · '+mk.toUpperCase()+' · '+SXLedger._todayKst()+' · build '+(window.SX_BUILD||'?')];
+    if(!st.length) L.push('채점된 건 없음 (대기 '+nPend+'건)');
+    st.forEach(function(g){
+      L.push('q'+g.q+' '+g.name+' n='+g.n
+        +' 모델 '+(g.hitPct!=null?g.hitPct.toFixed(1)+'%':'—')
+        +' 나이브 '+(g.nhitPct!=null?g.nhitPct.toFixed(1)+'%':'—')
+        +' 이득 '+(g.edge!=null?((g.edge>0?'+':'')+g.edge.toFixed(1)+'%p'):'—')
+        +(g.hhitPct!=null?(' 사람 '+g.hhitPct.toFixed(1)+'%('+g.hn+')'):'')
+        +' | 오차 모델 '+(g.mae!=null?g.mae.toFixed(2):'—')+' 나이브 '+(g.nmae!=null?g.nmae.toFixed(2):'—'));
+    });
+    L.push('픽 '+nPick+' · 패스 '+nPass+' · 대기 '+nPend+' · 폐기 '+nVoid
+         +' | 당일픽 '+nIntra+' · 확정봉 '+nForm+'/미확정 '+nUnform);
+    L.push('※ 라벨 겹침 미보정 — 같은 종목 잦은 재방문 시 유효표본 < n');
+    var txt=L.join('\n');
+    var P=window._sxPredPanel;
+    var done=function(){ P.msg='요약 복사됨 — 채팅에 붙여넣으면 된다'; _predPanelRefresh(); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(function(){ P.msg=txt; _predPanelRefresh(); });
+    } else { P.msg=txt; _predPanelRefresh(); }
+  }).catch(function(e){ window._sxPredPanel.msg='요약 실패: '+((e&&e.message)||e); _predPanelRefresh(); });
+}
+
 function _predPanelVoidOld(){
   if(!window.SXLedger) return;
   try{ _sxVib(12); }catch(_e){}
@@ -5750,6 +5827,17 @@ function _predPanelHtml(){
   body += '<div style="margin-top:5px"><button onclick="_predPanelVoidOld()" style="width:100%;padding:'+(_oldN?'9px':'6px')+';border-radius:6px;border:1px solid '+(_oldN?'#e3493b':'var(--border)')+';background:'+(_oldN?'#e3493b':'var(--surface2)')+';color:'+(_oldN?'#fff':T3)+';font-size:9.5px;font-weight:'+(_oldN?'800':'700')+';cursor:pointer">'
     + (_oldN?('🗑 구버전 '+_oldN+'건 폐기 필요 — 기준봉 규칙이 달라 채점되지 않는다'):'🗑 구버전(S1139 이전) 기록 폐기')
     + '</button></div>';
+  // [S1147] 내보내기 — 파일(원자료·분석용) + 요약(채팅 붙여넣기용)
+  body += '<div style="margin-top:6px;display:flex;gap:6px">'
+    + '<button onclick="_predExportFile()" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:'+T2+';font-size:10px;font-weight:800;cursor:pointer">⬇ 원장 파일 내보내기</button>'
+    + '<button onclick="_predExportSummary()" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:'+T2+';font-size:10px;font-weight:800;cursor:pointer">📋 요약 복사</button>'
+    + '</div>';
+  var _ageD=_predExportAgeDays(), _tot=(L&&L.total)||0;
+  if(_tot>0 && (_ageD==null || _ageD>=_PRED_EXPORT_DAYS)){
+    body += '<div style="margin-top:5px;padding:7px 9px;border-radius:7px;background:#fef3c7;border:1px solid #fcd34d;font-size:9.5px;color:#92400e;line-height:1.6">'
+      + '⚠ '+(_ageD==null?'한 번도 백업하지 않았다':(_ageD+'일째 백업하지 않았다'))+' — 원장은 이 기기에만 있고, '
+      + '사이트 데이터를 지우면 <b>사람 픽은 복원되지 않는다</b>(모델 예측은 캔들로 재계산 가능).</div>';
+  }
   body += '<div id="sxPredPanelMsg" style="margin-top:5px;font-size:9.5px;color:'+T2+';line-height:1.6">'+(P.msg||'')+'</div>';
   body += '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:9px;color:'+T3+';line-height:1.6">'
     + '⚠ 채점은 <b>현재 시장('+((typeof currentMarket!=='undefined')?currentMarket.toUpperCase():'KR')+')</b>만 돈다 — 캔들 조회가 시장에 묶여 있다. 다른 시장은 탭을 바꾸고 다시 돌릴 것.<br>'
@@ -12639,7 +12727,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1146';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1147';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
