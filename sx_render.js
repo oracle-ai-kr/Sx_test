@@ -4979,7 +4979,7 @@ function _dbVol(cl, H){
     var w=[0,0,0];
     for(r=2;r>=0;r--){ var sm=A[r][3]; for(c=r+1;c<3;c++) sm-=A[r][c]*w[c]; w[r]=sm/A[r][r]; }
     var pred=w[0]+w[1]*relNow+w[2]*prevNow;
-    return { pred:pred, ratio:(Math.exp(pred)-1)*100, wNow:W[n-1], relNow:relNow,
+    return { pred:pred, ratio:(Math.exp(pred)-1)*100, wNow:W[n-1], relNow:relNow, prevNow:prevNow,   // [S1138] prevNow=폭 관성(2번째 회귀 입력) — 원장 ctx에 남긴다
              base:tot? up/tot*100 : null, n:obs.length,
              pctl: (function(){ var h2=[]; for(var q=0;q<n;q++) if(W[q]!=null&&W[q]>0) h2.push(W[q]);
                     h2.sort(function(x,y){return x-y;}); var lt=0;
@@ -5171,6 +5171,17 @@ function _predEnsure(rec){
   }catch(_e){ return 'nolib'; }
 }
 
+//  [S1138] ctx 정규화 — 실수는 소수 3자리로 자르고 null/NaN은 뺀다.
+//  ★왜 실수까지 남기나: `aligned` 불리언만 남기면 "조건 안/밖"은 알아도 "얼마나 안쪽인지"를 잃는다.
+//    나중에 "이격이 극단일 때 특히 틀렸나" 같은 질문이 오면 답할 데이터가 없다(알갱이 원칙).
+//    지금 안 넣으면 옛 레코드엔 영영 없어서 구간이 갈린다 — 쌓이기 전에 넣는 게 싸다.
+function _predCtx(o){
+  var out={}, k, v;
+  for(k in o){ if(!Object.prototype.hasOwnProperty.call(o,k)) continue;
+    v=o[k]; if(v==null || (typeof v==='number' && !isFinite(v))) continue;
+    out[k]=(typeof v==='number') ? Math.round(v*1000)/1000 : v; }
+  return Object.keys(out).length ? out : null;
+}
 function _predPick(k, choice){
   try{ _sxVib(6); }catch(_e){}
   window._sxPredDraft[k] = choice;
@@ -5320,8 +5331,10 @@ function _predPanelRefresh(){
   el.innerHTML=_predPanelHtml();
   if(!window.SXLedger) return;
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
-  Promise.all([SXLedger.dueCount(), SXLedger.list({mkt:mk,st:0}), SXLedger.stats({mkt:mk})])
-    .then(function(a){ window._sxPredPanel.last={ due:a[0], pend:a[1], stats:a[2], mkt:mk };
+  Promise.all([SXLedger.dueCount(), SXLedger.list({mkt:mk,st:0}), SXLedger.stats({mkt:mk}),
+               SXLedger.requestPersist(), SXLedger.estimate(), SXLedger.list({})])
+    .then(function(a){ window._sxPredPanel.last={ due:a[0], pend:a[1], stats:a[2], mkt:mk,
+                                                  persist:a[3], est:a[4], total:(a[5]||[]).length };
       var e2=document.getElementById('sxPredPanel'); if(e2) e2.innerHTML=_predPanelHtml(); })
     .catch(function(){});
 }
@@ -5422,6 +5435,17 @@ function _predPanelHtml(){
     + '⚠ 채점은 <b>현재 시장('+((typeof currentMarket!=='undefined')?currentMarket.toUpperCase():'KR')+')</b>만 돈다 — 캔들 조회가 시장에 묶여 있다. 다른 시장은 탭을 바꾸고 다시 돌릴 것.<br>'
     + 'D-표기는 <b>추정</b>이다(거래일 근사). 실제 도달 여부는 채점이 캔들로 확인하고, 미도달분은 "보류"로 남는다.</div>';
 
+  // [S1138] 내구성 — 원장은 이 기기 브라우저 안에만 있다. 조용히 증발할 수 있는 자리라 상태를 항상 보여준다.
+  var pz=L&&L.persist, ez=L&&L.est;
+  var pOn=pz&&pz.ok;
+  body += '<div style="margin-top:5px;padding:6px 8px;border-radius:7px;background:var(--surface2);font-size:9px;color:'+T3+';line-height:1.6">'
+    + '<b style="color:'+(pOn?'#16a34a':'#e3493b')+'">'+(pOn?'🔒 저장 보호 ON':'⚠ 저장 보호 OFF')+'</b> — '
+    + (pOn ? '저장공간 부족에 의한 <b>자동 삭제</b>는 막힌다. 다만 사용자가 직접 지우는 경로(사이트 데이터 삭제·앱 재설치)는 그대로다.'
+           : ('자동 삭제 방어 실패'+((pz&&pz.why)?(' ('+pz.why+')'):'')+' — 지금은 언제든 증발할 수 있다.'))
+    + '<br>이 기기 브라우저에만 저장된다(서버·동기화 없음). 총 '+((L&&L.total!=null)?L.total:'—')+'건'
+    + (ez&&ez.usage!=null ? (' · origin 사용량 '+(ez.usage/1048576).toFixed(1)+'MB'+(ez.quota?(' / '+(ez.quota/1048576).toFixed(0)+'MB'):'')) : '')
+    + '</div>';
+
   return '<div style="margin:8px 0;border-radius:9px;background:var(--surface);border:1px solid var(--border)">'
     + head + '<div style="padding:0 11px 11px">'+body+'</div></div>';
 }
@@ -5466,19 +5490,19 @@ function _buildDistBoardCard(stock, indicators){
       if(V && V.base!=null){
         _kV=SXLedger.key(_dbMkt,_code,_pb.date,1,HV);
         _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:1,H:HV,pred:V.ratio,naive:V.base,
-                     aligned:(V.n>=80),ctx:{wNow:V.wNow},intraday:_pb.intraday,ver:window.SX_BUILD});
+                     aligned:(V.n>=80),ctx:_predCtx({wNow:V.wNow,rel:V.relNow,prev:V.prevNow,pctl:V.pctl,n:V.n}),intraday:_pb.intraday,ver:window.SX_BUILD});
         _gV=_predGate(_kV,1,'확대','축소');
       }
       if(S){
         _kS=SXLedger.key(_dbMkt,_code,_pb.date,2,HS);
         _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:2,H:HS,pred:S.sPred,naive:S.flipBase,
-                     aligned:(S.inCond===true),ctx:{s0:S.s0},intraday:_pb.intraday,ver:window.SX_BUILD});
+                     aligned:(S.inCond===true),ctx:_predCtx({s0:S.s0,delta:S.delta,adv:S.advNow,advPctl:S.advPctl,n:S.n}),intraday:_pb.intraday,ver:window.SX_BUILD});
         _gS=_predGate(_kS,2,'뒤집힌다','유지된다');
       }
       if(P && P.golden && P.qs && P.medAll!=null){
         _kP=SXLedger.key(_dbMkt,_code,_pb.date,4,0);
         _predEnsure({mkt:_dbMkt,code:_code,date:_pb.date,q:4,H:0,pred:P.qs[P.qi].rem,naive:P.medAll,
-                     aligned:!P.few,ctx:{gap:P.gap,age:P.age},intraday:_pb.intraday,ver:window.SX_BUILD});
+                     aligned:!P.few,ctx:_predCtx({gap:P.gap,age:P.age,qi:P.qi,n:P.n}),intraday:_pb.intraday,ver:window.SX_BUILD});
         _gP=_predGate(_kP,4,'오래 간다','짧다');
       }
     }
@@ -12257,7 +12281,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1137';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1138';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
