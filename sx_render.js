@@ -5132,21 +5132,27 @@ function _predBlindToggle(){
 window._sxPredCache = window._sxPredCache || {};   // ledgerKey -> rec | 'none' | 'busy'
 window._sxPredDraft = window._sxPredDraft || {};   // ledgerKey -> 'yes'|'no'|'pass'  (예비 선택 · 미기록)
 
-//  기준봉 판정 (§10) — 오늘 봉이 아직 형성 중이면 마지막 **확정**봉은 그 전 봉이고, 픽은 intraday.
-//  장중 픽을 막지 않고 태그만 단다: 새는 것을 막는 대신 측정 대상으로 전환한다.
+//  기준봉 판정 — [S1139] **시계를 보지 않는다. 데이터의 마지막 봉이 곧 기준봉이다.**
+//
+//  ★왜 시계를 뺐나 (S1136~S1138 접근 폐기):
+//    처음엔 "오늘 봉이 형성 중이면 전 봉을 기준으로" 잡았다. 그런데 카드는 rows 전체로 계산하므로
+//    **모델이 계산한 봉(n-1)과 원장에 박은 봉(n-2)이 갈렸다.** 채점은 후자에서 5봉을 세니 한 봉이 밀린다.
+//    이걸 시각 판정(마감시각·정착여유·서머타임·업비트 09:00 경계)으로 메우려 했는데, 그건 없어도 될
+//    복잡도였다. 마지막 봉을 그대로 쓰면 **계산 인덱스 = 채점 인덱스**가 항상 성립해 어긋날 여지가 없다.
+//    9/14 정규장 연장처럼 마감 개념이 계속 움직여도 이 로직은 영향을 안 받는다.
+//
+//  ⚠남는 것: 그 봉이 아직 형성 중이면 모델은 **미완성 봉**으로 계산하고 채점은 **완성된 봉**으로 잰다.
+//    이건 막지 않고 `intraday`(당일픽)로 태그만 한다 — §10대로 새는 건 막는 대신 측정 대상으로 돌린다.
+//    나중에 "당일픽이 익일픽보다 나쁜가"를 원장이 직접 답할 수 있다.
+//  ⚠태그 한계: 코인은 봉이 다음날 09:00에 닫히므로 00~09시엔 형성 중인데도 익일픽으로 찍힌다.
+//    인덱스는 여전히 맞으므로 **정확도 문제가 아니라 태그 문제**다.
 function _predBase(rows){
   try{
     if(!Array.isArray(rows) || !rows.length) return null;
     var _dOf=function(r){ return String((r && (r.date!=null?r.date:(r.t!=null?r.t:r.d))) || ''); };
-    var last=rows[rows.length-1], d=_dOf(last);
+    var d=_dOf(rows[rows.length-1]);
     if(!d) return null;
-    var forming = (typeof _btIsToday==='function') ? _btIsToday(d) : false;
-    if(forming){
-      if(rows.length<2) return null;
-      var pd=_dOf(rows[rows.length-2]);
-      return pd ? { date:pd, intraday:true } : null;
-    }
-    return { date:d, intraday:false };
+    return { date:d.slice(0,10), intraday:(typeof _btIsToday==='function') ? _btIsToday(d) : false };
   }catch(_e){ return null; }
 }
 
@@ -5232,7 +5238,7 @@ function _predGate(k, q, yesTxt, noTxt){
     var col = rec.human==='pass' ? T3 : 'var(--accent)';
     return { open:true, gate:'<div style="margin-bottom:5px;font-size:10px;color:'+T2+'">'
       + '내 예측: <b style="color:'+col+'">'+lbl+'</b> · 잠김'
-      + (rec.intraday?' · <span style="color:#d97706">장중</span>':'')
+      + (rec.intraday?' · <span style="color:#d97706">당일픽</span>':'')
       + ' · <span style="color:'+T3+'">'+_predDLabel(rec)+'</span></div>' };
   }
   // 미기록 → 가린 채 3선택
@@ -5365,6 +5371,14 @@ function _predOpenStock(code, name){
   }catch(e){ try{ if(typeof toast==='function') toast('이동 실패'); }catch(_){} }
 }
 
+function _predPanelVoidOld(){
+  if(!window.SXLedger) return;
+  try{ _sxVib(12); }catch(_e){}
+  var P=window._sxPredPanel; P.msg='폐기 처리중…'; _predPanelRefresh();
+  SXLedger.voidOlderThan('S1139','기준봉 규칙 변경(S1139) — 계산 봉과 기록 봉 불일치')
+    .then(function(R){ P.msg=R.voided+'건 폐기됨 (삭제 아님 · 사유 기록됨)'; _predPanelRefresh(); })
+    .catch(function(e){ P.msg='폐기 실패: '+((e&&e.message)||e); _predPanelRefresh(); });
+}
 function _predPanelHtml(){
   var T3='var(--text3)', T2='var(--text2)', P=window._sxPredPanel, L=P.last;
   if(!window.SXLedger){
@@ -5417,7 +5431,7 @@ function _predPanelHtml(){
         + '<span style="font-size:9.5px;color:'+T2+'">'+Qn+(r.H?(' H'+r.H):'')+'</span>'
         + '<span style="font-size:9px;color:'+T3+'">'+r.date+'</span>'
         + (r.human?'<span style="font-size:9px;color:var(--accent)">'+(r.human==='pass'?'패스':'픽')+'</span>':'')
-        + (r.intraday?'<span style="font-size:9px;color:#d97706">장중</span>':'')
+        + (r.intraday?'<span style="font-size:9px;color:#d97706">당일픽</span>':'')
         + '<span style="margin-left:auto;font-size:9px;color:'+T3+'">'+_predDLabel(r)+'</span>'
         + '</div>';
     });
@@ -5430,6 +5444,8 @@ function _predPanelHtml(){
     +   (P.busy?'채점중…':'⚖ 지평 도달분 일괄 채점')+'</button>'
     + '<button onclick="_predPanelRefresh()" style="padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:'+T2+';font-size:10px;font-weight:800;cursor:pointer">새로고침</button>'
     + '</div>';
+  // [S1139] 기준봉 규칙 변경 전(S1139 미만) 레코드 폐기. 계산 봉과 기록 봉이 갈려 있어 채점해도 무의미하다.
+  body += '<div style="margin-top:5px"><button onclick="_predPanelVoidOld()" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:'+T3+';font-size:9.5px;font-weight:700;cursor:pointer">🗑 구버전(S1139 이전) 기록 폐기 — 기준봉 규칙이 달라 채점 불가</button></div>';
   body += '<div id="sxPredPanelMsg" style="margin-top:5px;font-size:9.5px;color:'+T2+';line-height:1.6">'+(P.msg||'')+'</div>';
   body += '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:9px;color:'+T3+';line-height:1.6">'
     + '⚠ 채점은 <b>현재 시장('+((typeof currentMarket!=='undefined')?currentMarket.toUpperCase():'KR')+')</b>만 돈다 — 캔들 조회가 시장에 묶여 있다. 다른 시장은 탭을 바꾸고 다시 돌릴 것.<br>'
@@ -5582,7 +5598,7 @@ function _buildDistBoardCard(stock, indicators){
       + '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
       +   '<span style="font-size:9px;color:'+T3+';line-height:1.5;flex:1;min-width:150px">'
       +     '🗂 이 예측은 <b>원장</b>에 기록돼 지평 도달 후 채점된다 — 질의일이 항상 스냅 이후라 <b>표본외</b>다. '
-      +     (_pb ? ('기준봉 <b>'+_pb.date+'</b>'+(_pb.intraday?' · <span style="color:#d97706">장중 픽(태그됨)</span>':'')) : '기준봉 판정 불가')
+      +     (_pb ? ('기준봉 <b>'+_pb.date+'</b>'+(_pb.intraday?' · <span style="color:#d97706">당일픽(태그됨)</span>':'')) : '기준봉 판정 불가')
       +   '</span>'
       +   '<button onclick="_predBlindToggle()" style="font-size:9px;font-weight:800;padding:3px 7px;border-radius:5px;cursor:pointer;'
       +     'border:1px solid var(--border);background:var(--surface2);color:'+(_PRED_BLIND_ON?'var(--accent)':T3)+'">'
@@ -12281,7 +12297,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1138';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1139';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
