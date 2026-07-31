@@ -54,7 +54,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=488"></script><!-- [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) -->
+<script src="sx_render.js?v=489"></script><!-- [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -11541,6 +11541,8 @@ function loadAnalParamsUI(){
   if(typeof _syncParamModeButtons === 'function') _syncParamModeButtons();
   _renderScanParamSummary(); // S100: 조건검색탭 파라미터 요약 갱신
   if(typeof _predPanelRefresh === 'function') _predPanelRefresh();   // [S1137] 예측 원장 패널 최초 렌더
+  // [S1144] 내 픽 자동 채점 — 하루 1회·백그라운드. 시작을 막지 않도록 지연 실행.
+  setTimeout(function(){ try{ if(typeof _predAutoScore==='function') _predAutoScore(); }catch(_){} }, 2500);
 }
 
 function updateAnalParamBadge(){
