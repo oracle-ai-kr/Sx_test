@@ -510,6 +510,61 @@
   }
 
   // ─────────────────────────────────────────────────────────
+  //  9b. 내보내기 [S1147] — **파일만 보고 해석이 되어야 한다**
+  // ─────────────────────────────────────────────────────────
+  //  원장은 이 기기 IndexedDB에만 있다. 분석하려면 파일로 꺼내는 경로가 유일하다.
+  //  ★자기서술: 몇 달 뒤에 코드베이스 없이 이 JSON만 열어도 해석되도록 정의·상수·규칙을 같이 넣는다.
+  //    (질문 정의·이진화 규칙·aligned 판정에 쓴 상수·회전으로 삭제된 분의 집계)
+  //  ★폐기분도 포함한다 — 빠지면 "표본이 왜 줄었나"를 설명할 수 없다.
+  var _BIN_DESC = {
+    1: { event:'H봉 뒤 밴드폭이 넓어진다', truth:'actual > 0', model:'pred > 0', naive:'naive >= 50 (기저율%)' },
+    2: { event:'H봉 뒤 MA5 기울기 부호가 뒤집힌다', truth:'sign(actual) !== sign(ctx.s0)', model:'sign(pred) !== sign(ctx.s0)', naive:'naive >= 50 (기저율%)' },
+    4: { event:'다음 데드크로스까지 나이브(중앙 잔존봉수)보다 오래 간다', truth:'actual > naive', model:'pred > naive', naive:'항상 false — 중앙값이 자기를 넘을 수 없다(정의상 50% 동전)' },
+    5: { event:'H봉 안 최대낙폭이 나이브(과거 평균 MAE)보다 깊다', truth:'actual > naive', model:'pred > naive', naive:'항상 false — 위와 같은 이유' }
+  };
+
+  function exportAll(extra) {
+    return Promise.all([
+      list({ includeVoid: true }),
+      Promise.all(Object.keys(Q).map(function (q) { return rolled(q); }))
+    ]).then(function (a) {
+      var recs = a[0] || [], rolls = (a[1] || []).filter(Boolean);
+      var c = { total: recs.length, scored: 0, picked: 0, pass: 0, voided: 0, intraday: 0 };
+      recs.forEach(function (r) {
+        if (r.st === 1) c.scored++;
+        if (r.human === 'pass') c.pass++; else if (r.human != null) c.picked++;
+        if (r.void) c.voided++;
+        if (r.intraday) c.intraday++;
+      });
+      return {
+        kind: 'sx_pred_ledger_export', schema: 1,
+        exportedAt: new Date().toISOString(),
+        ledgerVer: VER, baseRuleVer: BASE_RULE_VER, capPerQ: CAP_PER_Q,
+        build: (extra && extra.build) || null,
+        defs: {
+          questions: Q,
+          binarization: _BIN_DESC,
+          note: '판정은 전부 저장된 pred/naive/ctx로 이뤄진다. 채점은 추가만 하며 pred는 수정 불가.',
+          fields: {
+            pred: '기록 시점 모델 예측(연속값)', naive: '기록 시점 나이브값',
+            actual: '지평 도달 후 실측', truth: '사건 발생 여부', hit: '모델 적중', nhit: '나이브 적중',
+            hhit: '사람 적중(pass는 null)', err: '|actual-pred|', nerr: '|actual-naive|',
+            aligned: '측정 조건 안인가(질문별 의미 상이 — q2=이격 컷 이상, q5=외삽 아님, q1=표본 충분)',
+            intraday: '봉 날짜와 픽 날짜가 같음(당일픽). KST 달력 비교라 US/COIN에선 부정확 — formed를 볼 것',
+            formed: '픽 당시 기준봉이 이미 확정이었나(ctx.c0 vs post.c0Final 종가 일치로 판정)',
+            ctx: '기록 시점 부가값', post: '채점 시점 실측 부가값', ver: '기록한 빌드',
+            'void/voidWhy': '폐기 표시와 사유 — 삭제하지 않는다'
+          },
+          consts: (extra && extra.consts) || null
+        },
+        counts: c,
+        rolled: rolls,
+        records: recs
+      };
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────
   //  10. 자가검증 — 로드 시 1회. 조용한 실패를 막는다(S526/S1127 선례).
   // ─────────────────────────────────────────────────────────
   function selfCheck() {
@@ -562,7 +617,7 @@
     voidRec: voidRec, voidOlderThan: voidOlderThan,
     selfCheck: selfCheck, _selfCheck: _sc,
     requestPersist: requestPersist, persistState: persistState, estimate: estimate,
-    dump: dump, wipe: wipe,
+    dump: dump, wipe: wipe, exportAll: exportAll, _BIN_DESC: _BIN_DESC,
     _todayKst: _todayKst, _d10: _d10,
     _BIN: _BIN, _MBIN: _MBIN, _NBIN: _NBIN
   };
