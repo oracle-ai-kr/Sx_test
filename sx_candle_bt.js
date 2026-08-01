@@ -38,12 +38,26 @@
   };
   var _repBankCache = {};   // 'mkt|tf|win' → { bank, W, win, donors:[names], ts } — 세션 재사용
   var _rows600Cache = {};   // [S637] 'mkt|tf|code' → 600봉 screener rows | null. 카드 kNN/게이트를 검증툴과 동일 600봉 기준으로 통일.
+  // ── [S1159] 목표 미달본 잠정 슬롯 ──
+  //  증상: 원래 600봉을 받던 종목이 세션 중 400봉으로 굳어 새로고침 전까지 안 풀림.
+  //  원인: 기존 코드가 `비어있지만 않으면` 무조건 _rows600Cache에 **확정** 저장했고(길이 미검사),
+  //        조회 가드(`!==undefined`)가 그걸 영구히 돌려줬다. 재요청 경로가 없다.
+  //  파장: 통계판만이 아니다 — kNN·캔들전이·단기추세가 같은 진입점을 쓴다. S637이 kNN을 600봉으로
+  //        통일한 이유가 "분석 rows 200/500봉이라 self-hit 왜곡"인데, 400봉이 박히면 그 왜곡이
+  //        **화면 표시 없이** 되살아난다. 조용한 실패(S526 계열).
+  //  처방: 목표 미달(_floor 미만)이면 확정하지 않고 잠정 보관 → 다음 호출에서 1회만 재요청.
+  //        2회차에 긴 쪽을 채택하고 그때 확정한다. 상장이 짧은 종목은 2회차도 같은 길이라 그대로 굳는다.
+  //        비용 상한 = 종목당 추가 fetch 1회. null(완전 실패)도 길이 0이라 같은 경로로 1회 재시도된다.
+  var _rows600Prov = {};    // 'key' → 1회차 결과(rows|null). 확정되면 삭제.
+  var _rows600Dbg  = { retry:0, rescued:0, stuck:0 };   // 관측용 — 재시도 수 / 길어진 수 / 2회차도 미달
+  try{ if(typeof window!=='undefined') window._sxR600Dbg=_rows600Dbg; }catch(_e0){}
 
   // ── [S847] 캔들 스냅샷 모드 — 발굴풀 캔들을 파일(GitHub Pages)로 냉동해 재현 측정. ON=fetchRows600 캐시 전용(미수록 종목 null=측정 제외, live 폴백 없음 → 냉동/라이브 섞임 원천 차단). 세션 한정(새로고침=OFF). OFF시 프리로드 키 퍼지. ──
   var _snapMode=false, _snapKeys=[], _snapMeta={}, _snapSrc={}, _snapKeySet={};   // [S1078] _snapSrc: mkt → {code:'disc'|'oos'} / [S1080] _snapKeySet: 스냅 주입 키 O(1) 판별   // _snapMeta: mkt → {date, n, file}
   function _snapSet(on){
     _snapMode=!!on;
     if(!_snapMode){ _snapKeys.forEach(function(k){ delete _rows600Cache[k]; }); _snapKeys=[]; _snapMeta={}; _snapSrc={}; _snapKeySet={}; }   // [S1078]·[S1080]
+    _rows600Prov = {};   // [S1159] 냉동/라이브 전환 시 잠정본은 버린다(섞임 방지 — S1080과 같은 이유)
   }
   function _snapPreload(mk, tf, stocks, meta){   // stocks: {code:{name, rows:[[date,o,h,l,c,v],...]}} → 스크리너 행 복원 후 캐시 주입
     mk=_normMkt(mk); tf=tf||'day'; var n=0;
@@ -88,7 +102,22 @@
       } catch(e2){ r2=null; }
       if(Array.isArray(r2) && (!Array.isArray(r) || r2.length>r.length)) r=r2;   // 더 긴 쪽 채택(짧은 종목은 가용 최대)
     }
-    _rows600Cache[key] = (Array.isArray(r)&&r.length)? r : null;
+    // [S1159] 확정 vs 잠정 — 길이를 본다. (기존: 비어있지만 않으면 무조건 확정 → 400봉 고착)
+    var _len = (Array.isArray(r)&&r.length) ? r.length : 0;
+    var _isRetry = Object.prototype.hasOwnProperty.call(_rows600Prov, key);
+    if(_len >= _floor){                                  // 목표 충족 → 확정
+      if(_isRetry) _rows600Dbg.rescued++;                //   ★재시도가 실제로 채웠다 = 이 버그가 실재했다는 증거
+      _rows600Cache[key] = r; delete _rows600Prov[key];
+      return _rows600Cache[key];
+    }
+    if(!_isRetry){                                       // 1회차 미달 → 잠정 보관·확정 캐시엔 안 씀
+      _rows600Prov[key] = _len ? r : null; _rows600Dbg.retry++;
+      return _len ? r : null;                            //   호출자에겐 있는 만큼 준다(빈 화면 방지)
+    }
+    var _p = _rows600Prov[key], _pl = (Array.isArray(_p)&&_p.length) ? _p.length : 0;   // 2회차도 미달 → 긴 쪽으로 확정
+    if(_pl > _len){ r = _p; _len = _pl; }                //   = 가용 최대(상장 짧은 종목). 더 조르지 않는다.
+    _rows600Dbg.stuck++;
+    _rows600Cache[key] = _len ? r : null; delete _rows600Prov[key];
     return _rows600Cache[key];
   }
   function _ctPoolAutoOn(){ try { return localStorage.getItem('SX_CT_POOL_AUTO')==='1'; } catch(_){ return false; } }
