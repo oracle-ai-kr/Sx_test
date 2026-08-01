@@ -35,6 +35,10 @@
   var STORE = 'preds';
   var STORE_AGG = 'agg';
   var CAP_PER_Q = 5000;          // §5 회전 상한 — 질문별 최근 5000건
+  //  [S1156] 미픽(모델 단독) 상한. 하루 30종목이면 q5가 하루 90건이라 5000은 두 달이 넘고,
+  //    그동안 일괄 채점이 수백 종목 fetch로 불어난다. 미픽은 캔들로 재계산이 가능하므로 잘려도 된다.
+  //  ★사람 픽은 상한 없음 — 복원 불가능한 유일한 데이터다.
+  var CAP_UNPICKED = 1500;
   var VER = 'S1135';             // 카드/원장 버전 스탬프
   //  [S1145] 기준봉 규칙이 바뀐 빌드. 이보다 오래된 레코드는 **계산 봉과 기록 봉이 갈려 있어**
   //    채점해도 무의미하다. 가드를 호출부가 아니라 여기 두는 이유: 자동 채점(S1144)은 앱 시작 시
@@ -494,9 +498,11 @@
   //     **삭제 사실을 기록**한다(알갱이 원칙의 예외를 명시적으로 남기기).
   // ─────────────────────────────────────────────────────────
   function rotate(q, cap) {
-    var C = cap || CAP_PER_Q;
-    return list({ q: q, order: 'date' }).then(function (rows) {   // 최신 우선
-      if (rows.length <= C) return { q: q, purged: 0, kept: rows.length };
+    var C = cap || CAP_UNPICKED;
+    return list({ q: q, order: 'date' }).then(function (all) {   // 최신 우선
+      // [S1156] 픽한 건 절대 자르지 않는다. 상한은 **미픽에만** 적용한다.
+      var rows = all.filter(function (r) { return r.human == null; });
+      if (rows.length <= C) return { q: q, purged: 0, kept: rows.length, picked: all.length - rows.length };
       var drop = rows.slice(C);
       var roll = { n: 0, hit: 0, nhit: 0, hn: 0, hhit: 0, sumErr: 0 };
       drop.forEach(function (r) {
@@ -514,11 +520,18 @@
           acc.hn += roll.hn; acc.hhit += roll.hhit; acc.sumErr += roll.sumErr;
           acc.purges.push({ ts: Date.now(), n: drop.length, scored: roll.n, upTo: drop[0].date, from: drop[drop.length - 1].date });
           return _wrap(sa.put(acc)).then(function () {
-            return { q: q, purged: drop.length, kept: C, rolled: roll.n };
+            return { q: q, purged: drop.length, kept: C, rolled: roll.n, picked: all.length - rows.length };
           });
         });
       });
     });
+  }
+
+  //  [S1156] 전 질문 회전. 채점 직후에 부른다 — 그때가 미채점이 줄어든 시점이라 자연스럽다.
+  function rotateAll() {
+    var qs = Object.keys(Q), chain = Promise.resolve(), out = [];
+    qs.forEach(function (q) { chain = chain.then(function () { return rotate(q).then(function (r) { if (r.purged) out.push(r); }); }); });
+    return chain.then(function () { return out; });
   }
 
   function rolled(q) {
@@ -687,7 +700,7 @@
     key: key, dueEst: dueEst,
     put: put, setHuman: setHuman, score: score,
     get: get, list: list, dueCount: dueCount, stats: stats,
-    rotate: rotate, rolled: rolled, BASE_RULE_VER: BASE_RULE_VER,
+    rotate: rotate, rotateAll: rotateAll, rolled: rolled, CAP_UNPICKED: CAP_UNPICKED, BASE_RULE_VER: BASE_RULE_VER,
     voidRec: voidRec, voidOlderThan: voidOlderThan,
     selfCheck: selfCheck, _selfCheck: _sc,
     requestPersist: requestPersist, persistState: persistState, estimate: estimate,
