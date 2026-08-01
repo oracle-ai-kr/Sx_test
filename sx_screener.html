@@ -16,7 +16,7 @@
 <script src="sx_conditions.js?v=23"></script>
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
-<script src="sx_storage.js?v=7"></script>
+<script src="sx_storage.js?v=8"></script>
 <script src="sx_ledger.js?v=11"></script><!-- [S1135] 예측 원장(IndexedDB) — 카드보다 먼저 로드 -->
 <script src="sx_session.js?v=4"></script>
 <script src="sx_alert_sound.js?v=1"></script>
@@ -2158,6 +2158,31 @@ async function _fetchWithTimeout(url, options, timeoutMs){
   }finally{
     clearTimeout(timer);
   }
+}
+
+// ── [S1161] KIS 차트 페이지 요청 — 간격 + 1회 재시도 ──
+//  증상: 종목이 400봉만 받아지고, 한 번 그러면 그 시간대 다른 종목도 400봉이 된다.
+//  원인: 일봉 500봉 = 100건×5페이지인데, 루프가 `if(!res.ok) break;`라 **5페이지 중 1개만 실패해도
+//        400봉을 정상 결과로 처리**했다. 실패를 오류로 보지 않으니 화면에 아무 표시도 없고,
+//        그 400봉이 _analTFCache·_lastAnalCandles에 그대로 굳는다.
+//        원인이 종목이 아니라 유량 제한이면 그 시간대 **모든 종목이 똑같이 4페이지에서 끊긴다** — 사용자 관측과 일치.
+//  ★S1159(fetchRows600 재시도)가 못 고친 이유: 2차 독립 fetch도 결국 이 KIS 경로라 같은 벽에 부딪힌다.
+//  처방: ①페이지 간 간격을 둔다(연달아 5발 쏘던 것을 억제) ②실패하면 1회 백오프 재시도 ③관측치를 남긴다.
+//  간격은 자가조정 — 재시도로 살아난 적이 있으면(=조여지고 있다는 증거) 그 세션은 간격을 늘린다.
+var _KIS_PG = { req:0, retry:0, ok2:0, fail:0, short:0, gapMs:120 };
+try{ if(typeof window!=='undefined') window._sxKisPg=_KIS_PG; }catch(_ekp){}
+async function _kisPageFetch(url, headers, pg){
+  if(pg > 0){ await new Promise(r=>setTimeout(r, _KIS_PG.gapMs)); }   // 첫 페이지는 지연 없음
+  _KIS_PG.req++;
+  var res=null;
+  try{ res = await _fetchWithTimeout(url, {headers:headers}); }catch(_e1){ res=null; }
+  if(res && res.ok) return res;
+  _KIS_PG.retry++;
+  await new Promise(r=>setTimeout(r, 700));                          // 유량 제한이면 조금 더 기다려야 풀린다
+  try{ res = await _fetchWithTimeout(url, {headers:headers}); }catch(_e2){ res=null; }
+  if(res && res.ok){ _KIS_PG.ok2++; _KIS_PG.gapMs = 400; return res; }   // 재시도가 통했다 = 조여지고 있다 → 간격 상향
+  _KIS_PG.fail++;
+  return res;
 }
 
 // [Phase 4-C] 5xx 자동 재시도 (지수 백오프) — 워커 cold start / 외부 API 일시 장애 흡수
@@ -7063,10 +7088,9 @@ async function fetchCandles(code, count, tf, _retry){
             FID_INPUT_DATE_1:startStr, FID_INPUT_DATE_2:curEnd,
             FID_PERIOD_DIV_CODE:period, FID_ORG_ADJ_PRC:'0'
           }).toString();
-          const res = await _fetchWithTimeout(`${WORKER_BASE}/kis/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice?${qs}`,{
-            headers:{'authorization':`Bearer ${token}`,'appkey':cfg.appKey,'appsecret':cfg.appSecret,'tr_id':'FHKST03010100','Content-Type':'application/json; charset=utf-8'}
-          });
-          if(!res.ok) break;
+          const res = await _kisPageFetch(`${WORKER_BASE}/kis/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice?${qs}`,
+            {'authorization':`Bearer ${token}`,'appkey':cfg.appKey,'appsecret':cfg.appSecret,'tr_id':'FHKST03010100','Content-Type':'application/json; charset=utf-8'}, pg);   // [S1161] 간격+1회 재시도
+          if(!res || !res.ok){ _KIS_PG.short++; break; }   // [S1161] 실패로 끊긴 것만 계수(상장 짧은 종목은 아래 bars.length<PAGE로 정상 종료)
           const data = await res.json();
           const bars = data?.output2;
           if(!bars || !bars.length) break;
@@ -7341,10 +7365,9 @@ async function fetchCandlesExtended(code, tf, oldestDate, extraCount){
         const startStr = sd.toISOString().slice(0,10).replace(/-/g,'');
         const qs = new URLSearchParams({FID_COND_MRKT_DIV_CODE:'J',FID_INPUT_ISCD:code,FID_INPUT_DATE_1:startStr,FID_INPUT_DATE_2:curEnd,FID_PERIOD_DIV_CODE:period,FID_ORG_ADJ_PRC:'0'}).toString();
         try{
-          const res = await _fetchWithTimeout(`${WORKER_BASE}/kis/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice?${qs}`, {
-            headers: {'authorization':`Bearer ${await _getKisToken()}`,'appkey':cfg.appKey,'appsecret':cfg.appSecret,'tr_id':'FHKST03010100','Content-Type':'application/json; charset=utf-8'}
-          });
-          if(!res.ok){ console.warn(`[fetchExt KIS] 응답 ${res.status}`); break; }
+          const res = await _kisPageFetch(`${WORKER_BASE}/kis/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice?${qs}`,
+            {'authorization':`Bearer ${await _getKisToken()}`,'appkey':cfg.appKey,'appsecret':cfg.appSecret,'tr_id':'FHKST03010100','Content-Type':'application/json; charset=utf-8'}, pg);   // [S1161] 간격+1회 재시도
+          if(!res || !res.ok){ _KIS_PG.short++; console.warn(`[fetchExt KIS] 응답 ${res?res.status:'네트워크'}`); break; }
           const data = await res.json();
           const bars = data?.output2;
           if(!bars || !bars.length) break;
