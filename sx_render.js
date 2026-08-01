@@ -5402,6 +5402,10 @@ function _predPanelScore(){
     var e=document.getElementById('sxPredPanelMsg'); if(e) e.textContent=P.msg; })
   .then(function(R){
     P.busy=false;
+    try{ SXLedger.rotateAll().then(function(rot){    // [S1156] 미픽 상한 적용
+      if(rot && rot.length){ var t=rot.reduce(function(a,x){return a+x.purged;},0);
+        P.msg += ' · 오래된 미픽 '+t+'건 정리(픽은 유지)'; _predPanelRefresh(); }
+    }).catch(function(){}); }catch(_er){}
     P.msg = R.err ? ('실패: '+R.err)
       : ('채점 '+R.scored+'건 완료 · 보류 '+R.skipped+'건'+(R.fail?(' · 실패 '+R.fail+'건'):'')
          + (Object.keys(R.why||{}).length ? (' — '+Object.keys(R.why).map(function(k){return k+' '+R.why[k];}).join(', ')) : ''));
@@ -5450,7 +5454,14 @@ function _predQuizOpen(codeOrNull){
   try{ _sxVib(10); }catch(_e){}
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
   SXLedger.list({ mkt:mk, st:0 }).then(function(all){
-    var recs=all.filter(function(r){ return r.human==null && _predAskable(r.q,r.H) && (!codeOrNull || r.code===codeOrNull); });
+    // [S1156] ★지난 기준봉은 묻지 않는다. 8/5에 07-31 슬롯을 찍으면 5거래일 중 4일 차트를
+    //   이미 본 뒤라 사실상 정답을 보고 찍는 것이다. 모델은 07-31 정보만 갖고 예측했다.
+    //   blind로는 못 막는다 — 모델 숫자를 가려도 차트가 답을 알려준다.
+    //   기준 = 이 시장에서 본 **가장 최근 기준봉**. 주말·휴일엔 금요일 봉이 최신이라 그대로 찍을 수 있다
+    //   (장이 안 열렸으니 새 정보가 없다 = 오염 없음).
+    var maxD=''; all.forEach(function(r){ if(r.date>maxD) maxD=r.date; });
+    var recs=all.filter(function(r){ return r.human==null && _predAskable(r.q,r.H) && r.date===maxD
+                                            && (!codeOrNull || r.code===codeOrNull); });
     if(!recs.length){ try{ if(typeof toast==='function') toast('찍을 게 없습니다'); }catch(_){} return; }
     // 종목끼리 붙여 정렬 — 같은 종목 질문이 연달아 나와야 맥락이 안 끊긴다
     recs.sort(function(a,b){ return a.code<b.code?-1:a.code>b.code?1:(a.q-b.q); });
@@ -6126,7 +6137,9 @@ function _predPanelHtml(){
   if(L && L.pend){
     var picked=L.pend.filter(function(r){ return r.human!=null; });
     var unpick=L.pend.filter(function(r){ return r.human==null; });
-    var askN=unpick.filter(function(r){ return _predAskable(r.q,r.H); }).length;   // [S1153] 실제 물을 문항 수
+    var _maxD=''; L.pend.forEach(function(r){ if(r.date>_maxD) _maxD=r.date; });
+    var askN=unpick.filter(function(r){ return _predAskable(r.q,r.H) && r.date===_maxD; }).length;   // [S1156] 최신 기준봉만
+    var staleN=unpick.filter(function(r){ return _predAskable(r.q,r.H) && r.date!==_maxD; }).length;
     var autoN=unpick.length;
 
     // [S1142] 설문 진입 — 카드를 찾아 들어가지 않고 여기서 바로 찍는다.
@@ -6178,14 +6191,20 @@ function _predPanelHtml(){
     if(autoN){
       body += '<div style="margin-top:6px;font-size:9px;color:'+T3+';line-height:1.6">'
             + '🤖 자동 기록 <b>'+autoN+'건</b> (모델 단독 · 목록 생략) — 종목을 열면 축마다 쌓인다. '
-            + '채점은 같이 돌아가고 결과는 위 집계표에 합산된다.</div>';
+            + '채점은 같이 돌아가고 결과는 위 집계표에 합산된다.'
+            + (staleN?('<br>이 중 <b>'+staleN+'건</b>은 기준봉이 지나서 더 이상 찍을 수 없다 — '
+                      +'며칠 지난 뒤 찍으면 차트가 이미 답을 보여준 상태라 비교가 성립하지 않는다.'):'')
+            + '</div>';
     }
   }
 
   // ── 실행 ──
   body += '<div style="margin-top:9px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
     + '<button onclick="_predPanelScore()"'+(P.busy?' disabled':'')+' style="flex:1;min-width:130px;padding:8px;border-radius:7px;border:none;font-size:11px;font-weight:800;cursor:'+(P.busy?'wait':'pointer')+';background:'+(P.busy?'var(--surface2)':'var(--accent)')+';color:'+(P.busy?T3:'#fff')+'">'
-    +   (P.busy?'채점중…':'⚖ 지평 도달분 일괄 채점')+'</button>'
+    +   (P.busy?'채점중…':('⚖ 지평 도달분 일괄 채점'
+          + ((L&&L.pend&&L.pend.length)?('<span style="font-weight:600;font-size:9.5px;opacity:.85"> · '
+              + (function(){ var c={},n=0; L.pend.forEach(function(r){ if(!c[r.code]){c[r.code]=1;n++;} }); return n; })()
+              + '종목 조회</span>'):'')))+'</button>'
     + '<button onclick="_predPanelRefresh()" style="padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:'+T2+';font-size:10px;font-weight:800;cursor:pointer">새로고침</button>'
     + '</div>';
   // [S1139] 기준봉 규칙 변경 전(S1139 미만) 레코드 폐기. 계산 봉과 기록 봉이 갈려 있어 채점해도 무의미하다.
@@ -13099,7 +13118,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1155';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1156';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
