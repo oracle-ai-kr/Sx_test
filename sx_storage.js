@@ -246,8 +246,9 @@
           //   목표 미달본이 확정 캐시로 굳어 종목이 400봉에 고착되던 증상의 수정 결과를 여기서 확인한다.
           //   ★rescued > 0 이면 재시도가 실제로 목표를 채웠다는 뜻 = 그 버그가 실재했다는 증거.
           //   새로고침하면 0으로 돌아간다(세션 한정 카운터).
-          var D=null; try{ D=window._sxR600Dbg; }catch(_){}
-          if(!D) return '';
+          var D=null, K0=null; try{ D=window._sxR600Dbg; K0=window._sxKisPg; }catch(_){}
+          if(!D && !K0) return '';
+          D = D || { retry:0, rescued:0, stuck:0, list:[] };   // [S1161] KIS만 있어도 그려야 한다
           var none=(!D.retry && !D.rescued && !D.stuck);
           var c=function(v,col){ return '<b style="color:'+(v?col:'var(--text3,#999)')+'">'+v+'</b>'; };
           // [S1160] 미달 사례 상세 — 계수만으로는 "상장 짧은 종목"과 "버그"를 못 가른다.
@@ -265,6 +266,29 @@
                 + '</div>';
             }
           }catch(_e2){}
+          var kis='';
+          try{
+            // [S1161] KIS 차트 페이지 관측 — 400봉 증상의 실제 발원지. 캔들 캐시보다 한 층 아래다.
+            var K=window._sxKisPg;
+            if(K && K.req){
+              var warn=(K.short>0);
+              kis = '<div style="margin-top:8px;padding-top:7px;border-top:1px solid var(--border,#eee)">'
+                + '<div style="font-size:11.5px;font-weight:600;margin-bottom:3px">KIS 차트 페이지</div>'
+                + '<div style="font-size:11px;line-height:1.7">'
+                + '요청 '+K.req+' · 재시도 '+c(K.retry,'#d97706')+' · '
+                + '재시도로 성공 '+c(K.ok2,'#16a34a')+' · '
+                + '끝내 실패 '+c(K.fail,'#dc2626')+' · '
+                + '중간에 끊긴 종목 '+c(K.short,'#dc2626')
+                + '<span style="color:var(--text3,#999)"> · 간격 '+K.gapMs+'ms</span>'
+                + '</div>'
+                + '<div style="margin-top:4px;font-size:10px;color:'+(warn?'#dc2626':'var(--text3,#999)')+';line-height:1.5">'
+                + (K.ok2>0
+                    ? '<b>재시도로 성공</b>이 있다 = KIS가 요청을 조이고 있었다는 뜻입니다. 예전이면 그 페이지가 통째로 버려져 400봉이 됐습니다.'
+                    : (warn ? '<b>중간에 끊긴 종목</b>이 있습니다 — 재시도해도 안 된 경우라 KIS 쪽 원인일 수 있습니다.'
+                            : '아직 끊긴 사례 없음.'))
+                + '</div></div>';
+            }
+          }catch(_e3){}
           return '<div style="margin-bottom:14px;padding:10px;background:var(--surface2,#f6f6f6);border-radius:8px">'
             + '<div style="font-size:13px;font-weight:600;margin-bottom:6px">🕯 캔들 600봉 캐시 <span style="font-size:10px;font-weight:500;color:var(--text3,#999)">세션 한정 · 새로고침 시 0</span></div>'
             + (none
@@ -278,7 +302,7 @@
             + '<div style="margin-top:6px;font-size:10px;color:var(--text3,#999);line-height:1.5">'
             + '<b>같은 벽</b> = 재시도해도 봉수가 그대로. 오래된 종목인데 이게 뜨면 재시도로는 못 고치는 원인입니다. '
             + '오래되지 않은 종목(최근 상장)이면 정상입니다.'
-            + '</div></div>';
+            + '</div>' + kis + '</div>';
         })()}
 
         <div style="font-size:12px;color:var(--text2,#666);margin-bottom:8px;font-weight:600">카테고리별 분포 <span style="font-weight:400;color:var(--text3,#999)">(클릭하면 개별 키 표시)</span></div>
