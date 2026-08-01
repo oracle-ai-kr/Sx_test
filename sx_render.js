@@ -4888,6 +4888,17 @@ var _sbRows600Cache = {};            // 통계판 전용 600봉 캐시 ('code|mk
 var _SB_MIN_RATIO_N = 30;            // 이 미만이면 비율 표시 금지(점+건수만)
 var _SB_GREEN_N = 100, _SB_AMBER_N = 30;
 
+function _sbToggle(el, cid){
+  // [S1162-c] 통계판 전용 접기 — 화살표를 ▾/▸로 쓴다. 공용 _cvToggle은 ▼/▶를 강제해서
+  //   값의 방향 기호(▲▼)와 뜻이 겹친다. 상태 키는 공용과 동일(_sxExpOpen)이라 재렌더 보존은 그대로.
+  try{
+    var body=document.getElementById(cid); if(!body) return;
+    var open = body.style.display==='none';
+    body.style.display = open ? 'block' : 'none';
+    if(!window._sxExpOpen) window._sxExpOpen={}; window._sxExpOpen[cid]=open;
+    var ar=el.querySelector('.sb-arrow'); if(ar) ar.textContent = open ? '▾' : '▸';
+  }catch(_e){}
+}
 function _sbDetailToggle(){ _SB_DETAIL = !_SB_DETAIL; _sbRerender(); }
 function _sbRerender(){
   try{
@@ -4902,34 +4913,49 @@ function _sbMed(a){ var b=a.filter(function(x){return x!=null&&isFinite(x);}).so
 function _sbPctl(a,v){ var b=a.filter(function(x){return x!=null&&isFinite(x);}).sort(function(x,y){return x-y;}); if(!b.length)return null; var lt=0,i; for(i=0;i<b.length;i++){ if(b[i]<v)lt++; else break; } return Math.round(lt/b.length*100); }
 function _sbSE(hit,tot){ if(!tot)return null; var p=hit/tot; return Math.sqrt(Math.max(p*(1-p),0)/tot)*100; }
 function _sbDots(hit,tot,cap){ var c=cap||15,t=Math.min(tot,c),h=Math.round(hit/(tot||1)*t),s='',i; for(i=0;i<t;i++)s+=(i<h?'●':'○'); return s+(tot>c?'…':''); }
+function _sbA(hex,a){ try{ var h=String(hex).replace('#',''); if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  return 'rgba('+parseInt(h.slice(0,2),16)+','+parseInt(h.slice(2,4),16)+','+parseInt(h.slice(4,6),16)+','+a+')'; }catch(_e){ return 'transparent'; } }
+// [S1162-c] 방향 표기 — 사람이 읽는 자리는 ▲▼, 계산·차이값(Δ%p 등)은 +/− 그대로 둔다.
+//   부호를 기호로 바꾸면 초보자가 위/아래를 즉시 읽는다. 색은 블록 식별색을 유지한다(빨강/파랑은 호재·악재로 읽힐 여지가 있어 쓰지 않는다).
+function _sbDir(v,d,eps){ var e=(eps==null?0:eps);
+  if(v==null||!isFinite(v)) return '—';
+  if(Math.abs(v)<=e) return _sbNum(Math.abs(v),d)+'%';
+  return (v>0?'▲':'▼')+_sbNum(Math.abs(v),d)+'%'; }
 function _sbNum(v,d){ return (v==null||!isFinite(v))?'—':(v.toFixed(d==null?1:d)); }
 function _sbAmt(v){ if(v==null||!isFinite(v))return '—'; if(v>=1e12)return (v/1e12).toFixed(1)+'조'; if(v>=1e8)return (v/1e8).toFixed(1)+'억'; if(v>=1e4)return (v/1e4).toFixed(1)+'만'; return String(Math.round(v)); }
 
 // ── 렌더 조각 ──
-function _sbBar(pctl){
+function _sbBar(pctl, accent){
+  // [S1162] 색은 **위치**만 말한다 — 양 끝(상·하위 10%)은 앰버로 눈에 띄게, 나머지는 블록 식별색.
+  //   좋다/나쁘다를 칠하지 않는다(이 카드는 방향을 말하지 않는다).
   if(pctl==null) return '';
-  var T3='var(--text3)', col = (pctl>=90||pctl<=10) ? '#f59e0b' : '#2563eb';
-  return '<div style="display:flex;align-items:center;gap:5px;margin:3px 0 1px">'
+  var T3='var(--text3)', A=accent||'#2563eb', ext=(pctl>=90||pctl<=10), col = ext ? '#f59e0b' : A;
+  return '<div style="display:flex;align-items:center;gap:5px;margin:4px 0 2px">'
     + '<span style="font-size:8.5px;color:'+T3+';flex-shrink:0">낮음</span>'
-    + '<div style="position:relative;flex:1;height:5px;border-radius:3px;background:var(--surface2);border:1px solid var(--border)">'
-    +   '<div style="position:absolute;left:calc('+pctl+'% - 1.5px);top:-3px;width:3px;height:11px;border-radius:2px;background:'+col+'"></div>'
+    + '<div style="position:relative;flex:1;height:6px;border-radius:4px;background:linear-gradient(90deg,'
+    +   'rgba(148,163,184,.16) 0%,rgba(148,163,184,.30) 50%,rgba(148,163,184,.16) 100%);border:1px solid var(--border)">'
+    +   '<div style="position:absolute;left:0;top:0;bottom:0;width:'+pctl+'%;border-radius:4px 0 0 4px;background:'+col+';opacity:.20"></div>'
+    +   '<div style="position:absolute;left:calc('+pctl+'% - 2px);top:-4px;width:4px;height:14px;border-radius:2px;background:'+col
+    +     ';box-shadow:0 0 0 2px var(--surface)"></div>'
     + '</div>'
     + '<span style="font-size:8.5px;color:'+T3+';flex-shrink:0">높음</span>'
     + '</div>';
 }
-function _sbRowHtml(r){
-  var T2='var(--text2)', T3='var(--text3)';
+function _sbRowHtml(r, accent){
+  var T2='var(--text2)', T3='var(--text3)', A=accent||'#2563eb';
   var h='<div style="padding:5px 0;border-top:1px solid var(--border)">';
   if(r.kind==='bar'){
-    var pos = (r.pctl!=null) ? (r.pctl>=50 ? ('상위 '+(100-r.pctl)+'%') : ('하위 '+r.pctl+'%')) : '';
+    // [S1162-b] posTxt가 있으면 그걸 쓴다 — 음수 축(등락률 하락)은 '하위 3%'가 "적게 내렸다"로 읽혀서 낙폭 기준으로 뒤집어야 한다.
+    var pos = r.posTxt ? r.posTxt : ((r.pctl!=null) ? ((r.posPfx||'') + (r.pctl>=50 ? ('상위 '+(100-r.pctl)+'%') : ('하위 '+r.pctl+'%'))) : '');
     h += '<div style="display:flex;justify-content:space-between;gap:6px;font-size:11.5px">'
       +    '<span style="font-weight:600;color:var(--text)">'+r.label+'</span>'
-      +    '<span style="font-weight:800;color:var(--text)">'+r.nowTxt+'</span>'
+      +    '<span style="font-size:13px;font-weight:800;color:'+A+'">'+r.nowTxt+'</span>'
       +  '</div>'
       +  '<div style="display:flex;justify-content:space-between;gap:6px;font-size:10px;color:'+T3+'">'
-      +    '<span>평소엔 '+r.baseTxt+'</span><span style="font-weight:700">'+pos+'</span>'
+      +    '<span>'+(r.baseLbl===false?'':'평소엔 ')+r.baseTxt+'</span>'
+      +    '<span style="font-weight:800;white-space:nowrap;color:'+((r.pctl>=90||r.pctl<=10)?'#f59e0b':T3)+'">'+pos+'</span>'
       +  '</div>'
-      +  _sbBar(r.pctl);
+      +  _sbBar(r.pctl, A);
     if(r.note) h += '<div style="font-size:10px;color:'+T2+';line-height:1.5">'+r.note+'</div>';
     if(_SB_DETAIL) h += '<div style="font-size:9px;color:'+T3+';margin-top:2px">표본 '+r.n+'봉'+(r.raw?(' · '+r.raw):'')+'</div>';
   } else if(r.kind==='dots'){
@@ -4974,46 +5000,64 @@ function _sbBlockHtml(b, rows){
     if(r.kind==='pair' && r.items) r.items.forEach(function(it){ if(it.tot>v) v=it.tot; });
     if(v>maxN) maxN=v; });
   var bg = (maxN>=_SB_GREEN_N) ? {c:'#16a34a',t:'표본 넉넉'} : (maxN>=_SB_AMBER_N ? {c:'#f59e0b',t:'표본 보통'} : {c:'#dc2626',t:'표본 적음'});
-  return '<div style="margin:6px 0;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--bg)">'
-    + '<div onclick="window._sxVib&&_sxVib(6);window._cvToggle&&_cvToggle(this,\''+bid+'\')" style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:8px 10px">'
-    +   '<span class="cv-arrow" style="color:var(--accent);font-size:10px">'+(open?'▼':'▶')+'</span>'
-    +   '<span style="font-size:11.5px;font-weight:700;color:var(--text)">'+b.icon+' '+b.title+'</span>'
-    +   '<span style="margin-left:auto;font-size:8.5px;font-weight:800;padding:2px 5px;border-radius:4px;color:'+bg.c+';background:var(--surface2);border:1px solid var(--border);white-space:nowrap">'+bg.t+'</span>'
+  // [S1162] 블록 식별색 — 왼쪽 띠 + 아이콘 칩. rgba로 깔아야 라이트/다크 양쪽에서 안전하다(하드코딩 파스텔은 다크에서 뜬다).
+  var A = b.col || '#2563eb';
+  return '<div style="margin:7px 0;border:1px solid var(--border);border-left:3px solid '+A+';border-radius:9px;overflow:hidden;background:var(--bg)">'
+    + '<div onclick="window._sxVib&&_sxVib(6);_sbToggle(this,\''+bid+'\')" style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:9px 10px;background:'+_sbA(A,.05)+'">'
+    +   '<span class="sb-arrow" style="color:'+A+';font-size:12px;font-weight:700">'+(open?'▾':'▸')+'</span>'
+    +   '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:'+_sbA(A,.14)+';font-size:11px;flex-shrink:0">'+b.icon+'</span>'
+    +   '<span style="font-size:11.5px;font-weight:700;color:var(--text)">'+b.title+'</span>'
+    +   '<span style="margin-left:auto;font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:4px;color:'+bg.c+';background:'+_sbA(bg.c,.10)+';border:1px solid '+_sbA(bg.c,.35)+';white-space:nowrap">'+bg.t+'</span>'
     + '</div>'
     + '<div id="'+bid+'" style="display:'+(open?'block':'none')+';padding:0 10px 8px" data-loaded="1">'
-    +   (b.sub?('<div style="font-size:9.5px;color:'+T3+';line-height:1.5;padding-bottom:2px">'+b.sub+'</div>'):'')
-    +   rows.map(_sbRowHtml).join('')
+    +   (b.sub?('<div style="font-size:9.5px;color:'+T3+';line-height:1.5;padding:5px 0 2px">'+b.sub+'</div>'):'')
+    +   rows.map(function(r){ return _sbRowHtml(r, A); }).join('')
     + '</div></div>';
 }
 
 // ══════ 블록 정의 — ★여기에 항목을 추가하면 주제가 늘어난다 ══════
 //  calc(C) 는 행 배열을 돌려준다. C = {rows,n,L,op,hi,lo,cl,vo,M,mkt,tf}
 var _SB_BLOCKS = [
-  { id:'diff', icon:'📏', title:'오늘은 평소와 얼마나 다른가',
+  { id:'diff', col:'#2563eb', icon:'📏', title:'오늘은 평소와 얼마나 다른가',
     sub:'오늘 값이 이 종목의 지난 이력 안에서 어디쯤인지만 표시합니다.',
     calc:function(C){
       var out=[], L=C.L, i;
       var chg=[],rng=[],amt=[];
       for(i=1;i<C.n;i++){ chg.push((C.cl[i]-C.cl[i-1])/C.cl[i-1]*100); rng.push((C.hi[i]-C.lo[i])/C.cl[i]*100); amt.push(C.cl[i]*C.vo[i]); }
       var cNow=(C.cl[L]-C.cl[L-1])/C.cl[L-1]*100, rNow=(C.hi[L]-C.lo[L])/C.cl[L]*100, aNow=C.cl[L]*C.vo[L];
-      var cP=_sbPctl(chg,cNow);
-      out.push({kind:'bar',label:'오늘 등락률',nowTxt:(cNow>=0?'+':'')+_sbNum(cNow,2)+'%',baseTxt:_sbNum(_sbMed(chg),2)+'%',pctl:cP,n:chg.length,
-        note:(cP!=null?('600일 가까이 중 '+Math.round(chg.length*(cP>=50?(100-cP):cP)/100)+'일만 오늘보다 '+(cP>=50?'더 올랐':'더 내렸')+'습니다.'):'')});
+      // [S1162-b] 등락률은 **방향을 나눠서** 잰다. 양봉·음봉을 섞은 중앙값은 0 근처라 단방향인 당일봉과 비교가 성립하지 않는다.
+      //   (삼성전자 +26.81%를 '평소 0.14%'와 견주면 아무 말도 안 하는 셈이 된다.)
+      //   백분위도 같은 부호 집단 안에서 낸다 = "오른 날 중에서 어디쯤인가".
+      var upA=chg.filter(function(x){return x>0;}), dnA=chg.filter(function(x){return x<0;});
+      var sameA=(cNow>0?upA:(cNow<0?dnA:chg)), cP=sameA.length?_sbPctl(sameA,cNow):null;
+      var _cnt=(cP!=null&&sameA.length)?Math.round(sameA.length*(cP>=50?(100-cP):cP)/100):null;
+      out.push({kind:'bar',label:'오늘 등락률',nowTxt:_sbDir(cNow,2),
+        baseTxt:'오른 날 <b>'+_sbDir(_sbMed(upA),2)+'</b> · 내린 날 <b>'+_sbDir(_sbMed(dnA),2)+'</b>', baseLbl:false,
+        pctl:cP, n:sameA.length,
+        posTxt:(cP==null?'':(cNow>=0 ? ('오른 날 중 '+(cP>=50?('상위 '+(100-cP)):('하위 '+cP))+'%')
+                                     : ('내린 날 중 낙폭 '+(cP>=50?('하위 '+(100-cP)):('상위 '+cP))+'%'))),
+        note:(_cnt!=null?((cNow>0?'오른 날':'내린 날')+' '+sameA.length+'일 중 <b>'+_cnt+'일</b>만 오늘보다 더 '+(cNow>0?'올랐':'내렸')+'습니다. '):'')
+             +'600봉에서 오른 날 '+upA.length+'일 · 내린 날 '+dnA.length+'일이었습니다.'});
       out.push({kind:'bar',label:'하루 움직인 폭',nowTxt:_sbNum(rNow,2)+'%',baseTxt:_sbNum(_sbMed(rng),2)+'%',pctl:_sbPctl(rng,rNow),n:rng.length,
         note:'고가와 저가의 차이입니다.'});
       out.push({kind:'bar',label:'거래대금',nowTxt:_sbAmt(aNow),baseTxt:_sbAmt(_sbMed(amt)),pctl:_sbPctl(amt,aNow),n:amt.length,
-        note:'종가 × 거래량으로 계산한 어림값입니다.'});
+        note:'종가 × 거래량으로 계산한 어림값입니다. 거래량 집계 범위가 달라 증권사 앱과 차이가 날 수 있습니다(백분위는 영향 없음).'});
       [20,60,120,200].forEach(function(p){
         var d=[],j; for(j=0;j<C.n;j++) if(C.M[p][j]) d.push((C.cl[j]-C.M[p][j])/C.M[p][j]*100);
         if(d.length<30 || !C.M[p][L]) return;
         var nw=(C.cl[L]-C.M[p][L])/C.M[p][L]*100;
-        out.push({kind:'bar',label:p+'일선과 떨어진 거리',nowTxt:(nw>=0?'+':'')+_sbNum(nw,1)+'%',baseTxt:(function(m){return (m>=0?'+':'')+_sbNum(m,1)+'%';})(_sbMed(d)),
-          pctl:_sbPctl(d,nw),n:d.length,note:(nw>=0?'지금은 '+p+'일 평균선 위에 있습니다.':'지금은 '+p+'일 평균선 아래에 있습니다.')});
+        // [S1162-c] 첫 줄(20일선)에서 0%의 뜻을 한 번 설명한다 — 이 카드는 초보자도 읽는다.
+        var _nt = (Math.abs(nw)<=0.3) ? ('종가가 '+p+'일 평균선에 <b>거의 딱 붙어</b> 있습니다.')
+                : (nw>0 ? ('종가가 '+p+'일 평균선보다 <b>'+_sbNum(nw,1)+'% 위</b>에 있습니다.')
+                        : ('종가가 '+p+'일 평균선보다 <b>'+_sbNum(-nw,1)+'% 아래</b>에 있습니다.'));
+        if(p===20) _nt += ' 0%면 평균선에 정확히 닿은 상태입니다.';
+        out.push({kind:'bar',label:p+'일선과 떨어진 거리',nowTxt:_sbDir(nw,1,0.05),baseTxt:_sbDir(_sbMed(d),1,0.05),
+          pctl:_sbPctl(d,nw),n:d.length,note:_nt});
       });
       return out;
     }},
 
-  { id:'candle', icon:'🕯', title:'오늘 캔들은 어떻게 생겼나',
+  { id:'candle', col:'#7c3aed', icon:'🕯', title:'오늘 캔들은 어떻게 생겼나',
     sub:'봉 하나의 모양만 봅니다. 평균선과의 관계는 위 블록에 있습니다.',
     calc:function(C){
       var out=[],L=C.L,i,clv=[],bod=[],up=[],dn=[];
@@ -5031,7 +5075,7 @@ var _SB_BLOCKS = [
       return out;
     }},
 
-  { id:'sr', icon:'🧱', title:'평균선까지 왔을 때 어땠나',
+  { id:'sr', col:'#ea580c', icon:'🧱', title:'평균선까지 왔을 때 어땠나',
     sub:'종가가 평균선 0.5% 안까지 다가온 날을 세고, 그 뒤 10봉 안에 어느 쪽으로 2% 먼저 갔는지 봅니다.',
     calc:function(C){
       var out=[];
@@ -5055,7 +5099,7 @@ var _SB_BLOCKS = [
       return out;
     }},
 
-  { id:'life', icon:'⏳', title:'짧은 선이 긴 선 위에 있던 기간',
+  { id:'life', col:'#0891b2', icon:'⏳', title:'짧은 선이 긴 선 위에 있던 기간',
     sub:'두 평균선의 위아래가 바뀔 때까지 몇 봉이 걸렸는지 셉니다.',
     calc:function(C){
       var out=[];
@@ -5077,7 +5121,7 @@ var _SB_BLOCKS = [
       return out;
     }},
 
-  { id:'event', icon:'🔁', title:'자주 있던 일인가',
+  { id:'event', col:'#059669', icon:'🔁', title:'자주 있던 일인가',
     sub:'지난 600봉에서 몇 번이나 있었고, 그 뒤엔 어땠는지 셉니다.',
     calc:function(C){
       var out=[],i,gu=[0,0],gd=[0,0];
@@ -5143,12 +5187,23 @@ function _buildStatBoardCard(stock, indicators){
       } else if(_sbRows600Cache[key]==='pending') pend=true;
     }catch(_eF){}
 
-    var _titleHtml='<span style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap">📟 종목 통계판</span>'
-      + '<span style="font-size:9px;padding:2px 5px;border-radius:4px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-left:5px;white-space:nowrap">표시 전용</span>';
+    // [S1162] 상시 노출 — 접기 헤더 없음. 자료실이라 열어두는 게 기본이다(블록별 접기는 안쪽에 있다).
+    function _sbShell(rightTxt, inner){
+      return '<div id="sxStatBoardWrap" style="margin:0 0 10px;border-radius:12px;background:var(--surface);border:1px solid var(--border);overflow:hidden">'
+        + '<div style="height:3px;background:linear-gradient(90deg,#2563eb,#7c3aed,#ea580c,#0891b2,#059669)"></div>'
+        + '<div style="padding:11px 14px 12px">'
+        +   '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'
+        +     '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:'+_sbA('#2563eb',.12)+';font-size:13px;flex-shrink:0">📟</span>'
+        +     '<span style="font-size:13.5px;font-weight:800;color:var(--text);white-space:nowrap">종목 통계판</span>'
+        +     '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;background:'+_sbA('#2563eb',.10)+';color:#2563eb;border:1px solid '+_sbA('#2563eb',.30)+';white-space:nowrap">표시 전용</span>'
+        +     '<span style="margin-left:auto;flex-shrink:0">'+rightTxt+'</span>'
+        +   '</div>'
+        +   inner
+        + '</div></div>';
+    }
 
     if(!rows || rows.length<60){
-      return _sxExpCard('sxStatBoardWrap','sxStatBoardWrap_b',_titleHtml,
-        '<span style="font-size:9px;font-weight:700;color:'+T3+';white-space:nowrap">'+(pend?'봉 받는 중':'이력 부족')+'</span>',
+      return _sbShell('<span style="font-size:9.5px;font-weight:700;color:'+(pend?'#f59e0b':T3)+';white-space:nowrap">'+(pend?'봉 받는 중':'이력 부족')+'</span>',
         '<div style="font-size:11px;color:'+T3+';line-height:1.6">'
         + (pend?'과거 봉을 받고 있습니다. 잠시 뒤 자동으로 채워집니다.':'통계를 내기엔 이력이 부족합니다(60봉 미만).')+'</div>');
     }
@@ -5177,7 +5232,7 @@ function _buildStatBoardCard(stock, indicators){
     var _dt = ''; try{ var d0=String(rows[L].date||rows[L].d||'').slice(0,10).replace(/-/g,'');   // US/COIN은 ISO datetime('2024-02-08T14:30:00Z')이라 앞 10자를 먼저 자른다
       if(/^\d{8}$/.test(d0)) _dt = d0.slice(4,6)+'/'+d0.slice(6,8); }catch(_eD){}
     var _rightHtml = (pend?'<span style="font-size:9px;font-weight:700;color:#f59e0b;margin-right:4px">봉 받는 중</span>':'')
-      + '<span style="font-size:9.5px;font-weight:700;color:'+T3+';white-space:nowrap">'+n+'봉</span>';
+      + '<span style="font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:5px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);white-space:nowrap">'+n+'봉</span>';
 
     var body = '<div style="font-size:10.5px;color:'+T2+';line-height:1.6;margin-bottom:6px">'
       + '최근 <b>'+n+'봉</b>'+_yrs+'을 세어본 값입니다'+(_dt?(' · 기준 '+_dt):'')+'.<br>'
@@ -5185,10 +5240,10 @@ function _buildStatBoardCard(stock, indicators){
       + '</div>';
 
     if(extremes.length){
-      body += '<div style="padding:7px 9px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);margin-bottom:6px">'
-        + '<div style="font-size:10.5px;font-weight:800;color:var(--text);margin-bottom:3px">이력 양 끝에 있는 값</div>'
+      body += '<div style="padding:8px 10px;border-radius:9px;background:'+_sbA('#f59e0b',.07)+';border:1px solid '+_sbA('#f59e0b',.30)+';margin-bottom:8px">'
+        + '<div style="font-size:10.5px;font-weight:800;color:#d97706;margin-bottom:4px">◆ 이력 양 끝에 있는 값</div>'
         + extremes.map(function(x){
-            var pos = x.pctl>=50 ? ('상위 '+(100-x.pctl)+'%') : ('하위 '+x.pctl+'%');
+            var pos = x.posTxt ? x.posTxt : (x.pctl>=50 ? ('상위 '+(100-x.pctl)+'%') : ('하위 '+x.pctl+'%'));
             return '<div style="display:flex;justify-content:space-between;gap:6px;font-size:10.5px;color:'+T2+';padding:1px 0">'
               + '<span>'+x.label+' <b style="color:var(--text)">'+x.nowTxt+'</b></span>'
               + '<span style="font-weight:700;color:#f59e0b">'+pos+'</span></div>';
@@ -5208,7 +5263,7 @@ function _buildStatBoardCard(stock, indicators){
       +   (_SB_DETAIL?'🔍 상세 수치 ON':'상세 수치 보기') + '</button>'
       + '</div>';
 
-    return _sxExpCard('sxStatBoardWrap','sxStatBoardWrap_b',_titleHtml,_rightHtml,body);
+    return _sbShell(_rightHtml, body);
   }catch(_e){ return ''; }
 }
 
@@ -17676,9 +17731,9 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     ${chartHTML}
     ${_buildR1S1Card(stock, indicators)}
     ${_buildScoreBoard(scores, stock._svScores4, _boardStruct, _boardPb, _boardDeltas, stock._svVerdict, _lowConf, _boardExtras)}
+    ${_buildStatBoardCard(stock, indicators)}
     ${_buildTransitionCard(stock, indicators)}
     ${_buildTrendCard(stock, indicators)}
-    ${_buildStatBoardCard(stock, indicators)}
     ${_buildDistBoardCard(stock, indicators)}
           ${_buildMaeCard(stock, indicators)}
           ${_buildRejectArchiveCard(stock, indicators)}
