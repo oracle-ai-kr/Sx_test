@@ -241,6 +241,30 @@
           ${usedPct > 80 ? '<div style="margin-top:6px;font-size:11px;color:#dc2626">⚠️ 용량 한계 근접 — 캐시 초기화 권장</div>' : ''}
         </div>
 
+        ${(function(){
+          // [S1159] 600봉 캐시 관측 — localStorage가 아니라 세션 메모리 캐시(fetchRows600)라 위 목록에 안 잡힌다.
+          //   목표 미달본이 확정 캐시로 굳어 종목이 400봉에 고착되던 증상의 수정 결과를 여기서 확인한다.
+          //   ★rescued > 0 이면 재시도가 실제로 목표를 채웠다는 뜻 = 그 버그가 실재했다는 증거.
+          //   새로고침하면 0으로 돌아간다(세션 한정 카운터).
+          var D=null; try{ D=window._sxR600Dbg; }catch(_){}
+          if(!D) return '';
+          var none=(!D.retry && !D.rescued && !D.stuck);
+          var c=function(v,col){ return '<b style="color:'+(v?col:'var(--text3,#999)')+'">'+v+'</b>'; };
+          return '<div style="margin-bottom:14px;padding:10px;background:var(--surface2,#f6f6f6);border-radius:8px">'
+            + '<div style="font-size:13px;font-weight:600;margin-bottom:6px">🕯 캔들 600봉 캐시 <span style="font-size:10px;font-weight:500;color:var(--text3,#999)">세션 한정 · 새로고침 시 0</span></div>'
+            + (none
+                ? '<div style="font-size:11px;color:var(--text3,#999)">아직 목표 미달 사례 없음 — 종목 몇 개를 열어본 뒤 다시 보세요.</div>'
+                : '<div style="font-size:11.5px;line-height:1.7">'
+                  + '재요청 '+c(D.retry,'#d97706')+'건 · '
+                  + '<span title="재시도가 목표 봉수를 채운 건수">구제 '+c(D.rescued,'#16a34a')+'</span>건 · '
+                  + '<span title="2회차도 미달 = 상장이 짧은 종목">가용최대 '+c(D.stuck,'var(--text2,#666)')+'</span>건'
+                  + '</div>')
+            + '<div style="margin-top:5px;font-size:10px;color:var(--text3,#999);line-height:1.5">'
+            + '<b>구제</b>가 1건이라도 있으면, 예전엔 그 종목이 짧은 봉수로 굳은 채 kNN·캔들전이·통계에 쓰였다는 뜻입니다. '
+            + '<b>가용최대</b>는 상장 기간이 짧아 원래 봉이 부족한 종목이라 정상입니다.'
+            + '</div></div>';
+        })()}
+
         <div style="font-size:12px;color:var(--text2,#666);margin-bottom:8px;font-weight:600">카테고리별 분포 <span style="font-weight:400;color:var(--text3,#999)">(클릭하면 개별 키 표시)</span></div>
     `;
 
