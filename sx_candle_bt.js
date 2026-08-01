@@ -49,7 +49,19 @@
   //        2회차에 긴 쪽을 채택하고 그때 확정한다. 상장이 짧은 종목은 2회차도 같은 길이라 그대로 굳는다.
   //        비용 상한 = 종목당 추가 fetch 1회. null(완전 실패)도 길이 0이라 같은 경로로 1회 재시도된다.
   var _rows600Prov = {};    // 'key' → 1회차 결과(rows|null). 확정되면 삭제.
-  var _rows600Dbg  = { retry:0, rescued:0, stuck:0 };   // 관측용 — 재시도 수 / 길어진 수 / 2회차도 미달
+  var _rows600Dbg  = { retry:0, rescued:0, stuck:0, list:[] };   // 관측용 — 재시도 수 / 길어진 수 / 2회차도 미달
+  // [S1160] ★계수만으로는 원인을 못 가른다. "미달 2건"이 상장 짧은 종목인지 버그인지 구분하려면
+  //   **어느 종목이 몇 봉 받았는가**가 필요하다. 삼성전자 412/600 = 버그 · 작년 상장 380/600 = 정상.
+  //   n1=1회차 길이 · n2=재시도 길이. n1===n2면 재시도가 같은 벽에 부딪힌 것(내 S1159 수정이 못 고치는 종류).
+  var _R600_LOG_CAP = 30;
+  function _r600Log(key, n, tgt, isRetry){
+    try{
+      var L=_rows600Dbg.list, i;
+      for(i=0;i<L.length;i++) if(L[i].k===key){ if(isRetry) L[i].n2=n; return; }
+      if(L.length>=_R600_LOG_CAP) return;
+      L.push({ k:key, n1:n, n2:null, tgt:tgt });
+    }catch(_e){}
+  }
   try{ if(typeof window!=='undefined') window._sxR600Dbg=_rows600Dbg; }catch(_e0){}
 
   // ── [S847] 캔들 스냅샷 모드 — 발굴풀 캔들을 파일(GitHub Pages)로 냉동해 재현 측정. ON=fetchRows600 캐시 전용(미수록 종목 null=측정 제외, live 폴백 없음 → 냉동/라이브 섞임 원천 차단). 세션 한정(새로고침=OFF). OFF시 프리로드 키 퍼지. ──
@@ -106,15 +118,16 @@
     var _len = (Array.isArray(r)&&r.length) ? r.length : 0;
     var _isRetry = Object.prototype.hasOwnProperty.call(_rows600Prov, key);
     if(_len >= _floor){                                  // 목표 충족 → 확정
-      if(_isRetry) _rows600Dbg.rescued++;                //   ★재시도가 실제로 채웠다 = 이 버그가 실재했다는 증거
+      if(_isRetry){ _rows600Dbg.rescued++; _r600Log(key,_len,_tgt,true); }   //   ★재시도가 실제로 채웠다 = 이 버그가 실재했다는 증거
       _rows600Cache[key] = r; delete _rows600Prov[key];
       return _rows600Cache[key];
     }
     if(!_isRetry){                                       // 1회차 미달 → 잠정 보관·확정 캐시엔 안 씀
-      _rows600Prov[key] = _len ? r : null; _rows600Dbg.retry++;
+      _rows600Prov[key] = _len ? r : null; _rows600Dbg.retry++; _r600Log(key,_len,_tgt,false);
       return _len ? r : null;                            //   호출자에겐 있는 만큼 준다(빈 화면 방지)
     }
     var _p = _rows600Prov[key], _pl = (Array.isArray(_p)&&_p.length) ? _p.length : 0;   // 2회차도 미달 → 긴 쪽으로 확정
+    _r600Log(key,_len,_tgt,true);                        //   [S1160] 재시도 길이를 그대로 남긴다(긴쪽 채택 **전** 값이라 벽 판별이 됨)
     if(_pl > _len){ r = _p; _len = _pl; }                //   = 가용 최대(상장 짧은 종목). 더 조르지 않는다.
     _rows600Dbg.stuck++;
     _rows600Cache[key] = _len ? r : null; delete _rows600Prov[key];
