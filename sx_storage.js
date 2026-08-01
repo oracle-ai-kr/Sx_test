@@ -250,18 +250,34 @@
           if(!D) return '';
           var none=(!D.retry && !D.rescued && !D.stuck);
           var c=function(v,col){ return '<b style="color:'+(v?col:'var(--text3,#999)')+'">'+v+'</b>'; };
+          // [S1160] 미달 사례 상세 — 계수만으로는 "상장 짧은 종목"과 "버그"를 못 가른다.
+          var rows='';
+          try{
+            var L=(D.list||[]);
+            for(var i=0;i<L.length;i++){
+              var e=L[i], p=String(e.k||'').split('|'), cd=p[2]||e.k, tag, tc;
+              if(e.n2==null){ tag='재시도 전'; tc='var(--text3,#999)'; }
+              else if(e.n2>e.n1){ tag='재시도로 +'+(e.n2-e.n1); tc='#16a34a'; }
+              else { tag='같은 벽'; tc='#d97706'; }
+              rows += '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;border-top:1px solid var(--border,#eee)">'
+                + '<span style="font-weight:600">'+cd+'</span>'
+                + '<span style="color:var(--text2,#666)">'+e.n1+(e.n2!=null&&e.n2!==e.n1?('→'+e.n2):'')+' / '+e.tgt+'봉 <span style="color:'+tc+'">'+tag+'</span></span>'
+                + '</div>';
+            }
+          }catch(_e2){}
           return '<div style="margin-bottom:14px;padding:10px;background:var(--surface2,#f6f6f6);border-radius:8px">'
             + '<div style="font-size:13px;font-weight:600;margin-bottom:6px">🕯 캔들 600봉 캐시 <span style="font-size:10px;font-weight:500;color:var(--text3,#999)">세션 한정 · 새로고침 시 0</span></div>'
             + (none
                 ? '<div style="font-size:11px;color:var(--text3,#999)">아직 목표 미달 사례 없음 — 종목 몇 개를 열어본 뒤 다시 보세요.</div>'
                 : '<div style="font-size:11.5px;line-height:1.7">'
                   + '재요청 '+c(D.retry,'#d97706')+'건 · '
-                  + '<span title="재시도가 목표 봉수를 채운 건수">구제 '+c(D.rescued,'#16a34a')+'</span>건 · '
-                  + '<span title="2회차도 미달 = 상장이 짧은 종목">가용최대 '+c(D.stuck,'var(--text2,#666)')+'</span>건'
-                  + '</div>')
-            + '<div style="margin-top:5px;font-size:10px;color:var(--text3,#999);line-height:1.5">'
-            + '<b>구제</b>가 1건이라도 있으면, 예전엔 그 종목이 짧은 봉수로 굳은 채 kNN·캔들전이·통계에 쓰였다는 뜻입니다. '
-            + '<b>가용최대</b>는 상장 기간이 짧아 원래 봉이 부족한 종목이라 정상입니다.'
+                  + '구제 '+c(D.rescued,'#16a34a')+'건 · '
+                  + '가용최대 '+c(D.stuck,'var(--text2,#666)')+'건'
+                  + '</div>'
+                  + (rows?('<div style="margin-top:6px">'+rows+'</div>'):''))
+            + '<div style="margin-top:6px;font-size:10px;color:var(--text3,#999);line-height:1.5">'
+            + '<b>같은 벽</b> = 재시도해도 봉수가 그대로. 오래된 종목인데 이게 뜨면 재시도로는 못 고치는 원인입니다. '
+            + '오래되지 않은 종목(최근 상장)이면 정상입니다.'
             + '</div></div>';
         })()}
 
