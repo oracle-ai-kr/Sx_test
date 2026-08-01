@@ -311,6 +311,7 @@
 
     html += `
         ${memInfo}
+        <div id="sxsLedgerBox" style="margin-top:12px"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">
           <button onclick="SXS.clearCache()" style="padding:10px;background:var(--accent,#2563eb);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">
             🧹 캐시 초기화<br><span style="font-size:10px;opacity:.85">${formatSize(cacheBytes)} 회수 예상</span>
@@ -328,6 +329,45 @@
     `;
 
     return html;
+  }
+
+  // [S1158] 예측 원장은 IndexedDB라 localStorage 순회에 안 잡힌다.
+  //   진단 화면이 localStorage만 보여주면 "저장소 진단"이 반쪽이 되고,
+  //   사용자는 원장이 어디에 얼마나 있는지 볼 방법이 없다. 비동기라 나중에 채워 넣는다.
+  function _fillLedgerBox(){
+    var box = document.getElementById('sxsLedgerBox');
+    if(!box) return;
+    if(typeof SXLedger === 'undefined'){
+      box.innerHTML = '<div style="padding:8px;background:var(--surface,#f8fafc);border-radius:6px;font-size:11px;color:var(--text3,#999)">'
+        + '🗂 예측 원장 — 사용 불가(저장소 차단 또는 미로드)</div>';
+      return;
+    }
+    Promise.all([
+      SXLedger.list({ includeVoid: true }).catch(function(){ return []; }),
+      SXLedger.estimate().catch(function(){ return null; })
+    ]).then(function(a){
+      var rows = a[0] || [], est = a[1];
+      var picked = 0, scored = 0, voided = 0;
+      rows.forEach(function(r){
+        if(r.void){ voided++; return; }
+        if(r.human != null) picked++;
+        if(r.st === 1) scored++;
+      });
+      var ps = SXLedger.persistState && SXLedger.persistState();
+      box.innerHTML = '<div style="padding:9px 11px;background:var(--surface,#f8fafc);border:1px solid var(--border,#e5e7eb);border-radius:6px">'
+        + '<div style="font-size:11.5px;font-weight:700;color:var(--text,#111)">🗂 예측 원장 <span style="font-weight:400;color:var(--text3,#999);font-size:10px">— IndexedDB (위 목록에 안 잡힘)</span></div>'
+        + '<div style="margin-top:5px;font-size:11px;color:var(--text2,#666);line-height:1.7">'
+        +   '전체 <b>' + rows.length + '건</b> · 직접 찍은 예측 <b>' + picked + '건</b> · 채점 완료 ' + scored + '건'
+        +   (voided ? (' · 폐기 ' + voided + '건') : '')
+        +   (est && est.usage != null ? ('<br>origin 사용량 ' + (est.usage/1048576).toFixed(1) + 'MB'
+              + (est.quota ? (' / ' + (est.quota/1048576).toFixed(0) + 'MB') : '')) : '')
+        +   '<br>저장 보호 ' + (ps && ps.ok ? '<b style="color:#16a34a">ON</b>' : '<b style="color:#e3493b">OFF</b>')
+        + '</div>'
+        + (picked ? ('<div style="margin-top:6px;font-size:10px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:5px;padding:6px 8px;line-height:1.6">'
+            + '직접 찍은 예측은 <b>전체 초기화 시 함께 삭제</b>되고, 파일로 내보내지 않았다면 되살릴 수 없습니다. '
+            + '조건검색탭 → 예측 원장 → 원장 파일 내보내기</div>') : '')
+        + '</div>';
+    }).catch(function(){});
   }
 
   // ─── 4. 진단 모달 표시 ───
@@ -370,12 +410,14 @@
 
     modal.appendChild(inner);
     document.body.appendChild(modal);
+      try { setTimeout(_fillLedgerBox, 0); } catch(_) {}   // [S1158] 최초 표시 시에도 원장 블록 채움
   }
 
   // ─── [v1.1] 모달 내부 다시 그리기 (펼침 상태 토글, 키 삭제 후 등) ───
   function _refreshDiag(){
     const body = document.getElementById('sxsStorageDiagBody');
     if(body) body.innerHTML = renderDiagHTML();
+    try { _fillLedgerBox(); } catch(_) {}   // [S1158] 원장은 비동기라 렌더 후 채운다
   }
 
   // ─── [v1.1] 카테고리 펼침/접기 토글 ───
@@ -471,7 +513,17 @@
     try { if(typeof _sxVib === 'function') _sxVib(20); } catch(_) {}
     const _conf = (typeof window !== 'undefined' && window.sxConfirm) ? window.sxConfirm : (m=>Promise.resolve(confirm(m)));
     const _alrt = (typeof window !== 'undefined' && window.sxAlert) ? window.sxAlert : (m=>Promise.resolve(alert(m)));
-    if(!await _conf('Signal X의 모든 데이터를 초기화하시겠습니까?\n(관심종목·종목풀·분석·BT·옵티마이저·설정 전부 삭제)')) return;
+    // [S1158] 예측 기록은 파일로 백업하지 않으면 복원 불가 — 문구에 명시한다.
+    var _predWarn = '';
+    try {
+      if(typeof SXLedger !== 'undefined' && SXLedger.list){
+        var _n = await SXLedger.list({ includeVoid: true }).then(function(a){
+          return (a||[]).filter(function(r){ return r.human != null && !r.void; }).length;
+        }).catch(function(){ return 0; });
+        if(_n) _predWarn = '\n\n⚠ 직접 찍은 예측 ' + _n + '건도 삭제됩니다.\n파일로 내보내지 않았다면 되살릴 수 없습니다.';
+      }
+    } catch(_) {}
+    if(!await _conf('Signal X의 모든 데이터를 초기화하시겠습니까?\n(관심종목·종목풀·분석·BT·옵티마이저·설정 전부 삭제)' + _predWarn)) return;
 
     try {
       const toRemove = [];
@@ -486,6 +538,13 @@
     } catch(e) {
       console.warn('[SXS.resetAll] err', e);
     }
+
+    // [S1158] 예측 원장(IndexedDB)도 함께 지운다.
+    //  ★원장은 localStorage가 아니라 IndexedDB에 있다(S1135). 여기서 빠지면
+    //    "모든 데이터를 초기화"가 거짓이 되고, 초기화했다고 믿은 뒤에도 옛 예측이 남는다.
+    try {
+      if(typeof SXLedger !== 'undefined' && SXLedger.wipe){ await SXLedger.wipe(); }
+    } catch(e) { console.warn('[SXS.resetAll] 원장 삭제 실패', e); }
 
     // 메모리 캐시 전체 초기화
     cacheClear();
