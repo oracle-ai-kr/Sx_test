@@ -5478,9 +5478,7 @@ function _predQuizRender(){
       +'align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(2px)';
     ov.addEventListener('click',function(e){ if(e.target===ov) _predQuizClose(); });
     document.body.appendChild(ov);
-    try{ history.pushState({view:'sxQuiz'},''); }catch(_){}
-    ov._popHandler=function(){ _predQuizDestroy(); };
-    window.addEventListener('popstate', ov._popHandler, {once:true});
+    _sxOvPush('sxQuizOverlay');
   }
   ov.innerHTML=_predQuizHtml();
 }
@@ -5573,15 +5571,12 @@ function _predQuizConfirm(){
     Q.idx++; Q.draft=null; _predQuizRender();
   });
 }
-function _predQuizClose(){
-  try{ history.back(); }catch(_e){ _predQuizDestroy(); }
-}
-function _predQuizDestroy(){
-  var ov=document.getElementById('sxQuizOverlay'); if(ov){ try{ ov.remove(); }catch(_){} }
-  window._sxQuiz=null;
+function _predQuizClose(){ _sxOvClose('sxQuizOverlay'); _predQuizAfter(); }
+function _predQuizAfter(){
   try{ _predPanelRefresh(); }catch(_e){}
   try{ _dbRerenderCard(); }catch(_e2){}
 }
+function _predQuizDestroy(){ _sxOvClose('sxQuizOverlay'); _predQuizAfter(); }
 
 // ═══════════ [S1144] 진입 시 자동 채점 — 결과를 안 보면 원장은 안 돌아간다 ═══════════
 //  문제: 채점을 사람이 기억해서 눌러야 했다. 한 달 잊으면 지평 도달분이 쌓여만 있고,
@@ -5623,12 +5618,10 @@ function _predResultPopup(rows, stats, preview){
   ov.addEventListener('click',function(e){ if(e.target===ov) _predResultClose(); });
   ov.innerHTML=_predResultHtml(rows, stats, preview);
   document.body.appendChild(ov);
-  try{ history.pushState({view:'sxResult'},''); }catch(_){}
-  ov._popHandler=function(){ var x=document.getElementById('sxResultOverlay'); if(x){ try{ x.remove(); }catch(_){} } };
-  window.addEventListener('popstate', ov._popHandler, {once:true});
+  _sxOvPush('sxResultOverlay');
   try{ _sxVib(14); }catch(_e){}
 }
-function _predResultClose(){ try{ history.back(); }catch(_e){ var x=document.getElementById('sxResultOverlay'); if(x) x.remove(); } }
+function _predResultClose(){ _sxOvClose('sxResultOverlay'); }
 
 function _predResultHtml(rows, stats, preview){
   var T3='var(--text3)', T2='var(--text2)', GRN='#16a34a', RED='#e3493b';
@@ -5798,13 +5791,11 @@ function _predHistRender(){
       +'align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(2px)';
     ov.addEventListener('click',function(e){ if(e.target===ov) _predHistClose(); });
     document.body.appendChild(ov);
-    try{ history.pushState({view:'sxHist'},''); }catch(_){}
-    ov._popHandler=function(){ var x=document.getElementById('sxHistOverlay'); if(x){ try{ x.remove(); }catch(_){} } window._sxHist=null; };
-    window.addEventListener('popstate', ov._popHandler, {once:true});
+    _sxOvPush('sxHistOverlay');
   }
   ov.innerHTML=_predHistHtml();
 }
-function _predHistClose(){ try{ history.back(); }catch(_e){ var x=document.getElementById('sxHistOverlay'); if(x) x.remove(); window._sxHist=null; } }
+function _predHistClose(){ _sxOvClose('sxHistOverlay'); }
 function _predHistFilter(k){ try{ _sxVib(6); }catch(_e){} window._sxHist.filter=k; window._sxHist.limit=25; _predHistRender(); }
 function _predHistMore(){ window._sxHist.limit+=25; _predHistRender(); }
 
@@ -5958,6 +5949,45 @@ function _predImportPopup(R, fname){
 }
 function _predImportClose(){ _predSimpleClose('sxImportOverlay'); }
 
+// ═══════════ [S1157] 오버레이 히스토리 — 스택 하나로 통일 ═══════════
+//  ★버그: 오버레이마다 pushState + popstate{once:true}를 각자 걸었는데,
+//    같은 오버레이를 다시 열면 옛 항목이 **소비되지 않은 채** 하나 더 쌓였다.
+//    (_predResultPopup은 기존 노드를 remove만 하고 리스너·히스토리는 그대로 뒀다)
+//    그 결과 확인/뒤로가기가 엉뚱한 탭(내 필터 등)으로 튀었다.
+//  ★처방: 히스토리 항목은 **스택이 비어 있을 때 딱 하나만** 넣고,
+//    popstate 리스너도 하나만 유지한다. 중첩 오버레이는 스택 길이로 관리.
+window._sxOvStack = window._sxOvStack || [];
+
+function _sxOvPop(){                       // 하드웨어 뒤로가기 = 최상단 하나만 닫는다
+  var id=window._sxOvStack.pop();
+  _sxOvKill(id);
+  if(window._sxOvStack.length){ try{ history.pushState({sxOv:1},''); }catch(_){} }  // 남았으면 다시 채움
+  else { window.removeEventListener('popstate', _sxOvPop); }
+}
+function _sxOvKill(id){
+  try{ var el=document.getElementById(id); if(el) el.remove(); }catch(_){}
+  try{ if(id==='sxQuizOverlay') window._sxQuiz=null; if(id==='sxHistOverlay') window._sxHist=null; }catch(_){}
+}
+function _sxOvPush(id){
+  var ix=window._sxOvStack.indexOf(id);
+  if(ix>=0) return;                        // 이미 열려 있으면 히스토리를 더 넣지 않는다(누적 방지)
+  if(!window._sxOvStack.length){
+    try{ history.pushState({sxOv:1},''); }catch(_){}
+    window.addEventListener('popstate', _sxOvPop);
+  }
+  window._sxOvStack.push(id);
+}
+function _sxOvClose(id){                   // 버튼으로 닫기 — 우리가 넣은 항목을 소비한다
+  var ix=window._sxOvStack.indexOf(id);
+  _sxOvKill(id);
+  if(ix<0) return;
+  window._sxOvStack.splice(ix,1);
+  if(!window._sxOvStack.length){
+    window.removeEventListener('popstate', _sxOvPop);
+    try{ history.back(); }catch(_){}
+  }
+}
+
 //  단순 오버레이 헬퍼 — 가져오기 결과·백업 알림이 공유한다
 function _predSimpleOverlay(id, innerHtml){
   var old=document.getElementById(id); if(old) old.remove();
@@ -5968,12 +5998,10 @@ function _predSimpleOverlay(id, innerHtml){
     +'max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.5)">'+innerHtml+'</div>';
   ov.addEventListener('click',function(e){ if(e.target===ov) _predSimpleClose(id); });
   document.body.appendChild(ov);
-  try{ history.pushState({view:id},''); }catch(_){}
-  ov._popHandler=function(){ var x=document.getElementById(id); if(x){ try{ x.remove(); }catch(_){} } };
-  window.addEventListener('popstate', ov._popHandler, {once:true});
+  _sxOvPush(id);
   try{ _sxVib(12); }catch(_e){}
 }
-function _predSimpleClose(id){ try{ history.back(); }catch(_e){ var x=document.getElementById(id); if(x) x.remove(); } }
+function _predSimpleClose(id){ _sxOvClose(id); }
 
 // ── 백업 알림 팝업 ──
 //  ★자동으로 뜨지만 **다운로드는 사용자 탭으로만** 일어난다. 사용자 동작 없는 다운로드는
@@ -13118,7 +13146,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1156';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1157';   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
