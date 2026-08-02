@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════
 //  SIGNAL X — Q&A 게시판 UI (sx_qa_board_ui.js)
-//  버전: v4 · [S1171] 예상 찍기 제거 · [S1169] 헤더 치수 정렬 · [S1168] 축·주제·출처 편집 · v1 [S1167] 신설
+//  버전: v5 · [S1173] 분석탭 인라인 입력란(폼·초안 공유) · [S1171] 예상 찍기 제거 · [S1169] 헤더 치수 정렬 · [S1168] 축 편집 · v1 [S1167] 신설
 //
 //  코어(sx_qa_board.js / window.SXQA)의 화면. **판정은 여기서 하지 않는다.**
 //  게시판은 답이 사는 곳이지 답을 만드는 곳이 아니다 — 화면에서 임계를 조절하다 보면
@@ -19,7 +19,10 @@
   var S = window._sxQaPanel = window._sxQaPanel || {
     open: false, msg: '', last: null,
     filter: { st: '', tag: '' },
-    formOpen: false,
+    //  [S1173] 폼이 어디에 열렸나 — null | 'panel'(조건검색탭) | 'inline'(분석탭).
+    //    불리언이 아니라 **어디**를 들고 있는 이유: 두 폼이 동시에 그려지면 id가 중복된다.
+    formWhere: null,
+    inlineStock: null,      // 분석탭이 보고 있는 종목 {code,name,mkt}
     draft: { text: '', tag: 'etc', topics: '', src: '', quote: '', mkt: '', code: '', name: '' },
     detail: {},         // id → 펼침 여부
     edit: {}            // [S1168] id → 메타 편집 열림 여부
@@ -63,9 +66,11 @@
       + '</div>');
 
     //  ── 질문 적기
-    if (!S.formOpen) {
-      B.push('<button onclick="_qaFormToggle()" style="width:100%;padding:9px;border-radius:8px;border:none;'
+    if (S.formWhere !== 'panel') {
+      B.push('<button onclick="_qaFormToggle(\'panel\')" style="width:100%;padding:9px;border-radius:8px;border:none;'
         + 'background:var(--accent);color:#fff;font-size:12px;font-weight:800;cursor:pointer">✍️ 질문 적기</button>');
+      if (S.formWhere === 'inline') B.push('<div style="margin-top:5px;font-size:9.5px;color:' + T3 + '">'
+        + '분석탭에서 적는 중이다 — 거기서 마치거나 취소할 것.</div>');
     } else {
       B.push(_formHtml());
     }
@@ -173,6 +178,39 @@
     P.push('</div>');
     return P.join('');
   }
+
+  //  [S1173] 분석탭 인라인 — **입력란만.** 목록·필터·지도·도구는 조건검색탭에만 둔다.
+  //    단일종목 화면에서 목록까지 보여주면 같은 걸 두 군데서 보는 중복이 되고,
+  //    무엇보다 이 자리에 필요한 건 '보는 것'이 아니라 '적는 것'이다.
+  window._qaInlineHtml = function (code, name, mkt) {
+    var QA = window.SXQA;
+    if (!QA) return '';
+    //  보던 종목이 바뀌면 초안을 버린다 — 다른 종목의 질문이 딸려가면 안 된다.
+    var cur = S.inlineStock;
+    if (!cur || cur.code !== code) {
+      if (S.formWhere === 'inline') { S.formWhere = null; _resetDraft(); }
+      S.inlineStock = { code: code, name: name,
+                        mkt: mkt || (typeof currentMarket !== 'undefined' ? currentMarket : '') };
+    } else if (mkt && cur.mkt !== mkt) {
+      cur.mkt = mkt;                     // 같은 코드인데 시장만 갱신된 경우
+    }
+    var box = function (inner) {
+      return '<div style="margin:0 0 10px;padding:9px 11px;border-radius:9px;background:var(--surface);'
+        + 'border:1px dashed ' + BD + '">' + inner + '</div>';
+    };
+    if (S.formWhere === 'inline') {
+      return box('<div style="font-size:10px;color:' + T3 + ';margin-bottom:7px">'
+        + '📋 Q&amp;A 게시판에 적는다 — 목록과 답은 <b>조건검색탭</b>에서 본다.</div>' + _formHtml());
+    }
+    var msg = (S.msg && S.lastAddedInline)
+      ? '<div style="margin-top:5px;font-size:9.5px;color:var(--accent);font-weight:700">' + _esc(S.msg) + '</div>' : '';
+    return box('<div style="display:flex;align-items:center;gap:7px">'
+      + '<span style="font-size:10.5px;color:' + T3 + ';flex:1;line-height:1.5">'
+      +   '이 종목을 보다 궁금한 게 생겼다면 — 적어두지 않으면 다음에 또 궁금해진다.</span>'
+      + '<button onclick="_qaFormToggle(\'inline\')" style="flex-shrink:0;padding:6px 10px;border-radius:7px;'
+      +   'border:1px solid ' + BD + ';background:' + SF + ';color:' + T2 + ';font-size:10.5px;font-weight:700;'
+      +   'cursor:pointer">📋 질문 적기</button></div>' + msg);
+  };
 
   function _rowHtml(r) {
     var QA = window.SXQA, st = QA.ST[r.st] || {}, open = !!S.detail[r.id];
@@ -313,14 +351,27 @@
   // ─────────────────────────────────────────────────────────
   //  동작
   // ─────────────────────────────────────────────────────────
+  //  [S1173] 마운트가 둘이다 — #sxQaPanel(조건검색탭) · #sxQaInline(분석탭).
+  //    둘 중 하나만 DOM에 있을 수도 있으므로 각각 존재할 때만 그린다.
+  function _paint() {
+    var p = document.getElementById('sxQaPanel');
+    if (p) p.innerHTML = _qaPanelHtml();
+    var i = document.getElementById('sxQaInline');
+    if (i && S.inlineStock) i.innerHTML = window._qaInlineHtml(
+      S.inlineStock.code, S.inlineStock.name, S.inlineStock.mkt);
+  }
+
   function _refresh() {
-    var el = document.getElementById('sxQaPanel'); if (!el) return;
-    el.innerHTML = _qaPanelHtml();
+    _paint();
     if (!window.SXQA || !S.open) return;
     Promise.all([window.SXQA.list({}), window.SXQA.stats()]).then(function (a) {
       S.last = { rows: a[0], stats: a[1] };
-      var e2 = document.getElementById('sxQaPanel'); if (e2) e2.innerHTML = _qaPanelHtml();
+      _paint();
     }).catch(function (e) { S.msg = '불러오기 실패: ' + ((e && e.message) || e); });
+  }
+
+  function _resetDraft() {
+    S.draft = { text: '', tag: 'etc', topics: '', src: '', quote: '', mkt: '', code: '', name: '' };
   }
 
   function _readForm() {
@@ -332,11 +383,23 @@
   window._qaPanelToggle = function () { _vib(8); S.open = !S.open; _refresh(); };
   window._qaPanelRefresh = _refresh;
 
-  window._qaFormToggle = function () {
+  window._qaFormToggle = function (where) {
     _vib(6);
-    if (S.formOpen) _readForm();
-    S.formOpen = !S.formOpen;
-    if (!S.formOpen) S.draft = { text: '', tag: 'etc', topics: '', src: '', quote: '', mkt: '', code: '', name: '' };
+    where = where || 'panel';
+    if (S.formWhere) _readForm();
+    if (S.formWhere === where) {            // 같은 자리 다시 누름 = 닫기
+      S.formWhere = null; _resetDraft();
+    } else {
+      S.formWhere = where;
+      S.lastAddedInline = false;
+      if (where === 'inline' && S.inlineStock) {
+        S.draft.code = S.inlineStock.code;
+        S.draft.name = S.inlineStock.name;
+        S.draft.mkt = S.inlineStock.mkt
+          || (typeof currentMarket !== 'undefined' ? currentMarket : '');
+      }
+    }
+    S.msg = '';
     _refresh();
   };
 
@@ -378,9 +441,11 @@
       src: d.src, quote: d.quote,
       mkt: d.mkt, code: d.code, name: d.name
     }).then(function () {
-      S.formOpen = false;
-      S.draft = { text: '', tag: 'etc', topics: '', src: '', quote: '', mkt: '', code: '', name: '' };
-      S.msg = '적어뒀다.'; _refresh();
+      S.lastAddedInline = (S.formWhere === 'inline');
+      S.formWhere = null;
+      _resetDraft();
+      S.msg = S.lastAddedInline ? '적어뒀다 — 목록은 조건검색탭 게시판에서.' : '적어뒀다.';
+      _refresh();
     }).catch(function (e) { S.msg = '실패: ' + ((e && e.message) || e); _refresh(); });
   };
 
@@ -473,17 +538,24 @@
 
   //  ── 분석탭 진입: 보던 종목을 붙여서 질문 폼을 연다.
   //    궁금증은 대부분 화면 앞에서 생긴다 — 그 자리에서 적을 수 있어야 샌 게 안 샌다.
+  //  [S1173] 분석탭에서 부르면 **그 자리에서** 연다. 이전엔 다른 탭의 패널로 스크롤하려 해서
+  //    아무 일도 일어나지 않는 것처럼 보였다(탭 전환을 안 했으므로).
   window._qaAskAbout = function (code, name, mkt) {
     _vib(10);
-    S.open = true; S.formOpen = true;
-    S.draft.code = code || ''; S.draft.name = name || '';
-    S.draft.mkt = mkt || (typeof currentMarket !== 'undefined' ? currentMarket : '');
-    _refresh();
-    setTimeout(function () {
-      var el = document.getElementById('sxQaPanel');
-      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      var t = document.getElementById('qaText'); if (t) t.focus();
-    }, 60);
+    S.inlineStock = { code: code || '', name: name || '',
+                      mkt: mkt || (typeof currentMarket !== 'undefined' ? currentMarket : '') };
+    S.formWhere = null;
+    window._qaFormToggle('inline');
+    setTimeout(function () { var t = document.getElementById('qaText'); if (t) t.focus(); }, 60);
+  };
+
+  //  [S1173] ★S.inlineStock을 여기서 먼저 덮어쓰면 안 된다 —
+  //    _qaInlineHtml 안의 '종목이 바뀌었나' 비교가 영원히 참이 되어 초안 폐기가 안 걸린다.
+  //    (실제로 그렇게 짰다가 종목을 넘겨도 이전 종목 초안이 남는 버그가 났다.)
+  //    판정은 _qaInlineHtml 한 곳에서만 한다.
+  window._qaInlineMount = function (code, name, mkt) {
+    return window._qaInlineHtml(code || '', name || '',
+      mkt || (typeof currentMarket !== 'undefined' ? currentMarket : ''));
   };
 
   window._qaBoardButtonHtml = function (code, name) {
