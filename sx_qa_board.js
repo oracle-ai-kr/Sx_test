@@ -334,6 +334,27 @@
     });
   }
 
+  //  [S1168] ★한국어 조사 대응 — 정확 일치로는 거의 안 걸린다.
+  //    "골든크로스로"와 "골든크로스"는 다른 토큰이라 실데이터에서 유사 검색이 0건이 나왔다.
+  //    (합성 테스트에선 같은 어미를 써서 안 보였다 — 실제 질문 28건을 넣고서야 드러났다.)
+  //    처방: 한국어 조사는 **뒤에 붙으므로** 접두 일치로 본다. 형태소 분석은 과하고,
+  //    길이 2 이상의 접두가 겹치면 같은 낱말로 취급하는 것으로 충분하다.
+  function _tokMatch(a, b) {
+    if (a === b) return a.length;
+    var s = a.length < b.length ? a : b, l = a.length < b.length ? b : a;
+    if (s.length >= 2 && l.indexOf(s) === 0) return s.length;   // 골든크로스 ⊂ 골든크로스로
+    return 0;
+  }
+  function _hitCount(qt, rt) {
+    var n = 0, best = 0;
+    for (var i = 0; i < qt.length; i++) {
+      var m = 0;
+      for (var j = 0; j < rt.length; j++) { var k = _tokMatch(qt[i], rt[j]); if (k > m) m = k; }
+      if (m) { n++; if (m > best) best = m; }
+    }
+    return { n: n, best: best };
+  }
+
   //  ★유사 질문 — 막지 않고 보여준다.
   //    같은 질문이 다시 오는 게 나쁜 일이 아니다(S837: N10 '확정'이 N15에서 뒤집힘).
   //    다시 물었다는 사실 자체가 신호다 — 그 답이 소화되지 않았다는.
@@ -346,13 +367,16 @@
       rows.forEach(function (r) {
         if (tag && r.tag !== tag) return;
         var t = _tokens(r.text + ' ' + (r.topics || []).join(' '));
-        var n = 0;
-        for (var i = 0; i < tok.length; i++) if (t.indexOf(tok[i]) >= 0) n++;
-        if (n >= 2 || (n === 1 && tok.length === 1)) {
-          scored.push({ rec: r, hits: n, ratio: n / Math.max(1, tok.length) });
+        var h = _hitCount(tok, t);
+        //  통과 조건: 겹치는 낱말 2개 이상 · 또는 3자 이상 낱말 하나.
+        //  ★3자로 낮춘 이유: 한국어 낱말은 짧고 변별력이 크다(쌍바닥·이격도·거래량).
+        //    4자로 두니 "쌍바닥 매수"가 0건이 나왔다. 게시판은 **막는 게 아니라 보여주는** 물건이라
+        //    과잉차단이 과잉표시보다 나쁘다 — 놓치면 같은 질문을 또 하게 되고, 더 보여주면 사람이 넘기면 된다.
+        if (h.n >= 2 || h.best >= 3) {
+          scored.push({ rec: r, hits: h.n, best: h.best, ratio: h.n / Math.max(1, tok.length) });
         }
       });
-      scored.sort(function (a, b) { return (b.ratio - a.ratio) || (b.hits - a.hits); });
+      scored.sort(function (a, b) { return (b.ratio - a.ratio) || (b.best - a.best) || (b.hits - a.hits); });
       return scored.slice(0, limit || 5);
     });
   }
