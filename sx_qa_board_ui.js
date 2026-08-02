@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════
 //  SIGNAL X — Q&A 게시판 UI (sx_qa_board_ui.js)
-//  버전: v2 · [S1168] 축·주제·출처 편집(답 전까지) 추가 · v1 [S1167] 신설
+//  버전: v4 · [S1171] 예상 찍기 제거 · [S1169] 헤더 치수 정렬 · [S1168] 축·주제·출처 편집 · v1 [S1167] 신설
 //
 //  코어(sx_qa_board.js / window.SXQA)의 화면. **판정은 여기서 하지 않는다.**
 //  게시판은 답이 사는 곳이지 답을 만드는 곳이 아니다 — 화면에서 임계를 조절하다 보면
@@ -20,7 +20,7 @@
     open: false, msg: '', last: null,
     filter: { st: '', tag: '' },
     formOpen: false,
-    draft: { text: '', tag: 'etc', topics: '', src: '', quote: '', guess: '', mkt: '', code: '', name: '' },
+    draft: { text: '', tag: 'etc', topics: '', src: '', quote: '', mkt: '', code: '', name: '' },
     detail: {},         // id → 펼침 여부
     edit: {}            // [S1168] id → 메타 편집 열림 여부
   };
@@ -40,17 +40,19 @@
   function _qaPanelHtml() {
     var QA = window.SXQA;
     var wrap = function (inner) {
-      return '<div style="margin:8px 0;border:1px solid ' + BD + ';border-radius:10px;background:var(--surface);overflow:hidden">' + inner + '</div>';
+      // [S1169] 껍데기·헤더 치수는 바로 위 예측 원장 패널과 맞춘다(radius 9 · padding 9/11 · 제목 11px · 화살표 10px ▼▶).
+      //   나란히 놓인 두 패널이 서로 다른 치수를 쓰면 그것만으로 시선이 걸린다.
+      return '<div style="margin:8px 0;border:1px solid ' + BD + ';border-radius:9px;background:var(--surface);overflow:hidden">' + inner + '</div>';
     };
-    if (!QA) return wrap('<div style="padding:10px;font-size:11px;color:' + T3 + '">📋 Q&amp;A 게시판 — sx_qa_board.js 미로드</div>');
+    if (!QA) return wrap('<div style="padding:9px 11px;font-size:10px;color:' + T3 + '">📋 Q&amp;A 게시판 — sx_qa_board.js 미로드</div>');
 
     var L = S.last, n = L ? L.rows.length : 0;
     var open0 = L ? L.stats.bySt[0] : 0, ansN = L ? (L.stats.bySt[2] + L.stats.bySt[3] + L.stats.bySt[4]) : 0;
 
-    var head = '<div onclick="_qaPanelToggle()" style="padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:6px">'
-      + '<span style="font-size:12.5px;font-weight:800">📋 Q&amp;A 게시판</span>'
-      + (n ? '<span style="font-size:10px;color:' + T3 + '">🔵 ' + open0 + ' · 답 ' + ansN + '</span>' : '')
-      + '<span style="margin-left:auto;font-size:11px;color:' + T3 + '">' + (S.open ? '▾' : '▸') + '</span>'
+    var head = '<div onclick="_qaPanelToggle()" style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:9px 11px">'
+      + '<span style="font-size:11px;font-weight:800;color:var(--text)">📋 Q&amp;A 게시판</span>'
+      + (n ? '<span style="font-size:9.5px;color:' + T3 + '">🔵 ' + open0 + ' · 답 ' + ansN + '</span>' : '')
+      + '<span style="margin-left:auto;font-size:10px;color:' + T3 + '">' + (S.open ? '▼' : '▶') + '</span>'
       + '</div>';
     if (!S.open) return wrap(head);
 
@@ -160,15 +162,8 @@
         + ' <span onclick="_qaDraft(\'code\',\'\')" style="margin-left:6px;color:' + T3 + ';cursor:pointer">✕ 종목 떼기</span></div>');
     }
 
-    //  예상 먼저 찍기 — 선택. 강제하면 적기가 귀찮아져서 게시판 자체를 안 쓰게 된다.
-    P.push('<div style="margin-top:8px;font-size:9.5px;color:' + T3 + '">내 예상 (선택 · <b>한 번 찍으면 수정 불가</b>) — 답이 나왔을 때 "역시 알았다"를 봉인한다</div>');
-    P.push('<div style="display:flex;gap:4px;margin-top:4px">');
-    [['yes', '그렇다'], ['no', '아니다'], ['unsure', '모르겠다'], ['', '안 찍음']].forEach(function (g) {
-      var on = d.guess === g[0];
-      P.push('<button onclick="_qaDraft(\'guess\',\'' + g[0] + '\')" style="flex:1;padding:6px 2px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;'
-        + 'border:1px solid ' + (on ? 'var(--accent)' : BD) + ';background:' + (on ? 'var(--accent)' : 'var(--surface)') + ';color:' + (on ? '#fff' : T2) + '">' + g[1] + '</button>');
-    });
-    P.push('</div>');
+    //  [S1171] 예상 찍기 없음 — 질문한다는 건 모른다는 뜻이다. 찍기를 요구하면
+    //    모르는 걸 안 적게 되고, 그게 게시판이 막으려던 누수다.
 
     P.push('<div style="display:flex;gap:5px;margin-top:9px">'
       + '<button onclick="_qaFormToggle()" style="flex:1;padding:8px;border-radius:7px;border:1px solid ' + BD + ';background:var(--surface);color:' + T2 + ';font-size:11px;font-weight:700;cursor:pointer">취소</button>'
@@ -202,8 +197,7 @@
       var D = ['<div style="padding:0 10px 10px;font-size:10.5px;line-height:1.6;color:' + T2 + '">'];
       if (r.src)   D.push('<div style="margin-top:2px"><b>출처</b> ' + _esc(r.src) + '</div>');
       if (r.quote) D.push('<div style="margin-top:2px;padding:6px 8px;border-left:2px solid ' + BD + ';color:' + T3 + '">' + _esc(r.quote) + '</div>');
-      if (r.guess) D.push('<div style="margin-top:4px">내 예상 <b style="color:var(--accent)">'
-        + ({ yes: '그렇다', no: '아니다', unsure: '모르겠다' })[r.guess] + '</b> · 잠김</div>');
+      //  [S1171] 옛 레코드에 남은 guess는 표시하지 않는다(지우지도 않는다 — 사용자가 남긴 기록이다).
       if (r.gate)  D.push('<div style="margin-top:4px"><b>게이트</b>(재기 전 선언) ' + _esc(r.gate) + '</div>');
 
       if (r.ans) {
@@ -221,19 +215,12 @@
         if (r.gateMissing) f.push('⚠ 게이트 없이 답함');
         if (f.length) D.push('<div style="margin-top:4px;font-size:9px;color:' + T3 + '">' + _esc(f.join(' · ')) + '</div>');
         D.push('</div>');
-      } else if (!r.guess) {
-        D.push('<div style="margin-top:6px;display:flex;gap:4px">');
-        [['yes', '그렇다'], ['no', '아니다'], ['unsure', '모르겠다']].forEach(function (g) {
-          D.push('<button onclick="_qaGuess(\'' + r.id + '\',\'' + g[0] + '\')" style="flex:1;padding:6px 2px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;'
-            + 'border:1px solid ' + BD + ';background:var(--surface);color:' + T2 + '">' + g[1] + '</button>');
-        });
-        D.push('</div><div style="margin-top:3px;font-size:9px;color:' + T3 + '">지금이라도 예상을 찍어둘 수 있다 — 한 번뿐이고 수정 불가</div>');
       }
 
       //  [S1168] 축·주제·출처 고치기 — **답이 달리기 전까지만.**
       //    질문의 뜻(text)이 아니라 분류라서 열어둔다. 처음 적을 때 축을 잘못 고르는 건 흔하고
       //    ('평소와 다르게 급등' → 기타로 넣었지만 실은 크기), 축이 틀리면 지도가 거짓말을 한다.
-      //    ★text와 guess는 여기서 못 건드린다 — 그건 코어가 막는다(editText/setGuess 불변식).
+      //    ★text는 여기서 못 건드린다 — 그건 코어가 막는다(editText 불변식).
       if (!r.ans) {
         var ed = !!S.edit[r.id];
         if (!ed) {
@@ -265,7 +252,7 @@
             + '<button onclick="_qaSaveMeta(\'' + r.id + '\')" style="flex:2;padding:7px;border-radius:6px;border:none;'
             + 'background:var(--accent);color:#fff;font-size:10.5px;font-weight:800;cursor:pointer">저장</button>'
             + '</div>');
-          D.push('<div style="margin-top:5px;font-size:9px;color:' + T3 + '">질문 원문과 찍은 예상은 여기서 못 고친다 — 그건 잠긴다.</div>');
+          D.push('<div style="margin-top:5px;font-size:9px;color:' + T3 + '">질문 원문은 여기서 못 고친다 — 그건 잠긴다.</div>');
           D.push('</div>');
         }
       }
@@ -313,10 +300,6 @@
         + (cant ? '⚪' + cant + ' ' : '') + (open ? '<span style="color:' + T3 + '">🔵' + open + '</span>' : '') + '</span></div>');
     });
     M.push('</div>');
-    if (g.guessN >= 3) {
-      M.push('<div style="margin-top:6px;padding-top:5px;border-top:1px dotted ' + BD + ';font-size:10px;color:' + T2 + '">'
-        + '내 예상 적중 <b>' + g.guessHit + '/' + g.guessN + '</b> <span style="color:' + T3 + '">(모르겠다는 제외)</span></div>');
-    }
     var dd = g.byDepth;
     if (dd[1] + dd[2] + dd[3] > 0) {
       M.push('<div style="margin-top:4px;font-size:10px;color:' + T2 + '">답의 깊이 '
@@ -353,7 +336,7 @@
     _vib(6);
     if (S.formOpen) _readForm();
     S.formOpen = !S.formOpen;
-    if (!S.formOpen) S.draft = { text: '', tag: 'etc', topics: '', src: '', quote: '', guess: '', mkt: '', code: '', name: '' };
+    if (!S.formOpen) S.draft = { text: '', tag: 'etc', topics: '', src: '', quote: '', mkt: '', code: '', name: '' };
     _refresh();
   };
 
@@ -392,11 +375,11 @@
     window.SXQA.add({
       text: d.text, tag: d.tag,
       topics: d.topics ? d.topics.split(',').map(function (x) { return x.trim(); }).filter(Boolean) : [],
-      src: d.src, quote: d.quote, guess: d.guess || null,
+      src: d.src, quote: d.quote,
       mkt: d.mkt, code: d.code, name: d.name
     }).then(function () {
       S.formOpen = false;
-      S.draft = { text: '', tag: 'etc', topics: '', src: '', quote: '', guess: '', mkt: '', code: '', name: '' };
+      S.draft = { text: '', tag: 'etc', topics: '', src: '', quote: '', mkt: '', code: '', name: '' };
       S.msg = '적어뒀다.'; _refresh();
     }).catch(function (e) { S.msg = '실패: ' + ((e && e.message) || e); _refresh(); });
   };
@@ -424,13 +407,6 @@
       .catch(function (e) { S.msg = ((e && e.message) || e); _refresh(); });
   };
   window._qaFilter = function (k, v) { _vib(5); S.filter[k] = v; _refresh(); };
-
-  window._qaGuess = function (id, g) {
-    _vib(12);
-    window.SXQA.setGuess(id, g)
-      .then(function () { S.msg = '예상 기록 · 잠김'; _refresh(); })
-      .catch(function (e) { S.msg = ((e && e.message) || e); _refresh(); });
-  };
 
   window._qaSetTag = function (id, tag) {
     _vib(8);
