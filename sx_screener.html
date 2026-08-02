@@ -16,8 +16,10 @@
 <script src="sx_conditions.js?v=23"></script>
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
-<script src="sx_storage.js?v=8"></script>
+<script src="sx_storage.js?v=9"></script>
 <script src="sx_ledger.js?v=11"></script><!-- [S1135] 예측 원장(IndexedDB) — 카드보다 먼저 로드 -->
+<script src="sx_qa_board.js?v=1"></script><!-- [S1167] Q&A 게시판 코어(IndexedDB · 원장과 DB 분리) -->
+<script src="sx_qa_board_ui.js?v=1"></script><!-- [S1167] 게시판 화면 — 코어 다음. render는 훅만 갖는다 -->
 <script src="sx_session.js?v=4"></script>
 <script src="sx_alert_sound.js?v=1"></script>
 <script>
@@ -54,7 +56,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=512"></script><!-- [S1165] 통계판 -->
+<script src="sx_render.js?v=514"></script><!-- [S1167] Q&A 게시판 -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1188,6 +1190,9 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
     <!-- [S1137] 예측 원장 패널 — 대기 배지·집계·일괄 채점. 렌더는 sx_render.js _predPanelHtml() -->
     <div id="sxPredPanel"></div>
+    <!-- [S1167] Q&A 게시판 — 파이프라인의 입구. 기각 서고(닫힌 목록)는 출구다.
+         렌더는 sx_qa_board_ui.js _qaPanelHtml() -->
+    <div id="sxQaPanel"></div>
     <div style="margin:8px 0 4px;font-size:11px;color:var(--text3)">카테고리를 펼치고 조건을 선택하세요</div>
     <div class="tree" id="catList"></div>
     <!-- [S1021] 현재 적용 파라미터 요약 카드 철거 — 클래식 param(buyTh/tp/sl) 표시였으나 레시피-BT는 고정 params(votes≥1·2×/3×ATR·MA5×20). _renderScanParamSummary는 scanParamLines 부재로 자동 no-op. -->
@@ -3282,6 +3287,7 @@ async function switchMarket(m){
   //             옵티마이저 대표/슬롯 표시가 옛 시장 값 그대로 보일 수 있음.
   if(typeof _renderScanParamSummary === 'function') _renderScanParamSummary();
   if(typeof _predPanelRefresh === 'function') _predPanelRefresh();   // [S1137] 원장 패널은 시장별이라 전환 시 다시 그린다
+  if(typeof _qaPanelRefresh === 'function') _qaPanelRefresh();       // [S1167] 게시판은 시장 무관이나 목록이 사라지지 않게 같이 다시 그린다
   // [S255] 조건검색 → 옵티마이저 시장 동기화 — 3개 시장 UI 단일화
   //   배경: 조건검색 + 옵티마이저 상단 + 옵티마이저 하단 시장랭킹이 독립 동작 → 사용자가 헷갈림.
   //   해결: switchMarket 끝에 _optSyncFromMarket 호출 → 옵티마이저 UI도 같은 시장으로 자동 전환.
@@ -11564,6 +11570,7 @@ function loadAnalParamsUI(){
   if(typeof _syncParamModeButtons === 'function') _syncParamModeButtons();
   _renderScanParamSummary(); // S100: 조건검색탭 파라미터 요약 갱신
   if(typeof _predPanelRefresh === 'function') _predPanelRefresh();   // [S1137] 예측 원장 패널 최초 렌더
+  if(typeof _qaPanelRefresh === 'function') _qaPanelRefresh();       // [S1167] Q&A 게시판 최초 렌더
   // [S1144] 내 픽 자동 채점 — 하루 1회·백그라운드. 시작을 막지 않도록 지연 실행.
   setTimeout(function(){ try{ if(typeof _predAutoScore==='function') _predAutoScore(); }catch(_){} }, 2500);
 }
