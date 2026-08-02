@@ -4911,8 +4911,15 @@ function _sbRerender(){
 function _sbSma(a,p){ var o=new Array(a.length).fill(null),s=0,i; for(i=0;i<a.length;i++){ s+=a[i]; if(i>=p)s-=a[i-p]; if(i>=p-1)o[i]=s/p; } return o; }
 function _sbMed(a){ var b=a.filter(function(x){return x!=null&&isFinite(x);}).sort(function(x,y){return x-y;}); return b.length?b[Math.floor(b.length/2)]:null; }
 function _sbPctl(a,v){ var b=a.filter(function(x){return x!=null&&isFinite(x);}).sort(function(x,y){return x-y;}); if(!b.length)return null; var lt=0,i; for(i=0;i<b.length;i++){ if(b[i]<v)lt++; else break; } return Math.round(lt/b.length*100); }
+function _sbQ(a,p){ var b=a.filter(function(x){return x!=null&&isFinite(x);}).sort(function(x,y){return x-y;});
+  return b.length? b[Math.min(b.length-1,Math.floor(b.length*p))] : null; }
 function _sbSE(hit,tot){ if(!tot)return null; var p=hit/tot; return Math.sqrt(Math.max(p*(1-p),0)/tot)*100; }
 function _sbDots(hit,tot,cap){ var c=cap||15,t=Math.min(tot,c),h=Math.round(hit/(tot||1)*t),s='',i; for(i=0;i<t;i++)s+=(i<h?'●':'○'); return s+(tot>c?'…':''); }
+function _sbPrice(v){ if(v==null||!isFinite(v)) return '—';
+  var av=Math.abs(v), d = av>=1000?0 : (av>=100?1 : (av>=1?2 : (av>=0.01?4:6)));
+  var t=v.toFixed(d).split('.');                                     // 정수부에만 콤마 — 통째로 넣으면 '0.0,421'이 된다
+  t[0]=t[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  return t.join('.'); }
 function _sbA(hex,a){ try{ var h=String(hex).replace('#',''); if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
   return 'rgba('+parseInt(h.slice(0,2),16)+','+parseInt(h.slice(2,4),16)+','+parseInt(h.slice(4,6),16)+','+a+')'; }catch(_e){ return 'transparent'; } }
 // [S1162-c] 방향 표기 — 사람이 읽는 자리는 ▲▼, 계산·차이값(Δ%p 등)은 +/− 그대로 둔다.
@@ -4966,13 +4973,16 @@ function _sbRowHtml(r, accent){
     if(r.note) h += '<div style="font-size:10px;color:'+T2+';line-height:1.5">'+r.note+'</div>';
     if(_SB_DETAIL) h += '<div style="font-size:9px;color:'+T3+';margin-top:2px">표본 '+r.n+'봉'+(r.raw?(' · '+r.raw):'')+'</div>';
   } else if(r.kind==='dots'){
+    // [S1163] 2단 — 1행 라벨+건수, 2행 점. 한 줄에 몰면 점 개수가 많을 때 라벨이 밀려 단어가 잘린다.
     var ok = r.tot >= _SB_MIN_RATIO_N;
-    h += '<div style="display:flex;justify-content:space-between;gap:6px;font-size:11.5px;align-items:baseline">'
-      +    '<span style="font-weight:600;color:var(--text)">'+r.label+'</span>'
-      +    '<span style="font-size:10.5px;color:'+T2+'"><span style="letter-spacing:-.5px;color:#2563eb">'+_sbDots(r.hit,r.tot)+'</span>'
-      +      ' <b style="color:var(--text)">'+r.tot+'번 중 '+r.hit+'번</b></span>'
+    h += '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11.5px;align-items:baseline">'
+      +    '<span style="font-weight:600;color:var(--text);white-space:nowrap">'+r.label+'</span>'
+      +    '<b style="color:var(--text);white-space:nowrap">'+r.tot+'번 중 '+r.hit+'번</b>'
+      +  '</div>'
+      +  '<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-top:1px">'
+      +    '<span style="letter-spacing:-.5px;font-size:10.5px;color:'+A+'">'+_sbDots(r.hit,r.tot)+'</span>'
+      +    '<span style="font-size:10px;color:'+T3+';white-space:nowrap">'+(ok?((r.hit/r.tot*100).toFixed(0)+'% ±'+_sbNum(_sbSE(r.hit,r.tot),0)+'%p'):'표본 '+_SB_MIN_RATIO_N+'번 미만')+'</span>'
       +  '</div>';
-    if(ok) h += '<div style="text-align:right;font-size:10px;color:'+T3+'">'+(r.hit/r.tot*100).toFixed(0)+'% ±'+_sbNum(_sbSE(r.hit,r.tot),0)+'%p</div>';
     if(r.note) h += '<div style="font-size:10px;color:'+T2+';line-height:1.5">'+r.note+'</div>';
   } else if(r.kind==='pair'){
     h += '<div style="font-size:11.5px;font-weight:600;color:var(--text);margin-bottom:2px">'+r.label+'</div>';
@@ -4982,11 +4992,14 @@ function _sbRowHtml(r, accent){
         +    '<span>'+it.t+'</span>'
         +    '<span>'+(okp?('<b style="color:var(--text)">'+(it.hit/it.tot*100).toFixed(0)+'%</b>'):('<b style="color:var(--text)">'+it.hit+'/'+it.tot+'</b>'))
         +      ' <span style="color:'+T3+'">('+it.tot+'회'+(okp&&_SB_DETAIL?(' ±'+_sbNum(_sbSE(it.hit,it.tot),0)+'%p'):'')+')</span>'
-        +      (it.delta!=null&&okp?(' <span style="font-weight:800;color:'+(it.delta>=0?_SB_UP:_SB_DN)+'">'+(it.delta>=0?'+':'')+it.delta.toFixed(0)+'%p</span>'):'')
+        +      (it.delta!=null&&okp?(function(_d){ var _r=Math.round(_d);   // [S1163] 반올림 결과가 0이면 방향이 없다 → 회색. '+0%p'가 빨강이면 거짓 신호.
+        return ' <span style="font-weight:800;color:'+(_r===0?T3:(_r>0?_SB_UP:_SB_DN))+'">'+(_r>0?'+':(_r<0?'':''))+_r+'%p</span>'; })(it.delta):'')
         +    '</span>'
         +  '</div>';
     });
     if(r.note) h += '<div style="font-size:10px;color:'+T2+';line-height:1.5;margin-top:2px">'+r.note+'</div>';
+  } else if(r.kind==='html'){          // [S1163] 자유 HTML 행 — 표 형태 주제(매물대·구간폭)를 담는 탈출구. 새 주제 추가가 쉬워진다.
+    h += r.html || '';
   } else {
     if(!r.label && !r.val){ return '<div style="padding:5px 0;border-top:1px solid var(--border);font-size:10px;color:'+T2+';line-height:1.5">'+(r.note||'')+'</div>'; }
     h += '<div style="display:flex;justify-content:space-between;gap:6px;font-size:11.5px">'
@@ -5049,6 +5062,16 @@ var _SB_BLOCKS = [
         note:'고가와 저가의 차이입니다.'});
       out.push({kind:'bar',label:'거래대금',nowTxt:_sbAmt(aNow),baseTxt:_sbAmt(_sbMed(amt)),pctl:_sbPctl(amt,aNow),n:amt.length,
         note:'종가 × 거래량으로 계산한 어림값입니다. 거래량 집계 범위가 달라 증권사 앱과 차이가 날 수 있습니다(백분위는 영향 없음).'});
+      // [S1163] 이평선 수렴도 — 20/60/120일선이 얼마나 모여 있나. 방향 없는 값이라 ▲▼를 쓰지 않는다.
+      var cvA=[],cj; for(cj=0;cj<C.n;cj++){ if(!C.M[20][cj]||!C.M[60][cj]||!C.M[120][cj])continue;
+        var aa=[C.M[20][cj],C.M[60][cj],C.M[120][cj]]; cvA.push((Math.max.apply(null,aa)-Math.min.apply(null,aa))/C.cl[cj]*100); }
+      if(cvA.length>=30 && C.M[20][L] && C.M[60][L] && C.M[120][L]){
+        var an=[C.M[20][L],C.M[60][L],C.M[120][L]], cvN=(Math.max.apply(null,an)-Math.min.apply(null,an))/C.cl[L]*100;
+        out.push({kind:'bar',label:'평균선 세 개가 벌어진 폭',nowTxt:_sbNum(cvN,1)+'%',baseTxt:_sbNum(_sbMed(cvA),1)+'%',
+          pctl:_sbPctl(cvA,cvN),n:cvA.length,
+          note:'20·60·120일선 중 가장 위와 가장 아래의 간격입니다. 좁을수록 세 선이 한데 모여 있다는 뜻입니다. '
+            +'이 종목은 가장 좁았을 때 '+_sbNum(_sbQ(cvA,0),1)+'% · 가장 넓었을 때 '+_sbNum(_sbQ(cvA,0.999),1)+'%였습니다.'});
+      }
       [20,60,120,200].forEach(function(p){
         var d=[],j; for(j=0;j<C.n;j++) if(C.M[p][j]) d.push((C.cl[j]-C.M[p][j])/C.M[p][j]*100);
         if(d.length<30 || !C.M[p][L]) return;
@@ -5080,6 +5103,52 @@ var _SB_BLOCKS = [
         note:'몸통이 작을수록 위아래로 흔들리다 제자리로 돌아온 봉입니다.'});
       out.push({kind:'plain',label:'꼬리 (위 / 아래)',val:_sbNum((C.hi[L]-Math.max(C.op[L],C.cl[L]))/R*100,0)+'% / '+_sbNum((Math.min(C.op[L],C.cl[L])-C.lo[L])/R*100,0)+'%',
         note:'평소 위꼬리 '+_sbNum(_sbMed(up),0)+'% · 아래꼬리 '+_sbNum(_sbMed(dn),0)+'%'});
+      return out;
+    }},
+
+  { id:'vp', col:'#db2777', icon:'📊', title:'어느 가격대에서 많이 거래됐나',
+    sub:'600봉의 최저~최고를 20칸으로 나누고, 각 봉의 거래량을 그 봉이 지나간 칸에 나눠 담았습니다.',
+    calc:function(C){
+      // [S1163] 매물대 — OHLCV만으로 만드는 가격대별 거래량 분포. 저항/지지 해석은 하지 않고 분포만 보여준다.
+      var n=C.n, L=C.L, NB=20, i, k;
+      var PMIN=Math.min.apply(null,C.lo), PMAX=Math.max.apply(null,C.hi);
+      if(!(PMAX>PMIN)) return [];
+      var W=(PMAX-PMIN)/NB, bin=new Array(NB).fill(0);
+      for(i=0;i<n;i++){ var a=Math.max(0,Math.floor((C.lo[i]-PMIN)/W)), b=Math.min(NB-1,Math.floor((C.hi[i]-PMIN)/W));
+        var span=b-a+1; for(k=a;k<=b;k++) bin[k]+=C.vo[i]/span; }
+      var tot=bin.reduce(function(x,y){return x+y;},0); if(!(tot>0)) return [];
+      var cur=Math.min(NB-1,Math.max(0,Math.floor((C.cl[L]-PMIN)/W)));
+      var top=0; for(k=1;k<NB;k++) if(bin[k]>bin[top]) top=k;
+      var mid=function(q){ return PMIN+W*(q+0.5); };
+      var above=0,below=0; for(k=0;k<NB;k++){ if(k>cur)above+=bin[k]; else if(k<cur)below+=bin[k]; }
+      // 상위 5칸을 가격 내림차순으로
+      var idx=[]; for(k=0;k<NB;k++) idx.push(k);
+      idx.sort(function(x,y){ return bin[y]-bin[x]; });
+      var pick=idx.slice(0,5).sort(function(x,y){ return y-x; });
+      var mx=bin[top], A='#db2777';
+      var rowsH='';
+      pick.forEach(function(q){
+        var pct=bin[q]/tot*100, w=Math.max(3,Math.round(bin[q]/mx*100)), isCur=(q===cur);
+        rowsH += '<div style="display:flex;align-items:center;gap:6px;padding:2px 0">'
+          + '<span style="font-size:9px;color:var(--text2);width:66px;flex-shrink:0;text-align:right;white-space:nowrap">'+_sbPrice(mid(q))+'</span>'
+          + '<div style="flex:1;height:9px;border-radius:3px;background:var(--surface2);overflow:hidden">'
+          +   '<div style="width:'+w+'%;height:100%;background:'+_sbA(A,isCur?.85:.45)+'"></div>'
+          + '</div>'
+          + '<span style="font-size:9.5px;font-weight:700;color:var(--text);width:34px;flex-shrink:0">'+pct.toFixed(1)+'%</span>'
+          + (isCur?'<span style="font-size:8.5px;font-weight:800;color:'+A+';flex-shrink:0">지금</span>':'<span style="width:22px;flex-shrink:0"></span>')
+          + '</div>';
+      });
+      var out=[];
+      out.push({kind:'html',html:'<div style="padding:6px 0 2px;border-top:1px solid var(--border)">'
+        + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">거래량이 많았던 가격대 5곳 · 칸 폭 '+_sbPrice(W)+'</div>'
+        + rowsH + '</div>'});
+      out.push({kind:'plain',label:'지금 가격대의 비중',val:_sbNum(bin[cur]/tot*100,1)+'%',
+        note:'지난 600봉 거래량 가운데 지금 가격 ±'+_sbPrice(W/2)+' 구간에서 오간 몫입니다.'});
+      out.push({kind:'plain',label:'가장 두꺼운 가격대',val:_sbPrice(mid(top)),
+        note:'전체의 <b>'+_sbNum(bin[top]/tot*100,1)+'%</b>가 이 부근에서 거래됐고, 지금 가격보다 '
+          + (mid(top)>=C.cl[L] ? ('<b>'+_sbNum((mid(top)-C.cl[L])/C.cl[L]*100,1)+'% 위</b>') : ('<b>'+_sbNum((C.cl[L]-mid(top))/C.cl[L]*100,1)+'% 아래</b>'))+'입니다.'});
+      out.push({kind:'plain',label:'지금보다 위 / 아래',val:_sbNum(above/tot*100,0)+'% / '+_sbNum(below/tot*100,0)+'%',
+        note:'지금 가격을 기준으로 위쪽에서 오간 거래량과 아래쪽에서 오간 거래량의 비중입니다.'});
       return out;
     }},
 
@@ -5152,11 +5221,48 @@ var _SB_BLOCKS = [
                {t:'3일 연속 내린 뒤',hit:d3[1],tot:d3[0],delta:(d3[0]&&base!=null)?(d3[1]/d3[0]*100-base):null}],
         note:'오른쪽 %p는 전체 기준값과의 차이입니다. 표본이 적으면 이 차이는 쉽게 흔들립니다.'});
       if(C.n>260){
-        var nh=0,last=null,j;
-        for(i=250;i<C.n;i++){ var mx=0; for(j=i-250;j<i;j++) if(C.cl[j]>mx)mx=C.cl[j]; if(C.cl[i]>mx){nh++;last=i;} }
+        // [S1163] 250봉 롤링 최대를 단조 덱으로 — 이중 루프면 600×250=15만회로 이 카드에서 제일 무거웠다. O(n)으로 내린다.
+        var nh=0,last=null,dq=[];
+        for(i=0;i<C.n;i++){
+          if(i>=250){ while(dq.length && dq[0] < i-250) dq.shift();
+            if(dq.length && C.cl[i] > C.cl[dq[0]]){ nh++; last=i; } }
+          while(dq.length && C.cl[dq[dq.length-1]] <= C.cl[i]) dq.pop();
+          dq.push(i);
+        }
         out.push({kind:'plain',label:'250봉 신고가 갱신',val:nh+'번',
           note:(last!=null?('마지막 갱신은 <b>'+(C.L-last)+'봉 전</b>입니다.'):'이 구간에서는 갱신이 없었습니다.'),tot:nh});
       }
+      return out;
+    }},
+
+  { id:'span', col:'#4f46e5', icon:'📐', title:'며칠 뒤엔 얼마나 움직였나',
+    sub:'어느 날 종가에서 시작해 며칠 동안 고가가 얼마나 위로, 저가가 얼마나 아래로 갔는지를 전부 세어 가운데 값을 냈습니다.',
+    calc:function(C){
+      // [S1163] 폭 분포 — 방향이 아니라 **크기**를 말한다. "며칠 안에 위아래로 얼마나 벌어졌나"이지 어느 쪽으로 갈지가 아니다.
+      // [S1163] 지평별로 따로 돌면 600×(3+5+10+20)=22,800회. 한 번 걷는 동안 누적 최대·최소를 지평 경계에서 찍으면 600×20=12,000회로 준다.
+      var n=C.n, HS=[3,5,10,20], HMAX=20, out=[], rows='', any=false, nMin=1e9, U={}, D={}, i, k;
+      HS.forEach(function(H){ U[H]=[]; D[H]=[]; });
+      for(i=0;i<n-1;i++){ var mx=-1e18, mn=1e18, lim=Math.min(n-1,i+HMAX);
+        for(k=i+1;k<=lim;k++){ if(C.hi[k]>mx)mx=C.hi[k]; if(C.lo[k]<mn)mn=C.lo[k];
+          var hh=k-i; if(HS.indexOf(hh)>=0 && i<n-hh){ U[hh].push((mx-C.cl[i])/C.cl[i]*100); D[hh].push((mn-C.cl[i])/C.cl[i]*100); } } }
+      HS.forEach(function(H){
+        var up=U[H], dn=D[H];
+        if(!up.length || up.length<60) return;
+        any=true; if(up.length<nMin) nMin=up.length;
+        rows += '<div style="display:flex;align-items:baseline;gap:6px;padding:3px 0;border-top:1px solid var(--border);font-size:11px">'
+          + '<span style="font-weight:700;color:var(--text);width:46px;flex-shrink:0">'+H+'봉 안</span>'
+          + '<span style="flex:1;font-weight:800">'+_sbDir(_sbMed(up),1,0,true)+' <span style="color:var(--text3);font-weight:400">/</span> '+_sbDir(_sbMed(dn),1,0,true)+'</span>'
+          + '<span style="font-size:9.5px;color:var(--text3);white-space:nowrap">드물게 '+_sbDir(_sbQ(up,0.9),1,0,true)+' / '+_sbDir(_sbQ(dn,0.1),1,0,true)+'</span>'
+          + '</div>';
+      });
+      if(!any) return [];
+      out.push({kind:'html',html:'<div style="padding:4px 0 2px">'
+        + '<div style="display:flex;gap:6px;font-size:9px;color:var(--text3);padding-bottom:2px">'
+        +   '<span style="width:46px;flex-shrink:0">기간</span><span style="flex:1">가운데 값 (위 / 아래)</span><span>상·하위 10%</span>'
+        + '</div>' + rows + '</div>'});
+      out.push({kind:'plain',label:'',val:'',tot:nMin,
+        note:'왼쪽은 <b>절반의 경우</b> 이 정도까지 움직였다는 뜻이고, <b>드물게</b>는 10번 중 1번 꼴로 나온 값입니다. '
+          + '어느 쪽으로 갈지가 아니라 <b>얼마나 벌어지는지</b>를 잰 것이라, 위·아래 값이 동시에 일어난다는 뜻은 아닙니다.'});
       return out;
     }}
 ];
@@ -13551,7 +13657,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1162';   // [S1162] 📟 종목 통계판(메인카드·표시 전용·단일종목 600봉 자기이력·_SB_BLOCKS 확장구조)   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1163';   // [S1163] 통계판 주제 3종 추가(매물대·평균선 벌어진 폭·움직임 폭) + 점 줄바꿈·0%p 회색 · [S1162] 📟 종목 통계판(메인카드·표시 전용·단일종목 600봉 자기이력·_SB_BLOCKS 확장구조)   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
