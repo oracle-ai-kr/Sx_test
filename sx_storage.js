@@ -587,6 +587,13 @@
         if(_n) _predWarn = '\n\n⚠ 직접 찍은 예측 ' + _n + '건도 삭제됩니다.\n파일로 내보내지 않았다면 되살릴 수 없습니다.';
       }
     } catch(_) {}
+    // [S1167] Q&A 게시판도 같은 성격 — 직접 적은 질문은 캔들로 재계산할 수 없는 유일한 데이터다.
+    try {
+      if(typeof SXQA !== 'undefined' && SXQA.list){
+        var _q = await SXQA.list({}).then(function(a){ return (a||[]).length; }).catch(function(){ return 0; });
+        if(_q) _predWarn += '\n\n⚠ Q&A 게시판 질문 ' + _q + '건도 삭제됩니다.\n파일로 내보내지 않았다면 되살릴 수 없습니다.';
+      }
+    } catch(_) {}
     if(!await _conf('Signal X의 모든 데이터를 초기화하시겠습니까?\n(관심종목·종목풀·분석·BT·옵티마이저·설정 전부 삭제)' + _predWarn)) return;
 
     try {
@@ -609,6 +616,11 @@
     try {
       if(typeof SXLedger !== 'undefined' && SXLedger.wipe){ await SXLedger.wipe(); }
     } catch(e) { console.warn('[SXS.resetAll] 원장 삭제 실패', e); }
+
+    // [S1167] Q&A 게시판(별도 IndexedDB)도 함께. 여기서 빠지면 원장과 같은 거짓말이 반복된다.
+    try {
+      if(typeof SXQA !== 'undefined' && SXQA.wipe){ await SXQA.wipe(); }
+    } catch(e) { console.warn('[SXS.resetAll] 게시판 삭제 실패', e); }
 
     // 메모리 캐시 전체 초기화
     cacheClear();
