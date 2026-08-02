@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════
 //  SIGNAL X — Q&A 게시판 (sx_qa_board.js)
-//  버전: v1 · [S1167]
+//  버전: v3 · [S1171] 예상 찍기 제거 · [S1170] askText 지시문 탑재 · v1 [S1167] 신설
 //
 //  역할:
 //    궁금증이 생긴 자리에서 **질문을 그대로** 적어두고, 측정이 끝나면 답을 달아 닫는다.
@@ -17,9 +17,8 @@
 //
 //  ★불변식 (사후합리화의 기계적 차단 · 원장 §5와 같은 계열)
 //    1. answer()   — ans가 이미 있으면 **거부**. 답은 덮어쓸 수 없다.
-//    2. setGuess() — guess가 이미 있으면 거부. 예상은 한 번, 즉시 잠금.
-//    3. setGate()  — gate가 이미 있으면 거부. 게이트는 **재기 전에** 선언되어야 한다.
-//    4. editText() — guess나 ans가 붙은 뒤엔 거부. 찍고 나서 질문을 못 바꾼다.
+//    2. setGate()  — gate가 이미 있으면 거부. 게이트는 **재기 전에** 선언되어야 한다.
+//    3. editText() — ans가 붙은 뒤엔 거부.
 //    5. importAll() — 기존 답을 **절대 덮어쓰지 않는다**. 빈 칸만 채운다(§왕복).
 //
 //  ★답을 뒤집는 길 (S837 전례)
@@ -43,7 +42,7 @@
   var DB_NAME = 'sx_qa_board';
   var DB_VER = 1;
   var STORE = 'qa';
-  var VER = 'S1167';
+  var VER = 'S1167';   // ★레코드 스키마 버전이다(빌드 시리얼 아님). 필드가 늘 때만 올린다.
 
   //  축 — 지도 좌표. 게시판이 채워질수록 "무엇을 물으면 답이 나오나"의 경계가 드러난다.
   //  방향 태그가 ⚫에 몰리고 크기 태그가 🟢에 몰리면 그게 지도다(따로 그릴 필요 없음).
@@ -65,7 +64,10 @@
   };
   var VERDICT_ST = { no: 2, yes: 3, cant: 4 };
 
-  var GUESS = ['yes', 'no', 'unsure'];
+  //  [S1171] 예상 찍기(guess)는 제거됐다. **질문한다는 건 모른다는 뜻이고, 물음을 내놓은
+  //    사람에게 답까지 찍으라는 건 앞뒤가 맞지 않는다.** 원장은 시스템이 묻고 사람이 답하지만
+  //    (물음이 밖에서 온다) 게시판은 물음이 사람에게서 나온다 — 같은 UX를 옮기면 안 됐다.
+  //    ★옛 레코드의 guess 필드는 읽기만 하고 쓰지 않는다(지우지도 않는다).
 
   //  [S1167] ★답의 깊이 — **질문이 아니라 답에 붙는다.**
   //    질문 깊이를 적는 사람이 매기면 자기평가가 된다(사람은 자기 질문을 실제보다 깊게 본다).
@@ -148,7 +150,7 @@
   // ─────────────────────────────────────────────────────────
   //  3. 쓰기
   // ─────────────────────────────────────────────────────────
-  //  o = { text, tag, topics[], mkt, code, name, guess, supersedes }
+  //  o = { text, tag, topics[], mkt, code, name, supersedes }
   //  ★text는 원문 그대로 저장한다. 다듬지 않는다.
   function add(o) {
     o = o || {};
@@ -156,8 +158,6 @@
     if (!text) return Promise.reject(new Error('질문이 비었다'));
     var tag = _str(o.tag) || 'etc';
     if (!TAGS[tag]) return Promise.reject(new Error('알 수 없는 축: ' + tag + ' (허용: ' + Object.keys(TAGS).join('/') + ')'));
-    var guess = _str(o.guess);
-    if (guess && GUESS.indexOf(guess) < 0) return Promise.reject(new Error("guess는 'yes'|'no'|'unsure'만"));
 
     var rec = {
       id: _newId(),
@@ -174,8 +174,6 @@
       //    그 순간 재는 대상이 원문이 아니라 우리 요약이 된다.
       src: _str(o.src) || null,        // 출처(사이트·책·URL)
       quote: _str(o.quote) || null,    // 원문 인용 — 다듬지 않는다
-      guess: guess || null,                 // 먼저 찍기 — 선택. 안 찍어도 된다.
-      guessTs: guess ? Date.now() : null,
       st: 0,
       gate: null, gateTs: null,
       ans: null, ansTs: null,
@@ -184,20 +182,6 @@
     };
     return _tx('readwrite').then(function (h) {
       return _wrap(h.s.add(rec)).then(function () { return rec; });
-    });
-  }
-
-  //  예상 먼저 찍기 — 1회 · 즉시 잠금. 답이 나왔을 때 "역시 그럴 줄 알았다"를 봉인한다.
-  function setGuess(id, guess) {
-    if (GUESS.indexOf(guess) < 0) return Promise.reject(new Error("guess는 'yes'|'no'|'unsure'만"));
-    return _tx('readwrite').then(function (h) {
-      return _wrap(h.s.get(id)).then(function (cur) {
-        if (!cur) throw new Error('없는 질문: ' + id);
-        if (cur.guess != null) throw new Error('이미 찍은 예상이다(수정 불가) — ' + cur.guess);
-        if (cur.ans != null) throw new Error('이미 답이 달린 질문이다');
-        cur.guess = guess; cur.guessTs = Date.now();
-        return _wrap(h.s.put(cur)).then(function () { return cur; });
-      });
     });
   }
 
@@ -249,7 +233,7 @@
     });
   }
 
-  //  질문 원문 수정 — guess나 ans가 붙기 **전**에만. 찍고 나서 질문을 바꾸면 찍은 게 무의미해진다.
+  //  질문 원문 수정 — 답이 붙기 **전**에만.
   function editText(id, text) {
     var t = _str(text);
     if (!t) return Promise.reject(new Error('질문이 비었다'));
@@ -257,7 +241,6 @@
       return _wrap(h.s.get(id)).then(function (cur) {
         if (!cur) throw new Error('없는 질문: ' + id);
         if (cur.ans != null) throw new Error('답이 달린 질문은 못 고친다');
-        if (cur.guess != null) throw new Error('예상을 찍은 뒤엔 질문을 못 고친다 — 새 질문을 열 것');
         cur.text = t;
         return _wrap(h.s.put(cur)).then(function () { return cur; });
       });
@@ -384,7 +367,7 @@
   //  집계 — 축 × 상태. 이게 지도다.
   function stats() {
     return list({}).then(function (rows) {
-      var g = { n: rows.length, byTag: {}, bySt: {}, guessed: 0, guessHit: 0, guessN: 0, noGate: 0,
+      var g = { n: rows.length, byTag: {}, bySt: {}, noGate: 0,
                 byDepth: { 1: 0, 2: 0, 3: 0, none: 0 } };
       Object.keys(TAGS).forEach(function (k) { g.byTag[k] = { n: 0, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 }; });
       Object.keys(ST).forEach(function (k) { g.bySt[k] = 0; });
@@ -393,15 +376,8 @@
         g.byTag[tg].n++; g.byTag[tg][r.st] = (g.byTag[tg][r.st] || 0) + 1;
         g.bySt[r.st] = (g.bySt[r.st] || 0) + 1;
         if (r.ans) { var d = r.ans.depth; g.byDepth[DEPTH[d] ? d : 'none']++; }
-        if (r.guess) g.guessed++;
         if (r.ans && r.ans.gateMissing) g.noGate++;
         if (r.gateMissing) g.noGate++;
-        //  ★내 예상은 맞았나 — yes/no로 찍은 것만. unsure는 채점 제외(기록은 유지).
-        if (r.ans && (r.guess === 'yes' || r.guess === 'no') &&
-            (r.ans.verdict === 'yes' || r.ans.verdict === 'no')) {
-          g.guessN++;
-          if (r.guess === r.ans.verdict) g.guessHit++;
-        }
       });
       return g;
     });
@@ -421,7 +397,7 @@
   //    - 새 id            → 넣는다
   //    - 기존 · 답 없음   → ans/gate만 채운다(답 착지)
   //    - 기존 · 답 있음   → 통째로 건너뛴다(잠김)
-  //    text/guess/ts는 기존 레코드에서 **절대** 바뀌지 않는다 — 원문과 예상은 봉인.
+  //    text/ts는 기존 레코드에서 **절대** 바뀌지 않는다 — 원문은 봉인.
   function importAll(obj) {
     var rows = (obj && Array.isArray(obj.rows)) ? obj.rows : (Array.isArray(obj) ? obj : null);
     if (!rows) return Promise.reject(new Error('rows 없음 — 게시판 내보내기 파일이 맞나'));
@@ -461,8 +437,7 @@
   }
 
   //  ★공개용 — 답 달린 것만. 정적 파일로 올려 누구나 보는 용도(qa.html).
-  //    ★guess를 뺀다: 남이 보는 자리에서 틀린 예상이 남으면 예상을 안 찍게 된다.
-  //      질문이 태어나는 자리는 사적이고, 답이 나온 것만 공개다.
+  //    ★질문이 태어나는 자리는 사적이고, 답이 나온 것만 공개다.
   //    ★gate는 반드시 싣는다: 게이트 없는 "⚫ 아니다"는 측정이 아니라 주장이다.
   //      남이 동의하든 반박하든 하려면 무슨 기준으로 쟀는지를 알아야 한다.
   function exportPublic() {
@@ -493,27 +468,85 @@
       };
     });
   }
+  //  ★붙여넣기용 — 모바일에선 파일보다 클립보드가 실용적이다.
   //    답 안 달린 질문만. id를 같이 실어야 답이 돌아올 자리를 안다.
+  //
+  //  [S1170] ★지시문을 함께 싣는다.
+  //    목록만 붙여넣으면 받는 쪽은 **어떤 형식으로 돌려줘야 하는지 모른다.** 지금 세션은
+  //    맥락이 있어 되지만 새 세션에선 스키마를 모르고, 그러면 이 왕복 자체가 성립하지 않는다.
+  //    게시판의 핵심 동선이므로 규율까지 같이 실어 보낸다.
+  //
   function askText(f) {
     f = f || {};
     if (f.answered === undefined) f.answered = false;
     return list(f).then(function (rows) {
       if (!rows.length) return '(답 안 달린 질문 없음)';
-      var L = ['# SIGNAL X Q&A — 답 대기 ' + rows.length + '건 · ' + _d10(), ''];
+
+      var L = [];
+      L.push('# SIGNAL X Q&A — 답 대기 ' + rows.length + '건 · ' + _d10());
+      L.push('');
+      L.push('아래는 내가 적어둔 질문 목록이다. 재고 답을 달아줘.');
+      L.push('');
+      L.push('## 규율 (이 순서를 지킬 것)');
+      L.push('1. **게이트를 먼저 준다.** 재고 나서 기준을 정하면 결과에 맞춘 기준이 된다.');
+      L.push('   게이트가 없는 질문은 `gate`만 채운 JSON을 **먼저** 돌려줄 것.');
+      L.push('   (가져오면 🟡 재는 중이 되고 그때부터 기준이 언다. 이후 수정 불가.)');
+      L.push('2. 그 다음에 재고 `ans`를 채운 JSON을 돌려준다.');
+      L.push('3. **답은 한 번뿐이다.** 이미 답이 있는 건 가져오기가 통째로 건너뛴다.');
+      L.push('   뒤집으려면 새 질문을 열고 `supersedes`로 앞 질문 id를 가리킬 것.');
+      L.push('4. 기각(`no`)이면 `alt`(대체제)를 같이 쓴다 — "대신 무엇을 보라".');
+      L.push('5. 못 재는 것은 `cant`. 단 **왜 못 재는지**를 `note`에 쓸 것.');
+      L.push('   재봤는데 안 나온 것은 `no`지 `cant`가 아니다. 안 그러면 `cant`가 쓰레기통이 된다.');
+      L.push('6. 근거 수치(나이브 대비 Δ·표본 n 등)는 `nums`에 반드시 남긴다.');
+      L.push('');
+      L.push('## 돌려줄 JSON 형식 (그대로 가져오기에 넣는다)');
+      L.push('```json');
+      L.push('{');
+      L.push('  "app": "SIGNAL X", "kind": "qa_board", "ver": "' + VER + '",');
+      L.push('  "rows": [');
+      L.push('    {');
+      L.push('      "id": "아래 목록의 id를 그대로",');
+      L.push('      "text": "질문 원문 그대로 (바꿔도 기존 건 안 밀린다)",');
+      L.push('      "gate": "재기 전에 선언한 판정 기준",');
+      L.push('      "ans": {');
+      L.push('        "verdict": "yes | no | cant",');
+      L.push('        "depth": 1,');
+      L.push('        "nums": "근거 수치",');
+      L.push('        "note": "판독",');
+      L.push('        "alt": "대체제 — 대신 무엇을 볼 것인가",');
+      L.push('        "by": "어느 세션/시리얼에서 쟀나"');
+      L.push('      }');
+      L.push('    }');
+      L.push('  ]');
+      L.push('}');
+      L.push('```');
+      L.push('- `depth` = **답**의 깊이(질문이 아니라). 1=규칙 하나를 나이브와 비교 /');
+      L.push('  2=조건(레짐·시장·기간)으로 갈라 어디서 갈리는지 봄 / 3=경계의 후보를 세워 갈라냄.');
+      L.push('  재고 나서 결과에 근거해 매긴다. 남발하면 배지가 죽는다. 모르겠으면 생략.');
+      L.push('- `id`가 기존 것과 다르면 **새 질문으로 추가**된다. 답을 달 땐 id를 그대로 쓸 것.');
+      L.push('- 기존 `text`와 예상은 가져오기가 **절대 덮어쓰지 않는다.** 빈 칸에만 착지한다.');
+      L.push('');
+      L.push('## 질문 ' + rows.length + '건');
+      L.push('');
+
       rows.forEach(function (r, i) {
         var head = (i + 1) + '. [' + r.id + '] ' + (TAGS[r.tag] ? TAGS[r.tag].name : r.tag);
         if (r.code) head += ' · ' + (r.name || r.code) + '(' + r.code + '/' + (r.mkt || '?') + ')';
         if (r.topics && r.topics.length) head += ' · #' + r.topics.join(' #');
         L.push(head);
         L.push('   Q: ' + r.text);
-        L.push('   (적은 날 ' + r.date + (r.guess ? ' · 내 예상 ' + r.guess : '') +
-               (r.gate ? ' · 게이트 있음' : '') + ')');
+        L.push('   (적은 날 ' + r.date + (r.gate ? ' · ✅게이트 있음 → 바로 재도 됨' : ' · ⚠게이트 없음 → 먼저 선언할 것') + ')');
         if (r.src)   L.push('   출처: ' + r.src);
         if (r.quote) L.push('   원문: ' + r.quote);
         if (r.gate)  L.push('   게이트: ' + r.gate);
         if (r.supersedes) L.push('   ↺ 뒤집는 대상: ' + r.supersedes);
         L.push('');
       });
+
+      var noGate = rows.filter(function (r) { return !r.gate; }).length;
+      L.push('---');
+      L.push('게이트 없음 ' + noGate + '건 · 있음 ' + (rows.length - noGate) + '건.');
+      if (noGate) L.push('게이트 없는 것부터 `gate`만 채워 돌려줄 것 — 그게 1단계다.');
       return L.join('\n');
     });
   }
@@ -543,9 +576,9 @@
   var _sc = selfCheck();
 
   global.SXQA = {
-    VER: VER, TAGS: TAGS, ST: ST, GUESS: GUESS, VERDICT_ST: VERDICT_ST, DEPTH: DEPTH,
+    VER: VER, TAGS: TAGS, ST: ST, VERDICT_ST: VERDICT_ST, DEPTH: DEPTH,
     ready: ready,
-    add: add, setGuess: setGuess, setGate: setGate, answer: answer,
+    add: add, setGate: setGate, answer: answer,
     editText: editText, setMeta: setMeta, reopen: reopen, remove: remove,
     get: get, list: list, similar: similar, stats: stats,
     exportAll: exportAll, exportPublic: exportPublic, importAll: importAll, askText: askText,
