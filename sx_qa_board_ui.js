@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════
 //  SIGNAL X — Q&A 게시판 UI (sx_qa_board_ui.js)
-//  버전: v6 · [S1174] 깊이 배지 이름표 제거(점만) · [S1173] 분석탭 인라인 입력란(폼·초안 공유) · [S1171] 예상 찍기 제거 · [S1169] 헤더 치수 정렬 · [S1168] 축 편집 · v1 [S1167] 신설
+//  버전: v7 · [S1175] 답 2층 표시(요약 항상 · 수치/게이트는 근거 서랍) · [S1174] 깊이 배지 이름표 제거(점만) · [S1173] 분석탭 인라인 입력란(폼·초안 공유) · [S1171] 예상 찍기 제거 · [S1169] 헤더 치수 정렬 · [S1168] 축 편집 · v1 [S1167] 신설
 //
 //  코어(sx_qa_board.js / window.SXQA)의 화면. **판정은 여기서 하지 않는다.**
 //  게시판은 답이 사는 곳이지 답을 만드는 곳이 아니다 — 화면에서 임계를 조절하다 보면
@@ -25,7 +25,8 @@
     inlineStock: null,      // 분석탭이 보고 있는 종목 {code,name,mkt}
     draft: { text: '', tag: 'etc', topics: '', src: '', quote: '', mkt: '', code: '', name: '' },
     detail: {},         // id → 펼침 여부
-    edit: {}            // [S1168] id → 메타 편집 열림 여부
+    edit: {},           // [S1168] id → 메타 편집 열림 여부
+    why: {}             // [S1175] id → 근거 서랍 열림 여부
   };
 
   function _vib(n) { try { if (typeof _sxVib === 'function') _sxVib(n); } catch (_e) {} }
@@ -236,22 +237,56 @@
       if (r.src)   D.push('<div style="margin-top:2px"><b>출처</b> ' + _esc(r.src) + '</div>');
       if (r.quote) D.push('<div style="margin-top:2px;padding:6px 8px;border-left:2px solid ' + BD + ';color:' + T3 + '">' + _esc(r.quote) + '</div>');
       //  [S1171] 옛 레코드에 남은 guess는 표시하지 않는다(지우지도 않는다 — 사용자가 남긴 기록이다).
-      if (r.gate)  D.push('<div style="margin-top:4px"><b>게이트</b>(재기 전 선언) ' + _esc(r.gate) + '</div>');
+      //  [S1175] 답이 있으면 게이트는 근거 서랍으로 내린다(아래). 아직 답이 없을 때만 여기 보인다 —
+      //    재는 중인 질문에서는 "무슨 기준으로 잴 것인가"가 본문이기 때문이다.
+      if (r.gate && !r.ans) D.push('<div style="margin-top:4px"><b>게이트</b>(재기 전 선언) ' + _esc(r.gate) + '</div>');
 
       if (r.ans) {
         var vTxt = { yes: '🟢 그렇다', no: '⚫ 아니다', cant: '⚪ 못 잰다' }[r.ans.verdict] || r.ans.verdict;
         D.push('<div style="margin-top:7px;padding:8px 9px;border-radius:7px;background:var(--surface);border:1px solid ' + BD + '">');
         D.push('<div style="font-weight:800;color:var(--text)">A. ' + vTxt
           + (dep ? ' <span style="font-size:9.5px;color:var(--accent)" title="' + _esc(dep.desc) + '">' + dep.dots + '</span>' : '') + '</div>');
-        if (r.ans.nums) D.push('<div style="margin-top:3px">' + _esc(r.ans.nums) + '</div>');
-        if (r.ans.note) D.push('<div style="margin-top:3px">' + _esc(r.ans.note) + '</div>');
-        //  기각은 "화면에서 빼라"가 아니라 "모델 대신 나이브를 올려라" — 대체제가 그래서 있다.
-        if (r.ans.alt) D.push('<div style="margin-top:4px;color:var(--accent);font-weight:700">→ 대신: ' + _esc(r.ans.alt) + '</div>');
+        //  [S1175] 요약 = note의 첫 문장. 사람 말로 읽히는 한 줄이 먼저 온다.
+        //    ★자르는 기준을 문장 끝(다./?/!)으로 두는 이유: 글자 수로 자르면 말이 끊긴다.
+        //    첫 문장이 너무 짧으면(강조 한 마디 등) 두 번째까지 붙인다.
+        var sum = _firstSentences(r.ans.note);
+        if (sum) D.push('<div style="margin-top:3px">' + _mdb(sum) + '</div>');
+        //  기각은 "화면에서 빼라"가 아니라 "모델 대신 나이브를 올려라" — 대체제는 실용이라 항상 보인다.
+        if (r.ans.alt) D.push('<div style="margin-top:5px;color:var(--accent);font-weight:700">→ 대신: '
+          + _mdb(_firstSentences(r.ans.alt)) + '</div>');
+
+        //  ── 근거 서랍 ──────────────────────────────────────────────
+        //    수치·게이트·측정 출처는 우리 규약을 알아야 읽힌다. 감추지 않고 접는다.
+        var more = (r.ans.note && sum && r.ans.note.length > sum.length)
+                || (r.ans.alt && _firstSentences(r.ans.alt).length < r.ans.alt.length)
+                || r.ans.nums || r.gate || r.ans.by;
+        if (more) {
+          var op = !!S.why[r.id];
+          D.push('<div style="margin-top:6px"><span onclick="_qaWhy(\'' + r.id + '\')" '
+            + 'style="font-size:9.5px;color:' + T3 + ';cursor:pointer">'
+            + (op ? '▾ 근거 접기' : '▸ 근거 보기 — 수치·판정 기준') + '</span></div>');
+          if (op) {
+            D.push('<div style="margin-top:5px;padding:7px 8px;border-radius:6px;background:' + SF
+              + ';border:1px solid ' + BD + ';font-size:10px;line-height:1.6">');
+            //  ★앞머리의 고아 `**` 제거 — 요약이 굵게 한가운데를 잘랐다면 나머지는
+            //    **닫는** 별표로 시작한다. 그대로 두면 짝이 어긋나 굵게가 통째로 뒤집힌다.
+            var rest = (r.ans.note || '').slice(sum.length).replace(/^\*\*/, '').trim();
+            if (rest) D.push('<div>' + _mdb(rest) + '</div>');
+            var altRest = (r.ans.alt || '').slice(_firstSentences(r.ans.alt).length).replace(/^\*\*/, '').trim();
+            if (altRest) D.push('<div style="margin-top:4px;color:' + T2 + '">→ ' + _mdb(altRest) + '</div>');
+            if (r.ans.nums) D.push('<div style="margin-top:5px"><b>수치</b> ' + _mdb(r.ans.nums) + '</div>');
+            //  ★게이트는 반드시 여기 있어야 한다 — 없으면 "⚫ 아니다"가 주장이 된다.
+            if (r.gate) D.push('<div style="margin-top:5px"><b>게이트</b> <span style="color:' + T3
+              + '">(재기 전에 선언·이후 수정 불가)</span> ' + _mdb(r.gate) + '</div>');
+            D.push('</div>');
+          }
+        }
+
         var f = [];
         if (r.ansDate) f.push(r.ansDate);
         if (r.ans.by) f.push(r.ans.by);
         if (r.gateMissing) f.push('⚠ 게이트 없이 답함');
-        if (f.length) D.push('<div style="margin-top:4px;font-size:9px;color:' + T3 + '">' + _esc(f.join(' · ')) + '</div>');
+        if (f.length) D.push('<div style="margin-top:5px;font-size:9px;color:' + T3 + '">' + _esc(f.join(' · ')) + '</div>');
         D.push('</div>');
       }
 
@@ -370,6 +405,46 @@
     }).catch(function (e) { S.msg = '불러오기 실패: ' + ((e && e.message) || e); });
   }
 
+  //  [S1175] 앞 문장(들)만 뽑는다. 글자 수가 아니라 **문장 끝**으로 자른다.
+  //    첫 문장이 40자 미만이면 다음 문장까지 붙인다 — "★핵심은 보유 1일이다." 같은
+  //    강조 한 마디만 남으면 요약이 아니라 미끼가 된다.
+  function _firstSentences(txt, minLen, maxLen) {
+    var t = String(txt || '').trim();
+    if (!t) return '';
+    var lo = minLen || 40, hi = maxLen || 170;
+    //  문장 경계 수집 — '다.' / '?' / '!' 다음이 공백·줄바꿈·별표(**)·끝 중 하나일 때.
+    //  ★별표를 넣는 이유: "…정의다.** 이격이…"처럼 강조가 문장 끝에 붙으면
+    //    공백만 보는 방식은 경계를 놓치고 요약이 통째로 길어진다(실제로 그랬다).
+    var bd = [];
+    for (var i = 0; i < t.length; i++) {
+      var end = -1;
+      if (t[i] === '다' && t[i + 1] === '.') end = i + 2;
+      else if (t[i] === '?' || t[i] === '!') end = i + 1;
+      if (end < 0) continue;
+      var nx = t.charAt(end);
+      if (nx === '' || nx === ' ' || nx === '\n' || nx === '*') bd.push(end);
+    }
+    if (!bd.length) return t.length > hi ? t.slice(0, hi).trim() + '…' : t;
+    var out = '';
+    for (var j = 0; j < bd.length; j++) {
+      var cand = t.slice(0, bd[j]).trim();
+      if (out && cand.length > hi) break;      // 다음 문장을 붙이면 너무 길어진다
+      out = cand;
+      if (out.length >= lo) break;
+    }
+    return out || t;
+  }
+
+  //  [S1175] 답 본문의 **굵게**를 살린다. ★반드시 _esc 먼저 — 뒤집으면 XSS 구멍이 된다.
+  //    (답은 내가 쓰지만 가져오기로도 들어오므로 신뢰 입력이 아니다.)
+  function _mdb(txt) {
+    //  ★짝을 잃은 여는 `**` 처리 — 요약이 굵게 한가운데를 자르면 별표가 그대로 남는다(실제로 그랬다).
+    //    남은 것은 문장 끝까지 굵게로 본다.
+    return _esc(txt)
+      .replace(/\*\*([^*]{1,200})\*\*/g, '<b>$1</b>')
+      .replace(/\*\*([^*]*)$/, '<b>$1</b>');
+  }
+
   function _resetDraft() {
     S.draft = { text: '', tag: 'etc', topics: '', src: '', quote: '', mkt: '', code: '', name: '' };
   }
@@ -449,10 +524,17 @@
     }).catch(function (e) { S.msg = '실패: ' + ((e && e.message) || e); _refresh(); });
   };
 
-  window._qaDetail = function (id) { _vib(5); S.detail[id] = !S.detail[id]; if (!S.detail[id]) delete S.edit[id]; _refresh(); };
+  window._qaDetail = function (id) {
+    _vib(5); S.detail[id] = !S.detail[id];
+    if (!S.detail[id]) { delete S.edit[id]; delete S.why[id]; }
+    _refresh();
+  };
 
   //  [S1168] 메타 편집 — 축은 즉시 저장(버튼 누른 게 곧 선택), 텍스트 3종은 저장 버튼으로.
   window._qaEdit = function (id) { _vib(5); S.edit[id] = !S.edit[id]; _refresh(); };
+
+  //  [S1175] 근거 서랍 — 감추는 게 아니라 접는 것. 한 번의 탭으로 항상 닿는다.
+  window._qaWhy = function (id) { _vib(5); S.why[id] = !S.why[id]; _refresh(); };
 
   window._qaSetTag = function (id, tag) {
     _vib(8);
