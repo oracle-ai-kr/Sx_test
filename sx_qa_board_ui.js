@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════
 //  SIGNAL X — Q&A 게시판 UI (sx_qa_board_ui.js)
-//  버전: v1 · [S1167]
+//  버전: v2 · [S1168] 축·주제·출처 편집(답 전까지) 추가 · v1 [S1167] 신설
 //
 //  코어(sx_qa_board.js / window.SXQA)의 화면. **판정은 여기서 하지 않는다.**
 //  게시판은 답이 사는 곳이지 답을 만드는 곳이 아니다 — 화면에서 임계를 조절하다 보면
@@ -21,7 +21,8 @@
     filter: { st: '', tag: '' },
     formOpen: false,
     draft: { text: '', tag: 'etc', topics: '', src: '', quote: '', guess: '', mkt: '', code: '', name: '' },
-    detail: {}          // id → 펼침 여부
+    detail: {},         // id → 펼침 여부
+    edit: {}            // [S1168] id → 메타 편집 열림 여부
   };
 
   function _vib(n) { try { if (typeof _sxVib === 'function') _sxVib(n); } catch (_e) {} }
@@ -229,7 +230,64 @@
         D.push('</div><div style="margin-top:3px;font-size:9px;color:' + T3 + '">지금이라도 예상을 찍어둘 수 있다 — 한 번뿐이고 수정 불가</div>');
       }
 
+      //  [S1168] 축·주제·출처 고치기 — **답이 달리기 전까지만.**
+      //    질문의 뜻(text)이 아니라 분류라서 열어둔다. 처음 적을 때 축을 잘못 고르는 건 흔하고
+      //    ('평소와 다르게 급등' → 기타로 넣었지만 실은 크기), 축이 틀리면 지도가 거짓말을 한다.
+      //    ★text와 guess는 여기서 못 건드린다 — 그건 코어가 막는다(editText/setGuess 불변식).
+      if (!r.ans) {
+        var ed = !!S.edit[r.id];
+        if (!ed) {
+          D.push('<div style="margin-top:6px"><span onclick="_qaEdit(\'' + r.id + '\')" '
+            + 'style="font-size:9.5px;color:' + T3 + ';cursor:pointer">✏️ 축·주제·출처 고치기</span></div>');
+        } else {
+          D.push('<div style="margin-top:7px;padding:8px 9px;border-radius:7px;background:var(--surface);border:1px dashed ' + BD + '">');
+          D.push('<div style="font-size:9.5px;color:' + T3 + '">무엇을 묻나 — 축이 틀리면 지도가 거짓말을 한다</div>');
+          D.push('<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">');
+          Object.keys(QA.TAGS).forEach(function (k) {
+            var on = r.tag === k;
+            D.push('<button onclick="_qaSetTag(\'' + r.id + '\',\'' + k + '\')" title="' + _esc(QA.TAGS[k].desc) + '" '
+              + 'style="padding:5px 9px;border-radius:6px;font-size:10.5px;font-weight:700;cursor:pointer;border:1px solid '
+              + (on ? 'var(--accent)' : BD) + ';background:' + (on ? 'var(--accent)' : SF) + ';color:' + (on ? '#fff' : T2) + '">'
+              + QA.TAGS[k].name + '</button>');
+          });
+          D.push('</div>');
+          var ei = function (id, ph, val) {
+            return '<input id="' + id + '" placeholder="' + ph + '" value="' + _esc(val || '') + '" '
+              + 'style="width:100%;box-sizing:border-box;margin-top:5px;padding:7px 8px;border-radius:6px;border:1px solid '
+              + BD + ';background:' + SF + ';color:var(--text);font-size:11px">';
+          };
+          D.push(ei('qaEdTopics_' + r.id, '주제 (쉼표로 여러 개)', (r.topics || []).join(', ')));
+          D.push(ei('qaEdSrc_' + r.id, '출처 — 어디서 봤나', r.src));
+          D.push(ei('qaEdQuote_' + r.id, '원문 인용 — 다듬지 말 것', r.quote));
+          D.push('<div style="display:flex;gap:5px;margin-top:7px">'
+            + '<button onclick="_qaEdit(\'' + r.id + '\')" style="flex:1;padding:7px;border-radius:6px;border:1px solid ' + BD
+            + ';background:' + SF + ';color:' + T2 + ';font-size:10.5px;font-weight:700;cursor:pointer">닫기</button>'
+            + '<button onclick="_qaSaveMeta(\'' + r.id + '\')" style="flex:2;padding:7px;border-radius:6px;border:none;'
+            + 'background:var(--accent);color:#fff;font-size:10.5px;font-weight:800;cursor:pointer">저장</button>'
+            + '</div>');
+          D.push('<div style="margin-top:5px;font-size:9px;color:' + T3 + '">질문 원문과 찍은 예상은 여기서 못 고친다 — 그건 잠긴다.</div>');
+          D.push('</div>');
+        }
+      }
+
       if (r.supersedes) D.push('<div style="margin-top:5px;font-size:9.5px;color:' + T3 + '">↺ 이 질문이 뒤집는 대상: ' + _esc(r.supersedes) + '</div>');
+
+      //  [S1168] 축 변경 — 답이 달리기 **전**까지만. 축은 질문의 뜻이 아니라 분류라서,
+      //    적을 때 잘못 고른 걸 나중에 바로잡을 수 있어야 한다. 안 그러면 지도가 틀린 채로 굳는다.
+      //    (질문 원문·예상·게이트·답은 여전히 못 고친다 — 그건 분류가 아니라 내용이다.)
+      if (!r.ans) {
+        D.push('<div style="margin-top:8px;padding-top:7px;border-top:1px dotted ' + BD + '">');
+        D.push('<div style="font-size:9px;color:' + T3 + '">축 바꾸기 — 지도 좌표라 맞게 두는 게 낫다</div>');
+        D.push('<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">');
+        Object.keys(QA.TAGS).forEach(function (k) {
+          var on = r.tag === k;
+          D.push('<button onclick="_qaSetTag(\'' + r.id + '\',\'' + k + '\')" title="' + _esc(QA.TAGS[k].desc) + '" '
+            + 'style="padding:4px 8px;border-radius:6px;font-size:9.5px;font-weight:700;cursor:pointer;'
+            + 'border:1px solid ' + (on ? 'var(--accent)' : BD) + ';background:' + (on ? 'var(--accent)' : 'var(--surface)')
+            + ';color:' + (on ? '#fff' : T2) + '">' + QA.TAGS[k].name + '</button>');
+        });
+        D.push('</div></div>');
+      }
       D.push('<div style="margin-top:7px;font-size:9px;color:' + T3 + '">id ' + r.id
         + ' <span onclick="_qaRemove(\'' + r.id + '\')" style="margin-left:8px;cursor:pointer">🗑 지우기</span></div>');
       D.push('</div>');
@@ -343,13 +401,41 @@
     }).catch(function (e) { S.msg = '실패: ' + ((e && e.message) || e); _refresh(); });
   };
 
-  window._qaDetail = function (id) { _vib(5); S.detail[id] = !S.detail[id]; _refresh(); };
+  window._qaDetail = function (id) { _vib(5); S.detail[id] = !S.detail[id]; if (!S.detail[id]) delete S.edit[id]; _refresh(); };
+
+  //  [S1168] 메타 편집 — 축은 즉시 저장(버튼 누른 게 곧 선택), 텍스트 3종은 저장 버튼으로.
+  window._qaEdit = function (id) { _vib(5); S.edit[id] = !S.edit[id]; _refresh(); };
+
+  window._qaSetTag = function (id, tag) {
+    _vib(8);
+    window.SXQA.setMeta(id, { tag: tag })
+      .then(function () { S.msg = '축을 ' + ((window.SXQA.TAGS[tag] || {}).name || tag) + '(으)로 옮겼다.'; _refresh(); })
+      .catch(function (e) { S.msg = ((e && e.message) || e); _refresh(); });
+  };
+
+  window._qaSaveMeta = function (id) {
+    var g = function (p) { var e = document.getElementById(p + id); return e ? e.value : undefined; };
+    var tp = g('qaEdTopics_'), sc = g('qaEdSrc_'), qt = g('qaEdQuote_');
+    _vib(10);
+    window.SXQA.setMeta(id, {
+      topics: tp === undefined ? undefined : tp.split(',').map(function (x) { return x.trim(); }).filter(Boolean),
+      src: sc, quote: qt
+    }).then(function () { delete S.edit[id]; S.msg = '고쳤다.'; _refresh(); })
+      .catch(function (e) { S.msg = ((e && e.message) || e); _refresh(); });
+  };
   window._qaFilter = function (k, v) { _vib(5); S.filter[k] = v; _refresh(); };
 
   window._qaGuess = function (id, g) {
     _vib(12);
     window.SXQA.setGuess(id, g)
       .then(function () { S.msg = '예상 기록 · 잠김'; _refresh(); })
+      .catch(function (e) { S.msg = ((e && e.message) || e); _refresh(); });
+  };
+
+  window._qaSetTag = function (id, tag) {
+    _vib(8);
+    window.SXQA.setMeta(id, { tag: tag })
+      .then(function () { S.msg = '축을 ' + (window.SXQA.TAGS[tag] || {}).name + '(으)로 바꿨다.'; _refresh(); })
       .catch(function (e) { S.msg = ((e && e.message) || e); _refresh(); });
   };
 
