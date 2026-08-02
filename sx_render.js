@@ -4879,14 +4879,9 @@ function _qaAskLineHtml(stock){
     if(typeof window._qaAskAbout !== 'function') return '';   // 미로드 시 조용히 없음
     var c=(stock&&stock.code)||'', nm=String((stock&&stock.name)||'').replace(/'/g,"\\'");
     if(!c) return '';
-    return '<div style="margin:0 0 10px;padding:8px 12px;border-radius:9px;background:var(--surface);'
-      + 'border:1px dashed var(--border);display:flex;align-items:center;gap:7px">'
-      + '<span style="font-size:10.5px;color:var(--text3);flex:1;line-height:1.5">'
-      +   '이 종목을 보다 궁금한 게 생겼다면 — 적어두지 않으면 다음에 또 궁금해진다.</span>'
-      + '<button onclick="_qaAskAbout(\'' + c + '\',\'' + nm + '\')" '
-      +   'style="flex-shrink:0;padding:6px 10px;border-radius:7px;border:1px solid var(--border);'
-      +   'background:var(--surface2);color:var(--text2);font-size:10.5px;font-weight:700;cursor:pointer">📋 질문 적기</button>'
-      + '</div>';
+    // [S1173] 마운트만 놓고 내용은 sx_qa_board_ui.js가 그린다 — 화면 코드가 render로 새지 않게.
+    if(typeof window._qaInlineMount !== 'function') return '';
+    return '<div id="sxQaInline">' + window._qaInlineMount(c, nm) + '</div>';
   }catch(_e){ return ''; }
 }
 
@@ -13703,7 +13698,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1168';   // [S1168] 게시판 축 변경 UI + 유사검색 한국어 조사 대응(접두 일치) · [S1167] Q&A 게시판 신설(sx_qa_board.js + _ui.js · IndexedDB · 답 잠금 · JSON 왕복 · 공개용 내보내기) · [S1166] 채점기 지평 끝 봉 확정 보장(끝 봉 절단·미확정 채점 차단) + _predRowD10 추출 · [S1165] 매물대 표본배지 오판 수정 + 반복문구 정리 · [S1164] pair 행 값 묶음 nowrap · [S1163] 통계판 주제 3종 추가(매물대·평균선 벌어진 폭·움직임 폭) + 점 줄바꿈·0%p 회색 · [S1162] 📟 종목 통계판(메인카드·표시 전용·단일종목 600봉 자기이력·_SB_BLOCKS 확장구조)   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1173';   // [S1173] 분석탭 인라인 입력란(폼·초안 공유) · [S1172] importAll text 필수 완화 · [S1171] 예상 찍기 제거 · [S1170] askText 지시문 탑재 · [S1168] 게시판 축 변경 UI + 유사검색 한국어 조사 대응(접두 일치) · [S1167] Q&A 게시판 신설(sx_qa_board.js + _ui.js · IndexedDB · 답 잠금 · JSON 왕복 · 공개용 내보내기) · [S1166] 채점기 지평 끝 봉 확정 보장(끝 봉 절단·미확정 채점 차단) + _predRowD10 추출 · [S1165] 매물대 표본배지 오판 수정 + 반복문구 정리 · [S1164] pair 행 값 묶음 nowrap · [S1163] 통계판 주제 3종 추가(매물대·평균선 벌어진 폭·움직임 폭) + 점 줄바꿈·0%p 회색 · [S1162] 📟 종목 통계판(메인카드·표시 전용·단일종목 600봉 자기이력·_SB_BLOCKS 확장구조)   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
