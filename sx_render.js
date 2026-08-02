@@ -4917,10 +4917,15 @@ function _sbA(hex,a){ try{ var h=String(hex).replace('#',''); if(h.length===3)h=
   return 'rgba('+parseInt(h.slice(0,2),16)+','+parseInt(h.slice(2,4),16)+','+parseInt(h.slice(4,6),16)+','+a+')'; }catch(_e){ return 'transparent'; } }
 // [S1162-c] 방향 표기 — 사람이 읽는 자리는 ▲▼, 계산·차이값(Δ%p 등)은 +/− 그대로 둔다.
 //   부호를 기호로 바꾸면 초보자가 위/아래를 즉시 읽는다. 색은 블록 식별색을 유지한다(빨강/파랑은 호재·악재로 읽힐 여지가 있어 쓰지 않는다).
-function _sbDir(v,d,eps){ var e=(eps==null?0:eps);
+//  색은 국내 차트 관행(▲빨강 / ▼파랑) = **순수 방향 표기**다. 좋다·나쁘다가 아니라 위/아래를 말한다.
+//  그래서 방향이 있는 줄은 숫자와 막대까지 방향색으로 통일하고, 방향이 없는 줄(거래대금·변동폭·캔들 모양)만 블록 식별색을 쓴다.
+var _SB_UP='#e3493b', _SB_DN='#2563eb';
+function _sbDirCol(v,eps){ var e=(eps==null?0:eps); if(v==null||!isFinite(v)||Math.abs(v)<=e) return null; return v>0?_SB_UP:_SB_DN; }
+function _sbDir(v,d,eps,col){ var e=(eps==null?0:eps);
   if(v==null||!isFinite(v)) return '—';
   if(Math.abs(v)<=e) return _sbNum(Math.abs(v),d)+'%';
-  return (v>0?'▲':'▼')+_sbNum(Math.abs(v),d)+'%'; }
+  var t=(v>0?'▲':'▼')+_sbNum(Math.abs(v),d)+'%';
+  return col ? ('<span style="color:'+(v>0?_SB_UP:_SB_DN)+'">'+t+'</span>') : t; }
 function _sbNum(v,d){ return (v==null||!isFinite(v))?'—':(v.toFixed(d==null?1:d)); }
 function _sbAmt(v){ if(v==null||!isFinite(v))return '—'; if(v>=1e12)return (v/1e12).toFixed(1)+'조'; if(v>=1e8)return (v/1e8).toFixed(1)+'억'; if(v>=1e4)return (v/1e4).toFixed(1)+'만'; return String(Math.round(v)); }
 
@@ -4949,13 +4954,15 @@ function _sbRowHtml(r, accent){
     var pos = r.posTxt ? r.posTxt : ((r.pctl!=null) ? ((r.posPfx||'') + (r.pctl>=50 ? ('상위 '+(100-r.pctl)+'%') : ('하위 '+r.pctl+'%'))) : '');
     h += '<div style="display:flex;justify-content:space-between;gap:6px;font-size:11.5px">'
       +    '<span style="font-weight:600;color:var(--text)">'+r.label+'</span>'
-      +    '<span style="font-size:13px;font-weight:800;color:'+A+'">'+r.nowTxt+'</span>'
+      // [S1162-c] 방향이 있으면 방향색, 없으면 기본 글자색. 무방향 값(거래대금·변동폭)에 블록색(파랑)을 쓰면
+      //   '하락 파랑'으로 오독된다. 블록 식별색은 헤더와 막대에만 남긴다.
+      +    '<span style="font-size:13px;font-weight:800;color:'+(r.dirCol||'var(--text)')+'">'+r.nowTxt+'</span>'
       +  '</div>'
       +  '<div style="display:flex;justify-content:space-between;gap:6px;font-size:10px;color:'+T3+'">'
       +    '<span>'+(r.baseLbl===false?'':'평소엔 ')+r.baseTxt+'</span>'
       +    '<span style="font-weight:800;white-space:nowrap;color:'+((r.pctl>=90||r.pctl<=10)?'#f59e0b':T3)+'">'+pos+'</span>'
       +  '</div>'
-      +  _sbBar(r.pctl, A);
+      +  _sbBar(r.pctl, (r.dirCol||A));
     if(r.note) h += '<div style="font-size:10px;color:'+T2+';line-height:1.5">'+r.note+'</div>';
     if(_SB_DETAIL) h += '<div style="font-size:9px;color:'+T3+';margin-top:2px">표본 '+r.n+'봉'+(r.raw?(' · '+r.raw):'')+'</div>';
   } else if(r.kind==='dots'){
@@ -4975,7 +4982,7 @@ function _sbRowHtml(r, accent){
         +    '<span>'+it.t+'</span>'
         +    '<span>'+(okp?('<b style="color:var(--text)">'+(it.hit/it.tot*100).toFixed(0)+'%</b>'):('<b style="color:var(--text)">'+it.hit+'/'+it.tot+'</b>'))
         +      ' <span style="color:'+T3+'">('+it.tot+'회'+(okp&&_SB_DETAIL?(' ±'+_sbNum(_sbSE(it.hit,it.tot),0)+'%p'):'')+')</span>'
-        +      (it.delta!=null&&okp?(' <span style="font-weight:700;color:'+(it.delta>=0?'#16a34a':'#e3493b')+'">'+(it.delta>=0?'+':'')+it.delta.toFixed(0)+'%p</span>'):'')
+        +      (it.delta!=null&&okp?(' <span style="font-weight:800;color:'+(it.delta>=0?_SB_UP:_SB_DN)+'">'+(it.delta>=0?'+':'')+it.delta.toFixed(0)+'%p</span>'):'')
         +    '</span>'
         +  '</div>';
     });
@@ -5031,8 +5038,8 @@ var _SB_BLOCKS = [
       var upA=chg.filter(function(x){return x>0;}), dnA=chg.filter(function(x){return x<0;});
       var sameA=(cNow>0?upA:(cNow<0?dnA:chg)), cP=sameA.length?_sbPctl(sameA,cNow):null;
       var _cnt=(cP!=null&&sameA.length)?Math.round(sameA.length*(cP>=50?(100-cP):cP)/100):null;
-      out.push({kind:'bar',label:'오늘 등락률',nowTxt:_sbDir(cNow,2),
-        baseTxt:'오른 날 <b>'+_sbDir(_sbMed(upA),2)+'</b> · 내린 날 <b>'+_sbDir(_sbMed(dnA),2)+'</b>', baseLbl:false,
+      out.push({kind:'bar',label:'오늘 등락률',nowTxt:_sbDir(cNow,2),dirCol:_sbDirCol(cNow),
+        baseTxt:'오른 날 <b>'+_sbDir(_sbMed(upA),2,0,true)+'</b> · 내린 날 <b>'+_sbDir(_sbMed(dnA),2,0,true)+'</b>', baseLbl:false,
         pctl:cP, n:sameA.length,
         posTxt:(cP==null?'':(cNow>=0 ? ('오른 날 중 '+(cP>=50?('상위 '+(100-cP)):('하위 '+cP))+'%')
                                      : ('내린 날 중 낙폭 '+(cP>=50?('하위 '+(100-cP)):('상위 '+cP))+'%'))),
@@ -5051,7 +5058,8 @@ var _SB_BLOCKS = [
                 : (nw>0 ? ('종가가 '+p+'일 평균선보다 <b>'+_sbNum(nw,1)+'% 위</b>에 있습니다.')
                         : ('종가가 '+p+'일 평균선보다 <b>'+_sbNum(-nw,1)+'% 아래</b>에 있습니다.'));
         if(p===20) _nt += ' 0%면 평균선에 정확히 닿은 상태입니다.';
-        out.push({kind:'bar',label:p+'일선과 떨어진 거리',nowTxt:_sbDir(nw,1,0.05),baseTxt:_sbDir(_sbMed(d),1,0.05),
+        out.push({kind:'bar',label:p+'일선과 떨어진 거리',nowTxt:_sbDir(nw,1,0.05),dirCol:_sbDirCol(nw,0.05),
+          baseTxt:_sbDir(_sbMed(d),1,0.05,true),
           pctl:_sbPctl(d,nw),n:d.length,note:_nt});
       });
       return out;
@@ -5245,7 +5253,7 @@ function _buildStatBoardCard(stock, indicators){
         + extremes.map(function(x){
             var pos = x.posTxt ? x.posTxt : (x.pctl>=50 ? ('상위 '+(100-x.pctl)+'%') : ('하위 '+x.pctl+'%'));
             return '<div style="display:flex;justify-content:space-between;gap:6px;font-size:10.5px;color:'+T2+';padding:1px 0">'
-              + '<span>'+x.label+' <b style="color:var(--text)">'+x.nowTxt+'</b></span>'
+              + '<span>'+x.label+' <b style="color:'+(x.dirCol||'var(--text)')+'">'+x.nowTxt+'</b></span>'
               + '<span style="font-weight:700;color:#f59e0b">'+pos+'</span></div>';
           }).join('')
         + '<div style="font-size:9px;color:'+T3+';margin-top:3px;line-height:1.5">드문 축에 든다는 것뿐이고, 좋다·나쁘다는 뜻이 아닙니다.</div>'
