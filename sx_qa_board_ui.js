@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════
 //  SIGNAL X — Q&A 게시판 UI (sx_qa_board_ui.js)
-//  버전: v5 · [S1173] 분석탭 인라인 입력란(폼·초안 공유) · [S1171] 예상 찍기 제거 · [S1169] 헤더 치수 정렬 · [S1168] 축 편집 · v1 [S1167] 신설
+//  버전: v6 · [S1174] 깊이 배지 이름표 제거(점만) · [S1173] 분석탭 인라인 입력란(폼·초안 공유) · [S1171] 예상 찍기 제거 · [S1169] 헤더 치수 정렬 · [S1168] 축 편집 · v1 [S1167] 신설
 //
 //  코어(sx_qa_board.js / window.SXQA)의 화면. **판정은 여기서 하지 않는다.**
 //  게시판은 답이 사는 곳이지 답을 만드는 곳이 아니다 — 화면에서 임계를 조절하다 보면
@@ -227,7 +227,7 @@
     if (r.topics && r.topics.length) meta.push('#' + r.topics.map(_esc).join(' #'));
     meta.push(r.date);
     H.push('<div style="margin-top:3px;font-size:9.5px;color:' + T3 + '">' + meta.join(' · ')
-      + (dep ? ' <span style="color:var(--accent);font-weight:800" title="답의 깊이 — ' + _esc(dep.desc) + '">' + dep.dots + ' ' + dep.name + '</span>' : '')
+      + (dep ? ' <span style="color:var(--accent);font-weight:800" title="답의 깊이 — ' + _esc(dep.desc) + '">' + dep.dots + '</span>' : '')
       + '</div>');
     H.push('</div>');
 
@@ -242,7 +242,7 @@
         var vTxt = { yes: '🟢 그렇다', no: '⚫ 아니다', cant: '⚪ 못 잰다' }[r.ans.verdict] || r.ans.verdict;
         D.push('<div style="margin-top:7px;padding:8px 9px;border-radius:7px;background:var(--surface);border:1px solid ' + BD + '">');
         D.push('<div style="font-weight:800;color:var(--text)">A. ' + vTxt
-          + (dep ? ' <span style="font-size:9.5px;color:var(--accent)">' + dep.dots + ' ' + dep.name + '</span>' : '') + '</div>');
+          + (dep ? ' <span style="font-size:9.5px;color:var(--accent)" title="' + _esc(dep.desc) + '">' + dep.dots + '</span>' : '') + '</div>');
         if (r.ans.nums) D.push('<div style="margin-top:3px">' + _esc(r.ans.nums) + '</div>');
         if (r.ans.note) D.push('<div style="margin-top:3px">' + _esc(r.ans.note) + '</div>');
         //  기각은 "화면에서 빼라"가 아니라 "모델 대신 나이브를 올려라" — 대체제가 그래서 있다.
