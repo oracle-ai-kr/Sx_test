@@ -4981,7 +4981,7 @@ function _sbRowHtml(r, accent){
       +  '</div>'
       +  '<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-top:1px">'
       +    '<span style="letter-spacing:-.5px;font-size:10.5px;color:'+A+'">'+_sbDots(r.hit,r.tot)+'</span>'
-      +    '<span style="font-size:10px;color:'+T3+';white-space:nowrap">'+(ok?((r.hit/r.tot*100).toFixed(0)+'% ±'+_sbNum(_sbSE(r.hit,r.tot),0)+'%p'):'표본 '+_SB_MIN_RATIO_N+'번 미만')+'</span>'
+      +    '<span style="font-size:10px;color:'+T3+';white-space:nowrap">'+(ok?((r.hit/r.tot*100).toFixed(0)+'% ±'+_sbNum(_sbSE(r.hit,r.tot),0)+'%p'):'')+'</span>'
       +  '</div>';
     if(r.note) h += '<div style="font-size:10px;color:'+T2+';line-height:1.5">'+r.note+'</div>';
   } else if(r.kind==='pair'){
@@ -5057,7 +5057,8 @@ var _SB_BLOCKS = [
         pctl:cP, n:sameA.length,
         posTxt:(cP==null?'':(cNow>=0 ? ('오른 날 중 '+(cP>=50?('상위 '+(100-cP)):('하위 '+cP))+'%')
                                      : ('내린 날 중 낙폭 '+(cP>=50?('하위 '+(100-cP)):('상위 '+cP))+'%'))),
-        note:(_cnt!=null?((cNow>0?'오른 날':'내린 날')+' '+sameA.length+'일 중 <b>'+_cnt+'일</b>만 오늘보다 더 '+(cNow>0?'올랐':'내렸')+'습니다. '):'')
+        note:(_cnt!=null?((cNow>0?'오른 날':'내린 날')+' '+sameA.length+'일 중 '+(_cnt===0?('오늘보다 더 '+(cNow>0?'오른':'내린')+' 날은 <b>없었습니다</b>. ')
+                      :('<b>'+_cnt+'일</b>만 오늘보다 더 '+(cNow>0?'올랐':'내렸')+'습니다. '))):'')
              +'600봉에서 오른 날 '+upA.length+'일 · 내린 날 '+dnA.length+'일이었습니다.'});
       out.push({kind:'bar',label:'하루 움직인 폭',nowTxt:_sbNum(rNow,2)+'%',baseTxt:_sbNum(_sbMed(rng),2)+'%',pctl:_sbPctl(rng,rNow),n:rng.length,
         note:'고가와 저가의 차이입니다.'});
@@ -5143,12 +5144,12 @@ var _SB_BLOCKS = [
       out.push({kind:'html',html:'<div style="padding:6px 0 2px;border-top:1px solid var(--border)">'
         + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">거래량이 많았던 가격대 5곳 · 칸 폭 '+_sbPrice(W)+'</div>'
         + rowsH + '</div>'});
-      out.push({kind:'plain',label:'지금 가격대의 비중',val:_sbNum(bin[cur]/tot*100,1)+'%',
-        note:'지난 600봉 거래량 가운데 지금 가격 ±'+_sbPrice(W/2)+' 구간에서 오간 몫입니다.'});
-      out.push({kind:'plain',label:'가장 두꺼운 가격대',val:_sbPrice(mid(top)),
+      out.push({kind:'plain',label:'지금 가격대의 비중',val:_sbNum(bin[cur]/tot*100,1)+'%',tot:n,   // [S1165] tot=봉수 — 없으면 배지가 '표본 적음'으로 잘못 뜬다
+        note:'지난 '+n+'봉 거래량 가운데 지금 가격 ±'+_sbPrice(W/2)+' 구간에서 오간 몫입니다.'});
+      out.push({kind:'plain',label:'가장 두꺼운 가격대',val:_sbPrice(mid(top)),tot:n,
         note:'전체의 <b>'+_sbNum(bin[top]/tot*100,1)+'%</b>가 이 부근에서 거래됐고, 지금 가격보다 '
           + (mid(top)>=C.cl[L] ? ('<b>'+_sbNum((mid(top)-C.cl[L])/C.cl[L]*100,1)+'% 위</b>') : ('<b>'+_sbNum((C.cl[L]-mid(top))/C.cl[L]*100,1)+'% 아래</b>'))+'입니다.'});
-      out.push({kind:'plain',label:'지금보다 위 / 아래',val:_sbNum(above/tot*100,0)+'% / '+_sbNum(below/tot*100,0)+'%',
+      out.push({kind:'plain',label:'지금보다 위 / 아래',val:_sbNum(above/tot*100,0)+'% / '+_sbNum(below/tot*100,0)+'%',tot:n,
         note:'지금 가격을 기준으로 위쪽에서 오간 거래량과 아래쪽에서 오간 거래량의 비중입니다.'});
       return out;
     }},
@@ -5192,9 +5193,9 @@ var _SB_BLOCKS = [
         var d=S.filter(function(x){return !x[0];}).map(function(x){return x[1];});
         var cur=C.n-st, nm=a+'일선이 '+b+'일선 ';
         out.push({kind:'plain',label:nm+'위',val:(g.length?(g.length+'번 · 중앙 '+_sbMed(g)+'봉'):'완료된 구간 없음'),
-          note:(pv?('지금 이 상태로 <b>'+cur+'봉째</b>입니다.'):'')+(g.length<3?' 완료된 구간이 '+g.length+'개뿐이라 평균을 말하기 어렵습니다.':''),tot:g.length});
+          note:(pv?('지금 이 상태로 <b>'+cur+'봉째</b>입니다.'):'')+(g.length<3?(g.length?(' 끝난 구간이 '+g.length+'개뿐이라 평균을 말하기 어렵습니다.'):' 이 구간에서 한 번도 뒤바뀌지 않아 비교할 기록이 없습니다.'):''),tot:g.length});
         out.push({kind:'plain',label:nm+'아래',val:(d.length?(d.length+'번 · 중앙 '+_sbMed(d)+'봉'):'완료된 구간 없음'),
-          note:(!pv?('지금 이 상태로 <b>'+cur+'봉째</b>입니다.'):'')+(d.length<3?' 완료된 구간이 '+d.length+'개뿐이라 평균을 말하기 어렵습니다.':''),tot:d.length});
+          note:(!pv?('지금 이 상태로 <b>'+cur+'봉째</b>입니다.'):'')+(d.length<3?(d.length?(' 끝난 구간이 '+d.length+'개뿐이라 평균을 말하기 어렵습니다.'):' 이 구간에서 한 번도 뒤바뀌지 않아 비교할 기록이 없습니다.'):''),tot:d.length});
       });
       return out;
     }},
@@ -13658,7 +13659,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1164';   // [S1164] pair 행 값 묶음 nowrap · [S1163] 통계판 주제 3종 추가(매물대·평균선 벌어진 폭·움직임 폭) + 점 줄바꿈·0%p 회색 · [S1162] 📟 종목 통계판(메인카드·표시 전용·단일종목 600봉 자기이력·_SB_BLOCKS 확장구조)   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1165';   // [S1165] 매물대 표본배지 오판 수정 + 반복문구 정리 · [S1164] pair 행 값 묶음 nowrap · [S1163] 통계판 주제 3종 추가(매물대·평균선 벌어진 폭·움직임 폭) + 점 줄바꿈·0%p 회색 · [S1162] 📟 종목 통계판(메인카드·표시 전용·단일종목 600봉 자기이력·_SB_BLOCKS 확장구조)   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
