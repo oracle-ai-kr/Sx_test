@@ -4871,6 +4871,25 @@ function _raGapNow(cl){
   }catch(_e){ return null; }
 }
 // ══════════════════════════════════════════════════════════════════════════
+// [S1167] Q&A 게시판 — 분석탭 진입 한 줄. 화면을 보다 생긴 궁금증을 **그 자리에서** 적게 한다.
+//   실제 함수는 sx_qa_board_ui.js(_qaAskAbout). 여기는 훅만 — 게시판은 답이 쌓이는 물건이라
+//   화면도 같이 커진다. render에 넣으면 S1162 통계판처럼 또 500줄이 붙는다.
+function _qaAskLineHtml(stock){
+  try{
+    if(typeof window._qaAskAbout !== 'function') return '';   // 미로드 시 조용히 없음
+    var c=(stock&&stock.code)||'', nm=String((stock&&stock.name)||'').replace(/'/g,"\\'");
+    if(!c) return '';
+    return '<div style="margin:0 0 10px;padding:8px 12px;border-radius:9px;background:var(--surface);'
+      + 'border:1px dashed var(--border);display:flex;align-items:center;gap:7px">'
+      + '<span style="font-size:10.5px;color:var(--text3);flex:1;line-height:1.5">'
+      +   '이 종목을 보다 궁금한 게 생겼다면 — 적어두지 않으면 다음에 또 궁금해진다.</span>'
+      + '<button onclick="_qaAskAbout(\'' + c + '\',\'' + nm + '\')" '
+      +   'style="flex-shrink:0;padding:6px 10px;border-radius:7px;border:1px solid var(--border);'
+      +   'background:var(--surface2);color:var(--text2);font-size:10.5px;font-weight:700;cursor:pointer">📋 질문 적기</button>'
+      + '</div>';
+  }catch(_e){ return ''; }
+}
+
 // [S1162] 📟 종목 통계판 — 단일종목 자기이력 통계 자료실 (메인카드·항상 노출)
 // ──────────────────────────────────────────────────────────────────────────
 //  성격: **표시 전용 자료실**. 예측하지 않고, 결론짓지 않고, 매수·매도를 말하지 않는다.
@@ -5832,12 +5851,17 @@ function _predActual(q, cl, i, H, rows){
     return { ok:false, why:'q'+q+'는 채점기 미구현' };
   }catch(e){ return { ok:false, why:String((e&&e.message)||e) }; }
 }
+//  [S1166] 행 → 'YYYY-MM-DD'. KR 스냅은 `YYYYMMDD`, US/COIN은 ISO datetime으로 온다(인수인계 S1165 §5).
+//    _predFindIdx 안에만 있던 것을 꺼냈다 — 채점 루프에서도 같은 해석이 필요해졌는데,
+//    같은 규칙을 두 곳에 복제하면 S1127의 `TN` 하드코딩 미러 사고가 그대로 재연된다.
+function _predRowD10(r){
+  if(!r) return '';
+  var rd=String((r.date!=null?r.date:(r.t!=null?r.t:r.d))||'').slice(0,10);
+  if(/^\d{8}$/.test(rd)) rd=rd.slice(0,4)+'-'+rd.slice(4,6)+'-'+rd.slice(6,8);
+  return rd;
+}
 function _predFindIdx(rows, d10){
-  for(var i=rows.length-1;i>=0;i--){
-    var r=rows[i], rd=String((r.date!=null?r.date:(r.t!=null?r.t:r.d))||'').slice(0,10);
-    if(/^\d{8}$/.test(rd)) rd=rd.slice(0,4)+'-'+rd.slice(4,6)+'-'+rd.slice(6,8);
-    if(rd===d10) return i;
-  }
+  for(var i=rows.length-1;i>=0;i--){ if(_predRowD10(rows[i])===d10) return i; }
   return -1;
 }
 //  일괄 채점 — 현재 시장의 미채점분만. fetchCandles가 currentMarket에 묶여 있어 시장을 섞을 수 없다.
@@ -5859,6 +5883,22 @@ function _predScoreRun(mkt, onProg, opt){
       try{ onProg && onProg({ i:ci, n:codes.length, code:code, scored:R.scored }); }catch(_){}
       return Promise.resolve(fetchCandles(code, 600, 'day')).catch(function(){ return null; }).then(function(rows){
         if(!rows||!rows.length){ R.fail+=byCode[code].length; R.why['캔들 없음']=(R.why['캔들 없음']||0)+byCode[code].length; return; }
+        // [S1166] ★지평 끝 봉 확정 보장 — 마지막 봉을 **항상** 버린다.
+        //   구멍: formed(S1143·S1152)는 **기준봉**이 픽 당시 확정이었나만 잰다. **지평 끝 봉**은
+        //   아무도 보지 않았다. q1·q2는 cl[i+H] 한 점을, q5는 i+H까지의 저가 전체를 쓰는데
+        //   그 봉이 형성중이면 값이 아직 안 끝난 것이다. q4만 '아직 진행중' 가드가 있었다.
+        //   왜 치명적인가: score()는 st===1이면 멱등이라(sx_ledger.js:355) **미완성 값이 한 번
+        //   들어가면 영구히 못 고친다.** PREREG §5 사후합리화 차단의 부작용 — 잠금은 거짓말과
+        //   '아직 안 끝난 사실'을 구분하지 못한다. 그래서 가드는 쓰기 **전**에 있어야 한다.
+        //   왜 시계를 안 쓰나: "지평 끝 봉 뒤에 봉이 하나 더 있다"는 조건 자체가 확정 증명이다.
+        //   끝 봉을 버리면 각 q의 기존 지평 판정(i+H > len-1)이 그대로 이 뜻이 된다 —
+        //   q1·q2·q4·q5가 **한 곳에서 균일하게** 막힌다(네 곳을 따로 고치면 다음에 q6이 샌다).
+        //   비용 = 채점이 항상 한 봉 늦어짐. 스냅이 이미 미확정봉을 안 주면 헛손해지만,
+        //   되돌릴 수 없는 쓰기 앞에서 한 봉은 싸다.
+        var _barDrop=_predRowD10(rows[rows.length-1]);
+        rows=rows.slice(0,-1);
+        if(!rows.length){ R.skipped+=byCode[code].length; R.why['확정봉 부족']=(R.why['확정봉 부족']||0)+byCode[code].length; return; }
+        var _barEnd=_predRowD10(rows[rows.length-1]);
         var cl=rows.map(function(r){ return +(r.close!=null?r.close:r.c); });
         var chain=Promise.resolve();
         byCode[code].forEach(function(rec){
@@ -5871,7 +5911,11 @@ function _predScoreRun(mkt, onProg, opt){
             //   pred는 안 건드린다. 이걸로 "픽 당시 봉이 확정이었나"가 시계 없이 판정된다.
             // [S1152] 기록 때와 **같은 반올림**을 통과시킨다. ctx는 _predCtx로 절사돼 있어서
             //   원본과 직접 비교하면 항상 미세하게 어긋나 formed가 늘 false로 나온다.
-            var _pf={ c0Final:cl[idx] };
+            // [S1166] 어느 봉까지 보고 나온 값인가 — 레코드만으로 되물을 수 있게 남긴다(알갱이 원칙).
+            //   hEnd=지평을 닫은 봉 · barEnd=채점에 쓴 마지막 확정봉 · barDrop=절단한 봉.
+            //   가드가 언젠가 새면 hEnd===barDrop으로 드러난다. 판정엔 쓰지 않는다 — 증거다.
+            var _pf={ c0Final:cl[idx],
+                      hEnd:_predRowD10(rows[idx+rec.H]), barEnd:_barEnd, barDrop:_barDrop };
             if(rec.q===2){ var _SF=_dbSlArr(cl); if(_SF[idx]!=null) _pf.s0Final=_SF[idx]; }
             if(rec.q===1){ var _WF=_dbBandW(cl); if(_WF[idx]!=null) _pf.wNowFinal=_WF[idx]; }
             var _post=_predCtx(_pf) || {};
@@ -13659,7 +13703,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1165';   // [S1165] 매물대 표본배지 오판 수정 + 반복문구 정리 · [S1164] pair 행 값 묶음 nowrap · [S1163] 통계판 주제 3종 추가(매물대·평균선 벌어진 폭·움직임 폭) + 점 줄바꿈·0%p 회색 · [S1162] 📟 종목 통계판(메인카드·표시 전용·단일종목 600봉 자기이력·_SB_BLOCKS 확장구조)   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
+  window.SX_BUILD='S1167';   // [S1167] Q&A 게시판 신설(sx_qa_board.js + _ui.js · IndexedDB · 답 잠금 · JSON 왕복 · 공개용 내보내기) · [S1166] 채점기 지평 끝 봉 확정 보장(끝 봉 절단·미확정 채점 차단) + _predRowD10 추출 · [S1165] 매물대 표본배지 오판 수정 + 반복문구 정리 · [S1164] pair 행 값 묶음 nowrap · [S1163] 통계판 주제 3종 추가(매물대·평균선 벌어진 폭·움직임 폭) + 점 줄바꿈·0%p 회색 · [S1162] 📟 종목 통계판(메인카드·표시 전용·단일종목 600봉 자기이력·_SB_BLOCKS 확장구조)   // [S1136] 예측 원장 배선(강제 blind·3선택·2단 확정) · S1135=원장 코어(IndexedDB)   // [S1124] 스캔 JSON 0건 저장 허용(_PASS0 파일명·영결과=기록). S1123=하락전수 수치 양방향 · S1122=거울상 재료
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -17848,6 +17892,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     ${_buildR1S1Card(stock, indicators)}
     ${_buildScoreBoard(scores, stock._svScores4, _boardStruct, _boardPb, _boardDeltas, stock._svVerdict, _lowConf, _boardExtras)}
     ${_buildStatBoardCard(stock, indicators)}
+    ${_qaAskLineHtml(stock)}
     ${_buildTransitionCard(stock, indicators)}
     ${_buildTrendCard(stock, indicators)}
     ${_buildDistBoardCard(stock, indicators)}
