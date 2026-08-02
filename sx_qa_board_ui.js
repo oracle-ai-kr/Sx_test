@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════
 //  SIGNAL X — Q&A 게시판 UI (sx_qa_board_ui.js)
-//  버전: v7 · [S1175] 답 2층 표시(요약 항상 · 수치/게이트는 근거 서랍) · [S1174] 깊이 배지 이름표 제거(점만) · [S1173] 분석탭 인라인 입력란(폼·초안 공유) · [S1171] 예상 찍기 제거 · [S1169] 헤더 치수 정렬 · [S1168] 축 편집 · v1 [S1167] 신설
+//  버전: v8 · [S1176] 지도 접기 + 🔵/🟡 분리 · [S1175] 답 2층 표시(요약 항상 · 수치/게이트는 근거 서랍) · [S1174] 깊이 배지 이름표 제거(점만) · [S1173] 분석탭 인라인 입력란(폼·초안 공유) · [S1171] 예상 찍기 제거 · [S1169] 헤더 치수 정렬 · [S1168] 축 편집 · v1 [S1167] 신설
 //
 //  코어(sx_qa_board.js / window.SXQA)의 화면. **판정은 여기서 하지 않는다.**
 //  게시판은 답이 사는 곳이지 답을 만드는 곳이 아니다 — 화면에서 임계를 조절하다 보면
@@ -26,7 +26,8 @@
     draft: { text: '', tag: 'etc', topics: '', src: '', quote: '', mkt: '', code: '', name: '' },
     detail: {},         // id → 펼침 여부
     edit: {},           // [S1168] id → 메타 편집 열림 여부
-    why: {}             // [S1175] id → 근거 서랍 열림 여부
+    why: {},            // [S1175] id → 근거 서랍 열림 여부
+    mapOpen: false      // [S1176] 지도 펼침 — 기본은 접힘
   };
 
   function _vib(n) { try { if (typeof _sxVib === 'function') _sxVib(n); } catch (_e) {} }
@@ -112,7 +113,8 @@
     }
 
     //  ── 지도 (축 × 답)
-    if (L.stats.bySt[2] + L.stats.bySt[3] > 0) B.push(_mapHtml(L.stats));
+    //  [S1176] 판정이 0건이어도 띄운다 — 접혀 있어 자리를 안 먹고, 무엇이 쌓이는 중인지는 보인다.
+    if (L.rows.length) B.push(_mapHtml(L.stats));
 
     //  ── 도구
     B.push('<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:5px">'
@@ -361,16 +363,33 @@
   //    따로 그리는 게 아니라 게시판이 채워지면서 저절로 드러난다.
   function _mapHtml(g) {
     var QA = window.SXQA;
-    var M = ['<div style="margin-top:12px;padding:9px 10px;border-radius:8px;border:1px solid ' + BD + ';background:' + SF + '">'];
-    M.push('<div style="font-size:10.5px;font-weight:800;color:var(--text)">🗺 지도 — 무엇을 물으면 답이 나오나</div>');
-    M.push('<div style="margin-top:6px;font-size:10px;color:' + T2 + '">');
+    //  [S1176] 접힌다. 답이 쌓이기 전엔 볼 게 없고, 화면 아래쪽에 늘 펼쳐져 있으면 목록을 밀어낸다.
+    //    접힌 상태에서도 **판정 난 건수**는 보여준다 — 지도의 요점이 "얼마나 갈렸나"이므로.
+    var ansN = (g.bySt[2] || 0) + (g.bySt[3] || 0) + (g.bySt[4] || 0);
+    var head = '<div onclick="_qaMapToggle()" style="display:flex;align-items:center;gap:6px;cursor:pointer">'
+      + '<span style="font-size:10.5px;font-weight:800;color:var(--text)">🗺 지도</span>'
+      + '<span style="font-size:9.5px;color:' + T3 + '">무엇을 물으면 답이 나오나 · 판정 ' + ansN + '건</span>'
+      + '<span style="margin-left:auto;font-size:10px;color:' + T3 + '">' + (S.mapOpen ? '▼' : '▶') + '</span>'
+      + '</div>';
+    var box = function (inner) {
+      return '<div style="margin-top:12px;padding:9px 10px;border-radius:8px;border:1px solid ' + BD
+        + ';background:' + SF + '">' + head + inner + '</div>';
+    };
+    if (!S.mapOpen) return box('');
+
+    var M = ['<div style="margin-top:6px;font-size:10px;color:' + T2 + '">'];
     Object.keys(QA.TAGS).forEach(function (k) {
       var t = g.byTag[k]; if (!t.n) return;
-      var yes = t[3] || 0, no = t[2] || 0, cant = t[4] || 0, open = (t[0] || 0) + (t[1] || 0);
+      var yes = t[3] || 0, no = t[2] || 0, cant = t[4] || 0;
+      //  [S1176] 🔵(안 잼)과 🟡(재는 중)을 **나눈다.** 묶어서 🔵로 세면
+      //    목록엔 🟡인데 지도엔 🔵로 나와 같은 것이 두 얼굴을 갖는다(실제로 그랬다).
+      var open0 = t[0] || 0, run = t[1] || 0;
       M.push('<div style="display:flex;gap:6px;padding:3px 0;border-top:1px dotted ' + BD + '">'
         + '<span style="width:34px;font-weight:700">' + QA.TAGS[k].name + '</span>'
         + '<span style="flex:1">' + (yes ? '🟢' + yes + ' ' : '') + (no ? '⚫' + no + ' ' : '')
-        + (cant ? '⚪' + cant + ' ' : '') + (open ? '<span style="color:' + T3 + '">🔵' + open + '</span>' : '') + '</span></div>');
+        + (cant ? '⚪' + cant + ' ' : '')
+        + (run ? '<span style="color:' + T3 + '">🟡' + run + ' </span>' : '')
+        + (open0 ? '<span style="color:' + T3 + '">🔵' + open0 + '</span>' : '') + '</span></div>');
     });
     M.push('</div>');
     var dd = g.byDepth;
@@ -379,8 +398,9 @@
         + '●○○ ' + dd[1] + ' · ●●○ ' + dd[2] + ' · ●●● ' + dd[3]
         + (dd.none ? ' <span style="color:' + T3 + '">(미표기 ' + dd.none + ')</span>' : '') + '</div>');
     }
-    M.push('</div>');
-    return M.join('');
+    if (!ansN) M.push('<div style="margin-top:5px;font-size:9.5px;color:' + T3 + '">'
+      + '아직 판정이 없다 — 답이 쌓이면 축마다 어디로 몰리는지가 여기 드러난다.</div>');
+    return box(M.join(''));
   }
 
   // ─────────────────────────────────────────────────────────
@@ -535,6 +555,7 @@
 
   //  [S1175] 근거 서랍 — 감추는 게 아니라 접는 것. 한 번의 탭으로 항상 닿는다.
   window._qaWhy = function (id) { _vib(5); S.why[id] = !S.why[id]; _refresh(); };
+  window._qaMapToggle = function () { _vib(6); S.mapOpen = !S.mapOpen; _refresh(); };
 
   window._qaSetTag = function (id, tag) {
     _vib(8);
