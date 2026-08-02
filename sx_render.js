@@ -4988,9 +4988,10 @@ function _sbRowHtml(r, accent){
     h += '<div style="font-size:11.5px;font-weight:600;color:var(--text);margin-bottom:2px">'+r.label+'</div>';
     (r.items||[]).forEach(function(it){
       var okp = it.tot >= _SB_MIN_RATIO_N;
-      h += '<div style="display:flex;justify-content:space-between;gap:6px;font-size:10.5px;color:'+T2+';padding:1px 0">'
-        +    '<span>'+it.t+'</span>'
-        +    '<span>'+(okp?('<b style="color:var(--text)">'+(it.hit/it.tot*100).toFixed(0)+'%</b>'):('<b style="color:var(--text)">'+it.hit+'/'+it.tot+'</b>'))
+      // [S1164] 값 묶음은 nowrap — '36% (121 회)'처럼 회 하나가 다음 줄로 떨어진다. 라벨만 접히게 둔다.
+      h += '<div style="display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:'+T2+';padding:1px 0">'
+        +    '<span style="min-width:0">'+it.t+'</span>'
+        +    '<span style="white-space:nowrap;flex-shrink:0">'+(okp?('<b style="color:var(--text)">'+(it.hit/it.tot*100).toFixed(0)+'%</b>'):('<b style="color:var(--text)">'+it.hit+'/'+it.tot+'</b>'))
         +      ' <span style="color:'+T3+'">('+it.tot+'회'+(okp&&_SB_DETAIL?(' ±'+_sbNum(_sbSE(it.hit,it.tot),0)+'%p'):'')+')</span>'
         +      (it.delta!=null&&okp?(function(_d){ var _r=Math.round(_d);   // [S1163] 반올림 결과가 0이면 방향이 없다 → 회색. '+0%p'가 빨강이면 거짓 신호.
         return ' <span style="font-weight:800;color:'+(_r===0?T3:(_r>0?_SB_UP:_SB_DN))+'">'+(_r>0?'+':(_r<0?'':''))+_r+'%p</span>'; })(it.delta):'')
