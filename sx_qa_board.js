@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════
 //  SIGNAL X — Q&A 게시판 (sx_qa_board.js)
-//  버전: v3 · [S1171] 예상 찍기 제거 · [S1170] askText 지시문 탑재 · v1 [S1167] 신설
+//  버전: v4 · [S1172] importAll의 text 필수 조건 완화(기존 id엔 불필요) · [S1171] 예상 찍기 제거 · [S1170] askText 지시문 · v1 [S1167] 신설
 //
 //  역할:
 //    궁금증이 생긴 자리에서 **질문을 그대로** 적어두고, 측정이 끝나면 답을 달아 닫는다.
@@ -406,9 +406,13 @@
       var chain = Promise.resolve();
       rows.forEach(function (inc) {
         chain = chain.then(function () {
-          if (!inc || !inc.id || !_str(inc.text)) { R.bad++; return; }
+          //  [S1172] text는 **새 레코드일 때만** 필수다. 기존 id에 gate/ans만 얹는 것이
+          //    이 왕복의 정상 경로인데(1단계 게이트 파일이 그렇다), text를 전역 필수로 두면
+          //    그 경로가 통째로 `bad`로 떨어진다. 실제로 그렇게 39건이 조용히 거부됐다.
+          if (!inc || !inc.id) { R.bad++; return; }
           return _wrap(h.s.get(inc.id)).then(function (cur) {
             if (!cur) {
+              if (!_str(inc.text)) { R.bad++; return; }   // 새 레코드엔 원문이 있어야 한다
               inc.ver = inc.ver || VER;
               return _wrap(h.s.add(inc)).then(function () { R.added++; });
             }
@@ -506,7 +510,7 @@
       L.push('  "rows": [');
       L.push('    {');
       L.push('      "id": "아래 목록의 id를 그대로",');
-      L.push('      "text": "질문 원문 그대로 (바꿔도 기존 건 안 밀린다)",');
+      L.push('      "text": "(새 질문일 때만 필수 — 기존 id에 gate/ans만 얹을 땐 생략)",');
       L.push('      "gate": "재기 전에 선언한 판정 기준",');
       L.push('      "ans": {');
       L.push('        "verdict": "yes | no | cant",');
