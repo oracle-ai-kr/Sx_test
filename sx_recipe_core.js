@@ -1222,18 +1222,20 @@ function _sxCellSignalCore(mk, ind, rows, idx){
     if(!D||!D.rules) return null;
     var ck=_cellKeyOf(ind, rows, idx, (D.meta&&D.meta.axisGen)||'ma52060'); if(!ck) return null;   // [S1111] 데이터 세대 추종
     var rules=[]; for(var i=0;i<D.rules.length;i++){ var r=D.rules[i]; if(r.mkt===mk&&r.cell===ck) rules.push(r); }
-    if(!rules.length) return { cell:ck, lbl:null, sig:[] };
+    // [S1177] 2층 구조 — ①규칙(tier: strict=강한 신호 / soft=일반 신호·v4 데이터부터) ②어휘 활동(규칙 없는 카테고리 겹침 k≥2·판정 아님).
+    //   VOC: v4=vocabAll(전 카테고리) 우선 · v3=vocab(채택 카테고리 트림) 폴백 — 폴백 시 활동층은 부분 커버(정직한 한계).
+    var VOC=(D.vocabAll&&D.vocabAll[mk])||(D.vocab&&D.vocab[mk])||{};
     var f=_extractFeats733(ind, rows, idx, true);   // 발굴 어휘(disc) 포함 추출 — vocab conds가 참조
-    var out=[], lbl=rules[0].cellLbl;
-    for(var j=0;j<rules.length;j++){ var ru=rules[j];
-      var vs=((D.vocab[mk]||{})[ru.cat])||[], k=0;
-      for(var q=0;q<vs.length;q++){ var cs=vs[q].conds, ok=true;
-        for(var ci=0;ci<cs.length;ci++){ if(!_cellCondOk733(f,cs[ci])){ ok=false; break; } }
-        if(ok) k++;
-      }
-      out.push({ cat:ru.cat, kind:ru.kind, k:k, kStar:ru.kStar, kStarN:ru.kStarN, topD:ru.topD, repro:ru.repro, hit:(k>=ru.kStarN) });
+    var _kOf=function(cat){ var vs=VOC[cat]||[], k=0; for(var q=0;q<vs.length;q++){ var cc=vs[q].conds, ok=true; for(var ci=0;ci<cc.length;ci++){ if(!_cellCondOk733(f,cc[ci])){ ok=false; break; } } if(ok) k++; } return k; };
+    var out=[], lbl=(rules.length&&rules[0].cellLbl)||null, ruleCats={};
+    for(var j=0;j<rules.length;j++){ var ru=rules[j]; ruleCats[ru.cat]=1;
+      out.push({ cat:ru.cat, kind:ru.kind, tier:(ru.tier||'strict'), k:_kOf(ru.cat), kStar:ru.kStar, kStarN:ru.kStarN, topD:ru.topD, repro:ru.repro, hit:false });
     }
-    return { cell:ck, lbl:lbl, sig:out };
+    for(var j2=0;j2<out.length;j2++){ out[j2].hit=(out[j2].k>=out[j2].kStarN); }
+    var act=[];   // [S1177] 어휘 활동 — 단독 발동(k=1)은 표시하지 않는다(S835 겹침만 신뢰)
+    for(var cat2 in VOC){ if(ruleCats[cat2]) continue; var k2=_kOf(cat2); if(k2>=2) act.push({ cat:cat2, kind:cat2.split('-')[1], k:k2 }); }
+    act.sort(function(a,b){ return b.k-a.k; });
+    return { cell:ck, lbl:lbl, sig:out, act:act };
   }catch(e){ return null; }
 }
 if(typeof window!=='undefined'){ window._sxCellSignalCore=_sxCellSignalCore; window._cellKeyOf=_cellKeyOf; }
