@@ -13698,7 +13698,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1177';   // [S1177] 칸 신호 2층(규칙 tier+어휘 활동 k≥2)·신재료 어휘 재판정 준비. S1173=QA 게시판 훅
+  window.SX_BUILD='S1179';   // [S1179] 칸 그리드에 어휘 화력 병기(그 칸 규칙들이 세는 어휘 수). S1177=2층 구조
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -20035,7 +20035,8 @@ function _cellLadderCard(mk, qs, indicators){
     }
     // ── 3×3 분포 그리드(칸 이름=SSOT · 현재 칸 강조) ──
     var SL={bull:'강세',bear:'약세',mixed:'중립'}, LL={bull:'상승장',bear:'하락장',mixed:'횡보장'};
-    h+='<div style="font-size:9px;font-weight:700;color:'+T3+';margin:6px 0 3px">▦ 채택 규칙 분포 <span style="font-weight:400">(숫자=규칙 수 · R진입/F경보/D회피)</span></div>';
+    var _VOCg=(D.vocabAll&&D.vocabAll[mk])||(D.vocab&&D.vocab[mk])||{};   // [S1179] 칸별 어휘 화력 표기용
+    h+='<div style="font-size:9px;font-weight:700;color:'+T3+';margin:6px 0 3px">▦ 채택 규칙 분포 <span style="font-weight:400">(위=규칙 수 R진입/F경보/D회피 · 아래=그 규칙들이 세는 어휘 수)</span></div>';
     h+='<table style="width:100%;border-collapse:collapse;font-size:8.5px;text-align:center">';
     h+='<tr><td></td><td style="color:'+T3+'">상승장</td><td style="color:'+T3+'">하락장</td><td style="color:'+T3+'">횡보장</td></tr>';
     var SS=['bull','bear','mixed'], LS=['bull','bear','mixed'];
@@ -20043,9 +20044,12 @@ function _cellLadderCard(mk, qs, indicators){
       for(var li=0;li<3;li++){ var lx=LS[li], ck=sx+'|'+lx, rr=reg[ck], cur=(ck===cs.cell);
         var nm=(typeof _cellName==='function')?_cellName(ck):ck;   // [S1127] 표기명 SSOT 경유
         var cnt=rr?((rr.real?('R'+rr.real):'')+(rr.fake?(' F'+rr.fake):'')+(rr.down?(' D'+rr.down):'')).trim():'—';
+        var _vw=0;   // [S1179] 이 칸 규칙 카테고리들의 어휘 합(중복 카테고리는 1회)
+        if(rr){ var _seen={}; for(var _ri=0;_ri<D.rules.length;_ri++){ var _rv=D.rules[_ri]; if(_rv.mkt===mk&&_rv.cell===ck&&!_seen[_rv.cat]){ _seen[_rv.cat]=1; _vw+=((_VOCg[_rv.cat]||[]).length); } } }
         h+='<td style="padding:5px 2px;border:1px solid '+(cur?BLU:'var(--border)')+';'+(cur?'background:'+BLU+'14;':'')+'">'
           +'<div style="font-size:8px;color:'+(cur?BLU:T2)+';font-weight:'+(cur?'800':'600')+'">'+esc(nm)+'</div>'
-          +'<div style="font-size:8.5px;font-weight:800;color:'+(rr?'var(--text)':T3)+'">'+esc(cnt)+'</div></td>'; }
+          +'<div style="font-size:8.5px;font-weight:800;color:'+(rr?'var(--text)':T3)+'">'+esc(cnt)+'</div>'
+          +(rr?('<div style="font-size:7.5px;color:'+T3+'">어휘 '+_vw+'</div>'):'')+'</td>'; }
       h+='</tr>'; }
     h+='</table>';
     h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.6;margin-top:6px">세트 v2 '+D.rules.length+'규칙 · '+esc((D.meta&&D.meta.axisGen)||'')+' 세대(단기 5&gt;10&gt;20) · '+esc((D.meta&&D.meta.ver)||'')+' 판정. <b>2층</b>: 규칙=강한/일반(soft) 신호(판정 통과) · 어휘 활동=겹침 k≥2(판정 없음). 이 카드는 <b>표시만</b> 한다 — C 판정·votes·시즌2 어디에도 반영되지 않는다. <b>D(회피)는 하락 관측이지 매도 지시가 아니다.</b> 규칙은 in-sample 적합 — 시간축 OOS 축적 중(현 기준하 보임).</div>';
