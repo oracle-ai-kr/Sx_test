@@ -251,7 +251,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <div class="card" id="atBuyPreviewCard" style="display:none;">
       <div class="card-title">🛒 오늘의 매수 후보 <span class="tag" id="atBuyCount">·</span></div>
       <div id="atBuyList"></div>
-      <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">votes≥1 레시피 발동 종목 · 다음 장중 cron(09:05~15:05)에 <b>시장가</b> 매수 · 이미 보유분·매수완료분은 자동 제외</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">votes≥1 레거시 레시피 <b>또는</b> V2 어휘규칙(real·강/일반) 발동 종목 · 다음 장중 cron(09:05~15:05)에 <b>시장가</b> 매수 · 이미 보유분·매수완료분은 자동 제외 · 우선순위 votes↓(V2 단독은 후순위)</div>
     </div>
 
     <!-- ═══ [S952] 차단 목록 (매수취소/강제청산) ═══ -->
@@ -522,6 +522,7 @@ function _atOrderDetail(o, portfolio){
   const filled=(o.status==='paper'||o.status==='live');
   let d='<div style="border-top:1px solid var(--border);padding:9px 10px 10px;background:var(--surface2);border-radius:0 0 8px 8px;">';
   d+=_atODRow('방향', o.side==='BUY'?'매수':'매도');
+  if(o.src) d+=_atODRow('전략', o.src==='recipe'?'레거시 레시피':(o.src==='v2'?'V2 어휘규칙(S1178)':o.src)); // [S1180]
   d+=_atODRow('수량', o.qty+'주');
   d+=_atODRow('시각', _atFullTime(o.at));
   d+=_atODRow('상태', o.status==='paper'?'체결(모의)':(o.status==='live'?'체결(live)':(o.status==='signal'?'신호 기록':(o.status==='error'?'거절':_esc(o.status)))), o.status==='error'?'var(--sell)':(filled?'var(--buy)':null));
@@ -569,7 +570,7 @@ function atRenderOrders(orders, portfolio){
     x+='<div class="'+(isNew?'at-flash':'')+'" onclick="atToggleOrder(\''+key+'\')" style="border:1px solid '+(open?'var(--accent)':'var(--border)')+';border-radius:8px;margin-bottom:6px;cursor:pointer;">';
     x+='<div style="display:flex;align-items:center;gap:9px;padding:9px 10px;">';
     x+='<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;color:'+sideCol+';background:'+sideBg+';border:1px solid '+sideBd+';flex-shrink:0;">'+(buy?'매수':'매도')+'</span>';
-    x+='<div style="flex:1;min-width:0;line-height:1.35;"><div style="font-size:12px;font-weight:600;">'+(nm?(_esc(nm)+' <span style=\"color:var(--text3);font-weight:400;font-size:10px;\">'+_esc(o.code)+'</span>'):_esc(o.code))+' · '+o.qty+'주</div>';
+    x+='<div style="flex:1;min-width:0;line-height:1.35;"><div style="font-size:12px;font-weight:600;">'+(nm?(_esc(nm)+' <span style=\"color:var(--text3);font-weight:400;font-size:10px;\">'+_esc(o.code)+'</span>'):_esc(o.code))+' · '+o.qty+'주'+_atSrcChip(o.src)+'</div>'; // [S1180] 전략 칩
     x+='<div style="font-size:10px;color:'+(err?'var(--sell)':'var(--text3)')+';">'+sub+'</div></div>';
     x+='<span style="font-size:11px;font-weight:700;color:'+stCol+';flex-shrink:0;">'+stTxt+'</span>';
     x+='<span style="color:var(--text3);font-size:10px;flex-shrink:0;">'+(open?'▲':'▼')+'</span>';
@@ -849,6 +850,13 @@ function atRenderBlocklist(){
 }
 
 // ── [S951] 오늘의 매수 후보 (buyList → 카드) ──
+// [S1180] 전략 출처 칩 — src('recipe'|'v2'|'bullVol') → [레거시]/[V2]/[bullVol]. 구 기록(src 없음)은 표시 안 함.
+function _atSrcChip(src){
+  if(!src) return '';
+  const m={recipe:['레거시','var(--text2)'], v2:['V2','var(--accent)'], bullVol:['bullVol','var(--accent2)']};
+  const t=m[src]||[src,'var(--text3)'];
+  return ' <span style="font-size:9px;font-weight:700;color:'+t[1]+';border:1px solid '+t[1]+';border-radius:4px;padding:1px 4px;vertical-align:1px;">'+t[0]+'</span>';
+}
 function atRenderBuyPreview(sig){
   const card=_$('atBuyPreviewCard'), list=_$('atBuyList'), cnt=_$('atBuyCount');
   if(!card||!list) return;
@@ -858,12 +866,13 @@ function atRenderBuyPreview(sig){
   if(cnt) cnt.textContent=buys.length+'종목';
   list.innerHTML=buys.map(b=>{
     if(b.name) _atNameMap[b.code]=b.name; // [S952] 코드→이름
-    const vc = b.votes>=4?'var(--buy)':(b.votes>=2?'var(--accent2)':'var(--text2)');
+    const vc = b.src==='v2'?'var(--accent)':(b.votes>=4?'var(--buy)':(b.votes>=2?'var(--accent2)':'var(--text2)'));
+    const vt = b.src==='v2'?'V2 발동':'votes '+b.votes;   // [S1180] v2 후보는 votes 0이라 votes 대신 발동 표기
     const nm = _esc(b.name||b.code);
     return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">'
-      +'<div style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">'+nm+'</span> <span style="font-size:10px;color:var(--text3);">'+_esc(b.code)+'</span>'
+      +'<div style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">'+nm+'</span> <span style="font-size:10px;color:var(--text3);">'+_esc(b.code)+'</span>'+_atSrcChip(b.src)
       +(b.provisional?' <span style="font-size:9px;color:var(--hold);border:1px solid var(--hold);border-radius:4px;padding:1px 4px;">OOS미확정</span>':'')+'</div>'
-      +'<div style="text-align:right;"><span style="font-size:12px;font-weight:800;color:'+vc+';">votes '+b.votes+'</span>'
+      +'<div style="text-align:right;"><span style="font-size:12px;font-weight:800;color:'+vc+';">'+vt+'</span>'
       +(b.realK?'<span style="font-size:9px;color:var(--text3);display:block;">겹침 '+b.realK+'</span>':'')+'</div>'
       +'<button onclick="atBlock(\''+_esc(b.code)+'\',\''+nm.replace(/\x27/g,"")+'\',false)" title="매수 제외" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;line-height:1;">🚫</button>'
       +'</div>';
