@@ -80,6 +80,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 }
 .card-title{font-size:12.5px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 .card-title .tag{font-size:9.5px;font-weight:600;color:var(--text3);background:var(--surface2);padding:2px 7px;border-radius:20px;}
+.zone-hidden{display:none !important;} /* [S1190] 구역 필터 */
 .card.collapsed > *:not(.card-title){display:none !important;}
 .card.collapsed > .card-title{margin-bottom:0;}
 .card-cc{cursor:pointer;user-select:none;font-size:11px;color:var(--text3);padding:3px 7px 3px 0;flex:0 0 auto;line-height:1;}
@@ -184,14 +185,20 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1189</div>
+    <div class="tb-build">S1190</div>
   </div>
 
   <div class="scroll-area">
+    <!-- [S1190] 구역 탭 — KR/COIN/규율. zone-hidden 클래스로만 토글(카드별 show/hide 인라인 로직과 독립). -->
+    <div id="atZoneBar" style="position:sticky;top:0;z-index:5;background:var(--bg);padding:2px 0 10px;display:flex;gap:6px;">
+      <button type="button" id="znKr" onclick="atZoneSet('kr')" style="flex:1;padding:8px 0;font-size:12px;font-weight:800;border-radius:9px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;">KR 자동매매</button>
+      <button type="button" id="znCoin" onclick="atZoneSet('coin')" style="flex:1;padding:8px 0;font-size:12px;font-weight:800;border-radius:9px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;">COIN 트랙</button>
+      <button type="button" id="znDocs" onclick="atZoneSet('docs')" style="flex:1;padding:8px 0;font-size:12px;font-weight:800;border-radius:9px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;">규율·대기열</button>
+    </div>
 
     <!-- ═══ 파이프라인 스트립 ═══ -->
-    <div class="card">
-      <div class="card-title">🛰️ 파이프라인 <span class="tag">KR 본선 + COIN 트랙 · 단계 정의=설계원칙 4조</span></div>
+    <div class="card" data-zone="kr">
+      <div class="card-title">🛰️ 파이프라인 <span class="tag">KR 본선 · 단계 정의=설계원칙 4조</span></div>
       <div class="pipe-wrap">
         <div class="pipe">
           <div class="pipe-node on" id="pnResearch">
@@ -231,8 +238,11 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
           </div>
         </div>
       </div>
-      <!-- [S1189] COIN 트랙 사다리 — 로드맵 카드 삭제(S1187) 후 파이프라인에 박제. KIS 모의(paper)가 없는 시장이라 ②가상 원장이 그 자리를 대신한다. -->
-      <div style="font-size:10.5px;color:var(--text2);margin:12px 0 4px;font-weight:700;">COIN 트랙 <span class="tag">사다리 · S1189</span></div>
+    </div>
+
+    <!-- ═══ [S1189→S1190] COIN 트랙 (독립 카드·coin 구역) — KIS 모의(paper)가 없는 시장이라 ②가상 원장이 그 자리를 대신한다. ═══ -->
+    <div class="card" data-zone="coin">
+      <div class="card-title">🛰️ COIN 트랙 <span class="tag">사다리 · S1189</span></div>
       <div class="pipe-wrap">
         <div class="pipe">
           <div class="pipe-node" id="pnCoinSnap">
@@ -258,7 +268,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ 상태보드 (연동 대기 자리) ═══ -->
-    <div class="card">
+    <div class="card" data-zone="kr">
       <div class="card-title">📡 상태보드 <span class="tag">제어 연동 · S929</span></div>
       <div style="margin-bottom:8px;"><span class="st-badge" id="atState">🔌 파이프라인 미연결</span><span id="atMktBadge" style="margin-left:8px;font-size:11px;font-weight:700;"></span></div>
       <div class="st-row"><span class="k">데이터 소스</span><span class="v" id="atSrc">— (예정: Workers KV)</span></div>
@@ -272,21 +282,21 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ [S951] 오늘의 매수 후보 (다음 장중 cron에 시장가 매수될 종목 미리보기) ═══ -->
-    <div class="card" id="atBuyPreviewCard" style="display:none;">
+    <div class="card" data-zone="kr" id="atBuyPreviewCard" style="display:none;">
       <div class="card-title">🛒 오늘의 매수 후보 <span class="tag" id="atBuyCount">·</span></div>
       <div id="atBuyList"></div>
       <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">votes≥1 레거시 레시피 <b>또는</b> V2 어휘규칙(real·강/일반) 발동 종목 · 다음 장중 cron(09:05~15:05)에 <b>시장가</b> 매수 · 이미 보유분·매수완료분은 자동 제외 · 우선순위 votes↓(V2 단독은 후순위)</div>
     </div>
 
     <!-- ═══ [S952] 차단 목록 (매수취소/강제청산) ═══ -->
-    <div class="card" id="atBlockCard" style="display:none;">
+    <div class="card" data-zone="kr" id="atBlockCard" style="display:none;">
       <div class="card-title">🚫 차단 목록 <span class="tag" id="atBlockCount">·</span></div>
       <div id="atBlockList"></div>
       <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">차단 종목 = <b>매수 안 함 + 보유 시 강제 청산</b>(다음 장중 cron 또는 ⚡ 지금 실행 시) · 재허용하면 해제</div>
     </div>
 
     <!-- ═══ [S933] 포트폴리오 (KIS 잔고/손익) ═══ -->
-    <div class="card" id="atPortfolioCard">
+    <div class="card" data-zone="kr" id="atPortfolioCard">
       <div class="card-title">💰 포트폴리오 <span class="tag">KIS 잔고 · S933</span><span style="float:right;display:inline-flex;gap:12px;"><span id="atKisTest" onclick="atKisTest()" style="font-size:11px;color:var(--accent2);cursor:pointer;user-select:none;">🔌 연결테스트</span><span id="atPfRefresh" onclick="atRefreshBalance()" style="font-size:11px;color:var(--accent2);cursor:pointer;user-select:none;">🔄 잔고갱신</span></span></div>
       <div class="st-row" style="font-weight:700;"><span class="k">총 평가손익</span><span class="v" id="atPfTotalV">—</span></div>
       <div id="atKisTestOut"></div>
@@ -294,20 +304,20 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ [S943] 주문 피드 (체결/신호/거절 카드) ═══ -->
-    <div class="card" id="atOrderFeedCard" style="display:none;">
+    <div class="card" data-zone="kr" id="atOrderFeedCard" style="display:none;">
       <div class="card-title" style="display:flex;align-items:center;">🧾 주문 피드 <span class="tag">체결·신호·거절 · S945</span></div>
       <div id="atOrderFeed"></div>
     </div>
 
     <!-- ═══ [S943] 활동 로그 (무인 동작 이력) ═══ -->
-    <div class="card" id="atEventCard" style="display:none;">
+    <div class="card" data-zone="kr coin" id="atEventCard" style="display:none;">
       <div class="card-title">📜 활동 로그 <span class="tag">무인 동작 이력 · S943</span></div>
       <div id="atEventLog"></div>
       <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5;">가동·정지·모드변경·신호수신·주문/거절 이력(최근 15) · KV 영속 · 밤새 무슨 일이 있었는지 여기서 확인</div>
     </div>
 
     <!-- ═══ [S929] 제어 (Workers KV ↔ 페이지) ═══ -->
-    <div class="card" id="atControlCard">
+    <div class="card" data-zone="kr" id="atControlCard">
       <div class="card-title">🎛 제어 <span class="tag">KV 명령 채널 · S929</span></div>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
         <button type="button" id="atBtnPower" onclick="atTogglePower()" style="flex:1;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:var(--accent-glow);color:var(--accent2);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">▶ 가동</button>
@@ -327,7 +337,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ [S949] 청산 설정 (이중ATR + MA/N일) ═══ -->
-    <div class="card" id="atExitCard">
+    <div class="card" data-zone="kr" id="atExitCard">
       <div class="card-title">🎯 청산 설정 <span class="tag">이중ATR + MA/N일 · S949</span><span onclick="atExitReset()" title="기본값(2×/3×/MA5×20/유예10일)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
       <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레거시 votes≥1 / bullVol / V2 어휘규칙(S1178) · 청산은 전략 공통=초기ATR손절 + ATR트레일 + (MA5×20 <b>또는</b> N일). 값 변경 후 저장.</div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
@@ -352,7 +362,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ [S1028] 진입/포지션 상한 (매수 스로틀) ═══ -->
-    <div class="card" id="atEntryCard">
+    <div class="card" data-zone="kr" id="atEntryCard">
       <div class="card-title">📊 진입/포지션 상한 <span class="tag">매수 스로틀 · S1028</span><span onclick="atEntryReset()" title="기본값(레거시 30/5 · V2 10/2)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
       <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">신호 몰릴 때 한 번에 다 매수해 생기는 거절(subrequest·초당한도) 방지. 남는 후보는 다음 cron에 이어서 매수(우선순위 votes↓·겹침↓). 보유수가 상한 도달 시 신규매수 0. <b>V2 전용 슬롯</b>은 레거시 상한과 별도 풀(레거시 몫 무변경·비교군 보존, 사이징 동일). 슬롯/tick 모두 수동 — 슬롯 0=V2 차단, tick 0=신규만 일시정지.</div>
       <div style="display:flex;gap:10px;margin-bottom:10px;">
@@ -368,13 +378,13 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ [S1031] 실현손익 evidence (로드맵3 · 가계부) ═══ -->
-    <div class="card" id="atPnlCard">
+    <div class="card" data-zone="kr" id="atPnlCard">
       <div class="card-title">📒 실현손익 evidence <span class="tag">로드맵3 · S1031</span></div>
       <div id="atPnlBody"><div style="font-size:11px;color:var(--text3);padding:4px 0;">로딩…</div></div>
     </div>
 
     <!-- ═══ [S947] 신호 진단 (레시피 측정 스냅샷) ═══ -->
-    <div class="card" id="atMeasureCard">
+    <div class="card" data-zone="kr coin" id="atMeasureCard">
       <div class="card-title">🔬 신호 진단 <span class="tag">레시피 측정 · S947</span></div>
       <div id="atMeasInner"></div>
       <div id="atMeasMeta" style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.6;"></div>
@@ -389,14 +399,14 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ [S934] 미검증 체크리스트 ═══ -->
-    <div class="card" id="atChecklistCard">
+    <div class="card" data-zone="docs" id="atChecklistCard">
       <div class="card-title">📋 미검증 체크리스트 <span class="tag">보류·시간要 · S934</span><span onclick="atClAdd()" style="float:right;font-size:12px;color:var(--accent2);cursor:pointer;user-select:none;font-weight:700;">＋ 추가</span></div>
       <div id="atClBody" style="font-size:12px;color:var(--text3);">불러오는 중…</div>
       <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5;">세션 중 떠오른 <b>시간 걸리는</b> 보류·미검증 항목만 기록 · 항목 탭=설명 펼침 · ⬜탭=완료 토글 · KV 영속(디바이스 넘어 유지)</div>
     </div>
 
     <!-- ═══ 설계 원칙 ═══ -->
-    <div class="card">
+    <div class="card" data-zone="docs">
       <div class="card-title">📐 설계 원칙 <span class="tag">SX스타일 재구성 · 코드는 자체 제작</span></div>
       <div class="li"><span class="n">1</span><span class="d"><b>신호 = SX 엔진·레시피 그대로.</b> Node/Workers에서 headless 실행(오프라인 하네스 계보) — <span class="hl">타 언어 재구현 금지</span>(미러 이중구현 = 검증 무효화 위험). 진입원 3원화[S1180]: 레거시 votes≥1 / bullVol / V2 어휘규칙(S1178) — 상호배타·태그 각인([레거시]/[V2]/[bullVol]).</span></div>
       <div class="li"><span class="n">2</span><span class="d"><b>실행 = Cloudflare Workers cron + KIS REST.</b> 일봉 기반 종가 판정과 정합. 모의투자 도메인 우선, 상시 서버 없음.</span></div>
@@ -406,7 +416,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ 이식 후보 ═══ -->
-    <div class="card">
+    <div class="card" data-zone="docs">
       <div class="card-title">🧬 검증 대기열 <span class="tag">OOS 관문 · S1188</span></div>
       <div class="cand"><span class="cn">① 전진검증 중 (각인 축적)</span><span class="cs">· V2 어휘규칙 진입[S1178→S1180] — paper 라이브, [V2] 가계부 축적<br>· 겹침/avoid 동시발동 각인[S1181] — 완성거래 쌓이면 전략별 분리 판정<br>· COIN avoid 조기청산[S1186 in-sample 4/4 통과] — 신호원장 축적 → OOS 재측정 → 통과 시 avoidExit 권고 배선<br>· 전진 관측소[S1187] — 레거시/real/fake/down 트랙 (위 신호진단 카드)</span></div>
       <div class="cand"><span class="cn">② 재측정 예약 (표본 대기)</span><span class="cs">· COIN avoid 진입필터[S1185 보류 n=15·방향 음] — n≥30 재측정<br>· RM3 게이트 — 완성거래 N≥50 (현재 0·첫 청산 파도 후)<br>· US/COIN 스냅 갱신 재개 — 전진검증 3시장화 전제(현재 7/1·7/26 정지)</span></div>
@@ -416,7 +426,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1189</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1190</div>
   </div>
 </div>
 
@@ -1128,6 +1138,21 @@ try{ atInitCollapse(); }catch(_){}
 
 _atToken = (function(){ try{ return localStorage.getItem('at_session')||''; }catch(_){ return ''; } })();
 try{ atRenderMeasure(); }catch(_){} // [S947] 정적 카드 — 로그인 무관 렌더
+// [S1190] 구역 탭 — zone-hidden 클래스만 토글(!important)해 카드별 인라인 show/hide와 충돌 없음. 구역은 localStorage 기억.
+let _atZone='kr'; try{ _atZone=localStorage.getItem('at_zone')||'kr'; }catch(_){}
+function atZoneSet(z){
+  _atZone=z; try{ localStorage.setItem('at_zone',z); }catch(_){}
+  document.querySelectorAll('[data-zone]').forEach(el=>{
+    const ok=(el.getAttribute('data-zone')||'').split(' ').indexOf(z)>=0;
+    el.classList.toggle('zone-hidden', !ok);
+  });
+  [['znKr','kr'],['znCoin','coin'],['znDocs','docs']].forEach(pair=>{
+    const b=_$(pair[0]); if(!b) return; const on=(pair[1]===z);
+    b.style.background=on?'var(--accent)':'transparent'; b.style.color=on?'#fff':'var(--text2)'; b.style.borderColor=on?'var(--accent)':'var(--border)';
+  });
+  try{ if(z==='coin'&&_atMeasMkt!=='coin') atMeasSet('coin'); else if(z==='kr'&&_atMeasMkt!=='kr') atMeasSet('kr'); }catch(_){}
+}
+try{ atZoneSet(_atZone); }catch(_){}
 if(_atToken){ atRefresh(); atLoadChecklist(); } else { atShowGate(); }
 try{ setInterval(()=>{ if(_atToken) atRefresh(); }, 12000); }catch(_){}
 </script>
