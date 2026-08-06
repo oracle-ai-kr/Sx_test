@@ -184,14 +184,14 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1089</div>
+    <div class="tb-build">S1189</div>
   </div>
 
   <div class="scroll-area">
 
     <!-- ═══ 파이프라인 스트립 ═══ -->
     <div class="card">
-      <div class="card-title">🛰️ 파이프라인 <span class="tag">각 노드 = 로드맵 단계 · 추후 상태 점등</span></div>
+      <div class="card-title">🛰️ 파이프라인 <span class="tag">KR 본선 + COIN 트랙 · 단계 정의=설계원칙 4조</span></div>
       <div class="pipe-wrap">
         <div class="pipe">
           <div class="pipe-node on" id="pnResearch">
@@ -231,6 +231,30 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
           </div>
         </div>
       </div>
+      <!-- [S1189] COIN 트랙 사다리 — 로드맵 카드 삭제(S1187) 후 파이프라인에 박제. KIS 모의(paper)가 없는 시장이라 ②가상 원장이 그 자리를 대신한다. -->
+      <div style="font-size:10.5px;color:var(--text2);margin:12px 0 4px;font-weight:700;">COIN 트랙 <span class="tag">사다리 · S1189</span></div>
+      <div class="pipe-wrap">
+        <div class="pipe">
+          <div class="pipe-node" id="pnCoinSnap">
+            <div class="pipe-dot"></div>
+            <div class="pn-name">① 스냅 소생</div>
+            <div class="pn-sub">업비트 캔들 일일갱신</div>
+          </div>
+          <div class="pipe-link"></div>
+          <div class="pipe-node" id="pnCoinPaper">
+            <div class="pipe-dot"></div>
+            <div class="pn-name">② 가상 체결 원장</div>
+            <div class="pn-sub">signal-only · OOS 판정</div>
+          </div>
+          <div class="pipe-link"></div>
+          <div class="pipe-node" id="pnCoinLive">
+            <div class="pipe-dot"></div>
+            <div class="pn-name">③ 소액 live</div>
+            <div class="pn-sub">체결 마찰 측정 전용</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:9.5px;color:var(--text3);margin-top:6px;line-height:1.6;">전략 판정은 <b>②</b>에서(각인·관측소·avoid 조기청산 A/B) · <b>③</b>은 슬리피지·수수료·최소호가·API거절 등 가상원장이 못 재는 <b>체결 마찰</b>만 · 현재 코인 스냅 7/26 정지 → <b>①이 다음 단계</b> · 승격은 설계원칙 4조 게이트.</div>
     </div>
 
     <!-- ═══ 상태보드 (연동 대기 자리) ═══ -->
@@ -305,7 +329,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <!-- ═══ [S949] 청산 설정 (이중ATR + MA/N일) ═══ -->
     <div class="card" id="atExitCard">
       <div class="card-title">🎯 청산 설정 <span class="tag">이중ATR + MA/N일 · S949</span><span onclick="atExitReset()" title="기본값(2×/3×/MA5×20/유예10일)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
-      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레시피 votes≥1 · 청산=초기ATR손절 + ATR트레일 + (MA5×20 <b>또는</b> N일). 값 변경 후 저장.</div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레거시 votes≥1 / bullVol / V2 어휘규칙(S1178) · 청산은 전략 공통=초기ATR손절 + ATR트레일 + (MA5×20 <b>또는</b> N일). 값 변경 후 저장.</div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">초기 손절 (×ATR)<input id="exAtrInit" type="number" step="0.5" min="0.5" max="6" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">트레일 (×ATR)<input id="exAtrTrail" type="number" step="0.5" min="0.5" max="8" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
@@ -329,11 +353,15 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
     <!-- ═══ [S1028] 진입/포지션 상한 (매수 스로틀) ═══ -->
     <div class="card" id="atEntryCard">
-      <div class="card-title">📊 진입/포지션 상한 <span class="tag">매수 스로틀 · S1028</span><span onclick="atEntryReset()" title="기본값(보유30·tick5)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
-      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">신호 몰릴 때 한 번에 다 매수해 생기는 거절(subrequest·초당한도) 방지. 남는 후보는 다음 cron에 이어서 매수(우선순위 votes↓·겹침↓). 보유수가 상한 도달 시 신규매수 0.</div>
+      <div class="card-title">📊 진입/포지션 상한 <span class="tag">매수 스로틀 · S1028</span><span onclick="atEntryReset()" title="기본값(레거시 30/5 · V2 10/2)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">신호 몰릴 때 한 번에 다 매수해 생기는 거절(subrequest·초당한도) 방지. 남는 후보는 다음 cron에 이어서 매수(우선순위 votes↓·겹침↓). 보유수가 상한 도달 시 신규매수 0. <b>V2 전용 슬롯</b>은 레거시 상한과 별도 풀(레거시 몫 무변경·비교군 보존, 사이징 동일). 슬롯/tick 모두 수동 — 슬롯 0=V2 차단, tick 0=신규만 일시정지.</div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">레거시 보유상한 (개)<input id="enMaxHold" type="number" step="1" min="1" max="200" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">레거시 tick당 (개)<input id="enBuyCap" type="number" step="1" min="1" max="20" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+      </div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
-        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">보유종목수 상한 (개)<input id="enMaxHold" type="number" step="1" min="1" max="200" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
-        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">tick당 매수 (개)<input id="enBuyCap" type="number" step="1" min="1" max="20" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">V2 전용 슬롯 (개)<input id="enV2Slots" type="number" step="1" min="0" max="50" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">V2 tick당 (개)<input id="enV2PerTick" type="number" step="1" min="0" max="20" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
       </div>
       <button type="button" id="enSaveBtn" onclick="atSaveEntryConfig()" style="width:100%;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">💾 진입 상한 저장</button>
       <div id="enMsg" style="font-size:11px;margin-top:9px;line-height:1.5;"></div>
@@ -350,6 +378,14 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="card-title">🔬 신호 진단 <span class="tag">레시피 측정 · S947</span></div>
       <div id="atMeasInner"></div>
       <div id="atMeasMeta" style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.6;"></div>
+      <div style="border-top:1px dashed var(--border);margin-top:11px;padding-top:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:12px;font-weight:700;">📡 전진 관측소 <span class="tag">OOS · S1187</span></span>
+          <span onclick="atLoadSigtrack(true)" style="margin-left:auto;font-size:11px;color:var(--accent2);cursor:pointer;user-select:none;font-weight:700;">↻ 갱신</span>
+        </div>
+        <div id="atOosBody" style="font-size:11px;color:var(--text3);line-height:1.6;">아직 안 불러옴 — ↻ 갱신. 신호 수신마다 하루치가 KV에 쌓여(120일 롤링).</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:7px;line-height:1.6;">트랙: 레거시(votes≥1) · V2 real · fake · down 발동일의 <b>이후 실현수익</b>(종가→+H봉 종가, H는 위 버튼 공유). 워커 S1187 배포 이후 수신분부터 축적 — 위 in-sample 표와 달리 <b>전부 전진(OOS)</b>. 한 발동이 여러 트랙에 중복 소속 가능 · 성숙=+H봉 경과.</div>
+      </div>
     </div>
 
     <!-- ═══ [S934] 미검증 체크리스트 ═══ -->
@@ -362,34 +398,25 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <!-- ═══ 설계 원칙 ═══ -->
     <div class="card">
       <div class="card-title">📐 설계 원칙 <span class="tag">SX스타일 재구성 · 코드는 자체 제작</span></div>
-      <div class="li"><span class="n">1</span><span class="d"><b>신호 = SX 엔진·레시피 그대로.</b> Node/Workers에서 headless 실행(오프라인 하네스 계보) — <span class="hl">타 언어 재구현 금지</span>(미러 이중구현 = 검증 무효화 위험).</span></div>
+      <div class="li"><span class="n">1</span><span class="d"><b>신호 = SX 엔진·레시피 그대로.</b> Node/Workers에서 headless 실행(오프라인 하네스 계보) — <span class="hl">타 언어 재구현 금지</span>(미러 이중구현 = 검증 무효화 위험). 진입원 3원화[S1180]: 레거시 votes≥1 / bullVol / V2 어휘규칙(S1178) — 상호배타·태그 각인([레거시]/[V2]/[bullVol]).</span></div>
       <div class="li"><span class="n">2</span><span class="d"><b>실행 = Cloudflare Workers cron + KIS REST.</b> 일봉 기반 종가 판정과 정합. 모의투자 도메인 우선, 상시 서버 없음.</span></div>
       <div class="li"><span class="n">3</span><span class="d"><b>상태·제어 = Workers KV ↔ 이 페이지.</b> 모니터·ON/OFF·긴급정지를 모바일에서.</span></div>
-      <div class="li"><span class="n">4</span><span class="d"><b>규율 = 승격 게이트.</b> 백테스트 → paper(signal-only) → full paper → live 하드게이트. 판정 기준 사전 선언 + guardrail. <span class="hl">참고 리포(quant_trader)에선 규율만 차용, 코드는 비차용.</span></span></div>
+      <div class="li"><span class="n">4</span><span class="d"><b>규율 = 승격 게이트.</b> 백테스트 → paper(signal-only) → full paper → live 하드게이트. 판정 기준 <span class="hl">사전 선언(PREREG 동결→측정→판정)</span> + guardrail · 유의성은 날짜(독립단위) 기준 · in-sample 통과는 "현 기준하 보임", 확정은 전진(OOS). <span class="hl">참고 리포(quant_trader)에선 규율만 차용, 코드는 비차용.</span></span></div>
+      <div class="li"><span class="n">5</span><span class="d"><b>차단보다 각인.</b> 주문·포지션·가계부에 전략(src)·v2 동시발동을 각인[S1180–81] — 반사실 보존, paper가 곧 측정. 전략별 슬롯 분리[S1183]로 레거시 비교군 무오염. 측정이 기각한 신호는 UI 위험표시로도 승격하지 않는다[S1185].</span></div>
     </div>
 
     <!-- ═══ 이식 후보 ═══ -->
     <div class="card">
-      <div class="card-title">🧬 이식 후보 <span class="tag">시즌1 검증분</span></div>
-      <div class="cand"><span class="cn">정배 눌림목 발동수 사다리</span><span class="cs">N10 진짜비율: 1–2개 61% · 3개 62% · 4개+ 68%</span></div>
-      <div class="cand"><span class="cn">역배 겹침 (N15 기준)</span><span class="cs">3+ 68% · 4+ 72% — N10에선 무효, 시간축 주의</span></div>
-      <div class="cand"><span class="cn">C 2.0 사다리</span><span class="cs">p≥4 매수 / 3 관심 / 2 관망 / ≤1 회피 + 안전필터 캡</span></div>
-      <div class="cand"><span class="cn">가짜 신호 게이트</span><span class="cs">fake 시그널 = 방향 판별의 실질 edge 축</span></div>
-      <div class="warn"><b>⚠ 미해결 — kr 매수 복권 구조:</b> 평균 +8.56% / 중앙 −0.39% / 승률 46.7% (발굴풀 h15). 전형 케이스는 손실, 소수 대박이 평균 견인 → 진입·포지션 사이징 설계에서 반드시 다뤄야 함.</div>
-      <div class="epis">※ 수치는 전부 "현 기준하 보인 것" (in-sample · 0701 발굴풀/당시 풀 기준). 이식 전 out-of-sample 관문 통과 필수.</div>
+      <div class="card-title">🧬 검증 대기열 <span class="tag">OOS 관문 · S1188</span></div>
+      <div class="cand"><span class="cn">① 전진검증 중 (각인 축적)</span><span class="cs">· V2 어휘규칙 진입[S1178→S1180] — paper 라이브, [V2] 가계부 축적<br>· 겹침/avoid 동시발동 각인[S1181] — 완성거래 쌓이면 전략별 분리 판정<br>· COIN avoid 조기청산[S1186 in-sample 4/4 통과] — 신호원장 축적 → OOS 재측정 → 통과 시 avoidExit 권고 배선<br>· 전진 관측소[S1187] — 레거시/real/fake/down 트랙 (위 신호진단 카드)</span></div>
+      <div class="cand"><span class="cn">② 재측정 예약 (표본 대기)</span><span class="cs">· COIN avoid 진입필터[S1185 보류 n=15·방향 음] — n≥30 재측정<br>· RM3 게이트 — 완성거래 N≥50 (현재 0·첫 청산 파도 후)<br>· US/COIN 스냅 갱신 재개 — 전진검증 3시장화 전제(현재 7/1·7/26 정지)</span></div>
+      <div class="cand"><span class="cn">③ 종결 (기각 기록 · 재량 재판정 금지)</span><span class="cs">· KR avoid 진입필터[S1185 기각 — 못 갈라냄·H별 부호 뒤집힘] · KR avoid 청산[S1186 미달 — hit 후 중앙 +1.98%]<br>· V2 전용 필터[S1186 보류 — real∩avoid 교집합 구조적 부재(11/1662)] · US avoid 전반(교집합 0)</span></div>
+      <div class="cand"><span class="cn">④ 구세대 이식후보 (S1089 당시 · 미이식)</span><span class="cs">정배 눌림목 사다리 · 역배 겹침 · C2.0 사다리 · 가짜 신호 게이트 — 레시피 votes 경로가 대체. 기록만 유지.</span></div>
+      <div class="warn"><b>⚠ 미해결 — kr 매수 복권 구조:</b> 평균 +8.56% / 중앙 −0.39% / 승률 46.7% (발굴풀 h15). 소수 대박이 평균 견인 — 금액균등 사이징[S1083]은 1차 대응일 뿐, 분리 자체는 미해결.</div>
+      <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <!-- ═══ 로드맵 ═══ -->
-    <div class="card">
-      <div class="card-title">🗺️ 로드맵</div>
-      <div class="rm now"><span class="rn">0</span><span class="rt"><b>스켈레톤</b><span class="d">진입점·설계 박제 (지금 여기)</span></span></div>
-      <div class="rm"><span class="rn">1</span><span class="rt"><b>연동 계약 설계</b><span class="d">상태 push 스키마 · 명령 채널 · KIS 토큰 관리(KV) · 신호 headless 실행 방식 확정</span></span></div>
-      <div class="rm"><span class="rn">2</span><span class="rt"><b>Paper 파이프라인</b><span class="d">모의투자 도메인 · signal-only부터 · 상태보드 점등</span></span></div>
-      <div class="rm"><span class="rn">3</span><span class="rt"><b>Guardrail + 승격 게이트</b><span class="d">판정 기준 사전 선언 · evidence 적립 · 원장 루틴 연동</span></span></div>
-      <div class="rm"><span class="rn">4</span><span class="rt"><b>LIVE</b><span class="d">하드게이트 통과 시에만 · 긴급정지 상시</span></span></div>
-    </div>
-
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1089</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1189</div>
   </div>
 </div>
 
@@ -958,21 +985,21 @@ function atRenderEntryConfig(cfg, force){
   if(_enLoaded && !force) return; // 최초 1회만 로드 → atRefresh가 편집/저장값 덮어쓰기 방지
   _enLoaded=true;
   const set=(id,v)=>{ const e=_$(id); if(e && v!=null) e.value=v; };
-  set('enMaxHold', cfg.maxHoldings); set('enBuyCap', cfg.buyCapPerTick);
+  set('enMaxHold', cfg.maxHoldings); set('enBuyCap', cfg.buyCapPerTick); set('enV2Slots', cfg.v2Slots!=null?cfg.v2Slots:10); set('enV2PerTick', cfg.v2PerTick!=null?cfg.v2PerTick:2); // [S1183][S1184]
 }
 function atEntryReset(){
-  atRenderEntryConfig({ maxHoldings:30, buyCapPerTick:5 }, true);
+  atRenderEntryConfig({ maxHoldings:30, buyCapPerTick:5, v2Slots:10, v2PerTick:2 }, true);
   atSaveEntryConfig();
 }
 async function atSaveEntryConfig(){
   const msg=_$('enMsg'), btn=_$('enSaveBtn');
   const num=(id)=>{ const e=_$(id); return e?parseInt(e.value,10):null; };
-  const body={ maxHoldings:num('enMaxHold'), buyCapPerTick:num('enBuyCap') };
+  const body={ maxHoldings:num('enMaxHold'), buyCapPerTick:num('enBuyCap'), v2Slots:num('enV2Slots'), v2PerTick:num('enV2PerTick') }; // [S1183][S1184]
   if(btn){ btn.disabled=true; btn.textContent='저장 중…'; }
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/entry-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
     const d=await r.json();
-    if(d && d.ok){ atRenderEntryConfig(d.entryConfig, true); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 보유상한 '+d.entryConfig.maxHoldings+'개 · tick당 '+d.entryConfig.buyCapPerTick+'개'; } }
+    if(d && d.ok){ atRenderEntryConfig(d.entryConfig, true); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 레거시 '+d.entryConfig.maxHoldings+'/'+d.entryConfig.buyCapPerTick+' · V2 '+(d.entryConfig.v2Slots!=null?d.entryConfig.v2Slots:10)+'/'+(d.entryConfig.v2PerTick!=null?d.entryConfig.v2PerTick:2); } }
     else if(d && d.needAuth){ _atToken=''; atShowGate(); }
     else if(msg){ msg.style.color='var(--sell)'; msg.textContent='저장 실패: '+((d&&d.error)||'알수없음'); }
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
@@ -982,8 +1009,55 @@ async function atSaveEntryConfig(){
 // ── [S947] 신호 진단 (레시피 측정 스냅샷·정적 데이터·오프라인 롤링 측정 결과) ──
 const SX_MEASURE = {"kr":{"pool":"발굴풀(대형)","nStocks":63,"nObs":26460,"range":["20240807","20260602"],"measuredAt":"2026-07-09","dist":{"매수":1.39,"관심":6.62,"관망":52.73,"회피":39.26},"fwd":{"5":{"매수":{"n":367,"mean":2.08,"win":51},"관심":{"n":1752,"mean":1.94,"win":52.2},"관망":{"n":13953,"mean":1.76,"win":51.8},"회피":{"n":10388,"mean":1.38,"win":53.3}},"10":{"매수":{"n":367,"mean":4.55,"win":54.2},"관심":{"n":1752,"mean":4.02,"win":51.4},"관망":{"n":13953,"mean":3.61,"win":53.7},"회피":{"n":10388,"mean":2.79,"win":55.8}},"20":{"매수":{"n":367,"mean":8.3,"win":58},"관심":{"n":1752,"mean":7.32,"win":54.1},"관망":{"n":13953,"mean":7.46,"win":56.4},"회피":{"n":10388,"mean":5.22,"win":56.3}}}},"us":{"pool":"발굴풀(대형)","nStocks":33,"nObs":13860,"range":["2024-09-27T13:30:00.000Z","2026-06-02T13:30:00.000Z"],"measuredAt":"2026-07-09","dist":{"매수":1.05,"관심":4.05,"관망":51.51,"회피":43.38},"fwd":{"5":{"매수":{"n":146,"mean":-0.18,"win":49.3},"관심":{"n":562,"mean":0.61,"win":49.1},"관망":{"n":7139,"mean":0.4,"win":50.9},"회피":{"n":6013,"mean":0.67,"win":54.9}},"10":{"매수":{"n":146,"mean":-0.27,"win":53.4},"관심":{"n":562,"mean":1.3,"win":50.7},"관망":{"n":7139,"mean":0.91,"win":52.3},"회피":{"n":6013,"mean":1.15,"win":55.7}},"20":{"매수":{"n":146,"mean":-0.05,"win":47.9},"관심":{"n":562,"mean":1.3,"win":47.9},"관망":{"n":7139,"mean":1.87,"win":52.5},"회피":{"n":6013,"mean":2.38,"win":55.5}}}},"coin":{"pool":"발굴풀(대형)","nStocks":18,"nObs":7556,"range":["2025-04-18T09:00:00","2026-06-11T09:00:00"],"measuredAt":"2026-07-09","dist":{"매수":0.25,"관심":1.47,"관망":24.93,"회피":73.35},"fwd":{"5":{"매수":{"n":19,"mean":-0.59,"win":15.8},"관심":{"n":111,"mean":-1.67,"win":36},"관망":{"n":1884,"mean":-0.67,"win":41.1},"회피":{"n":5542,"mean":-0.55,"win":41.4}},"10":{"매수":{"n":19,"mean":-3.67,"win":21.1},"관심":{"n":111,"mean":-0.61,"win":40.5},"관망":{"n":1884,"mean":-1.2,"win":40.9},"회피":{"n":5542,"mean":-1.42,"win":40.1}},"20":{"매수":{"n":19,"mean":-3.39,"win":26.3},"관심":{"n":111,"mean":-2.54,"win":38.7},"관망":{"n":1884,"mean":-2.85,"win":36.3},"회피":{"n":5542,"mean":-2.96,"win":35.6}}}}};
 let _atMeasMkt='kr', _atMeasHz=10;
-function atMeasSet(m){ _atMeasMkt=m; atRenderMeasure(); }
-function atMeasHz(h){ _atMeasHz=h; atRenderMeasure(); }
+function atMeasSet(m){ _atMeasMkt=m; atRenderMeasure(); _atOosRender(); }
+function atMeasHz(h){ _atMeasHz=h; atRenderMeasure(); _atOosRender(); }
+// ── [S1187] 전진 관측소 — sigtrack 원장(KV)에서 트랙별 전진수익 계산·표시. H는 _atMeasHz 공유, 시장은 _atMeasMkt 공유. ──
+let _atOosData={};   // mkt → track(days)
+async function atLoadSigtrack(force){
+  const el=_$('atOosBody'); const mk=_atMeasMkt;
+  if(!force && _atOosData[mk]){ _atOosRender(); return; }
+  if(el) el.textContent='불러오는 중…';
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/sigtrack?mkt='+mk,{ headers:atAuthHeaders(), signal:AbortSignal.timeout(15000) });
+    const d=await r.json();
+    if(d && d.needAuth){ _atToken=''; atShowGate(); return; }
+    _atOosData[mk]=(d && d.track)||{days:[]};
+    _atOosRender();
+  }catch(e){ if(el) el.textContent='조회 실패: '+(e&&e.message); }
+}
+function _atOosMed(a){ if(!a.length) return null; const s=a.slice().sort((x,y)=>x-y), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function _atOosRender(){
+  const el=_$('atOosBody'); if(!el) return;
+  const tr=_atOosData[_atMeasMkt]; if(!tr){ el.innerHTML='아직 안 불러옴 — ↻ 갱신. 신호 수신마다 하루치가 KV에 쌓여(120일 롤링).'; return; }
+  const days=tr.days||[]; if(!days.length){ el.innerHTML='축적 대기 — 워커 S1187 배포 후 첫 신호 수신부터 쌓임.'; return; }
+  const H=_atMeasHz, T={L:{n:'레거시',c:'var(--text2)',f:[],w:0},R:{n:'V2 real',c:'var(--accent)',f:[],w:0},F:{n:'fake',c:'var(--hold)',f:[],w:0},D:{n:'down',c:'var(--sell)',f:[],w:0}};
+  for(let i=0;i<days.length;i++){
+    const d=days[i], m=days[i+H]||null;
+    for(const f of (d.fired||[])){
+      const c0=d.closes&&d.closes[f.c]; let r=null;
+      if(m&&c0>0){ const c1=m.closes&&m.closes[f.c]; if(c1>0) r=(c1-c0)/c0*100; }
+      const put=k=>{ if(r!=null) T[k].f.push(r); else T[k].w++; };
+      if(f.L) put('L'); if(f.R>0) put('R'); if(f.F>0) put('F'); if(f.D>0) put('D');
+    }
+  }
+  let x='<div style="font-size:10px;color:var(--text3);margin-bottom:5px;">축적 '+days.length+'수신일 · '+String(days[0].asof).slice(0,10)+'~'+String(days[days.length-1].asof).slice(0,10)+' · +'+H+'d 성숙 기준</div>';
+  x+='<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">';
+  x+='<div style="display:flex;font-size:9.5px;color:var(--text3);background:var(--surface2);padding:5px 9px;font-weight:700;"><span style="flex:1;">트랙</span><span style="width:64px;text-align:right;">성숙/대기</span><span style="width:54px;text-align:right;">중앙</span><span style="width:44px;text-align:right;">승률</span><span style="width:52px;text-align:right;">≤−10%</span></div>';
+  for(const k of ['L','R','F','D']){
+    const t=T[k], n=t.f.length, md=_atOosMed(t.f);
+    const win=n?Math.round(t.f.filter(v=>v>0).length/n*1000)/10:null;
+    const cr=n?Math.round(t.f.filter(v=>v<=-10).length/n*1000)/10:null;
+    x+='<div style="display:flex;font-size:11px;padding:6px 9px;border-top:1px solid var(--border);align-items:center;">'
+      +'<span style="flex:1;font-weight:700;color:'+t.c+';">'+t.n+'</span>'
+      +'<span style="width:64px;text-align:right;color:var(--text3);">'+n+'/'+t.w+'</span>'
+      +'<span style="width:54px;text-align:right;font-weight:700;color:'+(md==null?'var(--text3)':(md>=0?'var(--buy)':'var(--sell)'))+';">'+(md==null?'—':(md>0?'+':'')+md.toFixed(2)+'%')+'</span>'
+      +'<span style="width:44px;text-align:right;">'+(win==null?'—':win+'%')+'</span>'
+      +'<span style="width:52px;text-align:right;">'+(cr==null?'—':cr+'%')+'</span>'
+      +'</div>';
+  }
+  x+='</div>';
+  el.innerHTML=x;
+}
 function _mColor(g){ return ({'매수':'var(--buy)','관심':'#4a9ed8','관망':'var(--text3)','회피':'var(--sell)'})[g]||'var(--text3)'; }
 function _mTab(on,label,onclick){ return '<button onclick="'+onclick+'" style="flex:1;padding:6px 0;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;border:1px solid '+(on?'var(--accent)':'var(--border)')+';background:'+(on?'var(--accent)':'transparent')+';color:'+(on?'#fff':'var(--text2)')+';">'+label+'</button>'; }
 function atRenderMeasure(){
