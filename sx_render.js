@@ -1925,7 +1925,7 @@ function _ctConfidence(score, market, sbFired, regime){
     why:'현재 ' + RGL + ' — 이 레짐에선 음봉 전이 적중이 약함(바스켓 edge ≈0~음수). ' + ((mk==='us'&&(rg==='up'||rg==='bull'))?'US는 상승 추세에서 음봉이 특히 안 통함. ':'') + '신뢰 낮춤.' };
 }
 // [S481] 캔들 전이 예측 카드 (분석탭 전광판 아래, 실험 영역)
-// ===== [S549] 매매 전략 카드 (실험) — [S1116] 개명: 단기 추세 매매 → 매매 전략. 기본=🧪 전략 조합 엔진(3모드+칸 사다리 통합) · 📈 크로스 상세 모드에 구 크로스 전체 옵션(조건칩·배치BT) 보존. =====
+// ===== [S549] 단기 매매 전략 카드 (실험) — [S1116] 개명: 단기 추세 매매 → 단기 매매 전략. 기본=🧪 전략 조합 엔진(3모드+칸 사다리 통합) · 📈 크로스 상세 모드에 구 크로스 전체 옵션(조건칩·배치BT) 보존. =====
 const _TREND_MKT_DEFAULT = { kr:[5,20], us:[5,20], coin:[5,20] };
 const _TREND_CFG_VER = 3;   // [S1059] 기본 프리셋 개편(5×20 단일·옵션 전체 OFF) → bump 시 구 localStorage 저장값 무효화 / [S1073] bullVol·이중ATR 옵션 추가로 bump
 // [S573] 단기추세 기본 프리셋 — 순수 MA 골든/데드크로스만. 매수·매도 보조칩 전부 OFF, 정배열 재진입 OFF (사진 기준 0건 적용 상태).
@@ -3160,7 +3160,7 @@ function _trendRenderInner(){
   const _dTxt=_dm?`${+_dm[2]}/${+_dm[3]}`:'—'; const _dCol=_isToday?'var(--text3)':'#ef4444';
   // [S699] 헤더를 cv-toggle로 — 접기(기본)·재렌더 시 window._sxExpOpen으로 상태 보존. 검증버튼은 stopPropagation으로 토글 충돌 방지.
   const _trOpen = !!(typeof window!=='undefined' && window._sxExpOpen && window._sxExpOpen['sxTrendBody']);
-  const head=`<div class="cv-toggle" onclick="_sxVib(8);window._cvToggle&&_cvToggle(this,'sxTrendBody')" style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:${_trOpen?'8px':'0'}"><span class="cv-arrow" style="color:var(--accent);font-size:11px">${_trOpen?'▼':'▶'}</span><span style="font-size:13px;font-weight:800;color:var(--text)">🧪 매매 전략</span><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text3);border:1px solid var(--border)">실험</span><span onclick="event.stopPropagation();_sxVib(12);window._trendOpenDetail&&_trendOpenDetail()" title="거래내역·자산흐름 보기" style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66;cursor:pointer">검증</span><span style="font-size:10px;font-weight:700;color:${_dCol};margin-left:auto;flex-shrink:0">${_isToday?'':'⚠️ '}${_dTxt} 종가기준</span></div>`;
+  const head=`<div class="cv-toggle" onclick="_sxVib(8);window._cvToggle&&_cvToggle(this,'sxTrendBody')" style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:${_trOpen?'8px':'0'}"><span class="cv-arrow" style="color:var(--accent);font-size:11px">${_trOpen?'▼':'▶'}</span><span style="font-size:13px;font-weight:800;color:var(--text)">🧪 단기 매매 전략</span><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text3);border:1px solid var(--border)">실험</span><span onclick="event.stopPropagation();_sxVib(12);window._trendOpenDetail&&_trendOpenDetail()" title="거래내역·자산흐름 보기" style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed66;cursor:pointer">검증</span><span style="font-size:10px;font-weight:700;color:${_dCol};margin-left:auto;flex-shrink:0">${_isToday?'':'⚠️ '}${_dTxt} 종가기준</span></div>`;
   // MA 입력
   const _inp=(id,val)=>`<input id="${id}" type="number" inputmode="numeric" value="${val}" min="1" max="240" style="width:42px;padding:4px;border:1px solid var(--border);border-radius:6px;font-size:12px;text-align:center;font-weight:700;background:var(--surface);color:var(--text)">`;
   // [S659] LR crossDday 보조 배지 — kNN(bt.predDday, 동기)과 별개 독립 비동기 계산. BT 로직 무관(참고용).
