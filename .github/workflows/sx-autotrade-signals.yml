@@ -4,6 +4,7 @@
 #  필요 커밋파일: offline/at_signals_push.sh, offline/sx_offline_shim.js, offline/sig_runner_s927.js,
 #                offline/snap_builder_s940.js,  # [S940] 스냅 자동갱신(런타임 네이버 fetch)
 #                sx_analysis_engine.js, sx_project_c.js, sx_recipe_core.js, sx_verdict_val.js, snap_{kr,us,coin}.json
+#                sx_feature_library.js, sx_cell_data.js  # [S1180] 레시피 v2(어휘규칙) 판정용
 name: SX Autotrade Signals
 
 on:
