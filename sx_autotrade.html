@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1190</div>
+    <div class="tb-build">S1191</div>
   </div>
 
   <div class="scroll-area">
@@ -384,6 +384,13 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ [S947] 신호 진단 (레시피 측정 스냅샷) ═══ -->
+    <!-- ═══ [S1191] 자금 추적 (계좌 성과·자금흐름) ═══ -->
+    <div class="card" data-zone="kr" id="atEquityCard">
+      <div class="card-title">💹 자금 추적 <span class="tag">계좌 성과 · S1191</span><span onclick="atLoadEquity(true)" style="float:right;font-size:12px;color:var(--accent2);cursor:pointer;user-select:none;font-weight:700;">↻ 갱신</span></div>
+      <div id="atEqBody" style="font-size:11px;color:var(--text3);line-height:1.6;">불러오는 중…</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.6;">일별 <b>순자산</b> 스냅(cron·잔고갱신 시 그날 값 교체=종가 근사) · 입출금 없는 모의계좌라 Δ=전략 성과 · 총Δ=실현(가계부)+평가 변동 · S1191 배포 후부터 축적(180일 롤링).</div>
+    </div>
+
     <div class="card" data-zone="kr coin" id="atMeasureCard">
       <div class="card-title">🔬 신호 진단 <span class="tag">레시피 측정 · S947</span></div>
       <div id="atMeasInner"></div>
@@ -426,7 +433,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1190</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1191</div>
   </div>
 </div>
 
@@ -488,6 +495,7 @@ function atRender(d){
     _$('atLastSig').textContent = String(d.signal.asof).slice(0,10) + ' · BUY ' + (s.BUY!=null?s.BUY:0);
   } else _$('atLastSig').textContent = '—';
   _atHeldCodes = new Set(((d.portfolio && d.portfolio.holdings) || []).map(h=>String(h.code))); // [S953] 보유코드(후보 필터)
+  _atPosMeta = (d.positions) || {}; // [S1191] D+n·전략칩 메타
   atRenderBuyPreview(d.signal); // [S951] 오늘의 매수 후보 (보유분 제외)
   atRenderControlLiquidate(d.portfolio); // [S953] 제어 카드 청산 버튼
   _atBlocklist = d.blocklist || []; atRenderBlocklist(); // [S952] 차단 목록
@@ -640,6 +648,48 @@ function _atWon(n){ if(n==null||!isFinite(n)) return '—'; return '₩'+Math.ro
 function _atPl(n){ if(n==null||!isFinite(n)) return '—'; const g=n>0?'+':(n<0?'-':''); return g+'₩'+Math.abs(Math.round(n)).toLocaleString(); }  // [S1032] 금액은 +/− (▲▼는 %에만 — 화살표 중복 제거·색으로 방향 유지)
 function _atPct(n){ if(n==null||!isFinite(n)) return '—'; const g=n>0?'▲':(n<0?'▼':''); return g+Math.abs(n).toFixed(2)+'%'; }  // [S1026] 손익 방향 ▲/▼
 function _atPlCol(n){ return n>0?'var(--c-red)':(n<0?'var(--c-blue)':'var(--text2)'); }  // [S1027] 손익 색 한국식 통일 — 수익(상승)=빨강/손실(하락)=파랑 (시세 _sxChg SSOT와 동일)
+// ── [S1191] 자금 추적 — /equity(일별 순자산 원장+가계부 실현 합) → 요약 + 최근 거래일별 Δ ──
+let _atEqCache=null;
+async function atLoadEquity(force){
+  const el=_$('atEqBody'); if(!el) return;
+  if(!force && _atEqCache){ _atEqRender(); return; }
+  el.textContent='불러오는 중…';
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/equity',{ headers:atAuthHeaders(), signal:AbortSignal.timeout(12000) });
+    const d=await r.json();
+    if(d && d.needAuth){ _atToken=''; atShowGate(); return; }
+    if(!(d&&d.ok)){ el.textContent='조회 실패: '+((d&&d.error)||'알수없음'); return; }
+    _atEqCache=d; _atEqRender();
+  }catch(e){ el.textContent='오류: '+(e&&e.message); }
+}
+function _atEqRender(){
+  const el=_$('atEqBody'); if(!el||!_atEqCache) return;
+  const eq=_atEqCache.equity||[], rz=_atEqCache.realized||{amt:0,n:0};
+  if(!eq.length){ el.innerHTML='축적 대기 — 워커 S1191 배포 후 첫 cron/잔고갱신부터 쌓임.'; return; }
+  const a=eq[0], b=eq[eq.length-1], tot=b.na-a.na, totPct=a.na>0?tot/a.na*100:0, ev=tot-(rz.amt||0);
+  let x='<div style="font-size:12px;color:var(--text);line-height:1.7;">'
+   +'시작 '+String(a.d).slice(5)+' <b>'+_atWon(a.na)+'</b> → 현재 <b>'+_atWon(b.na)+'</b><br>'
+   +'누적 <b style="color:'+_atPlCol(tot)+';">'+_atPl(tot)+' ('+_atPct(totPct)+')</b>'
+   +' <span style="color:var(--text3);font-size:10.5px;">= 실현 '+_atPl(rz.amt||0)+'('+(rz.n||0)+'건) + 평가 '+_atPl(ev)+'</span></div>';
+  x+='<div style="margin-top:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">';
+  x+='<div style="display:flex;font-size:9.5px;color:var(--text3);background:var(--surface2);padding:4px 9px;font-weight:700;"><span style="flex:1;">거래일</span><span style="width:86px;text-align:right;">Δ순자산</span><span style="width:54px;text-align:right;">Δ%</span><span style="width:64px;text-align:right;">순자산</span></div>';
+  const n=eq.length, from=Math.max(1,n-14);
+  for(let i=n-1;i>=from;i--){
+    const pv=eq[i-1], c=eq[i], d1=c.na-pv.na, dp=pv.na>0?d1/pv.na*100:0, col=_atPlCol(d1);
+    x+='<div style="display:flex;font-size:11px;padding:5px 9px;border-top:1px solid var(--border);"><span style="flex:1;color:var(--text2);">'+String(c.d).slice(5)+'</span><span style="width:86px;text-align:right;font-weight:700;color:'+col+';">'+_atPl(d1)+'</span><span style="width:54px;text-align:right;color:'+col+';">'+_atPct(dp)+'</span><span style="width:64px;text-align:right;color:var(--text3);">'+Math.round(c.na/1000)+'k</span></div>';
+  }
+  x+='</div>';
+  if(n<2) x+='<div style="font-size:10px;color:var(--text3);margin-top:6px;">Δ는 기록 이틀째부터 보여.</div>';
+  el.innerHTML=x;
+}
+let _atPosMeta={}; // [S1191] code→{entryAt,src}
+function _atPfMeta(code){
+  const m=_atPosMeta[code]; if(!m) return '';
+  let t='';
+  if(m.entryAt){ t+=' · D+'+Math.floor((Date.now()-m.entryAt)/86400000); }
+  if(m.src) t+=' '+_atSrcChip(m.src);
+  return t;
+}
 function atRenderPortfolio(pf){
   const tv=_$('atPfTotalV'), body=_$('atPfBody');
   if(!tv||!body) return;
@@ -656,7 +706,7 @@ function atRenderPortfolio(pf){
   h+='<div style="color:var(--text3);">종목</div><div style="color:var(--text3);text-align:right;">평단</div><div style="color:var(--text3);text-align:right;">현재가</div><div style="color:var(--text3);text-align:right;">평가손익</div>';
   for(const x of hs){
     const c=_atPlCol(x.plAmt||0);
-    h+='<div style="font-weight:600;line-height:1.3;">'+(x.name||x.code)+'<br><span style="color:var(--text3);font-weight:400;font-size:9.5px;">'+x.code+' · '+x.qty+'주</span></div>';
+    h+='<div style="font-weight:600;line-height:1.3;">'+(x.name||x.code)+'<br><span style="color:var(--text3);font-weight:400;font-size:9.5px;">'+x.code+' · '+x.qty+'주'+_atPfMeta(x.code)+'</span></div>' /* [S1191] D+n·전략칩 */;
     h+='<div style="text-align:right;">'+_atWon(x.avgPrice)+'</div>';
     h+='<div style="text-align:right;">'+_atWon(x.curPrice)+'</div>';
     h+='<div style="text-align:right;color:'+c+';line-height:1.3;">'+_atPl(x.plAmt)+'<br><span style="font-size:9.5px;">'+_atPct(x.plRate)+'</span></div>';
@@ -664,6 +714,7 @@ function atRenderPortfolio(pf){
   }
   h+='</div>';
   if(t.cash) h+='<div style="font-size:10.5px;color:var(--text3);margin-top:8px;">예수금 '+_atWon(t.cash)+(t.netAsset?(' · 순자산 '+_atWon(t.netAsset)):'')+'</div>';
+  h+='<div style="font-size:9.5px;color:var(--text3);margin-top:6px;">D+n = 진입 후 경과 달력일(고아 입양분은 입양 시점 기준) · 칩 없는 종목 = 구세대 진입</div>'; // [S1191]
   if(pf.refreshedAt) h+='<div style="text-align:right;font-size:10px;color:var(--text3);margin-top:4px;">갱신 '+atRel(pf.refreshedAt)+'</div>';
   body.innerHTML=h;
 }
@@ -827,7 +878,7 @@ async function atLogin(){
   try{
     const r = await fetch(AT_WORKER_BASE+'/sx/autotrade/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'login', password:pw}), signal:AbortSignal.timeout(10000) });
     const d = await r.json().catch(()=>({}));
-    if(d && d.ok && d.token){ _atToken=d.token; try{localStorage.setItem('at_session',d.token);}catch(_){} if(el)el.value=''; if(msg)msg.textContent=''; atHideGate(); atRefresh(); atLoadChecklist(); }
+    if(d && d.ok && d.token){ _atToken=d.token; try{localStorage.setItem('at_session',d.token);}catch(_){} if(el)el.value=''; if(msg)msg.textContent=''; atHideGate(); atRefresh(); atLoadChecklist(); atLoadEquity(); }
     else if(d && d.needSetup){ if(msg)msg.textContent='비밀번호 미설정 — 아래 "설정"을 먼저 누르세요'; }
     else { if(msg)msg.textContent=(d&&d.error)||'로그인 실패'; }
   }catch(e){ if(msg)msg.textContent='연결 실패: '+(e.message||e); }
@@ -1153,7 +1204,7 @@ function atZoneSet(z){
   try{ if(z==='coin'&&_atMeasMkt!=='coin') atMeasSet('coin'); else if(z==='kr'&&_atMeasMkt!=='kr') atMeasSet('kr'); }catch(_){}
 }
 try{ atZoneSet(_atZone); }catch(_){}
-if(_atToken){ atRefresh(); atLoadChecklist(); } else { atShowGate(); }
+if(_atToken){ atRefresh(); atLoadChecklist(); atLoadEquity(); } else { atShowGate(); }
 try{ setInterval(()=>{ if(_atToken) atRefresh(); }, 12000); }catch(_){}
 </script>
 </body>
