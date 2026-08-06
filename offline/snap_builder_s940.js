@@ -1,8 +1,9 @@
-// [S940] SX 자동매매 스냅 자동갱신 — 네이버 일봉 헤드리스 fetch → 최신 스냅 리빌드(런타임·커밋 안 함).
+// [S940] SX 자동매매 스냅 자동갱신 — 헤드리스 fetch → 최신 스냅 리빌드(런타임·커밋 안 함).
+// [S1192] coin(업비트) 지원 추가 — KRW 마켓 일봉, 공개 API·무인증. us(야후)는 계속 exit 2 폴백.
 //   워커 sxFetchCandles(KR)와 동일 소스: fchart.stock.naver.com/sise.nhn (XML <item data="YYYYMMDD|o|h|l|c|v"/>).
 //   풀(종목 코드+이름)은 커밋된 snap에서 승계 = "풀 매니페스트" 역할. 캔들만 최신으로 교체.
 //   사용: node snap_builder_s940.js kr --pool snap_kr.json --out /tmp/fresh_snap_kr.json [--count 450]
-//   KR 전용(v1). us(야후)/coin(업비트)은 exit 2 → 호출측(at_signals_push.sh)이 커밋 스냅으로 폴백.
+//   kr(네이버)·coin(업비트) 지원. us(야후)는 exit 2 → 호출측(at_signals_push.sh)이 커밋 스냅으로 폴백.
 //   실패 정책: 커버리지/신선도 게이트 미달 시 exit 2 → 폴백(신호 파이프라인은 안 끊김).
 
 const fs = require('fs');
@@ -14,7 +15,7 @@ const poolPath = arg('--pool', 'snap_kr.json');
 const outPath = arg('--out', '/tmp/fresh_snap_' + mkt + '.json');
 const COUNT = parseInt(arg('--count', '450'), 10);
 
-if (mkt !== 'kr') { console.error('[snap_builder] ' + mkt + ' 미지원(KR 전용) → 폴백'); process.exit(2); }
+if (mkt !== 'kr' && mkt !== 'coin') { console.error('[snap_builder] ' + mkt + ' 미지원(kr·coin만) → 폴백'); process.exit(2); }
 
 // 풀 로드 (코드+이름 승계). 커밋된 snap의 캔들은 무시하고 코드 목록만 사용.
 let pool;
@@ -42,6 +43,31 @@ async function fetchDaily(code) {
   return rows;
 }
 
+// [S1192] 업비트 일봉 — KRW 마켓 고정('KRW-'+code). 최신→과거 페이지네이션(200/req, to=가장 오래된 캔들 utc).
+//   candle_date_time_kst('YYYY-MM-DDT09:00:00')를 date 필드로 사용 — 기존 커밋 스냅과 동일 형식. 중복은 dedup.
+async function fetchDailyCoin(code) {
+  const market = 'KRW-' + code;
+  let all = [], to = '';
+  while (all.length < COUNT + 20) {
+    const url = 'https://api.upbit.com/v1/candles/days?market=' + encodeURIComponent(market) + '&count=200' + (to ? ('&to=' + encodeURIComponent(to)) : '');
+    const res = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': UA } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const arr = await res.json();
+    if (!Array.isArray(arr) || !arr.length) break;
+    all = all.concat(arr);
+    if (arr.length < 200) break;
+    to = arr[arr.length - 1].candle_date_time_utc;
+    await sleep(120);
+  }
+  const seen = {}, rows = [];
+  for (const k of all) {
+    const d = k && k.candle_date_time_kst; if (!d || seen[d]) continue; seen[d] = 1;
+    rows.push([d, +k.opening_price || 0, +k.high_price || 0, +k.low_price || 0, +k.trade_price || 0, +k.candle_acc_trade_volume || 0]);
+  }
+  rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  return rows.slice(-COUNT);
+}
+
 function dayDiff(a, b) {
   const d1 = new Date(a.slice(0, 4) + '-' + a.slice(4, 6) + '-' + a.slice(6, 8));
   const d2 = new Date(b.slice(0, 4) + '-' + b.slice(4, 6) + '-' + b.slice(6, 8));
@@ -57,10 +83,10 @@ function dayDiff(a, b) {
   for (let i = 0; i < codes.length; i++) {
     const c = codes[i];
     try {
-      const rows = await fetchDaily(c);
+      const rows = (mkt === 'coin') ? await fetchDailyCoin(c) : await fetchDaily(c);   // [S1192] 시장별 소스
       if (rows.length < 60) { excluded.push(c); fail++; }        // 봉수 미달 = 제외
       else {
-        stocks[c] = { name: nameOf(c), rows };
+        stocks[c] = (mkt === 'coin') ? { name: nameOf(c), src: 'upbit', rows } : { name: nameOf(c), rows };   // [S1192]
         const ld = rows[rows.length - 1][0];
         if (ld > maxDate) maxDate = ld;
         ok++;
@@ -72,19 +98,22 @@ function dayDiff(a, b) {
 
   // ── 검증 게이트 (미달 시 폴백) ──
   const covered = ok / codes.length;
-  if (ok < 100 || covered < 0.7) {
+  const minOk = (mkt === 'coin') ? 80 : 100;   // [S1192] 풀 크기 차이(coin 113 vs kr 188)
+  if (ok < minOk || covered < 0.7) {
     console.error('[snap_builder] 커버리지 부족: ' + ok + '/' + codes.length + ' (' + ((covered * 100) | 0) + '%) → 폴백');
     process.exit(2);
   }
   const todayYmd = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  if (!maxDate || dayDiff(maxDate, todayYmd) > 7) {
+  const mdYmd = String(maxDate).replace(/[^0-9]/g, '').slice(0, 8);   // [S1192] coin ISO 날짜 정규화
+  const freshLim = (mkt === 'coin') ? 2 : 7;   // [S1192] 코인은 24/7 거래 — 이틀 넘게 낡으면 실패
+  if (!maxDate || dayDiff(mdYmd, todayYmd) > freshLim) {
     console.error('[snap_builder] baseDate 신선도 실패: ' + (maxDate || '없음') + ' (오늘 ' + todayYmd + ') → 폴백');
     process.exit(2);
   }
 
   const snap = {
-    kind: 'sx_candle_snapshot', ver: 1, mkt: 'kr', tf: 'day',
-    baseDate: maxDate, created: new Date().toISOString(), build: 'S940-auto',
+    kind: 'sx_candle_snapshot', ver: 1, mkt: mkt, tf: 'day',
+    baseDate: maxDate, created: new Date().toISOString(), build: 'S1192-auto',
     poolName: (pool && pool.poolName) || '발굴풀(대형)', n: ok, excluded,
     fields: ['date', 'open', 'high', 'low', 'close', 'volume'], stocks
   };
