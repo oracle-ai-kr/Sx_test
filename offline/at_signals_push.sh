@@ -14,10 +14,12 @@ BUILD="/tmp/combined_sig.js"
 echo "[1/3] combined_sig.js 빌드 (실엔진 cat·미러 없음)"
 cat "$OFF/sx_offline_shim.js" \
     "$SRC/sx_analysis_engine.js" \
+    "$SRC/sx_feature_library.js" \
+    "$SRC/sx_cell_data.js" \
     "$SRC/sx_project_c.js" \
     "$SRC/sx_recipe_core.js" \
     "$SRC/sx_verdict_val.js" \
-    "$OFF/sig_runner_s927.js" > "$BUILD"
+    "$OFF/sig_runner_s927.js" > "$BUILD"   # [S1180] +feature_library·cell_data — 레시피 v2(어휘규칙) 판정용
 node --check "$BUILD"
 
 echo "[2/3] 시장별 신호 생성 + PUT"
