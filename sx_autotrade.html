@@ -384,6 +384,13 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div id="atPnlBody"><div style="font-size:11px;color:var(--text3);padding:4px 0;">로딩…</div></div>
     </div>
 
+    <!-- ═══ [S1209] 진입원×칸 분해 (src/cell 각인 관찰 · 표시 전용) ═══ -->
+    <div class="card" data-zone="kr" id="atSrcCard">
+      <div class="card-title">🧬 진입원별 분해 <span class="tag">칸×전략 각인 · S1209</span><span onclick="atLoadSrcStats(true)" style="float:right;font-size:12px;color:var(--accent2);cursor:pointer;user-select:none;font-weight:700;">↻ 갱신</span></div>
+      <div id="atSrcBody"><div style="font-size:11px;color:var(--text3);">불러오는 중…</div></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.6;"><b>표시 전용·판정 무관</b> — 판정은 📒 RM3 사전선언 게이트에서. 완성=가계부(금액균등 컷오버 S1087 이후)만 · 전략별 슬롯·허들·가동기간이 달라 성과 <b>수평비교 주의</b> · n&lt;30 구간은 정찰용(현 기준하 보임).</div>
+    </div>
+
     <!-- ═══ [S947] 신호 진단 (레시피 측정 스냅샷) ═══ -->
     <!-- ═══ [S1191] 자금 추적 (계좌 성과·자금흐름) ═══ -->
     <div class="card" data-zone="kr" id="atEquityCard">
@@ -434,7 +441,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1200</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1209</div>
   </div>
 </div>
 
@@ -886,7 +893,7 @@ async function atLogin(){
   try{
     const r = await fetch(AT_WORKER_BASE+'/sx/autotrade/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'login', password:pw}), signal:AbortSignal.timeout(10000) });
     const d = await r.json().catch(()=>({}));
-    if(d && d.ok && d.token){ _atToken=d.token; try{localStorage.setItem('at_session',d.token);}catch(_){} if(el)el.value=''; if(msg)msg.textContent=''; atHideGate(); atRefresh(); atLoadChecklist(); atLoadEquity(); }
+    if(d && d.ok && d.token){ _atToken=d.token; try{localStorage.setItem('at_session',d.token);}catch(_){} if(el)el.value=''; if(msg)msg.textContent=''; atHideGate(); atRefresh(); atLoadChecklist(); atLoadEquity(); atLoadSrcStats(); }
     else if(d && d.needSetup){ if(msg)msg.textContent='비밀번호 미설정 — 아래 "설정"을 먼저 누르세요'; }
     else { if(msg)msg.textContent=(d&&d.error)||'로그인 실패'; }
   }catch(e){ if(msg)msg.textContent='연결 실패: '+(e.message||e); }
@@ -1056,6 +1063,67 @@ function atRenderPnl(p){
     +'</table>'
     +'<div style="font-size:9px;color:'+T3+';margin-top:6px;line-height:1.55">🔒 <b>사전선언 게이트</b>('+g.declared+') — 결과 보고 완화 금지(돌멩이). 완성거래(진입→청산 체결) 기준 · MDD=실현손익 자산곡선(초기 1,000만원 기준).'+(p.approxN?(' ⚠ '+p.approxN+'건 체결가 미회수→curPrice 근사'):'')+'</div>';
 }
+// ── [S1209] 진입원×칸 분해 — /srcstats(가계부+포지션 경량 각인 목록) → src별 요약 + 3×3 칸 진입 분포. 표시 전용·판정 무관. ──
+const AT_CELL_LBL={'bull|bull':'추가상승','bull|bear':'기술적반등','bull|mixed':'상승세전환','bear|bull':'눌림목','bear|bear':'바닥확인','bear|mixed':'하락세전환','mixed|bull':'상승세약화','mixed|bear':'하락세약화','mixed|mixed':'횡보장유지'};
+let _atSrcData=null;
+async function atLoadSrcStats(force){
+  const el=_$('atSrcBody');
+  if(!force && _atSrcData){ atRenderSrcStats(); return; }
+  if(el) el.innerHTML='<div style="font-size:11px;color:var(--text3);">불러오는 중…</div>';
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/srcstats',{ headers:atAuthHeaders(), signal:AbortSignal.timeout(15000) });
+    const d=await r.json();
+    if(d && d.ok){ _atSrcData=d; atRenderSrcStats(); }
+    else if(d && d.needAuth){ _atToken=''; atShowGate(); }
+    else if(el) el.innerHTML='<div style="font-size:11px;color:var(--sell);">로드 실패: '+((d&&d.error)||'알수없음')+'</div>';
+  }catch(e){ if(el) el.innerHTML='<div style="font-size:11px;color:var(--sell);">오류: '+(e&&e.message)+'</div>'; }
+}
+function atRenderSrcStats(){
+  var el=_$('atSrcBody'); if(!el||!_atSrcData) return;
+  var T2='var(--text2)', T3='var(--text3)', GRN='#16a34a', RED='#dc2626';
+  var tr=_atSrcData.trades||[], po=_atSrcData.positions||[];
+  if(!tr.length && !po.length){ el.innerHTML='<div style="font-size:11px;color:'+T3+';line-height:1.65;">아직 각인 기록 없음 — 가계부 완성거래·보유 포지션이 생기면 진입원(레거시/bullVol/V2)×칸(3×3)으로 여기서 분해돼.</div>'; return; }
+  // ① src별 요약 — 완성거래 성과(승률·평균%·실현합) + 보유수. 승률·평균은 pct 회수분 기준(체결가 미회수 근사 포함).
+  var SRCS=[['recipe','📊 레거시 votes≥1','#3b82f6'],['bullVol','🔥 bullVol','#f59e0b'],['v2','🧬 V2 어휘규칙','#8b5cf6'],['_none','⚪ 태그없음(고아 등)','#94a3b8']];
+  var agg={}; SRCS.forEach(function(x){ agg[x[0]]={n:0,pn:0,w:0,sp:0,amt:0,hold:0}; });
+  tr.forEach(function(t){ var k=(t.src&&agg[t.src])?t.src:'_none'; var a=agg[k]; a.n++; if(typeof t.pct==='number'){ a.pn++; a.sp+=t.pct; if(t.pct>0)a.w++; } if(typeof t.amt==='number') a.amt+=t.amt; });
+  po.forEach(function(p){ var k=(p.src&&agg[p.src])?p.src:'_none'; agg[k].hold++; });
+  var html='';
+  SRCS.forEach(function(x){
+    var a=agg[x[0]]; if(!a.n && !a.hold) return;
+    var win=a.pn?Math.round(a.w/a.pn*100):null, avg=a.pn?(a.sp/a.pn):null;
+    html+='<div style="display:flex;align-items:baseline;gap:7px;padding:6px 2px;border-bottom:1px dashed var(--border);flex-wrap:wrap;">'
+      +'<span style="font-size:11.5px;font-weight:800;color:'+x[2]+';white-space:nowrap;">'+x[1]+'</span>'
+      +'<span style="font-size:11px;color:'+T2+';">완성 <b>'+a.n+'</b>건'+(a.pn?(' · 승률 <b>'+win+'%</b> · 평균 <b style="color:'+(avg>=0?GRN:RED)+'">'+(avg>=0?'+':'')+avg.toFixed(2)+'%</b> · 실현 <b style="color:'+(a.amt>=0?GRN:RED)+'">'+(a.amt>=0?'+':'')+a.amt.toLocaleString()+'</b>'):'')+'</span>'
+      +'<span style="font-size:10.5px;color:'+T3+';margin-left:auto;white-space:nowrap;">보유 '+a.hold+'</span></div>';
+  });
+  // ② 3×3 칸 분포 — 숫자=진입 수(완성+보유). 칸 미각인(S1209 이전 진입)은 그리드 밖 별도 집계.
+  var cells={}, unrecT=0, unrecP=0;
+  var add=function(cell,src,isPos){ if(!cell||!AT_CELL_LBL[cell]){ if(isPos)unrecP++; else unrecT++; return; } var c=cells[cell]||(cells[cell]={tot:0,hold:0,s:{recipe:0,bullVol:0,v2:0,_none:0}}); c.tot++; if(isPos)c.hold++; c.s[(src&&c.s[src]!=null)?src:'_none']++; };
+  tr.forEach(function(t){ add(t.cell,t.src,false); });
+  po.forEach(function(p){ add(p.cell,p.src,true); });
+  var SH=[['bull','강세'],['bear','약세'],['mixed','중립']], LG=[['bull','상승장'],['bear','하락장'],['mixed','횡보장']];
+  var g='<table style="width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed;">';
+  g+='<tr><td style="width:33px;"></td>'; LG.forEach(function(l){ g+='<td style="text-align:center;font-size:10px;color:'+T3+';padding:2px;font-weight:700;">'+l[1]+'</td>'; }); g+='</tr>';
+  SH.forEach(function(sh){
+    g+='<tr><td style="font-size:10px;color:'+T3+';font-weight:700;">'+sh[1]+'</td>';
+    LG.forEach(function(lg){
+      var ck=sh[0]+'|'+lg[0], c=cells[ck], lbl=AT_CELL_LBL[ck];
+      var inner='<div style="font-size:8.5px;color:'+T3+';">'+lbl+'</div>';
+      if(c){
+        var parts=[]; if(c.s.recipe)parts.push('레'+c.s.recipe); if(c.s.bullVol)parts.push('B'+c.s.bullVol); if(c.s.v2)parts.push('V'+c.s.v2); if(c.s._none)parts.push('?'+c.s._none);
+        inner+='<div style="font-size:14px;font-weight:800;color:'+T2+';line-height:1.25;">'+c.tot+'</div><div style="font-size:8.5px;color:'+T3+';">'+parts.join('·')+(c.hold?('<span style="color:#2563eb;"> 보'+c.hold+'</span>'):'')+'</div>';
+      } else inner+='<div style="font-size:12px;color:'+T3+';padding:3px 0;">—</div>';
+      g+='<td style="border:1px solid var(--border);background:'+(c?'rgba(22,163,74,.07)':'var(--surface)')+';text-align:center;padding:5px 2px;vertical-align:top;">'+inner+'</td>';
+    });
+    g+='</tr>';
+  });
+  g+='</table>';
+  html+=g;
+  html+='<div style="font-size:9.5px;color:'+T3+';margin-top:6px;line-height:1.55;">숫자=진입 수(완성거래+보유) · 레=레거시 B=bullVol V=V2 ?=태그없음 · <span style="color:#2563eb;">보n</span>=그중 보유중'
+    +((unrecT+unrecP)?('<br>⚠ 칸 미기록(각인 이전 진입): 완성 '+unrecT+' · 보유 '+unrecP+' — S1209 배포 후 진입분부터 채워짐(소급 불가)'):'')+'</div>';
+  el.innerHTML=html;
+}
 // ── [S1028] 진입/포지션 상한 UI (entry_config ↔ /state·/sx/autotrade/entry-config) ──
 let _enLoaded=false;
 function atRenderEntryConfig(cfg, force){
@@ -1221,7 +1289,7 @@ function atZoneSet(z){
   try{ if(z==='coin'&&_atMeasMkt!=='coin') atMeasSet('coin'); else if(z==='kr'&&_atMeasMkt!=='kr') atMeasSet('kr'); }catch(_){}
 }
 try{ atZoneSet(_atZone); }catch(_){}
-if(_atToken){ atRefresh(); atLoadChecklist(); atLoadEquity(); } else { atShowGate(); }
+if(_atToken){ atRefresh(); atLoadChecklist(); atLoadEquity(); atLoadSrcStats(); } else { atShowGate(); }
 try{ setInterval(()=>{ if(_atToken) atRefresh(); }, 12000); }catch(_){}
 </script>
 </body>
