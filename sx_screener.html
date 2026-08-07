@@ -56,14 +56,14 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=523"></script><!-- [S1205] 3·4단 폐기 [S1207] 분석탭 첫 fetch=목표봉수·재귀 폐기 --><!-- [S1179] 그리드 어휘 화력 -->
+<script src="sx_render.js?v=524"></script><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
 <script src="sx_signal_val.js?v=3"></script>
 <script src="sx_chart_predict.js?v=6"></script>
 <script src="sx_candle_bt.js?v=30"></script>
-<script src="sx_bt.js?v=27"></script>
+<script src="sx_bt.js?v=28"></script>
 <script src="sx_diag.js?v=5"></script>
 <!-- [S1020] sx_optimizer.js 철거 — 레시피-BT 일원화로 클래식 파라미터 튜닝 대상 소멸 -->
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -7013,11 +7013,32 @@ async function fetchCandles(code, count, tf, _retry){
       const typeMap={'5m':'minutes/5','15m':'minutes/15','30m':'minutes/30','60m':'minutes/60','240m':'minutes/240','day':'days','week':'weeks','month':'months'};
       const upbitType = typeMap[_tf]||'days';
       const coinMarket = code.startsWith('KRW-') ? code : 'KRW-'+code;
-      url = `${WORKER_BASE}/upbit/candles?market=${coinMarket}&type=${upbitType}&count=${count}`;
-      const res = await _fetchWithTimeout(url);
-      if(!res.ok) return null;
-      const json = await res.json();
-      raw = (json.data||json||[]).map(r=>({
+      // [S1208] 업비트 to= 커서 페이징 — **메인스레드엔 이게 없었다.**
+      //   업비트 단일 호출 최대 200봉. count=600을 그냥 던지면 200만 돌아온다.
+      //   S1207에서 _analCount를 600으로 올리자 코인만 200에 고착된 원인이 이것.
+      //   워커(sx_scan_worker.js:557 UPBIT_PAGE)와 btFetchCandlesCoin(sx_bt.js:925)엔
+      //   이미 있던 로직 — 메인스레드만 빠져 있었다. 동일 구현(120ms 간격)으로 이식.
+      const UPBIT_PAGE = 200;
+      const _pages = Math.max(1, Math.ceil(count / UPBIT_PAGE));
+      let _allArr = [], _cursor = '';
+      for(let _p=0; _p<_pages; _p++){
+        const _toParam = _cursor ? `&to=${encodeURIComponent(_cursor)}` : '';
+        const _batchCount = Math.min(UPBIT_PAGE, count - _allArr.length);
+        if(_batchCount <= 0) break;
+        const _pageUrl = `${WORKER_BASE}/upbit/candles?market=${coinMarket}&type=${upbitType}&count=${_batchCount}${_toParam}`;
+        const _pageRes = await _fetchWithTimeout(_pageUrl);
+        if(!_pageRes.ok) break;
+        const _pageJson = await _pageRes.json();
+        const _pageArr = Array.isArray(_pageJson) ? _pageJson : (_pageJson.data || []);
+        if(!_pageArr.length) break;
+        _allArr = _allArr.concat(_pageArr);
+        if(_pageArr.length < _batchCount) break;               // 더 이상 과거 데이터 없음
+        const _oldest = _pageArr[_pageArr.length - 1];
+        _cursor = _oldest.candle_date_time_utc || _oldest.candle_date_time_kst || '';
+        if(!_cursor) break;
+        if(_p < _pages - 1) await new Promise(r => setTimeout(r, 120));   // rate limit
+      }
+      raw = _allArr.map(r=>({
         date:r.candle_date_time_kst||r.date||'',
         open:parseFloat(r.opening_price||r.open||0),
         high:parseFloat(r.high_price||r.high||0),
