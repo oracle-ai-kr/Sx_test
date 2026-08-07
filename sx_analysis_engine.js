@@ -4293,7 +4293,7 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
   const nextBar = (opts.nextBarEntry != null) ? opts.nextBarEntry : (SXE._btEntryMode === 'nextOpen');
   const mk = (opts && opts.market) || (typeof currentMarket !== 'undefined' ? currentMarket : null) || 'kr';
   // [S1201] 진입원 토글 — 기본 3원 전부 ON(시즌2 정합). opts.entrySrc로 개별 OFF(단일검증 UI).
-  const _srcOn = (opts && opts.entrySrc) || (EC.SRC_ALL || { recipe:true, bullVol:true, v2:true });
+  const _srcOn = (opts && opts.entrySrc) || (EC.SRC_ALL || { recipe:true, bullVol:true, v2:true, maCross:false });   // [S1210] maCross=후보 기본 OFF(워커=코어 기본이라 자동 OFF 유지)
 
   // 봉당 진입신호 사전계산 (calcAllScreener 1회/봉) — scores 겸용. [S1201] 3원(recipe/bullVol/v2) 신호객체 보존
   const _btVotes = new Array(rows.length).fill(0);
@@ -4312,7 +4312,7 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
   const trades = _lc.trades.map(t => {
     const isOpen = (t.reason === 'EOD');
     const pnl = +(t.ret * 100).toFixed(2);
-    return { entry: t.entryPrice, exit: t.exitPrice, pnl: pnl, rawPnl: pnl, posScale: 1, type: isOpen ? 'OPEN' : (pnl > 0 ? 'WIN' : 'LOSS'), exitReason: isOpen ? '미청산' : t.reason, bars: t.bars, entryIdx: t.entryIdx, exitIdx: t.exitIdx, entryDate: t.entryDate || '', exitDate: isOpen ? '' : (t.exitDate || ''), tp: null, sl: null, src: t.src || 'recipe', v2Cat: t.v2Cat || null, v2Tier: t.v2Tier || null };   // [S1201] 진입원 각인
+    return { entry: t.entryPrice, exit: t.exitPrice, pnl: pnl, rawPnl: pnl, posScale: 1, type: isOpen ? 'OPEN' : (pnl > 0 ? 'WIN' : 'LOSS'), exitReason: isOpen ? '미청산' : t.reason, bars: t.bars, entryIdx: t.entryIdx, exitIdx: t.exitIdx, entryDate: t.entryDate || '', exitDate: isOpen ? '' : (t.exitDate || ''), tp: null, sl: null, src: t.src || 'recipe', v2Cat: t.v2Cat || null, v2Tier: t.v2Tier || null, cell: t.cell || null };   // [S1201] 진입원 각인 [S1210] 진입봉 칸
   });
 
   // 통계 (구 관례 유지·새 레시피 트레이드 기준 — pf=총익/총손, totalPnl=복리 equity−100, mdd=equity곡선)
@@ -4333,7 +4333,7 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
 
   // [S1201] 진입원별 분해 — 어느 소스가 몇 건을 잡고 얼마를 벌었나. v2는 in-sample이라 반드시 분리 표기.
   const _srcBreak = {};
-  ['recipe','bullVol','v2'].forEach(k => {
+  ['recipe','bullVol','v2','maCross'].forEach(k => {   // [S1210] +maCross(후보 · 켰을 때만 n>0)
     const ts = trades.filter(t => (t.src || 'recipe') === k && t.type !== 'OPEN');
     if (!ts.length) { _srcBreak[k] = { n: 0 }; return; }
     const w = ts.filter(t => t.pnl > 0);
