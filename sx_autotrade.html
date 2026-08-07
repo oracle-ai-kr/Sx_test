@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1191</div>
+    <div class="tb-build">S1193</div>
   </div>
 
   <div class="scroll-area">
@@ -340,6 +340,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <div class="card" data-zone="kr" id="atExitCard">
       <div class="card-title">🎯 청산 설정 <span class="tag">이중ATR + MA/N일 · S949</span><span onclick="atExitReset()" title="기본값(2×/3×/MA5×20/유예10일)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
       <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레거시 votes≥1 / bullVol / V2 어휘규칙(S1178) · 청산은 전략 공통=초기ATR손절 + ATR트레일 + (MA5×20 <b>또는</b> N일). 값 변경 후 저장.</div>
+      <div id="atExitDiag" style="font-size:10px;color:var(--text3);margin-bottom:10px;">청산판정 기록 없음 — 워커 S1193 배포 후 첫 tick부터 표시.</div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">초기 손절 (×ATR)<input id="exAtrInit" type="number" step="0.5" min="0.5" max="6" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">트레일 (×ATR)<input id="exAtrTrail" type="number" step="0.5" min="0.5" max="8" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
@@ -433,7 +434,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1191</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1193</div>
   </div>
 </div>
 
@@ -496,6 +497,9 @@ function atRender(d){
   } else _$('atLastSig').textContent = '—';
   _atHeldCodes = new Set(((d.portfolio && d.portfolio.holdings) || []).map(h=>String(h.code))); // [S953] 보유코드(후보 필터)
   _atPosMeta = (d.positions) || {}; // [S1191] D+n·전략칩 메타
+  try{ const xd=(d.state&&d.state.exitDiag)||null; const xe=_$('atExitDiag');
+    if(xe&&xd){ xe.innerHTML='마지막 청산판정 '+(xd.checked||0)+'/'+(xd.held!=null?xd.held:'?')+'종 판정 · 매도 '+(xd.sold||0)+' · 팩 '+(xd.packAsof?('<b>'+xd.packAsof+'</b> (팩소스 '+(xd.fromPack||0)+'종)'):'<b style=\"color:var(--sell);\">없음</b>')+(xd.fetchFail?(' · fetch실패 '+xd.fetchFail):'')+(xd.err?(' · <span style=\"color:var(--sell);\">'+_esc(xd.err)+'</span>'):'')+' · '+atRel(xd.at); }
+  }catch(_){} // [S1193] 청산 진단
   atRenderBuyPreview(d.signal); // [S951] 오늘의 매수 후보 (보유분 제외)
   atRenderControlLiquidate(d.portfolio); // [S953] 제어 카드 청산 버튼
   _atBlocklist = d.blocklist || []; atRenderBlocklist(); // [S952] 차단 목록
