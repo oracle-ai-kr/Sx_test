@@ -640,7 +640,7 @@ function _btRegimeBreakdown(rows, trades){
 //   합계와 갈라 보는 이유: v2는 in-sample이라 총계에 섞이면 BT 전체가 낙관 편향된다.
 function _btRenderSrcBreak(sb, on){
   if(!sb) return '';
-  const ks=['recipe','bullVol','v2'].filter(k=>sb[k]&&sb[k].n>0);
+  const ks=['recipe','bullVol','v2','maCross'].filter(k=>sb[k]&&sb[k].n>0);   // [S1210]
   if(!ks.length) return '';
   const rows=ks.map(k=>{ const m=_BT_SRC_META[k], d=sb[k];
     const pc=d.pnl>=0?'#22c55e':'#e8365a', wc=d.win>=60?'#22c55e':(d.win>=40?'#3b82f6':'#f97316');
@@ -651,12 +651,72 @@ function _btRenderSrcBreak(sb, on){
       <span style="font-size:10px;color:var(--text3)">평균 ${d.avg>=0?'+':''}${d.avg}%</span>
       <span style="margin-left:auto;font-size:11px;font-weight:800;color:${pc}">${d.pnl>=0?'+':''}${d.pnl}%</span>
     </div>`; }).join('');
-  const offs=['recipe','bullVol','v2'].filter(k=>on&&on[k]===false).map(k=>_BT_SRC_META[k].lbl);
+  const offs=['recipe','bullVol','v2'].filter(k=>on&&on[k]===false).map(k=>_BT_SRC_META[k].lbl);   // [S1210] maCross는 기본 OFF라 '꺼둔' 표기에서 제외(켰을 때만 행으로 등장)
   return `<div class="bt-card" style="margin-top:8px">
-    <div class="bt-card-title">🧬 진입원별 분해 <span style="font-size:10px;font-weight:500;color:var(--text3)">(시즌2 3원 · 상호배타 recipe&gt;bullVol&gt;v2)</span></div>
+    <div class="bt-card-title">🧬 진입원별 분해 <span style="font-size:10px;font-weight:500;color:var(--text3)">(상호배타 recipe&gt;bullVol&gt;v2&gt;MA5×20 · MA는 후보)</span></div>
     ${rows}
     ${sb.v2&&sb.v2.n>0?'<div style="font-size:9px;color:#b45309;line-height:1.55;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)">⚠ <b>V2 어휘규칙은 발굴풀 in-sample</b>(SX_CELL_DATA.meta.caveat). 이 BT는 규칙을 만든 과거를 다시 도는 것이라 v2 성과는 <b>검증이 아니라 재현</b>이다. 정직한 판정은 시즌2 paper(전진검증=시간축 OOS)의 [V2] 가계부.</div>':''}
     ${offs.length?`<div style="font-size:9px;color:var(--text3);margin-top:4px">· 꺼둔 진입원: ${offs.join(' · ')}</div>`:''}
+  </div>`;
+}
+
+
+// [S1210] 진입원×칸 분해 — "어느 칸에서 어느 진입원이 강한가"를 보는 정찰 표면.
+//   목적: ①MA5×20 후보가 유달리 강한 칸 찾기(상승추세 가설) ②3원 구멍칸 실측 ③칸 조건부 라우팅(대체 정책) 근거 수집.
+//   칸 = 진입 신호봉 기준(ma51020 단기 × maAlignLT 장기 — 시즌2 S1209 각인·3×3 SSOT와 동일 축). OPEN(미청산) 제외.
+//   ★단일 종목 n은 작다 — 여기서 보이는 건 "현 기준하 보임"이고, 채택 판정은 풀 단위 PREREG 측정에서.
+const _BT_CELL_LBL={'bull|bull':'추가상승','bull|bear':'기술적반등','bull|mixed':'상승세전환','bear|bull':'눌림목','bear|bear':'바닥확인','bear|mixed':'하락세전환','mixed|bull':'상승세약화','mixed|bear':'하락세약화','mixed|mixed':'횡보장유지'};
+function _btRenderCellSrcGrid(trades){
+  const ts=(trades||[]).filter(t=>t&&t.type!=='OPEN');
+  if(!ts.length) return '';
+  const SL={recipe:'레',bullVol:'B',v2:'V',maCross:'M'};
+  const cells={}; let unrec=0;
+  ts.forEach(t=>{
+    const c=t.cell;
+    if(!c||!_BT_CELL_LBL[c]){ unrec++; return; }
+    const o=cells[c]||(cells[c]={n:0,src:{}});
+    o.n++;
+    const k=SL[t.src]?t.src:'recipe';
+    const sv=o.src[k]||(o.src[k]={n:0,w:0,sum:0});
+    sv.n++; if(t.pnl>0)sv.w++; sv.sum+=t.pnl;
+  });
+  if(!Object.keys(cells).length){
+    return `<div class="bt-card" style="margin-top:8px"><div class="bt-card-title">🧩 진입원×칸 분해 <span style="font-size:10px;font-weight:500;color:var(--text3)">(S1210)</span></div><div style="font-size:10px;color:var(--text3)">칸 판정 가능한 거래 없음(칸 미기록 ${unrec}건 — 초기 봉 부족 등)</div></div>`;
+  }
+  const SH=[['bull','강세'],['bear','약세'],['mixed','중립']], LG=[['bull','상승장'],['bear','하락장'],['mixed','횡보장']];
+  let g='<table style="width:100%;border-collapse:collapse;margin-top:4px;table-layout:fixed">';
+  g+='<tr><td style="width:30px"></td>'; LG.forEach(l=>{ g+=`<td style="text-align:center;font-size:9.5px;color:var(--text3);padding:2px;font-weight:700">${l[1]}</td>`; }); g+='</tr>';
+  SH.forEach(sh=>{
+    g+=`<tr><td style="font-size:9.5px;color:var(--text3);font-weight:700">${sh[1]}</td>`;
+    LG.forEach(lg=>{
+      const ck=sh[0]+'|'+lg[0], c=cells[ck];
+      let inner=`<div style="font-size:8px;color:var(--text3)">${_BT_CELL_LBL[ck]}</div>`;
+      if(c){
+        const parts=['recipe','bullVol','v2','maCross'].filter(k=>c.src[k]).map(k=>SL[k]+c.src[k].n);
+        inner+=`<div style="font-size:13px;font-weight:800;color:var(--text2);line-height:1.2">${c.n}</div><div style="font-size:8px;color:var(--text3)">${parts.join('·')}</div>`;
+      } else inner+='<div style="font-size:11px;color:var(--text3);padding:2px 0">—</div>';
+      g+=`<td style="border:1px solid var(--border);background:${c?'rgba(34,197,94,.06)':'transparent'};text-align:center;padding:4px 2px;vertical-align:top">${inner}</td>`;
+    });
+    g+='</tr>';
+  });
+  g+='</table>';
+  // 칸×진입원 성과 줄 — 두 진입원 이상이거나 거래 있는 칸만. n<5 소표본 ⚠.
+  const ORDER=['bull|bull','bull|bear','bull|mixed','bear|bull','bear|bear','bear|mixed','mixed|bull','mixed|bear','mixed|mixed'];
+  let perf='';
+  ORDER.forEach(ck=>{
+    const c=cells[ck]; if(!c) return;
+    const seg=['recipe','bullVol','v2','maCross'].filter(k=>c.src[k]).map(k=>{
+      const sv=c.src[k], avg=sv.sum/sv.n, wr=Math.round(sv.w/sv.n*100);
+      const m=_BT_SRC_META[k];
+      return `<span style="color:${m.c};font-weight:700">${SL[k]}</span> ${sv.n}건·${wr}%·${avg>=0?'+':''}${avg.toFixed(2)}${sv.n<5?'<span style="color:#b45309">⚠</span>':''}`;
+    }).join(' <span style="color:var(--text3)">|</span> ');
+    perf+=`<div style="font-size:9.5px;color:var(--text2);padding:3px 0;border-top:1px dashed var(--border)"><b style="color:var(--text)">${_BT_CELL_LBL[ck]}</b> → ${seg}</div>`;
+  });
+  return `<div class="bt-card" style="margin-top:8px">
+    <div class="bt-card-title">🧩 진입원×칸 분해 <span style="font-size:10px;font-weight:500;color:var(--text3)">(진입봉 칸 · 숫자=거래수 · S1210)</span></div>
+    ${g}
+    <div style="margin-top:6px">${perf}</div>
+    <div style="font-size:8.5px;color:var(--text3);line-height:1.55;margin-top:5px">칸=진입 신호봉의 3×3(ma51020×장기·시즌2 S1209와 동일 축) · %=승률, ±=건당 평균% · ⚠=n&lt;5 소표본 · 레=레거시 B=bullVol V=V2 M=MA5×20${unrec?` · 칸 미기록 ${unrec}건(초기 봉 부족)`:''}<br>단일 종목 정찰용("현 기준하 보임") — MA 채택 판정은 풀 단위 PREREG 측정(발굴풀+시간분리 OOS)에서.</div>
   </div>`;
 }
 
@@ -1156,30 +1216,32 @@ function btGetOpts(){
 //     끄고 켜며 "v2가 몇 건을 더 잡는가"를 보는 용도 — 결과 카드에 src별로 갈라 표기한다.
 const SX_BT_SRC_KEY='SX_BT_ENTRY_SRC_v1';
 function _btEntrySrc(){
-  const d={ recipe:true, bullVol:true, v2:true };
+  const d={ recipe:true, bullVol:true, v2:true, maCross:false };   // [S1210] maCross=후보 · 기본 OFF(시즌2 비배선)
   try{ const raw=localStorage.getItem(SX_BT_SRC_KEY); if(raw){ const o=JSON.parse(raw);
-    ['recipe','bullVol','v2'].forEach(k=>{ if(typeof o[k]==='boolean') d[k]=o[k]; }); } }catch(_){}
+    ['recipe','bullVol','v2','maCross'].forEach(k=>{ if(typeof o[k]==='boolean') d[k]=o[k]; }); } }catch(_){}
   return d;
 }
 function btToggleEntrySrc(k){
   const st=_btEntrySrc(); st[k]=!st[k];
-  if(!st.recipe && !st.bullVol && !st.v2){ toast('진입원을 전부 끌 수는 없습니다'); return; }
+  if(!st.recipe && !st.bullVol && !st.v2 && !st.maCross){ toast('진입원을 전부 끌 수는 없습니다'); return; }   // [S1210] maCross 단독 ON = 유효(순수 크로스 측정)
   try{ localStorage.setItem(SX_BT_SRC_KEY, JSON.stringify(st)); }catch(_){}
   _btRenderEntrySrcBar();
 }
 const _BT_SRC_META={
   recipe:{ ic:'📊', lbl:'레시피 votes≥1', c:'#e8365a', tip:'시즌2 기본 진입 [S948]. 레시피 투표 1표 이상.' },
   bullVol:{ ic:'🔊', lbl:'bullVol', c:'#7c3aed', tip:'[S1041] KR 전용 · 하락장×강세 + 거래량OSC≥73.31 & VR≥389.41. 시즌2 held-out 통과.' },
-  v2:{ ic:'🧬', lbl:'V2 어휘규칙', c:'#0891b2', tip:'[S1178→S1180] 칸 규칙 real-kind hit. ⚠발굴풀 in-sample 적합 — BT 성과는 검증이 아니라 재현.' }
+  v2:{ ic:'🧬', lbl:'V2 어휘규칙', c:'#0891b2', tip:'[S1178→S1180] 칸 규칙 real-kind hit. ⚠발굴풀 in-sample 적합 — BT 성과는 검증이 아니라 재현.' },
+  maCross:{ ic:'📈', lbl:'MA5×20', c:'#d97706', tip:'[S1210] 후보·미검증 — MA5가 MA20 상향돌파(완성봉·청산 데드크로스의 거울). 기본 OFF. 우선순위 꼴찌라 켜도 3원이 잡던 거래는 불변, 남는 구간만 추가. 채택은 PREREG 측정(발굴풀+시간분리 OOS) 통과 후.' }
 };
 function _btRenderEntrySrcBar(){
   const el=document.getElementById('btEntrySrcBar'); if(!el) return;
   const st=_btEntrySrc();
   el.innerHTML='<span style="font-size:10px;font-weight:800;color:var(--text3);margin-right:2px">진입원</span>'
-    + ['recipe','bullVol','v2'].map(k=>{ const m=_BT_SRC_META[k], on=st[k];
+    + ['recipe','bullVol','v2','maCross'].map(k=>{ const m=_BT_SRC_META[k], on=st[k];
         return `<span onclick="_sxVib(10);btToggleEntrySrc('${k}')" title="${m.tip}" style="font-size:10px;font-weight:800;padding:4px 10px;border-radius:13px;border:1px solid ${m.c}${on?'':'55'};cursor:pointer;${on?`background:${m.c};color:#fff`:`background:transparent;color:${m.c}`}">${m.ic} ${m.lbl} ${on?'ON':'OFF'}</span>`;
       }).join('')
-    + (st.v2?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">⚠ V2 규칙은 발굴풀 <b>in-sample</b> — 이 BT에서 오르는 건 검증이 아니라 재현이다. 정직한 판정은 시즌2 paper(시간축 OOS).</div>':'');
+    + (st.v2?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">⚠ V2 규칙은 발굴풀 <b>in-sample</b> — 이 BT에서 오르는 건 검증이 아니라 재현이다. 정직한 판정은 시즌2 paper(시간축 OOS).</div>':'')
+    + (st.maCross?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">📈 MA5×20은 <b>미검증 후보</b>(정찰용·시즌2 비배선). 꼴찌 우선순위 — 3원이 잡던 거래는 그대로, 남는 구간만 추가로 잡는다. 단독 측정은 나머지 3원을 끄면 된다.</div>':'');
 }
 if(typeof window!=='undefined'){ window.btToggleEntrySrc=btToggleEntrySrc; window._btRenderEntrySrcBar=_btRenderEntrySrcBar; window._btEntrySrc=_btEntrySrc; }
 
@@ -1488,6 +1550,7 @@ function btRenderBasicResult(stock, r){
   // [S544] 레짐별 성과 (현재 파라미터가 불장/상승장/횡보장/하락장에서 어떻게 변하는지)
   html += _btRenderRegime(r._regimeBuckets);
   html += _btRenderSrcBreak(r._srcBreak, r._entrySrc);   // [S1201] 진입원별 분해
+  html += _btRenderCellSrcGrid(r.trades);   // [S1210] 진입원×칸 분해(정찰 표면)
 
   // ═══════════════════════════════════════════════════════════════
   // [S240] 자산 흐름 시뮬레이션 — 가상 초기자본 100만원 기준
