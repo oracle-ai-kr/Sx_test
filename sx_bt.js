@@ -91,8 +91,10 @@ async function _btGetRows(stock, tf, targetCount, opts){
   opts = opts || {};
   const _mk = (typeof _normalizeMarket==='function') ? _normalizeMarket(currentMarket) : currentMarket;
   const _valid = (arr) => (typeof _sxIsValidCandle==='function' && Array.isArray(arr)) ? arr.filter(_sxIsValidCandle) : arr;
-  // ① 세션 캐시가 목표 충족 → 즉시
-  if(stock._lastAnalCandles && stock._lastAnalCandles.length >= targetCount){
+  // ① 세션 캐시가 목표 충족 → 즉시. [S1208] 5% 허용오차 — US 598/600처럼 정확히 못 채우는 시장이
+  //   있고, 엄격 비교면 캐시를 매번 버리고 재fetch한다(fetchRows600의 _floor 기준과 통일·S1159).
+  const _floorT = Math.floor(targetCount * 0.95);
+  if(stock._lastAnalCandles && stock._lastAnalCandles.length >= _floorT){
     const v=_valid(stock._lastAnalCandles);
     if(v.length !== stock._lastAnalCandles.length) stock._lastAnalCandles=v;   // [S228] 무결성 유지
     return v.slice(-targetCount);
