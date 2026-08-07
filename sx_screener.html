@@ -56,7 +56,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=518"></script><!-- [S1179] 그리드 어휘 화력 -->
+<script src="sx_render.js?v=519"></script><!-- [S1202] 실험카드 탭 이사 --><!-- [S1179] 그리드 어휘 화력 -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -1863,6 +1863,12 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="bt-prog-text" id="btBasicProgText" style="display:none;"></div>
       <div id="btBasicResult" style="display:none;"></div>
       <div id="btHistArea" style="margin-top:8px"></div>
+      <!-- [S1202] 실험 카드 호스트 — 단기 매매 전략 · MAE · 반등 사이클 · 분포판. sx_render 종목분석 렌더가 주입 -->
+      <div style="display:flex;align-items:center;gap:6px;margin:14px 0 6px;padding-top:10px;border-top:1px dashed var(--border)">
+        <span style="font-size:11px;font-weight:800;color:var(--text3)">🧪 실험 카드</span>
+        <span style="font-size:8.5px;color:var(--text3)">위 정식 BT(시즌2 미러)와 별개 · 판정 근거 아님</span>
+      </div>
+      <div id="sxExpHost1"></div>
     </div>
   </div>
   <!-- 탭2: 교차검증 -->
@@ -1897,6 +1903,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       </div>
       <div id="rcpPreviewCard"></div><!-- [S872] 레시피 사용성 진단 -->
       <div id="cvDeepCardsHost" style="margin-bottom:4px"></div>
+      <div id="sxExpHost2"></div><!-- [S1202] 재료 전광판 · 배지 인벤토리 · 기각 서고 -->
       <!-- [S1035] 📈 추세 지속 탐색 (신설 카드 — 강세 지형 재료 발굴, 반등 카드와 별개 주제) · [S1036] 접기/펼치기 기본접힘 -->
       <div style="margin:0 0 10px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border)">
         <div class="cv-toggle" onclick="_sxVib(8);window._cvToggle&&_cvToggle(this,'persistBody')" style="display:flex;align-items:center;gap:6px;cursor:pointer">
@@ -2061,6 +2068,12 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="bt-prog-bar" id="btWfProg" style="display:none;"><div class="bt-prog-fill" id="btWfProgFill"></div></div>
       <div class="bt-prog-text" id="btWfProgText" style="display:none;"></div>
       <div id="btWfResult" style="display:none;"></div>
+      <!-- [S1202] 예측 모델 카드 — 차트예측(kNN/LR) · 캔들 전이 통계. 워크포워드와 같은 "학습→검증" 주제 -->
+      <div style="display:flex;align-items:center;gap:6px;margin:14px 0 6px;padding-top:10px;border-top:1px dashed var(--border)">
+        <span style="font-size:11px;font-weight:800;color:var(--text3)">🧪 예측 모델</span>
+        <span style="font-size:8.5px;color:var(--text3)">학습·검증 주제 카드 · 판정 근거 아님</span>
+      </div>
+      <div id="sxExpHost3"></div>
     </div>
   </div>
   <!-- 탭4: 대시보드 -->
