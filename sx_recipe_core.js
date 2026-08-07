@@ -1216,7 +1216,7 @@ function _cellKeyOf(ind, rows, idx, axisGen){
     return s+'|'+lt;
   }catch(e){ return null; }
 }
-function _sxCellSignalCore(mk, ind, rows, idx){
+function _sxCellSignalCore(mk, ind, rows, idx, opts){   // [S1201] opts.btMode=true → 활동층(act) 스킵(BT 봉당 호출 비용 절감)
   try{
     var D=(typeof SX_CELL_DATA!=='undefined')?SX_CELL_DATA:((typeof window!=='undefined'&&window.SX_CELL_DATA)||null);
     if(!D||!D.rules) return null;
@@ -1233,8 +1233,10 @@ function _sxCellSignalCore(mk, ind, rows, idx){
     }
     for(var j2=0;j2<out.length;j2++){ out[j2].hit=(out[j2].k>=out[j2].kStarN); }
     var act=[];   // [S1177] 어휘 활동 — 단독 발동(k=1)은 표시하지 않는다(S835 겹침만 신뢰)
-    for(var cat2 in VOC){ if(ruleCats[cat2]) continue; var k2=_kOf(cat2); if(k2>=2) act.push({ cat:cat2, kind:cat2.split('-')[1], k:k2 }); }
-    act.sort(function(a,b){ return b.k-a.k; });
+    if(!(opts&&opts.btMode)){   // [S1201] BT는 buy 판정만 필요 — 전 카테고리 순회(어휘 1,247) 생략
+      for(var cat2 in VOC){ if(ruleCats[cat2]) continue; var k2=_kOf(cat2); if(k2>=2) act.push({ cat:cat2, kind:cat2.split('-')[1], k:k2 }); }
+      act.sort(function(a,b){ return b.k-a.k; });
+    }
     return { cell:ck, lbl:lbl, sig:out, act:act };
   }catch(e){ return null; }
 }
