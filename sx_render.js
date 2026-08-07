@@ -5864,13 +5864,31 @@ function _predScoreRun(mkt, onProg, opt){
   opt=opt||{};
   if(!window.SXLedger) return Promise.resolve({ err:'원장 미로드' });
   if(typeof fetchCandles!=='function') return Promise.resolve({ err:'fetchCandles 없음' });
+  var R_overflow=false;   // [S1203] 종목 과다로 미픽분을 접었나
   return SXLedger.list({ mkt:mkt, st:0 }).then(function(pend){
     // [S1144] pickedOnly = 사람이 찍은 것만. 자동 채점은 이 모드로만 돈다 —
     //   자동 기록까지 포함하면 진입할 때마다 수십~수백 종목 fetch가 걸린다(모바일).
-    if(opt.pickedOnly) pend=pend.filter(function(r){ return r.human!=null; });
+    // [S1203·A안] 자동 채점 범위 확대 — 픽 ∪ **만기도래 미픽**.
+    //   〔왜〕 미픽은 자동 채점 대상이 아니어서(S1144) 영원히 답을 못 받고, rotateAll(S1156)이
+    //         상한으로 정리하면 그대로 사라진다. 원장의 2/3이 질문만 남기고 소멸하는 구조였다.
+    //   〔부담〕 만기 도달분만 여니 추가 fetch는 하루 1~12종목(2026-08 원장 실측). pickedOnly의
+    //         원래 취지(진입할 때마다 수백 종목 fetch 방지)는 그대로 지켜진다.
+    //   〔가드〕 예외적으로 종목이 몰리면 미픽분을 접고 픽만 돈다 — 수동 ▶채점으로 처리.
+    if(opt.pickedOnly){
+      var _dueTo = opt.dueTo || (window.SXLedger && SXLedger._todayKst ? SXLedger._todayKst() : '');
+      var _keep = pend.filter(function(r){
+        if(r.human!=null) return true;
+        return !!(_dueTo && r.dueEst && r.dueEst <= _dueTo);   // 미픽이라도 만기 도래분은 채점
+      });
+      var _codes = {}; _keep.forEach(function(r){ _codes[r.code]=1; });
+      if(Object.keys(_codes).length > (opt.maxCodes || 40)){
+        pend = pend.filter(function(r){ return r.human!=null; });   // 과부하 → 픽만(수동으로 나머지)
+        R_overflow = true;
+      } else pend = _keep;
+    }
     var byCode={}; pend.forEach(function(r){ (byCode[r.code]=byCode[r.code]||[]).push(r); });
     var codes=Object.keys(byCode);
-    var R={ n:pend.length, codes:codes.length, scored:0, skipped:0, fail:0, why:{}, rows:[] };
+    var R={ n:pend.length, codes:codes.length, scored:0, skipped:0, fail:0, why:{}, rows:[], overflow:R_overflow };
     var ci=0;
     var step=function(){
       if(ci>=codes.length) return Promise.resolve(R);
@@ -5939,10 +5957,15 @@ function _predPanelRefresh(){
   el.innerHTML=_predPanelHtml();
   if(!window.SXLedger) return;
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
+  // [S1203] dueBy 전수 추가 — dueCount()는 3시장 합계인데 ▶채점은 현재 시장만 돈다.
+  //   그래서 "채점 대기 6"을 보고 눌러도 안 줄어드는 일이 생긴다(다른 시장 건이라서).
+  //   어느 시장에 몇 건인지 갈라 보여 시장 전환이 필요함을 화면에서 알 수 있게 한다.
   Promise.all([SXLedger.dueCount(), SXLedger.list({mkt:mk,st:0}), SXLedger.stats({mkt:mk}),
-               SXLedger.requestPersist(), SXLedger.estimate(), SXLedger.list({})])
-    .then(function(a){ window._sxPredPanel.last={ due:a[0], pend:a[1], stats:a[2], mkt:mk,
-                                                  persist:a[3], est:a[4], total:(a[5]||[]).length };
+               SXLedger.requestPersist(), SXLedger.estimate(), SXLedger.list({}),
+               SXLedger.list({ st:0, dueBy:SXLedger._todayKst() })])
+    .then(function(a){ var _dm={}; (a[6]||[]).forEach(function(r){ _dm[r.mkt]=(_dm[r.mkt]||0)+1; });
+      window._sxPredPanel.last={ due:a[0], pend:a[1], stats:a[2], mkt:mk,
+                                                  persist:a[3], est:a[4], total:(a[5]||[]).length, dueByMkt:_dm };
       var e2=document.getElementById('sxPredPanel'); if(e2) e2.innerHTML=_predPanelHtml(); })
     .catch(function(){});
 }
@@ -6147,9 +6170,12 @@ function _predAutoScore(force){
     if(!force){ try{ if(localStorage.getItem(gk)===today) return; }catch(_e){} }
 
     SXLedger.list({ mkt:mk, st:0 }).then(function(pend){
-      var mine=pend.filter(function(r){ return r.human!=null; });
+      // [S1203·A안] 게이트도 같은 범위 — 픽이 없어도 만기도래분이 있으면 돈다.
+      //   구: 픽 0이면 즉시 락을 걸고 종료 → US/COIN처럼 픽이 하나도 없는 시장은 영원히 미채점.
+      var _t0=SXLedger._todayKst();
+      var mine=pend.filter(function(r){ return r.human!=null || (r.dueEst && r.dueEst<=_t0); });
       if(!mine.length){ try{ localStorage.setItem(gk,today); }catch(_e){} _predBackupNudge(); return; }
-      return _predScoreRun(mk, null, { pickedOnly:true }).then(function(R){
+      return _predScoreRun(mk, null, { pickedOnly:true, dueTo:_t0 }).then(function(R){
         try{ localStorage.setItem(gk,today); }catch(_e){}
         if(!R || !R.scored){ _predBackupNudge(); return; }   // 채점할 게 없으면 백업 알림 차례
         return SXLedger.stats({ mkt:mk }).then(function(st){
@@ -6678,6 +6704,13 @@ function _predPanelHtml(){
   var head = '<div onclick="_predPanelToggle()" style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:9px 11px">'
     + '<span style="font-size:11px;font-weight:800;color:var(--text)">🗂 예측 원장</span>'
     + (due ? '<span style="font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:999px;background:var(--accent);color:#fff">채점 대기 '+due+'</span>' : '')
+    + (function(){   // [S1203] 시장별 분해 — 현재 시장 외에 남아 있으면 "시장 전환 필요"를 드러낸다
+        var dm=(L&&L.dueByMkt)||null; if(!dm) return '';
+        var cur=(L&&L.mkt)||'kr', other=Object.keys(dm).filter(function(m){ return m!==cur && dm[m]>0; });
+        if(!other.length) return '';
+        return '<span title="▶채점은 현재 시장만 돕니다. 해당 시장으로 바꾼 뒤 다시 실행하세요." style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:999px;background:#b4530914;color:#b45309;border:1px solid #b4530955">🔄 '
+          + other.map(function(m){ return m.toUpperCase()+' '+dm[m]; }).join(' · ') + '</span>';
+      })()
     + '<span style="margin-left:auto;font-size:10px;color:'+T3+'">'+(P.open?'▼':'▶')+'</span>'
     + '</div>';
   if(!P.open){
@@ -13698,7 +13731,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1202';   // [S1179] 칸 그리드에 어휘 화력 병기(그 칸 규칙들이 세는 어휘 수). S1177=2층 구조
+  window.SX_BUILD='S1203';   // [S1179] 칸 그리드에 어휘 화력 병기(그 칸 규칙들이 세는 어휘 수). S1177=2층 구조
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
