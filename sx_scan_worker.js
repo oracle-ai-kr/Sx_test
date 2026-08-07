@@ -12,6 +12,8 @@ function _loadEngines(cacheBuster) {
       `sx_analysis_engine.js?v=${cacheBuster || '1'}`,
       `sx_feature_library.js?v=${cacheBuster || '1'}`,   // [S1095] 재료 SSOT(79) — recipe_core의 _extractFeats733이 위임. 미로드 시 구 구현 폴백(조용한 전멸 방지)이지만 SSOT 경로를 타려면 필수. recipe_core보다 먼저.
       `sx_recipe_core.js?v=${cacheBuster || '1'}`,   // [S877] 레시피 코어(레지스트리+feats/match+votes) — 스캔 하이브리드 정합
+      `sx_cell_data.js?v=${cacheBuster || '1'}`,   // [S1201] V2 어휘규칙 데이터 — 미로드 시 v2 진입이 조용히 null → 워커 BT ≠ 메인 BT
+      `sx_exec_core.js?v=${cacheBuster || '1'}`,   // [S1201·버그수리] 누락돼 있었음 → runBtEngine이 'sx_exec_core 미로드' 에러 반환 → 조건검색 BT 배지·필터 사망(S1018~)
       `sx_risk_core.js?v=${cacheBuster || '1'}`,   // [S1008] 위험 시그니처 SSOT — 안전필터 riskSignature가 사용(미로드=fail-open)
       `sx_conditions.js?v=${cacheBuster || '1'}`,
       `sx_project_c.js?v=${cacheBuster || '1'}`,
@@ -2780,7 +2782,10 @@ async function startScan(config) {
               // [BT-실시간 미러링] applyRegimeAdjust:true → 분석엔진과 일치
               //   스캐너에서 미리 계산한 BT 결과가 분석탭 진입 시 BT 결과와 같아야 일관됨.
               //   sx_bt.js의 btGetOpts()와 동일 정책 적용.
-              const btResult = SXE.runBtEngine(rawRows, currentTF, {}, { applyRegimeAdjust: true });
+              // [S1201] entrySrc 미지정 = 코어 기본(3원 전부 ON) — 시즌2 기본과 동일.
+        //   단일검증 탭의 진입원 토글은 localStorage 기반이라 워커에서 못 읽는다(워커는 localStorage 접근 불가).
+        //   스캐너 배지는 "시즌2가 지금 어떻게 보는가"를 보여주는 자리이므로 기본값 고정이 맞다(측정 토글은 단일검증 전용).
+        const btResult = SXE.runBtEngine(rawRows, currentTF, {}, { applyRegimeAdjust: true });
               if (btResult && !btResult.error) {
                 s._btResult = btResult;
                 s._btScore = calcBtScore(btResult, s);
