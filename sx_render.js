@@ -382,9 +382,27 @@ function _renderStockRow(s){
             const _cTfOk = _isBtSupportedTF(_cMkt, currentTF);
             if(!_cTfOk) return '';
             const _cTrades = _getBtTotalTrades(s);
-            if(s._btScore==null) return '';
+            // [S1204] BT 배지 = 합성점수 → **거래수 + 진입원**(원값 표시).
+            //   〔왜〕 calcBtScore의 거래수 캡(20/10/5→100/90/78/60)이 score진입 시절 전제라,
+            //         S1018 이후 진입이 좁아지며 대부분 60에 눌려 **변별력이 사라졌다**.
+            //         "BT60"이 성과 60점인지 표본 5건 미만인지 화면에서 구분이 안 됐다(실사용 혼동 확인).
+            //   〔대신〕 거래수는 신뢰도 그 자체이고, 진입원은 in-sample 오염(v2)을 드러낸다.
+            //   ★calcBtScore는 **지우지 않는다** — 메인스레드 스캔 경로(sx_screener.html)의 v1
+            //     unifiedVerdict가 btScore<40 강등 게이트로 아직 쓴다. 판정 경로는 안 건드린다.
+            if(s._btResult==null && s._btScore==null) return '';
+            if(!(_cTrades>0)) return '';
             const _cReliColor = _cTrades<BT_MIN_TRADES?'var(--sell)':_cTrades<30?'var(--accent)':'var(--buy)';
-            return `<span class="sr-score-chip" style="color:${_cReliColor}">BT${s._btScore}</span>`;
+            let _srcChip='';
+            try{
+              const _sb=s._btResult&&s._btResult._srcBreak;
+              if(_sb){
+                // v2가 섞인 종목만 표시 — 전부 레거시면 잡음이라 안 붙인다(신호 대 잡음).
+                const _v2n=(_sb.v2&&_sb.v2.n)||0, _bvn=(_sb.bullVol&&_sb.bullVol.n)||0;
+                if(_v2n>0) _srcChip+=`<span title="V2 어휘규칙 진입 ${_v2n}건 — 발굴풀 in-sample이라 이 성과는 검증이 아니라 재현" style="color:#0891b2;font-weight:800"> 🧬${_v2n}</span>`;
+                if(_bvn>0) _srcChip+=`<span title="bullVol 진입 ${_bvn}건 (KR 전용·S1041)" style="color:#7c3aed;font-weight:800"> 🔊${_bvn}</span>`;
+              }
+            }catch(_eSb){}
+            return `<span class="sr-score-chip" title="확정 매매 ${_cTrades}건 · 색=표본 신뢰도(<${BT_MIN_TRADES} 빨강 / <30 주황 / ≥30 녹색)" style="color:${_cReliColor}">BT ${_cTrades}건${_srcChip}</span>`;
           })()}
           ${(()=>{ if(typeof _btHistLoad!=='function')return ''; const _m=s._mkt||currentMarket; const _h=_btHistLoad(_m); const _a=_h[s.code]||[]; if(!_a.length)return ''; const _cTfOk2=_isBtSupportedTF(_m,currentTF); const _cTr2=_getBtTotalTrades(s); if(!_cTfOk2||_cTr2<BT_MIN_TRADES)return ''; const _r=_btHistReliabilityLabel(_a.length); const _c=_r.cls==='full'?'var(--buy)':_r.cls==='mid'?'var(--accent)':_r.cls==='low'?'var(--sell)':'var(--text3)'; return `<span class="sr-rel-chip" style="color:${_c};font-size:8px">${_r.text}</span>`; })()}
           ${(()=>{ if(!s._btAction)return ''; const _m3=s._mkt||currentMarket; if(!_isBtSupportedTF(_m3,currentTF))return ''; const _cTr3=_getBtTotalTrades(s); if(_cTr3<BT_MIN_TRADES)return ''; return `<span class="sr-action-chip ${s._btAction==='진입 적기'?'good':s._btAction==='회피'?'bad':'mid'}">${s._btAction}</span>`; })()}
@@ -13731,7 +13749,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1203';   // [S1179] 칸 그리드에 어휘 화력 병기(그 칸 규칙들이 세는 어휘 수). S1177=2층 구조
+  window.SX_BUILD='S1204';   // [S1179] 칸 그리드에 어휘 화력 병기(그 칸 규칙들이 세는 어휘 수). S1177=2층 구조
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
