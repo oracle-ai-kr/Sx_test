@@ -4292,24 +4292,27 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
   // [S422] 진입 시점: opts.nextBarEntry 명시 우선, 미지정 시 전역 _btEntryMode(공식 프레임=다음봉시가) 따름.
   const nextBar = (opts.nextBarEntry != null) ? opts.nextBarEntry : (SXE._btEntryMode === 'nextOpen');
   const mk = (opts && opts.market) || (typeof currentMarket !== 'undefined' ? currentMarket : null) || 'kr';
+  // [S1201] 진입원 토글 — 기본 3원 전부 ON(시즌2 정합). opts.entrySrc로 개별 OFF(단일검증 UI).
+  const _srcOn = (opts && opts.entrySrc) || (EC.SRC_ALL || { recipe:true, bullVol:true, v2:true });
 
-  // 봉당 레시피 votes 사전계산 (calcAllScreener 1회/봉) — scores 겸용
+  // 봉당 진입신호 사전계산 (calcAllScreener 1회/봉) — scores 겸용. [S1201] 3원(recipe/bullVol/v2) 신호객체 보존
   const _btVotes = new Array(rows.length).fill(0);
+  const _btSig = new Array(rows.length).fill(null);
   for (let i = BT_WARMUP; i < rows.length; i++) {
     const slice = rows.slice(Math.max(0, i - 249), i + 1);   // 레시피는 ~250봉 히스토리 필요(150봉=votes 미발동)
     let ind; try { ind = calcAllScreener(slice, tf); } catch (_) { continue; }
     if (!ind) continue;
-    try { _btVotes[i] = EC.entrySignalAt(mk, ind, rows, i).votes || 0; } catch (_) {}
+    try { const _es = EC.entrySignalAt(mk, ind, rows, i, { srcOn: _srcOn }); _btSig[i] = _es; _btVotes[i] = _es.votes || 0; } catch (_) {}
   }
 
-  // 라이프사이클(코어) — 검증된 진입(votes≥1)/청산(이중ATR+MA5×20 데드·유예10)
-  const _lc = EC.runLifecycle(rows, (i) => _btVotes[i] || 0, { entryMode: nextBar ? 'nextOpen' : 'close', slippage: slip, minIdx: BT_WARMUP, cfg: EC.CFG });
+  // 라이프사이클(코어) — 진입 3원(recipe>bullVol>v2 상호배타·S1201)/청산(이중ATR+MA5×20 데드·유예10)
+  const _lc = EC.runLifecycle(rows, (i) => _btSig[i] || 0, { entryMode: nextBar ? 'nextOpen' : 'close', slippage: slip, minIdx: BT_WARMUP, cfg: EC.CFG });
 
   // 코어 트레이드 → BT 트레이드 형태 (대시보드/btGetCurrentState 호환: entry/exit/pnl/type/exitReason/…/tp·sl)
   const trades = _lc.trades.map(t => {
     const isOpen = (t.reason === 'EOD');
     const pnl = +(t.ret * 100).toFixed(2);
-    return { entry: t.entryPrice, exit: t.exitPrice, pnl: pnl, rawPnl: pnl, posScale: 1, type: isOpen ? 'OPEN' : (pnl > 0 ? 'WIN' : 'LOSS'), exitReason: isOpen ? '미청산' : t.reason, bars: t.bars, entryIdx: t.entryIdx, exitIdx: t.exitIdx, entryDate: t.entryDate || '', exitDate: isOpen ? '' : (t.exitDate || ''), tp: null, sl: null };
+    return { entry: t.entryPrice, exit: t.exitPrice, pnl: pnl, rawPnl: pnl, posScale: 1, type: isOpen ? 'OPEN' : (pnl > 0 ? 'WIN' : 'LOSS'), exitReason: isOpen ? '미청산' : t.reason, bars: t.bars, entryIdx: t.entryIdx, exitIdx: t.exitIdx, entryDate: t.entryDate || '', exitDate: isOpen ? '' : (t.exitDate || ''), tp: null, sl: null, src: t.src || 'recipe', v2Cat: t.v2Cat || null, v2Tier: t.v2Tier || null };   // [S1201] 진입원 각인
   });
 
   // 통계 (구 관례 유지·새 레시피 트레이드 기준 — pf=총익/총손, totalPnl=복리 equity−100, mdd=equity곡선)
@@ -4328,8 +4331,19 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
   let maxConsecLoss = 0, curConsecLoss = 0;
   trades.forEach(t => { if (t.type === 'LOSS') { curConsecLoss++; if (curConsecLoss > maxConsecLoss) maxConsecLoss = curConsecLoss; } else curConsecLoss = 0; });
 
+  // [S1201] 진입원별 분해 — 어느 소스가 몇 건을 잡고 얼마를 벌었나. v2는 in-sample이라 반드시 분리 표기.
+  const _srcBreak = {};
+  ['recipe','bullVol','v2'].forEach(k => {
+    const ts = trades.filter(t => (t.src || 'recipe') === k && t.type !== 'OPEN');
+    if (!ts.length) { _srcBreak[k] = { n: 0 }; return; }
+    const w = ts.filter(t => t.pnl > 0);
+    let eq = 1; ts.forEach(t => { eq *= (1 + t.pnl / 100); });
+    _srcBreak[k] = { n: ts.length, win: +(w.length / ts.length * 100).toFixed(1),
+      pnl: +((eq - 1) * 100).toFixed(2), avg: +(ts.reduce((a, t) => a + t.pnl, 0) / ts.length).toFixed(2) };
+  });
+
   // 결과 — 폐기 필드(gate/vol/mode)는 호환 위해 빈값 동봉. engine:'recipe' 마커.
-  return { winRate, profitFactor: pf, totalPnl, mdd: +maxDD.toFixed(2), totalTrades: closed, avgWin, avgLoss, maxConsecLoss, scores: _btVotes.slice(BT_WARMUP), scores3: _btVotes.slice(BT_WARMUP).map(v => ({ t: v })), trades, rowsLength: rows.length, gateBlocks: 0, gateReasons: {}, gapSkips: 0, entryMode: (nextBar ? 'nextOpen' : 'close'), gapGuard: false, volTarget: { active: false }, _mode: null, modeGateSkips: 0, engine: 'recipe' };
+  return { winRate, profitFactor: pf, totalPnl, mdd: +maxDD.toFixed(2), totalTrades: closed, avgWin, avgLoss, maxConsecLoss, scores: _btVotes.slice(BT_WARMUP), scores3: _btVotes.slice(BT_WARMUP).map(v => ({ t: v })), trades, rowsLength: rows.length, gateBlocks: 0, gateReasons: {}, gapSkips: 0, entryMode: (nextBar ? 'nextOpen' : 'close'), gapGuard: false, volTarget: { active: false }, _mode: null, modeGateSkips: 0, engine: 'recipe', _srcBreak, _entrySrc: _srcOn };   // [S1201]
 }
 SXE.runBtEngine = sxRunBtEngine;
 
