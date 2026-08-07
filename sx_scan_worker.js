@@ -2462,7 +2462,18 @@ async function startScan(config) {
     //   분석탭 _btTargetBars와 동일 기준(KIS ON 700 / OFF 600)으로 fetch 승격.
     //   그 외 일반조건(RSI/MACD/MA 등)은 룩백이 14~200봉 이내라 200/500이면 충분 → 무변경.
     //   [S655] 코인은 fetchCandles 내부에서 to커서 페이지네이션(120ms 지연)으로 600봉까지 확장 — KR/US와 동일 도달.
-    const _needPrecision = techFilters.some(f => f && (f.id === 'candle_transition' || f.id === 'knn_dday'));
+    // [S1206] 정밀모드(600/700) 발동 조건에 **BT 필터군** 추가 — 조건필터·결과탭·분석탭 3자 정합.
+    //   〔왜〕 BT 필터를 켠 순간의 목적은 "BT 숫자를 믿고 종목을 고르는 것"인데, 400봉이면
+    //         평가 가능 봉이 200개뿐(BT_WARMUP 100 + maAlignLT가 slice 200봉 미만에서 gateOn=false).
+    //         반면 분석탭·단일검증은 _btTargetBars=600 → **같은 종목의 BT 거래수가 서로 달랐다**
+    //         (실측: 삼성전자 단일검증 4건 vs 조건검색 2건). 600으로 올려 창을 일치시킨다.
+    //   〔왜 항상 600이 아닌가〕 RSI/MACD/MA 등 일반조건은 룩백 14~200봉이라 400으로 충분하고
+    //         600을 줘도 결과가 안 바뀐다. 전수 스캔(KR 3867종목)에서 payload 1.5배·BT 계산 2배를
+    //         대가 없이 내지 않기 위해 **BT를 실제로 쓸 때만** 승격한다.
+    const _BT_PRECISION_IDS = new Set(['_bt_pnl','_bt_winrate','_bt_trades','_bt_mdd','_bt_pf',
+                                       '_bt_buy_marker','_bt_today_entry','_bt_today_exit']);
+    const _needPrecision = techFilters.some(f => f && (f.id === 'candle_transition' || f.id === 'knn_dday'
+                                                        || _BT_PRECISION_IDS.has(f.id)));
     // [S878] 레시피 지반 정렬 — 하이브리드 활성(일봉·recipeOn)이면 기본 깊이 200→400 승격(분석탭 자동확장 400과 동일 지반).
     //   근거(S877 발견): MA200·장기배열(maAlignLT)·dev200이 200봉에서 퇴화 → 스캔 recipeSig 침묵 + ltAlign 상이 = 분석탭↔스캔 판정 불일치의 근본원인.
     //   🍳 킬스위치 OFF(config.recipeOn=false)면 200 자동 복귀 — 지반 승격이 킬스위치와 연동. 정밀조건(kNN)의 600/700은 상위 유지.
