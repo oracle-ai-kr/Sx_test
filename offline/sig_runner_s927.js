@@ -1,6 +1,7 @@
 // [S927] SX 신호생성기 (시즌2 두뇌 출력) — 스냅 각 종목 최신봉 verdict → 정책레이어 → 신호원장 JSON
 //  전역(cat 선행): SXVVAL(run·_assembleScores) · SXE · _C(unifiedVerdictV2 내부호출) · recipe_core
 //  [S1180] +SXFeatureLib(sx_feature_library.js)·SX_CELL_DATA(sx_cell_data.js) — 레시피 v2(어휘규칙) 판정용. 미로드 시 v2=null(레거시만 동작·안전).
+//  [S1209] +칸 각인 — 모든 신호에 진입 시점 칸(cell/cellLbl)을 hit 여부와 무관하게 기록(3×3 진입 분포 관찰용). 미로드 시 cell=null(안전).
 //  최신봉 = V.run(h=0, warmup=n-4, target=5) 후 e최대 레코드. dck/dcf는 cv2rec 훅(§3 동일).
 //  정책레이어 = 등급→{action,score} 시장별. 근거 §1(시장분기)·②(US 회피특례)·S926(dck는 진입전용·물타기X).
 //  ★정책값 provisional — 미래 OOS(0723~24·oos_gates_s924.txt 축2) 통과가 채택 최종조건.
@@ -46,10 +47,11 @@ function latestSignal(rows){
   // [S1180] 레시피 v2(어휘규칙 S1178) — _sxCellSignalCore를 시즌1 판정과 동일하게 호출(qs.ind·같은 봉 idx). 데이터/라이브러리 미로드 시 null(안전).
   //   real-kind hit만 매수 후보(S1102 §8-3: DOWN·FAKE는 어떤 경로로도 매수투표 금지 — down/fake hit은 avoid로 기록만).
   //   strict(강)+soft(일반) 모두 수집(모의 최대관찰·tier 각인) — buy는 strict 우선 → k 내림차 정렬.
-  let v2=null;
+  let v2=null, cellK=null, cellL=null;   // [S1209] 칸 각인(현재 칸 — v2 hit 없어도 기록)
   try{
     if(typeof _sxCellSignalCore==='function'){
       const cs=_sxCellSignalCore(mk, qs.ind, rows, idx);
+      if(cs){ cellK=cs.cell||null; cellL=cs.lbl||null; }   // [S1209] cell은 규칙 유무와 무관하게 옴 · lbl은 그 칸에 규칙 있을 때만(없으면 null — 소비측이 9칸 고정맵으로 보완)
       if(cs&&Array.isArray(cs.sig)){
         const hits=cs.sig.filter(s=>s&&s.hit);
         const mapH=s=>({cat:s.cat,tier:s.tier||'strict',k:s.k,kStar:s.kStarN});
@@ -60,7 +62,7 @@ function latestSignal(rows){
       }
     }
   }catch(e){}
-  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off', bullVol:bullVol, atrPct:atrPct, v2:v2 };
+  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off', bullVol:bullVol, atrPct:atrPct, v2:v2, cell:cellK, cellLbl:cellL };
 }
 
 // ── [S948] 레시피 기반 진입 정책 — votes≥1 → BUY. 엔진 점수축(등급) 미사용(원천 재료감사: ready/entry/trend/upside 다 약/역전).
@@ -82,7 +84,7 @@ codes.forEach((c,i)=>{
   const rows=raw.map(r=>Array.isArray(r)?({date:r[0],open:r[1],o:r[1],high:r[2],h:r[2],low:r[3],l:r[3],close:r[4],c:r[4],volume:r[5],v:r[5]}):r);
   let sig=null;
   try{ sig=latestSignal(rows); }catch(e){ errs.push(c+':'+(e&&e.message)); return; }
-  const {grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol, atrPct, v2}=sig;
+  const {grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol, atrPct, v2, cell, cellLbl}=sig;
   let P=policy(mk, votes, realK, rawScore);
   let src=(P.action==='BUY')?'recipe':null;
   // [S1041] 강세 거래량급증 편입 — votes-BUY(약세반등)가 아닐 때만 별도 BUY(상호배타). KR 전용. src=bullVol 태그(가계부 전략구분용).
@@ -98,7 +100,7 @@ codes.forEach((c,i)=>{
   // [S1050] KR ATR 안전게이트 — 레시피 BUY이고 ATR% 초과 시 진입 억제(→HOLD). bullVol 미적용(별도검증·고변동 본질). src 유지(원 신호 기록).
   let atrGate=false;
   if(ATR_GATE_ON && P.action==='BUY' && src==='recipe' && atrPct!=null && atrPct>ATR_GATE_TH){ atrGate=true; P={ action:'HOLD', score:0, policy:'kr:ATR게이트(ATR%'+atrPct.toFixed(1)+'>'+ATR_GATE_TH+')→진입억제', provisional:true }; }
-  signals.push({ code:c, name:(snap.stocks[c]&&snap.stocks[c].name)||c, grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol:!!bullVol, v2:(v2||null), src:src, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, atrGate:atrGate, atrPct:(atrPct!=null?+atrPct.toFixed(2):null), barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null, close:(rows[rows.length-1]&&+rows[rows.length-1].close)||null }); // [S945]name [S948]votes [S1041]bullVol/src [S1083]close=금액균등 사이징용(워커 시세조회 없이) [S1180]v2=어휘규칙 판정(발동 시)
+  signals.push({ code:c, name:(snap.stocks[c]&&snap.stocks[c].name)||c, grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol:!!bullVol, v2:(v2||null), src:src, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, atrGate:atrGate, atrPct:(atrPct!=null?+atrPct.toFixed(2):null), cell:(cell||null), cellLbl:(cellLbl||null), barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null, close:(rows[rows.length-1]&&+rows[rows.length-1].close)||null }); // [S945]name [S948]votes [S1041]bullVol/src [S1083]close=금액균등 사이징용(워커 시세조회 없이) [S1180]v2=어휘규칙 판정(발동 시) [S1209]cell/cellLbl=진입 시점 칸(항상)
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
