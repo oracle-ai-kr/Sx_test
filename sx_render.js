@@ -13698,7 +13698,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1179';   // [S1179] 칸 그리드에 어휘 화력 병기(그 칸 규칙들이 세는 어휘 수). S1177=2층 구조
+  window.SX_BUILD='S1202';   // [S1179] 칸 그리드에 어휘 화력 병기(그 칸 규칙들이 세는 어휘 수). S1177=2층 구조
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -17882,23 +17882,40 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
   // [S748] 깊이카드 3종(MA크로스전이·신호판단검증·C판정검증)을 교차검증 탭(cvDeepCardsHost)으로 이동 — 분석탭 body엔 미포함. cvDeepCardsHost는 analPage2의 정적 컨테이너(항상 DOM 존재·analBody와 형제)라 여기서 주입. 카드 핸들러는 전역+ID기반이라 위치 무관.
   try { var _cvDeepH = document.getElementById('cvDeepCardsHost'); if(_cvDeepH) _cvDeepH.innerHTML = _buildMaCrossCard(stock, indicators) + _buildValidatorCard(stock, indicators) + _buildVerdictValCard(stock, indicators); } catch(_eCvDeep){}
 
+  // ══ [S1202] 실험 카드 탭 이사 — 분석탭(0)은 종목분석 고유만 남긴다 ══
+  //   근거: analPage1/2/3은 analBody의 **형제**라 종목분석 렌더가 덮지 않는다(S748 선례와 동일 구조).
+  //   카드 핸들러는 전역+ID 기반이라 DOM 위치 무관 · 카드 함수 자체는 무변경(순수 이동).
+  //   배치 = 카드 형태에 맞춤:
+  //     단일검증(1) = 이 종목 한 전략의 성과 해부   → 단기 매매 전략 · MAE · 반등 사이클 · 분포판
+  //     교차검증(2) = 여러 종목/조건 대조·발굴 도구 → 재료 전광판 · 배지 인벤토리 · 기각 서고
+  //     학습검증(3) = 예측 모델 학습·검증          → 차트예측(kNN/LR) · 캔들 전이 통계
+  //   분석탭 잔류 = 차트 · 진입분석 · 점수판 · 통계판 · Q&A · MA기울기 · 레시피 신호 · 거래내역
+  try {
+    var _h1 = document.getElementById('sxExpHost1');
+    if(_h1) _h1.innerHTML = _buildTrendCard(stock, indicators)
+                          + _buildMaeCard(stock, indicators)
+                          + _buildReboundCycleCard(stock, indicators)
+                          + _buildDistBoardCard(stock, indicators);
+    var _h2 = document.getElementById('sxExpHost2');
+    if(_h2) _h2.innerHTML = _buildMaterialBoardCard(stock, indicators)
+                          + _buildBadgeInventoryCard(stock, indicators)
+                          + _buildRejectArchiveCard(stock, indicators);
+    var _h3 = document.getElementById('sxExpHost3');
+    if(_h3) _h3.innerHTML = _buildChartPredictCard(stock, indicators)
+                          + _buildTransitionCard(stock, indicators);
+  } catch(_eExpMove){ console.warn('[S1202] 실험카드 주입 실패', _eExpMove); }
+
   body.innerHTML = `
     ${chartHTML}
     ${_buildR1S1Card(stock, indicators)}
     ${_buildScoreBoard(scores, stock._svScores4, _boardStruct, _boardPb, _boardDeltas, stock._svVerdict, _lowConf, _boardExtras)}
     ${_buildStatBoardCard(stock, indicators)}
     ${_qaAskLineHtml(stock)}
-    ${_buildTransitionCard(stock, indicators)}
-    ${_buildTrendCard(stock, indicators)}
-    ${_buildDistBoardCard(stock, indicators)}
-          ${_buildMaeCard(stock, indicators)}
-          ${_buildRejectArchiveCard(stock, indicators)}
-          ${_buildReboundCycleCard(stock, indicators)}
+    <!-- [S1202] 전이·단기전략·분포판 이사 → 학습검증/단일검증 (아래 _sxMoveExpCards가 주입) -->
+          <!-- [S1202] MAE·기각서고·반등사이클 이사 → 단일검증/교차검증 -->
     ${_buildMaSlopeCard(stock, indicators)}
     ${(typeof window!=='undefined' && window.SXRecipeSignal) ? SXRecipeSignal.buildCard(stock, indicators) : ''}
-    ${_buildChartPredictCard(stock, indicators)}
-    ${_buildBadgeInventoryCard(stock, indicators)}
-    ${_buildMaterialBoardCard(stock, indicators)}
+    <!-- [S1202] 차트예측·배지인벤토리·재료전광판 이사 → 학습검증/교차검증 -->
     ${tradeHistHTML}
     <div style="padding:4px 10px;margin:0 0 4px;text-align:center">${_presetLabel?`<div style="font-size:10px;font-weight:700;color:var(--accent);margin-bottom:2px">${_presetLabel}</div>`:''}<span style="display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--text3);border:1px solid var(--border)">${_apStr}</span></div>
 
