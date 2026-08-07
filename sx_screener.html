@@ -13,7 +13,7 @@
 <script src="sx_exec_core.js?v=2"></script><!-- [S1201] 진입 3원화(recipe>bullVol>v2) --><!-- [S1017] 실행 SSOT — 레시피 진입+이중ATR+MA청산 · 시즌1 BT/분석탭 · 시즌2 자동매매 공유(b 일원화) -->
 <script src="sx_interpret.js?v=47"></script>
 <script src="sx_chart.js?v=20"></script>
-<script src="sx_conditions.js?v=23"></script>
+<script src="sx_conditions.js?v=24"></script>
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
 <script src="sx_storage.js?v=9"></script>
@@ -4612,7 +4612,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=26');   // [S1201] exec_core·cell_data 임포트 [S1204] _srcBreak 전송
+    _scanWorker = new Worker('sx_scan_worker.js?v=27');   // [S1201] exec_core·cell_data [S1204] _srcBreak [S1206] BT필터=정밀모드600
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
