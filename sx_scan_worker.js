@@ -2187,7 +2187,8 @@ function _slimResults(arr) {
       totalPnl: s._btResult.totalPnl, winRate: s._btResult.winRate,
       totalTrades: s._btResult.totalTrades, mdd: s._btResult.mdd,
       profitFactor: s._btResult.profitFactor, avgWin: s._btResult.avgWin,
-      avgLoss: s._btResult.avgLoss, maxConsecLoss: s._btResult.maxConsecLoss
+      avgLoss: s._btResult.avgLoss, maxConsecLoss: s._btResult.maxConsecLoss,
+      _srcBreak: s._btResult._srcBreak || null   // [S1204] 진입원별 분해(S1201) — 결과 카드 배지가 소비. 화이트리스트라 명시 안 하면 전송 안 됨
     } : null,
     // [S993] _btTransitionStats payload 삭제.
     _scanResult: s._scanResult ? {
