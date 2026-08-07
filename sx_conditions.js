@@ -248,7 +248,7 @@ const SX_CONDITIONS = [
   ]},
   {id:'backtest',name:'백테스트',phase:'p3',groups:[
     {id:'ta_bt',name:'백테스트 (실시간)',conditions:[
-      {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'200봉 백테스트 총수익률 - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
+      {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'백테스트 총수익률(600봉·분석탭/단일검증과 동일 창) - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
       {id:'_bt_winrate',name:'BT 승률',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'승리 거래 비율 - 50↑=절반 이상 승, 60↑=양호',recommend:'50↑ (균형) / 60↑ (양호)'},
       {id:'_bt_trades',name:'BT 거래수',type:'range',unit:'회',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'총 청산 거래 수 - 너무 적으면 통계 신뢰성 ↓',recommend:'5↑ (최소 신뢰) / 10↑ (안정 통계)'},
       {id:'_bt_mdd',name:'BT MDD',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'최대 낙폭 절대값 - 작을수록 안정 (max로 사용)',recommend:'~15 (안정) / ~25 (보통)'},
@@ -435,7 +435,7 @@ const COIN_CONDITIONS = [
   ]},
   {id:'backtest',name:'백테스트',phase:'p3',groups:[
     {id:'ta_bt',name:'백테스트 (실시간)',conditions:[
-      {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'200봉 백테스트 총수익률 - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
+      {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'백테스트 총수익률(600봉·분석탭/단일검증과 동일 창) - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
       {id:'_bt_winrate',name:'BT 승률',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'승리 거래 비율 - 50↑=절반 이상 승, 60↑=양호',recommend:'50↑ (균형) / 60↑ (양호)'},
       {id:'_bt_trades',name:'BT 거래수',type:'range',unit:'회',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'총 청산 거래 수 - 너무 적으면 통계 신뢰성 ↓',recommend:'5↑ (최소 신뢰) / 10↑ (안정 통계)'},
       {id:'_bt_mdd',name:'BT MDD',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'최대 낙폭 절대값 - 작을수록 안정 (max로 사용)',recommend:'~15 (안정) / ~25 (보통)'},
@@ -619,7 +619,7 @@ const US_CONDITIONS = [
   ]},
   {id:'backtest',name:'백테스트',phase:'p3',groups:[
     {id:'ta_bt',name:'백테스트 (실시간)',conditions:[
-      {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'200봉 백테스트 총수익률 - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
+      {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'백테스트 총수익률(600봉·분석탭/단일검증과 동일 창) - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
       {id:'_bt_winrate',name:'BT 승률',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'승리 거래 비율 - 50↑=절반 이상 승, 60↑=양호',recommend:'50↑ (균형) / 60↑ (양호)'},
       {id:'_bt_trades',name:'BT 거래수',type:'range',unit:'회',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'총 청산 거래 수 - 너무 적으면 통계 신뢰성 ↓',recommend:'5↑ (최소 신뢰) / 10↑ (안정 통계)'},
       {id:'_bt_mdd',name:'BT MDD',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'최대 낙폭 절대값 - 작을수록 안정 (max로 사용)',recommend:'~15 (안정) / ~25 (보통)'},
