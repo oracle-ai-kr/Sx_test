@@ -56,7 +56,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=520"></script><!-- [S1203] 원장 자동채점 A안 + 시장별 대기 분해 --><!-- [S1179] 그리드 어휘 화력 -->
+<script src="sx_render.js?v=521"></script><!-- [S1204] BT 배지 = 거래수+진입원 --><!-- [S1179] 그리드 어휘 화력 -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
 <script src="sx_candle_knn.js?v=10"></script>
 <script src="sx_candle_lr.js?v=1"></script>
@@ -4612,7 +4612,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=25');   // [S1201] exec_core·cell_data 임포트 추가
+    _scanWorker = new Worker('sx_scan_worker.js?v=26');   // [S1201] exec_core·cell_data 임포트 [S1204] _srcBreak 전송
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
