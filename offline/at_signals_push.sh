@@ -36,6 +36,22 @@ for pair in "kr:snap_kr.json" "us:snap_us.json" "coin:snap_coin.json"; do
   else
     echo "  - $mkt 스냅 갱신 skip → 커밋 스냅 사용"
   fi
+  # [S1193] 청산용 캔들 팩 push (KR·신선 스냅 성공 시) — 워커 청산判定이 CF→네이버 직접 fetch에 의존하지 않게.
+  #   최근 60봉(완성봉) 추출 → PUT /sx/autotrade/candles. 실패해도 신호 파이프라인은 계속(경고만).
+  if [ "$mkt" = "kr" ] && [ "$usesnap" = "$fresh" ]; then
+    node -e '
+const fs=require("fs");const s=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+const out={schema:"sx_candle_pack_v1",asof:s.baseDate,stocks:{}};
+for(const c in s.stocks){const r=s.stocks[c].rows||[];const t=r.slice(-60).map(p=>({time:Date.parse(String(p[0]).slice(0,4)+"-"+String(p[0]).slice(4,6)+"-"+String(p[0]).slice(6,8)+"T00:00:00+09:00"),open:+p[1],high:+p[2],low:+p[3],close:+p[4],volume:+p[5]}));if(t.length>=25)out.stocks[c]=t;}
+fs.writeFileSync("/tmp/candle_pack_kr.json",JSON.stringify(out));console.error("  - kr 캔들팩 "+Object.keys(out.stocks).length+"종 추출");' "$fresh" || echo "  - kr 캔들팩 추출 실패(skip)"
+    if [ -f /tmp/candle_pack_kr.json ]; then
+      pcode=$(curl -sS -o /tmp/pack_resp.json -w "%{http_code}" -X PUT \
+        "$WORKER_BASE/sx/autotrade/candles?mkt=kr" \
+        -H "Content-Type: application/json" -H "x-at-key: $AT_KEY" \
+        --data-binary "@/tmp/candle_pack_kr.json")
+      if [ "$pcode" = "200" ]; then echo "  - kr 캔들팩 PUT ✓"; else echo "  - kr 캔들팩 PUT ✗ HTTP $pcode"; cat /tmp/pack_resp.json || true; fi
+    fi
+  fi
   SNAP="$usesnap" OUT="$out" node "$BUILD" "$mkt"
   code=$(curl -sS -o /tmp/put_resp.json -w "%{http_code}" -X PUT \
     "$WORKER_BASE/sx/autotrade/signals?mkt=$mkt" \
