@@ -727,7 +727,15 @@ async function runAnalysis(stock){
       if (_nd.listedShares && !stock._listedShares) stock._listedShares = _nd.listedShares;
     }
   }
-  const _analCount = (currentMarket==='kr' && window._kisEnabled) ? 500 : 200; // S67: KIS 500봉
+  // [S1207] 분석탭 첫 fetch부터 목표 봉수 — 200→400→600 3회 fetch + runAnalysis 재귀 2회를 폐기.
+  //   〔기존 흐름〕 ①200봉 fetch·렌더 → ②S114가 +200 확장 후 **runAnalysis 재귀**(400봉 재렌더)
+  //                → ③_runEngineVerify가 600으로 또 확장 후 **재귀**(600봉 재렌더). 화면이 3번 그려졌다.
+  //   〔왜 그랬나〕 야후 레이트리밋 시절 설계(S67/S114). KR=네이버 날짜범위·COIN=내부 페이징·
+  //                US=range 단발이라 근거 소멸(S1205에서 BT 경로는 이미 정리).
+  //   〔지금〕 목표를 처음부터 요청 → 재귀 0회. TF 칩이 진입 즉시 600을 표시한다(400 고착 해소).
+  const _analCount = (typeof _btTargetBars === 'function')
+    ? _btTargetBars(currentMarket, _analTF)
+    : ((_analTF === 'week' || _analTF === 'month') ? 400 : 600);
   let indicators = stock._indicators || null;
   // [S371] worker → 메인 전달 시 maAlign 같은 깊은 객체 누락 가능 → 누락 시 재계산 트리거
   //   증상: 전광판 기술지표 섹션에 "이평선 (?)" 표시되며 7단/3단 점수 안 나옴
@@ -1022,54 +1030,12 @@ async function runAnalysis(stock){
         //   원칙: 분석탭 진입 시 항상 400봉 기준 BT 실행 → 거래수 충분히 확보
         // [S168 600봉 통일] 미국 시장 분기 제거 — 한국/코인과 동일한 fetchCandlesExtended 경로 사용
         //   미국도 이제 200봉씩 분할 호출 (period1/period2) → 600봉 확장 가능
-        if(_curStage < 1 && _extSupported && rawRows.length > 0){
-
-          // 시장 통일: 한국/코인/미국 모두 200봉 → 2초 대기 → +200봉 확장
-          if(typeof fetchCandlesExtended === 'function'){
-            console.log(`[S114/S168] ★ 자동 확장 시작 (stage 0 → 1): 시장=${_extMkt}, 현재 ${rawRows.length}봉`);
-            stock._analCandlesExtendedStage = 1;  // 먼저 설정해서 중복 호출 방지
-            stock._analCandlesExtended = true;    // 하위 호환
-
-            try{
-              const _oldestDate = rawRows[0].date;
-              // [S1205] S114 2초 대기 제거 — 야후 봇감지 회피용이었으나 근거 소멸
-              //   (KR=네이버 날짜범위 · COIN=btFetchCandlesCoin 내부 페이징 · US=range 단발)
-              console.log(`[S1205] oldestDate=${_oldestDate}, 확장 API 호출...`);
-              const _extraCandles = await fetchCandlesExtended(stock.code, _analTF, _oldestDate, 200);
-              console.log(`[S114] 확장 API 응답: ${_extraCandles ? _extraCandles.length + '봉' : 'null'}`);
-              if(_extraCandles && _extraCandles.length > 0){
-                console.log(`[S114] 추가 데이터 첫 봉: ${_extraCandles[0].date}, 마지막 봉: ${_extraCandles[_extraCandles.length-1].date}`);
-                // 병합: [과거 200봉, 기존 200봉] = 오래된 순 정렬 유지
-                const _mergedRows = [..._extraCandles, ...rawRows];
-                console.log(`[S114] 병합 완료: ${_extraCandles.length}봉 + ${rawRows.length}봉 = 총 ${_mergedRows.length}봉`);
-
-                // ═══════════════════════════════════════════════════════
-                // S112 방향 3: 확장 후 "분석 + BT 재계산" (정합성 보장)
-                //
-                // 문제: 기존엔 BT만 400봉 재실행, 분석 점수는 200봉 그대로 → 불일치
-                //       (LG에너지솔루션: 분석 12회 vs BT 23회 같은 현상)
-                //
-                // 해결: 확장된 캔들을 stock._lastAnalCandles에 저장 후 runAnalysis 재귀 호출
-                //       재귀 진입 시 _lastAnalCandles 재사용(fetch skip)하여
-                //       calcIndicators → calcEnhancedScores → BT → 모두 새 봉수 기준으로 재계산
-                //       → 분석 점수와 BT 거래 수가 "같은 시간의 같은 캔들" 사용
-                //
-                // 무한 루프 방지: stock._analCandlesExtendedStage = 1 이미 설정됨
-                //                 → 재귀 진입 시 _curStage >= 1 조건으로 확장 재시도 안 함
-                // ═══════════════════════════════════════════════════════
-                stock._lastAnalCandles = _mergedRows.map(c => ({...c})); // 깊은 복사
-                console.log(`[S114/S112] ★ 확장 완료 — runAnalysis 재귀 호출로 분석+BT 재계산 (${_mergedRows.length}봉)`);
-                return runAnalysis(stock); // ← 재귀 호출: 전체 재계산 후 렌더
-              } else {
-                console.log(`[S114] ⚠ 확장 실패 (null 또는 빈 배열) — 기존 데이터 유지`);
-              }
-            }catch(extErr){
-              console.error('[S114] 자동 확장 예외:', extErr);
-              // 에러 시 기존 결과 유지 (그대로 진행)
-            }
-          }
-        } else {
-          console.log(`[S114 DBG] 자동 확장 건너뜀 — stage=${_curStage}, supported=${_extSupported}, rowsLen=${rawRows.length}`);
+        // [S1207] S114 자동확장(+200 후 runAnalysis 재귀) 폐기 — 위 _analCount가 처음부터 목표를 받는다.
+        //   재귀는 화면을 두 번 더 그리고 fetch를 두 번 더 냈다. 되살리지 않는다.
+        stock._analCandlesExtendedStage = rawRows.length>=700?3:(rawRows.length>=600?2:(rawRows.length>=400?1:0));
+        stock._analCandlesExtended = rawRows.length>=400;
+        if(rawRows.length < 400){
+          console.warn(`[S1207] 목표 미달 ${rawRows.length}봉 — fetchCandles가 목표를 못 채웠다(종목 이력 부족 또는 API 부분응답).`);
         }
       }
     }
@@ -13748,7 +13714,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1206';   // [S1179] 칸 그리드에 어휘 화력 병기(그 칸 규칙들이 세는 어휘 수). S1177=2층 구조
+  window.SX_BUILD='S1207';   // [S1179] 칸 그리드에 어휘 화력 병기(그 칸 규칙들이 세는 어휘 수). S1177=2층 구조
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
