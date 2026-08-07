@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-//  sx_exec_core.js · v2 [S1201] — 시즌1/2 공유 실행 SSOT
+//  sx_exec_core.js · v3 [S1210] — 시즌1/2 공유 실행 SSOT
 // ════════════════════════════════════════════════════════════
 //  일원화(b): 시즌2 자동매매 · 시즌1 BT · 시즌1 분석탭 신호가 모두 이 코어를 공유.
 //    진입 = 레시피 votes≥1 (recipe_core _sxRecipeVotesCore)
@@ -88,19 +88,45 @@ function v2SignalAt(mk, ind, rows, i){
     return { cat:t.cat, tier:t.tier||'strict', k:t.k, kStar:t.kStarN, cell:cs.cell, lbl:cs.lbl||null };
   }catch(e){ return null; }
 }
-var SRC_ALL = { recipe:true, bullVol:true, v2:true };   // 기본 = 3원 전부 ON (시즌2 정합)
+var SRC_ALL = { recipe:true, bullVol:true, v2:true, maCross:false };   // 기본 = 3원 전부 ON (시즌2 정합) · [S1210] maCross=후보(미검증·기본 OFF — 명시적 true일 때만 발동, 워커/시즌2 무영향)
 // opts.srcOn = { recipe, bullVol, v2 } — 개별 false로 끄면 그 진입원만 건너뜀(단일검증 토글).
 function entrySignalAt(mk, ind, rows, i, opts){
   var on=(opts&&opts.srcOn)||SRC_ALL;
   var votes=0;
   try{ if(typeof _sxRecipeVotesCore==='function'){ var v=_sxRecipeVotesCore(mk, ind, rows, i); votes=(v&&v.votes)||0; } }catch(_){}
-  if(on.recipe!==false && votes>=1) return { buy:true, votes:votes, src:'recipe' };
-  if(on.bullVol!==false && bullVolAt(mk, ind)) return { buy:true, votes:votes, src:'bullVol' };
+  if(on.recipe!==false && votes>=1) return { buy:true, votes:votes, src:'recipe', cell:cellOfAt(ind,rows,i) };   // [S1210] 전 진입원 칸 각인(진입원×칸 분해용)
+  if(on.bullVol!==false && bullVolAt(mk, ind)) return { buy:true, votes:votes, src:'bullVol', cell:cellOfAt(ind,rows,i) };
   if(on.v2!==false){
     var h=v2SignalAt(mk, ind, rows, i);
-    if(h) return { buy:true, votes:votes, src:'v2', v2Cat:h.cat, v2Tier:h.tier, v2K:h.k, v2Cell:h.cell, v2Lbl:h.lbl };
+    if(h) return { buy:true, votes:votes, src:'v2', v2Cat:h.cat, v2Tier:h.tier, v2K:h.k, v2Cell:h.cell, v2Lbl:h.lbl, cell:h.cell||cellOfAt(ind,rows,i) };
   }
+  if(on.maCross===true && maCrossAt(rows, i, (opts&&opts.cfg)||CFG)) return { buy:true, votes:votes, src:'maCross', cell:cellOfAt(ind,rows,i) };   // [S1210] 후보 — 꼴찌 우선순위(3원이 잡던 거래 불변·남는 구간만 추가) · 기본 OFF
   return { buy:false, votes:votes, src:null };
+}
+
+
+// ══ [S1210] MA5×20 골든크로스 — 후보 진입원(기본 OFF·미검증) ══
+//   가설(희창): 상승추세 칸에서 레거시·v2보다 강한 구간 존재 + 3원이 못 덮는 구멍칸(bull|mixed 등) 커버.
+//   정의 = 청산 데드크로스(evalExitAt)의 정확한 거울: 완성봉 종가 SMA · 직전봉 5≤20 ∧ 현재봉 5>20.
+//   파라미터는 CFG.maFast/maSlow 공유(진입·청산 대칭 5×20 — 한 추세를 크로스로 열고 데드로 닫는다).
+//   ★채택 경로: 단일검증 정찰(진입원×칸 분해) → PREREG 동결 측정(발굴풀+시간분리 OOS·bullVol S1041 선례) → 통과 시에만 시즌2 배선.
+function maCrossAt(rows, i, cfg){
+  cfg = cfg || CFG;
+  try{
+    if(!rows || i==null || i+1 < cfg.maSlow+1) return false;   // 직전봉 SMA까지 필요 → 최소 maSlow+1봉
+    var sc=[]; for(var k=0;k<=i;k++) sc.push(rows[k].close);
+    var a5=sxSMA(sc,cfg.maFast), a20=sxSMA(sc,cfg.maSlow), p5=sxSMA(sc.slice(0,-1),cfg.maFast), p20=sxSMA(sc.slice(0,-1),cfg.maSlow);
+    if(a5==null||a20==null||p5==null||p20==null) return false;
+    return (p5<=p20 && a5>a20);
+  }catch(e){ return false; }
+}
+// [S1210] 진입봉 칸 판정 — 시즌2 S1209 각인·시즌1 3×3과 동일 축(axisGen은 SX_CELL_DATA.meta 추종, _sxCellSignalCore 규약 동일).
+function cellOfAt(ind, rows, i){
+  try{
+    if(typeof _cellKeyOf!=='function') return null;
+    var D=(typeof SX_CELL_DATA!=='undefined')?SX_CELL_DATA:((typeof globalThis!=='undefined'&&globalThis.SX_CELL_DATA)||null);
+    return _cellKeyOf(ind, rows, i, (D&&D.meta&&D.meta.axisGen)||'ma51020');
+  }catch(e){ return null; }
 }
 
 // ── 진입봉 ATR (진입 시 고정될 값) ──
@@ -180,7 +206,8 @@ function runLifecycle(rows, votesAt, opts){
       exitIdx: exitIdx, exitPrice: exitFill, exitDate: rows[exitIdx].date,
       reason: reason, ret: exitFill/entryFill - 1, bars: exitIdx - entryIdx,
       src: (siSig&&siSig.src)||'recipe', votes: (siSig&&siSig.votes)||0,               // [S1201] 진입원 각인
-      v2Cat: (siSig&&siSig.v2Cat)||null, v2Tier: (siSig&&siSig.v2Tier)||null, v2K: (siSig&&siSig.v2K)||null
+      v2Cat: (siSig&&siSig.v2Cat)||null, v2Tier: (siSig&&siSig.v2Tier)||null, v2K: (siSig&&siSig.v2K)||null,
+      cell: (siSig&&siSig.cell)||null                                                   // [S1210] 진입봉 칸(3×3) — 진입원×칸 분해용
     });
     cursor = exitIdx + 1;
   }
@@ -203,10 +230,11 @@ function _tradeStats(trades){
 }
 
 var API = {
-  VERSION: 'S1201', CFG: CFG, SRC_ALL: SRC_ALL,
+  VERSION: 'S1210', CFG: CFG, SRC_ALL: SRC_ALL,
   sxATR: sxATR, sxSMA: sxSMA,
   entrySignalAt: entrySignalAt, entryATRat: entryATRat, evalExitAt: evalExitAt,
   bullVolAt: bullVolAt, v2SignalAt: v2SignalAt,                                        // [S1201]
+  maCrossAt: maCrossAt, cellOfAt: cellOfAt,                                            // [S1210]
   runLifecycle: runLifecycle
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = API;
