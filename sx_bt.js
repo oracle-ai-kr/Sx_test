@@ -74,6 +74,48 @@ function _watchBtKey(market, code){
 //   해결: BT도 KIS 활성 + 국내 시장이면 700봉으로 맞춰 정합 회복.
 //        사용자별 environment 안에서는 분석탭/BT가 항상 같은 데이터 → 정합 보장.
 //   적용 범위: 일봉/분봉. 주봉/월봉은 KIS 무관 400봉(데이터 자체가 길어 충분).
+// ══ [S1205] 캔들 단발 취득 SSOT — 3·4단(200→400→600→700) 확장 전면 폐기 ══
+//   〔이력〕 동일한 3·4단 코드가 **5벌** 복제돼 있었다: _runBtWithExtension · _fetchExtCandles ·
+//           btRunBasic · btRunWf · sx_render _runEngineVerify. 야후 레이트리밋 시절(200봉씩 + 2초 대기) 설계.
+//   〔지금 불필요 — 3시장 모두 단발 가능(실측)〕
+//     KR  : 네이버 /naver/sise?start&end — 날짜범위 요청(dayRange=count×1.8), 페이징 개념 없음
+//     COIN: 업비트 to= 커서 페이징이 btFetchCandlesCoin **내부**에 구현(pages=ceil(count/200))
+//     US  : 야후 range=5y 한 번에 받고 slice(-count)
+//   〔무엇이 나빴나〕 ①진입마다 대기 4~6초 ②길이 검사 없이 확정 → 400봉 고착(S1159 지적)
+//                    ③분석탭/BT/카드가 서로 다른 캐시 → 같은 종목 중복 fetch
+//   〔fetchRows600이 이미 해결〕 목표=_btTargetBars 동일 · 미달 시 시장별 우회 재fetch(S643)
+//     · _len>=목표*0.95만 확정(S1159) · 'mkt|tf|code' 세션 캐시로 실험카드·캔들전이와 공유
+//     · _snapMode 존중(S1080) → 측정 재현성이 BT/분석탭까지 자동 확장
+//   폴백은 btFetchCandles **단발**(대기 없음). 3·4단은 어떤 경우에도 되살리지 않는다.
+async function _btGetRows(stock, tf, targetCount, opts){
+  opts = opts || {};
+  const _mk = (typeof _normalizeMarket==='function') ? _normalizeMarket(currentMarket) : currentMarket;
+  const _valid = (arr) => (typeof _sxIsValidCandle==='function' && Array.isArray(arr)) ? arr.filter(_sxIsValidCandle) : arr;
+  // ① 세션 캐시가 목표 충족 → 즉시
+  if(stock._lastAnalCandles && stock._lastAnalCandles.length >= targetCount){
+    const v=_valid(stock._lastAnalCandles);
+    if(v.length !== stock._lastAnalCandles.length) stock._lastAnalCandles=v;   // [S228] 무결성 유지
+    return v.slice(-targetCount);
+  }
+  // ② fetchRows600 단발
+  let rows=null;
+  if(typeof window!=='undefined' && window.SXCandleBT && SXCandleBT.fetchRows600){
+    try{ rows = await SXCandleBT.fetchRows600(_mk, tf, stock.code); }
+    catch(e){ console.warn('[S1205] fetchRows600 예외', e); rows=null; }
+  }
+  // ③ 폴백 — 단발, 대기 없음
+  if(!rows || !rows.length){
+    if(!opts.quiet) console.warn('[S1205] fetchRows600 실패 → btFetchCandles 단발 폴백');
+    try{ rows = await btFetchCandles(stock.code, (typeof _btIsCoin==='function'?_btIsCoin():currentMarket==='coin'), tf, targetCount); }
+    catch(e2){ rows=null; }
+  }
+  if(!rows || !rows.length) return null;
+  rows=_valid(rows);
+  stock._lastAnalCandles = rows.slice();                                        // 양방향 공유(기존 원칙)
+  stock._analCandlesExtendedStage = rows.length>=700?3:(rows.length>=600?2:(rows.length>=400?1:0));
+  return rows.length > targetCount ? rows.slice(-targetCount) : rows;
+}
+
 function _btTargetBars(market, tf){
   if(tf === 'week' || tf === 'month') return 400;
   const m = (typeof _normalizeMarket === 'function') ? _normalizeMarket(market) : (market || 'kr');
@@ -301,70 +343,9 @@ async function _runBtWithExtension(stock, tf, quiet){
         console.log(`[S110-runBt] ${stock.name||stock.code} 경로B: 이미 충족 (확장 불필요)`);
       }
     }
-    // 경로 C: 캐시 없음 → 새로 3단계 (200 → 400 → 600)
-    else if(_isExtSupported && typeof fetchCandlesExtended === 'function'){
-      console.log(`[S110-runBt] ★ ${stock.name||stock.code} 새 3단계 확장 (목표: ${_targetCount}봉)`);
-      const _first = await btFetchCandles(stock.code, _isCoin, _tf, 200);
-      if(!_first || _first.length === 0) return { ok:false, error:'초기 데이터 로드 실패' };
-      rows = _first;
-      console.log(`[S110-runBt] ${stock.name||stock.code} 1단계 완료: ${rows.length}봉 (btFetchCandles)`);
-
-      if(_targetCount > 200){
-        await _btSleep(2000);
-        try{
-          const _extra1 = await fetchCandlesExtended(stock.code, _tf, rows[0].date || rows[0].t, 200);
-          if(_extra1 && _extra1.length > 0){
-            rows = [..._extra1, ...rows];
-            console.log(`[S110-runBt] ${stock.name||stock.code} 2단계 완료: +${_extra1.length}봉 → ${rows.length}봉`);
-          } else {
-            console.warn(`[S110-runBt] ${stock.name||stock.code} 2단계 실패: fetchCandlesExtended 반환 ${_extra1===null?'null':'빈배열'} · oldestDate=${rows[0].date} · currentMarket=${typeof currentMarket!=='undefined'?currentMarket:'?'}`);
-          }
-        }catch(e){ console.warn(`[S110-runBt] ${stock.name||stock.code} 2단계 예외: ${e.message||e}`); }
-      }
-
-      // [S293] >= 400 → < _targetCount: Yahoo 부분 반환(197봉 등)으로 397봉 시 조건 실패 버그 수정
-      if(_targetCount > 400 && rows.length < _targetCount){
-        await _btSleep(2000);
-        try{
-          const _extra2 = await fetchCandlesExtended(stock.code, _tf, rows[0].date || rows[0].t, 200);
-          if(_extra2 && _extra2.length > 0){
-            rows = [..._extra2, ...rows];
-            console.log(`[S110-runBt] ${stock.name||stock.code} 3단계 완료: +${_extra2.length}봉 → ${rows.length}봉`);
-          } else {
-            console.warn(`[S110-runBt] ${stock.name||stock.code} 3단계 실패: fetchCandlesExtended 반환 ${_extra2===null?'null':'빈배열'} · oldestDate=${rows[0].date}`);
-          }
-        }catch(e){ console.warn(`[S110-runBt] ${stock.name||stock.code} 3단계 예외: ${e.message||e}`); }
-      }
-
-      // [S217] 4단계: 700봉 (KIS 활성 시) — 분석탭과 정합
-      // [S293] >= 600 → < _targetCount 동일 수정
-      if(_targetCount > 600 && rows.length < _targetCount){
-        await _btSleep(2000);
-        try{
-          const _extra3 = await fetchCandlesExtended(stock.code, _tf, rows[0].date || rows[0].t, _targetCount - rows.length);
-          if(_extra3 && _extra3.length > 0){
-            rows = [..._extra3, ...rows];
-            console.log(`[S110-runBt][S217] ${stock.name||stock.code} 4단계 완료: +${_extra3.length}봉 → ${rows.length}봉 (KIS 700봉)`);
-          } else {
-            console.warn(`[S110-runBt][S217] ${stock.name||stock.code} 4단계 실패 — 600봉으로 진행`);
-          }
-        }catch(e){ console.warn(`[S110-runBt][S217] ${stock.name||stock.code} 4단계 예외: ${e.message||e}`); }
-      }
-
-      // stock에 확장 캐시 보존 (다음 재사용용)
-      stock._lastAnalCandles = rows.slice();
-      // [S217+B3] _analCandlesExtendedStage 4단계: 0/1/2/3 (200/400/600/700봉)
-      //   stage=3 = KIS 700봉 모드 (KIS 활성 시 한국 시장 7개월 추가 fetch)
-      //   동일 패턴 6곳에 반복 적용 (364/479/517/1150/1217/2243행 + 1578행 단순 복사)
-      //   〔이력〕 이전: 0/1/2만 정의 → KIS 700봉 달성해도 stage=2로 표시 (수정됨)
-      if(rows.length >= 700) stock._analCandlesExtendedStage = 3;
-      else if(rows.length >= 600) stock._analCandlesExtendedStage = 2;
-      else if(rows.length >= 400) stock._analCandlesExtendedStage = 1;
-    }
-    // 경로 D: 시장 미지원
-    else {
-      const count = (_tf === 'week' || _tf === 'month') ? 400 : 300;
-      rows = await btFetchCandles(stock.code, _isCoin, _tf, count);
+    else {   // [S1205] 3·4단 폐기 → _btGetRows 단발
+      rows = await _btGetRows(stock, _tf, _targetCount, {quiet:true});
+      if(!rows) return { ok:false, error:'캔들 로드 실패' };
     }
 
     if(!rows || rows.length === 0) return { ok:false, error:'캔들 데이터 수집 실패' };
@@ -478,67 +459,10 @@ async function _fetchExtCandles(stock, tf, quiet){
         else if(rows.length >= 400) stock._analCandlesExtendedStage = 1;
       }
     }
-    // 경로 C: 캐시 없음 → 새로 3단계 확장 (200 → 400 → 600)
-    else if(_isExtSupported && typeof fetchCandlesExtended === 'function'){
-      if(!quiet) console.log(`[S113-ext] ★ 새 3단계 확장 시작 (${stock.code}, 목표: ${_targetCount}봉)`);
-      const _first = await btFetchCandles(stock.code, _isCoin, _tf, 200);
-      if(!_first || _first.length === 0) return { ok:false, error:'초기 데이터 로드 실패' };
-      // [S251] 형식 통일 — btFetchCandles는 _btNormalizeRows로 BT 형식({t,o,h,l,c,v}) 반환,
-      //        fetchCandlesExtended는 분석탭 형식({date,open,...,close}) 반환 → 혼합 시 옵티마이저 캐시 손상.
-      //        〔이력〕 옵티마이저 BT 거래 6건 vs 분석탭 BT 18건 차이의 근본 원인.
-      //               idx 400~599(=_first 200봉)의 r.close=undefined → sxRunBtEngine 청산 비교 영구 false → OPEN.
-      //        해결: _first를 분석탭 형식으로 변환해서 _extra1/_extra2와 형식 통일.
-      //        영향 범위: 옵티마이저 _optPreloadCandles만 경로 C 사용 (분석탭은 stock._lastAnalCandles로 경로 B).
-      rows = _first.map(r => ({
-        date: r.date || r.t || '',
-        open: typeof r.open === 'number' ? r.open : (typeof r.o === 'number' ? r.o : 0),
-        high: typeof r.high === 'number' ? r.high : (typeof r.h === 'number' ? r.h : 0),
-        low: typeof r.low === 'number' ? r.low : (typeof r.l === 'number' ? r.l : 0),
-        close: typeof r.close === 'number' ? r.close : (typeof r.c === 'number' ? r.c : 0),
-        volume: typeof r.volume === 'number' ? r.volume : (typeof r.v === 'number' ? r.v : 0)
-      }));
-      if(!quiet) console.log(`[S251] _first 형식 통일: ${_first.length}봉 (BT형식 → 분석탭형식)`);
-
-      if(_targetCount > 200){
-        await _btSleep(2000);
-        try{
-          const _extra1 = await fetchCandlesExtended(stock.code, _tf, rows[0].date || rows[0].t, 200);
-          if(_extra1 && _extra1.length > 0) rows = [..._extra1, ...rows];
-        }catch(e){}
-      }
-
-      // [S293] >= 400 조건 → < _targetCount 로 변경: Yahoo가 197봉 등 부분 반환 시 397봉으로
-      //        기존 조건 실패하던 버그 수정 (해외 일봉 397봉에서 멈추는 문제)
-      if(_targetCount > 400 && rows.length < _targetCount){
-        await _btSleep(2000);
-        try{
-          const _extra2 = await fetchCandlesExtended(stock.code, _tf, rows[0].date || rows[0].t, 200);
-          if(_extra2 && _extra2.length > 0) rows = [..._extra2, ...rows];
-        }catch(e){}
-      }
-
-      // [S217] 4단계: 700봉 (KIS 활성 시) — 분석탭과 정합
-      // [S293] >= 600 → < _targetCount 동일 수정
-      if(_targetCount > 600 && rows.length < _targetCount){
-        await _btSleep(2000);
-        try{
-          const _extra3 = await fetchCandlesExtended(stock.code, _tf, rows[0].date || rows[0].t, _targetCount - rows.length);
-          if(_extra3 && _extra3.length > 0) rows = [..._extra3, ...rows];
-        }catch(e){}
-      }
-
-      // 확장 결과 세션 캐시에 보존 (다른 모듈 재사용용)
-      stock._lastAnalCandles = rows.slice();
-      if(rows.length >= 700) stock._analCandlesExtendedStage = 3;
-      else if(rows.length >= 600) stock._analCandlesExtendedStage = 2;
-      else if(rows.length >= 400) stock._analCandlesExtendedStage = 1;
+    else {   // [S1205] 3·4단 폐기 → _btGetRows 단발
+      rows = await _btGetRows(stock, _tf, _targetCount, {quiet:quiet});
+      if(!rows) return null;
       if(!quiet) console.log(`[S113-ext] 3단계 완료: ${rows.length}봉 (${stock.code})`);
-    }
-    // 경로 D: 시장 미지원 (해외 등) — 단일 fetch
-    else {
-      const count = (_tf === 'week' || _tf === 'month') ? 400 : 300;
-      rows = await btFetchCandles(stock.code, _isCoin, _tf, count);
-      if(!quiet) console.log(`[S113-ext] 시장 미지원 — 단일 fetch: ${rows?.length||0}봉 (${stock.code})`);
     }
 
     if(!rows || rows.length === 0) return { ok:false, error:'캔들 데이터 수집 실패' };
@@ -1350,135 +1274,20 @@ async function btRunBasic(){
     };
     _validateLastAnalCandles();
 
-    // 경로 A: 분석탭에서 이미 확장된 캐시 재사용 (즉시 가능)
-    if(_isExtSupported && stock._lastAnalCandles && stock._lastAnalCandles.length >= _targetCount){
-      rows = stock._lastAnalCandles.slice(-_targetCount); // 최신 _targetCount봉만
-      progFill.style.width='50%'; progText.textContent=`확장 캐시 재사용 (${rows.length}봉)...`;
-      await _btSleep(50);
-      console.log(`[S109-9b] ★ 캐시 재사용: ${rows.length}봉 (분석탭 확장 결과)`);
-    }
-    // 경로 B: 분석탭에서 일부 확장됨 (_lastAnalCandles 400봉 등) + 시장 지원
-    else if(_isExtSupported && stock._lastAnalCandles && stock._lastAnalCandles.length >= 200 && typeof fetchCandlesExtended === 'function'){
-      progFill.style.width='15%'; progText.textContent=`기존 데이터 로드 (${stock._lastAnalCandles.length}봉)...`;
-      const _existing = stock._lastAnalCandles.slice(); // 복사
-      const _needed = _targetCount - _existing.length;
-      if(_needed > 0){
-        progFill.style.width='30%'; progText.textContent=`추가 ${_needed}봉 로드 중... (2초 대기)`;
-        try{
-          const _oldestDate = _existing[0].date;
-          console.log(`[S109-9b] ★ 부분 캐시 확장: ${_existing.length}봉 → ${_targetCount}봉 (추가 ${_needed}봉)`);
-          const _extra = await fetchCandlesExtended(stock.code, _btTFVal, _oldestDate, _needed);
-          if(_extra && _extra.length > 0){
-            rows = [..._extra, ..._existing];
-            console.log(`[S109-9b] ✅ 병합 완료: ${_extra.length} + ${_existing.length} = ${rows.length}봉`);
-          } else {
-            console.warn(`[S109-9b] ⚠ 확장 실패 — 기존 ${_existing.length}봉으로 BT 실행`);
-            rows = _existing;
-          }
-        }catch(extErr){
-          console.warn('[S109-9b] 확장 예외:', extErr);
-          rows = _existing;
-        }
-      } else {
-        rows = _existing;
-      }
-      // ═══════════════════════════════════════════════════════
-      // S112-fix1: 경로 B에서 _lastAnalCandles 업데이트 누락 버그 수정
-      //
-      // 문제: 분석탭 자동 확장으로 400봉 → 단일검증 경로 B (400+200=600봉 확장)
-      //       → rows(지역변수)는 600봉이지만 stock._lastAnalCandles는 400봉 그대로
-      //       → 분석탭 재진입 시 400봉 재사용 → 단일검증 결과와 불일치
-      //       (카카오뱅크 케이스: 분석탭 거래 10회 vs 단일검증 16회)
-      //
-      // 해결: 확장된 rows를 stock._lastAnalCandles에 동기화
-      //       → 양방향 공유 완성 (경로 A/C와 일관)
-      //       → 분석탭 재진입 시 확장된 봉수 재사용
-      //       → 분석 + BT + 단일검증 모두 같은 봉수로 정합
-      //
-      // ═══════════════════════════════════════════════════════
-      if(rows && rows.length > _existing.length){
-        stock._lastAnalCandles = rows.slice();
-        if(rows.length >= 700) stock._analCandlesExtendedStage = 3;
-        else if(rows.length >= 600) stock._analCandlesExtendedStage = 2;
-        else if(rows.length >= 400) stock._analCandlesExtendedStage = 1;
-        console.log(`[S112-fix1] ★ 경로 B 확장 결과 세션 공유 저장: ${rows.length}봉 (stage ${stock._analCandlesExtendedStage})`);
-      }
-    }
-    // 경로 C: 캐시 없음 + 시장 지원 → 새로 3단계 확장
-    else if(_isExtSupported && typeof fetchCandlesExtended === 'function'){
-      progFill.style.width='10%'; progText.textContent='1단계: 200봉 로드 중...';
-      console.log(`[S109-9b] ★ 새 3단계 확장 시작 (목표: ${_targetCount}봉)`);
-      const _first = await btFetchCandles(stock.code, _btIsCoin(), _btTFVal, 200);
-      if(!_first || _first.length === 0){
-        throw new Error('초기 데이터 로드 실패');
-      }
-      rows = _first;
-      console.log(`[S109-9b] 1단계 완료: ${rows.length}봉`);
-
-      if(_targetCount > 200){
-        // 2단계: 400봉
-        progFill.style.width='30%'; progText.textContent=`2단계: 400봉 확장 중... (2초 대기)`;
-        await _btSleep(2000);
-        try{
-          const _oldestDate1 = rows[0].date;
-          const _extra1 = await fetchCandlesExtended(stock.code, _btTFVal, _oldestDate1, 200);
-          if(_extra1 && _extra1.length > 0){
-            rows = [..._extra1, ...rows];
-            console.log(`[S109-9b] 2단계 완료: ${rows.length}봉`);
-          } else {
-            console.warn(`[S109-9b] 2단계 실패 — ${rows.length}봉으로 진행`);
-          }
-        }catch(e1){ console.warn('[S109-9b] 2단계 예외:', e1); }
-      }
-
-      // [S293] >= 400 → < _targetCount: Yahoo 부분 반환 버그 수정
-      if(_targetCount > 400 && rows.length < _targetCount){
-        // 3단계: 600봉
-        progFill.style.width='50%'; progText.textContent=`3단계: 600봉 확장 중... (2초 대기)`;
-        await _btSleep(2000);
-        try{
-          const _oldestDate2 = rows[0].date;
-          const _extra2 = await fetchCandlesExtended(stock.code, _btTFVal, _oldestDate2, 200);
-          if(_extra2 && _extra2.length > 0){
-            rows = [..._extra2, ...rows];
-            console.log(`[S109-9b] 3단계 완료: ${rows.length}봉`);
-          } else {
-            console.warn(`[S109-9b] 3단계 실패 — ${rows.length}봉으로 진행`);
-          }
-        }catch(e2){ console.warn('[S109-9b] 3단계 예외:', e2); }
-      }
-
-      // [S217] 4단계: 700봉 (KIS 활성 시) — 분석탭과 정합
-      // [S293] >= 600 → < _targetCount 동일 수정
-      if(_targetCount > 600 && rows.length < _targetCount){
-        progFill.style.width='65%'; progText.textContent=`4단계: 700봉 확장 중... (2초 대기)`;
-        await _btSleep(2000);
-        try{
-          const _oldestDate3 = rows[0].date;
-          const _extra3 = await fetchCandlesExtended(stock.code, _btTFVal, _oldestDate3, _targetCount - rows.length);
-          if(_extra3 && _extra3.length > 0){
-            rows = [..._extra3, ...rows];
-            console.log(`[S109-9b][S217] 4단계 완료: ${rows.length}봉 (KIS 700봉)`);
-          } else {
-            console.warn(`[S109-9b][S217] 4단계 실패 — ${rows.length}봉으로 진행`);
-          }
-        }catch(e3){ console.warn('[S109-9b][S217] 4단계 예외:', e3); }
-      }
-
-      // 확장 결과를 stock._lastAnalCandles에 보존 (분석탭 재진입 시 재사용 가능)
-      stock._lastAnalCandles = rows.slice();
-      // stage 플래그도 업데이트 (200→1, 400→2, 600+→2 clamp)
-      if(rows.length >= 700) stock._analCandlesExtendedStage = 3;
-      else if(rows.length >= 600) stock._analCandlesExtendedStage = 2;
-      else if(rows.length >= 400) stock._analCandlesExtendedStage = 1;
-    }
-    // 경로 D: 시장 미지원 (us 등) — 기존 300~400봉 단일 fetch
-    else {
-      const count = (_btTFVal === 'week' || _btTFVal === 'month') ? 400 : 300;
-      progFill.style.width='30%'; progText.textContent=`${count}봉 로드 중...`;
-      rows = await btFetchCandles(stock.code, _btIsCoin(), _btTFVal, count);
-      console.log(`[S109-9b] 시장 미지원 — 단일 fetch: ${rows?.length||0}봉`);
-    }
+    // ══ [S1205] 4단(200→400→600→700) 확장 폐기 → fetchRows600 단발 ══
+    //   〔왜 3·4단이 있었나〕 야후(US) 레이트리밋 시절 설계. 200봉씩 끊어 받고 사이에 2초씩 쉬었다.
+    //   〔지금은 불필요 — 3시장 전부 단발 가능(실측)〕
+    //     KR   : 네이버 /naver/sise?start&end — 날짜범위 요청(dayRange=count×1.8). 페이징 개념 없음
+    //     COIN : 업비트 to= 커서 페이징이 btFetchCandlesCoin **내부**에 이미 구현(pages=ceil(count/200))
+    //     US   : 야후 range=5y를 한 번에 받고 slice(-count). 분할 안 함
+    //   〔무엇이 나빴나〕 ①진입마다 대기 4~6초 ②길이 검사 없이 확정 → **400봉 고착**(S1159가 지적)
+    //     ③분석탭/BT/실험카드가 각자 다른 캐시를 써 같은 종목을 중복 fetch
+    //   〔fetchRows600이 이미 고쳐둔 것〕 목표=_btTargetBars 동일 · 1차 미달 시 시장별 우회 재fetch(S643)
+    //     · _len>=목표*0.95만 확정(S1159) · mkt|tf|code 세션 캐시 → 실험카드·캔들전이와 **캐시 공유**
+    //     · _snapMode 존중(S1080) → 측정 재현성이 분석탭/BT까지 자동 확장
+    //   폴백: fetchRows600 미로드/실패 시에만 btFetchCandles 단발(대기 없음). 3·4단은 되살리지 않는다.
+    progFill.style.width='20%'; progText.textContent=`캔들 ${_targetCount}봉 로드 중...`;
+    rows = await _btGetRows(stock, _btTFVal, _targetCount);   // [S1205] 단발 SSOT
 
     if(!rows || rows.length === 0){
       throw new Error('캔들 데이터 수집 실패');
@@ -2184,63 +1993,10 @@ async function btRunWf(){
         rows = _existing;
       }
     }
-    // 경로 C: 캐시 없음 → 새로 3단계 확장
-    else if(_isExtSupported && typeof fetchCandlesExtended === 'function'){
-      progFill.style.width='10%'; progText.textContent='1단계: 200봉 로드 중...';
-      console.log(`[S109-9b] ★ 학습검증 새 3단계 확장 (목표: ${_targetCount}봉)`);
-      const _first = await btFetchCandles(stock.code, _btIsCoin(), _btTFVal, 200);
-      if(!_first || _first.length === 0) throw new Error('초기 데이터 로드 실패');
-      rows = _first;
-
-      if(_targetCount > 200){
-        progFill.style.width='25%'; progText.textContent=`2단계: 400봉 확장 중... (2초 대기)`;
-        await _btSleep(2000);
-        try{
-          const _extra1 = await fetchCandlesExtended(stock.code, _btTFVal, rows[0].date, 200);
-          if(_extra1 && _extra1.length > 0){
-            rows = [..._extra1, ...rows];
-            console.log(`[S109-9b] 2단계 완료: ${rows.length}봉`);
-          }
-        }catch(e){}
-      }
-
-      // [S293] >= 400 → < _targetCount: Yahoo 부분 반환 버그 수정
-      if(_targetCount > 400 && rows.length < _targetCount){
-        progFill.style.width='40%'; progText.textContent=`3단계: 600봉 확장 중... (2초 대기)`;
-        await _btSleep(2000);
-        try{
-          const _extra2 = await fetchCandlesExtended(stock.code, _btTFVal, rows[0].date, 200);
-          if(_extra2 && _extra2.length > 0){
-            rows = [..._extra2, ...rows];
-            console.log(`[S109-9b] 3단계 완료: ${rows.length}봉`);
-          }
-        }catch(e){}
-      }
-
-      // [S217] 4단계: 700봉 (KIS 활성 시)
-      // [S293] >= 600 → < _targetCount 동일 수정
-      if(_targetCount > 600 && rows.length < _targetCount){
-        progFill.style.width='55%'; progText.textContent=`4단계: 700봉 확장 중... (2초 대기)`;
-        await _btSleep(2000);
-        try{
-          const _extra3 = await fetchCandlesExtended(stock.code, _btTFVal, rows[0].date, _targetCount - rows.length);
-          if(_extra3 && _extra3.length > 0){
-            rows = [..._extra3, ...rows];
-            console.log(`[S109-9b][S217] 4단계 완료: ${rows.length}봉 (KIS 700봉)`);
-          }
-        }catch(e){}
-      }
-
-      stock._lastAnalCandles = rows.slice();
-      if(rows.length >= 700) stock._analCandlesExtendedStage = 3;
-      else if(rows.length >= 600) stock._analCandlesExtendedStage = 2;
-      else if(rows.length >= 400) stock._analCandlesExtendedStage = 1;
-    }
-    // 경로 D: 시장 미지원
-    else {
-      const count = (_btTFVal === 'week' || _btTFVal === 'month') ? 400 : 300;
-      progFill.style.width='30%'; progText.textContent=`${count}봉 로드 중...`;
-      rows = await btFetchCandles(stock.code, _btIsCoin(), _btTFVal, count);
+    else {   // [S1205] 3·4단 폐기 → _btGetRows 단발
+      progFill.style.width='30%'; progText.textContent=`캔들 ${_targetCount}봉 로드 중...`;
+      rows = await _btGetRows(stock, _btTFVal, _targetCount);
+      if(!rows) throw new Error('캔들 데이터 수집 실패');
     }
 
     if(!rows || rows.length === 0) throw new Error('캔들 데이터 수집 실패');
