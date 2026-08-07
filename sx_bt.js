@@ -710,6 +710,30 @@ function _btRegimeBreakdown(rows, trades){
   ['bull','up','side','down'].forEach(function(rg){ var s=_btHistCalcStats(B[rg]); if(s){ out[rg]=s; any=true; } });
   return any ? out : null;
 }
+// [S1201] 진입원별 분해 렌더 — 시즌2 3원(recipe/bullVol/v2)이 각각 몇 건을 잡고 얼마를 벌었나.
+//   합계와 갈라 보는 이유: v2는 in-sample이라 총계에 섞이면 BT 전체가 낙관 편향된다.
+function _btRenderSrcBreak(sb, on){
+  if(!sb) return '';
+  const ks=['recipe','bullVol','v2'].filter(k=>sb[k]&&sb[k].n>0);
+  if(!ks.length) return '';
+  const rows=ks.map(k=>{ const m=_BT_SRC_META[k], d=sb[k];
+    const pc=d.pnl>=0?'#22c55e':'#e8365a', wc=d.win>=60?'#22c55e':(d.win>=40?'#3b82f6':'#f97316');
+    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid var(--border)">
+      <span style="font-size:10.5px;font-weight:800;color:${m.c};min-width:96px">${m.ic} ${m.lbl}</span>
+      <span style="font-size:10px;color:var(--text2)">${d.n}건</span>
+      <span style="font-size:10px;font-weight:700;color:${wc}">승률 ${d.win}%</span>
+      <span style="font-size:10px;color:var(--text3)">평균 ${d.avg>=0?'+':''}${d.avg}%</span>
+      <span style="margin-left:auto;font-size:11px;font-weight:800;color:${pc}">${d.pnl>=0?'+':''}${d.pnl}%</span>
+    </div>`; }).join('');
+  const offs=['recipe','bullVol','v2'].filter(k=>on&&on[k]===false).map(k=>_BT_SRC_META[k].lbl);
+  return `<div class="bt-card" style="margin-top:8px">
+    <div class="bt-card-title">🧬 진입원별 분해 <span style="font-size:10px;font-weight:500;color:var(--text3)">(시즌2 3원 · 상호배타 recipe&gt;bullVol&gt;v2)</span></div>
+    ${rows}
+    ${sb.v2&&sb.v2.n>0?'<div style="font-size:9px;color:#b45309;line-height:1.55;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)">⚠ <b>V2 어휘규칙은 발굴풀 in-sample</b>(SX_CELL_DATA.meta.caveat). 이 BT는 규칙을 만든 과거를 다시 도는 것이라 v2 성과는 <b>검증이 아니라 재현</b>이다. 정직한 판정은 시즌2 paper(전진검증=시간축 OOS)의 [V2] 가계부.</div>':''}
+    ${offs.length?`<div style="font-size:9px;color:var(--text3);margin-top:4px">· 꺼둔 진입원: ${offs.join(' · ')}</div>`:''}
+  </div>`;
+}
+
 // [S544] 레짐별 BT 통계 렌더 (단일검증 BT 카드 하단)
 function _btRenderRegime(rb){
   if(!rb) return '';
@@ -1198,8 +1222,40 @@ function btGetOpts(){
   //     [S1092] 레짐 보정 철거 — 임계값 가산 자체가 제거됨.
   //     적용 범위: sx_bt.js 모든 경로(단일검증/관심종목 BT/교차검증/워크포워드/대시보드).
   //     옵티마이저는 별개 호출(sx_optimizer.js에서 직접 true 전달) → 영향 없음.
-  return { slippage:slip, applyRegimeAdjust:true };
+  return { slippage:slip, applyRegimeAdjust:true, entrySrc:_btEntrySrc() };   // [S1201] 진입원 3원 토글 동봉
 }
+
+// ══ [S1201] 진입원 토글 — 시즌2와 정합(recipe>bullVol>v2 상호배타). 기본 3원 전부 ON. ══
+//   ★v2는 in-sample(SX_CELL_DATA.meta.caveat)이라 BT 성과가 오르는 건 검증이 아니라 재현.
+//     끄고 켜며 "v2가 몇 건을 더 잡는가"를 보는 용도 — 결과 카드에 src별로 갈라 표기한다.
+const SX_BT_SRC_KEY='SX_BT_ENTRY_SRC_v1';
+function _btEntrySrc(){
+  const d={ recipe:true, bullVol:true, v2:true };
+  try{ const raw=localStorage.getItem(SX_BT_SRC_KEY); if(raw){ const o=JSON.parse(raw);
+    ['recipe','bullVol','v2'].forEach(k=>{ if(typeof o[k]==='boolean') d[k]=o[k]; }); } }catch(_){}
+  return d;
+}
+function btToggleEntrySrc(k){
+  const st=_btEntrySrc(); st[k]=!st[k];
+  if(!st.recipe && !st.bullVol && !st.v2){ toast('진입원을 전부 끌 수는 없습니다'); return; }
+  try{ localStorage.setItem(SX_BT_SRC_KEY, JSON.stringify(st)); }catch(_){}
+  _btRenderEntrySrcBar();
+}
+const _BT_SRC_META={
+  recipe:{ ic:'📊', lbl:'레시피 votes≥1', c:'#e8365a', tip:'시즌2 기본 진입 [S948]. 레시피 투표 1표 이상.' },
+  bullVol:{ ic:'🔊', lbl:'bullVol', c:'#7c3aed', tip:'[S1041] KR 전용 · 하락장×강세 + 거래량OSC≥73.31 & VR≥389.41. 시즌2 held-out 통과.' },
+  v2:{ ic:'🧬', lbl:'V2 어휘규칙', c:'#0891b2', tip:'[S1178→S1180] 칸 규칙 real-kind hit. ⚠발굴풀 in-sample 적합 — BT 성과는 검증이 아니라 재현.' }
+};
+function _btRenderEntrySrcBar(){
+  const el=document.getElementById('btEntrySrcBar'); if(!el) return;
+  const st=_btEntrySrc();
+  el.innerHTML='<span style="font-size:10px;font-weight:800;color:var(--text3);margin-right:2px">진입원</span>'
+    + ['recipe','bullVol','v2'].map(k=>{ const m=_BT_SRC_META[k], on=st[k];
+        return `<span onclick="_sxVib(10);btToggleEntrySrc('${k}')" title="${m.tip}" style="font-size:10px;font-weight:800;padding:4px 10px;border-radius:13px;border:1px solid ${m.c}${on?'':'55'};cursor:pointer;${on?`background:${m.c};color:#fff`:`background:transparent;color:${m.c}`}">${m.ic} ${m.lbl} ${on?'ON':'OFF'}</span>`;
+      }).join('')
+    + (st.v2?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">⚠ V2 규칙은 발굴풀 <b>in-sample</b> — 이 BT에서 오르는 건 검증이 아니라 재현이다. 정직한 판정은 시즌2 paper(시간축 OOS).</div>':'');
+}
+if(typeof window!=='undefined'){ window.btToggleEntrySrc=btToggleEntrySrc; window._btRenderEntrySrcBar=_btRenderEntrySrcBar; window._btEntrySrc=_btEntrySrc; }
 
 // ── 현재 분석 종목 가져오기 ──
 function _btCurrentStock(){
@@ -1620,6 +1676,7 @@ function btRenderBasicResult(stock, r){
   </div>`;
   // [S544] 레짐별 성과 (현재 파라미터가 불장/상승장/횡보장/하락장에서 어떻게 변하는지)
   html += _btRenderRegime(r._regimeBuckets);
+  html += _btRenderSrcBreak(r._srcBreak, r._entrySrc);   // [S1201] 진입원별 분해
 
   // ═══════════════════════════════════════════════════════════════
   // [S240] 자산 흐름 시뮬레이션 — 가상 초기자본 100만원 기준
