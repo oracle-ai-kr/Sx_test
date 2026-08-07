@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-//  sx_exec_core.js · v1 [S1017] — 시즌1/2 공유 실행 SSOT
+//  sx_exec_core.js · v2 [S1201] — 시즌1/2 공유 실행 SSOT
 // ════════════════════════════════════════════════════════════
 //  일원화(b): 시즌2 자동매매 · 시즌1 BT · 시즌1 분석탭 신호가 모두 이 코어를 공유.
 //    진입 = 레시피 votes≥1 (recipe_core _sxRecipeVotesCore)
@@ -49,10 +49,58 @@ function _dateDays(d){
 
 // ── 진입 신호: 레시피 votes≥1 ──
 //   recipe_core 로드 필요(_sxRecipeVotesCore 전역). 미로드=fail-safe(진입 안 함).
-function entrySignalAt(mk, ind, rows, i){
+// ══ [S1201] 시즌2 진입 3원화 미러 ══
+//   시즌2 sig_runner_s927.js(87~97)의 상호배타 우선순위를 그대로 복제: recipe > bullVol > v2 (검증강도순).
+//   〔이력〕 코어 v1(S1017)은 votes≥1 단일 진입만 재현 → bullVol(S1041)·v2 어휘규칙(S1180)이 라이브에만
+//           있고 BT엔 없어 시즌1 단일검증이 시즌2와 **두 세대** 어긋나 있었음. 이 배선으로 정합 복구.
+//   ★정직: v2 규칙(SX_CELL_DATA.meta.caveat)은 발굴풀 **in-sample 적합**. 시즌2 paper는 시간축 OOS라
+//           정직하지만, BT는 규칙을 만든 과거를 다시 도는 것 → BT의 v2 성과는 검증이 아니라 재현이다.
+//           화면(단일검증 결과 카드)에 src별 분리 + in-sample 경고 병기 필수.
+function _ltBearCore(ind){
+  try{
+    if(typeof _ltStr733==='function') return _ltStr733(ind&&ind.maAlignLT)==='bear';
+    var lt=ind&&ind.maAlignLT; return !!(lt&&lt.gateOn&&lt.bearish);
+  }catch(e){ return false; }
+}
+// bullVol [S1041] — sig_runner bullVolSignal verbatim. KR 전용(US/COIN 부호 반대라 미적용).
+function bullVolAt(mk, ind){
+  try{
+    if(mk!=='kr') return false;
+    if(!ind||!ind.maAlign||!ind.maAlign.bullish) return false;         // 강세(단기 5>20>60)
+    if(!_ltBearCore(ind)) return false;                                // 하락장(장기 60<120<200)
+    if(typeof ind.volOsc!=='number'||ind.volOsc<73.31) return false;   // 거래량OSC
+    if(typeof ind.vr!=='number'||ind.vr<389.41) return false;          // VR
+    return true;
+  }catch(e){ return false; }
+}
+// v2 어휘규칙 [S1178→S1180] — real-kind hit만 매수 후보(DOWN·FAKE 매수투표 금지 · S1102 §8-3).
+//   strict(강) 우선 → k 내림차 = sig_runner 정렬 동일.
+//   btMode:true → 활동층(act) 스킵. BT는 봉마다 부르므로 전 카테고리 순회(어휘 1,247) 비용을 뺀다.
+function v2SignalAt(mk, ind, rows, i){
+  try{
+    if(typeof _sxCellSignalCore!=='function') return null;
+    var cs=_sxCellSignalCore(mk, ind, rows, i, { btMode:true });
+    if(!cs||!Array.isArray(cs.sig)) return null;
+    var buy=cs.sig.filter(function(s){ return s && s.hit && s.kind==='real'; })
+      .sort(function(a,b){ return ((a.tier==='strict'?0:1)-(b.tier==='strict'?0:1))||(b.k-a.k); });
+    if(!buy.length) return null;
+    var t=buy[0];
+    return { cat:t.cat, tier:t.tier||'strict', k:t.k, kStar:t.kStarN, cell:cs.cell, lbl:cs.lbl||null };
+  }catch(e){ return null; }
+}
+var SRC_ALL = { recipe:true, bullVol:true, v2:true };   // 기본 = 3원 전부 ON (시즌2 정합)
+// opts.srcOn = { recipe, bullVol, v2 } — 개별 false로 끄면 그 진입원만 건너뜀(단일검증 토글).
+function entrySignalAt(mk, ind, rows, i, opts){
+  var on=(opts&&opts.srcOn)||SRC_ALL;
   var votes=0;
   try{ if(typeof _sxRecipeVotesCore==='function'){ var v=_sxRecipeVotesCore(mk, ind, rows, i); votes=(v&&v.votes)||0; } }catch(_){}
-  return { buy: votes>=1, votes: votes };
+  if(on.recipe!==false && votes>=1) return { buy:true, votes:votes, src:'recipe' };
+  if(on.bullVol!==false && bullVolAt(mk, ind)) return { buy:true, votes:votes, src:'bullVol' };
+  if(on.v2!==false){
+    var h=v2SignalAt(mk, ind, rows, i);
+    if(h) return { buy:true, votes:votes, src:'v2', v2Cat:h.cat, v2Tier:h.tier, v2K:h.k, v2Cell:h.cell, v2Lbl:h.lbl };
+  }
+  return { buy:false, votes:votes, src:null };
 }
 
 // ── 진입봉 ATR (진입 시 고정될 값) ──
@@ -105,7 +153,13 @@ function runLifecycle(rows, votesAt, opts){
   while(cursor < N - 1 - tailPad){
     // 진입 스캔
     var si = -1;
-    for(var k=cursor; k < N-1-tailPad; k++){ if((votesAt(k)||0) >= 1){ si = k; break; } }
+    // [S1201] votesAt 콜백은 숫자(구) 또는 {buy,src,...}(신) 둘 다 허용 — 하위호환.
+    var siSig=null;
+    for(var k=cursor; k < N-1-tailPad; k++){
+      var _sg=votesAt(k), _ok;
+      if(_sg && typeof _sg==='object'){ _ok=!!_sg.buy; } else { _ok=((_sg||0)>=1); }
+      if(_ok){ si=k; siSig=(_sg&&typeof _sg==='object')?_sg:{ src:'recipe', votes:(_sg||0) }; break; }
+    }
     if(si < 0) break;
     var entryIdx = (entryMode === 'nextOpen') ? si+1 : si;
     var rawEntry = (entryMode === 'nextOpen') ? rows[entryIdx].open : rows[entryIdx].close;
@@ -124,7 +178,9 @@ function runLifecycle(rows, votesAt, opts){
     trades.push({
       entryIdx: entryIdx, entryPrice: entryFill, entryDate: rows[entryIdx].date,
       exitIdx: exitIdx, exitPrice: exitFill, exitDate: rows[exitIdx].date,
-      reason: reason, ret: exitFill/entryFill - 1, bars: exitIdx - entryIdx
+      reason: reason, ret: exitFill/entryFill - 1, bars: exitIdx - entryIdx,
+      src: (siSig&&siSig.src)||'recipe', votes: (siSig&&siSig.votes)||0,               // [S1201] 진입원 각인
+      v2Cat: (siSig&&siSig.v2Cat)||null, v2Tier: (siSig&&siSig.v2Tier)||null, v2K: (siSig&&siSig.v2K)||null
     });
     cursor = exitIdx + 1;
   }
@@ -147,12 +203,18 @@ function _tradeStats(trades){
 }
 
 var API = {
-  VERSION: 'S1017', CFG: CFG,
+  VERSION: 'S1201', CFG: CFG, SRC_ALL: SRC_ALL,
   sxATR: sxATR, sxSMA: sxSMA,
   entrySignalAt: entrySignalAt, entryATRat: entryATRat, evalExitAt: evalExitAt,
+  bullVolAt: bullVolAt, v2SignalAt: v2SignalAt,                                        // [S1201]
   runLifecycle: runLifecycle
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = API;
-if(typeof window !== 'undefined') window.SXExecCore = API;
+// [S1201·버그] 구: window 전용 export → **워커에선 SXExecCore가 항상 undefined**.
+//   sxRunBtEngine이 `if(!EC) return {error:'sx_exec_core 미로드'}` 하고,
+//   워커는 `if(btResult && !btResult.error)`로 조용히 건너뜀 → 조건검색 BT 배지·P&L 필터가
+//   S1018(코어 도입) 이후 **줄곧 죽어 있었다**. globalThis로 바꿔 window/self 양쪽 커버.
+if(typeof globalThis !== 'undefined') globalThis.SXExecCore = API;
+else if(typeof window !== 'undefined') window.SXExecCore = API;
 
 })();
