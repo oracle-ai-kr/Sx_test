@@ -1899,7 +1899,7 @@ function _ctConfidence(score, market, sbFired, regime){
   if(mk === 'kr') return { label:'예측력 약함 (KR)', color:'#6b7280', why:'KR은 전 레짐에서 음봉 baseline 미달 — 다음봉 색 예측이 잘 통하지 않음 (차후 전용 로직 예정)' };
   // 음봉 (coin/us) — 현재 레짐별 신뢰 (바스켓 실측: 코인은 하락장, US는 횡보·하락장에서 음봉이 통함 / 불장·상승장은 약함)
   var rg = regime || 'side';
-  var RGL = ({ bull:'불장', up:'상승장', side:'횡보장', down:'하락장' })[rg] || '중립';
+  var RGL = ({ bull:'불장', up:'상승장', side:'횡보장', down:'하락장', crash:'폭락장' })[rg] || '중립';   // [S1217]
   var REL = {
     coin: { down:'high', up:'mid', side:'low', bull:'low' },
     us:   { down:'high', side:'high', up:'low', bull:'low' }
@@ -2559,7 +2559,7 @@ function _cbSectionHtml(market){
   if(open){
     body+=`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:6px 0"><span style="font-size:9px;font-weight:800;color:var(--text3)">모드</span>${_mChip(mode==='off','OFF','off')}${_mChip(mode==='one','선택 칸만','one')}${_mChip(mode==='all','9칸 라우팅','all')}</div>`;
     const _ORD=['bull','bear','mixed'];   // [S1121] 칸 사다리 v2와 동일 배치: 열=장기(상승장/하락장/횡보장)·행=단기(강세/약세/중립)·키=단기|장기 불변
-    const _LTL={bull:'상승장',bear:'하락장',mixed:'횡보장'}, _STL={bull:'강세',bear:'약세',mixed:'중립'};
+    const _LTL={bull:'상승세',bear:'하락세',mixed:'혼조세'}, _STL={bull:'강세',bear:'약세',mixed:'중립'};   // [S1217]
     let g=`<div style="display:grid;grid-template-columns:34px repeat(3,1fr);gap:3px;margin-bottom:6px;max-width:300px">`;
     g+=`<div></div>`+_ORD.map(l=>`<div style="font-size:8.5px;font-weight:800;color:var(--text3);text-align:center">${_LTL[l]}</div>`).join('');
     _ORD.forEach(s=>{
@@ -3708,18 +3708,18 @@ function _trendHybRegimeBreakdown(rows, trades){
   if(!Array.isArray(rows) || !Array.isArray(trades) || !trades.length) return null;
   const close=rows.map(r=>+(r.close!=null?r.close:r.c));
   const m60=_trSma(close,60), m120=_trSma(close,120), m200=_trSma(close,200);
-  const ltAt=(i)=>{ const a=m60[i],b=m120[i],c=m200[i]; return (a!=null&&b!=null&&c!=null)?(a>b&&b>c?'상승장':(a<b&&b<c?'하락장':'횡보장')):'횡보장'; };
-  const B={ '상승장':[], '하락장':[], '횡보장':[] };
-  trades.forEach(t=>{ if(t.entryIdx==null) return; const rg=ltAt(t.entryIdx); (B[rg]||B['횡보장']).push({ result:(t.pnl>0?'win':(t.pnl<0?'loss':'flat')), pnl:t.pnl||0 }); });
+  const ltAt=(i)=>{ const a=m60[i],b=m120[i],c=m200[i]; return (a!=null&&b!=null&&c!=null)?(a>b&&b>c?'상승세':(a<b&&b<c?'하락세':'혼조세')):'혼조세'; };   // [S1217] 세/장 분리(이 블록은 3×3 장기축)
+  const B={ '상승세':[], '하락세':[], '혼조세':[] };
+  trades.forEach(t=>{ if(t.entryIdx==null) return; const rg=ltAt(t.entryIdx); (B[rg]||B['혼조세']).push({ result:(t.pnl>0?'win':(t.pnl<0?'loss':'flat')), pnl:t.pnl||0 }); });
   const out={}; let any=false;
-  ['상승장','하락장','횡보장'].forEach(rg=>{ const s=(typeof _btHistCalcStats==='function')?_btHistCalcStats(B[rg]):null; if(s){ out[rg]=s; any=true; } });
+  ['상승세','하락세','혼조세'].forEach(rg=>{ const s=(typeof _btHistCalcStats==='function')?_btHistCalcStats(B[rg]):null; if(s){ out[rg]=s; any=true; } });
   return any?out:null;
 }
 function _trendHybRenderRegime(rb){
   if(!rb) return '';
-  const L={ '상승장':'🔵 상승장', '하락장':'📉 하락장', '횡보장':'➡️ 횡보장' };
+  const L={ '상승세':'🔵 상승세', '하락세':'📉 하락세', '혼조세':'➡️ 혼조세' };   // [S1217]
   let rowsHtml='';
-  ['상승장','하락장','횡보장'].forEach(rg=>{
+  ['상승세','하락세','혼조세'].forEach(rg=>{
     const s=rb[rg]; if(!s||s.n<1) return;
     const wrC=s.wr>=60?'#22c55e':s.wr>=40?'#3b82f6':'#f97316';
     const pnlC=s.totalPnl>=0?'#22c55e':'#e8365a';
@@ -7473,10 +7473,10 @@ function _cv2TrendPosition(ind, rows, idx){
 //   〔근거〕 "정배열/역배열" 2정의 충돌(같은 종목이 정배열이자 역배열) 해소. 두 차원 다 ind에 이미 존재(maAlign 5/20/60 · maAlignLT 60/120/200).
 //   〔플래그〕 순서는 유지되나 60MA가 꺾이는 중 = 천장권(상승장+하락기울기)/바닥권(하락장+상승기울기) — 60/120/200 래깅 보정.
 //   〔전 카드 SSOT〕 이 함수 라벨을 모든 카드가 공유 → 정배열/역배열 표기 불일치 제거. (사용자 확정 3×3+기울기)
-var _TREND_MATRIX = {   // [S974] 사용자 확정 용어 — 진입(약세칸)→목표(강세칸) 전환이 이름에 드러남
-  bull:  { bull:'추가상승',   bear:'기술적반등',  mixed:'상승세전환' },  // 단기 강세
-  bear:  { bull:'눌림목',     bear:'바닥확인',    mixed:'하락세전환' },  // 단기 약세
-  mixed: { bull:'상승세약화', bear:'하락세약화', mixed:'횡보장유지' }        // 단기 중립
+var _TREND_MATRIX = {   // [S974→S1217] 사용자 확정 용어 갱신 — 눌림목·바닥확인 중립행 이동(S1211 실측 정합)·약세행=되돌림·추가하락·횡보장유지→추세중립. SSOT=SXExecCore.STATE_VOCAB(여긴 동일 리터럴 미러·초기화 순서상 유지)
+  bull:  { bull:'추가상승', bear:'기술적반등', mixed:'상승세전환' },  // 단기 강세
+  bear:  { bull:'되돌림',   bear:'추가하락',   mixed:'하락세전환' },  // 단기 약세
+  mixed: { bull:'눌림목',   bear:'바닥확인',   mixed:'추세중립' }      // 단기 중립
 };
 // [S974] 신호 타입 — 추격(상승) vs 저가매수(반등). 4핵심만 정의(혼조=null).
 // ════════ [S1127] 키/표기명 분리 — 축 키가 유일한 식별자, 한글 이름은 UI 전용 파생물 ════════
@@ -7552,7 +7552,7 @@ function _trendLabel(maAlign, maAlignLT, ma60Slope, sOverride){
   var s = (sOverride==='bull'||sOverride==='bear'||sOverride==='mixed') ? sOverride : (maAlign ? (maAlign.bullish ? 'bull' : maAlign.bearish ? 'bear' : 'mixed') : 'mixed');   // [S1114·D-1]         // 단기 5/20/60
   var l = (maAlignLT && maAlignLT.gateOn) ? (maAlignLT.bullish ? 'bull' : maAlignLT.bearish ? 'bear' : 'mixed') : 'mixed'; // 장기 60/120/200
   var shortLabel = s==='bull' ? '강세' : s==='bear' ? '약세' : '중립';
-  var longLabel  = l==='bull' ? '상승장' : l==='bear' ? '하락장' : '횡보장';
+  var longLabel  = l==='bull' ? '상승세' : l==='bear' ? '하락세' : '혼조세';   // [S1217]
   var trend = (_TREND_MATRIX[s] && _TREND_MATRIX[s][l]) ? _TREND_MATRIX[s][l] : '방향 미정';
   var slopeFlag = null;
   var TH = 0.5; // 60MA 기울기 임계(%/10봉) — 미세 흔들림 제외
@@ -10682,7 +10682,7 @@ function _gridRender(res, mk, poolLbl){
   var GRN='#16a34a',RED='#dc2626',AMB='#d97706',BLU='#2563eb',T2='var(--text2)',T3='var(--text3)';
   if(!res) return '';
   if(!res.ok) return '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10.5px;color:#dc2626">🗺 '+(res.reason||'측정 실패')+'</div>';
-  var SL={bull:'강세',bear:'약세',mid:'중립'}, LL={bull:'상승장',bear:'하락장',mix:'횡보장'};
+  var SL={bull:'강세',bear:'약세',mid:'중립'}, LL={bull:'상승세',bear:'하락세',mix:'혼조세'};   // [S1217]
   // [S1127] 하드코딩 미러 제거 — 표기명은 _cellName(SSOT) 한 곳에서만 나온다.
 //   ⚠키 계열 번역 필수: 여기 단기축은 'mid' · 장기축은 'mix'인데 SSOT는 **양쪽 다 'mixed'**다(S1106 함정③과 동일).
 var _tnKey=function(sk,lk){ return ((sk==='mid'?'mixed':sk)+'|'+(lk==='mix'?'mixed':lk)); };
@@ -12971,7 +12971,7 @@ async function _pullbackBaseRun(pool){
   var el=document.getElementById(isPb?'pullbackBaseResult':'deadcatBaseResult'); if(!el) return;
   var mk=(typeof currentMarket!=='undefined')?currentMarket:'kr';
   el.style.display='block';
-  el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">'+(isPb?'🔵':'🔴')+' '+(isPb?'상승장':'하락장')+' base rate 측정 중...</div>';
+  el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">'+(isPb?'🔵':'🔴')+' '+(isPb?'상승세':'하락세')+' base rate 측정 중...</div>';
   var res;
   try{ res=await _pullbackBaseBracket(mk,function(i,t,n){ el.innerHTML='<div style="padding:10px;font-size:11px;color:var(--text2)">'+(isPb?'🔵':'🔴')+' 스캔 '+i+'/'+t+' · '+(n||'')+'</div>'; }, P); }catch(e){ res={ok:false,reason:String(e&&e.message||e)}; }
   el.innerHTML=_pullbackBaseRender(res, mk);
@@ -13720,7 +13720,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1216';   // [S1216] 출구 3상태(현행/무시/분할=불·상승 데드만·나머지 ATR만)+atrSkips [S1213~15] srcSig·청산사유·무시모드 [S1210~12] maCross
+  window.SX_BUILD='S1217';   // [S1217] 상태어휘 SSOT(세/장 분리·칸 재명명)+레짐 v2 폭락장 [S1216] 출구 3상태 [S1213~15] srcSig·청산사유 [S1210~12] maCross
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15995,7 +15995,7 @@ window._sxbVolaSafeWhy = _sxbVolaSafeWhy;
 // [S1110] 🧩 칸 사다리 배지 토스트 — 규칙별 k/k*·상단Δ·재현창 + 원칙(표시 전용·in-sample)
 function _sxbCellSigWhy(){
   const B=window._sxBoard; const cs=B&&B._cellSig; if(!cs) return;
-  let m='🧩 칸 사다리 신호 · 칸 ['+(cs.lbl||cs.cell)+']\n';
+  let m='🧩 칸 사다리 신호 · 칸 ['+((typeof _cellName==='function'&&cs.cell)?_cellName(cs.cell):(cs.lbl||cs.cell))+']\n';   // [S1217] 저장 lbl 무시·키 도출
   if(!cs.sig.length){ m+='이 칸엔 채택 규칙 없음.'; }
   else cs.sig.forEach(function(x){
     const t=x.kind==='real'?'진입후보':(x.kind==='down'?'회피(하락)':'가짜경보');
@@ -16827,11 +16827,11 @@ function _sxbHTML(){
         const _dn=_hits.find(x=>x.kind==='down'), _fk=_hits.find(x=>x.kind==='fake'), _rl=_hits.find(x=>x.kind==='real');
         const _pick=_dn||_fk||_rl; const _CC=_dn?'#7f1d1d':(_fk?'#ea580c':'#16a34a');
         const _tag=_dn?'회피':(_fk?'가짜경보':'신호');
-        _cellSigBadge = `<span class="sxb-badge" style="color:${_CC};background:${_CC}1A;border:1px solid ${_CC};cursor:pointer" onclick="event.stopPropagation();_sxbCellSigWhy&&_sxbCellSigWhy()">🧩 ${_cs.lbl||''} ${_tag} k${_pick.k}≥${_pick.kStar}</span>`;
+        _cellSigBadge = `<span class="sxb-badge" style="color:${_CC};background:${_CC}1A;border:1px solid ${_CC};cursor:pointer" onclick="event.stopPropagation();_sxbCellSigWhy&&_sxbCellSigWhy()">🧩 ${(typeof _cellName==='function'&&_cs.cell)?_cellName(_cs.cell):(_cs.lbl||'')} ${_tag} k${_pick.k}≥${_pick.kStar}</span>`;
       } else {
         const _mx=_cs.sig.reduce((a,x)=>(x.k>a.k?x:a),_cs.sig[0]);
         const _wt=_mx.kind==='down'?'회피감시':(_mx.kind==='fake'?'경보감시':'신호감시');   // [S1111] 미달 상태에도 종류 표기 — 채워지면 좋은지 나쁜지 즉독
-        _cellSigBadge = `<span class="sxb-badge" style="color:var(--text3);background:var(--surface2);border:1px solid var(--border);cursor:pointer" onclick="event.stopPropagation();_sxbCellSigWhy&&_sxbCellSigWhy()">🧩 ${_cs.lbl||''} ${_wt} k${_mx.k}/${_mx.kStar}</span>`;
+        _cellSigBadge = `<span class="sxb-badge" style="color:var(--text3);background:var(--surface2);border:1px solid var(--border);cursor:pointer" onclick="event.stopPropagation();_sxbCellSigWhy&&_sxbCellSigWhy()">🧩 ${(typeof _cellName==='function'&&_cs.cell)?_cellName(_cs.cell):(_cs.lbl||'')} ${_wt} k${_mx.k}/${_mx.kStar}</span>`;
       }
     } }
   const _dirBadges  = `${transBadge}${_transitionBadge}`;                         // 방향 판정 (좌)
@@ -17622,7 +17622,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       ${_itp_inline.volumeMA?advItpRowKis('거래량 MA', (indicators._advanced?.volPattern?.volRatio??1).toFixed(1)+'x', _itp_inline.volumeMA.tone, _itp_inline.volumeMA):''}
       ${_itp_inline.adLine?advItpRowKis('A/D (수급)', (()=>{const ad=indicators.ad||indicators._advanced?.ad||{}; return ad.trend==='up'?'상승':ad.trend==='down'?'하락':'횡보';})(), _itp_inline.adLine.tone, _itp_inline.adLine):''}
       ${_itp_inline.eom?advItpRowKis('EOM', (()=>{const e=indicators.eom||indicators._advanced?.eom||{}; /* [S452] EOM 라벨 버그 수정: 엔진 EOM.trend는 'bullish'/'bearish'/'mixed'(='up'/'down' 아님)이라 기존 삼항식이 항상 '중립'으로 떨어짐. 전광판 score100과 동일 기준(≥65/<35)으로 통일 */ const _s=(e.score100!=null)?e.score100:(e.trend==='bullish'?70:e.trend==='bearish'?30:50); return _s>=65?'매수세':_s<35?'매도세':'중립';})(), _itp_inline.eom.tone, _itp_inline.eom):''}
-      ${_itp_inline.vhf?advItpRowKis('VHF', (()=>{const v=indicators.vhf||indicators._advanced?.vhf||{}; return v.trending==='trending'?'추세장':v.trending==='ranging'?'횡보장':'보통';})(), _itp_inline.vhf.tone, _itp_inline.vhf):''}
+      ${_itp_inline.vhf?advItpRowKis('VHF', (()=>{const v=indicators.vhf||indicators._advanced?.vhf||{}; return v.trending==='trending'?'추세장':v.trending==='ranging'?'박스권':'보통';})(), _itp_inline.vhf.tone, _itp_inline.vhf):''}
       ${_itp_inline.psycho?advItpRowKis('심리도', (()=>{const p=indicators.psycho||indicators._advanced?.psycho||{}; const val=p.psycho; return val!=null?val.toFixed(0)+'%':'—';})(), _itp_inline.psycho.tone, _itp_inline.psycho, _ko_inline):''}
       ${_itp_inline.chaikinOsc?advItpRowKis('Chaikin (수급)', (()=>{const c=indicators.chaikinOsc||indicators._advanced?.chaikinOsc||{}; return c.val>0?'양수 (매집)':c.val<0?'음수 (분산)':'0';})(), _itp_inline.chaikinOsc.tone, _itp_inline.chaikinOsc):''}
       ${_itp_inline.abRatio?advItpRowKis('AB Ratio', (()=>{const a=indicators.abRatio||indicators._advanced?.abRatio||{}; return a.trend==='bullish'?'매수우위':a.trend==='bearish'?'매도우위':'균형';})(), _itp_inline.abRatio.tone, _itp_inline.abRatio):''}
@@ -19926,7 +19926,7 @@ function _restoreFromTfCache(stock, cached, tf){
      이름만 S864 v1 어휘(_LENS_BY_MKT)를 물려받았고 의미는 다르다 — 같은 이름 다른 뜻.
      → 이 카드는 지평을 **h15로 명시**한다.
    ══════════════════════════════════════════════════════════════════════════ */
-var _V3_LL={bull:'상승장',bear:'하락장',mix:'횡보장'}, _V3_SL={bull:'강세',bear:'약세',mid:'중립'};
+var _V3_LL={bull:'상승세',bear:'하락세',mix:'혼조세'}, _V3_SL={bull:'강세',bear:'약세',mid:'중립'};   // [S1217]
 // [S1106] 칸 이름 = `_TREND_MATRIX` SSOT(4477 · `_trendLabel`이 쓰는 그 테이블)를 그대로 당겨쓴다.
 //   하드코딩 미러 금지 — 이름이 바뀌면 이 카드도 자동으로 따라간다(탐색 아카이브 3×3 지도와 항상 같은 이름).
 //   ⚠ 키 이름이 계열마다 다르다: v3는 단기 'mid' · 장기 'mix'인데 `_TREND_MATRIX`는 **양쪽 다 'mixed'**다.
@@ -20005,7 +20005,7 @@ function _cellLadderCard(mk, qs, indicators){
       h+='</div>';
     }
     // ── 3×3 분포 그리드(칸 이름=SSOT · 현재 칸 강조) ──
-    var SL={bull:'강세',bear:'약세',mixed:'중립'}, LL={bull:'상승장',bear:'하락장',mixed:'횡보장'};
+    var SL={bull:'강세',bear:'약세',mixed:'중립'}, LL={bull:'상승세',bear:'하락세',mixed:'혼조세'};   // [S1217]
     var _VOCg=(D.vocabAll&&D.vocabAll[mk])||(D.vocab&&D.vocab[mk])||{};   // [S1179] 칸별 어휘 화력 표기용
     h+='<div style="font-size:9px;font-weight:700;color:'+T3+';margin:6px 0 3px">▦ 채택 규칙 분포 <span style="font-weight:400">(위=규칙 수 R진입/F경보/D회피 · 아래=그 규칙들이 세는 어휘 수)</span></div>';
     h+='<table style="width:100%;border-collapse:collapse;font-size:8.5px;text-align:center">';
@@ -20185,7 +20185,7 @@ function _v3TagCard(mk, qs, indicators){
 }
 
 var _BV2_SHORTS=['bull','bear','mid'], _BV2_LONGS=['bull','bear','mix'];
-var _BV2_SL={bull:'강세',bear:'약세',mid:'중립'}, _BV2_LL={bull:'상승장',bear:'하락장',mix:'횡보장'};
+var _BV2_SL={bull:'강세',bear:'약세',mid:'중립'}, _BV2_LL={bull:'상승세',bear:'하락세',mix:'혼조세'};   // [S1217]
 function _bv2Esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k];}); }
 // 레거시 _fires 구조적 커버(9칸 중 4칸): lt===_wantLt(mix 배제) && !maBull(st bull 배제)
 function _bv2LegacyCovers(lt, st){ return (lt==='bull'||lt==='bear') && (st==='bear'||st==='mid'); }
