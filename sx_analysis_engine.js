@@ -4306,13 +4306,14 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
   }
 
   // 라이프사이클(코어) — 진입 3원(recipe>bullVol>v2 상호배타·S1201)/청산(이중ATR+MA5×20 데드·유예10)
-  const _lc = EC.runLifecycle(rows, (i) => _btSig[i] || 0, { entryMode: nextBar ? 'nextOpen' : 'close', slippage: slip, minIdx: BT_WARMUP, cfg: EC.CFG });
+  const _xg = (opts && opts.maExitSkipRegime && opts.maExitSkipRegime.length) ? opts.maExitSkipRegime : null;   // [S1215] 출구 레짐게이트(기본 null=현행)
+  const _lc = EC.runLifecycle(rows, (i) => _btSig[i] || 0, { entryMode: nextBar ? 'nextOpen' : 'close', slippage: slip, minIdx: BT_WARMUP, cfg: _xg ? Object.assign({}, EC.CFG, { maExitSkipRegime: _xg }) : EC.CFG });
 
   // 코어 트레이드 → BT 트레이드 형태 (대시보드/btGetCurrentState 호환: entry/exit/pnl/type/exitReason/…/tp·sl)
   const trades = _lc.trades.map(t => {
     const isOpen = (t.reason === 'EOD');
     const pnl = +(t.ret * 100).toFixed(2);
-    return { entry: t.entryPrice, exit: t.exitPrice, pnl: pnl, rawPnl: pnl, posScale: 1, type: isOpen ? 'OPEN' : (pnl > 0 ? 'WIN' : 'LOSS'), exitReason: isOpen ? '미청산' : t.reason, bars: t.bars, entryIdx: t.entryIdx, exitIdx: t.exitIdx, entryDate: t.entryDate || '', exitDate: isOpen ? '' : (t.exitDate || ''), tp: null, sl: null, src: t.src || 'recipe', v2Cat: t.v2Cat || null, v2Tier: t.v2Tier || null, cell: t.cell || null, gcAge: (t.gcAge!=null?t.gcAge:null), rg: (EC.regimeAt ? EC.regimeAt(rows, t.entryIdx) : null) };   // [S1201] 진입원 각인 [S1210] 진입봉 칸 [S1211] 추세나이 [S1212] 진입봉 레짐(S544)
+    return { entry: t.entryPrice, exit: t.exitPrice, pnl: pnl, rawPnl: pnl, posScale: 1, type: isOpen ? 'OPEN' : (pnl > 0 ? 'WIN' : 'LOSS'), exitReason: isOpen ? '미청산' : t.reason, bars: t.bars, entryIdx: t.entryIdx, exitIdx: t.exitIdx, entryDate: t.entryDate || '', exitDate: isOpen ? '' : (t.exitDate || ''), tp: null, sl: null, src: t.src || 'recipe', v2Cat: t.v2Cat || null, v2Tier: t.v2Tier || null, cell: t.cell || null, gcAge: (t.gcAge!=null?t.gcAge:null), rg: (EC.regimeAt ? EC.regimeAt(rows, t.entryIdx) : null), maSkips: t.maSkips||0 };   // [S1201] 진입원 각인 [S1210] 진입봉 칸 [S1211] 추세나이 [S1212] 진입봉 레짐(S544)
   });
 
   // 통계 (구 관례 유지·새 레시피 트레이드 기준 — pf=총익/총손, totalPnl=복리 equity−100, mdd=equity곡선)
