@@ -4315,7 +4315,7 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
   const trades = _lc.trades.map(t => {
     const isOpen = (t.reason === 'EOD');
     const pnl = +(t.ret * 100).toFixed(2);
-    return { entry: t.entryPrice, exit: t.exitPrice, pnl: pnl, rawPnl: pnl, posScale: 1, type: isOpen ? 'OPEN' : (pnl > 0 ? 'WIN' : 'LOSS'), exitReason: isOpen ? '미청산' : t.reason, bars: t.bars, entryIdx: t.entryIdx, exitIdx: t.exitIdx, entryDate: t.entryDate || '', exitDate: isOpen ? '' : (t.exitDate || ''), tp: null, sl: null, src: t.src || 'recipe', v2Cat: t.v2Cat || null, v2Tier: t.v2Tier || null, cell: t.cell || null, gcAge: (t.gcAge!=null?t.gcAge:null), rg: (EC.regimeAt ? EC.regimeAt(rows, t.entryIdx) : null), maSkips: t.maSkips||0, atrSkips: t.atrSkips||0 };   // [S1201] 진입원 각인 [S1210] 진입봉 칸 [S1211] 추세나이 [S1212] 진입봉 레짐(S544)
+    return { entry: t.entryPrice, exit: t.exitPrice, pnl: pnl, rawPnl: pnl, posScale: 1, type: isOpen ? 'OPEN' : (pnl > 0 ? 'WIN' : 'LOSS'), exitReason: isOpen ? '미청산' : t.reason, bars: t.bars, entryIdx: t.entryIdx, exitIdx: t.exitIdx, entryDate: t.entryDate || '', exitDate: isOpen ? '' : (t.exitDate || ''), tp: null, sl: null, src: t.src || 'recipe', v2Cat: t.v2Cat || null, v2Tier: t.v2Tier || null, cell: t.cell || null, gcAge: (t.gcAge!=null?t.gcAge:null), rg: (EC.regime5At ? EC.regime5At(rows, t.entryIdx) : (EC.regimeAt ? EC.regimeAt(rows, t.entryIdx) : null)), maSkips: t.maSkips||0, atrSkips: t.atrSkips||0 };   // [S1217] 레짐 v2(폭락 분리·불/상승/횡보는 v1 동일)   // [S1201] 진입원 각인 [S1210] 진입봉 칸 [S1211] 추세나이 [S1212] 진입봉 레짐(S544)
   });
 
   // 통계 (구 관례 유지·새 레시피 트레이드 기준 — pf=총익/총손, totalPnl=복리 equity−100, mdd=equity곡선)
