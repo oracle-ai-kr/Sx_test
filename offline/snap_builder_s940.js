@@ -15,7 +15,7 @@ const poolPath = arg('--pool', 'snap_kr.json');
 const outPath = arg('--out', '/tmp/fresh_snap_' + mkt + '.json');
 const COUNT = parseInt(arg('--count', '450'), 10);
 
-if (mkt !== 'kr' && mkt !== 'coin') { console.error('[snap_builder] ' + mkt + ' 미지원(kr·coin만) → 폴백'); process.exit(2); }
+if (mkt !== 'kr' && mkt !== 'coin' && mkt !== 'us') { console.error('[snap_builder] ' + mkt + ' 미지원(kr·coin·us) → 폴백'); process.exit(2); }   // [S1228] us(야후) 지원
 
 // 풀 로드 (코드+이름 승계). 커밋된 snap의 캔들은 무시하고 코드 목록만 사용.
 let pool;
@@ -68,6 +68,29 @@ async function fetchDailyCoin(code) {
   return rows.slice(-COUNT);
 }
 
+// [S1228] 야후 v8 chart — US 일봉. 커밋 스냅과 동일 규격 확인: 날짜=개장시각 ISO(13:30/14:30Z) · 가격=분할조정
+//   (커밋 snap_us의 NVDA 24-02 시가 70.07 = 10:1 분할 반영 = 야후 quote 배열 기본값과 일치).
+//   심볼 점표기(BRK.B) → 야후 대시(BRK-B) 변환. null 봉(휴장 결측)은 스킵.
+async function fetchDailyUS(code) {
+  const sym = String(code).replace(/\./g, '-');
+  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?range=3y&interval=1d';
+  const res = await fetch(url, { headers: { 'User-Agent': UA, 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const j = await res.json();
+  const r = j && j.chart && j.chart.result && j.chart.result[0];
+  if (!r || !Array.isArray(r.timestamp)) throw new Error('no chart data');
+  const q = (r.indicators && r.indicators.quote && r.indicators.quote[0]) || {};
+  const rows = [];
+  for (let i = 0; i < r.timestamp.length; i++) {
+    const c = q.close && q.close[i];
+    if (c == null || !(c > 0)) continue;   // 결측 봉 스킵
+    rows.push([new Date(r.timestamp[i] * 1000).toISOString(),
+      +((q.open || [])[i]) || 0, +((q.high || [])[i]) || 0, +((q.low || [])[i]) || 0, +c || 0, +((q.volume || [])[i]) || 0]);
+  }
+  rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  return rows.slice(-COUNT);
+}
+
 function dayDiff(a, b) {
   const d1 = new Date(a.slice(0, 4) + '-' + a.slice(4, 6) + '-' + a.slice(6, 8));
   const d2 = new Date(b.slice(0, 4) + '-' + b.slice(4, 6) + '-' + b.slice(6, 8));
@@ -83,10 +106,10 @@ function dayDiff(a, b) {
   for (let i = 0; i < codes.length; i++) {
     const c = codes[i];
     try {
-      const rows = (mkt === 'coin') ? await fetchDailyCoin(c) : await fetchDaily(c);   // [S1192] 시장별 소스
+      const rows = (mkt === 'coin') ? await fetchDailyCoin(c) : (mkt === 'us' ? await fetchDailyUS(c) : await fetchDaily(c));   // [S1192] 시장별 소스 [S1228] +us
       if (rows.length < 60) { excluded.push(c); fail++; }        // 봉수 미달 = 제외
       else {
-        stocks[c] = (mkt === 'coin') ? { name: nameOf(c), src: 'upbit', rows } : { name: nameOf(c), rows };   // [S1192]
+        stocks[c] = (mkt === 'coin') ? { name: nameOf(c), src: 'upbit', rows } : (mkt === 'us' ? { name: nameOf(c), src: 'yahoo', rows } : { name: nameOf(c), rows });   // [S1192] [S1228]
         const ld = rows[rows.length - 1][0];
         if (ld > maxDate) maxDate = ld;
         ok++;
@@ -98,7 +121,7 @@ function dayDiff(a, b) {
 
   // ── 검증 게이트 (미달 시 폴백) ──
   const covered = ok / codes.length;
-  const minOk = (mkt === 'coin') ? 80 : 100;   // [S1192] 풀 크기 차이(coin 113 vs kr 188)
+  const minOk = (mkt === 'coin') ? 80 : (mkt === 'us' ? 70 : 100);   // [S1192] 풀 크기 차이 [S1228] us 풀 97
   if (ok < minOk || covered < 0.7) {
     console.error('[snap_builder] 커버리지 부족: ' + ok + '/' + codes.length + ' (' + ((covered * 100) | 0) + '%) → 폴백');
     process.exit(2);
