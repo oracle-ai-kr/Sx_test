@@ -1260,6 +1260,18 @@ function btGetOpts(){
   return { slippage:slip, applyRegimeAdjust:true, entrySrc:_esrc, maCrossRegime:(_esrc.maCross&&_esrc.mGate)?['bull','up']:null };   // [S1201] 진입원 토글 동봉 [S1212] M 레짐게이트(불장·상승장) — 게이트 OFF·M OFF면 null
 }
 
+// [S1213] 진입원 서명 — BT 결과 재사용(S215) 키. 엔진 폴백(EC.SRC_ALL)과 동일 규약으로 정규화:
+//   entrySrc 미지정(분석탭 자동실행) = 3원 ON·M OFF와 같은 서명 → 기본 설정끼리는 재사용 유지, 토글 변경 시엔 확실히 재계산.
+//   〔버그 이력〕 S1201이 entrySrc 토글을 넣으며 재사용 비교(slip/entryMode/파라미터)엔 안 넣음 →
+//   첫 실행은 분석탭 저장 옵션에 entryMode 키가 없어 비교 실패=재계산(우연히 반영), 이후엔 재사용=토글 무시.
+function _btSrcSigOf(opts){
+  const d=(opts&&opts.entrySrc)||{recipe:true,bullVol:true,v2:true,maCross:false};
+  const m=(d.maCross===true);
+  const rg=m?((opts&&opts.maCrossRegime&&opts.maCrossRegime.length)?opts.maCrossRegime.join(','):'all'):'-';
+  return [d.recipe!==false?1:0, d.bullVol!==false?1:0, d.v2!==false?1:0, m?1:0, rg].join('|');
+}
+if(typeof window!=='undefined') window._btSrcSigOf=_btSrcSigOf;
+
 // ══ [S1201] 진입원 토글 — 시즌2와 정합(recipe>bullVol>v2 상호배타). 기본 3원 전부 ON. ══
 //   ★v2는 in-sample(SX_CELL_DATA.meta.caveat)이라 BT 성과가 오르는 건 검증이 아니라 재현.
 //     끄고 켜며 "v2가 몇 건을 더 잡는가"를 보는 용도 — 결과 카드에 src별로 갈라 표기한다.
@@ -1327,7 +1339,7 @@ async function btRunBasic(){
     //         옵션이 같으면 분석탭과 단일검증 일치
     //   재사용 조건:
     //     1. stock._btResult 존재 + 동일 TF
-    //     2. stock._btResultOpts 저장된 옵션 == 현재 옵션 (slip/nextBar)
+    //     2. stock._btResultOpts 저장된 옵션 == 현재 옵션 (slip/nextBar/진입원서명 srcSig[S1213])
     //     3. stock._btResult.rowsLength == _targetCount
     const _isExtSupported = (currentMarket === 'coin' || currentMarket === 'kr' || currentMarket === 'us');
     const _btTFVal = _btTF();
@@ -1342,6 +1354,7 @@ async function btRunBasic(){
       && stock._btResultOpts
       && Math.abs((stock._btResultOpts.slippage||0) - (_curOpts.slippage||0)) < 1e-9
       && stock._btResultOpts.entryMode === ((typeof SXE!=='undefined' && SXE._btEntryMode) || 'close')
+      && stock._btResultOpts.srcSig === _btSrcSigOf(_curOpts)   // [S1213] 진입원(4칩+레짐게이트) 변경 시 재사용 금지
       && stock._btResultParams
       && stock._btResultParams.buyTh === _curParams.buyTh
       && stock._btResultParams.sellTh === _curParams.sellTh
@@ -1442,7 +1455,7 @@ async function btRunBasic(){
       stock._btResult = r; // S93: 인메모리 저장 — btHistAccumulate에서 참조
       // [S215] BT 실행 시 사용한 TF/옵션/파라미터 함께 저장 — 분석탭/단일검증 정합 판정용
       stock._btResultTF = _btTFVal;
-      stock._btResultOpts = { slippage: opts.slippage, entryMode: (typeof SXE!=='undefined' && SXE._btEntryMode) || 'close' };
+      stock._btResultOpts = { slippage: opts.slippage, entryMode: (typeof SXE!=='undefined' && SXE._btEntryMode) || 'close', srcSig: _btSrcSigOf(opts) };   // [S1213]
       stock._btResultParams = { buyTh: params.buyTh, sellTh: params.sellTh, tpMult: params.tpMult, slMult: params.slMult };
 
       // ═══════════════════════════════════════════════════════════════
