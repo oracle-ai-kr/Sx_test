@@ -630,7 +630,7 @@ function _btRegimeBreakdown(rows, trades){
   if(!Array.isArray(rows) || !Array.isArray(trades) || !trades.length) return null;
   var B = { bull:[], up:[], side:[], down:[], crash:[] };   // [S1217]
   trades.forEach(function(t){
-    if(t.entryIdx == null) return;
+    if(t.entryIdx == null || t.type === 'OPEN') return;   // [S1220] 미청산 제외 — 진입원별·칸·청산사유 분해와 기준 통일(구: 레짐표만 OPEN 포함 → 삼성 분할 6건 vs 완성 5건 불일치)
     var rg = (typeof SXExecCore!=='undefined'&&SXExecCore.regime5At)?SXExecCore.regime5At(rows, t.entryIdx):_btRegimeAt(rows, t.entryIdx);   // [S1217] 5국면(폴백=v1)
     (B[rg] || B.side).push({ result:(t.pnl>0?'win':(t.pnl<0?'loss':'flat')), pnl:t.pnl||0 });
   });
@@ -831,7 +831,7 @@ function _btRenderRegime(rb){
   });
   if(!rowsHtml) return '';
   return '<div class="bt-card" style="margin-top:10px">'
-    + '<div class="bt-card-title">📊 레짐별 성과 <span style="font-size:9px;font-weight:600;color:var(--text3)">(SMA 20/60/120/200 · 현재 파라미터 · 실험)</span></div>'
+    + '<div class="bt-card-title">📊 레짐별 성과 <span style="font-size:9px;font-weight:500;color:var(--text3)">완성거래만</span> <span style="font-size:9px;font-weight:600;color:var(--text3)">(SMA 20/60/120/200 · 현재 파라미터 · 실험)</span></div>'
     + rowsHtml
     + '<div style="font-size:9px;color:var(--text3);margin-top:6px;line-height:1.6">진입 봉의 큰 추세로 거래를 분류(레짐 v3·S1219) — 골격: 20×200 SMA ±1.5%(위=상승측·아래=하락측·밴드=횡보). 분화는 동역학: 상승측 <b>기울기 ≥+0.15%/봉=🔥불장</b>·미달=📈상승장(구 60&gt;120&gt;200 조항 폐기 — 3×3 상승세와 중복) · 하락측 <b>급기울기(≤−0.5) ∨ 고변동(ATR≥5%) ∨ 과대이격(≤−7%)</b>=🌋폭락장·미달=📉하락장. 전 임계값 선언값 초안. 같은 전략이 어느 추세에서 통하는지 확인용. PF=손익비, %=레짐 내 수익률 합.</div></div>';
 }
