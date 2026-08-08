@@ -680,11 +680,16 @@ function _btRenderSrcBreak(sb, on, trades){   // [S1214] +trades=청산사유 �
       let gateLine='';
       { const gi=tcl.filter(t=>(t.maSkips||0)>0);
         if(gi.length){ const sk=gi.reduce((a,t)=>a+t.maSkips,0), avg=gi.reduce((a,t)=>a+t.pnl,0)/gi.length, w=gi.filter(t=>t.pnl>0).length;
-          gateLine=`<div style="font-size:9.5px;color:#2563eb;padding:2.5px 0">⛩ <b>출구게이트 개입</b> ${gi.length}거래(데드 ${sk}회 무시)·${Math.round(w/gi.length*100)}%·평균 ${avg>=0?'+':''}${avg.toFixed(2)} — 무개입이면 첫 데드에서 끊겼을 거래들</div>`; } }
+          gateLine=`<div style="font-size:9.5px;color:#2563eb;padding:2.5px 0">⛩ <b>데드 무시</b> ${gi.length}거래(${sk}회)·${Math.round(w/gi.length*100)}%·평균 ${avg>=0?'+':''}${avg.toFixed(2)} — 무개입이면 첫 데드에서 끊겼을 거래들</div>`; } }
+      let atrLine='';
+      { const ai=tcl.filter(t=>(t.atrSkips||0)>0);
+        if(ai.length){ const sk2=ai.reduce((a,t)=>a+t.atrSkips,0), avg2=ai.reduce((a,t)=>a+t.pnl,0)/ai.length, w2=ai.filter(t=>t.pnl>0).length;
+          atrLine=`<div style="font-size:9.5px;color:#7c3aed;padding:2.5px 0">🧷 <b>ATR 억제</b>(분할) ${ai.length}거래(스톱 이하 ${sk2}봉 버팀)·${Math.round(w2/ai.length*100)}%·평균 ${avg2>=0?'+':''}${avg2.toFixed(2)} — 무억제면 첫 스톱에서 끊겼을 거래들</div>`; } }
       xrHtml=`<div style="margin-top:6px;padding-top:5px;border-top:1px solid var(--border)">
         <div style="font-size:9.5px;font-weight:800;color:var(--text)">🚪 청산사유 <span style="font-weight:500;color:var(--text3)">(진입원 공통 출구 — ±=건당 평균%)</span></div>
         <div style="font-size:9.5px;color:var(--text2);padding:2.5px 0"><b style="color:var(--text)">합산</b> ${allSeg}${openN?` <span style="color:var(--text3)">· 미청산 ${openN} 제외</span>`:''}</div>
         ${gateLine}
+        ${atrLine}
         ${srcSeg}
         <div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-top:3px">출구=이중ATR(진입−2×ATR 손절 · 고점−3×ATR 트레일)+MA5×20데드(유예10일·완성봉) — 시즌2 워커 복제·진입원 무관 공통. 손절 평균이 유독 크면 그 진입원은 변동 확대기에 들어간다는 뜻(M 크로스 시점 특성 후보).</div>
       </div>`;
@@ -1295,7 +1300,7 @@ function btGetOpts(){
   //     적용 범위: sx_bt.js 모든 경로(단일검증/관심종목 BT/교차검증/워크포워드/대시보드).
   //     옵티마이저는 별개 호출(sx_optimizer.js에서 직접 true 전달) → 영향 없음.
   const _esrc=_btEntrySrc();
-  return { slippage:slip, applyRegimeAdjust:true, entrySrc:_esrc, maCrossRegime:(_esrc.maCross&&_esrc.mGate)?['bull','up']:null, maExitSkipRegime:(_esrc.xGate)?['bull','up']:null };   // [S1201] 토글 동봉 [S1212] M 게이트 [S1215] 출구게이트(불장·상승장 MA데드 무시)
+  return { slippage:slip, applyRegimeAdjust:true, entrySrc:_esrc, maCrossRegime:(_esrc.maCross&&_esrc.mGate)?['bull','up']:null, maExitSkipRegime:(_esrc.xMode==='skip')?['bull','up']:null, exitSplitRegime:(_esrc.xMode==='split')?['bull','up']:null };   // [S1201] 토글 [S1212] M게이트 [S1215] 무시 [S1216] 분할
 }
 
 // [S1213] 진입원 서명 — BT 결과 재사용(S215) 키. 엔진 폴백(EC.SRC_ALL)과 동일 규약으로 정규화:
@@ -1306,7 +1311,7 @@ function _btSrcSigOf(opts){
   const d=(opts&&opts.entrySrc)||{recipe:true,bullVol:true,v2:true,maCross:false};
   const m=(d.maCross===true);
   const rg=m?((opts&&opts.maCrossRegime&&opts.maCrossRegime.length)?opts.maCrossRegime.join(','):'all'):'-';
-  const xg=(opts&&opts.maExitSkipRegime&&opts.maExitSkipRegime.length)?('x'+opts.maExitSkipRegime.join(',')):'x-';   // [S1215] 출구게이트도 재사용 키에(분석탭=미지정=x-)
+  const xg=(opts&&opts.exitSplitRegime&&opts.exitSplitRegime.length)?('xp'+opts.exitSplitRegime.join(',')):((opts&&opts.maExitSkipRegime&&opts.maExitSkipRegime.length)?('xs'+opts.maExitSkipRegime.join(',')):'x-');   // [S1215·16] 출구모드 재사용 키(분석탭=미지정=x-)
   return [d.recipe!==false?1:0, d.bullVol!==false?1:0, d.v2!==false?1:0, m?1:0, rg, xg].join('|');
 }
 if(typeof window!=='undefined') window._btSrcSigOf=_btSrcSigOf;
@@ -1316,13 +1321,17 @@ if(typeof window!=='undefined') window._btSrcSigOf=_btSrcSigOf;
 //     끄고 켜며 "v2가 몇 건을 더 잡는가"를 보는 용도 — 결과 카드에 src별로 갈라 표기한다.
 const SX_BT_SRC_KEY='SX_BT_ENTRY_SRC_v1';
 function _btEntrySrc(){
-  const d={ recipe:true, bullVol:true, v2:true, maCross:false, mGate:true, xGate:false };   // [S1210] maCross 기본 OFF [S1212] mGate 기본 ON [S1215] xGate=출구 레짐게이트(불장·상승장 MA데드 무시 · 기본 OFF=현행)
+  const d={ recipe:true, bullVol:true, v2:true, maCross:false, mGate:true, xMode:'off' };   // [S1210] maCross 기본 OFF [S1212] mGate 기본 ON [S1216] xMode: off(현행)|skip(불장·상승장 데드무시 S1215)|split(불장·상승장=데드만·나머지=ATR만)
   try{ const raw=localStorage.getItem(SX_BT_SRC_KEY); if(raw){ const o=JSON.parse(raw);
-    ['recipe','bullVol','v2','maCross','mGate','xGate'].forEach(k=>{ if(typeof o[k]==='boolean') d[k]=o[k]; }); } }catch(_){}
+    ['recipe','bullVol','v2','maCross','mGate'].forEach(k=>{ if(typeof o[k]==='boolean') d[k]=o[k]; });
+    if(o.xMode==='off'||o.xMode==='skip'||o.xMode==='split') d.xMode=o.xMode; else if(o.xGate===true) d.xMode='skip';   // [S1216] 구 xGate 이행
+  } }catch(_){}
   return d;
 }
 function btToggleEntrySrc(k){
-  const st=_btEntrySrc(); st[k]=!st[k];
+  const st=_btEntrySrc();
+  if(k==='xMode'){ st.xMode = st.xMode==='off'?'skip':(st.xMode==='skip'?'split':'off'); }   // [S1216] 출구 3상태 순환: 현행→무시→분할→현행
+  else st[k]=!st[k];
   if(!st.recipe && !st.bullVol && !st.v2 && !st.maCross){ toast('진입원을 전부 끌 수는 없습니다'); return; }   // [S1210] maCross 단독 ON = 유효(순수 크로스 측정)
   try{ localStorage.setItem(SX_BT_SRC_KEY, JSON.stringify(st)); }catch(_){}
   _btRenderEntrySrcBar();
@@ -1342,8 +1351,12 @@ function _btRenderEntrySrcBar(){
       }).join('')
     + (st.v2?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">⚠ V2 규칙은 발굴풀 <b>in-sample</b> — 이 BT에서 오르는 건 검증이 아니라 재현이다. 정직한 판정은 시즌2 paper(시간축 OOS).</div>':'')
     + (st.maCross?`<span onclick="_sxVib(10);btToggleEntrySrc('mGate')" title="[S1212] M 레짐게이트 — ON: 불장·상승장(S544 레짐표 기준)에서만 크로스 진입(하락장 데드캣 크로스 배제·희창 가설). OFF: 전 레짐 크로스." style="font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:12px;border:1px dashed #d97706;cursor:pointer;${st.mGate?'background:#d9770622;color:#b45309':'background:transparent;color:var(--text3)'}">⛩ 레짐게이트 ${st.mGate?'불장·상승장만':'OFF(전레짐)'}</span>`:'')
-    + `<span onclick="_sxVib(10);btToggleEntrySrc('xGate')" title="[S1215] 출구 레짐게이트 — ON: 불장·상승장(S544)에서 MA5×20 데드크로스 청산을 무시(트레일만 출구·추세 완주 가설). OFF: 현행(전레짐 데드 작동). ⚠데드는 이벤트라 한 번 무시되면 그 거래는 사실상 트레일 단독 출구." style="font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:12px;border:1px dashed #3b82f6;cursor:pointer;${st.xGate?'background:#3b82f622;color:#2563eb':'background:transparent;color:var(--text3)'}">🚪 MA데드게이트 ${st.xGate?'불장·상승장 무시':'OFF(현행)'}</span>`
-    + (st.xGate?'<div style="width:100%;font-size:8.5px;color:#2563eb;line-height:1.5;margin-top:3px">🚪 출구게이트 ON — 불장·상승장에선 데드크로스를 무시하고 <b>트레일(고점−3×ATR)만</b> 출구. 무시 횟수는 거래별 각인(⛩ 개입 줄) · <b>미검증·정찰용</b>(시즌2 비배선·기본 OFF가 현행).</div>':'')
+    + (()=>{ const xm=st.xMode||'off';
+        const lbl=xm==='off'?'현행(ATR+데드)':(xm==='skip'?'무시: 불장·상승장 데드무시':'분할: 불·상승=데드만');
+        const bd=xm==='split'?'#7c3aed':'#3b82f6', st2=xm==='off'?'background:transparent;color:var(--text3)':(xm==='skip'?'background:#3b82f622;color:#2563eb':'background:#7c3aed22;color:#7c3aed');
+        return `<span onclick="_sxVib(10);btToggleEntrySrc('xMode')" title="[S1215·16] 출구 모드(탭=순환) — 현행: 전레짐 ATR+데드 / 무시: 불장·상승장 데드 무시(ATR만) / 분할: 불장·상승장=데드만(ATR 억제)·나머지=ATR만(데드 무시)." style="font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:12px;border:1px dashed ${bd};cursor:pointer;${st2}">🚪 출구 ${lbl}</span>`; })()
+    + (st.xMode==='skip'?'<div style="width:100%;font-size:8.5px;color:#2563eb;line-height:1.5;margin-top:3px">🚪 무시모드 — 불장·상승장에선 데드크로스를 무시하고 <b>트레일(고점−3×ATR)만</b> 출구. 무시 횟수는 거래별 각인(⛩ 줄) · <b>미검증·정찰용</b>(시즌2 비배선).</div>':'')
+    + (st.xMode==='split'?'<div style="width:100%;font-size:8.5px;color:#7c3aed;line-height:1.5;margin-top:3px">🚪 분할모드 — 불장·상승장=<b>데드크로스만</b>(ATR 손절·트레일 억제 → ⚠급락 하드브레이크 부재·데드 확정까지 노출) · 나머지 레짐=<b>ATR만</b>(데드 무시). 억제·무시는 거래별 각인(⛩·🧷 줄) · <b>미검증·정찰용</b>(시즌2 비배선).</div>':'')
     + (st.maCross?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">📈 MA5×20은 <b>미검증 후보</b>(정찰용·시즌2 비배선). 꼴찌 우선순위 — 3원이 잡던 거래는 그대로, 남는 구간만 추가로 잡는다(같은 봉 동시발동만 라벨 경합). ★추세 선점은 우선순위가 아니라 <b>시간</b>이 한다: M(0봉)이 먼저 타면 레시피(1~5봉) 차례가 안 온다. 단독 측정은 나머지 3원 OFF.</div>':'');
 }
 if(typeof window!=='undefined'){ window.btToggleEntrySrc=btToggleEntrySrc; window._btRenderEntrySrcBar=_btRenderEntrySrcBar; window._btEntrySrc=_btEntrySrc; }
