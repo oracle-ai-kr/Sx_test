@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1209</div>
+    <div class="tb-build">S1217</div>
   </div>
 
   <div class="scroll-area">
@@ -441,7 +441,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1209</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1217</div>
   </div>
 </div>
 
@@ -1064,7 +1064,7 @@ function atRenderPnl(p){
     +'<div style="font-size:9px;color:'+T3+';margin-top:6px;line-height:1.55">🔒 <b>사전선언 게이트</b>('+g.declared+') — 결과 보고 완화 금지(돌멩이). 완성거래(진입→청산 체결) 기준 · MDD=실현손익 자산곡선(초기 1,000만원 기준).'+(p.approxN?(' ⚠ '+p.approxN+'건 체결가 미회수→curPrice 근사'):'')+'</div>';
 }
 // ── [S1209] 진입원×칸 분해 — /srcstats(가계부+포지션 경량 각인 목록) → src별 요약 + 3×3 칸 진입 분포. 표시 전용·판정 무관. ──
-const AT_CELL_LBL={'bull|bull':'추가상승','bull|bear':'기술적반등','bull|mixed':'상승세전환','bear|bull':'눌림목','bear|bear':'바닥확인','bear|mixed':'하락세전환','mixed|bull':'상승세약화','mixed|bear':'하락세약화','mixed|mixed':'횡보장유지'};
+const AT_CELL_LBL={'bull|bull':'추가상승','bull|bear':'기술적반등','bull|mixed':'상승세전환','bear|bull':'되돌림','bear|bear':'추가하락','bear|mixed':'하락세전환','mixed|bull':'눌림목','mixed|bear':'바닥확인','mixed|mixed':'추세중립'};   // [S1217] 상태어휘 SSOT 동기(키 동결·라벨만 — KV 저장 cellLbl은 참고용 미러)
 let _atSrcData=null;
 async function atLoadSrcStats(force){
   const el=_$('atSrcBody');
@@ -1102,7 +1102,7 @@ function atRenderSrcStats(){
   var add=function(cell,src,isPos){ if(!cell||!AT_CELL_LBL[cell]){ if(isPos)unrecP++; else unrecT++; return; } var c=cells[cell]||(cells[cell]={tot:0,hold:0,s:{recipe:0,bullVol:0,v2:0,_none:0}}); c.tot++; if(isPos)c.hold++; c.s[(src&&c.s[src]!=null)?src:'_none']++; };
   tr.forEach(function(t){ add(t.cell,t.src,false); });
   po.forEach(function(p){ add(p.cell,p.src,true); });
-  var SH=[['bull','강세'],['bear','약세'],['mixed','중립']], LG=[['bull','상승장'],['bear','하락장'],['mixed','횡보장']];
+  var SH=[['bull','강세'],['bear','약세'],['mixed','중립']], LG=[['bull','상승세'],['bear','하락세'],['mixed','혼조세']];   // [S1217] 세/장 분리
   var g='<table style="width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed;">';
   g+='<tr><td style="width:33px;"></td>'; LG.forEach(function(l){ g+='<td style="text-align:center;font-size:10px;color:'+T3+';padding:2px;font-weight:700;">'+l[1]+'</td>'; }); g+='</tr>';
   SH.forEach(function(sh){
