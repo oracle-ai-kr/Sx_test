@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-//  sx_exec_core.js · v3 [S1210] — 시즌1/2 공유 실행 SSOT
+//  sx_exec_core.js · v5 [S1212] — 시즌1/2 공유 실행 SSOT
 // ════════════════════════════════════════════════════════════
 //  일원화(b): 시즌2 자동매매 · 시즌1 BT · 시즌1 분석탭 신호가 모두 이 코어를 공유.
 //    진입 = 레시피 votes≥1 (recipe_core _sxRecipeVotesCore)
@@ -94,13 +94,19 @@ function entrySignalAt(mk, ind, rows, i, opts){
   var on=(opts&&opts.srcOn)||SRC_ALL;
   var votes=0;
   try{ if(typeof _sxRecipeVotesCore==='function'){ var v=_sxRecipeVotesCore(mk, ind, rows, i); votes=(v&&v.votes)||0; } }catch(_){}
-  if(on.recipe!==false && votes>=1) return { buy:true, votes:votes, src:'recipe', cell:cellOfAt(ind,rows,i) };   // [S1210] 전 진입원 칸 각인(진입원×칸 분해용)
-  if(on.bullVol!==false && bullVolAt(mk, ind)) return { buy:true, votes:votes, src:'bullVol', cell:cellOfAt(ind,rows,i) };
+  var _cfg=(opts&&opts.cfg)||CFG;
+  if(on.recipe!==false && votes>=1) return { buy:true, votes:votes, src:'recipe', cell:cellOfAt(ind,rows,i), gcAge:gcAgeAt(rows,i,_cfg) };   // [S1210] 전 진입원 칸 각인 [S1211] 추세나이
+  if(on.bullVol!==false && bullVolAt(mk, ind)) return { buy:true, votes:votes, src:'bullVol', cell:cellOfAt(ind,rows,i), gcAge:gcAgeAt(rows,i,_cfg) };
   if(on.v2!==false){
     var h=v2SignalAt(mk, ind, rows, i);
-    if(h) return { buy:true, votes:votes, src:'v2', v2Cat:h.cat, v2Tier:h.tier, v2K:h.k, v2Cell:h.cell, v2Lbl:h.lbl, cell:h.cell||cellOfAt(ind,rows,i) };
+    if(h) return { buy:true, votes:votes, src:'v2', v2Cat:h.cat, v2Tier:h.tier, v2K:h.k, v2Cell:h.cell, v2Lbl:h.lbl, cell:h.cell||cellOfAt(ind,rows,i), gcAge:gcAgeAt(rows,i,_cfg) };
   }
-  if(on.maCross===true && maCrossAt(rows, i, (opts&&opts.cfg)||CFG)) return { buy:true, votes:votes, src:'maCross', cell:cellOfAt(ind,rows,i) };   // [S1210] 후보 — 꼴찌 우선순위(3원이 잡던 거래 불변·남는 구간만 추가) · 기본 OFF
+  if(on.maCross===true && maCrossAt(rows, i, _cfg)){   // [S1210] 후보 — 꼴찌 우선순위(3원이 잡던 거래 불변·남는 구간만 추가) · 기본 OFF [S1211] M=크로스 당일=나이0(정의)
+    // [S1212] 레짐게이트(희창 가설: 불장·상승장 크로스만·하락장 데드캣 크로스 배제) — opts.maCrossRegime=['bull','up'] 등. null/미지정=무게이트.
+    var _mg=(opts&&opts.maCrossRegime)||null;
+    if(!_mg || _mg.indexOf(regimeAt(rows,i))>=0)
+      return { buy:true, votes:votes, src:'maCross', cell:cellOfAt(ind,rows,i), gcAge:0 };
+  }
   return { buy:false, votes:votes, src:null };
 }
 
@@ -120,6 +126,19 @@ function maCrossAt(rows, i, cfg){
     return (p5<=p20 && a5>a20);
   }catch(e){ return false; }
 }
+
+// [S1211] 진입봉의 5×20 골든크로스 경과("추세 나이") — 전 진입원 각인.
+//   근거(합성 3형상 실측): GC봉은 엄격 정배(5>10>20) 성립 2~3봉 前(MA10이 아직 20 아래) → M 진입은 중립칸에 찍히고 정배칸으로 타고 들어간다.
+//   따라서 "단기강세에서 M vs 타원" 비교는 칸(상태)만으론 불충분 — 이 나이(이벤트 기준) 축이 정면 비교축.
+//   M=0(정의역) · 레시피/v2=크로스 후 n봉째 중간 탑승 · null=250봉 내 GC 없음(장기 역배 등).
+function gcAgeAt(rows, i, cfg){
+  cfg = cfg || CFG;
+  try{
+    var lo = Math.max(cfg.maSlow, i - 250);
+    for(var j=i; j>=lo; j--){ if(maCrossAt(rows, j, cfg)) return i - j; }
+    return null;
+  }catch(e){ return null; }
+}
 // [S1210] 진입봉 칸 판정 — 시즌2 S1209 각인·시즌1 3×3과 동일 축(axisGen은 SX_CELL_DATA.meta 추종, _sxCellSignalCore 규약 동일).
 function cellOfAt(ind, rows, i){
   try{
@@ -127,6 +146,27 @@ function cellOfAt(ind, rows, i){
     var D=(typeof SX_CELL_DATA!=='undefined')?SX_CELL_DATA:((typeof globalThis!=='undefined'&&globalThis.SX_CELL_DATA)||null);
     return _cellKeyOf(ind, rows, i, (D&&D.meta&&D.meta.axisGen)||'ma51020');
   }catch(e){ return null; }
+}
+
+
+// [S1212] S544 레짐 분류 — sx_bt.js _btRegimeAt에서 SSOT 이동(설계원칙1: 미러 이중구현 금지 — sx_bt는 이 함수로 위임).
+//   SMA 20/60/120/200: |20−장기|<±1.5%=side(크로스 부근) · 20>장기: 60>120>200 정배면 bull(불장·200봉 확보 시만) 아니면 up(상승장) · 20<장기=down.
+//   장기선 폴백 200→120→60. ★3×3 장기축(maAlignLT)·S543(ADX 미러)과는 별개 어휘 — 혼용 금지.
+function regimeAt(rows, idx){
+  if(!rows || idx < 30) return 'side';
+  function _sm(len){ if(idx < len-1) return null; var s=0,k,c; for(k=idx-len+1;k<=idx;k++){ c=+(rows[k].close!=null?rows[k].close:rows[k].c); s+=c; } return s/len; }
+  var ma20=_sm(20);
+  var maLong=_sm(200), longFull=(maLong!=null);
+  if(maLong==null) maLong=_sm(120);
+  if(maLong==null) maLong=_sm(60);
+  if(ma20==null || maLong==null || maLong===0) return 'side';
+  var distPct=(ma20-maLong)/maLong*100;
+  if(Math.abs(distPct) < 1.5) return 'side';
+  if(distPct > 0){
+    if(longFull){ var ma60=_sm(60), ma120=_sm(120); if(ma60!=null && ma120!=null && ma60>ma120 && ma120>maLong) return 'bull'; }
+    return 'up';
+  }
+  return 'down';
 }
 
 // ── 진입봉 ATR (진입 시 고정될 값) ──
@@ -207,7 +247,8 @@ function runLifecycle(rows, votesAt, opts){
       reason: reason, ret: exitFill/entryFill - 1, bars: exitIdx - entryIdx,
       src: (siSig&&siSig.src)||'recipe', votes: (siSig&&siSig.votes)||0,               // [S1201] 진입원 각인
       v2Cat: (siSig&&siSig.v2Cat)||null, v2Tier: (siSig&&siSig.v2Tier)||null, v2K: (siSig&&siSig.v2K)||null,
-      cell: (siSig&&siSig.cell)||null                                                   // [S1210] 진입봉 칸(3×3) — 진입원×칸 분해용
+      cell: (siSig&&siSig.cell)||null,                                                  // [S1210] 진입봉 칸(3×3) — 진입원×칸 분해용
+      gcAge: (siSig&&siSig.gcAge!=null)?siSig.gcAge:null                                 // [S1211] 진입봉 추세나이(5×20 GC 경과봉·null=250봉 내 없음)
     });
     cursor = exitIdx + 1;
   }
@@ -230,11 +271,11 @@ function _tradeStats(trades){
 }
 
 var API = {
-  VERSION: 'S1210', CFG: CFG, SRC_ALL: SRC_ALL,
+  VERSION: 'S1212', CFG: CFG, SRC_ALL: SRC_ALL,
   sxATR: sxATR, sxSMA: sxSMA,
   entrySignalAt: entrySignalAt, entryATRat: entryATRat, evalExitAt: evalExitAt,
   bullVolAt: bullVolAt, v2SignalAt: v2SignalAt,                                        // [S1201]
-  maCrossAt: maCrossAt, cellOfAt: cellOfAt,                                            // [S1210]
+  maCrossAt: maCrossAt, cellOfAt: cellOfAt, gcAgeAt: gcAgeAt, regimeAt: regimeAt,      // [S1210·S1211·S1212]
   runLifecycle: runLifecycle
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = API;
