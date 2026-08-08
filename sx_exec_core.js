@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-//  sx_exec_core.js · v8 [S1217] — 시즌1/2 공유 실행 SSOT
+//  sx_exec_core.js · v10 [S1219] — 시즌1/2 공유 실행 SSOT
 // ════════════════════════════════════════════════════════════
 //  일원화(b): 시즌2 자동매매 · 시즌1 BT · 시즌1 분석탭 신호가 모두 이 코어를 공유.
 //    진입 = 레시피 votes≥1 (recipe_core _sxRecipeVotesCore)
@@ -185,19 +185,30 @@ var STATE_VOCAB = {
   regime: { bull:'불장', up:'상승장', side:'횡보장', down:'하락장', crash:'폭락장' }
 };
 function cellLblOf(ck){ return (ck&&STATE_VOCAB.cell[ck])||ck||'?'; }
-// [S1217] 레짐 v2(5국면) — v1 보존 원칙: 불/상승/횡보 정의는 regimeAt(S544)과 **동일**(게이트·기존 측정과 호환·테스트 박제),
-//   하락장만 기울기∨변동성으로 하락/폭락 분리. 폭락 v1 초안(측정 전 선언값·조정 가능): down ∧ (MA20 10봉 기울기 ≤ −0.5%/봉 ∨ ATR14/종가 ≥ 5%).
-//   기울기·변동성을 불/상승 정의에 투입하는 전면 재정의는 측정과 함께 v2.1에서 — 측정 중인 축은 바꾸지 않는다(돌멩이).
+// [S1219] 레짐 v3(5국면·전면 재구성) — 골격(20 vs 200 ±1.5%)은 유지, **분화는 전부 동역학**(기울기·변동성·이격도):
+//   ① 상승측: 불장 = 기울기(MA20 10봉) ≥ +0.15%/봉 · 상승장 = 미달. **구 60>120>200 조항 폐기** — 3×3 장기축(상승세)과 문자 그대로 중복이라(희창 지적) 위치는 3×3, 동역학은 레짐으로 직교화.
+//   ② 하락측(S1218 유지): 폭락 = 기울기 ≤ −0.5%/봉 ∨ ATR14/종가 ≥ 5% ∨ 이격(종가/MA20) ≤ −7% · 하락장 = 미달.
+//   ③ 횡보장 = 밴드 안(전환 구간·v1 동일). ★게이트 불변 증명: 게이트 소비는 합집합 {불장,상승장}이고 그 합집합(=20>200+1.5%)은 v1≡v3 — 테스트 박제.
+//   전 임계값은 선언값 초안(측정 전·조정 가능). 함수명은 regime5At 유지(소비자 배선 불변).
 function regime5At(rows, idx){
   var base = regimeAt(rows, idx);
-  if(base !== 'down') return base;
+  if(base === 'side') return 'side';
+  if(base === 'bull' || base === 'up'){                                              // [S1219] 상승측 재분화 — 기울기 축
+    try{
+      function _smU(end,len){ if(end<len-1) return null; var t=0,k,c; for(k=end-len+1;k<=end;k++){ c=+(rows[k].close!=null?rows[k].close:rows[k].c); t+=c; } return t/len; }
+      var u0=_smU(idx,20), u1=_smU(idx-10,20);
+      var us=(u0!=null&&u1!=null&&u1>0)?((u0-u1)/u1*100/10):null;                     // %/봉
+      return (us!=null&&us>=0.15)?'bull':'up';
+    }catch(e){ return 'up'; }
+  }
   try{
     function _sm(end,len){ if(end<len-1) return null; var t=0,k,c; for(k=end-len+1;k<=end;k++){ c=+(rows[k].close!=null?rows[k].close:rows[k].c); t+=c; } return t/len; }
     var m0=_sm(idx,20), m1=_sm(idx-10,20);
     var slope=(m0!=null&&m1!=null&&m1>0)?((m0-m1)/m1*100/10):null;      // %/봉
     var atr=sxATR(rows.slice(0, idx+1), 14), cp=+(rows[idx].close!=null?rows[idx].close:rows[idx].c);
     var atrPct=(atr!=null&&cp>0)?(atr/cp*100):null;
-    if((slope!=null&&slope<=-0.5)||(atrPct!=null&&atrPct>=5)) return 'crash';
+    var disp=(m0!=null&&m0>0&&cp>0)?((cp-m0)/m0*100):null;                          // [S1218] 이격도(종가 vs MA20, %)
+    if((slope!=null&&slope<=-0.5)||(atrPct!=null&&atrPct>=5)||(disp!=null&&disp<=-7)) return 'crash';
   }catch(e){}
   return 'down';
 }
@@ -329,7 +340,7 @@ function _tradeStats(trades){
 }
 
 var API = {
-  VERSION: 'S1217', CFG: CFG, SRC_ALL: SRC_ALL,
+  VERSION: 'S1219', CFG: CFG, SRC_ALL: SRC_ALL,
   sxATR: sxATR, sxSMA: sxSMA,
   entrySignalAt: entrySignalAt, entryATRat: entryATRat, evalExitAt: evalExitAt,
   bullVolAt: bullVolAt, v2SignalAt: v2SignalAt,                                        // [S1201]
