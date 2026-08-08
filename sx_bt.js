@@ -640,7 +640,7 @@ function _btRegimeBreakdown(rows, trades){
 }
 // [S1201] 진입원별 분해 렌더 — 시즌2 3원(recipe/bullVol/v2)이 각각 몇 건을 잡고 얼마를 벌었나.
 //   합계와 갈라 보는 이유: v2는 in-sample이라 총계에 섞이면 BT 전체가 낙관 편향된다.
-function _btRenderSrcBreak(sb, on){
+function _btRenderSrcBreak(sb, on, trades){   // [S1214] +trades=청산사유 분해용(하위호환: 미전달 시 청산 블록 생략)
   if(!sb) return '';
   const ks=['recipe','bullVol','v2','maCross'].filter(k=>sb[k]&&sb[k].n>0);   // [S1210]
   if(!ks.length) return '';
@@ -653,10 +653,48 @@ function _btRenderSrcBreak(sb, on){
       <span style="font-size:10px;color:var(--text3)">평균 ${d.avg>=0?'+':''}${d.avg}%</span>
       <span style="margin-left:auto;font-size:11px;font-weight:800;color:${pc}">${d.pnl>=0?'+':''}${d.pnl}%</span>
     </div>`; }).join('');
+  // [S1214] 🚪 청산사유 분해 — 출구는 진입원 공통(이중ATR 2×/3× + MA5×20데드 유예10 · 시즌2 워커 복제)이라
+  //   "청산원"은 전략이 아니라 사유. 합산 + 진입원×사유 크로스(예: M의 큰 손실이 ATR손절인지 MA데드 휩쏘인지).
+  let xrHtml='';
+  {
+    const _XR={'ATR손절':{lbl:'ATR손절',c:'#e8365a'},'ATR트레일':{lbl:'ATR트레일',c:'#22c55e'},'MA5x20데드':{lbl:'MA데드',c:'#3b82f6'},'보유상한':{lbl:'상한',c:'#f97316'}};
+    const _xk=x=>_XR[x]?x:'기타';
+    const tcl=(trades||[]).filter(t=>t&&t.type!=='OPEN');
+    if(tcl.length){
+      const SLx={recipe:'레',bullVol:'B',v2:'V',maCross:'M'};
+      const all={}, by={};
+      tcl.forEach(t=>{ const x=_xk(t.exitReason||'기타');
+        const a=all[x]||(all[x]={n:0,sum:0}); a.n++; a.sum+=t.pnl;
+        const k=SLx[t.src]?t.src:'recipe'; const o=by[k]||(by[k]={}); const sv=o[x]||(o[x]={n:0,sum:0}); sv.n++; sv.sum+=t.pnl; });
+      const XORD=['ATR손절','ATR트레일','MA5x20데드','보유상한','기타'];
+      const fmt=(x,sv)=>{ const m=_XR[x]||{lbl:'기타',c:'var(--text3)'}; const avg=sv.sum/sv.n;
+        return `<span style="color:${m.c};font-weight:700">${m.lbl}</span> ${sv.n}건·${avg>=0?'+':''}${avg.toFixed(2)}`; };
+      const allSeg=XORD.filter(x=>all[x]).map(x=>fmt(x,all[x])).join(' <span style="color:var(--text3)">·</span> ');
+      let srcSeg='';
+      ['recipe','bullVol','v2','maCross'].filter(k=>by[k]).forEach(k=>{ const m=_BT_SRC_META[k];
+        const seg=XORD.filter(x=>by[k][x]).map(x=>fmt(x,by[k][x])).join(' <span style="color:var(--text3)">·</span> ');
+        srcSeg+=`<div style="font-size:9.5px;color:var(--text2);padding:2.5px 0"><span style="color:${m.c};font-weight:800">${SLx[k]}</span> ${seg}</div>`;
+      });
+      const openN=(trades||[]).filter(t=>t&&t.type==='OPEN').length;
+      // [S1215] 출구게이트 개입 — 데드를 1회 이상 무시하고 계속 탄 거래(반사실: 무개입 시 첫 데드에서 청산됐을 것들)
+      let gateLine='';
+      { const gi=tcl.filter(t=>(t.maSkips||0)>0);
+        if(gi.length){ const sk=gi.reduce((a,t)=>a+t.maSkips,0), avg=gi.reduce((a,t)=>a+t.pnl,0)/gi.length, w=gi.filter(t=>t.pnl>0).length;
+          gateLine=`<div style="font-size:9.5px;color:#2563eb;padding:2.5px 0">⛩ <b>출구게이트 개입</b> ${gi.length}거래(데드 ${sk}회 무시)·${Math.round(w/gi.length*100)}%·평균 ${avg>=0?'+':''}${avg.toFixed(2)} — 무개입이면 첫 데드에서 끊겼을 거래들</div>`; } }
+      xrHtml=`<div style="margin-top:6px;padding-top:5px;border-top:1px solid var(--border)">
+        <div style="font-size:9.5px;font-weight:800;color:var(--text)">🚪 청산사유 <span style="font-weight:500;color:var(--text3)">(진입원 공통 출구 — ±=건당 평균%)</span></div>
+        <div style="font-size:9.5px;color:var(--text2);padding:2.5px 0"><b style="color:var(--text)">합산</b> ${allSeg}${openN?` <span style="color:var(--text3)">· 미청산 ${openN} 제외</span>`:''}</div>
+        ${gateLine}
+        ${srcSeg}
+        <div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-top:3px">출구=이중ATR(진입−2×ATR 손절 · 고점−3×ATR 트레일)+MA5×20데드(유예10일·완성봉) — 시즌2 워커 복제·진입원 무관 공통. 손절 평균이 유독 크면 그 진입원은 변동 확대기에 들어간다는 뜻(M 크로스 시점 특성 후보).</div>
+      </div>`;
+    }
+  }
   const offs=['recipe','bullVol','v2'].filter(k=>on&&on[k]===false).map(k=>_BT_SRC_META[k].lbl);   // [S1210] maCross는 기본 OFF라 '꺼둔' 표기에서 제외(켰을 때만 행으로 등장)
   return `<div class="bt-card" style="margin-top:8px">
     <div class="bt-card-title">🧬 진입원별 분해 <span style="font-size:10px;font-weight:500;color:var(--text3)">(상호배타 recipe&gt;bullVol&gt;v2&gt;MA5×20 · MA는 후보)</span></div>
     ${rows}
+    ${xrHtml}
     ${sb.v2&&sb.v2.n>0?'<div style="font-size:9px;color:#b45309;line-height:1.55;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)">⚠ <b>V2 어휘규칙은 발굴풀 in-sample</b>(SX_CELL_DATA.meta.caveat). 이 BT는 규칙을 만든 과거를 다시 도는 것이라 v2 성과는 <b>검증이 아니라 재현</b>이다. 정직한 판정은 시즌2 paper(전진검증=시간축 OOS)의 [V2] 가계부.</div>':''}
     ${offs.length?`<div style="font-size:9px;color:var(--text3);margin-top:4px">· 꺼둔 진입원: ${offs.join(' · ')}</div>`:''}
   </div>`;
@@ -1257,7 +1295,7 @@ function btGetOpts(){
   //     적용 범위: sx_bt.js 모든 경로(단일검증/관심종목 BT/교차검증/워크포워드/대시보드).
   //     옵티마이저는 별개 호출(sx_optimizer.js에서 직접 true 전달) → 영향 없음.
   const _esrc=_btEntrySrc();
-  return { slippage:slip, applyRegimeAdjust:true, entrySrc:_esrc, maCrossRegime:(_esrc.maCross&&_esrc.mGate)?['bull','up']:null };   // [S1201] 진입원 토글 동봉 [S1212] M 레짐게이트(불장·상승장) — 게이트 OFF·M OFF면 null
+  return { slippage:slip, applyRegimeAdjust:true, entrySrc:_esrc, maCrossRegime:(_esrc.maCross&&_esrc.mGate)?['bull','up']:null, maExitSkipRegime:(_esrc.xGate)?['bull','up']:null };   // [S1201] 토글 동봉 [S1212] M 게이트 [S1215] 출구게이트(불장·상승장 MA데드 무시)
 }
 
 // [S1213] 진입원 서명 — BT 결과 재사용(S215) 키. 엔진 폴백(EC.SRC_ALL)과 동일 규약으로 정규화:
@@ -1268,7 +1306,8 @@ function _btSrcSigOf(opts){
   const d=(opts&&opts.entrySrc)||{recipe:true,bullVol:true,v2:true,maCross:false};
   const m=(d.maCross===true);
   const rg=m?((opts&&opts.maCrossRegime&&opts.maCrossRegime.length)?opts.maCrossRegime.join(','):'all'):'-';
-  return [d.recipe!==false?1:0, d.bullVol!==false?1:0, d.v2!==false?1:0, m?1:0, rg].join('|');
+  const xg=(opts&&opts.maExitSkipRegime&&opts.maExitSkipRegime.length)?('x'+opts.maExitSkipRegime.join(',')):'x-';   // [S1215] 출구게이트도 재사용 키에(분석탭=미지정=x-)
+  return [d.recipe!==false?1:0, d.bullVol!==false?1:0, d.v2!==false?1:0, m?1:0, rg, xg].join('|');
 }
 if(typeof window!=='undefined') window._btSrcSigOf=_btSrcSigOf;
 
@@ -1277,9 +1316,9 @@ if(typeof window!=='undefined') window._btSrcSigOf=_btSrcSigOf;
 //     끄고 켜며 "v2가 몇 건을 더 잡는가"를 보는 용도 — 결과 카드에 src별로 갈라 표기한다.
 const SX_BT_SRC_KEY='SX_BT_ENTRY_SRC_v1';
 function _btEntrySrc(){
-  const d={ recipe:true, bullVol:true, v2:true, maCross:false, mGate:true };   // [S1210] maCross=후보 · 기본 OFF(시즌2 비배선) [S1212] mGate=M 레짐게이트(불장·상승장만 · 기본 ON=희창 가설)
+  const d={ recipe:true, bullVol:true, v2:true, maCross:false, mGate:true, xGate:false };   // [S1210] maCross 기본 OFF [S1212] mGate 기본 ON [S1215] xGate=출구 레짐게이트(불장·상승장 MA데드 무시 · 기본 OFF=현행)
   try{ const raw=localStorage.getItem(SX_BT_SRC_KEY); if(raw){ const o=JSON.parse(raw);
-    ['recipe','bullVol','v2','maCross','mGate'].forEach(k=>{ if(typeof o[k]==='boolean') d[k]=o[k]; }); } }catch(_){}
+    ['recipe','bullVol','v2','maCross','mGate','xGate'].forEach(k=>{ if(typeof o[k]==='boolean') d[k]=o[k]; }); } }catch(_){}
   return d;
 }
 function btToggleEntrySrc(k){
@@ -1303,6 +1342,8 @@ function _btRenderEntrySrcBar(){
       }).join('')
     + (st.v2?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">⚠ V2 규칙은 발굴풀 <b>in-sample</b> — 이 BT에서 오르는 건 검증이 아니라 재현이다. 정직한 판정은 시즌2 paper(시간축 OOS).</div>':'')
     + (st.maCross?`<span onclick="_sxVib(10);btToggleEntrySrc('mGate')" title="[S1212] M 레짐게이트 — ON: 불장·상승장(S544 레짐표 기준)에서만 크로스 진입(하락장 데드캣 크로스 배제·희창 가설). OFF: 전 레짐 크로스." style="font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:12px;border:1px dashed #d97706;cursor:pointer;${st.mGate?'background:#d9770622;color:#b45309':'background:transparent;color:var(--text3)'}">⛩ 레짐게이트 ${st.mGate?'불장·상승장만':'OFF(전레짐)'}</span>`:'')
+    + `<span onclick="_sxVib(10);btToggleEntrySrc('xGate')" title="[S1215] 출구 레짐게이트 — ON: 불장·상승장(S544)에서 MA5×20 데드크로스 청산을 무시(트레일만 출구·추세 완주 가설). OFF: 현행(전레짐 데드 작동). ⚠데드는 이벤트라 한 번 무시되면 그 거래는 사실상 트레일 단독 출구." style="font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:12px;border:1px dashed #3b82f6;cursor:pointer;${st.xGate?'background:#3b82f622;color:#2563eb':'background:transparent;color:var(--text3)'}">🚪 MA데드게이트 ${st.xGate?'불장·상승장 무시':'OFF(현행)'}</span>`
+    + (st.xGate?'<div style="width:100%;font-size:8.5px;color:#2563eb;line-height:1.5;margin-top:3px">🚪 출구게이트 ON — 불장·상승장에선 데드크로스를 무시하고 <b>트레일(고점−3×ATR)만</b> 출구. 무시 횟수는 거래별 각인(⛩ 개입 줄) · <b>미검증·정찰용</b>(시즌2 비배선·기본 OFF가 현행).</div>':'')
     + (st.maCross?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">📈 MA5×20은 <b>미검증 후보</b>(정찰용·시즌2 비배선). 꼴찌 우선순위 — 3원이 잡던 거래는 그대로, 남는 구간만 추가로 잡는다(같은 봉 동시발동만 라벨 경합). ★추세 선점은 우선순위가 아니라 <b>시간</b>이 한다: M(0봉)이 먼저 타면 레시피(1~5봉) 차례가 안 온다. 단독 측정은 나머지 3원 OFF.</div>':'');
 }
 if(typeof window!=='undefined'){ window.btToggleEntrySrc=btToggleEntrySrc; window._btRenderEntrySrcBar=_btRenderEntrySrcBar; window._btEntrySrc=_btEntrySrc; }
@@ -1612,7 +1653,7 @@ function btRenderBasicResult(stock, r){
   </div>`;
   // [S544] 레짐별 성과 (현재 파라미터가 불장/상승장/횡보장/하락장에서 어떻게 변하는지)
   html += _btRenderRegime(r._regimeBuckets);
-  html += _btRenderSrcBreak(r._srcBreak, r._entrySrc);   // [S1201] 진입원별 분해
+  html += _btRenderSrcBreak(r._srcBreak, r._entrySrc, r.trades);   // [S1201] 진입원별 분해 [S1214] +청산사유
   html += _btRenderCellSrcGrid(r.trades);   // [S1210] 진입원×칸 분해(정찰 표면)
 
   // ═══════════════════════════════════════════════════════════════
