@@ -628,14 +628,14 @@ function _btRegimeAt(rows, idx){
 // [S544] 거래를 진입 봉 레짐으로 버킷팅 → 레짐별 통계(_btHistCalcStats 재사용). 현재 파라미터 기준.
 function _btRegimeBreakdown(rows, trades){
   if(!Array.isArray(rows) || !Array.isArray(trades) || !trades.length) return null;
-  var B = { bull:[], up:[], side:[], down:[] };
+  var B = { bull:[], up:[], side:[], down:[], crash:[] };   // [S1217]
   trades.forEach(function(t){
     if(t.entryIdx == null) return;
-    var rg = _btRegimeAt(rows, t.entryIdx);
+    var rg = (typeof SXExecCore!=='undefined'&&SXExecCore.regime5At)?SXExecCore.regime5At(rows, t.entryIdx):_btRegimeAt(rows, t.entryIdx);   // [S1217] 5국면(폴백=v1)
     (B[rg] || B.side).push({ result:(t.pnl>0?'win':(t.pnl<0?'loss':'flat')), pnl:t.pnl||0 });
   });
   var out = {}, any = false;
-  ['bull','up','side','down'].forEach(function(rg){ var s=_btHistCalcStats(B[rg]); if(s){ out[rg]=s; any=true; } });
+  ['bull','up','side','down','crash'].forEach(function(rg){ var s=_btHistCalcStats(B[rg]); if(s){ out[rg]=s; any=true; } });   // [S1217]
   return any ? out : null;
 }
 // [S1201] 진입원별 분해 렌더 — 시즌2 3원(recipe/bullVol/v2)이 각각 몇 건을 잡고 얼마를 벌었나.
@@ -710,7 +710,7 @@ function _btRenderSrcBreak(sb, on, trades){   // [S1214] +trades=청산사유 �
 //   목적: ①MA5×20 후보가 유달리 강한 칸 찾기(상승추세 가설) ②3원 구멍칸 실측 ③칸 조건부 라우팅(대체 정책) 근거 수집.
 //   칸 = 진입 신호봉 기준(ma51020 단기 × maAlignLT 장기 — 시즌2 S1209 각인·3×3 SSOT와 동일 축). OPEN(미청산) 제외.
 //   ★단일 종목 n은 작다 — 여기서 보이는 건 "현 기준하 보임"이고, 채택 판정은 풀 단위 PREREG 측정에서.
-const _BT_CELL_LBL={'bull|bull':'추가상승','bull|bear':'기술적반등','bull|mixed':'상승세전환','bear|bull':'눌림목','bear|bear':'바닥확인','bear|mixed':'하락세전환','mixed|bull':'상승세약화','mixed|bear':'하락세약화','mixed|mixed':'횡보장유지'};
+const _BT_CELL_LBL=(typeof SXExecCore!=='undefined'&&SXExecCore.STATE_VOCAB)?SXExecCore.STATE_VOCAB.cell:{'bull|bull':'추가상승','bull|bear':'기술적반등','bull|mixed':'상승세전환','bear|bull':'되돌림','bear|bear':'추가하락','bear|mixed':'하락세전환','mixed|bull':'눌림목','mixed|bear':'바닥확인','mixed|mixed':'추세중립'};   // [S1217] SSOT 파생(폴백=동일 리터럴)
 function _btRenderCellSrcGrid(trades){
   const ts=(trades||[]).filter(t=>t&&t.type!=='OPEN');
   if(!ts.length) return '';
@@ -728,7 +728,7 @@ function _btRenderCellSrcGrid(trades){
   if(!Object.keys(cells).length){
     return `<div class="bt-card" style="margin-top:8px"><div class="bt-card-title">🧩 진입원×칸 분해 <span style="font-size:10px;font-weight:500;color:var(--text3)">(S1210)</span></div><div style="font-size:10px;color:var(--text3)">칸 판정 가능한 거래 없음(칸 미기록 ${unrec}건 — 초기 봉 부족 등)</div></div>`;
   }
-  const SH=[['bull','강세'],['bear','약세'],['mixed','중립']], LG=[['bull','상승장'],['bear','하락장'],['mixed','횡보장']];
+  const SH=[['bull','강세'],['bear','약세'],['mixed','중립']], LG=[['bull','상승세'],['bear','하락세'],['mixed','혼조세']];   // [S1217] 세/장 분리
   let g='<table style="width:100%;border-collapse:collapse;margin-top:4px;table-layout:fixed">';
   g+='<tr><td style="width:30px"></td>'; LG.forEach(l=>{ g+=`<td style="text-align:center;font-size:9.5px;color:var(--text3);padding:2px;font-weight:700">${l[1]}</td>`; }); g+='</tr>';
   SH.forEach(sh=>{
@@ -782,13 +782,13 @@ function _btRenderCellSrcGrid(trades){
   });
   if(ageHtml) ageHtml=`<div style="margin-top:5px;padding-top:4px;border-top:1px solid var(--border)"><div style="font-size:9.5px;font-weight:800;color:var(--text)">⏱ 추세나이(5×20 골든 경과)×진입원</div>${ageHtml}</div>`;
   // [S1212] ③ 레짐(S544)×진입원 — "불장·상승장에서 M vs 레시피" 정면 숫자(레짐게이트 가설의 판정면). 거래의 rg 각인 사용.
-  const RG_L={bull:'🔥불장',up:'📈상승장',side:'➡️횡보',down:'📉하락'};
+  const RG_L={bull:'🔥불장',up:'📈상승장',side:'➡️횡보',down:'📉하락',crash:'🌋폭락'};   // [S1217] +폭락장
   const rgBy={};
   ts.forEach(t=>{ if(!t.rg||!RG_L[t.rg]) return; const k=SL[t.src]?t.src:'recipe';
     const o=rgBy[k]||(rgBy[k]={}); const sv=o[t.rg]||(o[t.rg]={n:0,w:0,sum:0}); sv.n++; if(t.pnl>0)sv.w++; sv.sum+=t.pnl; });
   let rgHtml='';
   ['recipe','bullVol','v2','maCross'].filter(k=>rgBy[k]).forEach(k=>{ const m=_BT_SRC_META[k];
-    const seg=['bull','up','side','down'].filter(r=>rgBy[k][r]).map(r=>{ const sv=rgBy[k][r], avg=sv.sum/sv.n;
+    const seg=['bull','up','side','down','crash'].filter(r=>rgBy[k][r]).map(r=>{   // [S1217] const sv=rgBy[k][r], avg=sv.sum/sv.n;
       return `${RG_L[r]} ${sv.n}건·${Math.round(sv.w/sv.n*100)}%·${avg>=0?'+':''}${avg.toFixed(2)}${sv.n<5?'<span style="color:#b45309">⚠</span>':''}`; }).join(' <span style="color:var(--text3)">·</span> ');
     rgHtml+=`<div style="font-size:9.5px;color:var(--text2);padding:2.5px 0"><span style="color:${m.c};font-weight:800">${SL[k]}</span> ${seg}</div>`;
   });
@@ -814,9 +814,9 @@ function _btRenderCellSrcGrid(trades){
 // [S544] 레짐별 BT 통계 렌더 (단일검증 BT 카드 하단)
 function _btRenderRegime(rb){
   if(!rb) return '';
-  var L = { bull:'🔥 불장', up:'📈 상승장', side:'➡️ 횡보장', down:'📉 하락장' };
+  var L = { bull:'🔥 불장', up:'📈 상승장', side:'➡️ 횡보장', down:'📉 하락장', crash:'🌋 폭락장' };   // [S1217]
   var rowsHtml = '';
-  ['bull','up','side','down'].forEach(function(rg){
+  ['bull','up','side','down','crash'].forEach(function(rg){   // [S1217]
     var s = rb[rg]; if(!s || s.n < 1) return;
     var wrC = s.wr>=60?'#22c55e':s.wr>=40?'#3b82f6':'#f97316';
     var pnlC = s.totalPnl>=0?'#22c55e':'#e8365a';
