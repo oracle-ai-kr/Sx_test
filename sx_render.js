@@ -13720,7 +13720,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1208';   // [S1179] 칸 그리드에 어휘 화력 병기(그 칸 규칙들이 세는 어휘 수). S1177=2층 구조
+  window.SX_BUILD='S1213';   // [S1213] BT 재사용 srcSig(진입원 토글 미반영 버그 수리) [S1210~12] maCross 후보+칸·나이·레짐 [S1179] 칸 그리드 어휘 화력
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15321,7 +15321,7 @@ async function _runEngineVerify(stock){
     stock._btResult = r;
     // [S215] BT 실행 시 사용한 TF/옵션/파라미터 함께 저장 — 단일검증 재사용 판정용
     stock._btResultTF = _tf;
-    stock._btResultOpts = { slippage: opts.slippage, nextBarEntry: opts.nextBarEntry };
+    stock._btResultOpts = { slippage: opts.slippage, nextBarEntry: opts.nextBarEntry, entryMode: opts.nextBarEntry?'nextOpen':'close', srcSig: (typeof _btSrcSigOf==='function')?_btSrcSigOf(opts):((typeof window!=='undefined'&&window._btSrcSigOf)?window._btSrcSigOf(opts):null) };   // [S1213] 단일검증 재사용 판정 정합(entryMode·진입원서명) — 기본 설정끼리 재사용 복원
     stock._btResultParams = { buyTh: params.buyTh, sellTh: params.sellTh, tpMult: params.tpMult, slMult: params.slMult };
     if(typeof calcBtScore === 'function') stock._btScore = calcBtScore(r, stock);
     const _curPrice = rows[rows.length-1]?.close || stock.price || 0;
