@@ -4302,7 +4302,7 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
     const slice = rows.slice(Math.max(0, i - 249), i + 1);   // 레시피는 ~250봉 히스토리 필요(150봉=votes 미발동)
     let ind; try { ind = calcAllScreener(slice, tf); } catch (_) { continue; }
     if (!ind) continue;
-    try { const _es = EC.entrySignalAt(mk, ind, rows, i, { srcOn: _srcOn }); _btSig[i] = _es; _btVotes[i] = _es.votes || 0; } catch (_) {}
+    try { const _es = EC.entrySignalAt(mk, ind, rows, i, { srcOn: _srcOn, maCrossRegime: (opts && opts.maCrossRegime) || null }); _btSig[i] = _es; _btVotes[i] = _es.votes || 0; } catch (_) {}   // [S1212] M 레짐게이트 전달
   }
 
   // 라이프사이클(코어) — 진입 3원(recipe>bullVol>v2 상호배타·S1201)/청산(이중ATR+MA5×20 데드·유예10)
@@ -4312,7 +4312,7 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
   const trades = _lc.trades.map(t => {
     const isOpen = (t.reason === 'EOD');
     const pnl = +(t.ret * 100).toFixed(2);
-    return { entry: t.entryPrice, exit: t.exitPrice, pnl: pnl, rawPnl: pnl, posScale: 1, type: isOpen ? 'OPEN' : (pnl > 0 ? 'WIN' : 'LOSS'), exitReason: isOpen ? '미청산' : t.reason, bars: t.bars, entryIdx: t.entryIdx, exitIdx: t.exitIdx, entryDate: t.entryDate || '', exitDate: isOpen ? '' : (t.exitDate || ''), tp: null, sl: null, src: t.src || 'recipe', v2Cat: t.v2Cat || null, v2Tier: t.v2Tier || null, cell: t.cell || null };   // [S1201] 진입원 각인 [S1210] 진입봉 칸
+    return { entry: t.entryPrice, exit: t.exitPrice, pnl: pnl, rawPnl: pnl, posScale: 1, type: isOpen ? 'OPEN' : (pnl > 0 ? 'WIN' : 'LOSS'), exitReason: isOpen ? '미청산' : t.reason, bars: t.bars, entryIdx: t.entryIdx, exitIdx: t.exitIdx, entryDate: t.entryDate || '', exitDate: isOpen ? '' : (t.exitDate || ''), tp: null, sl: null, src: t.src || 'recipe', v2Cat: t.v2Cat || null, v2Tier: t.v2Tier || null, cell: t.cell || null, gcAge: (t.gcAge!=null?t.gcAge:null), rg: (EC.regimeAt ? EC.regimeAt(rows, t.entryIdx) : null) };   // [S1201] 진입원 각인 [S1210] 진입봉 칸 [S1211] 추세나이 [S1212] 진입봉 레짐(S544)
   });
 
   // 통계 (구 관례 유지·새 레시피 트레이드 기준 — pf=총익/총손, totalPnl=복리 equity−100, mdd=equity곡선)
