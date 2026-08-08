@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-//  sx_exec_core.js · v5 [S1212] — 시즌1/2 공유 실행 SSOT
+//  sx_exec_core.js · v6 [S1215] — 시즌1/2 공유 실행 SSOT
 // ════════════════════════════════════════════════════════════
 //  일원화(b): 시즌2 자동매매 · 시즌1 BT · 시즌1 분석탭 신호가 모두 이 코어를 공유.
 //    진입 = 레시피 votes≥1 (recipe_core _sxRecipeVotesCore)
@@ -194,8 +194,15 @@ function evalExitAt(pos, rows, i, cfg){
     if(held != null && held >= cfg.graceDays){
       var sc=[]; for(var k=0;k<=i;k++) sc.push(rows[k].close);
       var a5=sxSMA(sc,cfg.maFast), a20=sxSMA(sc,cfg.maSlow), p5=sxSMA(sc.slice(0,-1),cfg.maFast), p20=sxSMA(sc.slice(0,-1),cfg.maSlow);
-      if(a5!=null&&a20!=null&&p5!=null&&p20!=null && p5>=p20 && a5<a20)
+      if(a5!=null&&a20!=null&&p5!=null&&p20!=null && p5>=p20 && a5<a20){
+        // [S1215] 출구 레짐게이트(기본 미지정=현행) — cfg.maExitSkipRegime에 든 레짐이면 데드크로스 무시(개입 횟수 각인).
+        //   ★데드는 이벤트라 한 번 무시하면 재발동 안 할 수 있음 → 사실상 그 거래는 트레일(고점−3×ATR) 단독 출구.
+        //   워커(runAutotradeExit)·시즌2는 이 옵션을 모름 — 시즌1 정찰 전용. 채택은 PREREG 측정 후.
+        if(cfg.maExitSkipRegime && cfg.maExitSkipRegime.length && cfg.maExitSkipRegime.indexOf(regimeAt(rows,i))>=0){
+          pos.maSkips=(pos.maSkips||0)+1;
+        } else
         return { exit:true, reason:'MA'+cfg.maFast+'x'+cfg.maSlow+'데드', price:cp };
+      }
     }
   } else if(cfg.maxHoldMode === 'days'){
     var heldD = _dateDays(cur.date) - pos.entryDay;
@@ -248,7 +255,8 @@ function runLifecycle(rows, votesAt, opts){
       src: (siSig&&siSig.src)||'recipe', votes: (siSig&&siSig.votes)||0,               // [S1201] 진입원 각인
       v2Cat: (siSig&&siSig.v2Cat)||null, v2Tier: (siSig&&siSig.v2Tier)||null, v2K: (siSig&&siSig.v2K)||null,
       cell: (siSig&&siSig.cell)||null,                                                  // [S1210] 진입봉 칸(3×3) — 진입원×칸 분해용
-      gcAge: (siSig&&siSig.gcAge!=null)?siSig.gcAge:null                                 // [S1211] 진입봉 추세나이(5×20 GC 경과봉·null=250봉 내 없음)
+      gcAge: (siSig&&siSig.gcAge!=null)?siSig.gcAge:null,                                // [S1211] 진입봉 추세나이(5×20 GC 경과봉·null=250봉 내 없음)
+      maSkips: pos.maSkips||0                                                            // [S1215] 출구게이트가 무시한 데드크로스 횟수(0=미개입)
     });
     cursor = exitIdx + 1;
   }
@@ -271,7 +279,7 @@ function _tradeStats(trades){
 }
 
 var API = {
-  VERSION: 'S1212', CFG: CFG, SRC_ALL: SRC_ALL,
+  VERSION: 'S1215', CFG: CFG, SRC_ALL: SRC_ALL,
   sxATR: sxATR, sxSMA: sxSMA,
   entrySignalAt: entrySignalAt, entryATRat: entryATRat, evalExitAt: evalExitAt,
   bullVolAt: bullVolAt, v2SignalAt: v2SignalAt,                                        // [S1201]
