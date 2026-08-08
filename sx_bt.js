@@ -608,6 +608,8 @@ function _btHistCalcStats(arr){
 
 // [S544] 메인 BT 레짐 분류 — 큰 추세 기준 (SMA 20/60/120/200). 20×200(SMA)=강세/약세 분기선, 60>120>200 정배열=불장, 20MA가 200MA 근처(±1.5%)=크로스 부근=횡보. 봉 부족 TF는 200→120→60 폴백. 표시 전용·예측로직 무관.
 function _btRegimeAt(rows, idx){
+  // [S1212] SSOT 위임 — 원본은 sx_exec_core.regimeAt로 이동(설계원칙1). 아래 구 본문은 코어 미로드 시 폴백(동작 동일).
+  try{ var _EC=(typeof SXExecCore!=='undefined')?SXExecCore:(typeof window!=='undefined'?window.SXExecCore:null); if(_EC&&_EC.regimeAt) return _EC.regimeAt(rows, idx); }catch(_e){}
   if(!rows || idx < 30) return 'side';
   function sma(len){ if(idx < len-1) return null; var s=0,k,c; for(k=idx-len+1;k<=idx;k++){ c=+(rows[k].close!=null?rows[k].close:rows[k].c); s+=c; } return s/len; }
   var ma20 = sma(20);
@@ -712,11 +714,57 @@ function _btRenderCellSrcGrid(trades){
     }).join(' <span style="color:var(--text3)">|</span> ');
     perf+=`<div style="font-size:9.5px;color:var(--text2);padding:3px 0;border-top:1px dashed var(--border)"><b style="color:var(--text)">${_BT_CELL_LBL[ck]}</b> → ${seg}</div>`;
   });
+  // [S1211] ① 정배행(단기강세 3칸) 합산 — "단기강세에서 진입원별 성적" 직접 비교(희창 요청).
+  //   ★기계적 사실: M(골든크로스)은 정배 성립 2~3봉 前이라 이 행엔 거의 안 찍힘 — M의 정면 비교는 아래 ②추세나이 축.
+  const bullAgg={};
+  ['bull|bull','bull|bear','bull|mixed'].forEach(ck=>{ const c=cells[ck]; if(!c) return;
+    Object.keys(c.src).forEach(k=>{ const sv=c.src[k], a=bullAgg[k]||(bullAgg[k]={n:0,w:0,sum:0}); a.n+=sv.n; a.w+=sv.w; a.sum+=sv.sum; }); });
+  let bullLine='';
+  { const seg=['recipe','bullVol','v2','maCross'].filter(k=>bullAgg[k]).map(k=>{ const a=bullAgg[k], m=_BT_SRC_META[k];
+      return `<span style="color:${m.c};font-weight:700">${SL[k]}</span> ${a.n}건·${Math.round(a.w/a.n*100)}%·${(a.sum/a.n)>=0?'+':''}${(a.sum/a.n).toFixed(2)}${a.n<5?'<span style="color:#b45309">⚠</span>':''}`;
+    }).join(' <span style="color:var(--text3)">|</span> ');
+    if(seg) bullLine=`<div style="font-size:9.5px;color:var(--text2);padding:4px 0;margin-top:5px;border-top:1px solid var(--border)"><b style="color:var(--text)">📗 정배행(단기강세 3칸) 합산</b> → ${seg}</div>`;
+  }
+  // [S1211] ② 추세나이(5×20 GC 경과)×진입원 — M=0봉(정의) vs 타원=크로스 후 n봉째 중간 탑승.
+  //   "같은 추세를 처음부터 탄 게 온전히 가져가나"의 정면 비교축. 버킷: 0 / 1–5 / 6–15 / 16+ / 무(250봉 내 GC 없음).
+  const AGE_B=[['0봉',a=>a===0],['1–5봉',a=>a>=1&&a<=5],['6–15봉',a=>a>=6&&a<=15],['16+봉',a=>a>=16],['무GC',a=>a==null]];   // 무GC=250봉 내 골든크로스 없음(장기 역배 등)
+  const ageBy={};
+  ts.forEach(t=>{ const k=SL[t.src]?t.src:'recipe'; const b=AGE_B.find(x=>x[1](t.gcAge!=null?t.gcAge:null)); if(!b) return;
+    const o=ageBy[k]||(ageBy[k]={}); const sv=o[b[0]]||(o[b[0]]={n:0,w:0,sum:0}); sv.n++; if(t.pnl>0)sv.w++; sv.sum+=t.pnl; });
+  let ageHtml='';
+  ['recipe','bullVol','v2','maCross'].filter(k=>ageBy[k]).forEach(k=>{ const m=_BT_SRC_META[k];
+    const seg=AGE_B.map(b=>b[0]).filter(bk=>ageBy[k][bk]).map(bk=>{ const sv=ageBy[k][bk], avg=sv.sum/sv.n;
+      return `${bk} ${sv.n}건·${Math.round(sv.w/sv.n*100)}%·${avg>=0?'+':''}${avg.toFixed(2)}${sv.n<5?'<span style="color:#b45309">⚠</span>':''}`; }).join(' <span style="color:var(--text3)">·</span> ');
+    ageHtml+=`<div style="font-size:9.5px;color:var(--text2);padding:2.5px 0"><span style="color:${m.c};font-weight:800">${SL[k]}</span> ${seg}</div>`;
+  });
+  if(ageHtml) ageHtml=`<div style="margin-top:5px;padding-top:4px;border-top:1px solid var(--border)"><div style="font-size:9.5px;font-weight:800;color:var(--text)">⏱ 추세나이(5×20 골든 경과)×진입원</div>${ageHtml}</div>`;
+  // [S1212] ③ 레짐(S544)×진입원 — "불장·상승장에서 M vs 레시피" 정면 숫자(레짐게이트 가설의 판정면). 거래의 rg 각인 사용.
+  const RG_L={bull:'🔥불장',up:'📈상승장',side:'➡️횡보',down:'📉하락'};
+  const rgBy={};
+  ts.forEach(t=>{ if(!t.rg||!RG_L[t.rg]) return; const k=SL[t.src]?t.src:'recipe';
+    const o=rgBy[k]||(rgBy[k]={}); const sv=o[t.rg]||(o[t.rg]={n:0,w:0,sum:0}); sv.n++; if(t.pnl>0)sv.w++; sv.sum+=t.pnl; });
+  let rgHtml='';
+  ['recipe','bullVol','v2','maCross'].filter(k=>rgBy[k]).forEach(k=>{ const m=_BT_SRC_META[k];
+    const seg=['bull','up','side','down'].filter(r=>rgBy[k][r]).map(r=>{ const sv=rgBy[k][r], avg=sv.sum/sv.n;
+      return `${RG_L[r]} ${sv.n}건·${Math.round(sv.w/sv.n*100)}%·${avg>=0?'+':''}${avg.toFixed(2)}${sv.n<5?'<span style="color:#b45309">⚠</span>':''}`; }).join(' <span style="color:var(--text3)">·</span> ');
+    rgHtml+=`<div style="font-size:9.5px;color:var(--text2);padding:2.5px 0"><span style="color:${m.c};font-weight:800">${SL[k]}</span> ${seg}</div>`;
+  });
+  if(rgHtml) rgHtml=`<div style="margin-top:5px;padding-top:4px;border-top:1px solid var(--border)"><div style="font-size:9.5px;font-weight:800;color:var(--text)">🗺 레짐(S544 표)×진입원</div>${rgHtml}</div>`;
+  // [S1212] ④ 동시발동 — 레거시 진입이 크로스 당일(gcAge=0)인 거래. 우선순위를 M 위로 올려도 바뀌는 건 이 거래들의 라벨뿐(거래 동일).
+  let coHtml='';
+  { const co=ts.filter(t=>t.src==='recipe'&&t.gcAge===0);
+    if(co.length){ const w=co.filter(t=>t.pnl>0).length, avg=co.reduce((a,t)=>a+t.pnl,0)/co.length;
+      coHtml=`<div style="font-size:9px;color:var(--text3);margin-top:5px;padding-top:4px;border-top:1px dashed var(--border)">🤝 <b>동시발동</b>(레거시 진입=크로스 당일): ${co.length}건·${Math.round(w/co.length*100)}%·${avg>=0?'+':''}${avg.toFixed(2)} — M을 레시피 위 우선순위로 올리면 <b>이 거래들 라벨만</b> 바뀐다(진입봉·청산 동일). 추세 선점은 시간(0봉 vs 1~5봉)이 이미 한다.</div>`; } }
+
   return `<div class="bt-card" style="margin-top:8px">
-    <div class="bt-card-title">🧩 진입원×칸 분해 <span style="font-size:10px;font-weight:500;color:var(--text3)">(진입봉 칸 · 숫자=거래수 · S1210)</span></div>
+    <div class="bt-card-title">🧩 진입원×칸 분해 <span style="font-size:10px;font-weight:500;color:var(--text3)">(진입봉 칸 · 숫자=거래수 · S1210~12)</span></div>
     ${g}
     <div style="margin-top:6px">${perf}</div>
-    <div style="font-size:8.5px;color:var(--text3);line-height:1.55;margin-top:5px">칸=진입 신호봉의 3×3(ma51020×장기·시즌2 S1209와 동일 축) · %=승률, ±=건당 평균% · ⚠=n&lt;5 소표본 · 레=레거시 B=bullVol V=V2 M=MA5×20${unrec?` · 칸 미기록 ${unrec}건(초기 봉 부족)`:''}<br>단일 종목 정찰용("현 기준하 보임") — MA 채택 판정은 풀 단위 PREREG 측정(발굴풀+시간분리 OOS)에서.</div>
+    ${bullLine}
+    ${ageHtml}
+    ${rgHtml}
+    ${coHtml}
+    <div style="font-size:8.5px;color:var(--text3);line-height:1.55;margin-top:5px">칸=진입 신호봉의 3×3(ma51020×장기·시즌2 S1209와 동일 축) · %=승률, ±=건당 평균% · ⚠=n&lt;5 소표본 · 레=레거시 B=bullVol V=V2 M=MA5×20${unrec?` · 칸 미기록 ${unrec}건(초기 봉 부족)`:''}<br>단일 종목 정찰용("현 기준하 보임") — MA 채택 판정은 풀 단위 PREREG 측정(발굴풀+시간분리 OOS)에서.<br>⏱근거: 골든크로스 봉은 엄격 정배(5&gt;10&gt;20) 성립 <b>2~3봉 前</b>(MA10이 아직 20 아래·합성 실측) → M은 중립칸에 찍히고 정배칸으로 타고 들어감. 그래서 정배행 직접 비교(①)엔 M이 드물고, M의 정면 비교는 ②추세나이 축(같은 추세를 0봉째 탄 M vs n봉째 탄 타원).</div>
   </div>`;
 }
 
@@ -1208,7 +1256,8 @@ function btGetOpts(){
   //     [S1092] 레짐 보정 철거 — 임계값 가산 자체가 제거됨.
   //     적용 범위: sx_bt.js 모든 경로(단일검증/관심종목 BT/교차검증/워크포워드/대시보드).
   //     옵티마이저는 별개 호출(sx_optimizer.js에서 직접 true 전달) → 영향 없음.
-  return { slippage:slip, applyRegimeAdjust:true, entrySrc:_btEntrySrc() };   // [S1201] 진입원 3원 토글 동봉
+  const _esrc=_btEntrySrc();
+  return { slippage:slip, applyRegimeAdjust:true, entrySrc:_esrc, maCrossRegime:(_esrc.maCross&&_esrc.mGate)?['bull','up']:null };   // [S1201] 진입원 토글 동봉 [S1212] M 레짐게이트(불장·상승장) — 게이트 OFF·M OFF면 null
 }
 
 // ══ [S1201] 진입원 토글 — 시즌2와 정합(recipe>bullVol>v2 상호배타). 기본 3원 전부 ON. ══
@@ -1216,9 +1265,9 @@ function btGetOpts(){
 //     끄고 켜며 "v2가 몇 건을 더 잡는가"를 보는 용도 — 결과 카드에 src별로 갈라 표기한다.
 const SX_BT_SRC_KEY='SX_BT_ENTRY_SRC_v1';
 function _btEntrySrc(){
-  const d={ recipe:true, bullVol:true, v2:true, maCross:false };   // [S1210] maCross=후보 · 기본 OFF(시즌2 비배선)
+  const d={ recipe:true, bullVol:true, v2:true, maCross:false, mGate:true };   // [S1210] maCross=후보 · 기본 OFF(시즌2 비배선) [S1212] mGate=M 레짐게이트(불장·상승장만 · 기본 ON=희창 가설)
   try{ const raw=localStorage.getItem(SX_BT_SRC_KEY); if(raw){ const o=JSON.parse(raw);
-    ['recipe','bullVol','v2','maCross'].forEach(k=>{ if(typeof o[k]==='boolean') d[k]=o[k]; }); } }catch(_){}
+    ['recipe','bullVol','v2','maCross','mGate'].forEach(k=>{ if(typeof o[k]==='boolean') d[k]=o[k]; }); } }catch(_){}
   return d;
 }
 function btToggleEntrySrc(k){
@@ -1241,7 +1290,8 @@ function _btRenderEntrySrcBar(){
         return `<span onclick="_sxVib(10);btToggleEntrySrc('${k}')" title="${m.tip}" style="font-size:10px;font-weight:800;padding:4px 10px;border-radius:13px;border:1px solid ${m.c}${on?'':'55'};cursor:pointer;${on?`background:${m.c};color:#fff`:`background:transparent;color:${m.c}`}">${m.ic} ${m.lbl} ${on?'ON':'OFF'}</span>`;
       }).join('')
     + (st.v2?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">⚠ V2 규칙은 발굴풀 <b>in-sample</b> — 이 BT에서 오르는 건 검증이 아니라 재현이다. 정직한 판정은 시즌2 paper(시간축 OOS).</div>':'')
-    + (st.maCross?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">📈 MA5×20은 <b>미검증 후보</b>(정찰용·시즌2 비배선). 꼴찌 우선순위 — 3원이 잡던 거래는 그대로, 남는 구간만 추가로 잡는다. 단독 측정은 나머지 3원을 끄면 된다.</div>':'');
+    + (st.maCross?`<span onclick="_sxVib(10);btToggleEntrySrc('mGate')" title="[S1212] M 레짐게이트 — ON: 불장·상승장(S544 레짐표 기준)에서만 크로스 진입(하락장 데드캣 크로스 배제·희창 가설). OFF: 전 레짐 크로스." style="font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:12px;border:1px dashed #d97706;cursor:pointer;${st.mGate?'background:#d9770622;color:#b45309':'background:transparent;color:var(--text3)'}">⛩ 레짐게이트 ${st.mGate?'불장·상승장만':'OFF(전레짐)'}</span>`:'')
+    + (st.maCross?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">📈 MA5×20은 <b>미검증 후보</b>(정찰용·시즌2 비배선). 꼴찌 우선순위 — 3원이 잡던 거래는 그대로, 남는 구간만 추가로 잡는다(같은 봉 동시발동만 라벨 경합). ★추세 선점은 우선순위가 아니라 <b>시간</b>이 한다: M(0봉)이 먼저 타면 레시피(1~5봉) 차례가 안 온다. 단독 측정은 나머지 3원 OFF.</div>':'');
 }
 if(typeof window!=='undefined'){ window.btToggleEntrySrc=btToggleEntrySrc; window._btRenderEntrySrcBar=_btRenderEntrySrcBar; window._btEntrySrc=_btEntrySrc; }
 
