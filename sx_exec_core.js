@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-//  sx_exec_core.js · v6 [S1215] — 시즌1/2 공유 실행 SSOT
+//  sx_exec_core.js · v7 [S1216] — 시즌1/2 공유 실행 SSOT
 // ════════════════════════════════════════════════════════════
 //  일원화(b): 시즌2 자동매매 · 시즌1 BT · 시즌1 분석탭 신호가 모두 이 코어를 공유.
 //    진입 = 레시피 votes≥1 (recipe_core _sxRecipeVotesCore)
@@ -187,7 +187,16 @@ function evalExitAt(pos, rows, i, cfg){
   var initStop  = pos.entryPrice - cfg.atrInitMult  * pos.entryATR; // 초기 손절
   var trailStop = pos.peakHigh   - cfg.atrTrailMult * pos.entryATR; // 트레일
   var stop = Math.max(initStop, trailStop);
-  if(cp <= stop) return { exit:true, reason:(initStop >= trailStop) ? 'ATR손절' : 'ATR트레일', price:cp };
+  // [S1216] 레짐 분할 출구(기본 미지정=현행) — cfg.exitSplitRegime=['bull','up']:
+  //   그 레짐 = MA데드만(ATR 손절·트레일 억제·억제봉 atrSkips 각인) / 나머지 레짐 = ATR만(데드 무시·maSkips 각인).
+  //   ★지정 레짐 ATR 억제 = 급락 하드브레이크 부재(데드 확정까지 노출·레짐 반전은 느림) — 정찰 전용·시즌2 비배선.
+  //   지정 시 S1215 무시모드(maExitSkipRegime)보다 우선(UI가 한 모드만 켠다).
+  var _sp=(cfg.exitSplitRegime&&cfg.exitSplitRegime.length)?cfg.exitSplitRegime:null;
+  var _inSp=_sp?(_sp.indexOf(regimeAt(rows,i))>=0):false;
+  if(cp <= stop){
+    if(_sp && _inSp){ pos.atrSkips=(pos.atrSkips||0)+1; }   // [S1216] 분할: 지정 레짐에선 ATR 억제(스톱 이하 버틴 봉수=반사실)
+    else return { exit:true, reason:(initStop >= trailStop) ? 'ATR손절' : 'ATR트레일', price:cp };
+  }
   // MA 청산 (유예 경과 후)
   if(cfg.maxHoldMode === 'ma'){
     var held = _dateDays(cur.date) - pos.entryDay;
@@ -198,7 +207,9 @@ function evalExitAt(pos, rows, i, cfg){
         // [S1215] 출구 레짐게이트(기본 미지정=현행) — cfg.maExitSkipRegime에 든 레짐이면 데드크로스 무시(개입 횟수 각인).
         //   ★데드는 이벤트라 한 번 무시하면 재발동 안 할 수 있음 → 사실상 그 거래는 트레일(고점−3×ATR) 단독 출구.
         //   워커(runAutotradeExit)·시즌2는 이 옵션을 모름 — 시즌1 정찰 전용. 채택은 PREREG 측정 후.
-        if(cfg.maExitSkipRegime && cfg.maExitSkipRegime.length && cfg.maExitSkipRegime.indexOf(regimeAt(rows,i))>=0){
+        if(_sp && !_inSp){                                                      // [S1216] 분할: 나머지 레짐에선 데드 무시(ATR이 출구)
+          pos.maSkips=(pos.maSkips||0)+1;
+        } else if(!_sp && cfg.maExitSkipRegime && cfg.maExitSkipRegime.length && cfg.maExitSkipRegime.indexOf(regimeAt(rows,i))>=0){
           pos.maSkips=(pos.maSkips||0)+1;
         } else
         return { exit:true, reason:'MA'+cfg.maFast+'x'+cfg.maSlow+'데드', price:cp };
@@ -256,7 +267,8 @@ function runLifecycle(rows, votesAt, opts){
       v2Cat: (siSig&&siSig.v2Cat)||null, v2Tier: (siSig&&siSig.v2Tier)||null, v2K: (siSig&&siSig.v2K)||null,
       cell: (siSig&&siSig.cell)||null,                                                  // [S1210] 진입봉 칸(3×3) — 진입원×칸 분해용
       gcAge: (siSig&&siSig.gcAge!=null)?siSig.gcAge:null,                                // [S1211] 진입봉 추세나이(5×20 GC 경과봉·null=250봉 내 없음)
-      maSkips: pos.maSkips||0                                                            // [S1215] 출구게이트가 무시한 데드크로스 횟수(0=미개입)
+      maSkips: pos.maSkips||0,                                                           // [S1215] 무시된 데드크로스 횟수(0=미개입)
+      atrSkips: pos.atrSkips||0                                                          // [S1216] 분할모드에서 억제된 ATR 스톱 봉수(0=미개입)
     });
     cursor = exitIdx + 1;
   }
@@ -279,7 +291,7 @@ function _tradeStats(trades){
 }
 
 var API = {
-  VERSION: 'S1215', CFG: CFG, SRC_ALL: SRC_ALL,
+  VERSION: 'S1216', CFG: CFG, SRC_ALL: SRC_ALL,
   sxATR: sxATR, sxSMA: sxSMA,
   entrySignalAt: entrySignalAt, entryATRat: entryATRat, evalExitAt: evalExitAt,
   bullVolAt: bullVolAt, v2SignalAt: v2SignalAt,                                        // [S1201]
