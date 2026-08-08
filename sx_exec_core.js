@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-//  sx_exec_core.js · v7 [S1216] — 시즌1/2 공유 실행 SSOT
+//  sx_exec_core.js · v8 [S1217] — 시즌1/2 공유 실행 SSOT
 // ════════════════════════════════════════════════════════════
 //  일원화(b): 시즌2 자동매매 · 시즌1 BT · 시즌1 분석탭 신호가 모두 이 코어를 공유.
 //    진입 = 레시피 votes≥1 (recipe_core _sxRecipeVotesCore)
@@ -169,6 +169,44 @@ function regimeAt(rows, idx){
   return 'down';
 }
 
+
+// ══ [S1217] 상태 어휘 SSOT(희창 확정) — "세"(종목 3×3 추세축)와 "장"(레짐 국면)의 언어 분리 ══
+//   ★칸 키('bull|bear' 등)는 측정 정체성 — **동결**. 라벨만 여기서 파생(cell_data cellLbl·KV 저장 cellLbl은 참고용 미러·소비자는 이 맵).
+//   셀 재배치: 눌림목·바닥확인 약세행→중립행(골든크로스가 중립행에 찍히는 S1211 실측과 정합) · 약세행=되돌림·추가하락 · 횡보장유지→추세중립.
+//   장기축 상승장→상승세 등 — '장' 어휘를 레짐 전용으로 해방(불장/상승장/횡보장/하락장/폭락장).
+var STATE_VOCAB = {
+  axisShort: { bull:'강세', bear:'약세', mixed:'중립' },
+  axisLong:  { bull:'상승세', bear:'하락세', mixed:'혼조세' },
+  cell: {
+    'bull|bull':'추가상승','bull|bear':'기술적반등','bull|mixed':'상승세전환',
+    'bear|bull':'되돌림','bear|bear':'추가하락','bear|mixed':'하락세전환',
+    'mixed|bull':'눌림목','mixed|bear':'바닥확인','mixed|mixed':'추세중립'
+  },
+  regime: { bull:'불장', up:'상승장', side:'횡보장', down:'하락장', crash:'폭락장' }
+};
+function cellLblOf(ck){ return (ck&&STATE_VOCAB.cell[ck])||ck||'?'; }
+// [S1217] 레짐 v2(5국면) — v1 보존 원칙: 불/상승/횡보 정의는 regimeAt(S544)과 **동일**(게이트·기존 측정과 호환·테스트 박제),
+//   하락장만 기울기∨변동성으로 하락/폭락 분리. 폭락 v1 초안(측정 전 선언값·조정 가능): down ∧ (MA20 10봉 기울기 ≤ −0.5%/봉 ∨ ATR14/종가 ≥ 5%).
+//   기울기·변동성을 불/상승 정의에 투입하는 전면 재정의는 측정과 함께 v2.1에서 — 측정 중인 축은 바꾸지 않는다(돌멩이).
+function regime5At(rows, idx){
+  var base = regimeAt(rows, idx);
+  if(base !== 'down') return base;
+  try{
+    function _sm(end,len){ if(end<len-1) return null; var t=0,k,c; for(k=end-len+1;k<=end;k++){ c=+(rows[k].close!=null?rows[k].close:rows[k].c); t+=c; } return t/len; }
+    var m0=_sm(idx,20), m1=_sm(idx-10,20);
+    var slope=(m0!=null&&m1!=null&&m1>0)?((m0-m1)/m1*100/10):null;      // %/봉
+    var atr=sxATR(rows.slice(0, idx+1), 14), cp=+(rows[idx].close!=null?rows[idx].close:rows[idx].c);
+    var atrPct=(atr!=null&&cp>0)?(atr/cp*100):null;
+    if((slope!=null&&slope<=-0.5)||(atrPct!=null&&atrPct>=5)) return 'crash';
+  }catch(e){}
+  return 'down';
+}
+// [S1217] 종목 상태 헬퍼 — 전광판·조건검색 상태필터의 SSOT 기반(배선은 차후 세션).
+function stockStateAt(ind, rows, i){
+  var ck=cellOfAt(ind, rows, i), rg=regime5At(rows, i);
+  return { cell:ck, cellLbl:cellLblOf(ck), regime:rg, regimeLbl:STATE_VOCAB.regime[rg]||rg };
+}
+
 // ── 진입봉 ATR (진입 시 고정될 값) ──
 function entryATRat(rows, entryIdx, cfg){
   cfg = cfg || CFG;
@@ -291,11 +329,12 @@ function _tradeStats(trades){
 }
 
 var API = {
-  VERSION: 'S1216', CFG: CFG, SRC_ALL: SRC_ALL,
+  VERSION: 'S1217', CFG: CFG, SRC_ALL: SRC_ALL,
   sxATR: sxATR, sxSMA: sxSMA,
   entrySignalAt: entrySignalAt, entryATRat: entryATRat, evalExitAt: evalExitAt,
   bullVolAt: bullVolAt, v2SignalAt: v2SignalAt,                                        // [S1201]
   maCrossAt: maCrossAt, cellOfAt: cellOfAt, gcAgeAt: gcAgeAt, regimeAt: regimeAt,      // [S1210·S1211·S1212]
+  STATE_VOCAB: STATE_VOCAB, cellLblOf: cellLblOf, regime5At: regime5At, stockStateAt: stockStateAt,   // [S1217]
   runLifecycle: runLifecycle
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = API;
