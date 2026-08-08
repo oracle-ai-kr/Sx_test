@@ -788,7 +788,7 @@ function _btRenderCellSrcGrid(trades){
     const o=rgBy[k]||(rgBy[k]={}); const sv=o[t.rg]||(o[t.rg]={n:0,w:0,sum:0}); sv.n++; if(t.pnl>0)sv.w++; sv.sum+=t.pnl; });
   let rgHtml='';
   ['recipe','bullVol','v2','maCross'].filter(k=>rgBy[k]).forEach(k=>{ const m=_BT_SRC_META[k];
-    const seg=['bull','up','side','down','crash'].filter(r=>rgBy[k][r]).map(r=>{   // [S1217] const sv=rgBy[k][r], avg=sv.sum/sv.n;
+    const seg=['bull','up','side','down','crash'].filter(r=>rgBy[k][r]).map(r=>{ const sv=rgBy[k][r], avg=sv.sum/sv.n;   /* [S1217·18 사고수리: 한줄 화살표 중간 //주석이 sv 선언을 죽였음 — 블록주석만 허용 */
       return `${RG_L[r]} ${sv.n}건·${Math.round(sv.w/sv.n*100)}%·${avg>=0?'+':''}${avg.toFixed(2)}${sv.n<5?'<span style="color:#b45309">⚠</span>':''}`; }).join(' <span style="color:var(--text3)">·</span> ');
     rgHtml+=`<div style="font-size:9.5px;color:var(--text2);padding:2.5px 0"><span style="color:${m.c};font-weight:800">${SL[k]}</span> ${seg}</div>`;
   });
@@ -833,7 +833,7 @@ function _btRenderRegime(rb){
   return '<div class="bt-card" style="margin-top:10px">'
     + '<div class="bt-card-title">📊 레짐별 성과 <span style="font-size:9px;font-weight:600;color:var(--text3)">(SMA 20/60/120/200 · 현재 파라미터 · 실험)</span></div>'
     + rowsHtml
-    + '<div style="font-size:9px;color:var(--text3);margin-top:6px;line-height:1.6">진입 봉의 큰 추세로 거래를 분류 — 20×200 SMA가 강세/약세 분기, 60&gt;120&gt;200 정배열=불장, 크로스 부근=횡보. 같은 전략이 어느 추세에서 통하는지 확인용. PF=손익비, %=레짐 내 수익률 합.</div></div>';
+    + '<div style="font-size:9px;color:var(--text3);margin-top:6px;line-height:1.6">진입 봉의 큰 추세로 거래를 분류(레짐 v3·S1219) — 골격: 20×200 SMA ±1.5%(위=상승측·아래=하락측·밴드=횡보). 분화는 동역학: 상승측 <b>기울기 ≥+0.15%/봉=🔥불장</b>·미달=📈상승장(구 60&gt;120&gt;200 조항 폐기 — 3×3 상승세와 중복) · 하락측 <b>급기울기(≤−0.5) ∨ 고변동(ATR≥5%) ∨ 과대이격(≤−7%)</b>=🌋폭락장·미달=📉하락장. 전 임계값 선언값 초안. 같은 전략이 어느 추세에서 통하는지 확인용. PF=손익비, %=레짐 내 수익률 합.</div></div>';
 }
 
 // S67: 신뢰도 라벨
