@@ -119,7 +119,7 @@ async function _btGetRows(stock, tf, targetCount, opts){
 }
 
 function _btTargetBars(market, tf){
-  if(tf === 'week' || tf === 'month') return 400;
+  if(tf === 'week' || tf === 'month') return 400;   // [S1240] 월 400 유지 판정 — S1231 "공급 벽" 실측은 워커 파서 사망 부산물(오진). 워커 내성 후 월 438봉 공급 실측(005930).
   // [S1230-P6] KIS ON 700 폐지 — 전 시장·전 경로 600 정합. 근거: KIS 일봉 공급이 5페이지=500 상한
   //   (무인자 골든 보존 · _btFetchKIS S1076 주석)이라 700은 달성 불가 목표였고, 그 격차가
   //   fetchRows600 floor 미달 → 우회 재fetch → stuck(500 고착)의 뿌리였다(이중로딩 M4). 일·주·월
@@ -1220,6 +1220,7 @@ async function _btFetchNaver(code, tf, count, vintage){
   const json = await res.json();
   let dataArr = json.data;
   if((!dataArr || !dataArr.length) && json.raw){
+    if(json.error==='parse_failed') console.warn(`[S1240] /naver/sise parse_failed(BT) → raw 절단본 폴백: ${code} tf=${tf} rawLen=${json.raw.length}`);   // [S1240] 부분 데이터 가시화
     try{
       const cleaned = json.raw.trim().replace(/^\uFEFF/,'');
       let parsed = null;
