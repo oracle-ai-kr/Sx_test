@@ -1187,11 +1187,10 @@ async function runAnalysis(stock){
         else if(typeof btGetOpts==='function' && typeof _btSrcSigOf==='function'){
           const _o=btGetOpts();
           const _em=((typeof SXE!=='undefined'&&SXE._btEntryMode)||'close');
-          const _gg=((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false);
-          // [S1236] buyTh/sellTh/tp/sl 비교 제거(레시피-BT 死파라미터·과잉 재실행 유발) · 갭가드(실바인딩) 편입
+          // [S1236] buyTh/sellTh/tp/sl 비교 제거(레시피-BT 死파라미터·과잉 재실행 유발)
+          // [S1242] 갭가드 비교 철거 — 死바인딩(적용 로직 S1018 소멸). 저장분 잔존값 무시.
           _btStale = (stock._btResultTF!==_tfLocal) || (_po.srcSig!==_btSrcSigOf(_o))
-            || (_po.entryMode!==_em) || (Math.abs((_po.slippage||0)-(_o.slippage||0))>=1e-9)
-            || (_po.gapGuard!==undefined && _po.gapGuard!==_gg);
+            || (_po.entryMode!==_em) || (Math.abs((_po.slippage||0)-(_o.slippage||0))>=1e-9);
         }
         if(_btStale) console.log('[S1235] 복원본 서명 불일치 → 자동 재실행 예정');
       }
@@ -9644,7 +9643,7 @@ function _sfAbRender(res, meta){
 function _sfAbFrame(){   // [S1010] BT 프레임 스탬프 — 프레임 따라 A/B 부호까지 뒤집힘 확인(사용자 발견) → 결과에 측정 프레임 각인. 공식 프레임(사전선언)=다음봉시가·OHLC·조기청산 OFF
   try{
     var p=[];
-    p.push('진입 '+(SXE._btEntryMode==='nextOpen'?'다음봉시가':'신호봉종가')+(SXE._btGapGuard?'+갭가드':''));
+    p.push('진입 '+(SXE._btEntryMode==='nextOpen'?'다음봉시가':'신호봉종가'));   // [S1242] '+갭가드' 표기 철거(死바인딩)
     if(typeof SXE._btExitMode!=='undefined') p.push('청산 '+(SXE._btExitMode==='trend'?'종가':'OHLC'));
     p.push('조기청산 '+((SXE._btEarlyExit&&SXE._btEarlyExit.enabled)?'ON':'OFF'));
     if(SXE._btTrailAtrMode) p.push('트레일 '+(SXE._btTrailAtrMode==='entry'?'고정':'재계산'));
@@ -13778,7 +13777,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1240';   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1242';   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15384,7 +15383,7 @@ async function _runEngineVerify(stock){
     //   → 'close'로 오기록되며 실제 실행(익일시가)과 어긋나, 매 진입 stale 재실행 + ⚠ close→nextOpen 유령 발생.
     //   엔진 판정식과 동일하게: 명시값 우선, 없으면 전역 _btEntryMode. 死필드 nextBarEntry 저장 삭제.
     const _emNow = (opts.nextBarEntry != null) ? (opts.nextBarEntry?'nextOpen':'close') : ((typeof SXE!=='undefined'&&SXE._btEntryMode)||'close');
-    stock._btResultOpts = { slippage: opts.slippage, entryMode: _emNow, srcSig: (typeof _btSrcSigOf==='function')?_btSrcSigOf(opts):((typeof window!=='undefined'&&window._btSrcSigOf)?window._btSrcSigOf(opts):null), gapGuard: ((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false) };   // [S1213] 단일검증 재사용 판정 정합(entryMode·진입원서명) — 기본 설정끼리 재사용 복원
+    stock._btResultOpts = { slippage: opts.slippage, entryMode: _emNow, srcSig: (typeof _btSrcSigOf==='function')?_btSrcSigOf(opts):((typeof window!=='undefined'&&window._btSrcSigOf)?window._btSrcSigOf(opts):null) };   // [S1213] 단일검증 재사용 판정 정합(entryMode·진입원서명) — 기본 설정끼리 재사용 복원 [S1242 gapGuard 철거]
     // [S1237] _btResultParams 저장 폐지 — 死파라미터 메타. 레거시 무보존.
     if(typeof calcBtScore === 'function') stock._btScore = calcBtScore(r, stock);
     const _curPrice = rows[rows.length-1]?.close || stock.price || 0;
@@ -17647,7 +17646,8 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     //         고급해석 단독 13개(VWAP, 일목균형표, 가격채널, 피벗, MA이격도, 거래량MA,
     //                          A/D, EOM, VHF, 심리도, Chaikin Osc, AB Ratio)는 흡수
     const _itp_inline = (typeof SXI!=='undefined') ? SXI.interpretAll(indicators) : {};
-    const _ko_inline = currentMarket==='kr' && !window._kisEnabled;
+    const _ko_inline = currentMarket==='kr' && !window._kisEnabled
+      && ((typeof _sxKrDailyBarForming!=='function') || _sxKrDailyBarForming());   // [S1241] 장중 게이트(위 _ko와 동일 기준)
     const _kisOffBadge_inline = '<span class="kis-off-badge">비활성</span>';
     // advHTML 내에서도 itpRow 형태가 필요 — advItpRow와 동일 시그니처로 KIS 비활성 배지만 추가
     const advItpRowKis = (label, val, valCls, itpObj, kisOff) => {
@@ -17716,8 +17716,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     const cls = (v,bull,bear)=>v>=bull?'bullish':v<=bear?'bearish':'neutral';
     // S39: 해석 엔진 연동
     const itp = (typeof SXI!=='undefined') ? SXI.interpretAll(ind) : {};
-    // S66: KIS 비활성 시 국내 민감지표 비활성 배지
-    const _krNoKis = currentMarket==='kr' && !window._kisEnabled && /^\d+m$/.test(_analTF)===false;
+    // [S1241] 死변수 _krNoKis 삭제 — 소비처 0곳(지표 행 배지는 전부 아래 _ko 사용). 레거시 무보존.
     const _kisOffBadge = '<span class="kis-off-badge">비활성</span>';
     const itpRow = (label, val, valCls, itpData, kisOff) => {
       const id = 'itp_' + Math.random().toString(36).slice(2,8);
@@ -17732,7 +17731,10 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       return row;
     };
     // S66: 국내+KIS미연결 시 장중 민감지표 비활성 배지 (둔감지표=ADX,OBV,MA,ATR,SAR 제외)
-    const _ko = currentMarket==='kr' && !window._kisEnabled;
+    // [S1241] 장중 게이트 편입 — 당일봉 확정 후(평일 16:00~·주말)엔 배지 근거가 소멸하므로 소등.
+    //   값은 원래부터 계산·표시됨(표시 게이트만). 헬퍼 부재 시 상시 점등(기존 동작) 보수 폴백.
+    const _ko = currentMarket==='kr' && !window._kisEnabled
+      && ((typeof _sxKrDailyBarForming!=='function') || _sxKrDailyBarForming());
     techHTML = `
     <div class="anal-section">
       <div class="anal-section-title">기술적 지표${_ko?'<span class="kis-off-badge" style="margin-left:6px">KIS 미연결 — 장중 민감지표 참고용</span>':''}</div>
