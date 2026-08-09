@@ -4328,11 +4328,14 @@ function sxRunBtEngine(rawRows, tf, params, opts = {}) {
   const totalWin = wins.reduce((s, t) => s + t.pnl, 0);
   const totalLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0));
   const pf = totalLoss > 0 ? +(totalWin / totalLoss).toFixed(2) : (totalWin > 0 ? 99 : 0);
+  // [S1239] 확정 기준 일관 — 헤더 선언("보유중 제외·확정 매매 기준")과 달리 총수익률·MDD가 OPEN(미실현)을
+  //   복리에 포함하고 있었다(NAVER 실측: 그리드 +20.88 = 확정복리 +26.31 × 미실현 -4.30). 확정 거래만 집계.
+  //   미실현 손익은 자산 흐름 카드(실현/평가/보유금 3분해)가 전담 — 그리드와 역할 분리.
   let equity = 100, peak = 100, maxDD = 0;
-  trades.forEach(t => { equity *= (1 + t.pnl / 100); if (equity > peak) peak = equity; const dd = peak > 0 ? (peak - equity) / peak * 100 : 0; if (dd > maxDD) maxDD = dd; });
+  trades.forEach(t => { if (t.type === 'OPEN') return; equity *= (1 + t.pnl / 100); if (equity > peak) peak = equity; const dd = peak > 0 ? (peak - equity) / peak * 100 : 0; if (dd > maxDD) maxDD = dd; });
   const totalPnl = +((equity - 100)).toFixed(2);
   let maxConsecLoss = 0, curConsecLoss = 0;
-  trades.forEach(t => { if (t.type === 'LOSS') { curConsecLoss++; if (curConsecLoss > maxConsecLoss) maxConsecLoss = curConsecLoss; } else curConsecLoss = 0; });
+  trades.forEach(t => { if (t.type === 'OPEN') return; if (t.type === 'LOSS') { curConsecLoss++; if (curConsecLoss > maxConsecLoss) maxConsecLoss = curConsecLoss; } else curConsecLoss = 0; });   // [S1239] OPEN은 연속손실 집계에서도 부재 취급
 
   // [S1201] 진입원별 분해 — 어느 소스가 몇 건을 잡고 얼마를 벌었나. v2는 in-sample이라 반드시 분리 표기.
   const _srcBreak = {};
