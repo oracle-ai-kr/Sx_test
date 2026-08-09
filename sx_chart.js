@@ -1120,8 +1120,13 @@ function _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, legendFont){
   var TM=(typeof window!=='undefined' && window._sxTrendCtx && window._sxTrendCtx.trendMarkers) || null;
   var ei=gIdx, xi=dIdx, ePred=false, xPred=false;
   if(TM){
-    var _byDate=function(d){ if(!d) return -1; d=String(d); for(var z=data.length-1; z>=0; z--){ if(String(data[z].date)===d) return z; } return -1; };
+    // [S1245] 날짜 정규화 비교 — '2026-08-05'≡'20260805'. 엄격 문자열 비교는 소스별 포맷 차이로 조용히 실패
+    //   →크로스 폴백이 실거래 마커인 양 표시(간헐 어긋남). 정규화로 실패 자체를 제거, 잔여 실패는 warn으로 관측.
+    var _dN=function(d){ return String(d||'').replace(/[^0-9]/g,'').slice(0,8); };
+    var _byDate=function(d){ if(!d) return -1; var nd=_dN(d); if(!nd) return -1; for(var z=data.length-1; z>=0; z--){ if(_dN(data[z].date)===nd) return z; } return -1; };
     var _ei=TM.entryDate?_byDate(TM.entryDate):-1, _xi=TM.exitDate?_byDate(TM.exitDate):-1;
+    if(TM.entryDate && _ei<0) try{ console.warn('[S1245] 추세마커 진입날짜 매칭 실패 → 크로스 폴백:', TM.entryDate); }catch(_w){}
+    if(TM.exitDate && _xi<0) try{ console.warn('[S1245] 추세마커 청산날짜 매칭 실패 → 크로스 폴백:', TM.exitDate); }catch(_w2){}
     if(_ei>=0){ ei=_ei; ePred=!!TM.entryPred; }
     if(_xi>=0){ xi=_xi; xPred=!!TM.exitPred; }
   }
@@ -1155,6 +1160,16 @@ function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
   if(data.length<5) return;
   var offset = fullLen - dispCount; // 화면에 보이는 첫 봉의 원래 인덱스
 
+  // [S1245] 위치 진실원천=날짜 — trades.entryIdx는 '생성 당시 rows' 기준이라 차트 rows와 베이스가 다르면
+  //   (Season2 캐시 vs 확장된 600봉 등) offset만큼 밀린다. 날짜로 차트 배열에서 재탐색을 우선하고,
+  //   날짜 부재/미발견 시에만 idx−offset 폴백. 정규화 비교('2026-08-05'≡'20260805').
+  var _dN=function(d){ return String(d||'').replace(/[^0-9]/g,'').slice(0,8); };
+  var _locOf=function(idxGlobal, dateStr){
+    var nd=_dN(dateStr);
+    if(nd){ for(var z=data.length-1; z>=0; z--){ if(_dN(data[z].date)===nd) return z; } }
+    return (idxGlobal!=null) ? (idxGlobal - offset) : -1;
+  };
+
   var pad = {t:14,b:18,l:8,r:42};
   var cw = (W-pad.l-pad.r)/data.length;
   var closes = data.map(function(d){return d.close;});
@@ -1177,7 +1192,7 @@ function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
     if(trades[ti].type==='OPEN'){ openTrade=trades[ti]; break; }
   }
   if(openTrade && openTrade.entryIdx!=null){
-    var oStart = openTrade.entryIdx - offset;
+    var oStart = _locOf(openTrade.entryIdx, openTrade.entryDate);   // [S1245] 날짜 우선 재탐색(베이스 불일치 방어)
     if(oStart < data.length && oStart >= -1){
       oStart = Math.max(0, oStart);
       var oX = pad.l + oStart * cw;
@@ -1213,7 +1228,7 @@ function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
   // 미니차트용 마커 헬퍼 (BT 진입/청산용)
   //   isPair: true면 흐리게(globalAlpha=0.55) — 현재 미사용. "과거 짝 마커" 표시 인프라용
   function _drawBuyMini(idxGlobal, dateStr, isPair){
-    var eL = idxGlobal - offset;
+    var eL = _locOf(idxGlobal, dateStr);   // [S1245] 날짜 우선 — idx−offset은 폴백
     if(eL < 0 || eL >= data.length) return;
     var ex = pad.l + eL*cw + cw/2, ey = yFn(data[eL].low) + 1;
     ctx.save();
@@ -1237,7 +1252,7 @@ function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
     ctx.restore();
   }
   function _drawSellMini(idxGlobal, dateStr, isPair){
-    var xL = idxGlobal - offset;
+    var xL = _locOf(idxGlobal, dateStr);   // [S1245] 날짜 우선 — idx−offset은 폴백
     if(xL < 0 || xL >= data.length) return;
     var xx = pad.l + xL*cw + cw/2, xy = yFn(data[xL].high) - 1;
     ctx.save();
