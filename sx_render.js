@@ -13752,7 +13752,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1231';   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1232';   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15237,7 +15237,7 @@ async function _runEngineVerify(stock){
     rows = (typeof _mergeBtCandles === 'function') ? _mergeBtCandles(stock, rows, _targetCount, 'engineVerify') : rows;
 
     // ─── BT 실행 (단일검증과 동일 파라미터) ───
-    const params = (typeof btGetParams === 'function') ? btGetParams() : { buyTh:62, sellTh:38, tpMult:2.5, slMult:1.5 };
+    const params = (typeof btGetParams === 'function') ? btGetParams(_tf) : { buyTh:62, sellTh:38, tpMult:2.5, slMult:1.5 };   // [S1232] 문턱도 분석 TF 기준 — btGetParams tf 인자화 참조
     // btGetOpts는 단일검증 탭 DOM(#btOptSlip/#btOptNextBar) 참조하나 없으면 기본값 사용
     const opts = (typeof btGetOpts === 'function') ? btGetOpts() : { slippage:0.001, nextBarEntry:false };
 
@@ -15341,6 +15341,7 @@ async function _runEngineVerify(stock){
       }catch(_e){ console.warn(`[S248] 청산상세 로그 예외: ${_e.message}`); }
     }
     r.rowsLength = rows.length;
+    try{ r._sxSig = (typeof _btMakeSig==='function') ? _btMakeSig('자동', _tf, rows, params, opts) : null; }catch(_sg){}   // [S1232] 실행 서명
 
     if(r.error){
       console.error('[S115] BT 엔진 오류:', r.error);
