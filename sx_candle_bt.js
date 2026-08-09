@@ -52,6 +52,20 @@
   var _rows600Dbg  = { retry:0, rescued:0, stuck:0, list:[] };   // 관측용 — 재시도/길어진/2회차미달 + [S1230] net(네트워크 체인)·dedup(합류)·primed(주입)
   var _rows600Pend = {};    // [S1230-P1] 'key' → 진행중 promise. 동시 호출 합류(인플라이트 dedup)
   var _rows600Ts   = {};    // [S1230-P2] 'key' → 확정 시각(ms). peek 신선도 판정용(스냅 주입분은 ts 없음 = peek 제외)
+  var _rows600Fresh = {};   // [S1248] 'key' → 당일 재검 완료 날짜(YYYYMMDD). 끝봉<오늘인데 시장이 아직 안 준 경우(장전·휴장) 당일 재시도 중단.
+  function _kstToday(){ var t=new Date(Date.now()+9*3600000); return String(t.getUTCFullYear())+String(t.getUTCMonth()+1).padStart(2,'0')+String(t.getUTCDate()).padStart(2,'0'); }
+  function _r600LastD(rows){ try{ var L=rows[rows.length-1]; return String((L&&(L.date||L.t))||'').replace(/[^0-9]/g,'').slice(0,8); }catch(_e){ return ''; } }
+  // [S1248] stale 판정 — 확정 캐시의 끝봉이 KST 오늘보다 과거면 당일봉 재확정 대상. '세션 확정본 불변(S1080)'의
+  //   보호 대상은 과거 구간의 재현성이지 '오늘 끝봉의 부재'가 아니다(실측: 월요일 장중 "8/7 종가기준" 잔존).
+  //   스냅 주입분은 절대 불변(제외). 워커 KV(일봉 1h)·_btCandleCache(5분)와 달리 이 캐시만 무TTL이던 층위를 봉합.
+  function _r600IsStale(key, rows){
+    if(_snapKeySet[key]) return false;
+    if(!Array.isArray(rows) || !rows.length) return false;
+    var d=_r600LastD(rows); if(!d) return false;
+    var today=_kstToday();
+    if(d>=today) return false;
+    return _rows600Fresh[key]!==today;
+  }
   // [S1160] ★계수만으로는 원인을 못 가른다. "미달 2건"이 상장 짧은 종목인지 버그인지 구분하려면
   //   **어느 종목이 몇 봉 받았는가**가 필요하다. 삼성전자 412/600 = 버그 · 작년 상장 380/600 = 정상.
   //   n1=1회차 길이 · n2=재시도 길이. n1===n2면 재시도가 같은 벽에 부딪힌 것(내 S1159 수정이 못 고치는 종류).
@@ -97,7 +111,22 @@
     //   S1076 창A 실행에서 실제 발생: 스냅 167종인데 측정 168종 · COIN 창B 41→48종(15% 오염).
     //   스냅 모드에선 **프리로드로 주입된 키만** 인정한다(그 외 전부 null=제외, live 폴백 없음).
     if(_snapMode) return _snapKeySet[key] ? _rows600Cache[key] : null;   // [S847]→[S1080]
-    if(_rows600Cache[key]!==undefined) return _rows600Cache[key];
+    if(_rows600Cache[key]!==undefined){
+      var _cHit=_rows600Cache[key];
+      if(_r600IsStale(key,_cHit)){
+        // [S1248] 당일 1회 재확정 — 성공(끝봉=오늘·목표충족) 시 교체, 아니면 오늘은 이게 최신으로 마킹.
+        var _nf=null; try{ _nf=await _rows600FetchBody(mk, tf, code, vintage, key); }catch(_eF){ _nf=null; }
+        var _tgtS=(typeof _btTargetBars==='function')?_btTargetBars(mk,tf):600;
+        if(Array.isArray(_nf) && _nf.length>=Math.floor(_tgtS*0.95) && _r600LastD(_nf)>=_kstToday()){
+          _rows600Cache[key]=_nf; _rows600Ts[key]=Date.now();
+          _rows600Dbg.refreshed=(_rows600Dbg.refreshed||0)+1;
+          return _nf;
+        }
+        _rows600Fresh[key]=_kstToday();
+        _rows600Dbg.staleKept=(_rows600Dbg.staleKept||0)+1;
+      }
+      return _rows600Cache[key];
+    }
     // [S1230-P1] 인플라이트 합류 — 분석탭 진입 직후 통계판·단기추세·레시피·원장행이 수십 ms 안에 같은 키로
     //   동시 호출(전부 캐시 미스)하면 각자 네트워크로 가던 것을 promise 1개로 공유(이중로딩 M1).
     //   잠정(_rows600Prov) 재시도는 "순차" 호출의 규약이라 그대로 — 동시 호출은 같은 1회차 결과를 나눠 받는다.
@@ -170,6 +199,7 @@
     if(_snapKeySet[key] || !_rows600Ts[key]) return null;
     var r=_rows600Cache[key];
     if(!Array.isArray(r) || !r.length) return null;
+    if(_r600IsStale(key,r)) return null;   // [S1248] 끝봉<오늘 캐시는 브리지 금지 — fetchCandles 자체 fetch가 fresh를 재prime
     return { rows:r, ts:_rows600Ts[key] };
   }
   function _ctPoolAutoOn(){ try { return localStorage.getItem('SX_CT_POOL_AUTO')==='1'; } catch(_){ return false; } }
