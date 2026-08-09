@@ -181,6 +181,25 @@
     return /^\d{4}$/.test(c) ? (c + '00') : '153000';
   }
 
+  // [S1241] KR 당일봉 형성 중 판정 — 민감지표 '비활성' 배지의 시간 게이트 (표시 전용, 값 계산과 무관).
+  //   배지 근거 = 형성 중 당일봉 위 민감지표(RSI/MACD/Stoch 등) 불안정. 기존 게이트가 KR&&!KIS뿐이라
+  //   봉이 확정된 저녁·주말에도 상시 점등되던 것을, 근거가 실재하는 시간대로 한정한다.
+  //   구간: KST 평일 regular.open(0900) ~ regular.close+30분(1600). +30분 완충 = 마감 직후 네이버가
+  //   부분봉(시가0·거래량1%)을 잠시 내려보내던 이력(S235/S239) — 확정 신뢰 시점을 보수적으로 늦춤.
+  //   KST는 UTC+9 명시 계산(기기 시간대 무관). 공휴일은 미판별 — 장중 시간대면 점등되나 과잉표시일 뿐 무해.
+  function _sxKrDailyBarForming() {
+    try {
+      var t = new Date(Date.now() + 9 * 3600000);            // KST
+      var dow = t.getUTCDay();
+      if (dow === 0 || dow === 6) return false;              // 주말 = 확정
+      var min = t.getUTCHours() * 60 + t.getUTCMinutes();
+      var s = _sxSession('kr').regular;
+      var o = _sxSessionHHMMtoMin(s.open);  if (o == null) o = 540;
+      var c = _sxSessionHHMMtoMin(s.close); if (c == null) c = 930;
+      return min >= o && min < (c + 30);
+    } catch (_e) { return true; }                            // 판정 불가 시 배지 표시(기존 동작) 보수 폴백
+  }
+
   // ════════════════════════════════════════════════════════════
   //  모달 UI — 저장소 진단(동적 오버레이) 패턴 + sx_modal popstate 닫기
   //  설정탭/인덱스의 버튼이 _sxSessionOpenModal() 호출.
@@ -292,6 +311,7 @@
   global._sxSessionHHMMtoMin   = _sxSessionHHMMtoMin;   // 3단계 대비
   global._sxSessionZone        = _sxSessionZone;        // 3단계 대비
   global._sxSessionKisHour     = _sxSessionKisHour;     // [S575] KIS 분봉 API 종료시각
+  global._sxKrDailyBarForming  = _sxKrDailyBarForming;  // [S1241] 민감지표 배지 장중 게이트
   global._sxSessionDefaults    = SX_SESSION_DEFAULTS;   // 워커 미러 동기화 참조원
   global._sxSessionOpenModal   = _sxSessionOpenModal;   // 읽기 전용 확인 모달
   global._sxSessionCloseModal  = _sxSessionCloseModal;
