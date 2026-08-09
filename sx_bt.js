@@ -1104,6 +1104,7 @@ function _btNormalizeRows(rows){
     t: r.date||'', date: r.date||'', // S162-fix3: date 필드 보존
     o: r.open||0, h: r.high||0,
     l: r.low||0, c: r.close||0, v: r.volume||0,
+    foreignExhaustion: r.foreignExhaustion,   // [S1231] 왕복 보존(스크리너→BT→스크리너에서 탈락 방지)
   }));
   const _origLen = converted.length;
   const validated = converted.filter(_btIsValidCandle);
