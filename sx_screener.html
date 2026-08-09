@@ -7045,7 +7045,7 @@ async function fetchCandles(code, count, tf, _retry){
     } else if(currentMarket==='us'){
       // Yahoo proxy
       // [S168 600봉 통일] period1/period2 방식 — 국내(Naver)/코인(Upbit)과 동일한 분할 호출 호환
-      //   목적: 1차 200봉 호출 → fetchCandlesExtended로 +200, +200 분할 확장 (600봉 통일)
+      //   [S1247] 구주석 폐기: fetchCandlesExtended 분할 확장은 철거 — 현재는 처음부터 목표 봉수 단발 요청.
       //   이전 (S114): range=2y 단일 호출 → 500봉 받아도 .slice(-count)로 200봉만 남던 문제
       //   현재: period1/period2 명시 → count 봉수에 정확히 맞는 기간 요청
       //
@@ -7198,275 +7198,10 @@ let _extCandleMemCache = {}; // { 'sx_ext_<mkt>_<code>_<tf>_<date>': {ts, data} 
 // ============================================================
 //  S107 Phase 3-B-9a: 분석탭 BT 자동 확장 (데이터 부족 시 과거 봉 추가 로드)
 // ============================================================
-//  fetchCandlesExtended: 현재 데이터의 가장 오래된 봉 이전의 과거 봉 추가 로드
-//
-//  목적: 분석탭에서 BT 거래 수가 부족(< 10회)일 때, 해당 종목만 추가 데이터로
-//        재분석 → 거래 수 증가 → "데이터 부족" 경고 해소
-//
-//  설계 원칙:
-//    ① 스캐너는 기존 200봉 유지 (요청 증가 최소)
-//    ② 분석탭 진입 + 데이터 부족 조건 충족 시만 호출
-//    ③ 봇 감지 회피: 메모리 캐시 (페이지 세션 동안), 블록 간 2초 지연 (한 템포 쉼)
-//    ④ 실패 시 null 반환 (호출자가 기존 데이터 유지)
-//
-//  〔이력〕 2026-05-09: localStorage 7일 TTL → 메모리 캐시로 전환
-//    - 사유: 5세트 × 3시장 × 봉수 단계 누적 시 10MB 초과 (5MB 한계 위반)
-//    - 효과: 같은 세션 내 빠른 재사용 + localStorage 부담 0
-//
-//  입력:
-//    code: 종목 코드
-//    tf: 타임프레임 ('day'/'week'/'month'/'5m'/... )
-//    oldestDate: 현재 데이터의 가장 오래된 봉 날짜 (이 이전 봉을 가져옴)
-//    extraCount: 추가로 가져올 봉 수 (기본 200)
-//
-//  반환:
-//    성공: 추가 봉 배열 (오래된 순 정렬, 기존 데이터 앞에 붙일 수 있음)
-//    실패: null
-// ============================================================
-async function fetchCandlesExtended(code, tf, oldestDate, extraCount){
-  const _tf = tf || currentTF || 'day';
-  const _extra = Math.min(extraCount || 200, 200);  // Upbit 하드 제한 200
+// [S1247] fetchCandlesExtended(과거 페이징 확장) 본체 철거 — 유일 실소비처 _loadMoreCandles가 死코드로 판명(render 동시 철거).
+//   확장 방식(oldestDate 기준 +N봉 앞병합)은 S1205 원칙(4단 확장 폐기→fetchRows600 단발)으로 대체 완료.
+//   진단 도구의 KIS↔네이버 비교는 fetchCandles 직접 호출로 교정(아래 10361 부근). localStorage 'sx_ext_*' 잔존 키는 무해(진단 표시만 유지).
 
-  // S162-fix2: currentMarket 정규화 (KOSPI/KOSDAQ → kr)
-  //   _normalizeMarket은 sx_bt.js에서 정의됨 — 로드 순서상 항상 사용 가능
-  const _curMkt = (typeof _normalizeMarket === 'function') ? _normalizeMarket(currentMarket) : currentMarket;
-
-  console.log(`[fetchExt] 진입: code=${code}, tf=${_tf}, oldestDate=${oldestDate}, extra=${_extra}, market=${_curMkt}${currentMarket !== _curMkt ? ` (원본: ${currentMarket})` : ''}`);
-
-  if(!oldestDate){
-    console.warn('[fetchExt] oldestDate 필요');
-    return null;
-  }
-
-  // [메모리 캐시 전환] 확장 캔들은 메모리(_extCandleMemCache)만 사용 — localStorage 저장 안 함
-  //   배경: 5세트 옵티마이저 + 30개 관심종목 사용 시 localStorage 10MB 근접 → 한계 초과 위험
-  //   해결: 메모리 캐시만 유지 (페이지 로드 동안 빠른 재사용)
-  //         페이지 새로고침 시 사라짐 → 다음 진입 시 워커 KV 캐시(Cloudflare 측)로 빠른 응답
-  //   호환: 옛 localStorage 캐시는 한 번 읽고 나면 폐기 (점진 정리)
-  const cacheKey = `sx_ext_${_curMkt}_${code}_${_tf}_${oldestDate}`;
-
-  // 1차: 메모리 캐시 확인
-  if(typeof _extCandleMemCache !== 'undefined' && _extCandleMemCache[cacheKey]){
-    const memEntry = _extCandleMemCache[cacheKey];
-    if(memEntry && memEntry.ts && Date.now() - memEntry.ts < 7 * 86400000 && memEntry.data){
-      console.log(`[fetchExt] 메모리 캐시 히트: ${memEntry.data.length}봉`);
-      return memEntry.data;
-    }
-  }
-
-  // 2차: 옛 localStorage 캐시 읽기 (점진 정리 — 호환성)
-  //   이전 버전에서 저장한 캐시가 있으면 한 번 사용 후 메모리에 올림 + localStorage에서 제거
-  try{
-    const cached = localStorage.getItem(cacheKey);
-    if(cached){
-      const parsed = JSON.parse(cached);
-      // 버전 다르거나 만료면 즉시 제거
-      if(parsed._v !== SX_DATA_SCHEMA_VERSION ||
-         !parsed.ts || Date.now() - parsed.ts >= 7 * 86400000){
-        try{ localStorage.removeItem(cacheKey); }catch(_){}
-      } else if(parsed.data){
-        // 유효한 옛 캐시 — 메모리에 올리고 localStorage에서 제거 (재저장 안 함)
-        if(typeof _extCandleMemCache !== 'undefined'){
-          _extCandleMemCache[cacheKey] = { ts: parsed.ts, data: parsed.data };
-        }
-        try{ localStorage.removeItem(cacheKey); }catch(_){}
-        console.log(`[fetchExt] 옛 localStorage 캐시 → 메모리 이전: ${parsed.data.length}봉`);
-        return parsed.data;
-      }
-    }
-  }catch(_){}
-
-  // 봇 감지 회피: 블록 간 2초 지연 (한 템포 쉼 — 스캐너 연속 호출과 충분한 시간차 확보)
-  //   Upbit 초당 10건 제한 기준 여유 마진 확보, 사용자는 캐시 히트 시 0ms (7일 TTL)
-  console.log(`[fetchExt] 2초 대기 중...`);
-  await new Promise(r => setTimeout(r, 2000));
-
-  try{
-    let raw = null;
-
-    if(_curMkt === 'coin'){
-      // Upbit: to 파라미터로 과거 블록 호출
-      //   oldestDate 형식: ISO 8601 (예: "2024-01-15T00:00:00")
-      //   Upbit이 to 이전의 200봉 반환
-      const typeMap = {'5m':'minutes/5','15m':'minutes/15','30m':'minutes/30','60m':'minutes/60','240m':'minutes/240','day':'days','week':'weeks','month':'months'};
-      const upbitType = typeMap[_tf] || 'days';
-      const coinMarket = code.startsWith('KRW-') ? code : 'KRW-' + code;
-      // to는 ISO 형식 필요 — oldestDate가 이미 ISO면 그대로, 아니면 변환
-      let toParam = oldestDate;
-      if(typeof toParam === 'string' && !toParam.includes('T')){
-        // 'YYYY-MM-DD' 형식을 ISO로 변환
-        toParam = toParam + 'T00:00:00';
-      }
-      const url = `${WORKER_BASE}/upbit/candles?market=${coinMarket}&type=${upbitType}&count=${_extra}&to=${encodeURIComponent(toParam)}`;
-      const res = await _fetchWithTimeout(url);
-      // 봇 감지 폴백: 429/403 시 null 반환 (호출자가 기존 데이터 유지)
-      if(res.status === 429 || res.status === 403){
-        console.warn(`[fetchCandlesExtended] Rate limit/Forbidden ${res.status}, fallback`);
-        return null;
-      }
-      if(!res.ok) return null;
-      const json = await res.json();
-      raw = (json.data || json || []).map(r => ({
-        date: r.candle_date_time_kst || r.date || '',
-        open: parseFloat(r.opening_price || r.open || 0),
-        high: parseFloat(r.high_price || r.high || 0),
-        low: parseFloat(r.low_price || r.low || 0),
-        close: parseFloat(r.trade_price || r.close || 0),
-        volume: parseFloat(r.candle_acc_trade_volume || r.volume || 0),
-      })).filter(_sxIsValidCandle).reverse();  // 오래된 순
-
-    } else if(_curMkt === 'kr'){
-      // [S1230-P6] (구 v3.13 KIS-EXT 삭제) 일·주·월 확장도 네이버 단일소스 — 베이스(네이버)와 확장(KIS)의
-      //   소스 혼재가 이음새에 만드는 수정주가·당일봉 차이를 차단(P6 역할분리와 동일 근거).
-      // 네이버 sise: 날짜 범위 조정으로 과거 봉 가져옴
-      //   oldestDate 이전의 extraCount봉 확보하려면 날짜 범위를 과거로 확장
-      const tfMap = {'5m':'minute5','15m':'minute15','30m':'minute30','60m':'minute60','day':'day','week':'week','month':'month'};
-      const timeframe = tfMap[_tf] || 'day';
-      // oldestDate를 기준으로 더 과거를 요청
-      //   end = oldestDate - 1일 (기존 데이터와 겹치지 않게)
-      //   start = end - (extraCount * 날짜 배수)
-      // S107 FIX: oldestDate가 "20250625" (하이픈 없는 YYYYMMDD) 형식일 경우 new Date() 파싱 실패
-      //   → 하이픈 추가해서 "2025-06-25" 형식으로 변환 후 Date 생성
-      let _parsedDate = oldestDate;
-      if(typeof _parsedDate === 'string' && /^\d{8}$/.test(_parsedDate)){
-        _parsedDate = _parsedDate.slice(0,4) + '-' + _parsedDate.slice(4,6) + '-' + _parsedDate.slice(6,8);
-      }
-      const endDt = new Date(_parsedDate);
-      if(isNaN(endDt.getTime())){
-        console.warn(`[fetchExt] Naver 날짜 파싱 실패: oldestDate=${oldestDate}`);
-        return null;
-      }
-      endDt.setDate(endDt.getDate() - 1);
-      const dayRange = {'5m':7,'15m':14,'30m':21,'60m':30,'day':Math.ceil(_extra*1.8),'week':Math.ceil(_extra*10),'month':Math.ceil(_extra*35)}[_tf] || Math.ceil(_extra*1.8);
-      const startDt = new Date(endDt);
-      startDt.setDate(startDt.getDate() - dayRange);
-      const start = startDt.toISOString().slice(0,10).replace(/-/g,'');
-      const end = endDt.toISOString().slice(0,10).replace(/-/g,'');
-      console.log(`[fetchExt] Naver 호출: symbol=${code}, tf=${timeframe}, start=${start}, end=${end}`);
-      const url = `${WORKER_BASE}/naver/sise?symbol=${code}&timeframe=${timeframe}&start=${start}&end=${end}`;
-      const res = await _fetchWithTimeout(url);
-      if(res.status === 429 || res.status === 403){
-        console.warn(`[fetchCandlesExtended] Rate limit/Forbidden ${res.status}, fallback`);
-        return null;
-      }
-      if(!res.ok){
-        console.warn(`[fetchExt] Naver 응답 에러: ${res.status}`);
-        return null;
-      }
-      const json = await res.json();
-      let dataArr = json.data;
-      if((!dataArr || !dataArr.length) && json.raw){
-        if(json.error==='parse_failed') console.warn(`[S1240] /naver/sise parse_failed(확장) → raw 절단본 폴백: ${code} tf=${tf} rawLen=${json.raw.length}`);   // [S1240] 부분 데이터 가시화
-        // raw fallback 파싱 (기존 fetchCandles와 동일 패턴)
-        try{
-          const cleaned = json.raw.trim().replace(/^\uFEFF/,'');
-          let parsed = null;
-          try{ parsed = JSON.parse(cleaned); }catch(_){}
-          if(!parsed) try{ parsed = JSON.parse(cleaned.replace(/'/g,'"')); }catch(_){}
-          if(parsed && Array.isArray(parsed) && parsed.length >= 2){
-            const hdr = parsed[0];
-            dataArr = parsed.slice(1).map(row => {
-              const obj = {}; hdr.forEach((h,i) => { obj[h] = row[i]; }); return obj;
-            });
-          }
-        }catch(_){}
-      }
-      raw = (dataArr || []).map(r => ({
-        date: r.localDate || r['날짜'] || r.date || '',
-        open: parseFloat(r.openPrice || r['시가'] || r.open || 0),
-        high: parseFloat(r.highPrice || r['고가'] || r.high || 0),
-        low: parseFloat(r.lowPrice || r['저가'] || r.low || 0),
-        close: parseFloat(r.closePrice || r['종가'] || r.close || 0),
-        volume: parseInt(r.accumulatedTradingVolume || r['거래량'] || r.volume || 0),
-        foreignExhaustion: parseFloat(r['외국인소진율'] || r.foreignExhaustion || 0),
-      })).filter(_sxIsValidCandle).slice(-_extra);
-      console.log(`[fetchExt] Naver 파싱 완료: ${raw.length}봉 (dataArr=${dataArr?dataArr.length:'null'})`);
-
-    } else if(_curMkt === 'us'){
-      // [S168 600봉 통일] Yahoo Finance period1/period2 방식 과거 봉 확장
-      //   oldestDate를 period2로 변환 → period1 = period2 - (extra봉 분량 과거)
-      //   국내(Naver)/코인(Upbit)과 동일한 200봉 분할 패턴
-      //   workers_v9.js KV 캐시: period 블록별 독립 캐시 (3h TTL, 과거 블록은 변하지 않음)
-      const intervalMap = {'day':'1d','week':'1wk','month':'1mo','5m':'5m','15m':'15m','30m':'30m','60m':'60m','240m':'1h'};
-      const dayMultMap = {'day':1.45,'week':7,'month':31,'5m':1.45,'15m':1.45,'30m':1.45,'60m':1.45,'240m':1.45};
-      const interval = intervalMap[_tf] || '1d';
-      const dayMult = dayMultMap[_tf] || 1.45;
-
-      // oldestDate를 Unix timestamp로 변환 (period2)
-      // 형식: 'YYYY-MM-DD' (fetchCandles에서 toISOString().slice(0,10)로 저장됨)
-      let _parsedDate = oldestDate;
-      if(typeof _parsedDate === 'string' && /^\d{8}$/.test(_parsedDate)){
-        _parsedDate = _parsedDate.slice(0,4) + '-' + _parsedDate.slice(4,6) + '-' + _parsedDate.slice(6,8);
-      }
-      const oldestDt = new Date(_parsedDate);
-      if(isNaN(oldestDt.getTime())){
-        console.warn(`[fetchExt] Yahoo 날짜 파싱 실패: oldestDate=${oldestDate}`);
-        return null;
-      }
-      // period2 = oldest 1일 전 (기존 데이터와 겹치지 않게)
-      const period2 = Math.floor(oldestDt.getTime()/1000) - 86400;
-      // period1 = period2 - (extra봉 분량 과거)
-      const period1 = period2 - Math.ceil(_extra * dayMult * 86400);
-
-      const proxyUrl = `${WORKER_BASE}/proxy?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${code}?interval=${interval}&period1=${period1}&period2=${period2}`)}`;
-      console.log(`[fetchExt] Yahoo 호출: code=${code}, tf=${_tf}, period1=${period1}, period2=${period2} (oldestDate=${oldestDate})`);
-      const res = await _fetchWithTimeout(proxyUrl);
-      if(res.status === 429 || res.status === 403){
-        console.warn(`[fetchCandlesExtended] Yahoo Rate limit/Forbidden ${res.status}, fallback`);
-        return null;
-      }
-      if(!res.ok){
-        console.warn(`[fetchExt] Yahoo 응답 에러: ${res.status}`);
-        return null;
-      }
-      const json = await res.json();
-      const result = json?.chart?.result?.[0];
-      if(!result){
-        console.warn(`[fetchExt] Yahoo 응답에 result 없음 — 신규 상장 또는 데이터 부족`);
-        return null;
-      }
-      const ts = result.timestamp || [];
-      const q = result.indicators?.quote?.[0] || {};
-      raw = ts.map((t,i)=>({
-        date: new Date(t*1000).toISOString().slice(0,10),
-        open: q.open?.[i]||0, high: q.high?.[i]||0, low: q.low?.[i]||0,
-        close: q.close?.[i]||0, volume: q.volume?.[i]||0,
-      })).filter(_sxIsValidCandle).slice(-_extra);
-      console.log(`[fetchExt] Yahoo 파싱 완료: ${raw.length}봉 (요청 ${_extra}봉)`);
-
-    } else {
-      // 기타 시장: 미지원
-      console.warn(`[fetchCandlesExtended] ${_curMkt} 미지원 (원본 currentMarket=${currentMarket})`);
-      return null;
-    }
-
-    if(!raw || !raw.length) return null;
-
-    // [SAFETY-SORT] 모든 데이터 소스에 대해 시간 오름차순 보장
-    raw.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-
-    // [메모리 캐시 저장] localStorage 대신 메모리 변수에만 저장
-    //   동기화: 같은 페이지 세션 내에서 빠른 재사용 (페이지 새로고침 시 사라짐 — 정상 동작)
-    if(typeof _extCandleMemCache !== 'undefined'){
-      _extCandleMemCache[cacheKey] = { ts: Date.now(), data: raw };
-    }
-
-    return raw;
-  }catch(e){
-    console.warn('[fetchCandlesExtended] err', code, e);
-    return null;
-  }
-}
-
-
-// ============================================================
-//  분석 엔진 → sx_analysis_engine.js 로 분리됨
-//  (13 지표 + 7 고급엔진 + scrComputeScore + 안전필터 + 스마트필터)
-// ============================================================
-
-// ============================================================
-//  S51: KIS 실시간 조건 체크 (8개 필터)
-// ============================================================
 function _checkKisConditions(kisData, kisFilters, getFilter){
   if(!kisData) return true; // 데이터 없으면 패스 (스킵하지 않음)
   for(const f of kisFilters){
@@ -10358,7 +10093,7 @@ async function _dbgKisNaverCompare(){
     window._kisEnabled = true;
     const kisStart = Date.now();
     let kisCandles = null;
-    try { kisCandles = await fetchCandlesExtended(code, 'day', 200); }
+    try { kisCandles = await fetchCandles(code, 200, 'day'); }   // [S1247] 시그니처 오호출(fetchCandlesExtended 3인자) 교정 + 본체 철거
     catch(e){ lines.push('❌ KIS fetch 실패: ' + e.message); }
     const kisTime = Date.now() - kisStart;
     
@@ -10366,7 +10101,7 @@ async function _dbgKisNaverCompare(){
     window._kisEnabled = false;
     const naverStart = Date.now();
     let naverCandles = null;
-    try { naverCandles = await fetchCandlesExtended(code, 'day', 200); }
+    try { naverCandles = await fetchCandles(code, 200, 'day'); }   // [S1247] 동상
     catch(e){ lines.push('❌ Naver fetch 실패: ' + e.message); }
     const naverTime = Date.now() - naverStart;
 
@@ -11785,7 +11520,7 @@ function _sxcToggleExtensionLog(){
 // S107 Phase 3-B-9a: 확장 로그 HTML 렌더러
 //   - 현재 분석 종목 상태 (확장 플래그, BT 거래 수, 시장 지원)
 //   - localStorage 캐시 현황 (sx_ext_* 키 개수/용량)
-//   - fetchCandlesExtended 함수 존재 확인
+//   [S1247] 확장 함수/플래그 항목 철거 — 확장 시스템 소멸
 //   - 최근 로그 20개 (시간 역순, level별 색상)
 function _sxcBuildExtensionLogHTML(){
   const lines = [];
@@ -11798,8 +11533,8 @@ function _sxcBuildExtensionLogHTML(){
   const _stock = typeof currentAnalStock !== 'undefined' && currentAnalStock ? currentAnalStock : null;
   if(_stock){
     lines.push(`<div style="${ROW_STYLE}"><span style="${LABEL_STYLE}">현재 종목</span><span style="${VAL_STYLE};color:var(--accent)">${_stock.name || _stock.code} (${_stock._mkt || _stock.market || 'N/A'})</span></div>`);
-    const _ext = !!_stock._analCandlesExtended;
-    lines.push(`<div style="${ROW_STYLE}"><span style="${LABEL_STYLE}">확장 플래그</span><span style="${VAL_STYLE};color:${_ext?'var(--buy)':'var(--text3)'}">${_ext?'✓ 확장됨':'미확장'}</span></div>`);
+    // [S1247] 확장 플래그 표시 철거(stage 시스템 소멸)
+    // [S1247] (동상 — push 행)
     const _btTrades = _stock._btResult?.totalTrades ?? 0;
     const _btMin = typeof BT_MIN_TRADES !== 'undefined' ? BT_MIN_TRADES : 10;
     lines.push(`<div style="${ROW_STYLE}"><span style="${LABEL_STYLE}">BT 거래 수</span><span style="${VAL_STYLE};color:${_btTrades>=_btMin?'var(--buy)':'var(--sell)'}">${_btTrades}회 / 최소 ${_btMin}</span></div>`);
@@ -11825,9 +11560,9 @@ function _sxcBuildExtensionLogHTML(){
   }catch(_){}
   lines.push(`<div style="${ROW_STYLE}"><span style="${LABEL_STYLE}">확장 캐시</span><span style="${VAL_STYLE};color:${_cacheCount>0?'var(--accent)':'var(--text3)'}">${_cacheCount}개 (${(_cacheSize/1024).toFixed(1)}KB)</span></div>`);
 
-  // 3. fetchCandlesExtended 함수 존재 확인
-  const _fnOk = typeof fetchCandlesExtended === 'function';
-  lines.push(`<div style="${ROW_STYLE}"><span style="${LABEL_STYLE}">확장 함수</span><span style="${VAL_STYLE};color:${_fnOk?'var(--buy)':'var(--sell)'}">${_fnOk?'✓ 로드됨':'✗ 미로드'}</span></div>`);
+  // [S1247] 확장 함수 존재확인 항목 철거(fetchCandlesExtended 소멸)
+  // [S1247] (동상 — 선언)
+  // [S1247] (동상 — push 행)
 
   // 4. 최근 로그 (시간 역순, 최대 20개)
   const _logs = (typeof window !== 'undefined' && window._s107Logs) || [];
@@ -12793,7 +12528,7 @@ function _sxcDownloadExtLog(){
     const _stock = typeof currentAnalStock !== 'undefined' && currentAnalStock ? currentAnalStock : null;
     if(_stock){
       lines.push(`  현재 종목: ${_stock.name||_stock.code} (${_stock._mkt||_stock.market||'N/A'})`);
-      lines.push(`  확장 플래그: ${_stock._analCandlesExtended?'확장됨':'미확장'}`);
+      // [S1247] 확장 플래그 진단행 철거
       lines.push(`  _lastAnalCandles 봉수: ${_stock._lastAnalCandles?.length || 0}`);
       lines.push(`  BT 거래 수: ${_stock._btResult?.totalTrades ?? 0}`);
       // S162-fix3: 첫 봉 필드 확인 (date/t 중 어느 쪽인지)
@@ -12803,7 +12538,7 @@ function _sxcDownloadExtLog(){
       }
     }
     lines.push(`  currentMarket: ${typeof currentMarket!=='undefined'?currentMarket:'N/A'}`);
-    lines.push(`  확장 함수: ${typeof fetchCandlesExtended==='function'?'로드됨':'미로드'}`);
+    // [S1247] 확장 함수 진단행 철거
     lines.push(`  _normalizeMarket 함수: ${typeof _normalizeMarket==='function'?'로드됨':'미로드'}`);
 
     let _cacheCount = 0, _cacheSize = 0;
