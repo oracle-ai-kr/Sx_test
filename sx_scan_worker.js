@@ -639,6 +639,7 @@ async function fetchCandles(code, count, _retry) {
       const json = await res.json();
       let dataArr = json.data;
       if ((!dataArr || !dataArr.length) && json.raw) {
+        if (json.error === 'parse_failed') console.warn(`[S1240] /naver/sise parse_failed(scanWorker) → raw 절단본 폴백: ${code} tf=${currentTF} rawLen=${json.raw.length}`);   // [S1240] 부분 데이터 가시화
         try {
           const cleaned = json.raw.trim().replace(/^\uFEFF/, '');
           let parsed = null;
