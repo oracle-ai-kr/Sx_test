@@ -13773,7 +13773,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1237';   // [S1237] 단일검증 기본=시즌2 정합(진입원 v2 편입·저장키 리셋)+死파라미터 축 철거   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1238';   // [S1238] 자동 저장 entryMode 유령 불일치 봉합(전역 기준 실기록)   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15375,7 +15375,11 @@ async function _runEngineVerify(stock){
     stock._btResult = r;
     // [S215] BT 실행 시 사용한 TF/옵션/파라미터 함께 저장 — 단일검증 재사용 판정용
     stock._btResultTF = _tf;
-    stock._btResultOpts = { slippage: opts.slippage, nextBarEntry: opts.nextBarEntry, entryMode: opts.nextBarEntry?'nextOpen':'close', srcSig: (typeof _btSrcSigOf==='function')?_btSrcSigOf(opts):((typeof window!=='undefined'&&window._btSrcSigOf)?window._btSrcSigOf(opts):null), gapGuard: ((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false) };   // [S1213] 단일검증 재사용 판정 정합(entryMode·진입원서명) — 기본 설정끼리 재사용 복원
+    // [S1238] entryMode 유령 불일치 봉합 — btGetOpts는 nextBarEntry를 안 실어(전역 위임·S422) 항상 undefined
+    //   → 'close'로 오기록되며 실제 실행(익일시가)과 어긋나, 매 진입 stale 재실행 + ⚠ close→nextOpen 유령 발생.
+    //   엔진 판정식과 동일하게: 명시값 우선, 없으면 전역 _btEntryMode. 死필드 nextBarEntry 저장 삭제.
+    const _emNow = (opts.nextBarEntry != null) ? (opts.nextBarEntry?'nextOpen':'close') : ((typeof SXE!=='undefined'&&SXE._btEntryMode)||'close');
+    stock._btResultOpts = { slippage: opts.slippage, entryMode: _emNow, srcSig: (typeof _btSrcSigOf==='function')?_btSrcSigOf(opts):((typeof window!=='undefined'&&window._btSrcSigOf)?window._btSrcSigOf(opts):null), gapGuard: ((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false) };   // [S1213] 단일검증 재사용 판정 정합(entryMode·진입원서명) — 기본 설정끼리 재사용 복원
     // [S1237] _btResultParams 저장 폐지 — 死파라미터 메타. 레거시 무보존.
     if(typeof calcBtScore === 'function') stock._btScore = calcBtScore(r, stock);
     const _curPrice = rows[rows.length-1]?.close || stock.price || 0;
