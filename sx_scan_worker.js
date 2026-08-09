@@ -2311,7 +2311,7 @@ async function startScan(config) {
     if (config.btEarlyExit)    SXE._btEarlyExit    = config.btEarlyExit;
     if (config.btExitMode)     SXE._btExitMode     = config.btExitMode;
     if (config.btEntryMode)    SXE._btEntryMode    = config.btEntryMode;  // [S422] 진입 시점(종가/다음봉시가) — 워커 localStorage 미지원, 메인 동봉값 사용
-    if (typeof config.btGapGuard === 'boolean') SXE._btGapGuard = config.btGapGuard;  // [S423] 갭 가드(다음봉 시가 모드 전용)
+    // [S1242] btGapGuard 수신 철거 — 송신부(sx_screener.html scan config)와 동시 제거(死바인딩 잔재).
     if (config.btTrailAtrMode) SXE._btTrailAtrMode = config.btTrailAtrMode;
     if (typeof setMarketWeight === 'function') setMarketWeight(currentMarket);
   }
