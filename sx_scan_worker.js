@@ -2525,7 +2525,11 @@ async function startScan(config) {
               try {
                 const _EC = self.SXExecCore;
                 if (_EC && _EC.stockStateAt && candles.length >= 20) {
-                  const _spInd = calcIndicators(candles, currentTF);
+                  const _spIndFull = calcIndicators(candles, currentTF);
+                  // [S1244] flat-top trap 교정 — calcIndicators 리턴은 평탄 축약본이라 maAlignLT(장기축)가 top-level에 없다
+                  //   (풀 지표는 _advanced=calcAllScreener 원본). S1243이 평탄본을 그대로 넘겨 _ltStr733='off'→cell 전원 null
+                  //   →칸 필터 전 종목 탈락(레짐 필터는 rows만 써서 생존 — 증상 비대칭의 원인).
+                  const _spInd = (_spIndFull && _spIndFull._advanced) || _spIndFull;
                   const _ss = _EC.stockStateAt(_spInd, candles, candles.length - 1);
                   const _cellOk = !_spCellSel.length || (_ss && _ss.cell && _spCellSel.some(id => id.replace('_','|') === _ss.cell));
                   const _regOk  = !_spRegSel.length  || (_ss && _ss.regime && _spRegSel.indexOf(_ss.regime) >= 0);
