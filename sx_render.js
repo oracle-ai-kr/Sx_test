@@ -2829,7 +2829,9 @@ function _ensureSeason2Trades(stock, rows, sym){
         stock._season2Pending = false;
         if(typeof _currentAnalRows!=='undefined' && _currentAnalRows===rows && typeof _drawMiniCandleChart==='function'){
           _currentAnalTrades = stock._season2Trades;
-          _drawMiniCandleChart(rows, stock._season2Trades, null);
+          // [S1246] 보라 마커 보존 — 기존 null 전달로 async 재그림 순간 현재판정(보라)이 사라지던 결함.
+          var _sv988 = (typeof _resolvePurpleSv==='function') ? _resolvePurpleSv(stock) : ((window._sxMiniLast&&window._sxMiniLast.sv)||null);
+          _drawMiniCandleChart(rows, stock._season2Trades, _sv988);
         }
       }catch(_){ stock._season2Pending=false; }
     }).catch(function(){ stock._season2Pending=false; });
@@ -3485,8 +3487,14 @@ function _trendRedrawChart(){
     // [S988] R모드면 Season2 trades 확보(async 완료 시 재그림) + 현재 trades를 모드에 맞게 선택
     try{ if(typeof currentAnalStock!=='undefined' && currentAnalStock){ _ensureSeason2Trades(currentAnalStock, _currentAnalRows, currentAnalStock.code||currentAnalStock.name); _currentAnalTrades = _chartTradesFor(currentAnalStock); } }catch(_){}
     var _sv=(typeof currentAnalStock!=='undefined' && currentAnalStock) ? _resolvePurpleSv(currentAnalStock) : null; // [S578] A/C 토글 반영
-    if(typeof _currentAnalTrades!=='undefined' && _currentAnalTrades && _currentAnalTrades.length && SXChart.drawMiniWithTrades){
-      SXChart.drawMiniWithTrades('miniCandleChart', _currentAnalRows, _currentAnalTrades, _sv);
+    // [S1246] trades 모드 정합 선택 — S988 주석 의도("모드에 맞게 선택")의 실배선. 기존엔 _currentAnalTrades 잔존값
+    //   직독이라 S 전환 후에도 Season2 배열이 남아 흘렀다(렌더는 _gr 게이트로 무해했지만 캔버스 높이 등 경로 불일치).
+    var _tr988=(typeof currentAnalStock!=='undefined' && currentAnalStock && typeof _chartTradesFor==='function')
+      ? _chartTradesFor(currentAnalStock)
+      : ((typeof _currentAnalTrades!=='undefined')?_currentAnalTrades:null);
+    if(typeof _currentAnalTrades!=='undefined') _currentAnalTrades=_tr988;
+    if(_tr988 && _tr988.length && SXChart.drawMiniWithTrades){
+      SXChart.drawMiniWithTrades('miniCandleChart', _currentAnalRows, _tr988, _sv);
     } else if(SXChart.drawMini){
       SXChart.drawMini('miniCandleChart', _currentAnalRows, _sv);
     }
@@ -13793,7 +13801,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1245';   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1244] S1243 칸 필터 전원탈락 픽스: flat-top trap(maAlignLT는 _advanced에) — 워커 게이트·분석탭 stockState 양쪽 교정   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1246';   // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
