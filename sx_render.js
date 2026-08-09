@@ -13778,7 +13778,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1239';   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1240';   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -19802,9 +19802,13 @@ async function _fetchMultiTfBackground(stock){
   // [S1230-P4] 주·월봉을 BT 목표(_btTargetBars=400)와 정합 — 기존 200봉 캐시가 프로브에 걸리면
   //   주·월 BT가 floor 미달로 우회 재fetch하던 이중로딩(M4) 차단. 분봉은 현행 유지(코인 업비트
   //   페이지 수 급증 방지 — 분봉 600 정합은 실사용 확인 후 별도 판단).
-  const _mtfCount = (k)=> (k==='week')  ? ((typeof _btTargetBars==='function')?_btTargetBars(mkt,k):400)
-                        : (k==='month') ? 200   // [S1231] 월 400 원복 — 네이버 월봉 공급 실측: 400 요청 시 35봉 회귀(주봉 400은 정상). BT 월봉 target 400도 같은 벽 후보 — 별건 기록.
-                                        : ((mkt==='kr' && window._kisEnabled) ? 500 : 200);
+  const _mtfCount = (k)=> (k==='week' || k==='month') ? ((typeof _btTargetBars==='function')?_btTargetBars(mkt,k):400)
+                        // [S1240] S1231 "월 200 원복" 철회 — 당시 실측 "400 요청 시 35봉 회귀"는 공급 벽이 아니라
+                        //   워커 handleNaverSise JSON.parse 사망(공란 소진율 trailing comma) → raw 2000자 절단 →
+                        //   클라 폴백 ~35행 복원의 부산물이었음(오진 정정). 워커 S1240 파서 내성 배포 후 월 400 정상
+                        //   공급 실측(005930: 438봉). 주·월 모두 _btTargetBars(400) 경유로 S1230-P4 정합 회복.
+                        //   ⚠ 배포 순서: workers_v9.js 먼저 — 구워커에 월400을 던지면 35봉 증상 재현.
+                        : ((mkt==='kr' && window._kisEnabled) ? 500 : 200);
 
   // 기본 TF는 runAnalysis에서 처리하므로 제외
   const otherTfs = tfs.filter(t => t.k !== _analTF && !(mkt==='kr' && t.k==='60m' && !window._kisEnabled));
