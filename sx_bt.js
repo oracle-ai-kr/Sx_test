@@ -120,9 +120,11 @@ async function _btGetRows(stock, tf, targetCount, opts){
 
 function _btTargetBars(market, tf){
   if(tf === 'week' || tf === 'month') return 400;
-  const m = (typeof _normalizeMarket === 'function') ? _normalizeMarket(market) : (market || 'kr');
-  const _isKrKis = (m === 'kr' && typeof window !== 'undefined' && window._kisEnabled);
-  return _isKrKis ? 700 : 600;
+  // [S1230-P6] KIS ON 700 폐지 — 전 시장·전 경로 600 정합. 근거: KIS 일봉 공급이 5페이지=500 상한
+  //   (무인자 골든 보존 · _btFetchKIS S1076 주석)이라 700은 달성 불가 목표였고, 그 격차가
+  //   fetchRows600 floor 미달 → 우회 재fetch → stuck(500 고착)의 뿌리였다(이중로딩 M4). 일·주·월
+  //   캔들 소스는 네이버 단일화(P6), KIS는 분봉·현재가·실시간 필터 전용 레이어로 역할 분리.
+  return 600;
 }
 
 // 전체 캐시 로드
@@ -321,30 +323,9 @@ async function _runBtWithExtension(stock, tf, quiet){
       rows = stock._lastAnalCandles.slice(-_targetCount);
       if(!quiet) console.log(`[S110-runBt] 캐시 재사용: ${rows.length}봉`);
     }
-    // 경로 B: 부분 캐시 확장
-    else if(_isExtSupported && stock._lastAnalCandles && stock._lastAnalCandles.length >= 200 && typeof fetchCandlesExtended === 'function'){
-      const _existing = stock._lastAnalCandles.slice();
-      const _needed = _targetCount - _existing.length;
-      console.log(`[S110-runBt] ${stock.name||stock.code} 경로B: 기존 ${_existing.length}봉 → 목표 ${_targetCount}봉 (+${_needed}봉 필요)`);
-      if(_needed > 0){
-        try{
-          const _extra = await fetchCandlesExtended(stock.code, _tf, _existing[0].date || _existing[0].t, _needed);
-          if(_extra && _extra.length > 0){
-            rows = [..._extra, ..._existing];
-            console.log(`[S110-runBt] ${stock.name||stock.code} 경로B 완료: +${_extra.length}봉 → ${rows.length}봉`);
-          } else {
-            rows = _existing;
-            console.warn(`[S110-runBt] ${stock.name||stock.code} 경로B 확장 실패: fetchCandlesExtended 반환 ${_extra===null?'null':'빈배열'}`);
-          }
-        }catch(e){
-          rows = _existing;
-          console.warn(`[S110-runBt] ${stock.name||stock.code} 경로B 예외: ${e.message||e}`);
-        }
-      } else {
-        rows = _existing;
-        console.log(`[S110-runBt] ${stock.name||stock.code} 경로B: 이미 충족 (확장 불필요)`);
-      }
-    }
+    // [S1230-P4] 경로B(부분 확장 · fetchCandlesExtended) 삭제 — S1207이 분석탭 첫 fetch를 목표봉수로
+    //   올린 뒤 "부분 캐시(200~400)" 전제가 소멸(분석 경유 종목은 경로A가, 미경유는 아래 _btGetRows가
+    //   담당). 확장 이음새의 소스 혼재 가능성도 함께 제거 — S1205(3·4단 폐기)의 잔여 정리.
     else {   // [S1205] 3·4단 폐기 → _btGetRows 단발
       rows = await _btGetRows(stock, _tf, _targetCount, {quiet:true});
       if(!rows) return { ok:false, error:'캔들 로드 실패' };
@@ -436,31 +417,9 @@ async function _fetchExtCandles(stock, tf, quiet){
       rows = stock._lastAnalCandles.slice(-_targetCount);
       if(!quiet) console.log(`[S113-ext] 캐시 재사용: ${rows.length}봉 (${stock.code})`);
     }
-    // 경로 B: 부분 캐시 확장 (200~400봉 → 600봉)
-    else if(_isExtSupported && stock._lastAnalCandles && stock._lastAnalCandles.length >= 200 && typeof fetchCandlesExtended === 'function'){
-      const _existing = stock._lastAnalCandles.slice();
-      const _needed = _targetCount - _existing.length;
-      if(_needed > 0){
-        try{
-          const _extra = await fetchCandlesExtended(stock.code, _tf, _existing[0].date || _existing[0].t, _needed);
-          if(_extra && _extra.length > 0){
-            rows = [..._extra, ..._existing];
-            if(!quiet) console.log(`[S113-ext] 부분 확장: ${_existing.length} + ${_extra.length} = ${rows.length}봉 (${stock.code})`);
-          } else {
-            rows = _existing;
-          }
-        }catch(e){ rows = _existing; }
-      } else {
-        rows = _existing;
-      }
-      // S113: 확장 결과 세션 공유 저장 (경로 A와 일관)
-      if(rows && rows.length > _existing.length){
-        stock._lastAnalCandles = rows.slice();
-        if(rows.length >= 700) stock._analCandlesExtendedStage = 3;
-        else if(rows.length >= 600) stock._analCandlesExtendedStage = 2;
-        else if(rows.length >= 400) stock._analCandlesExtendedStage = 1;
-      }
-    }
+    // [S1230-P4] 경로B(부분 확장 · fetchCandlesExtended) 삭제 — S1207이 분석탭 첫 fetch를 목표봉수로
+    //   올린 뒤 "부분 캐시(200~400)" 전제가 소멸(분석 경유 종목은 경로A가, 미경유는 아래 _btGetRows가
+    //   담당). 확장 이음새의 소스 혼재 가능성도 함께 제거 — S1205(3·4단 폐기)의 잔여 정리.
     else {   // [S1205] 3·4단 폐기 → _btGetRows 단발
       rows = await _btGetRows(stock, _tf, _targetCount, {quiet:quiet});
       if(!rows) return null;
@@ -1075,9 +1034,9 @@ async function btFetchCandlesCoin(code, tf, count, vintage){
 //   coin: 업비트
 async function btFetchCandles(code, isCoin, tf, count, vintage){
   count = count||300;
-  if(isCoin) return btFetchCandlesCoin(code, tf, count, vintage);
-
-  const mkt = currentMarket || (isCoin?'coin':/^\d{6}$/.test(code)?'kr':'us');
+  // [S1230-P3] 코인도 candleCache 프로브 경유 — 기존엔 isCoin 즉시분기가 프로브보다 앞이라,
+  //   분석탭이 방금 받아둔 600봉을 못 보고 카드마다 업비트 3페이지를 재fetch했다(이중로딩 M2).
+  const mkt = isCoin ? 'coin' : (currentMarket || (/^\d{6}$/.test(code)?'kr':'us'));
 
   // ① 스크리너 캔들 캐시 조회 (candleCache는 글로벌)
   // [S1076] ★vintage 요청 시 이 블록 통째로 스킵 — candleCache는 '오늘' 데이터 전용이라
@@ -1103,6 +1062,7 @@ async function btFetchCandles(code, isCoin, tf, count, vintage){
   }
 
   // ② 캐시 미스 → 독립 fetch
+  if(isCoin) return btFetchCandlesCoin(code, tf, count, vintage);
   if(mkt === 'kr') return btFetchCandlesKR(code, tf, count, vintage);
   return btFetchCandlesYF(code, tf, count, vintage);
 }
@@ -1160,8 +1120,11 @@ async function btFetchCandlesKR(code, tf, count, vintage){
   if(_btCandleCache[cacheKey] && Date.now()-_btCandleCache[cacheKey].ts<300000 && _btCandleCache[cacheKey].data.length>=count)
     return _btCandleCache[cacheKey].data.slice(-count);   // [S641] 캐시 봉수<요청봉수면 재fetch (count 미포함 키 → 짧은 캐시 재사용 버그 차단)
 
-  // KIS 시도
-  if(window._kisEnabled && typeof _getKisConfig === 'function'){
+  // KIS 시도 — [S1230-P6] vintage(측정 과거창 · 12페이지 경로) 요청 시에만. 무인자 일·주·월은 네이버
+  //   단일소스: KIS 5페이지=500 공급이 목표 600(floor 570) 미달인데 >=30 가드가 그걸 채택해
+  //   네이버 폴백을 막고 있었다(S1076 주석의 "폴백이 담당" 의도와 코드가 어긋난 지점). 소스 고정으로
+  //   KIS 토글 전후 캔들 불변 — 원장·관측소 시계열에 소스 전환 단절점이 생기지 않는다.
+  if(window._kisEnabled && _btVinKey(vintage) && typeof _getKisConfig === 'function'){
     try{
       const rows = await _btFetchKIS(code, tf, count, vintage);   // [S1076]
       if(rows && rows.length >= 30){
