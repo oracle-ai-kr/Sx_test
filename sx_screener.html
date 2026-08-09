@@ -7120,6 +7120,9 @@ async function fetchCandles(code, count, tf, _retry){
       // S44: data 배열이 있으면 사용, 없으면 raw 텍스트 직접 파싱 시도
       let dataArr = json.data;
       if((!dataArr || !dataArr.length) && json.raw){
+        // [S1240] parse_failed 폴백은 워커가 raw를 2000자로 절단한 부분 데이터 — 조용히 유효 데이터처럼
+        //   흘러가면 "월봉 35봉·1990년" 류 무증상 오염이 된다. 경고로 가시화(동작은 비상용으로 유지).
+        if(json.error==='parse_failed') console.warn(`[S1240] /naver/sise parse_failed → raw 절단본 폴백(부분 데이터 위험): ${code} tf=${_tf} rawLen=${json.raw.length}`);
         try{
           const cleaned = json.raw.trim().replace(/^\uFEFF/,'');
           let parsed = null;
@@ -7351,6 +7354,7 @@ async function fetchCandlesExtended(code, tf, oldestDate, extraCount){
       const json = await res.json();
       let dataArr = json.data;
       if((!dataArr || !dataArr.length) && json.raw){
+        if(json.error==='parse_failed') console.warn(`[S1240] /naver/sise parse_failed(확장) → raw 절단본 폴백: ${code} tf=${tf} rawLen=${json.raw.length}`);   // [S1240] 부분 데이터 가시화
         // raw fallback 파싱 (기존 fetchCandles와 동일 패턴)
         try{
           const cleaned = json.raw.trim().replace(/^\uFEFF/,'');
