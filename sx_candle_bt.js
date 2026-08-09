@@ -652,7 +652,8 @@
         high:  +((r.h != null ? r.h : r.high) || 0),
         low:   +((r.l != null ? r.l : r.low) || 0),
         close: +((r.c != null ? r.c : r.close) || 0),
-        volume:+((r.v != null ? r.v : r.volume) || 0)
+        volume:+((r.v != null ? r.v : r.volume) || 0),
+        foreignExhaustion: (r.foreignExhaustion != null ? +r.foreignExhaustion : undefined)   // [S1231] 왕복 보존 — P2b(peek) 경유 시 분석탭 foreignRatio(외인소진율) 갱신 유지
       };
     });
   }
