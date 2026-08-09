@@ -1296,6 +1296,13 @@ if(typeof window!=='undefined') window._resolvePurpleSv = _resolvePurpleSv;
 //   해결: 차트 함수 진입 시 sanitize 한 번 더 적용 (정상 봉은 그대로 통과 — noop)
 function _drawMiniCandleChart(rows, trades, svVerdict){
   if(typeof SXChart==='undefined') return;
+  // [S1245] 마지막 호출 인자 보관 + 재그림 훅 — TM(추세마커 날짜)이 카드 렌더에서 늦게 확정되는 경합
+  //   (미니차트 setTimeout 선행·strat 신호맵 pending→도착) 시, 원 인자 그대로 다시 그려 크로스 폴백 마커 잔존을 해소.
+  //   보라(svVerdict) 마커 보존을 위해 재그림은 반드시 저장본 인자 사용. 재그림 경로는 TM을 세팅하지 않아 재귀 없음.
+  try{
+    window._sxMiniLast = { rows: rows, trades: trades, sv: svVerdict };
+    window._sxMiniRepaint = function(){ var L=window._sxMiniLast; if(L&&L.rows&&L.rows.length) setTimeout(function(){ _drawMiniCandleChart(L.rows, L.trades, L.sv); }, 0); };
+  }catch(_eML){}
   // [S234] 차트 렌더 직전 sanitize (이중 호출 안전 — 정상이면 noop)
   if(typeof SXE !== 'undefined' && typeof SXE.sanitizeRows === 'function'){
     rows = SXE.sanitizeRows(rows);
@@ -2804,6 +2811,11 @@ function _chartTradesFor(stock){ try{ return (_chartGRMode()==='R') ? ((stock&&s
 function _ensureSeason2Trades(stock, rows, sym){
   try{
     if(_chartGRMode()!=='R' || !stock || !rows || rows.length<260) return;
+    // [S1245] rows 베이스 서명 — trades.entryIdx는 '생성 당시 rows' 기준 인덱스라, rows가 교체되면
+    //   (재fetch·400/512→600 확장) 옛 캐시를 새 배열 위에 그려 offset만큼 마커가 밀린다("600봉을 못 본 듯"의 실체).
+    //   길이+마지막 날짜가 다르면 캐시 폐기 후 재계산.
+    var _s2Base = rows.length + '|' + String((rows[rows.length-1]&&(rows[rows.length-1].date||rows[rows.length-1].t))||'');
+    if(stock._season2Trades && stock._season2Base !== _s2Base){ stock._season2Trades=null; stock._season2Open=null; }
     if(stock._season2Trades || stock._season2Pending) return;
     if(!(window.SXRecipeSignal && SXRecipeSignal.pullbackSignalBars)) return;
     stock._season2Pending = true;
@@ -2813,6 +2825,7 @@ function _ensureSeason2Trades(stock, rows, sym){
         const res = _season2Bt(rows, real, { initMult:2, trailMult:3, graceDays:10, maCross:true });
         stock._season2Trades = res.trades || [];
         stock._season2Open = res.open || null;
+        stock._season2Base = _s2Base;   // [S1245] 캐시 베이스 기록
         stock._season2Pending = false;
         if(typeof _currentAnalRows!=='undefined' && _currentAnalRows===rows && typeof _drawMiniCandleChart==='function'){
           _currentAnalTrades = stock._season2Trades;
@@ -3189,6 +3202,9 @@ function _trendRenderInner(){
         exitDate:  _trL ? _trL.exitDate : '',
         exitPred:  _trL ? !!_trL.predExit : false
       };
+      // [S1245] TM 확정 직후 미니차트 재그림 — 차트가 카드보다 먼저 그려졌거나 strat 신호맵 pending→도착이면
+      //   재그림 없인 5×9 크로스 폴백 마커가 실거래 봉인 양 잔존(간헐 어긋남의 주 기전). 저장본 인자 재사용(보라 마커 보존).
+      if(window._sxMiniRepaint) window._sxMiniRepaint();
     }
   }catch(_e2){}
   let st=_trendState(rows,cfg,bt);
@@ -13777,7 +13793,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1244';   // [S1244] S1243 칸 필터 전원탈락 픽스: flat-top trap(maAlignLT는 _advanced에) — 워커 게이트·분석탭 stockState 양쪽 교정   // [S1243] 구조위치 배선(S1217 예약분): 전광판 레짐 배지(일봉·세/장 병렬)+조건검색 '구조위치' 카테고리(3×3 칸·레짐 v3, 선행 게이트·마지막 봉 단일 판정)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1245';   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1244] S1243 칸 필터 전원탈락 픽스: flat-top trap(maAlignLT는 _advanced에) — 워커 게이트·분석탭 stockState 양쪽 교정   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
