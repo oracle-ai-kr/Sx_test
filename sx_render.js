@@ -13777,7 +13777,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1242';   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1243';   // [S1243] 구조위치 배선(S1217 예약분): 전광판 레짐 배지(일봉·세/장 병렬)+조건검색 '구조위치' 카테고리(3×3 칸·레짐 v3, 선행 게이트·마지막 봉 단일 판정)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -16827,6 +16827,17 @@ function _sxbHTML(){
       _transitionBadge = `<span class="sxb-badge" style="color:${_tc};background:${_tc}1A;border:1px solid ${_tc};cursor:pointer" onclick="event.stopPropagation();_sxbTransWhy && _sxbTransWhy()">${_ticon} ${_tlabel}</span>`;
     }
   }
+  // [S1243] 레짐 배지('장' 어휘 — S1217 세/장 분리) — 단기(세) 배지 옆 병렬로 '칸×레짐=구조위치' 완성.
+  //   B._stockState는 일봉 TF에서만 채워짐(레짐 v3=일봉 선언값 → 주/월 공백 자기설명). 아이콘은 전이 배지(📈📉)와 비겹침 날씨 은유.
+  let _regimeBadge = '';
+  {
+    const _ssB = B._stockState;
+    if(_ssB && _ssB.regime){
+      const _rC = {bull:'#dc2626', up:'#16a34a', side:'#94a3b8', down:'#2563eb', crash:'#7c3aed'}[_ssB.regime] || '#94a3b8';
+      const _rI = {bull:'🔥', up:'🌤️', side:'〰️', down:'🌧️', crash:'🌋'}[_ssB.regime] || '';
+      _regimeBadge = `<span class="sxb-badge" style="color:${_rC};background:${_rC}1A;border:1px solid ${_rC}">${_rI} ${_ssB.regimeLbl||_ssB.regime}</span>`;
+    }
+  }
   // [S361/S376] 휩소주의 — 엔진판단 ↔ 지표분포 방향 엇갈림 AND 신뢰도 낮음
   //   distDir이 5단계이므로 binary로 압축해서 엇갈림 판정 (strongUp/up→up, strongDown/down→down)
   let whipBadge = '';
@@ -16897,7 +16908,7 @@ function _sxbHTML(){
         _cellSigBadge = `<span class="sxb-badge" style="color:var(--text3);background:var(--surface2);border:1px solid var(--border);cursor:pointer" onclick="event.stopPropagation();_sxbCellSigWhy&&_sxbCellSigWhy()">🧩 ${(typeof _cellName==='function'&&_cs.cell)?_cellName(_cs.cell):(_cs.lbl||'')} ${_wt} k${_mx.k}/${_mx.kStar}</span>`;
       }
     } }
-  const _dirBadges  = `${transBadge}${_transitionBadge}`;                         // 방향 판정 (좌)
+  const _dirBadges  = `${transBadge}${_regimeBadge}${_transitionBadge}`;                         // 방향 판정 (좌) [S1243] 세·장·전이 병렬
   const _warnBadges = `${_structRiskBadge}${_cellSigBadge}${whipBadge}${_dumpBadge}${_safetyBadge}${_mixBadge}${_mtfBadge}<span id="sxMacroSoonSlot">${_sxMacroBadgeHTML(_sxMacroEvents().find(e=>e.mode==='soon'))}</span><span id="sxMacroResultSlot">${_sxMacroBadgeHTML(_sxMacroEvents().find(e=>e.mode==='result'))}</span>`; // [S727] 구조위험 선두 · 경고·이벤트 (우)
   // [S1045] 변동성 안전 렌즈 승격 — ATR 기반 · 무조건부/매수신호 조건부 crashLift 모두에서 검증된 유일 안전 재료. 종합점수(미검증 집계)와 분리된 서술 헤드.
   const _volaSafe = (function(){
@@ -17090,6 +17101,15 @@ function _computeBoardInputs(stock, indicators, scores, scoreMom, tf){
       _boardStruct = Math.round(_advBI.trend.struct.pos*100);
   }
   let _boardDeltas = {}, _boardExtras = {};
+  // [S1243] 구조위치(칸×레짐) — 전광판 레짐 배지용. SSOT=SXExecCore.stockStateAt(S1217 예약 배선의 '전광판' 몫).
+  //   레짐 v3 임계값·소비처(레짐게이트/레짐별성과)가 일봉 선언이므로 일봉 TF에서만 계산 — 주/월봉은 null → 배지 공백 자기설명.
+  //   칸이름은 이미 헤더 타이틀(SSOT)이라 배지는 레짐만 표기(칸×레짐 조합 = 구조위치 완성).
+  try{
+    if(_analTF==='day' && typeof SXExecCore!=='undefined' && SXExecCore.stockStateAt){
+      const _ssRows = (stock && stock._lastAnalCandles) || null;
+      if(Array.isArray(_ssRows) && _ssRows.length>=20) _boardExtras.stockState = SXExecCore.stockStateAt(indicators, _ssRows, _ssRows.length-1);
+    }
+  }catch(_eSS){}
   try {
     // [S990] 5축 board delta 삭제(S989로 고아) — readyScore/entryScore/trendScore delta는 제거된 반등준비/반등전환/추세방향 push 전용이었음.
     //   _boardDeltas 객체는 남은 항목(추세신호·가격모멘텀·눌림신호·거래량 등)의 delta로 계속 사용됨.
@@ -17313,7 +17333,7 @@ function _computeDist5(stock, indicators, qs, scoreMom, btScore, tf){
 
 function _buildScoreBoard(scores, sv4, structPos, pbScore, D, verdict, lowConf, extras){
   extras = extras || {};
-  window._sxBoard = { verdict: verdict||null, trendLabel: (extras && extras.trendLabel) || null, lowConf: !!lowConf, lowConfReasons: (extras && extras._lowConfReasons) || [], dumpWarn: (extras && extras.dumpWarn) || null, mixWarn: (extras && extras.mixWarn) || null, groups: _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras), _structRisk: { lt: (sv4 && sv4.ltAlign) || 'off', maBull: !!(sv4 && sv4.maAlignBull) }, _cellSig: (sv4 && sv4.cellSig) || null }; // [S727] 구조 위험 배지용 [S982] trendLabel SSOT [S1110] 칸 사다리 신호(표시 전용)
+  window._sxBoard = { verdict: verdict||null, trendLabel: (extras && extras.trendLabel) || null, lowConf: !!lowConf, lowConfReasons: (extras && extras._lowConfReasons) || [], dumpWarn: (extras && extras.dumpWarn) || null, mixWarn: (extras && extras.mixWarn) || null, groups: _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras), _structRisk: { lt: (sv4 && sv4.ltAlign) || 'off', maBull: !!(sv4 && sv4.maAlignBull) }, _cellSig: (sv4 && sv4.cellSig) || null, _stockState: (extras && extras.stockState) || null }; // [S727] 구조 위험 배지용 [S982] trendLabel SSOT [S1110] 칸 사다리 신호(표시 전용) [S1243] 구조위치(칸×레짐)
   return `<div class="sxb" id="sxScoreBoard">${_sxbHTML()}</div>`;
 }
 
