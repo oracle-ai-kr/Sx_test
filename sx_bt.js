@@ -1661,6 +1661,20 @@ function btRenderBasicResult(stock, r){
     </div>
   </div>`;
   // [S544] 레짐별 성과 (현재 파라미터가 불장/상승장/횡보장/하락장에서 어떻게 변하는지)
+  // [S1232→S1233] 실행 서명 줄 — 카드 최하단에 넣어 스샷 프레임 밖으로 밀리던 것을 결과 그리드 직후
+  //   (레짐별 성과 위)로 이동. 자동/수동 경로·봉창(첫~끝)·진입원·문턱·슬리피지 + 진입 날짜 목록까지
+  //   한 화면에 잡히므로, 자동↔수동 불일치의 실범(봉창 차 vs 게이트/문턱 차)이 스샷 한 장으로 갈라진다.
+  try{
+    const _sg = r._sxSig;
+    if(_sg){
+      const _slipPm = Math.round((_sg.slip||0)*1000*10)/10;
+      html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0;line-height:1.55">실행 <b>${_sg.by}</b> · ${_sg.rows}봉(${_fmtDate(_sg.first)}~${_fmtDate(_sg.last)}) · 진입원 ${_sg.src} · b${_sg.buyTh}/s${_sg.sellTh} · tp${_sg.tp}/sl${_sg.sl} · slip${_slipPm}‰ · ${_sg.mode==='nextOpen'?'익일시가':'종가'}${r._sxReuseMiss?`<div style="color:#d97706;margin-top:3px">⚠ 자동결과 재사용 불가 → 재실행: ${r._sxReuseMiss}</div>`:''}</div>`;
+    } else {
+      html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0">실행 서명 없음 — S1232 이전 결과 또는 저장 복원본. 새로고침 후 재실행하면 서명이 붙는다.</div>`;
+    }
+    const _tl=(r.trades||[]).slice(0,8).map(t=>`${_fmtDate(t.entryDate)} ${(t.pnl||0)>=0?'+':''}${(t.pnl||0).toFixed(1)}`).join(' · ');
+    if(_tl) html += `<div style="font-size:9px;color:var(--text3);margin:2px 2px 0">진입 ${(r.trades||[]).length}건: ${_tl}</div>`;
+  }catch(_sgE){}
   html += _btRenderRegime(r._regimeBuckets);
   html += _btRenderSrcBreak(r._srcBreak, r._entrySrc, r.trades);   // [S1201] 진입원별 분해 [S1214] +청산사유
   html += _btRenderCellSrcGrid(r.trades);   // [S1210] 진입원×칸 분해(정찰 표면)
@@ -2067,14 +2081,6 @@ function btRenderBasicResult(stock, r){
       </div>
 `;
   }
-  // [S1232] 실행 서명 줄 — 이 카드가 자동/수동 어느 경로 결과인지 + 입력 전모. 불일치 시 사유(⚠) 표기.
-  try{
-    const _sg = r._sxSig;
-    if(_sg){
-      const _slipPm = Math.round((_sg.slip||0)*1000*10)/10;
-      html += `<div style="font-size:9px;color:var(--text3);margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);line-height:1.5">실행 <b>${_sg.by}</b> · ${_sg.rows}봉(${_fmtDate(_sg.first)}~${_fmtDate(_sg.last)}) · 진입원 ${_sg.src} · b${_sg.buyTh}/s${_sg.sellTh} · tp${_sg.tp}/sl${_sg.sl} · slip${_slipPm}‰ · ${_sg.mode==='nextOpen'?'익일시가':'종가'}${r._sxReuseMiss?`<div style="color:#d97706;margin-top:3px">⚠ 자동결과 재사용 불가 → 재실행: ${r._sxReuseMiss}</div>`:''}</div>`;
-    }
-  }catch(_sgE){}
   result.innerHTML = html;
   // S67: 누적 저장 UI 갱신
   _btHistUpdateUI(stock);
