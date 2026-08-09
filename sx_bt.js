@@ -1287,6 +1287,20 @@ function _btMakeSig(by, tf, rows, params, opts){
     src:_btSrcSigOf(opts), gg:((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false) };
 }
 if(typeof window!=='undefined') window._btMakeSig=_btMakeSig;
+// [S1239] _btResult 기록 통일 스탬프 — 기록자가 4곳(내장·엔진검증·수동·학습검증)인데 내장/학습검증이
+//   서명·Opts 없이 덮어써 "실행 서명 없음" 재발과 수동 재사용 오판(잔존 Opts로 무서명 결과 통과)이 났다.
+//   모든 기록은 이 헬퍼로 서명(_sxSig)+_btResultTF/Opts를 원자 동기 — 3자 입력·표기 단일화.
+function _btStampResult(stock, r, rows, tf, by, opts){
+  try{
+    if(!stock || !r || r.error) return r;
+    r.rowsLength = r.rowsLength || (rows ? rows.length : 0);
+    r._sxSig = _btMakeSig(by, tf, rows || [], {}, opts || {});
+    stock._btResultTF = tf;
+    stock._btResultOpts = { slippage:(opts&&opts.slippage)||0, entryMode:r._sxSig.mode, srcSig:r._sxSig.src, gapGuard:r._sxSig.gg };
+  }catch(_e){}
+  return r;
+}
+if(typeof window!=='undefined') window._btStampResult=_btStampResult;
 
 // ══ [S1201] 진입원 토글 — 시즌2와 정합(recipe>bullVol>v2 상호배타). 기본 3원 전부 ON. ══
 //   ★v2는 in-sample(SX_CELL_DATA.meta.caveat)이라 BT 성과가 오르는 건 검증이 아니라 재현.
