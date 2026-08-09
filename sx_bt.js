@@ -360,7 +360,7 @@ async function _runBtWithExtension(stock, tf, quiet){
       }
     }catch(_){}
 
-    const params = btGetParams();
+    const params = {};   // [S1237] 死파라미터 — 레시피-BT(S1018)는 읽지 않음(진입=votes·청산=코어고정)
     const opts = btGetOpts();
     const r = sxRunBtEngine(rows, _tf, params, opts);
 
@@ -1246,16 +1246,9 @@ async function _btFetchNaver(code, tf, count, vintage){
 
 // ── BT 파라미터 ──
 // S99-4: _analTF 기준 + _analMode 대표 프리셋 연동
-function btGetParams(tf){
-  // [S1232] tf 인자화 — 자동(엔진검증)은 분석 TF의 rows로 돌면서 문턱만 단일검증 탭 TF(_btTF)로 읽던 혼합 결함 봉합.
-  //   단일검증 탭 TF가 주·월에 머물러 있으면 자동 BT가 일봉 rows에 주봉 문턱을 적용 → 수동 재실행과 거래수 불일치(2vs4류) 실범 후보.
-  //   무인자 호출(기존 전 경로)은 동작 불변.
-  const th = _getEffectiveTh(tf || _btTF());
-  const ap = _loadAnalParams(); // _setAnalMode에서 이미 모드별 프리셋 저장됨
-  // [S563] 활성 슬롯 _mode를 params에 명시 동봉 → sxRunBtEngine 정배열 게이트가 대표 프리셋과 일관 적용.
-  //   (엔진이 슬롯을 직접 읽는 폴백도 있으나, 단일검증/교차검증 등 명시 전달 경로 안전성 확보)
-  return { buyTh:th.buyTh, sellTh:th.sellTh, tpMult:ap.tpMult||2.5, slMult:ap.slMult||1.5, _mode: ap._mode || null };
-}
+// [S1237c] btGetParams 철거 — 레시피-BT 일원화(S1018) 이후 반환값(buyTh/sellTh/tp/sl)을 읽는 소비처가
+//   전무해진 고아 함수(전 파일 호출 0 확인). _getEffectiveTh/_loadAnalParams는 스캐너·프리셋 실소비처가
+//   살아 있어 존치. 구버전 클래식-BT 파라미터 축의 마지막 잔재 제거 — 레거시 무보존.
 function btGetOpts(){
   const slip = parseFloat(document.getElementById('btOptSlip')?.value||'1')/1000;
   // [S422] 진입 시점은 전역 SXE._btEntryMode(조기청산 모달 라디오: 종가/시가)가 단일 출처.
@@ -1285,17 +1278,25 @@ if(typeof window!=='undefined') window._btSrcSigOf=_btSrcSigOf;
 // [S1232] 실행 서명 — 자동/수동 BT의 입력 전모(경로·봉창·진입원·문턱·슬리피지·진입시점)를 한 객체로.
 //   결과 카드 하단에 동일 포맷으로 표기해, 자동↔수동 결과가 다를 때 스샷만으로 실범 필드를 특정한다.
 function _btMakeSig(by, tf, rows, params, opts){
+  // [S1236] 바인딩 입력만 서명 — S1018 레시피-BT 일원화로 buyTh/sellTh/tpMult/slMult는 엔진이 한 줄도
+  //   안 읽는 死파라미터(트레이드 tp:null·sl:null 박제). 표기하면 살아있는 것처럼 오독됨(S1236 발단 질문).
+  //   대신 실바인딩인 갭가드(S423·익일시가 전용 진입스킵) 상태를 gg로 편입. 청산은 코어 고정(이중ATR 2/3+데드 유예10).
   const f=rows[0]||{}, l=rows[rows.length-1]||{};
   return { by:by, tf:tf, rows:rows.length, first:(f.date||f.t||'?'), last:(l.date||l.t||'?'),
     slip:(opts&&opts.slippage)||0, mode:((typeof SXE!=='undefined'&&SXE._btEntryMode)||'close'),
-    src:_btSrcSigOf(opts), buyTh:params.buyTh, sellTh:params.sellTh, tp:params.tpMult, sl:params.slMult };
+    src:_btSrcSigOf(opts), gg:((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false) };
 }
 if(typeof window!=='undefined') window._btMakeSig=_btMakeSig;
 
 // ══ [S1201] 진입원 토글 — 시즌2와 정합(recipe>bullVol>v2 상호배타). 기본 3원 전부 ON. ══
 //   ★v2는 in-sample(SX_CELL_DATA.meta.caveat)이라 BT 성과가 오르는 건 검증이 아니라 재현.
 //     끄고 켜며 "v2가 몇 건을 더 잡는가"를 보는 용도 — 결과 카드에 src별로 갈라 표기한다.
-const SX_BT_SRC_KEY='SX_BT_ENTRY_SRC_v1';
+// [S1237] 진입원 저장키 v1→v2 리셋 — 시즌2에 v2(어휘규칙) 정식 편입 반영. 구 키에 남은 실험 잔존 상태
+//   (레시피 단독 등)가 "기본 자동실행 ≠ 시즌2"의 뿌리였다. 레거시 무보존: 마이그레이션 없이 기본값
+//   { recipe·bullVol·v2 ON / maCross OFF / 출구 현행 }으로 재시작, 구 키는 즉시 제거.
+//   기존 저장 BT 결과는 srcSig 불일치 → S1235 stale 판정 → 진입 시 자동 재실행으로 자연 갱신.
+const SX_BT_SRC_KEY='SX_BT_ENTRY_SRC_v2';
+try{ if(typeof localStorage!=='undefined') localStorage.removeItem('SX_BT_ENTRY_SRC_v1'); }catch(_lgK){}
 function _btEntrySrc(){
   const d={ recipe:true, bullVol:true, v2:true, maCross:false, mGate:true, xMode:'off' };   // [S1210] maCross 기본 OFF [S1212] mGate 기본 ON [S1216] xMode: off(현행)|skip(불장·상승장 데드무시 S1215)|split(불장·상승장=데드만·나머지=ATR만)
   try{ const raw=localStorage.getItem(SX_BT_SRC_KEY); if(raw){ const o=JSON.parse(raw);
@@ -1375,7 +1376,7 @@ async function btRunBasic(){
     const _btTFVal = _btTF();
     const _targetCount = _btTargetBars(currentMarket, _btTFVal);
     const _curOpts = btGetOpts();
-    const _curParams = btGetParams();
+    // [S1237] _curParams 제거 — 死파라미터(레시피-BT 미사용). 재사용 판정은 S1236에서 이미 제외.
     // 재사용 가능 여부 판정 (분석탭 결과와 옵션 일치 확인)
     const _canReuse = stock._btResult
       && !stock._btResult.error
@@ -1385,16 +1386,20 @@ async function btRunBasic(){
       && Math.abs((stock._btResultOpts.slippage||0) - (_curOpts.slippage||0)) < 1e-9
       && stock._btResultOpts.entryMode === ((typeof SXE!=='undefined' && SXE._btEntryMode) || 'close')
       && stock._btResultOpts.srcSig === _btSrcSigOf(_curOpts)   // [S1213] 진입원(4칩+레짐게이트) 변경 시 재사용 금지
-      && stock._btResultParams
-      && stock._btResultParams.buyTh === _curParams.buyTh
-      && stock._btResultParams.sellTh === _curParams.sellTh
-      && Math.abs((stock._btResultParams.tpMult||0) - (_curParams.tpMult||0)) < 1e-9
-      && Math.abs((stock._btResultParams.slMult||0) - (_curParams.slMult||0)) < 1e-9;
+      // [S1236] buyTh/sellTh/tp/sl 비교 제거 — 레시피-BT(S1018)가 안 읽는 死파라미터라 슬롯만 바꿔도
+      //   무의미한 재실행을 유발하던 과잉 판정. 갭가드는 실바인딩(익일시가 진입스킵)이라 편입(과거 저장분은 통과).
+      && (stock._btResultOpts.gapGuard === undefined
+          || stock._btResultOpts.gapGuard === ((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false));
     // [S1232] 재사용 불가 사유 특정 — 어떤 필드가 어긋나 조용히 재실행되는지 드러낸다(자동↔수동 불일치 추적).
     //   전 필드 일치인데 결과가 달랐다면 rows 내용/전역 상태 차이 — 서명 줄의 봉창(first~last)으로 2차 판별.
     let _reuseMiss = null;
     if(!_canReuse && stock._btResult && !stock._btResult.error){
-      const _m=[]; const _po=stock._btResultOpts||{}, _pp=stock._btResultParams||{};
+      const _po=stock._btResultOpts;
+      if(!_po || !_po.srcSig){   // [S1236] _pp(死파라미터 메타) 요구 제거
+        _reuseMiss = '복원본에 실행 메타 없음(구버전 저장) → 현행 설정으로 재실행';
+        console.warn('[S1232] '+_reuseMiss);
+      } else {
+      const _m=[];
       if(stock._btResultTF !== _btTFVal) _m.push('TF '+stock._btResultTF+'→'+_btTFVal);
       if(stock._btResult.rowsLength !== _targetCount) _m.push('봉수 '+stock._btResult.rowsLength+'≠'+_targetCount);
       if(Math.abs((_po.slippage||0)-(_curOpts.slippage||0))>=1e-9) _m.push('slip '+_po.slippage+'→'+_curOpts.slippage);
@@ -1402,12 +1407,11 @@ async function btRunBasic(){
       if(_po.entryMode !== _em) _m.push('진입시점 '+_po.entryMode+'→'+_em);
       const _cs=_btSrcSigOf(_curOpts);
       if(_po.srcSig !== _cs) _m.push('진입원 '+_po.srcSig+'→'+_cs);
-      if(_pp.buyTh !== _curParams.buyTh) _m.push('buyTh '+_pp.buyTh+'→'+_curParams.buyTh);
-      if(_pp.sellTh !== _curParams.sellTh) _m.push('sellTh '+_pp.sellTh+'→'+_curParams.sellTh);
-      if(Math.abs((_pp.tpMult||0)-(_curParams.tpMult||0))>=1e-9) _m.push('tp '+_pp.tpMult+'→'+_curParams.tpMult);
-      if(Math.abs((_pp.slMult||0)-(_curParams.slMult||0))>=1e-9) _m.push('sl '+_pp.slMult+'→'+_curParams.slMult);
+      const _gg=((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false);   // [S1236] 死파라미터(b/s·tp/sl) 비교 삭제 → 실바인딩 갭가드로 대체
+      if(_po.gapGuard !== undefined && _po.gapGuard !== _gg) _m.push('갭가드 '+(_po.gapGuard?'ON':'OFF')+'→'+(_gg?'ON':'OFF'));
       _reuseMiss = _m.length?_m.join(' · '):'(재사용 판정 필드 전부 일치 — rows 내용/전역 상태 차이 의심)';
       console.warn('[S1232] 자동 BT 결과 재사용 불가 → 재실행: '+_reuseMiss);
+      }
     }
     if(_canReuse){
       progFill.style.width='100%'; progText.textContent=`분석탭 결과 재사용 (${_targetCount}봉, 거래 ${stock._btResult.totalTrades})`;
@@ -1472,7 +1476,7 @@ async function btRunBasic(){
     progFill.style.width='75%'; progText.textContent=`백테스트 실행 중... (${rows.length}봉)`;
     await _btSleep(50);
 
-    const params = btGetParams();
+    const params = {};   // [S1237] 死파라미터 — 레시피-BT(S1018)는 읽지 않음(진입=votes·청산=코어고정)
     const opts = btGetOpts();
 
     // S163-diag: btRunBasic(단일검증 탭)의 rows 진단 로그
@@ -1505,8 +1509,8 @@ async function btRunBasic(){
       stock._btResult = r; // S93: 인메모리 저장 — btHistAccumulate에서 참조
       // [S215] BT 실행 시 사용한 TF/옵션/파라미터 함께 저장 — 분석탭/단일검증 정합 판정용
       stock._btResultTF = _btTFVal;
-      stock._btResultOpts = { slippage: opts.slippage, entryMode: (typeof SXE!=='undefined' && SXE._btEntryMode) || 'close', srcSig: _btSrcSigOf(opts) };   // [S1213]
-      stock._btResultParams = { buyTh: params.buyTh, sellTh: params.sellTh, tpMult: params.tpMult, slMult: params.slMult };
+      stock._btResultOpts = { slippage: opts.slippage, entryMode: (typeof SXE!=='undefined' && SXE._btEntryMode) || 'close', srcSig: _btSrcSigOf(opts), gapGuard: ((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false) };   // [S1213][S1236 gg]
+      // [S1237] _btResultParams 저장 폐지 — 死파라미터 메타(레시피-BT 미사용·혼동 유발). 레거시 무보존.
 
       // ═══════════════════════════════════════════════════════════════
       // S120-2: 강건성 배지 — 200봉 BT 추가 계산 (단일검증 경로)
@@ -1673,7 +1677,7 @@ function btRenderBasicResult(stock, r){
     const _fd=(d)=>{ if(!d) return '?'; const m=String(d).match(/^(\d{4})-?(\d{2})-?(\d{2})/); return m?`${m[1].slice(2)}.${m[2]}.${m[3]}`:String(d); };
     if(_sg){
       const _slipPm = Math.round((_sg.slip||0)*1000*10)/10;
-      html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0;line-height:1.55">실행 <b>${_sg.by}</b> · ${_sg.rows}봉(${_fd(_sg.first)}~${_fd(_sg.last)}) · 진입원 ${_sg.src} · b${_sg.buyTh}/s${_sg.sellTh} · tp${_sg.tp}/sl${_sg.sl} · slip${_slipPm}‰ · ${_sg.mode==='nextOpen'?'익일시가':'종가'}${r._sxReuseMiss?`<div style="color:#d97706;margin-top:3px">⚠ 자동결과 재사용 불가 → 재실행: ${r._sxReuseMiss}</div>`:''}</div>`;
+      html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0;line-height:1.55">실행 <b>${_sg.by}</b> · ${_sg.rows}봉(${_fd(_sg.first)}~${_fd(_sg.last)}) · 진입원 ${_sg.src} · 청산 이중ATR2/3+데드(유예10)·코어고정 · slip${_slipPm}‰ · ${_sg.mode==='nextOpen'?'익일시가':'종가'}${_sg.gg!==undefined?(_sg.gg?' · 갭가드ON':' · 갭가드OFF'):''}${r._sxReuseMiss?`<div style="color:#d97706;margin-top:3px">⚠ 자동결과 재사용 불가 → 재실행: ${r._sxReuseMiss}</div>`:''}</div>`;
     } else {
       html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0">실행 서명 없음 — S1232 이전 결과 또는 저장 복원본. 새로고침 후 재실행하면 서명이 붙는다.</div>`;
     }
@@ -2212,7 +2216,7 @@ async function btRunWf(){
       return;
     }
 
-    const params = btGetParams();
+    const params = {};   // [S1237] 死파라미터 — 레시피-BT(S1018)는 읽지 않음(진입=votes·청산=코어고정)
     const opts = btGetOpts();
     const trainR = sxRunBtEngine(trainRows, _btTFVal, params, opts);
 
@@ -2481,7 +2485,7 @@ async function btRunDashboard(){
     // 워크포워드는 600봉 전체 필요 (캐시는 결과만 있으므로 새로 로드)
     const wfBt = await _runBtWithExtension(t, _tf, true);
     if(wfBt.ok && wfBt.rows && wfBt.rows.length >= 100){
-      const params = btGetParams();
+      const params = {};   // [S1237] 死파라미터 — 레시피-BT(S1018)는 읽지 않음
       const opts = btGetOpts();
       const splitIdx = Math.floor(wfBt.rows.length*0.7);
       const trainRows = wfBt.rows.slice(0, splitIdx);
