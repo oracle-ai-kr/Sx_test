@@ -1281,11 +1281,12 @@ if(typeof window!=='undefined') window._btSrcSigOf=_btSrcSigOf;
 function _btMakeSig(by, tf, rows, params, opts){
   // [S1236] 바인딩 입력만 서명 — S1018 레시피-BT 일원화로 buyTh/sellTh/tpMult/slMult는 엔진이 한 줄도
   //   안 읽는 死파라미터(트레이드 tp:null·sl:null 박제). 표기하면 살아있는 것처럼 오독됨(S1236 발단 질문).
-  //   대신 실바인딩인 갭가드(S423·익일시가 전용 진입스킵) 상태를 gg로 편입. 청산은 코어 고정(이중ATR 2/3+데드 유예10).
+  //   [S1242] gg(갭가드)도 철거 — S423 적용 로직은 S1018 전환 때 이미 소멸(死바인딩), S1236 편입은 오판.
+  //   청산은 코어 고정(이중ATR 2/3+데드 유예10).
   const f=rows[0]||{}, l=rows[rows.length-1]||{};
   return { by:by, tf:tf, rows:rows.length, first:(f.date||f.t||'?'), last:(l.date||l.t||'?'),
     slip:(opts&&opts.slippage)||0, mode:((typeof SXE!=='undefined'&&SXE._btEntryMode)||'close'),
-    src:_btSrcSigOf(opts), gg:((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false) };
+    src:_btSrcSigOf(opts) };
 }
 if(typeof window!=='undefined') window._btMakeSig=_btMakeSig;
 // [S1239] _btResult 기록 통일 스탬프 — 기록자가 4곳(내장·엔진검증·수동·학습검증)인데 내장/학습검증이
@@ -1297,7 +1298,7 @@ function _btStampResult(stock, r, rows, tf, by, opts){
     r.rowsLength = r.rowsLength || (rows ? rows.length : 0);
     r._sxSig = _btMakeSig(by, tf, rows || [], {}, opts || {});
     stock._btResultTF = tf;
-    stock._btResultOpts = { slippage:(opts&&opts.slippage)||0, entryMode:r._sxSig.mode, srcSig:r._sxSig.src, gapGuard:r._sxSig.gg };
+    stock._btResultOpts = { slippage:(opts&&opts.slippage)||0, entryMode:r._sxSig.mode, srcSig:r._sxSig.src };   // [S1242] gapGuard 필드 철거(死바인딩)
   }catch(_e){}
   return r;
 }
@@ -1400,11 +1401,11 @@ async function btRunBasic(){
       && stock._btResultOpts
       && Math.abs((stock._btResultOpts.slippage||0) - (_curOpts.slippage||0)) < 1e-9
       && stock._btResultOpts.entryMode === ((typeof SXE!=='undefined' && SXE._btEntryMode) || 'close')
-      && stock._btResultOpts.srcSig === _btSrcSigOf(_curOpts)   // [S1213] 진입원(4칩+레짐게이트) 변경 시 재사용 금지
+      && stock._btResultOpts.srcSig === _btSrcSigOf(_curOpts);   // [S1213] 진입원(4칩+레짐게이트) 변경 시 재사용 금지
       // [S1236] buyTh/sellTh/tp/sl 비교 제거 — 레시피-BT(S1018)가 안 읽는 死파라미터라 슬롯만 바꿔도
-      //   무의미한 재실행을 유발하던 과잉 판정. 갭가드는 실바인딩(익일시가 진입스킵)이라 편입(과거 저장분은 통과).
-      && (stock._btResultOpts.gapGuard === undefined
-          || stock._btResultOpts.gapGuard === ((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false));
+      //   무의미한 재실행을 유발하던 과잉 판정.
+      // [S1242] 갭가드 비교 철거 — S1236 '실바인딩' 전제가 오판(S423 적용 로직은 S1018 전환 때 구엔진과 소멸).
+      //   과거 저장분 _btResultOpts.gapGuard 잔존값은 비교 자체가 없어져 무시됨 — stale 오탐 소멸.
     // [S1232] 재사용 불가 사유 특정 — 어떤 필드가 어긋나 조용히 재실행되는지 드러낸다(자동↔수동 불일치 추적).
     //   전 필드 일치인데 결과가 달랐다면 rows 내용/전역 상태 차이 — 서명 줄의 봉창(first~last)으로 2차 판별.
     let _reuseMiss = null;
@@ -1422,8 +1423,7 @@ async function btRunBasic(){
       if(_po.entryMode !== _em) _m.push('진입시점 '+_po.entryMode+'→'+_em);
       const _cs=_btSrcSigOf(_curOpts);
       if(_po.srcSig !== _cs) _m.push('진입원 '+_po.srcSig+'→'+_cs);
-      const _gg=((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false);   // [S1236] 死파라미터(b/s·tp/sl) 비교 삭제 → 실바인딩 갭가드로 대체
-      if(_po.gapGuard !== undefined && _po.gapGuard !== _gg) _m.push('갭가드 '+(_po.gapGuard?'ON':'OFF')+'→'+(_gg?'ON':'OFF'));
+      // [S1242] 갭가드 불일치 항목 철거 — 비교 자체가 사라짐(_canReuse 동기).
       _reuseMiss = _m.length?_m.join(' · '):'(재사용 판정 필드 전부 일치 — rows 내용/전역 상태 차이 의심)';
       console.warn('[S1232] 자동 BT 결과 재사용 불가 → 재실행: '+_reuseMiss);
       }
@@ -1524,7 +1524,7 @@ async function btRunBasic(){
       stock._btResult = r; // S93: 인메모리 저장 — btHistAccumulate에서 참조
       // [S215] BT 실행 시 사용한 TF/옵션/파라미터 함께 저장 — 분석탭/단일검증 정합 판정용
       stock._btResultTF = _btTFVal;
-      stock._btResultOpts = { slippage: opts.slippage, entryMode: (typeof SXE!=='undefined' && SXE._btEntryMode) || 'close', srcSig: _btSrcSigOf(opts), gapGuard: ((typeof SXE!=='undefined'&&SXE._btGapGuard)!==false) };   // [S1213][S1236 gg]
+      stock._btResultOpts = { slippage: opts.slippage, entryMode: (typeof SXE!=='undefined' && SXE._btEntryMode) || 'close', srcSig: _btSrcSigOf(opts) };   // [S1213][S1242 gapGuard 철거]
       // [S1237] _btResultParams 저장 폐지 — 死파라미터 메타(레시피-BT 미사용·혼동 유발). 레거시 무보존.
 
       // ═══════════════════════════════════════════════════════════════
@@ -1692,7 +1692,7 @@ function btRenderBasicResult(stock, r){
     const _fd=(d)=>{ if(!d) return '?'; const m=String(d).match(/^(\d{4})-?(\d{2})-?(\d{2})/); return m?`${m[1].slice(2)}.${m[2]}.${m[3]}`:String(d); };
     if(_sg){
       const _slipPm = Math.round((_sg.slip||0)*1000*10)/10;
-      html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0;line-height:1.55">실행 <b>${_sg.by}</b> · ${_sg.rows}봉(${_fd(_sg.first)}~${_fd(_sg.last)}) · 진입원 ${_sg.src} · 청산 이중ATR2/3+데드(유예10)·코어고정 · slip${_slipPm}‰ · ${_sg.mode==='nextOpen'?'익일시가':'종가'}${_sg.gg!==undefined?(_sg.gg?' · 갭가드ON':' · 갭가드OFF'):''}${r._sxReuseMiss?`<div style="color:#d97706;margin-top:3px">⚠ 자동결과 재사용 불가 → 재실행: ${r._sxReuseMiss}</div>`:''}</div>`;
+      html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0;line-height:1.55">실행 <b>${_sg.by}</b> · ${_sg.rows}봉(${_fd(_sg.first)}~${_fd(_sg.last)}) · 진입원 ${_sg.src} · 청산 이중ATR2/3+데드(유예10)·코어고정 · slip${_slipPm}‰ · ${_sg.mode==='nextOpen'?'익일시가':'종가'}${r._sxReuseMiss?`<div style="color:#d97706;margin-top:3px">⚠ 자동결과 재사용 불가 → 재실행: ${r._sxReuseMiss}</div>`:''}</div>`;
     } else {
       html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0">실행 서명 없음 — S1232 이전 결과 또는 저장 복원본. 새로고침 후 재실행하면 서명이 붙는다.</div>`;
     }
