@@ -1022,12 +1022,17 @@ async function runAnalysis(stock){
       // [S221] applyRegimeAdjust:true 명시 — 단일검증/스캐너와 동일 정책으로 정합 회복.
       //   〔이력〕 이전: opts 미전달 → analysis_engine L3949 엄격비교(=== true)로 false 떨어짐 →
       //          레짐 ON 시 분석탭만 보정 미적용 → 단일검증 결과와 불일치.
-      const btR = SXE.runBtEngine(rawRows, _analTF, _btParams, { applyRegimeAdjust: true });
+      // [S1239] 내장 BT도 단일검증 UI 옵션(진입원 토글·슬리피지) 동일 적용 — 3자(내장/자동/수동) 입력 단일화.
+      //   기존: 내장은 엔진 기본 3원 고정이라 토글 실험 시 수동과 결과 분열 위험.
+      const _iOpts = (typeof btGetOpts === 'function') ? btGetOpts() : {};
+      const btR = SXE.runBtEngine(rawRows, _analTF, _btParams, Object.assign({ applyRegimeAdjust: true }, _iOpts));
       if(btR && !btR.error){
         try{ btR._regimeBuckets = (typeof _btRegimeBreakdown==='function')?_btRegimeBreakdown(rawRows, btR.trades):null; }catch(_rg){} // [S546] 레짐 버킷 (재진입 유지)
         _analBtResult = btR;
         _analBtScore = calcBtScore(btR, stock);
         stock._btResult = btR;
+        // [S1239] 풀 스탬프 — 내장 BT가 무서명 결과로 서명본을 덮어(재렌더 재귀마다) "서명 없음" 재발의 뿌리.
+        if(typeof _btStampResult === 'function') _btStampResult(stock, btR, rawRows, _analTF, '자동', _iOpts);
         stock._btScore = _analBtScore;
         // S95: 현재 상태 판정
         const _curPrice = btCandles[btCandles.length-1]?.close || stock.price || 0;
@@ -13773,7 +13778,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1238';   // [S1238] 자동 저장 entryMode 유령 불일치 봉합(전역 기준 실기록)   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1239';   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15634,6 +15639,7 @@ async function _loadMoreCandles(stock){
       const _tr = _btR.totalTrades ?? 0;
       console.log(`[S108-9aExt] ✅ BT 재실행 성공: 거래 ${_tr}회 (점수: ${calcBtScore(_btR, stock)}) — ${_merged.length}봉 기준`);
       stock._btResult = _btR;
+      if(typeof _btStampResult === 'function') _btStampResult(stock, _btR, _rawMerged, _analTF, '자동', (typeof btGetOpts==='function')?btGetOpts():null);   // [S1239] 풀 스탬프
       stock._btScore = calcBtScore(_btR, stock);
       const _curPrice = _merged[_merged.length-1]?.close || stock.price || 0;
       stock._btState = typeof btGetCurrentState === 'function' ? btGetCurrentState(_btR, _curPrice) : null;
