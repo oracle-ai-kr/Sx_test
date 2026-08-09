@@ -606,10 +606,10 @@ async function fetchCandles(code, count, _retry) {
         open: q.open?.[i] || 0, high: q.high?.[i] || 0, low: q.low?.[i] || 0,
         close: q.close?.[i] || 0, volume: q.volume?.[i] || 0,
       })).filter(_sxIsValidCandle).slice(-count);
-    } else if (currentMarket === 'kr' && _kisEnabled) {
-      // KIS 캔들
-      const isMinute = /^\d+m$/.test(currentTF);
-      if (isMinute) {
+    } else if (currentMarket === 'kr' && _kisEnabled && /^\d+m$/.test(currentTF)) {
+      // [S1230-P6] KIS = 분봉 전용(메인 fetchCandles와 동일 역할분리 — 미러 정합). 일·주·월은 아래 네이버
+      //   단일소스: 워커 스캔과 분석탭의 캔들 소스가 KIS 토글과 무관하게 항상 동일(S371 s._indicators 공유 정합).
+      //   (구 KIS 일봉 페이지네이션 블록(S654 8페이지)은 완전 삭제 — 레거시 무보존 정책)
         const token = await _getKisToken();
         if (!token) return null;
         const qs = new URLSearchParams({ FID_COND_MRKT_DIV_CODE: 'J', FID_INPUT_ISCD: code, FID_INPUT_HOUR_1: (typeof _sxSessionKisHour === 'function' ? _sxSessionKisHour('kr') : '153000'), FID_ETC_CLS_CODE: '', FID_PW_DATA_INCU_YN: 'Y' }).toString();
@@ -624,48 +624,6 @@ async function fetchCandles(code, count, _retry) {
           date: (b.stck_bsop_date || '').replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') + ' ' + (b.stck_cntg_hour || '').replace(/(\d{2})(\d{2})(\d{2})/, '$1:$2'),
           open: Number(b.stck_oprc || 0), high: Number(b.stck_hgpr || 0), low: Number(b.stck_lwpr || 0), close: Number(b.stck_prpr || b.stck_clpr || 0), volume: Number(b.cntg_vol || b.acml_vol || 0),
         })).filter(_sxIsValidCandle).reverse().slice(-count);
-      } else {
-        const periodMap = { 'day': 'D', 'week': 'W', 'month': 'M' };
-        const period = periodMap[currentTF] || 'D';
-        const token = await _getKisToken();
-        if (!token) return null;
-        const KIS_PAGE = 100;
-        // [S654] 5→8 — 정밀모드 700봉 요청 시 Math.ceil(700/100)=7페이지 필요. 기존 5캡이면 500봉에서 끊겨 700 요청이 무의미해짐.
-        const maxPages = Math.min(Math.ceil(count / KIS_PAGE), 8);
-        let allBars = [];
-        let curEnd = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        for (let pg = 0; pg < maxPages; pg++) {
-          const endD = curEnd.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
-          const sd = new Date(endD);
-          const daySpan = { 'day': Math.ceil(KIS_PAGE * 1.8), 'week': Math.ceil(KIS_PAGE * 10), 'month': Math.ceil(KIS_PAGE * 35) }[currentTF] || Math.ceil(KIS_PAGE * 1.8);
-          sd.setDate(sd.getDate() - daySpan);
-          const startStr = sd.toISOString().slice(0, 10).replace(/-/g, '');
-          const qs = new URLSearchParams({ FID_COND_MRKT_DIV_CODE: 'J', FID_INPUT_ISCD: code, FID_INPUT_DATE_1: startStr, FID_INPUT_DATE_2: curEnd, FID_PERIOD_DIV_CODE: period, FID_ORG_ADJ_PRC: '0' }).toString();
-          const res = await _fetchWithTimeout(`${WORKER_BASE}/kis/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice?${qs}`, {
-            headers: { 'authorization': `Bearer ${await _getKisToken()}`, 'appkey': _kisConfig.appKey, 'appsecret': _kisConfig.appSecret, 'tr_id': 'FHKST03010100', 'Content-Type': 'application/json; charset=utf-8' }
-          });
-          if (!res.ok) break;
-          const data = await res.json();
-          const bars = data?.output2;
-          if (!bars || !bars.length) break;
-          const mapped = bars.map(b => ({
-            date: (b.stck_bsop_date || '').replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'),
-            open: Number(b.stck_oprc || 0), high: Number(b.stck_hgpr || 0), low: Number(b.stck_lwpr || 0), close: Number(b.stck_clpr || 0), volume: Number(b.acml_vol || 0), foreignExhaustion: 0,
-          })).filter(_sxIsValidCandle);
-          allBars = mapped.concat(allBars);
-          if (bars.length < KIS_PAGE) break;
-          const oldest = bars[bars.length - 1]?.stck_bsop_date;
-          if (!oldest) break;
-          const od = new Date(oldest.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
-          od.setDate(od.getDate() - 1);
-          curEnd = od.toISOString().slice(0, 10).replace(/-/g, '');
-        }
-        // [FIX] KIS output2는 최신→과거 내림차순 → 중복 제거 후 시간 순으로 정렬
-        const seen = new Set();
-        raw = allBars.filter(b => { if (seen.has(b.date)) return false; seen.add(b.date); return true; })
-                     .sort((a, b) => a.date.localeCompare(b.date))
-                     .slice(-count);
-      }
     } else {
       // 네이버 sise
       const tfMap = { '5m': 'minute5', '15m': 'minute15', '30m': 'minute30', '60m': 'minute60', 'day': 'day', 'week': 'week', 'month': 'month' };
@@ -2480,7 +2438,7 @@ async function startScan(config) {
     //   트래픽: kr(oracle)·us 2배 payload / coin은 S655 페이지네이션 2호출(+120ms). KIS ON kr은 기존 500 유지(이미 상위).
     const _recipeDeep = (currentTF === 'day') && (typeof self !== 'undefined' && self.SX_RECIPE_REBOUND !== false);
     const _scCount = _needPrecision
-      ? ((currentMarket === 'kr' && _kisEnabled) ? 700 : 600)
+      ? 600   // [S1230-P6] KIS 700 폐지 — 전 경로 600 정합(캔들 소스 네이버 단일화 · _btTargetBars 동일)
       : (_recipeDeep
           ? ((currentMarket === 'kr' && _kisEnabled) ? 500 : 400)
           : ((currentMarket === 'kr' && _kisEnabled) ? 500 : 200));
