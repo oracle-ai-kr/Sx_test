@@ -5883,7 +5883,12 @@ function _predScoreRun(mkt, onProg, opt){
       if(ci>=codes.length) return Promise.resolve(R);
       var code=codes[ci++];
       try{ onProg && onProg({ i:ci, n:codes.length, code:code, scored:R.scored }); }catch(_){}
-      return Promise.resolve(fetchCandles(code, 600, 'day')).catch(function(){ return null; }).then(function(rows){
+      // [S1230-P4] fetchCandles(600) → fetchRows600 — 카드·배지와 세션 캐시 공유(같은 종목 재fetch 0).
+      //   채점은 라이브 확정봉이 필요하므로 스냅모드 중엔 기존 경로 유지(냉동본의 비가역 원장 기록 방지).
+      var _r6p = (window.SXCandleBT && SXCandleBT.fetchRows600 && !(SXCandleBT.snapMode && SXCandleBT.snapMode()))
+        ? SXCandleBT.fetchRows600(currentMarket, 'day', code)
+        : fetchCandles(code, 600, 'day');
+      return Promise.resolve(_r6p).catch(function(){ return null; }).then(function(rows){
         if(!rows||!rows.length){ R.fail+=byCode[code].length; R.why['캔들 없음']=(R.why['캔들 없음']||0)+byCode[code].length; return; }
         // [S1166] ★지평 끝 봉 확정 보장 — 마지막 봉을 **항상** 버린다.
         //   구멍: formed(S1143·S1152)는 **기준봉**이 픽 당시 확정이었나만 잰다. **지평 끝 봉**은
@@ -13720,7 +13725,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1220';   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1230';   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -19735,7 +19740,11 @@ async function _fetchMultiTfBackground(stock){
   if(!stock) return;
   const mkt = currentMarket || 'kr';
   const tfs = (typeof ANAL_TF_MAP !== 'undefined' ? ANAL_TF_MAP[mkt] : null) || [{k:'day',l:'일봉'}];
-  const count = (mkt==='kr' && window._kisEnabled) ? 500 : 200;
+  // [S1230-P4] 주·월봉을 BT 목표(_btTargetBars=400)와 정합 — 기존 200봉 캐시가 프로브에 걸리면
+  //   주·월 BT가 floor 미달로 우회 재fetch하던 이중로딩(M4) 차단. 분봉은 현행 유지(코인 업비트
+  //   페이지 수 급증 방지 — 분봉 600 정합은 실사용 확인 후 별도 판단).
+  const _mtfCount = (k)=> (k==='week'||k==='month') ? ((typeof _btTargetBars==='function')?_btTargetBars(mkt,k):400)
+                                                   : ((mkt==='kr' && window._kisEnabled) ? 500 : 200);
 
   // 기본 TF는 runAnalysis에서 처리하므로 제외
   const otherTfs = tfs.filter(t => t.k !== _analTF && !(mkt==='kr' && t.k==='60m' && !window._kisEnabled));
@@ -19751,7 +19760,7 @@ async function _fetchMultiTfBackground(stock){
       const existing = _analTFCache[t.k];
       if(existing && Date.now() - existing.timestamp < 14400000) return;
 
-      const candles = await fetchCandles(stock.code, count, t.k);
+      const candles = await fetchCandles(stock.code, _mtfCount(t.k), t.k);
       if(!candles || candles.length < 20) return;
 
       const indicators = calcIndicators(candles, t.k);
