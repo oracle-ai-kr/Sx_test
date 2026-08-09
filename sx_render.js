@@ -502,7 +502,7 @@ var openAnalysis = function(idx){
   stock._engineVerifyOpen = false;
   stock._3stageOpen = true;
   // [S218 fix1] 종목 전환 시 사이드 이펙트 동기화 플래그 리셋
-  //   - runAnalysis는 _runEngineVerify/_loadMoreCandles 등에서 재호출되므로 가드 플래그 필요
+  //   - runAnalysis는 _runEngineVerify 등에서 재호출되므로 가드 플래그 필요 [S1247] _loadMoreCandles 철거로 문구 갱신
   //   - 종목 전환 시(openAnalysis 진입)는 새 종목으로 다시 동기화 필요 → false로 리셋
   //   - runAnalysis 재호출 시는 같은 종목이므로 true 유지 → 무한 루프 방지
   stock._sideEffectsSynced = false;
@@ -745,9 +745,8 @@ async function runAnalysis(stock){
   let _analCandles = null; // S67: BT 연동용 캔들 보존
   if(!indicators){
     try{
-      // S108 Phase 3-B-9a-ext: 이미 확장된 캔들(stock._lastAnalCandles)이 있으면 재사용
-      //   _loadMoreCandles에서 runAnalysis 재호출 시 200봉 재fetch되어 확장 데이터가 날아가는
-      //   문제 방지. _analCount보다 많은 봉을 이미 보유한 경우만 재사용.
+      // 이미 확보된 캔들(stock._lastAnalCandles)이 _analCount보다 많으면 재사용 — 재fetch 낭비 방지.
+      //   [S1247] 원출처(S108 수동확장) 철거 — 재사용 가드 자체는 재fetch·TF전환 경로에서 여전히 유효라 유지.
       //   (_analCount = 200 기본, KIS 모드 시 500 — 그보다 많은 400/600봉은 수동/자동 확장 결과)
       // [S228] 재사용 캔들도 무결성 재검증 — _lastAnalCandles에 비정상 봉이 박혀있을 수 있음
       //   증상: SK하이닉스/삼성전기/현대차 등 마지막 봉 {open:0, low:0, high/close:정상}으로 캐시됨
@@ -1042,30 +1041,8 @@ async function runAnalysis(stock){
         //   (진단 결과 14종목 14/14 정합 실패 → 점수 기반 폐기)
         //   _btAction은 _svVerdict 생성 후(971줄 근처)에 C 매핑으로 설정
 
-        // S107 Phase 3-B-9a: 데이터 부족 자동 확장 (Reactive Loading)
-        //   S108 Phase 3-B-9a-ext: 확장 단계 플래그로 전환 (bool → 0/1/2 stage)
-        //     stage 0: 스캐너 기본 200봉
-        //     stage 1: 자동 확장 완료 400봉 (이 블록에서 설정)
-        //     stage 2: 수동 확장 완료 600봉 (? 버튼 클릭, _loadMoreCandles에서 설정)
-        //   감지 조건: 현재 세션 BT 거래수가 BT_MIN_TRADES(10회) 미만
-        //   확장 대상: 분석탭 진입한 해당 종목만 (스캐너는 기존 200봉 유지)
-        //   확장 크기: +200봉 (총 400봉, Upbit 하드 제한 고려)
-        //   시장 지원: coin (Upbit to) / kr (Naver 날짜 조정) / us (S114: Yahoo range=2y로 이미 400봉+ 확보)
-        const _btTradesNow = btR.totalTrades ?? 0;
-        const _extMkt = stock._mkt || stock.market || currentMarket;
-        // S114: 미국 시장 포함. 미국은 sx_screener.html fetchCandles에서 range=2y(일봉)/10y(주봉)/max(월봉)로 이미 충분한 봉수 확보
-        const _extSupported = (_extMkt === 'coin' || _extMkt === 'kr' || _extMkt === 'us');
-        // S108: stage 플래그 하위 호환 — 기존 bool true면 stage 1로 간주
-        const _curStage = stock._analCandlesExtendedStage || (stock._analCandlesExtended ? 1 : 0);
-        console.log(`[S114 DBG] 확장 감지 — trades=${_btTradesNow}, stage=${_curStage}, market=${_extMkt}, supported=${_extSupported}, fetchFn=${typeof fetchCandlesExtended}, rowsLen=${rawRows.length}`);
-        // S114: 조건 변경 — 기존 "거래수 < 10" 조건 제거, 무조건 400봉 기본화
-        //   원칙: 분석탭 진입 시 항상 400봉 기준 BT 실행 → 거래수 충분히 확보
-        // [S168 600봉 통일] 미국 시장 분기 제거 — 한국/코인과 동일한 fetchCandlesExtended 경로 사용
-        //   미국도 이제 200봉씩 분할 호출 (period1/period2) → 600봉 확장 가능
-        // [S1207] S114 자동확장(+200 후 runAnalysis 재귀) 폐기 — 위 _analCount가 처음부터 목표를 받는다.
-        //   재귀는 화면을 두 번 더 그리고 fetch를 두 번 더 냈다. 되살리지 않는다.
-        stock._analCandlesExtendedStage = rawRows.length>=700?3:(rawRows.length>=600?2:(rawRows.length>=400?1:0));
-        stock._analCandlesExtended = rawRows.length>=400;
+        // [S1247] S107/S108 확장 stage 시스템 철거 — 소비처가 死코드(_loadMoreCandles)와 진단 표시뿐이었음.
+        //   S1207이 자동확장(+200 재귀)을 폐기하며 stage는 기록만 남던 유물. 목표 미달 경고(아래)는 유지.
         if(rawRows.length < 400){
           console.warn(`[S1207] 목표 미달 ${rawRows.length}봉 — fetchCandles가 목표를 못 채웠다(종목 이력 부족 또는 API 부분응답).`);
         }
@@ -1161,7 +1138,7 @@ async function runAnalysis(stock){
     const _mktLocal = stock._mkt || stock.market || (typeof currentMarket !== 'undefined' ? currentMarket : 'kr');
     // [S168 600봉 통일] 모든 시장 동일 기준
     //   한국/코인/미국 = 600봉 (일봉) / 400봉 (주월봉)
-    //   미국도 이제 fetchCandlesExtended가 period1/period2 분할 호출을 지원하므로
+    //   [S1247] 구서술 폐기(fetchCandlesExtended 철거) — 아래 로직은 현행 단발 fetch 기준으로 해석
     //   다른 시장과 동일하게 자동 600봉 확장 가능 (이전 S119 fix1의 미국 skip 분기 제거)
     // [S218] sx_bt.js의 _btTargetBars 헬퍼 활용 — KIS ON 시 700봉 (분석탭/BT 정합)
     const _targetBars = (typeof _btTargetBars === 'function')
@@ -13801,7 +13778,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1246';   // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1247';   // [S1247] 확장 방식 최종 철거: 死코드 _loadMoreCandles(호출처 0)+stage 플래그 시스템+fetchCandlesExtended 본체·진단 참조 소멸, 진단 오호출 fetchCandles 교정 — S1205 원칙(확장 폐기→단발) 마무리     // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15570,239 +15547,10 @@ async function _runEngineVerify(stock){
 window._runEngineVerify = _runEngineVerify;
 
 
-// S108 Phase 3-B-9a-ext: 수동 데이터 확장 (? 버튼 클릭 트리거)
-//   현재 stage 기준 +200봉 로드 → 기존 데이터와 병합 → BT 재실행 → UI 재렌더
-//   stage 전이:
-//     0 (200봉) → 클릭 불가 (자동으로 stage 1로 전환되었어야 함)
-//     1 (400봉) → 2 (600봉) — 대부분의 케이스
-//     2 (600봉) → 호출되지 않음 (버튼 자체가 표시 안 됨)
-//
-//   흐름:
-//     1. stage 플래그 선점 (중복 호출 방지) + 로딩 UX 표시
-//     2. 현재 _analCandles의 가장 오래된 봉 날짜로 fetchCandlesExtended 호출
-//     3. 새 200봉을 기존 데이터 앞에 병합 ([새 200 + 기존 400] = 600)
-//     4. BT 재실행 → 결과 교체
-//     5. runAnalysis 재호출 (UI 완전 재렌더)
-//
-//   실패 시: stage 플래그 원복, 기존 결과 유지, 경고 토스트
-async function _loadMoreCandles(stock){
-  if(!stock){
-    console.warn('[S108-9aExt] stock 없음');
-    return;
-  }
-  const _curStage = stock._analCandlesExtendedStage || (stock._analCandlesExtended ? 1 : 0);
-  if(_curStage >= 2){
-    console.log('[S108-9aExt] 이미 최대 확장 (600봉) — 건너뜀');
-    return;
-  }
-  const _mkt = stock._mkt || stock.market || currentMarket;
-  if(_mkt !== 'coin' && _mkt !== 'kr'){
-    console.warn(`[S108-9aExt] 시장 미지원: ${_mkt}`);
-    return;
-  }
-  if(typeof fetchCandlesExtended !== 'function'){
-    console.warn('[S108-9aExt] fetchCandlesExtended 미로드');
-    return;
-  }
-
-  // 현재 _analCandles 확보 — runAnalysis에서 확장된 상태면 400봉, 아니면 200봉
-  //   _analCandles는 runAnalysis 안의 지역 변수라 stock._btResult.trades나 indicators로 접근
-  //   간단히 stock._lastAnalCandles에 저장되어 있다면 사용, 없으면 재분석 트리거
-  const _existingCandles = stock._lastAnalCandles || null;
-  if(!_existingCandles || _existingCandles.length === 0){
-    console.warn('[S108-9aExt] 기존 캔들 없음 — runAnalysis 재실행으로 대체');
-    stock._analCandlesExtendedStage = 2; // 재실행 시 자동 2단계 로드되도록
-    if(typeof runAnalysis === 'function') runAnalysis(stock);
-    return;
-  }
-
-  console.log(`[S108-9aExt] ★ 수동 확장 시작 (stage ${_curStage} → ${_curStage+1}): 현재 ${_existingCandles.length}봉`);
-
-  // 로딩 UX — "?" 버튼이 있던 배너 자리에 로딩 표시
-  const _btBanner = document.querySelector('.bt-banner');
-  if(_btBanner){
-    const _loading = document.createElement('div');
-    _loading.id = 'sxLoadMoreOverlay';
-    _loading.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;border-radius:inherit;z-index:10;color:#fff;font-size:12px;font-weight:700';
-    _loading.innerHTML = '📈 +200봉 로드 중... (2초 대기)';
-    _btBanner.style.position = 'relative';
-    _btBanner.appendChild(_loading);
-  }
-
-  // stage 플래그 선점 (중복 클릭 방지)
-  stock._analCandlesExtendedStage = _curStage + 1;
-
-  try{
-    const _oldestDate = _existingCandles[0].date;
-    console.log(`[S108-9aExt] oldestDate=${_oldestDate}, 확장 API 호출 중...`);
-    const _extra = await fetchCandlesExtended(stock.code, _analTF, _oldestDate, 200);
-    console.log(`[S108-9aExt] 확장 응답: ${_extra ? _extra.length + '봉' : 'null'}`);
-
-    if(!_extra || _extra.length === 0){
-      // 실패 — stage 원복
-      console.warn('[S108-9aExt] ⚠ 확장 실패 (null/빈배열) — stage 원복');
-      stock._analCandlesExtendedStage = _curStage;
-      if(document.getElementById('sxLoadMoreOverlay')) document.getElementById('sxLoadMoreOverlay').remove();
-      // [S224] alert → toast 교체 (모바일 UX)
-      toast('⚠ 데이터 확장 실패 — 잠시 후 다시 시도해주세요.');
-      return;
-    }
-
-    // 병합 [새 200봉, 기존 400봉 또는 200봉] = 오래된 순 정렬 유지
-    const _merged = [..._extra, ..._existingCandles];
-    console.log(`[S108-9aExt] 병합 완료: ${_extra.length} + ${_existingCandles.length} = ${_merged.length}봉`);
-
-    // BT 재실행 (확장 데이터로)
-    const _btParams = {};   // [S1237] 死파라미터 — 레시피-BT 미사용
-    const _rawMerged = _merged.map(c => ({date:c.date,open:c.open,high:c.high,low:c.low,close:c.close,volume:c.volume}));
-    // [S221] applyRegimeAdjust:true 명시 — 단일검증/스캐너와 동일 정책으로 정합 회복.
-    const _btR = SXE.runBtEngine(_rawMerged, _analTF, _btParams, { applyRegimeAdjust: true });
-    if(_btR && !_btR.error){
-      try{ _btR._regimeBuckets = (typeof _btRegimeBreakdown==='function')?_btRegimeBreakdown(_rawMerged, _btR.trades):null; }catch(_rg){} // [S546] 레짐 버킷
-      const _tr = _btR.totalTrades ?? 0;
-      console.log(`[S108-9aExt] ✅ BT 재실행 성공: 거래 ${_tr}회 (점수: ${calcBtScore(_btR, stock)}) — ${_merged.length}봉 기준`);
-      stock._btResult = _btR;
-      if(typeof _btStampResult === 'function') _btStampResult(stock, _btR, _rawMerged, _analTF, '자동', (typeof btGetOpts==='function')?btGetOpts():null);   // [S1239] 풀 스탬프
-      stock._btScore = calcBtScore(_btR, stock);
-      const _curPrice = _merged[_merged.length-1]?.close || stock.price || 0;
-      stock._btState = typeof btGetCurrentState === 'function' ? btGetCurrentState(_btR, _curPrice) : null;
-      // 다음 재분석에서 확장된 캔들 사용하도록 보존
-      stock._lastAnalCandles = _merged;
-    } else {
-      console.warn(`[S108-9aExt] BT 재실행 실패:`, _btR?.error);
-      stock._analCandlesExtendedStage = _curStage;
-      if(document.getElementById('sxLoadMoreOverlay')) document.getElementById('sxLoadMoreOverlay').remove();
-      // [S224] alert → toast 교체
-      toast('⚠ BT 재실행 실패: ' + (_btR?.error || '알 수 없는 오류'));
-      return;
-    }
-
-    // S108 Phase 3-B-9a-ext fix2: 재렌더 전 펼침 상태 캡처 (매수 근거 상세, 매매 근거 상세 등)
-    //   문제: runAnalysis 재호출 → DOM 재생성 → 펼쳐진 아코디언이 전부 닫힘
-    //   해결: 현재 펼쳐진 토글의 라벨 텍스트를 캡처 → 재렌더 후 같은 라벨 찾아서 다시 펼침
-    //   ID는 매번 랜덤 생성되므로(btGuide_xxx), 안정적인 라벨 텍스트 매칭 사용
-    //
-    //   3차 fix3: "엔진판단 근거" / "진입 검토" 버튼은 itp-toggle-inline 아님 (style.display 토글)
-    //     → onclick 속성에서 getElementById('xxx') 참조 타겟을 찾아서 style.display === 'block' 확인
-    //     → 버튼 라벨(예: "엔진판단 근거 ▶ 매수 근거 65점") 기반으로 라벨 키 생성
-    //
-    //   4차 fix4: 스크롤 위치 보존 — 재렌더 후 페이지 맨 위로 튀는 문제 해결
-    //     analBody는 스크롤 컨테이너 (overlay 내부), 따라서 scrollTop 캡처
-    //     window.scrollY도 함께 캡처 (폴백)
-    const _openLabels = [];      // .itp-toggle-inline (.show 클래스 토글)
-    const _foldOpenLabels = [];  // .anal-fold (.fold-open 클래스 토글)
-    const _displayOpenKeys = []; // style.display 인라인 토글 (엔진판단 근거, 진입 검토 등)
-    let _scrollTop = 0;
-    let _windowScrollY = 0;
-    try{
-      // ① 인라인 토글 (.itp-toggle-inline .show)
-      document.querySelectorAll('#analBody .itp-toggle-inline').forEach(toggle => {
-        const target = toggle.nextElementSibling;
-        if(target && target.classList.contains('show')){
-          const label = toggle.textContent.trim().replace(/^[▶▼]\s*/, '');
-          if(label) _openLabels.push(label);
-        }
-      });      // ② anal-fold 섹션 (.fold-open)
-      document.querySelectorAll('#analBody .anal-fold.fold-open').forEach(fold => {
-        const hdr = fold.querySelector('.anal-fold-hdr');
-        if(hdr){
-          const label = hdr.textContent.trim().replace(/^[▶▼]\s*/, '');
-          if(label) _foldOpenLabels.push(label);
-        }
-      });
-      // ③ style.display 토글 (엔진판단 근거, 진입 검토 등)
-      //    onclick 속성에 getElementById('xxx')가 있는 클릭 가능한 요소 순회
-      //    → 해당 타겟이 display:block 상태면 캡처
-      document.querySelectorAll('#analBody [onclick]').forEach(btn => {
-        const oc = btn.getAttribute('onclick') || '';
-        const m = oc.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if(!m) return;
-        const target = document.getElementById(m[1]);
-        if(!target) return;
-        // style.display === 'block' 이거나 style.display 없고 실제 visible
-        const disp = target.style.display;
-        if(disp === 'block'){
-          // 버튼 라벨 추출 — "엔진판단 근거 ▶ 매수 근거 65점" 같은 텍스트에서
-          //   "엔진판단 근거" 같은 앞부분만 추출 (변동하는 점수 부분 제외)
-          const fullLabel = btn.textContent.trim();
-          // 변동 값 포함 라벨은 첫 단어 2~3개만 키로 사용 (안정성)
-          const shortKey = fullLabel.split(/[▶▼\s]+/).slice(0, 2).join(' ').trim();
-          if(shortKey) _displayOpenKeys.push(shortKey);
-        }
-      });
-      // ④ 스크롤 위치 캡처 (analBody 내부 + window 양쪽)
-      //    analBody는 overlay 내부의 스크롤 컨테이너 — 실제 스크롤이 여기서 발생
-      const _analBody = document.getElementById('analBody');
-      if(_analBody) _scrollTop = _analBody.scrollTop || 0;
-      _windowScrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      console.log(`[S108-9aExt] 펼침 상태 캡처: inline=${_openLabels.length}, fold=${_foldOpenLabels.length}, display=${_displayOpenKeys.length} [${_displayOpenKeys.join(', ')}], scroll=${_scrollTop}/${_windowScrollY}`);
-    }catch(capErr){ console.warn('[S108-9aExt] 상태 캡처 에러:', capErr); }
-
-    // runAnalysis 재호출 — UI 완전 재렌더 (stock._lastAnalCandles 재사용으로 600봉 유지)
-    if(typeof runAnalysis === 'function'){
-      await runAnalysis(stock);
-
-      // S108 Phase 3-B-9a-ext fix2: 재렌더 후 펼침 상태 복원
-      //   DOM 업데이트가 완료되도록 약간의 지연 후 실행
-      (window._sxTrackedTimeout || setTimeout)(() => {
-        try{
-          let restoredInline = 0, restoredFold = 0, restoredDisp = 0;
-          // ① 인라인 토글 복원
-          document.querySelectorAll('#analBody .itp-toggle-inline').forEach(toggle => {
-            const label = toggle.textContent.trim().replace(/^[▶▼]\s*/, '');
-            if(_openLabels.includes(label)){
-              const target = toggle.nextElementSibling;
-              if(target && !target.classList.contains('show')){
-                target.classList.add('show');
-                const arrow = toggle.querySelector('.sb-arrow');
-                if(arrow) arrow.textContent = '▼';
-                restoredInline++;
-              }
-            }
-          });
-          // ② fold-open 복원
-          document.querySelectorAll('#analBody .anal-fold').forEach(fold => {
-            const hdr = fold.querySelector('.anal-fold-hdr');
-            if(!hdr) return;
-            const label = hdr.textContent.trim().replace(/^[▶▼]\s*/, '');
-            if(_foldOpenLabels.includes(label) && !fold.classList.contains('fold-open')){
-              fold.classList.add('fold-open');
-              restoredFold++;
-            }
-          });
-          // ③ style.display 토글 복원
-          document.querySelectorAll('#analBody [onclick]').forEach(btn => {
-            const oc = btn.getAttribute('onclick') || '';
-            const m = oc.match(/getElementById\(['"]([^'"]+)['"]\)/);
-            if(!m) return;
-            const target = document.getElementById(m[1]);
-            if(!target) return;
-            const fullLabel = btn.textContent.trim();
-            const shortKey = fullLabel.split(/[▶▼\s]+/).slice(0, 2).join(' ').trim();
-            if(_displayOpenKeys.includes(shortKey) && target.style.display !== 'block'){
-              target.style.display = 'block';
-              restoredDisp++;
-            }
-          });
-          console.log(`[S108-9aExt] 펼침 상태 복원: inline=${restoredInline}/${_openLabels.length}, fold=${restoredFold}/${_foldOpenLabels.length}, display=${restoredDisp}/${_displayOpenKeys.length}`);
-          // S108 fix4: 스크롤 위치 복원 (펼침 상태 복원 후 레이아웃 확정된 상태에서 실행)
-          //   analBody는 overlay 내부 스크롤 컨테이너 — scrollTop 복원
-          //   window.scrollY도 폴백으로 복원
-          const _analBody2 = document.getElementById('analBody');
-          if(_analBody2 && _scrollTop > 0) _analBody2.scrollTop = _scrollTop;
-          if(_windowScrollY > 0) window.scrollTo(0, _windowScrollY);
-          console.log(`[S108-9aExt] 스크롤 복원: analBody=${_scrollTop}, window=${_windowScrollY}`);
-        }catch(restErr){ console.warn('[S108-9aExt] 상태 복원 에러:', restErr); }
-      }, 100);
-    }
-  }catch(e){
-    console.error('[S108-9aExt] 예외:', e);
-    stock._analCandlesExtendedStage = _curStage; // 원복
-    if(document.getElementById('sxLoadMoreOverlay')) document.getElementById('sxLoadMoreOverlay').remove();
-    // [S224] alert → toast 교체
-    toast('⚠ 예외 발생: ' + (e.message || e));
-  }
-}
+// [S1247] S108-9aExt _loadMoreCandles(수동 +200봉 확장) 전면 철거 — 실호출처 0(참조 전부 주석)인 死코드였음.
+//   '? 버튼'은 과거 제거됐고 함수만 잔존. 확장 방식(200→400→600 stage·앞병합·BT 재실행)은 S1205/S1207에서
+//   이미 폐기 원칙 확정 — 현재는 runAnalysis가 처음부터 _btTargetBars 목표로 fetch(+재fetch)한다.
+//   함께 철거: stage 플래그(_analCandlesExtended/Stage) 세팅·리셋·진단 표시, fetchCandlesExtended 본체(screener).
 
 
 // ══════════════════════════════════════════════════════════════
@@ -19832,8 +19580,7 @@ function _setAnalTF(tf){
   //   해결: 캔들/확장단계/BT/모멘텀/판정 메타를 모두 리셋하고 runAnalysis로 600봉 fresh 재분석.
   //         → 첫 진입과 100% 동일 경로 (사용자 제안). 모든 TF·시장 공통 적용.
   stock._lastAnalCandles = null;          // 이전 TF 캔들 무효화 → 새 TF로 fresh fetch
-  stock._analCandlesExtendedStage = 0;    // 확장 단계 리셋 → 600봉 재확장 작동
-  stock._analCandlesExtended = false;     // 하위 호환 플래그 리셋
+  // [S1247] stage 리셋 철거 — 확장 stage 시스템 소멸(위 유물 정리와 동기)
   stock._scoreMomentum = null;            // 이전 TF 모멘텀 잔류 방지
   stock._svVerdict = null;
   document.getElementById('analBody').innerHTML = `<div class="anal-loading"><div class="spinner"></div><br>TF 전환 중...</div>`;
