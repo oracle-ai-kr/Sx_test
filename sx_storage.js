@@ -110,6 +110,12 @@
     { p:'SX_PHASE_FOLD_',    c:'SX_APP_'        },  // Phase 폴드 UI
     { p:'SX_SMART_',         c:'SX_APP_'        },  // 스마트 설정
     { p:'SX_DATA_SCHEMA',    c:'SX_APP_'        },  // 스키마 버전
+    // ── [S1252] 로컬키 전수 재조사(리터럴 49·접두 26): 전체 초기화(ALL_PREFIXES) 밖 키 0 확인 — S1044 접두 규율 유지 중.
+    //    아래 4건만 진단 '기타'행 낙오라 분류 추가(전부 설정성 — CACHE_PREFIXES 불변이 정답).
+    { p:'SX_STRAT_',         c:'SX_TREND_'      },  // 단기매매 조합 블록(S1116·⛩️🚪 포함) — 카드 소속
+    { p:'SX_CELLBK_',        c:'SX_TREND_'      },  // 칸 바구니(S1120) — 카드 소속
+    { p:'SX_XMAT_',          c:'SX_TREND_'      },  // 카드 추가재료 편집(S1095대)
+    { p:'SX_PRED_',          c:'SX_APP_'        },  // 예측원장 UI 토글(SX_PRED_BLIND 등)
   ];
 
   // 펼침 상태 보관 (모달 다시 그릴 때 유지)
