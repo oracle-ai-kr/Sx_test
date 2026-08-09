@@ -893,6 +893,33 @@ async function runAnalysis(stock){
     }
   } catch(_){}
   const scores = calcEnhancedScores(stock, indicators);
+  // [S1231-obs] 렌더 관측(동작 불변) — "진입 1초 후 껌뻑+값 변경" 보고의 실범 확정용 계측.
+  //   〔구조〕 진입 렌더#1 → +0.5s S119 엔진검증(BT) → runAnalysis 전체 재렌더#2 (1204행) — 껌뻑의 정체.
+  //   〔값 변경 후보〕 ①BT 축 채움('—'→값) ②공시 가중치(DART fetch ~1s 도착) 전/후 scores 재계산 차
+  //   ③섹터 비동기(S393/395) ④4축(qs)은 두 렌더 모두 _scanResult 재사용이라 코드상 불변이어야 함.
+  //   직전 렌더와 비교해 어떤 축이 실제로 변하는지 + bt/공시가중 플래그 상관을 콘솔 1줄로 남긴다.
+  try{
+    const _obsQ = qs ? [qs.score, qs.readyScore, qs.entryScore, qs.trendScore].map(function(v){ return v==null?null:Math.round(v); }) : null;
+    const _obsS = {}; Object.keys(scores||{}).forEach(function(k){ if(typeof scores[k]==='number') _obsS[k]=Math.round(scores[k]); });
+    const _obs = { seq:(stock._renderSeq=(stock._renderSeq||0)+1), t:new Date().toLocaleTimeString('ko-KR'),
+      code:stock.code, qsSrc:(stock._scanResult && stock._scanResult._scanTF===_analTF)?'scan':'calc',
+      q4:_obsQ, sc:_obsS, rows:(indicators&&indicators._advanced&&indicators._advanced.rows)?indicators._advanced.rows.length:0,
+      bt:!!stock._btResult, dw:!!stock._disclosureItp };
+    (window._sxRenderObs=window._sxRenderObs||[]).push(_obs); if(window._sxRenderObs.length>20) window._sxRenderObs.shift();
+    const _prev = stock._lastRenderObs;
+    if(_prev && _prev.code===stock.code){
+      const _diffs=[];
+      if(JSON.stringify(_prev.q4)!==JSON.stringify(_obs.q4)) _diffs.push('4축 '+JSON.stringify(_prev.q4)+'→'+JSON.stringify(_obs.q4));
+      Object.keys(_obs.sc).forEach(function(k){ if(_prev.sc && _prev.sc[k]!==_obs.sc[k]) _diffs.push(k+' '+_prev.sc[k]+'→'+_obs.sc[k]); });
+      if(_prev.rows!==_obs.rows) _diffs.push('rows '+_prev.rows+'→'+_obs.rows);
+      if(_diffs.length){
+        console.warn('[S1231-obs] 재렌더#'+_obs.seq+' 값 변경: '+_diffs.join(' · ')+' — bt '+_prev.bt+'→'+_obs.bt+' · 공시가중 '+_prev.dw+'→'+_obs.dw+' · qsSrc '+_obs.qsSrc);
+      } else {
+        console.log('[S1231-obs] 재렌더#'+_obs.seq+' 값 동일 — 껌뻑은 전체 재렌더 재페인트(1204행)뿐. bt '+_prev.bt+'→'+_obs.bt);
+      }
+    }
+    stock._lastRenderObs = _obs;
+  }catch(_eObs){}
 
   // [S393→S360] 코인 거시지표 — 워커 /coin/macro 한 번 호출로 시장심리·도미넌스·김프 동시 갱신
   if(currentMarket === 'coin'){
@@ -13725,7 +13752,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1230';   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1231';   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -19743,8 +19770,9 @@ async function _fetchMultiTfBackground(stock){
   // [S1230-P4] 주·월봉을 BT 목표(_btTargetBars=400)와 정합 — 기존 200봉 캐시가 프로브에 걸리면
   //   주·월 BT가 floor 미달로 우회 재fetch하던 이중로딩(M4) 차단. 분봉은 현행 유지(코인 업비트
   //   페이지 수 급증 방지 — 분봉 600 정합은 실사용 확인 후 별도 판단).
-  const _mtfCount = (k)=> (k==='week'||k==='month') ? ((typeof _btTargetBars==='function')?_btTargetBars(mkt,k):400)
-                                                   : ((mkt==='kr' && window._kisEnabled) ? 500 : 200);
+  const _mtfCount = (k)=> (k==='week')  ? ((typeof _btTargetBars==='function')?_btTargetBars(mkt,k):400)
+                        : (k==='month') ? 200   // [S1231] 월 400 원복 — 네이버 월봉 공급 실측: 400 요청 시 35봉 회귀(주봉 400은 정상). BT 월봉 target 400도 같은 벽 후보 — 별건 기록.
+                                        : ((mkt==='kr' && window._kisEnabled) ? 500 : 200);
 
   // 기본 TF는 runAnalysis에서 처리하므로 제외
   const otherTfs = tfs.filter(t => t.k !== _analTF && !(mkt==='kr' && t.k==='60m' && !window._kisEnabled));
