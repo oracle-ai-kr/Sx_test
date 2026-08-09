@@ -90,10 +90,7 @@
     if(!arr || !arr.length || arr.length<2) return null;
     return _num(arr[arr.length-2]);
   }
-  function _lastOf(arr){
-    if(!arr || !arr.length) return null;
-    return _num(arr[arr.length-1]);
-  }
+  // [S1249] _lastOf 철거 — 참조 0 死코드(소비처가 인라인 접근으로 대체).
   // 거래량 SMA (volMaGc용) — rows 직접
   function _volSma(rows, p, ix){
     if(!rows || ix < p-1) return null;
