@@ -52,7 +52,7 @@
   var _rows600Dbg  = { retry:0, rescued:0, stuck:0, list:[] };   // 관측용 — 재시도/길어진/2회차미달 + [S1230] net(네트워크 체인)·dedup(합류)·primed(주입)
   var _rows600Pend = {};    // [S1230-P1] 'key' → 진행중 promise. 동시 호출 합류(인플라이트 dedup)
   var _rows600Ts   = {};    // [S1230-P2] 'key' → 확정 시각(ms). peek 신선도 판정용(스냅 주입분은 ts 없음 = peek 제외)
-  var _rows600Fresh = {};   // [S1248] 'key' → 당일 재검 완료 날짜(YYYYMMDD). 끝봉<오늘인데 시장이 아직 안 준 경우(장전·휴장) 당일 재시도 중단.
+  var _rows600Fresh = {};   // [S1248→S1253] 'key' → 마지막 재검 시각(ms). 당일 1회 마킹은 장전 시도가 그날 몫을 소진해 장중 갱신을 막던 결함 — 30분 쿨다운으로 교정(휴장일 비용=카드 재방문 시 30분당 1회).
   function _kstToday(){ var t=new Date(Date.now()+9*3600000); return String(t.getUTCFullYear())+String(t.getUTCMonth()+1).padStart(2,'0')+String(t.getUTCDate()).padStart(2,'0'); }
   function _r600LastD(rows){ try{ var L=rows[rows.length-1]; return String((L&&(L.date||L.t))||'').replace(/[^0-9]/g,'').slice(0,8); }catch(_e){ return ''; } }
   // [S1248] stale 판정 — 확정 캐시의 끝봉이 KST 오늘보다 과거면 당일봉 재확정 대상. '세션 확정본 불변(S1080)'의
@@ -64,7 +64,7 @@
     var d=_r600LastD(rows); if(!d) return false;
     var today=_kstToday();
     if(d>=today) return false;
-    return _rows600Fresh[key]!==today;
+    return !(_rows600Fresh[key] && (Date.now()-_rows600Fresh[key] < 1800000));   // [S1253] 30분 쿨다운
   }
   // [S1160] ★계수만으로는 원인을 못 가른다. "미달 2건"이 상장 짧은 종목인지 버그인지 구분하려면
   //   **어느 종목이 몇 봉 받았는가**가 필요하다. 삼성전자 412/600 = 버그 · 작년 상장 380/600 = 정상.
@@ -122,7 +122,7 @@
           _rows600Dbg.refreshed=(_rows600Dbg.refreshed||0)+1;
           return _nf;
         }
-        _rows600Fresh[key]=_kstToday();
+        _rows600Fresh[key]=Date.now();   // [S1253] 쿨다운 기점
         _rows600Dbg.staleKept=(_rows600Dbg.staleKept||0)+1;
       }
       return _rows600Cache[key];
