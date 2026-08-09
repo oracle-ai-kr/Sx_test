@@ -5018,7 +5018,7 @@ async function _startScanLegacy(){
             if(!_scanCandles || _scanCandles.length === 0) throw new Error('no candles available');
             const rawRows = _scanCandles.map(c=>({date:c.date,open:c.open,high:c.high,low:c.low,close:c.close,volume:c.volume}));
             if(rawRows.length >= 60 && typeof SXE!=='undefined' && SXE.runBtEngine){
-              const btResult = SXE.runBtEngine(rawRows, currentTF, btGetParams());
+              const btResult = SXE.runBtEngine(rawRows, currentTF, {});   // [S1237] 死파라미터 — 레시피-BT 미사용
               if(btResult && !btResult.error){
                 s._btResult = btResult;
                 s._btScore = calcBtScore(btResult);
