@@ -689,17 +689,15 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .sxb-head{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
 .sxb-head:active{background:var(--surface2)}
 .sxb-head-info{flex:1;min-width:0}
-.sxb-head-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-.sxb-head-main{display:flex;align-items:center;gap:12px}
-.sxb-head-txt{flex:1;min-width:0}
+/* [S1254] 헤드 2단 재조립 — 좌/우열 분산 클래스(left/main/txt/dir/right) 철거, 배지 밴드로 통합 */
+.sxb-badge-band{display:flex;flex-wrap:wrap;gap:5px 4px;margin-top:8px;align-items:center}
 .sxb-head-tone{font-size:15px;font-weight:800;letter-spacing:-.3px}
 .sxb-head-sub{font-size:11px;color:var(--text3);margin-top:3px;font-weight:600;display:flex;flex-wrap:wrap;align-items:center;gap:3px 4px}
 .sxb-tri{font-size:9px;font-weight:900;margin-left:1px;line-height:1}
 .sxb-badge{font-size:10px;font-weight:800;padding:1px 7px;border-radius:9px;letter-spacing:-.2px;white-space:nowrap}
 .sxb-head-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
-.sxb-head-dir{display:flex;flex-wrap:wrap;gap:4px}
-.sxb-head-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;max-width:44%;margin-top:22px} /* [S600] 한 줄 내림 — 중립(톤) 줄 옆은 비워 시각 정돈 */
-.sxb-arrow{font-size:10px;color:var(--accent);transition:transform .2s;flex-shrink:0;align-self:center}
+/* [S1254] sxb-head-right 철거(동상) */ /* [S600] 한 줄 내림 — 중립(톤) 줄 옆은 비워 시각 정돈 */
+.sxb-arrow{font-size:10px;color:var(--accent);transition:transform .2s;flex-shrink:0;align-self:flex-start;margin-top:5px}   /* [S1254] 카드 세로 성장 대응 — 상단 고정 */
 .sxb.sxb-open .sxb-arrow{transform:rotate(90deg)}
 .sxb-mini{display:flex;justify-content:space-around;gap:4px;padding:2px 8px 12px;border-top:1px solid var(--border)}
 .sxb.sxb-open .sxb-mini{display:none}
