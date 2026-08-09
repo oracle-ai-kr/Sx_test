@@ -226,6 +226,22 @@ const SX_CONDITIONS = [
       ],source:'calc_candle'},
     ]},
   ]},
+  // [S1243] 구조위치 — 3×3 칸(cellOfAt)·레짐 v3(regime5At) 상태 필터. SSOT=SXExecCore.stockStateAt(S1217 예약 배선).
+  //   평가: 마지막 봉(현재)의 상태 '단일 판정' — 최근 N봉 윈도우 비적용(상태 서술이지 이벤트가 아님). 슬라이드 진입 전
+  //   선행 AND 게이트로 동작(OR그룹에 담겨도 동일 — sx_scan_worker 게이트 주석 참조). 판정 불가(null)=탈락(보수).
+  //   옵션 id=동결 칸 키('|'→'_' 치환)·레짐 키 원형. 이름은 STATE_VOCAB 라벨 미러 — exec_core 변경 시 동기(S1243).
+  {id:'struct_pos',name:'구조위치',phase:'p2',groups:[
+    {id:'sp_state',name:'구조위치',conditions:[
+      {id:'struct_cell',name:'3×3 칸',type:'multi_check',options:[
+        {id:'bull_bull',name:'추가상승'},{id:'bull_bear',name:'기술적반등'},{id:'bull_mixed',name:'상승세전환'},
+        {id:'bear_bull',name:'되돌림'},{id:'bear_bear',name:'추가하락'},{id:'bear_mixed',name:'하락세전환'},
+        {id:'mixed_bull',name:'눌림목'},{id:'mixed_bear',name:'바닥확인'},{id:'mixed_mixed',name:'추세중립'},
+      ],source:'calc_candle',desc:'3×3 SSOT 칸(단기×장기 60/120/200) 현재 위치 — 복수 선택=OR. 분석탭 헤더 칸이름과 동일 판정(cellOfAt·데이터 세대 추종). 장기축 웜업(200봉) 미달 종목은 판정 불가로 탈락'},
+      {id:'struct_regime',name:'레짐 (시장국면 v3)',type:'multi_check',options:[
+        {id:'bull',name:'불장'},{id:'up',name:'상승장'},{id:'side',name:'횡보장'},{id:'down',name:'하락장'},{id:'crash',name:'폭락장'},
+      ],source:'calc_candle',desc:'레짐 v3(S1219): 골격 20vs200 ±1.5% + 동역학(기울기·ATR·이격) 5국면 — 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 임계값은 일봉 선언값'},
+    ]},
+  ]},
   {id:'market_env',name:'시장환경',phase:'p2',groups:[
     {id:'env_state',name:'시장 상태',conditions:[
       {id:'mkt_env_state',name:'시장 환경',type:'select',options:['설정안함','강세 포함 (mild_bull+bull)','강세 (bull)','약세강세 (mild_bull)','중립 (neutral)','약세약세 (mild_bear)','약세 (bear)','약세 포함 (mild_bear+bear)'],default:'설정안함',source:'oracle_index',desc:'KOSPI/KOSDAQ 종합 - 강세장만 매수, 약세장 회피용 (2개 국내 지수 평균 등락률로 판정)'},
@@ -414,6 +430,22 @@ const COIN_CONDITIONS = [
   //     - mkt_env_state desc: 'KOSPI/KOSDAQ 종합' → 'BTC 등락률 기준' (수정됨)
   //     - mkt_env_nasdaq_chg, mkt_env_sp500_chg 제거 (코인에서 무의미)
   //     - mkt_env_btc_chg 신규 추가 (워커 L844에 처리 코드는 이미 존재했으나 UI 정의가 누락이었음)
+  // [S1243] 구조위치 — 3×3 칸(cellOfAt)·레짐 v3(regime5At) 상태 필터. SSOT=SXExecCore.stockStateAt(S1217 예약 배선).
+  //   평가: 마지막 봉(현재)의 상태 '단일 판정' — 최근 N봉 윈도우 비적용(상태 서술이지 이벤트가 아님). 슬라이드 진입 전
+  //   선행 AND 게이트로 동작(OR그룹에 담겨도 동일 — sx_scan_worker 게이트 주석 참조). 판정 불가(null)=탈락(보수).
+  //   옵션 id=동결 칸 키('|'→'_' 치환)·레짐 키 원형. 이름은 STATE_VOCAB 라벨 미러 — exec_core 변경 시 동기(S1243).
+  {id:'struct_pos',name:'구조위치',phase:'p2',groups:[
+    {id:'sp_state',name:'구조위치',conditions:[
+      {id:'struct_cell',name:'3×3 칸',type:'multi_check',options:[
+        {id:'bull_bull',name:'추가상승'},{id:'bull_bear',name:'기술적반등'},{id:'bull_mixed',name:'상승세전환'},
+        {id:'bear_bull',name:'되돌림'},{id:'bear_bear',name:'추가하락'},{id:'bear_mixed',name:'하락세전환'},
+        {id:'mixed_bull',name:'눌림목'},{id:'mixed_bear',name:'바닥확인'},{id:'mixed_mixed',name:'추세중립'},
+      ],source:'calc_candle',desc:'3×3 SSOT 칸(단기×장기 60/120/200) 현재 위치 — 복수 선택=OR. 분석탭 헤더 칸이름과 동일 판정(cellOfAt·데이터 세대 추종). 장기축 웜업(200봉) 미달 종목은 판정 불가로 탈락'},
+      {id:'struct_regime',name:'레짐 (시장국면 v3)',type:'multi_check',options:[
+        {id:'bull',name:'불장'},{id:'up',name:'상승장'},{id:'side',name:'횡보장'},{id:'down',name:'하락장'},{id:'crash',name:'폭락장'},
+      ],source:'calc_candle',desc:'레짐 v3(S1219): 골격 20vs200 ±1.5% + 동역학(기울기·ATR·이격) 5국면 — 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 임계값은 일봉 선언값'},
+    ]},
+  ]},
   {id:'market_env',name:'시장환경',phase:'p2',groups:[
     {id:'env_state',name:'시장 상태',conditions:[
       {id:'mkt_env_state',name:'시장 환경',type:'select',options:['설정안함','강세 포함 (mild_bull+bull)','강세 (bull)','약세강세 (mild_bull)','중립 (neutral)','약세약세 (mild_bear)','약세 (bear)','약세 포함 (mild_bear+bear)'],default:'설정안함',source:'oracle_index',desc:'BTC 등락률 기준 - 강세장만 매수, 약세장 회피용 (코인 시장은 BTC가 흐름 주도)'},
@@ -594,6 +626,22 @@ const US_CONDITIONS = [
       {id:'candle_transition',name:'캔들 전이 신호',type:'multi_check',options:[
         {id:'trans_bull',name:'양봉 전이 유망'},{id:'trans_bear',name:'음봉 전이 유망'},
       ],source:'calc_candle'},
+    ]},
+  ]},
+  // [S1243] 구조위치 — 3×3 칸(cellOfAt)·레짐 v3(regime5At) 상태 필터. SSOT=SXExecCore.stockStateAt(S1217 예약 배선).
+  //   평가: 마지막 봉(현재)의 상태 '단일 판정' — 최근 N봉 윈도우 비적용(상태 서술이지 이벤트가 아님). 슬라이드 진입 전
+  //   선행 AND 게이트로 동작(OR그룹에 담겨도 동일 — sx_scan_worker 게이트 주석 참조). 판정 불가(null)=탈락(보수).
+  //   옵션 id=동결 칸 키('|'→'_' 치환)·레짐 키 원형. 이름은 STATE_VOCAB 라벨 미러 — exec_core 변경 시 동기(S1243).
+  {id:'struct_pos',name:'구조위치',phase:'p2',groups:[
+    {id:'sp_state',name:'구조위치',conditions:[
+      {id:'struct_cell',name:'3×3 칸',type:'multi_check',options:[
+        {id:'bull_bull',name:'추가상승'},{id:'bull_bear',name:'기술적반등'},{id:'bull_mixed',name:'상승세전환'},
+        {id:'bear_bull',name:'되돌림'},{id:'bear_bear',name:'추가하락'},{id:'bear_mixed',name:'하락세전환'},
+        {id:'mixed_bull',name:'눌림목'},{id:'mixed_bear',name:'바닥확인'},{id:'mixed_mixed',name:'추세중립'},
+      ],source:'calc_candle',desc:'3×3 SSOT 칸(단기×장기 60/120/200) 현재 위치 — 복수 선택=OR. 분석탭 헤더 칸이름과 동일 판정(cellOfAt·데이터 세대 추종). 장기축 웜업(200봉) 미달 종목은 판정 불가로 탈락'},
+      {id:'struct_regime',name:'레짐 (시장국면 v3)',type:'multi_check',options:[
+        {id:'bull',name:'불장'},{id:'up',name:'상승장'},{id:'side',name:'횡보장'},{id:'down',name:'하락장'},{id:'crash',name:'폭락장'},
+      ],source:'calc_candle',desc:'레짐 v3(S1219): 골격 20vs200 ±1.5% + 동역학(기울기·ATR·이격) 5국면 — 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 임계값은 일봉 선언값'},
     ]},
   ]},
   {id:'market_env',name:'시장환경',phase:'p2',groups:[
