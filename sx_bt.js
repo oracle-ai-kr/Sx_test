@@ -1246,8 +1246,11 @@ async function _btFetchNaver(code, tf, count, vintage){
 
 // ── BT 파라미터 ──
 // S99-4: _analTF 기준 + _analMode 대표 프리셋 연동
-function btGetParams(){
-  const th = _getEffectiveTh(_btTF());
+function btGetParams(tf){
+  // [S1232] tf 인자화 — 자동(엔진검증)은 분석 TF의 rows로 돌면서 문턱만 단일검증 탭 TF(_btTF)로 읽던 혼합 결함 봉합.
+  //   단일검증 탭 TF가 주·월에 머물러 있으면 자동 BT가 일봉 rows에 주봉 문턱을 적용 → 수동 재실행과 거래수 불일치(2vs4류) 실범 후보.
+  //   무인자 호출(기존 전 경로)은 동작 불변.
+  const th = _getEffectiveTh(tf || _btTF());
   const ap = _loadAnalParams(); // _setAnalMode에서 이미 모드별 프리셋 저장됨
   // [S563] 활성 슬롯 _mode를 params에 명시 동봉 → sxRunBtEngine 정배열 게이트가 대표 프리셋과 일관 적용.
   //   (엔진이 슬롯을 직접 읽는 폴백도 있으나, 단일검증/교차검증 등 명시 전달 경로 안전성 확보)
@@ -1279,6 +1282,15 @@ function _btSrcSigOf(opts){
   return [d.recipe!==false?1:0, d.bullVol!==false?1:0, d.v2!==false?1:0, m?1:0, rg, xg].join('|');
 }
 if(typeof window!=='undefined') window._btSrcSigOf=_btSrcSigOf;
+// [S1232] 실행 서명 — 자동/수동 BT의 입력 전모(경로·봉창·진입원·문턱·슬리피지·진입시점)를 한 객체로.
+//   결과 카드 하단에 동일 포맷으로 표기해, 자동↔수동 결과가 다를 때 스샷만으로 실범 필드를 특정한다.
+function _btMakeSig(by, tf, rows, params, opts){
+  const f=rows[0]||{}, l=rows[rows.length-1]||{};
+  return { by:by, tf:tf, rows:rows.length, first:(f.date||f.t||'?'), last:(l.date||l.t||'?'),
+    slip:(opts&&opts.slippage)||0, mode:((typeof SXE!=='undefined'&&SXE._btEntryMode)||'close'),
+    src:_btSrcSigOf(opts), buyTh:params.buyTh, sellTh:params.sellTh, tp:params.tpMult, sl:params.slMult };
+}
+if(typeof window!=='undefined') window._btMakeSig=_btMakeSig;
 
 // ══ [S1201] 진입원 토글 — 시즌2와 정합(recipe>bullVol>v2 상호배타). 기본 3원 전부 ON. ══
 //   ★v2는 in-sample(SX_CELL_DATA.meta.caveat)이라 BT 성과가 오르는 건 검증이 아니라 재현.
@@ -1378,6 +1390,25 @@ async function btRunBasic(){
       && stock._btResultParams.sellTh === _curParams.sellTh
       && Math.abs((stock._btResultParams.tpMult||0) - (_curParams.tpMult||0)) < 1e-9
       && Math.abs((stock._btResultParams.slMult||0) - (_curParams.slMult||0)) < 1e-9;
+    // [S1232] 재사용 불가 사유 특정 — 어떤 필드가 어긋나 조용히 재실행되는지 드러낸다(자동↔수동 불일치 추적).
+    //   전 필드 일치인데 결과가 달랐다면 rows 내용/전역 상태 차이 — 서명 줄의 봉창(first~last)으로 2차 판별.
+    let _reuseMiss = null;
+    if(!_canReuse && stock._btResult && !stock._btResult.error){
+      const _m=[]; const _po=stock._btResultOpts||{}, _pp=stock._btResultParams||{};
+      if(stock._btResultTF !== _btTFVal) _m.push('TF '+stock._btResultTF+'→'+_btTFVal);
+      if(stock._btResult.rowsLength !== _targetCount) _m.push('봉수 '+stock._btResult.rowsLength+'≠'+_targetCount);
+      if(Math.abs((_po.slippage||0)-(_curOpts.slippage||0))>=1e-9) _m.push('slip '+_po.slippage+'→'+_curOpts.slippage);
+      const _em=((typeof SXE!=='undefined'&&SXE._btEntryMode)||'close');
+      if(_po.entryMode !== _em) _m.push('진입시점 '+_po.entryMode+'→'+_em);
+      const _cs=_btSrcSigOf(_curOpts);
+      if(_po.srcSig !== _cs) _m.push('진입원 '+_po.srcSig+'→'+_cs);
+      if(_pp.buyTh !== _curParams.buyTh) _m.push('buyTh '+_pp.buyTh+'→'+_curParams.buyTh);
+      if(_pp.sellTh !== _curParams.sellTh) _m.push('sellTh '+_pp.sellTh+'→'+_curParams.sellTh);
+      if(Math.abs((_pp.tpMult||0)-(_curParams.tpMult||0))>=1e-9) _m.push('tp '+_pp.tpMult+'→'+_curParams.tpMult);
+      if(Math.abs((_pp.slMult||0)-(_curParams.slMult||0))>=1e-9) _m.push('sl '+_pp.slMult+'→'+_curParams.slMult);
+      _reuseMiss = _m.length?_m.join(' · '):'(재사용 판정 필드 전부 일치 — rows 내용/전역 상태 차이 의심)';
+      console.warn('[S1232] 자동 BT 결과 재사용 불가 → 재실행: '+_reuseMiss);
+    }
     if(_canReuse){
       progFill.style.width='100%'; progText.textContent=`분석탭 결과 재사용 (${_targetCount}봉, 거래 ${stock._btResult.totalTrades})`;
       await _btSleep(150);
@@ -1457,6 +1488,7 @@ async function btRunBasic(){
     const r = sxRunBtEngine(rows, _btTFVal, params, opts);
     // S110 fix4: 실제 사용된 봉수 기록 (🔴/🔵/🟢 배지용)
     r.rowsLength = rows.length;
+    try{ r._sxSig = _btMakeSig('수동', _btTFVal, rows, params, opts); r._sxReuseMiss = _reuseMiss; }catch(_sg){}   // [S1232] 실행 서명
     // [S546] 레짐별 성과 버킷 — 단일검증은 _runBtWithExtension(461행) 미경유라 여기서 첨부 (캐시·렌더 전)
     try { r._regimeBuckets = _btRegimeBreakdown(rows, r.trades); } catch(_rgE){}
 
@@ -2035,6 +2067,14 @@ function btRenderBasicResult(stock, r){
       </div>
 `;
   }
+  // [S1232] 실행 서명 줄 — 이 카드가 자동/수동 어느 경로 결과인지 + 입력 전모. 불일치 시 사유(⚠) 표기.
+  try{
+    const _sg = r._sxSig;
+    if(_sg){
+      const _slipPm = Math.round((_sg.slip||0)*1000*10)/10;
+      html += `<div style="font-size:9px;color:var(--text3);margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);line-height:1.5">실행 <b>${_sg.by}</b> · ${_sg.rows}봉(${_fmtDate(_sg.first)}~${_fmtDate(_sg.last)}) · 진입원 ${_sg.src} · b${_sg.buyTh}/s${_sg.sellTh} · tp${_sg.tp}/sl${_sg.sl} · slip${_slipPm}‰ · ${_sg.mode==='nextOpen'?'익일시가':'종가'}${r._sxReuseMiss?`<div style="color:#d97706;margin-top:3px">⚠ 자동결과 재사용 불가 → 재실행: ${r._sxReuseMiss}</div>`:''}</div>`;
+    }
+  }catch(_sgE){}
   result.innerHTML = html;
   // S67: 누적 저장 UI 갱신
   _btHistUpdateUI(stock);
