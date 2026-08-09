@@ -2399,8 +2399,16 @@ async function startScan(config) {
       const n = (typeof v === 'object') ? (v.max ?? v.min) : v; // max 우선
       _recentN = Math.max(1, Math.min(60, parseInt(n) || 1));
     }
+    // [S1243] 구조위치 선택 수집 — 슬라이드(N봉) 비적용 선행 게이트라 techFilters에서 제외하되,
+    //   struct만 선택된 스캔에서도 캔들을 받도록 needCandles에 OR(아래). 값=multi_check id 배열.
+    const _spCellF = activeFilters.find(f => f.id === 'struct_cell');
+    const _spRegF  = activeFilters.find(f => f.id === 'struct_regime');
+    const _spCellSel = (_spCellF && Array.isArray(_spCellF.value)) ? _spCellF.value : [];
+    const _spRegSel  = (_spRegF  && Array.isArray(_spRegF.value))  ? _spRegF.value  : [];
+    const _spGateOn  = (_spCellSel.length > 0 || _spRegSel.length > 0);
     const techFilters = activeFilters.filter(f => { 
       if (f.id === '_recent_n_bars') return false; // 메타조건 제외
+      if (f.id === 'struct_cell' || f.id === 'struct_regime') return false; // [S1243] 선행 게이트로 별도 평가(슬라이드·AND/OR 그룹 비편입)
       const meta = findCondMeta(f.id); 
       return meta && meta.source === 'calc_candle'; 
     });
@@ -2410,7 +2418,7 @@ async function startScan(config) {
     const _fGroup = f => (f && f.group === 'or') ? 'or' : 'and';
     const andTechFilters = techFilters.filter(f => _fGroup(f) !== 'or');
     const orTechFilters  = techFilters.filter(f => _fGroup(f) === 'or');
-    const needCandles = techFilters.length > 0;
+    const needCandles = techFilters.length > 0 || _spGateOn;   // [S1243] struct 단독 스캔도 캔들 필요
     const kisFilters = activeFilters.filter(f => KIS_FILTER_IDS.has(f.id));
     const needKis = kisFilters.length > 0 && _kisEnabled && currentMarket === 'kr';
     if (needKis) await _getKisToken();
@@ -2507,6 +2515,25 @@ async function startScan(config) {
             // [v3.11] 조건별 탈락 진단 — 어떤 기술적 조건에서 떨어졌는지 추적
             //   각 슬라이드 시점에서 모든 조건이 동시 충족돼야 하는데, 그 시점에서
             //   가장 먼저 떨어진 조건을 종목당 1번 카운트. 결과탭 진단 모달에서 표시.
+            // [S1243] 구조위치 선행 게이트 — 마지막 봉(현재)의 칸·레짐 '단일 판정'(사전선언: N봉 슬라이드 비적용,
+            //   상태 서술이지 이벤트가 아님). OR그룹에 등록돼도 항상 AND 게이트(techFilters 제외라 대안경로 미편입 — desc 명기).
+            //   SSOT=SXExecCore.stockStateAt(S1217 예약 배선). calcIndicators 1회 추가 비용은 struct 선택 스캔에만 발생.
+            //   판정 불가(null·EC 미로드·웜업 미달)=탈락(보수 — 조용한 전원 통과 금지). 메인 HTML 레거시 경로는
+            //   case 미존재로 자동 통과(미지원 — S895 _recipe_detect 선례와 동일 취급).
+            if (_spGateOn) {
+              let _spOk = false;
+              try {
+                const _EC = self.SXExecCore;
+                if (_EC && _EC.stockStateAt && candles.length >= 20) {
+                  const _spInd = calcIndicators(candles, currentTF);
+                  const _ss = _EC.stockStateAt(_spInd, candles, candles.length - 1);
+                  const _cellOk = !_spCellSel.length || (_ss && _ss.cell && _spCellSel.some(id => id.replace('_','|') === _ss.cell));
+                  const _regOk  = !_spRegSel.length  || (_ss && _ss.regime && _spRegSel.indexOf(_ss.regime) >= 0);
+                  _spOk = _cellOk && _regOk;
+                }
+              } catch (_eSp) { _spOk = false; }
+              if (!_spOk) continue;
+            }
             let passed = false;
             let passedK = 0;
             let _firstFailedCondId = null; // 조건별 진단용
