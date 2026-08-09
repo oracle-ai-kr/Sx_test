@@ -4239,34 +4239,11 @@ SXE.setBtEntryMode = function(mode){
   console.log(`[setBtEntryMode] BT 진입 시점 모드: ${mode} — ${desc}`);
 };
 
-// [S423] BT 갭 가드 — 다음봉 시가 모드 전용. 시가 갭이 과도하면 그 신호 진입 스킵(갭상승만).
-// ════════════════════════════════════════════════════════════
-//   목적: 'nextOpen' 진입 시 다음봉 시가가 신호봉 종가보다 크게 갭상승하면 추격 매수 위험 → 스킵.
-//   허용폭(동적): 신호봉 종가 위의 "가장 가까운 천장"까지 거리에 비례.
-//     · 천장 후보 = 피벗 R1/R2/R3 중 종가 위인 것 ∪ 20봉 신고가(struct.hi) → 그 중 최솟값(가장 가까운 위쪽).
-//     · 허용갭% = 1 + 6×clamp(저항거리%÷8, 0, 1)  → 저항 근접/돌파상태=1%, 8%↑ 여유=7%.
-//       (R1 돌파 확정이면 천장이 R2로 자동 리셋 → R1은 지지화, R2까지 여력만큼 허용)
-//   미지영역(종가 위 천장 없음): BB 상단(ind.bb.upper) 이탈 시 스킵, 아니면 7%까지 허용.
-//   갭하락(시가<종가)은 항상 허용(싸게 매수). 'close' 모드엔 영향 없음(갭 자체가 없음).
-//   기본값: true(ON) — 현실적 진입 가정. 동기화: 메인 scan config(btGapGuard) → 워커(_btExitMode 패턴).
-SXE._btGapGuard = (function(){
-  try {
-    const v = localStorage.getItem('SX_BT_GAP_GUARD');
-    if(v === 'on')  return true;
-    if(v === 'off') return false;
-  } catch(_) {}
-  return true;  // 기본 ON
-})();
-
-SXE._btGapGuardSave = function(){
-  try { localStorage.setItem('SX_BT_GAP_GUARD', SXE._btGapGuard ? 'on' : 'off'); } catch(_) {}
-};
-
-SXE.setBtGapGuard = function(on){
-  SXE._btGapGuard = !!on;
-  SXE._btGapGuardSave();
-  console.log(`[setBtGapGuard] BT 갭 가드: ${SXE._btGapGuard ? 'ON (과도 갭상승 진입 스킵)' : 'OFF'} — 다음봉 시가 모드 전용`);
-};
+// [S1242] S423 갭가드 전면 철거 — 적용 로직(피벗 천장 기반 익일시가 진입스킵)은 S1018 레시피-BT 전환 때
+//   구엔진과 함께 소멸했고, 남아있던 것은 설정 변수·localStorage 키·서명 gg·재사용 비교뿐인 死바인딩이었다
+//   (setBtGapGuard 호출처 0곳 = UI 토글조차 없었음. 기본값 ON인데 효과 0 — S1236 '실바인딩' 편입은 오판).
+//   판정: BT 엔진·시즌2 라이브 공히 갭 스킵 없음 = 이미 정합 → 철거로 정합 확정. 레거시 무보존.
+//   localStorage 'SX_BT_GAP_GUARD' 잔존값은 읽는 곳이 없어 무해. 갭 스킵의 효용 재론은 별건 사전등록 측정으로만.
 
 // [S1022] 순수 MA크로스 모드 + 3모드 MA쌍(_MODE_MA_PAIR/_MACROSS_PAIR/_btModeAligned) 철거 — 레시피-BT 일원화로 死.
 
