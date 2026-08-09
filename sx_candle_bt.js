@@ -49,7 +49,9 @@
   //        2회차에 긴 쪽을 채택하고 그때 확정한다. 상장이 짧은 종목은 2회차도 같은 길이라 그대로 굳는다.
   //        비용 상한 = 종목당 추가 fetch 1회. null(완전 실패)도 길이 0이라 같은 경로로 1회 재시도된다.
   var _rows600Prov = {};    // 'key' → 1회차 결과(rows|null). 확정되면 삭제.
-  var _rows600Dbg  = { retry:0, rescued:0, stuck:0, list:[] };   // 관측용 — 재시도 수 / 길어진 수 / 2회차도 미달
+  var _rows600Dbg  = { retry:0, rescued:0, stuck:0, list:[] };   // 관측용 — 재시도/길어진/2회차미달 + [S1230] net(네트워크 체인)·dedup(합류)·primed(주입)
+  var _rows600Pend = {};    // [S1230-P1] 'key' → 진행중 promise. 동시 호출 합류(인플라이트 dedup)
+  var _rows600Ts   = {};    // [S1230-P2] 'key' → 확정 시각(ms). peek 신선도 판정용(스냅 주입분은 ts 없음 = peek 제외)
   // [S1160] ★계수만으로는 원인을 못 가른다. "미달 2건"이 상장 짧은 종목인지 버그인지 구분하려면
   //   **어느 종목이 몇 봉 받았는가**가 필요하다. 삼성전자 412/600 = 버그 · 작년 상장 380/600 = 정상.
   //   n1=1회차 길이 · n2=재시도 길이. n1===n2면 재시도가 같은 벽에 부딪힌 것(내 S1159 수정이 못 고치는 종류).
@@ -96,7 +98,17 @@
     //   스냅 모드에선 **프리로드로 주입된 키만** 인정한다(그 외 전부 null=제외, live 폴백 없음).
     if(_snapMode) return _snapKeySet[key] ? _rows600Cache[key] : null;   // [S847]→[S1080]
     if(_rows600Cache[key]!==undefined) return _rows600Cache[key];
-    // [S643] 목표 봉수 = 라이브 카드와 동일(_btTargetBars: KIS ON 700 / OFF 600 / 주·월 400) — 게이트/카드 정합.
+    // [S1230-P1] 인플라이트 합류 — 분석탭 진입 직후 통계판·단기추세·레시피·원장행이 수십 ms 안에 같은 키로
+    //   동시 호출(전부 캐시 미스)하면 각자 네트워크로 가던 것을 promise 1개로 공유(이중로딩 M1).
+    //   잠정(_rows600Prov) 재시도는 "순차" 호출의 규약이라 그대로 — 동시 호출은 같은 1회차 결과를 나눠 받는다.
+    if(_rows600Pend[key]){ _rows600Dbg.dedup=(_rows600Dbg.dedup||0)+1; return _rows600Pend[key]; }
+    var _pp = _rows600FetchBody(mk, tf, code, vintage, key);
+    _rows600Pend[key] = _pp;
+    try { return await _pp; } finally { delete _rows600Pend[key]; }
+  }
+  async function _rows600FetchBody(mk, tf, code, vintage, key){
+    _rows600Dbg.net=(_rows600Dbg.net||0)+1;   // [S1230-P5] 실제 네트워크 체인 시작 수(콘솔: SXCandleBT.rows600Dbg())
+    // [S643] 목표 봉수 = 라이브 카드와 동일(_btTargetBars: 600 / 주·월 400) — 게이트/카드 정합.
     var _tgt = (typeof _btTargetBars==='function') ? _btTargetBars(mk, tf) : 600;
     var _floor = Math.floor(_tgt * 0.95);
     var r=null;
@@ -119,7 +131,7 @@
     var _isRetry = Object.prototype.hasOwnProperty.call(_rows600Prov, key);
     if(_len >= _floor){                                  // 목표 충족 → 확정
       if(_isRetry){ _rows600Dbg.rescued++; _r600Log(key,_len,_tgt,true); }   //   ★재시도가 실제로 채웠다 = 이 버그가 실재했다는 증거
-      _rows600Cache[key] = r; delete _rows600Prov[key];
+      _rows600Cache[key] = r; _rows600Ts[key]=Date.now(); delete _rows600Prov[key];   // [S1230-P2] ts
       return _rows600Cache[key];
     }
     if(!_isRetry){                                       // 1회차 미달 → 잠정 보관·확정 캐시엔 안 씀
@@ -130,8 +142,35 @@
     _r600Log(key,_len,_tgt,true);                        //   [S1160] 재시도 길이를 그대로 남긴다(긴쪽 채택 **전** 값이라 벽 판별이 됨)
     if(_pl > _len){ r = _p; _len = _pl; }                //   = 가용 최대(상장 짧은 종목). 더 조르지 않는다.
     _rows600Dbg.stuck++;
-    _rows600Cache[key] = _len ? r : null; delete _rows600Prov[key];
+    _rows600Cache[key] = _len ? r : null; _rows600Ts[key]=Date.now(); delete _rows600Prov[key];   // [S1230-P2] ts
     return _rows600Cache[key];
+  }
+  // [S1230-P2] 캔들 브리지 — 분석탭 fetchCandles(candleCache)와 측정 세션캐시(_rows600Cache)의 양방향 연결.
+  //   〔왜〕 두 캐시가 서로를 몰라 같은 종목 봉을 이중으로 받았다: 정방향(분석→카드)은 btFetchCandles
+  //   프로브가 있었지만 코인이 빠졌고 동시호출엔 무력(M1·M2), 역방향(배지/원장→분석)은 통로 자체가 없었다(M3).
+  //   〔계약〕 prime: 스냅 OFF·빈 슬롯·목표95% 충족·무빈티지에만 주입 — 세션 동결(확정본 불변)과
+  //   스냅 냉동(S1080 라이브 혼입 차단)을 그대로 보존. peek: 스냅 중이거나 스냅 주입분(ts 없음)은
+  //   반환하지 않음 — 라이브 뷰(분석탭)에 냉동 데이터가 새는 것을 차단.
+  function primeRows600(mk, tf, code, rows){
+    if(_snapMode) return false;
+    mk=_normMkt(mk); tf=tf||'day';
+    if(!code || !Array.isArray(rows) || !rows.length) return false;
+    var key=mk+'|'+tf+'|'+code;
+    if(_rows600Cache[key]!==undefined) return false;               // 세션 확정본 불변(측정 일관성)
+    var _tgt=(typeof _btTargetBars==='function')?_btTargetBars(mk,tf):((tf==='week'||tf==='month')?400:600);
+    if(rows.length < Math.floor(_tgt*0.95)) return false;          // 미달분은 기존 잠정/우회 경로가 담당
+    _rows600Cache[key]=rows.slice(); _rows600Ts[key]=Date.now(); delete _rows600Prov[key];
+    _rows600Dbg.primed=(_rows600Dbg.primed||0)+1;
+    return true;
+  }
+  function peekRows600(mk, tf, code){
+    if(_snapMode) return null;
+    mk=_normMkt(mk); tf=tf||'day';
+    var key=mk+'|'+tf+'|'+code;
+    if(_snapKeySet[key] || !_rows600Ts[key]) return null;
+    var r=_rows600Cache[key];
+    if(!Array.isArray(r) || !r.length) return null;
+    return { rows:r, ts:_rows600Ts[key] };
   }
   function _ctPoolAutoOn(){ try { return localStorage.getItem('SX_CT_POOL_AUTO')==='1'; } catch(_){ return false; } }
   function _ctPoolAutoSet(on){ try { localStorage.setItem('SX_CT_POOL_AUTO', on?'1':'0'); } catch(_){} }
@@ -634,7 +673,9 @@
       if(onProgress) onProgress(i+1, list.length, s.name || s.code);
       await _sleep(0); // 진행 텍스트 페인트
       var rows = null;
-      try { rows = _toScreenerRows(await btFetchCandles(s.code, isCoin, tf || 'day', 250)); } catch(e){ rows = null; }
+      // [S1230-P4] btFetchCandles(250) 직접호출 → fetchRows600 slice(-250). S646(풀검증)과 동일 교체 —
+      //   교차탭·카드와 세션 캐시 공유(같은 종목 재fetch 0) + 스냅모드 자동 존중.
+      try { var _rB = await fetchRows600(mk, tf || 'day', s.code); rows = (_rB && _rB.length) ? _rB.slice(-250) : null; } catch(e){ rows = null; }
       if(!Array.isArray(rows) || rows.length < MIN_BARS + 5 || !(rows[rows.length-1].close > 0)){ skipped++; continue; }
       var bt = null;
       try { bt = runBacktest(rows, mk, tf || 'day', { maxTests: 120 }); } catch(e2){ bt = null; }
@@ -946,7 +987,7 @@
     }, 40);
   }
 
-  window.SXCandleBT = { open: open, close: _close, setThr: setThr, setKnnWin: setKnnWin, setKnnK: setKnnK, setKnnGate: setKnnGate, runKnnGrid: runKnnGrid, downloadKnnJson: downloadKnnJson, run: runBacktest, runBasket: runBasket, runBasketUI: runBasketUI, runPoolCompareUI: runPoolCompareUI, runPoolCompare: runPoolCompare, runPoolVerifyUI: runPoolVerifyUI, runPoolVerify: runPoolVerify, backToSingle: backToSingle, evalPoolAuto: evalPoolAuto, poolAutoOn: _ctPoolAutoOn, poolAutoSet: _ctPoolAutoSet, fetchRows600: fetchRows600, getRepPool: function(mk){ return _REP_POOL[_normMkt(mk)]||[]; }, snapSet:_snapSet, snapMode:function(){ return _snapMode; }, snapPreload:_snapPreload, snapHas:_snapHas, snapMeta:function(){ return _snapMeta; }, snapSrc:function(mk){ return _snapSrc[_normMkt(mk)]||{}; }, _remove: _removeOverlay };   // [S847] 스냅샷 API
+  window.SXCandleBT = { open: open, close: _close, setThr: setThr, setKnnWin: setKnnWin, setKnnK: setKnnK, setKnnGate: setKnnGate, runKnnGrid: runKnnGrid, downloadKnnJson: downloadKnnJson, run: runBacktest, runBasket: runBasket, runBasketUI: runBasketUI, runPoolCompareUI: runPoolCompareUI, runPoolCompare: runPoolCompare, runPoolVerifyUI: runPoolVerifyUI, runPoolVerify: runPoolVerify, backToSingle: backToSingle, evalPoolAuto: evalPoolAuto, poolAutoOn: _ctPoolAutoOn, poolAutoSet: _ctPoolAutoSet, fetchRows600: fetchRows600, primeRows600: primeRows600, peekRows600: peekRows600, rows600Dbg: function(){ return _rows600Dbg; }, getRepPool: function(mk){ return _REP_POOL[_normMkt(mk)]||[]; }, snapSet:_snapSet, snapMode:function(){ return _snapMode; }, snapPreload:_snapPreload, snapHas:_snapHas, snapMeta:function(){ return _snapMeta; }, snapSrc:function(mk){ return _snapSrc[_normMkt(mk)]||{}; }, _remove: _removeOverlay };   // [S847] 스냅샷 API
 
   // [S635] 대표목록 도너 뱅크 구축(세션 1회/시장·TF, 캐시 재사용). fetch 실패 종목 graceful skip.
   async function _ensureRepBank(mk, tf, win){
