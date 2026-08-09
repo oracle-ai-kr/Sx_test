@@ -2818,7 +2818,7 @@ function _updateKisStatus(){
   } else {
     badge.textContent = '미연결';
     badge.style.cssText = 'font-size:9px;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:6px;background:var(--sell-bg);color:var(--sell);border:1px solid var(--sell-border)';
-    if(info) info.textContent = 'KIS 미연결: 국내 분봉 비활성, 민감지표 참고용. developers.kis.com에서 앱키 발급.';
+    if(info) info.textContent = 'KIS 미연결: 국내 분봉 비활성 · 장중 민감지표 참고용(평일 16:00 이후·주말엔 배지 해제). developers.kis.com에서 앱키 발급.';
   }
 }
 
@@ -3374,7 +3374,9 @@ function renderCategories(){
   wrap.innerHTML = '';
   const conditions = getConditions();
   // S66: 국내+KIS미연결 시 민감 조건 비활성 배지
-  const _krNoKis = currentMarket==='kr' && !window._kisEnabled;
+  // [S1241] 장중 게이트 편입 — 당일봉 확정 후(평일 16:00~·주말)엔 소등. 표시 전용(값 계산 무관).
+  const _krNoKis = currentMarket==='kr' && !window._kisEnabled
+    && ((typeof _sxKrDailyBarForming!=='function') || _sxKrDailyBarForming());
   const _sensitiveIds = new Set(['rsi_value','macd_signal','macd_histogram','stoch_k','stoch_cross','stoch_slow_cross','macd_osc_trend','bb_position','candle_type','psycho_value','new_psycho_value','gc_ema_20_200']);
 
   // S68: Phase별 그룹화
@@ -4460,7 +4462,7 @@ function _buildScanConfig(){
     btEarlyExit:    (typeof SXE !== 'undefined' && SXE._btEarlyExit)    ? SXE._btEarlyExit    : null,
     btExitMode:     (typeof SXE !== 'undefined' && SXE._btExitMode)     ? SXE._btExitMode     : null,
     btEntryMode:    (typeof SXE !== 'undefined' && SXE._btEntryMode)    ? SXE._btEntryMode    : null,  // [S422] 진입 시점(종가/다음봉시가)
-    btGapGuard:     (typeof SXE !== 'undefined') ? !!SXE._btGapGuard : null,  // [S423] 갭 가드(boolean) — false도 전달돼야 하므로 !! 사용
+    // [S1242] btGapGuard 동봉 철거 — 死바인딩 잔재. 수신부(sx_scan_worker.js) 동시 제거로 송수신 대칭 유지.
     btTrailAtrMode: (typeof SXE !== 'undefined' && SXE._btTrailAtrMode) ? SXE._btTrailAtrMode : null,
     // S124/S125: 공용 API 경유 — 레거시 '1'/'0' 값도 자동 교정됨
       // [S1092] regimeAdaptEnabled config 전달 철거
