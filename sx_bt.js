@@ -1666,13 +1666,18 @@ function btRenderBasicResult(stock, r){
   //   한 화면에 잡히므로, 자동↔수동 불일치의 실범(봉창 차 vs 게이트/문턱 차)이 스샷 한 장으로 갈라진다.
   try{
     const _sg = r._sxSig;
+    // [S1234] TDZ 픽스 — 이 블록은 아래쪽 const _fmtDate 선언 **이전**에 실행된다. 서명 있는(신규 실행)
+    //   경로만 날짜 포맷을 참조하다 ReferenceError → catch가 삼켜 서명·진입목록이 통째로 증발
+    //   (수동 실행 카드에서 글자 소실 — S1234 스샷 증상). 복원본 경로는 정적 문구라 살아남았던 것.
+    //   블록 전용 포맷터로 자립 — 바깥 _fmtDate와 무관.
+    const _fd=(d)=>{ if(!d) return '?'; const m=String(d).match(/^(\d{4})-?(\d{2})-?(\d{2})/); return m?`${m[1].slice(2)}.${m[2]}.${m[3]}`:String(d); };
     if(_sg){
       const _slipPm = Math.round((_sg.slip||0)*1000*10)/10;
-      html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0;line-height:1.55">실행 <b>${_sg.by}</b> · ${_sg.rows}봉(${_fmtDate(_sg.first)}~${_fmtDate(_sg.last)}) · 진입원 ${_sg.src} · b${_sg.buyTh}/s${_sg.sellTh} · tp${_sg.tp}/sl${_sg.sl} · slip${_slipPm}‰ · ${_sg.mode==='nextOpen'?'익일시가':'종가'}${r._sxReuseMiss?`<div style="color:#d97706;margin-top:3px">⚠ 자동결과 재사용 불가 → 재실행: ${r._sxReuseMiss}</div>`:''}</div>`;
+      html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0;line-height:1.55">실행 <b>${_sg.by}</b> · ${_sg.rows}봉(${_fd(_sg.first)}~${_fd(_sg.last)}) · 진입원 ${_sg.src} · b${_sg.buyTh}/s${_sg.sellTh} · tp${_sg.tp}/sl${_sg.sl} · slip${_slipPm}‰ · ${_sg.mode==='nextOpen'?'익일시가':'종가'}${r._sxReuseMiss?`<div style="color:#d97706;margin-top:3px">⚠ 자동결과 재사용 불가 → 재실행: ${r._sxReuseMiss}</div>`:''}</div>`;
     } else {
       html += `<div style="font-size:9px;color:var(--text3);margin:8px 2px 0">실행 서명 없음 — S1232 이전 결과 또는 저장 복원본. 새로고침 후 재실행하면 서명이 붙는다.</div>`;
     }
-    const _tl=(r.trades||[]).slice(0,8).map(t=>`${_fmtDate(t.entryDate)} ${(t.pnl||0)>=0?'+':''}${(t.pnl||0).toFixed(1)}`).join(' · ');
+    const _tl=(r.trades||[]).slice(0,8).map(t=>`${_fd(t.entryDate)} ${(t.pnl||0)>=0?'+':''}${(t.pnl||0).toFixed(1)}`).join(' · ');
     if(_tl) html += `<div style="font-size:9px;color:var(--text3);margin:2px 2px 0">진입 ${(r.trades||[]).length}건: ${_tl}</div>`;
   }catch(_sgE){}
   html += _btRenderRegime(r._regimeBuckets);
