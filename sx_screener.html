@@ -2180,30 +2180,9 @@ async function _fetchWithTimeout(url, options, timeoutMs){
   }
 }
 
-// ── [S1161] KIS 차트 페이지 요청 — 간격 + 1회 재시도 ──
-//  증상: 종목이 400봉만 받아지고, 한 번 그러면 그 시간대 다른 종목도 400봉이 된다.
-//  원인: 일봉 500봉 = 100건×5페이지인데, 루프가 `if(!res.ok) break;`라 **5페이지 중 1개만 실패해도
-//        400봉을 정상 결과로 처리**했다. 실패를 오류로 보지 않으니 화면에 아무 표시도 없고,
-//        그 400봉이 _analTFCache·_lastAnalCandles에 그대로 굳는다.
-//        원인이 종목이 아니라 유량 제한이면 그 시간대 **모든 종목이 똑같이 4페이지에서 끊긴다** — 사용자 관측과 일치.
-//  ★S1159(fetchRows600 재시도)가 못 고친 이유: 2차 독립 fetch도 결국 이 KIS 경로라 같은 벽에 부딪힌다.
-//  처방: ①페이지 간 간격을 둔다(연달아 5발 쏘던 것을 억제) ②실패하면 1회 백오프 재시도 ③관측치를 남긴다.
-//  간격은 자가조정 — 재시도로 살아난 적이 있으면(=조여지고 있다는 증거) 그 세션은 간격을 늘린다.
-var _KIS_PG = { req:0, retry:0, ok2:0, fail:0, short:0, gapMs:120 };
-try{ if(typeof window!=='undefined') window._sxKisPg=_KIS_PG; }catch(_ekp){}
-async function _kisPageFetch(url, headers, pg){
-  if(pg > 0){ await new Promise(r=>setTimeout(r, _KIS_PG.gapMs)); }   // 첫 페이지는 지연 없음
-  _KIS_PG.req++;
-  var res=null;
-  try{ res = await _fetchWithTimeout(url, {headers:headers}); }catch(_e1){ res=null; }
-  if(res && res.ok) return res;
-  _KIS_PG.retry++;
-  await new Promise(r=>setTimeout(r, 700));                          // 유량 제한이면 조금 더 기다려야 풀린다
-  try{ res = await _fetchWithTimeout(url, {headers:headers}); }catch(_e2){ res=null; }
-  if(res && res.ok){ _KIS_PG.ok2++; _KIS_PG.gapMs = 400; return res; }   // 재시도가 통했다 = 조여지고 있다 → 간격 상향
-  _KIS_PG.fail++;
-  return res;
-}
+// [S1230-P6] (구 S1161 _kisPageFetch/_KIS_PG 삭제) — 유일 호출처였던 KIS 일봉 페이지네이션이
+//   P6(일·주·월 네이버 단일소스)으로 제거되며 고아화. S1161이 잡던 '400봉 고착' 증상 자체가
+//   소스 단일화로 원인 소멸(5페이지 유량 벽이 경로에서 사라짐). 레거시 무보존 정책에 따라 완전 삭제.
 
 // [Phase 4-C] 5xx 자동 재시도 (지수 백오프) — 워커 cold start / 외부 API 일시 장애 흡수
 //   - 5xx만 재시도 (4xx는 영속적 에러라 무의미)
@@ -4915,7 +4894,9 @@ async function _startScanLegacy(){
 
       // 배치 캔들 prefetch (병렬)
       let candleResults = null;
-      const _scCount = (currentMarket==='kr' && window._kisEnabled) ? 500 : 200; // S67: KIS 500봉
+      // [S1230-P4] 워커 지반(S877 recipeDeep)과 정합 — 200봉은 MA200·장기배열(maAlignLT) 퇴화로
+      //   스캔↔분석 판정 불일치의 뿌리(워커는 이미 400/500). 레거시(워커 불가 폴백) 경로도 동일 지반.
+      const _scCount = (currentMarket==='kr' && window._kisEnabled) ? 500 : 400;
       if(needCandles && PARALLEL > 1){
         const fetchPromises = batch.map(s => fetchCandles(s.code, _scCount).catch(()=>null));
         candleResults = await Promise.all(fetchPromises);
@@ -7004,6 +6985,19 @@ async function fetchCandles(code, count, tf, _retry){
   if(candleCache[cacheKey] && Date.now()-candleCache[cacheKey].ts < 600000){
     return candleCache[cacheKey].data;
   }
+  // [S1230-P2b] 역방향 브리지 — 배지·원장·관측소가 fetchRows600으로 먼저 받아둔 종목을 분석탭이
+  //   또 받던 단절 해소(이중로딩 M3). 신선도 계약은 기존 candleCache TTL(10분)과 동일 — 퇴보 없음.
+  //   스냅모드/스냅 주입분/빈티지는 peek이 자체 차단(라이브 뷰 보호).
+  try{
+    if(typeof window!=='undefined' && window.SXCandleBT && SXCandleBT.peekRows600){
+      const _pk = SXCandleBT.peekRows600(currentMarket, _tf, code);
+      if(_pk && Array.isArray(_pk.rows) && (Date.now()-_pk.ts) < 600000 && _pk.rows.length >= Math.floor(count*0.95)){
+        const _pr = _pk.rows.slice(-count);
+        candleCache[cacheKey] = {ts:_pk.ts, data:_pr};   // 동일 신선도로 편입 — 이후 호출은 기존 캐시 경로
+        return _pr;
+      }
+    }
+  }catch(_pkE){}
 
   try{
     let url, raw;
@@ -7081,11 +7075,12 @@ async function fetchCandles(code, count, tf, _retry){
         open:q.open?.[i]||0, high:q.high?.[i]||0, low:q.low?.[i]||0,
         close:q.close?.[i]||0, volume:q.volume?.[i]||0,
       })).filter(_sxIsValidCandle).slice(-count);
-    } else if(currentMarket==='kr' && window._kisEnabled){
-      // S66: 국내주식 KIS 캔들 우선 (브라우저→한투 직접, Workers 미경유)
-      const kisTfMap = {'5m':'5','15m':'15','30m':'30','60m':'60'};
-      const isMinute = /^\d+m$/.test(_tf);
-      if(isMinute){
+    } else if(currentMarket==='kr' && window._kisEnabled && /^\d+m$/.test(_tf)){
+      // [S1230-P6] KIS = 국내 "분봉" 전용으로 역할 축소(S66→). 일·주·월은 아래 네이버 단일소스.
+      //   〔왜〕 KIS 일봉 5페이지=500 상한이 목표 600과 어긋나 우회 재fetch(M4)·소스 혼재(수정주가/
+      //   당일봉 처리 차)의 뿌리였고, 소스를 고정하면 KIS 토글 전후 캔들이 불변 — 원장·관측소 측정
+      //   시계열에 전환 단절점이 생기지 않는다. KIS 담당: 분봉(여기)·현재가 보강(S342 PRICE-FIX)·
+      //   실시간 수급/호가 필터(kisRequired). (구 S67 일봉 페이지네이션 블록은 완전 삭제 — 레거시 무보존 정책)
         // KIS 분봉: inquire-time-itemchartprice
         const cfg = _getKisConfig();
         const token = cfg ? await _getKisToken() : null;
@@ -7108,57 +7103,6 @@ async function fetchCandles(code, count, tf, _retry){
           low:Number(b.stck_lwpr||0), close:Number(b.stck_prpr||b.stck_clpr||0),
           volume:Number(b.cntg_vol||b.acml_vol||0),
         })).filter(_sxIsValidCandle).reverse().slice(-count);
-      } else {
-        // S67: KIS 일봉/주봉/월봉 — 페이지네이션 (100건/회 × 최대5회 = 500봉)
-        const periodMap = {'day':'D','week':'W','month':'M'};
-        const period = periodMap[_tf]||'D';
-        const cfg = _getKisConfig();
-        const token = cfg ? await _getKisToken() : null;
-        if(!token) return null;
-        const KIS_PAGE = 100;
-        const maxPages = Math.min(Math.ceil(count / KIS_PAGE), 5);
-        let allBars = [];
-        let curEnd = new Date().toISOString().slice(0,10).replace(/-/g,'');
-        for(let pg = 0; pg < maxPages; pg++){
-          const endD = curEnd.replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3');
-          const sd = new Date(endD);
-          const daySpan = {'day':Math.ceil(KIS_PAGE*1.8),'week':Math.ceil(KIS_PAGE*10),'month':Math.ceil(KIS_PAGE*35)}[_tf]||Math.ceil(KIS_PAGE*1.8);
-          sd.setDate(sd.getDate() - daySpan);
-          const startStr = sd.toISOString().slice(0,10).replace(/-/g,'');
-          const qs = new URLSearchParams({
-            FID_COND_MRKT_DIV_CODE:'J', FID_INPUT_ISCD:code,
-            FID_INPUT_DATE_1:startStr, FID_INPUT_DATE_2:curEnd,
-            FID_PERIOD_DIV_CODE:period, FID_ORG_ADJ_PRC:'0'
-          }).toString();
-          const res = await _kisPageFetch(`${WORKER_BASE}/kis/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice?${qs}`,
-            {'authorization':`Bearer ${token}`,'appkey':cfg.appKey,'appsecret':cfg.appSecret,'tr_id':'FHKST03010100','Content-Type':'application/json; charset=utf-8'}, pg);   // [S1161] 간격+1회 재시도
-          if(!res || !res.ok){ _KIS_PG.short++; break; }   // [S1161] 실패로 끊긴 것만 계수(상장 짧은 종목은 아래 bars.length<PAGE로 정상 종료)
-          const data = await res.json();
-          const bars = data?.output2;
-          if(!bars || !bars.length) break;
-          const mapped = bars.map(b=>({
-            date:(b.stck_bsop_date||'').replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3'),
-            open:Number(b.stck_oprc||0), high:Number(b.stck_hgpr||0),
-            low:Number(b.stck_lwpr||0), close:Number(b.stck_clpr||0),
-            volume:Number(b.acml_vol||0),
-            foreignExhaustion:0,
-          })).filter(_sxIsValidCandle);
-          allBars = mapped.concat(allBars); // 오래된 봉이 앞으로
-          if(bars.length < KIS_PAGE) break; // 더 이상 데이터 없음
-          // 다음 페이지 끝 날짜 = 현재 페이지 가장 오래된 봉 -1일
-          const oldest = bars[bars.length-1]?.stck_bsop_date;
-          if(!oldest) break;
-          const od = new Date(oldest.replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3'));
-          od.setDate(od.getDate() - 1);
-          curEnd = od.toISOString().slice(0,10).replace(/-/g,'');
-        }
-        // 중복 제거 (날짜 기준) + 오래된 순 정렬 + count 제한
-        // [FIX] KIS output2는 최신→과거 내림차순 → sort()로 시간 순서 보장
-        const seen = new Set();
-        raw = allBars.filter(b=>{ if(seen.has(b.date)) return false; seen.add(b.date); return true; })
-                     .sort((a,b)=>a.date.localeCompare(b.date))
-                     .slice(-count);
-      }
     } else {
       // 국내주식: 네이버 sise (S44: raw fallback 파싱 추가)
       const tfMap={'5m':'minute5','15m':'minute15','30m':'minute30','60m':'minute60','day':'day','week':'week','month':'month'};
@@ -7220,6 +7164,9 @@ async function fetchCandles(code, count, tf, _retry){
     candleCache[cacheKey] = {ts:Date.now(), data:raw};
     // [WEAK-3 FIX] 캐시 크기 관리 (최대 100개, TTL 10분)
     try{ if(window._sxCacheGC) window._sxCacheGC(candleCache, 100, 600000); }catch(_){}
+    // [S1230-P2a] 정방향 브리지 — 방금 받은 봉을 측정 세션캐시(fetchRows600)에 주입(스냅 OFF·목표95% 충족
+    //   ·빈 슬롯일 때만). 분석탭 진입 직후 카드들이 추가 네트워크 0회로 즉시 그린다 — 코인 포함(M1·M2 해소).
+    try{ if(window.SXCandleBT && SXCandleBT.primeRows600 && SXCandleBT.primeRows600(currentMarket, _tf, code, raw)) console.log(`[S1230-P2a] prime ${currentMarket}|${_tf}|${code} ${raw.length}봉 → 카드 공유`); }catch(_prE){}
     return raw;
   }catch(e){
     // S31: 1회 재시도
@@ -7363,81 +7310,9 @@ async function fetchCandlesExtended(code, tf, oldestDate, extraCount){
         volume: parseFloat(r.candle_acc_trade_volume || r.volume || 0),
       })).filter(_sxIsValidCandle).reverse();  // 오래된 순
 
-    } else if(_curMkt === 'kr' && window._kisEnabled){
-      // [v3.13 KIS-EXT] KIS API로 과거 봉 확장 — 분석탭/BT 600봉 통일
-      //   배경: KIS 활성 시 분석탭에서 KIS 500봉 + 네이버 100봉 혼합되던 문제
-      //   동작: oldestDate 이전 시점부터 _extra봉 추가 fetch (KIS 페이지네이션)
-      //   KIS API: 한 번에 100봉 → Math.ceil(_extra/100) 페이지 호출
-      const periodMap = {'day':'D','week':'W','month':'M'};
-      const period = periodMap[_tf] || 'D';
-      // 분봉은 KIS Extended 미지원 (당일 분봉만 가능) → 네이버로 fallback
-      if(/^\d+m$/.test(_tf)){
-        console.warn('[fetchExt] KIS는 분봉 Extended 미지원 → 분봉은 분석탭에서 충분(당일 데이터)');
-        return null;
-      }
-      // [v3.14 FIX] _kisConfig is not defined 에러 — _getKisConfig() 헬퍼 사용
-      //   배경: sx_scan_worker.js에는 _kisConfig 전역 있지만 sx_screener.html에는 없음
-      //   증상: KIS 활성 시 분석탭 600봉 확장 실패 → 500봉만 사용 → 분석 결과 차이
-      const cfg = _getKisConfig();
-      if(!cfg){
-        console.warn('[fetchExt KIS] KIS 설정 없음 — 네이버로 fallback 권장');
-        return null;
-      }
-      // oldestDate 파싱
-      let _parsedDate = oldestDate;
-      if(typeof _parsedDate === 'string' && /^\d{8}$/.test(_parsedDate)){
-        _parsedDate = _parsedDate.slice(0,4) + '-' + _parsedDate.slice(4,6) + '-' + _parsedDate.slice(6,8);
-      }
-      const endDt = new Date(_parsedDate);
-      if(isNaN(endDt.getTime())){
-        console.warn(`[fetchExt KIS] 날짜 파싱 실패: oldestDate=${oldestDate}`);
-        return null;
-      }
-      endDt.setDate(endDt.getDate() - 1);  // 기존과 겹치지 않게 1일 전
-      const KIS_PAGE = 100;
-      const maxPages = Math.min(Math.ceil(_extra / KIS_PAGE), 6);
-      let allBars = [];
-      let curEnd = endDt.toISOString().slice(0,10).replace(/-/g,'');
-      console.log(`[fetchExt KIS] 시작: code=${code}, period=${period}, end=${curEnd}, maxPages=${maxPages}`);
-      for(let pg = 0; pg < maxPages; pg++){
-        const endD = curEnd.replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3');
-        const sd = new Date(endD);
-        const daySpan = {'day':Math.ceil(KIS_PAGE*1.8),'week':Math.ceil(KIS_PAGE*10),'month':Math.ceil(KIS_PAGE*35)}[_tf] || Math.ceil(KIS_PAGE*1.8);
-        sd.setDate(sd.getDate() - daySpan);
-        const startStr = sd.toISOString().slice(0,10).replace(/-/g,'');
-        const qs = new URLSearchParams({FID_COND_MRKT_DIV_CODE:'J',FID_INPUT_ISCD:code,FID_INPUT_DATE_1:startStr,FID_INPUT_DATE_2:curEnd,FID_PERIOD_DIV_CODE:period,FID_ORG_ADJ_PRC:'0'}).toString();
-        try{
-          const res = await _kisPageFetch(`${WORKER_BASE}/kis/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice?${qs}`,
-            {'authorization':`Bearer ${await _getKisToken()}`,'appkey':cfg.appKey,'appsecret':cfg.appSecret,'tr_id':'FHKST03010100','Content-Type':'application/json; charset=utf-8'}, pg);   // [S1161] 간격+1회 재시도
-          if(!res || !res.ok){ _KIS_PG.short++; console.warn(`[fetchExt KIS] 응답 ${res?res.status:'네트워크'}`); break; }
-          const data = await res.json();
-          const bars = data?.output2;
-          if(!bars || !bars.length) break;
-          const mapped = bars.map(b => ({
-            date:(b.stck_bsop_date||'').replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3'),
-            open:Number(b.stck_oprc||0), high:Number(b.stck_hgpr||0), low:Number(b.stck_lwpr||0),
-            close:Number(b.stck_clpr||0), volume:Number(b.acml_vol||0), foreignExhaustion:0,
-          })).filter(_sxIsValidCandle);
-          allBars = mapped.concat(allBars);
-          if(bars.length < KIS_PAGE) break;
-          const oldest = bars[bars.length-1]?.stck_bsop_date;
-          if(!oldest) break;
-          const od = new Date(oldest.replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3'));
-          od.setDate(od.getDate() - 1);
-          curEnd = od.toISOString().slice(0,10).replace(/-/g,'');
-        }catch(err){
-          console.warn(`[fetchExt KIS] 페이지 ${pg} 예외:`, err.message);
-          break;
-        }
-      }
-      // 중복 제거 + 오래된 순 정렬
-      const seen = new Set();
-      raw = allBars.filter(c => { if(seen.has(c.date)) return false; seen.add(c.date); return true; })
-                   .sort((a,b) => a.date.localeCompare(b.date))
-                   .slice(-_extra);
-      console.log(`[fetchExt KIS] 완료: ${raw.length}봉`);
-
     } else if(_curMkt === 'kr'){
+      // [S1230-P6] (구 v3.13 KIS-EXT 삭제) 일·주·월 확장도 네이버 단일소스 — 베이스(네이버)와 확장(KIS)의
+      //   소스 혼재가 이음새에 만드는 수정주가·당일봉 차이를 차단(P6 역할분리와 동일 근거).
       // 네이버 sise: 날짜 범위 조정으로 과거 봉 가져옴
       //   oldestDate 이전의 extraCount봉 확보하려면 날짜 범위를 과거로 확장
       const tfMap = {'5m':'minute5','15m':'minute15','30m':'minute30','60m':'minute60','day':'day','week':'week','month':'month'};
