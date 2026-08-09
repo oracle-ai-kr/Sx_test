@@ -1087,7 +1087,7 @@ function _sxRecipeVotesCore(mk, ind, rows, idx){
 //              → _ltV3가 off를 null로 돌려 발동 자체를 막는다.
 // ══════════════════════════════════════════════════════════════════════════
 function _v3G(){ return (typeof window!=='undefined') ? window : ((typeof self!=='undefined') ? self : null); }
-function _v3Meta(){ var G=_v3G(); return (G && G.RECIPES_V3_META) || null; }
+// [S1249] _v3Meta 철거 — 참조 0 死코드(RECIPES_V3_META를 읽는 곳 없음. 형제 _v3SetOf/_v3Keys는 사용 중).
 // 지연 조회 — 스크립트 로드 순서에 의존하지 않는다. 워커(미로드)에선 null → 전 경로 무영향.
 function _v3SetOf(mk){
   var G=_v3G(), R=G && G.RECIPES_V3_BY_MKT; if(!R) return null;
