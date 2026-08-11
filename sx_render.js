@@ -13789,7 +13789,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1268';   // [S1268] RS 배선(S1267 측정·PREREG 0b1c5260): kr 중립 전환(양꼬리·절차③)·us/coin desc(excl) + 토스트 측정 승격 — 추세·구조 요약 kr=변동성 단독·us='–'화 사전 인지     // [S1267] RS(상대강도) 사전등록·측정: 지수 4계열 실기기 동일 소스(야후 KS11/KQ11/GSPC·업비트 BTC)·정렬 미스매치 0·대조군 통과·KR 변별/US·COIN 장식·알갱이 116k gz     // [S1266] 이격도 토스트 라벨 분위 정합: Q1/Q5만 '큼'·Q2/Q4는 방향만(하방/상방 이격)·Q3 밀착권 — v임계는 _q 폴백으로 강등     // [S1265] 신규 3종 침묵사 픽스: S1255 블록 _ssRows가 앞 try 스코프 밖 참조(ReferenceError→_e1255 침묵) — 실기기 3종 미push·기술지표 그룹 소멸·요약 '–'의 단일 원인. stock._lastAnalCandles 재유도+typeof 폴백(하네스 호환)     // [S1264] 기울기 배선(S1263 측정·PREREG f2a7c59a): kr neutral-pass(양꼬리 — 수익 약 4/4단조+위험 강)·us/coin desc(excl·U형/불규칙 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격 — 신규 3종 측정 아크 완결     // [S1263] 기울기(Q4보조) 사전등록·측정(PREREG f2a7c59a): 대조군 통과·KR 변별/US·COIN 장식·Q4 본답 아님 명시·알갱이 116k gz     // [S1262] 단기(세)·장기(장) 배지 근거 토스트 — 판정 규칙+현재값 명시(_sxbShortWhy/_sxbRegimeWhy, S596 패턴)     // [S1261] 헤드▲▼↔도넛전이 충돌 해소: ①전이 루프 excl 필터 실배선(S1054 주석-코드 불일치 정정 — 제거 도넛 Δ 오카운트 원인) ②헤드 ▲▼→녹/적(현재 색권 분포 표기·방향 글리프 오독 제거) ③전이 토스트 '검증 도넛만' 명시     // [S1260] 이격도 배선(S1259 측정·PREREG d4d2932c): kr neutral-pass(2축 강·양꼬리 확대형—방향색 없음)·us/coin desc(excl·U/역U 형태 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격     // [S1259] 이격도 사전등록·측정(하네스): 대조군 통과·KR 변별(Δret+2.36 4/4단조·Δcrash+6.85)/US·COIN 장식·Q2 본답 아님 명시·알갱이 116k gz     // [S1258] Q3 수렴도 배선: kr desc(excl)·us neutral-pass(주석 승격)·coin inverse-pass(3축 강) + 표시 임시식 폐기→S1257 시장별 측정 분위(우폐)·토스트 승격     // [S1257] Q3(수렴도) 사전등록·측정(PREREG 81a94edc): 대조군 통과·KR 장식/US·COIN 변별·문항답 cant(시장 상반이 실체)·알갱이 116k gz     // [S1256] excl(desc·rev) 도넛 제거 — 흐림 표시 폐지·빈그룹 가드·지표카운트 정합. 부활 원장=_DONUT_VALID(측정 통과 시 맵 갱신만으로 복귀)     // [S1255] 신규 서술 재료 3종(이격도·기울기·수렴도) 기술 섹션 편입 — 측정 전 neutral·Q&A 사전등록 연결·클릭 토스트, 섹션 종착지=Q5(칸×레짐 성과 지도) 각인     // [S1254] 전광판 헤드 2단 재조립: 1단=톤문구+지표카운트+캡션(+▶ 상단고정) · 2단=배지 밴드(세·장·전이→변동성→경고·이벤트, flex-wrap 통합) — 좌/우열 분산 철거·배지 빌더/핸들러 무변경     // [S1253] S1248 결함 교정: rows600 재검 마킹 '당일 1회'→'30분 쿨다운' — 장전 시도가 그날 몫을 소진해 장중 갱신을 막던 구조(8:21 스크린샷 8/7이 전조)     // [S1252] 로컬키 전수 재조사: 전체초기화 밖 키 0(접두 규율 유지)·진단 낙오 4건 분류(SX_STRAT_/CELLBK_/XMAT_→단기추세, SX_PRED_→앱)   // [S1251] 단일검증 게이트 2종 카드 이식: ⛩️레짐게이트(전 진입원·v3 SSOT)+🚪출구분할(불·상승=데드만/기타=ATR만, S1216 동일 의미론) — 칩·프리셋리셋·풀BT서명 편입, dead/atr 억제만(각인은 EC 몫)     // [S1250] 실험 2종 탭 이사(S1202 메커니즘): 레시피 신호감지→단일검증(sxExpHost1 선두)·이평선 기울기 예측→학습검증(sxExpHost3 선두, kNN 형제) — async 갱신 ID기반 확인·순수 이동     // [S1249] 死코드 전수조사(선언 2102개 스캔): 참조0 확정 8건 철거(_bv2Pct·_lastOf·_predQuizDestroy·_saveToSlot·_v3Meta·refreshMaster·resetAnalParams·sxEMA×중복2정의) — 동적조립·브래킷 접근 위험 전수 0 확인   // [S1248] fetchRows600 신선도: 끝봉<KST오늘인 확정캐시 하루 1회 재확정(당일봉 확보 시 교체·미공급 시 당일 재검중단 마킹), stale peek 브리지 차단 — 무TTL 세션캐시 층위 봉합("8/7 종가기준" 실측)     // [S1247] 확장 방식 최종 철거: 死코드 _loadMoreCandles(호출처 0)+stage 플래그 시스템+fetchCandlesExtended 본체·진단 참조 소멸, 진단 오호출 fetchCandles 교정 — S1205 원칙(확장 폐기→단발) 마무리     // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1270';   // [S1268] RS 배선(S1267 측정·PREREG 0b1c5260): kr 중립 전환(양꼬리·절차③)·us/coin desc(excl) + 토스트 측정 승격 — 추세·구조 요약 kr=변동성 단독·us='–'화 사전 인지     // [S1267] RS(상대강도) 사전등록·측정: 지수 4계열 실기기 동일 소스(야후 KS11/KQ11/GSPC·업비트 BTC)·정렬 미스매치 0·대조군 통과·KR 변별/US·COIN 장식·알갱이 116k gz     // [S1266] 이격도 토스트 라벨 분위 정합: Q1/Q5만 '큼'·Q2/Q4는 방향만(하방/상방 이격)·Q3 밀착권 — v임계는 _q 폴백으로 강등     // [S1265] 신규 3종 침묵사 픽스: S1255 블록 _ssRows가 앞 try 스코프 밖 참조(ReferenceError→_e1255 침묵) — 실기기 3종 미push·기술지표 그룹 소멸·요약 '–'의 단일 원인. stock._lastAnalCandles 재유도+typeof 폴백(하네스 호환)     // [S1264] 기울기 배선(S1263 측정·PREREG f2a7c59a): kr neutral-pass(양꼬리 — 수익 약 4/4단조+위험 강)·us/coin desc(excl·U형/불규칙 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격 — 신규 3종 측정 아크 완결     // [S1263] 기울기(Q4보조) 사전등록·측정(PREREG f2a7c59a): 대조군 통과·KR 변별/US·COIN 장식·Q4 본답 아님 명시·알갱이 116k gz     // [S1262] 단기(세)·장기(장) 배지 근거 토스트 — 판정 규칙+현재값 명시(_sxbShortWhy/_sxbRegimeWhy, S596 패턴)     // [S1261] 헤드▲▼↔도넛전이 충돌 해소: ①전이 루프 excl 필터 실배선(S1054 주석-코드 불일치 정정 — 제거 도넛 Δ 오카운트 원인) ②헤드 ▲▼→녹/적(현재 색권 분포 표기·방향 글리프 오독 제거) ③전이 토스트 '검증 도넛만' 명시     // [S1260] 이격도 배선(S1259 측정·PREREG d4d2932c): kr neutral-pass(2축 강·양꼬리 확대형—방향색 없음)·us/coin desc(excl·U/역U 형태 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격     // [S1259] 이격도 사전등록·측정(하네스): 대조군 통과·KR 변별(Δret+2.36 4/4단조·Δcrash+6.85)/US·COIN 장식·Q2 본답 아님 명시·알갱이 116k gz     // [S1258] Q3 수렴도 배선: kr desc(excl)·us neutral-pass(주석 승격)·coin inverse-pass(3축 강) + 표시 임시식 폐기→S1257 시장별 측정 분위(우폐)·토스트 승격     // [S1257] Q3(수렴도) 사전등록·측정(PREREG 81a94edc): 대조군 통과·KR 장식/US·COIN 변별·문항답 cant(시장 상반이 실체)·알갱이 116k gz     // [S1256] excl(desc·rev) 도넛 제거 — 흐림 표시 폐지·빈그룹 가드·지표카운트 정합. 부활 원장=_DONUT_VALID(측정 통과 시 맵 갱신만으로 복귀)     // [S1255] 신규 서술 재료 3종(이격도·기울기·수렴도) 기술 섹션 편입 — 측정 전 neutral·Q&A 사전등록 연결·클릭 토스트, 섹션 종착지=Q5(칸×레짐 성과 지도) 각인     // [S1254] 전광판 헤드 2단 재조립: 1단=톤문구+지표카운트+캡션(+▶ 상단고정) · 2단=배지 밴드(세·장·전이→변동성→경고·이벤트, flex-wrap 통합) — 좌/우열 분산 철거·배지 빌더/핸들러 무변경     // [S1253] S1248 결함 교정: rows600 재검 마킹 '당일 1회'→'30분 쿨다운' — 장전 시도가 그날 몫을 소진해 장중 갱신을 막던 구조(8:21 스크린샷 8/7이 전조)     // [S1252] 로컬키 전수 재조사: 전체초기화 밖 키 0(접두 규율 유지)·진단 낙오 4건 분류(SX_STRAT_/CELLBK_/XMAT_→단기추세, SX_PRED_→앱)   // [S1251] 단일검증 게이트 2종 카드 이식: ⛩️레짐게이트(전 진입원·v3 SSOT)+🚪출구분할(불·상승=데드만/기타=ATR만, S1216 동일 의미론) — 칩·프리셋리셋·풀BT서명 편입, dead/atr 억제만(각인은 EC 몫)     // [S1250] 실험 2종 탭 이사(S1202 메커니즘): 레시피 신호감지→단일검증(sxExpHost1 선두)·이평선 기울기 예측→학습검증(sxExpHost3 선두, kNN 형제) — async 갱신 ID기반 확인·순수 이동     // [S1249] 死코드 전수조사(선언 2102개 스캔): 참조0 확정 8건 철거(_bv2Pct·_lastOf·_predQuizDestroy·_saveToSlot·_v3Meta·refreshMaster·resetAnalParams·sxEMA×중복2정의) — 동적조립·브래킷 접근 위험 전수 0 확인   // [S1248] fetchRows600 신선도: 끝봉<KST오늘인 확정캐시 하루 1회 재확정(당일봉 확보 시 교체·미공급 시 당일 재검중단 마킹), stale peek 브리지 차단 — 무TTL 세션캐시 층위 봉합("8/7 종가기준" 실측)     // [S1247] 확장 방식 최종 철거: 死코드 _loadMoreCandles(호출처 0)+stage 플래그 시스템+fetchCandlesExtended 본체·진단 참조 소멸, 진단 오호출 fetchCandles 교정 — S1205 원칙(확장 폐기→단발) 마무리     // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15752,7 +15752,23 @@ window._sxbShortWhy = _sxbShortWhy;
 function _sxbRegimeWhy(){
   const ss = window._sxBoard && window._sxBoard._stockState;
   if(!ss) return;
-  const msg = `🌦️ ${ss.regimeLbl||ss.regime} — 판정 근거\n규칙(레짐 v3 · SXExecCore.regime5At · 일봉): MA20 vs 장기MA(200 · 부족 시 120/60 폴백) 거리 ±1.5% 이내=횡보장 · 위=상승측 · 아래=하락측.\n상승측: 20MA 기울기(10봉) ≥ +0.15%/봉 → 불장, 아니면 상승장.\n하락측: 기울기 ≤ −0.5%/봉 · ATR% ≥ 5 · 20MA 이격 ≤ −7% 중 하나 → 폭락장, 아니면 하락장.\n현재: ${ss.regimeLbl||ss.regime}${ss.cellLbl?' · 칸 '+ss.cellLbl:''}\n※임계=선언값(측정 전) · 일봉 선언이라 주/월봉은 배지 공백`;
+  // [S1270] 측정 근거 한 줄 — 현재 칸·현재 레짐의 S1269 PREREG 측정 Δ(무조건부 모집단). 색·판정 없음·기록만.
+  let _q5L = '';
+  try{
+    const _mk1270 = (typeof currentMarket!=='undefined')?currentMarket:'kr';
+    const _M = (typeof _Q5_MAP!=='undefined')?_Q5_MAP[_mk1270]:null;
+    if(_M){
+      const _f = function(e){ if(!e) return '–'; const _rm = (e.v==='무변별')?'무변별':(e.v+(e.rp===1?'·재현✓':(e.rp===-1?'·⚗보류':'·재현✗')));
+        return 'Δret '+_q5Num(e.dR)+'pp · Δcrash '+_q5Num(e.dC)+'pp · '+_rm; };
+      const _ce = ss.cell ? _M.cells[ss.cell] : null, _re = ss.regime ? _M.rgs[ss.regime] : null;
+      _q5L = `\n\n🗺 측정 근거(S1269 PREREG 43a17c2f · 그 구역에 있던 모든 봉 · 진입 무관)`
+        + (_ce?`\n· 칸 ${ss.cellLbl||ss.cell}: ${_f(_ce)}`:'')
+        + (_re?`\n· 레짐 ${ss.regimeLbl||ss.regime}: ${_f(_re)}`:'')
+        + `\n기준선 ${String(_mk1270).toUpperCase()} ret ${_q5Num(_M.base.ret)}% · crash ${_M.base.crash.toFixed(2)}%`
+        + `\n※문항 답=cant — 강(+)·재현 구역 3시장 전무. 측정 기록이지 방향 지시 아님.`;
+    }
+  }catch(_e1270c){ _q5L=''; }
+  const msg = `🌦️ ${ss.regimeLbl||ss.regime} — 판정 근거\n규칙(레짐 v3 · SXExecCore.regime5At · 일봉): MA20 vs 장기MA(200 · 부족 시 120/60 폴백) 거리 ±1.5% 이내=횡보장 · 위=상승측 · 아래=하락측.\n상승측: 20MA 기울기(10봉) ≥ +0.15%/봉 → 불장, 아니면 상승장.\n하락측: 기울기 ≤ −0.5%/봉 · ATR% ≥ 5 · 20MA 이격 ≤ −7% 중 하나 → 폭락장, 아니면 하락장.\n현재: ${ss.regimeLbl||ss.regime}${ss.cellLbl?' · 칸 '+ss.cellLbl:''}\n※임계=선언값(측정 전) · 일봉 선언이라 주/월봉은 배지 공백${_q5L}`;
   if(typeof toast === 'function') toast(msg);
   if(typeof _sxVib === 'function') _sxVib(8);
 }
@@ -19939,6 +19955,63 @@ function _v3Pp(x){
 // ════════ [S1115] 🧩 칸 사다리 v2 카드 — v3 3×3 태그 카드의 UI 승계·엔진 교체(사용자 제안) ════════
 //   데이터=SX_CELL_DATA(29규칙·ma51020) · 판정=_sxCellSignalCore(데이터 세대 추종). 표시 전용 — C/votes/시즌2 미반영.
 //   v3 카드(_v3TagCard·RECIPES_V3_BY_MKT)는 호출 해제로 자연 퇴역(코드·리포 보존=알갱이). 침묵 사유 분리(S1103 교훈)·"등록0≠무발동"(S1106) 계승.
+// ════════ [S1270] Q5 칸×레짐 성과 지도 — PREREG 43a17c2f(S1269) 측정 결과 박제 배선. ════════
+//   모집단=그 칸/레짐에 있던 **모든 봉**(진입 무관·무조건부) · START250·FWD10봉·crash≤−10% · 시장분리.
+//   ★답=cant(강(+)·재현 구역 3시장 마진 2표 전부 0). 색/등급은 S1269 판정 그대로 — 임의 보정·임계 완화 금지.
+//   ★재현 실패·⚗보류 구역은 색 없음(PREREG 조치 조항). 무변별=판정 대상 아님(rp=2).
+//   rp: 1=재현✓ · 0=재현✗(반쪽 한정) · −1=⚗보류(홀드아웃 반쪽 n<100) · 2=해당없음(무변별)
+//   등급 임계(사전선언): Δret |Δ|≥2pp 강 / 1~2pp 약 / <1pp 무변별 · Δcrash |Δ|≥5pp 강 / 2~5pp 약 / <2pp 무변별
+var _Q5_MAP = {"kr":{"base":{"n":62980,"ret":3.859,"crash":11.76},"ctl":19.96,"cells":{"bull|bull":{"n":16049,"dR":1.683,"dC":2.91,"v":"약(+)","rp":1},"bull|mixed":{"n":5177,"dR":-0.34,"dC":0.78,"v":"무변별","rp":2},"bull|bear":{"n":3975,"dR":-1.623,"dC":-1.07,"v":"약(−)","rp":1},"mixed|bull":{"n":12303,"dR":0.556,"dC":0.55,"v":"무변별","rp":2},"mixed|mixed":{"n":4686,"dR":-1.542,"dC":-1.24,"v":"약(−)","rp":1},"mixed|bear":{"n":3414,"dR":-1.895,"dC":-3.03,"v":"약(−)","rp":1},"bear|bull":{"n":10129,"dR":-0.542,"dC":-0.55,"v":"무변별","rp":2},"bear|mixed":{"n":4285,"dR":-1.031,"dC":-4.64,"v":"약(−)","rp":1},"bear|bear":{"n":2962,"dR":-0.689,"dC":-3.96,"v":"무변별","rp":2}},"rgs":{"bull":{"n":26963,"dR":0.726,"dC":2.99,"v":"무변별","rp":2},"up":{"n":18820,"dR":-0.238,"dC":-0.91,"v":"무변별","rp":2},"side":{"n":3005,"dR":0.153,"dC":-5.7,"v":"무변별","rp":2},"down":{"n":8842,"dR":-1.43,"dC":-5.29,"v":"약(−)","rp":1},"crash":{"n":5350,"dR":-0.544,"dC":0.09,"v":"무변별","rp":2}}},"us":{"base":{"n":32467,"ret":1.189,"crash":7.13},"ctl":11.24,"cells":{"bull|bull":{"n":5833,"dR":0.566,"dC":0.14,"v":"무변별","rp":2},"bull|mixed":{"n":3651,"dR":0.497,"dC":-0.53,"v":"무변별","rp":2},"bull|bear":{"n":2964,"dR":0.385,"dC":-0.59,"v":"무변별","rp":2},"mixed|bull":{"n":4688,"dR":-0.038,"dC":0.4,"v":"무변별","rp":2},"mixed|mixed":{"n":2995,"dR":-0.337,"dC":-0.79,"v":"무변별","rp":2},"mixed|bear":{"n":2805,"dR":-0.81,"dC":1.49,"v":"무변별","rp":2},"bear|bull":{"n":3999,"dR":-0.327,"dC":-0.01,"v":"무변별","rp":2},"bear|mixed":{"n":2755,"dR":-0.041,"dC":-1.65,"v":"무변별","rp":2},"bear|bear":{"n":2777,"dR":-0.497,"dC":1.36,"v":"무변별","rp":2}},"rgs":{"bull":{"n":9746,"dR":0.994,"dC":-0.51,"v":"무변별","rp":2},"up":{"n":8419,"dR":-0.367,"dC":-0.01,"v":"무변별","rp":2},"side":{"n":2346,"dR":-0.415,"dC":-2.23,"v":"무변별","rp":2},"down":{"n":8308,"dR":-1.184,"dC":-0.5,"v":"약(−)","rp":1},"crash":{"n":3648,"dR":1.155,"dC":3.94,"v":"약(+)","rp":1}}},"coin":{"base":{"n":20535,"ret":-2.981,"crash":22.68},"ctl":7.18,"cells":{"bull|bull":{"n":218,"dR":2.721,"dC":-2.95,"v":"강(+)","rp":-1},"bull|mixed":{"n":338,"dR":1.79,"dC":4.24,"v":"약(+)","rp":-1},"bull|bear":{"n":3321,"dR":0.226,"dC":-2.53,"v":"무변별","rp":2},"mixed|bull":{"n":198,"dR":0.314,"dC":3.58,"v":"무변별","rp":2},"mixed|mixed":{"n":644,"dR":-1.485,"dC":8.53,"v":"약(−)","rp":0},"mixed|bear":{"n":5914,"dR":0.513,"dC":-4.92,"v":"무변별","rp":2},"bear|bull":{"n":208,"dR":0.024,"dC":5.21,"v":"무변별","rp":2},"bear|mixed":{"n":1215,"dR":-1.579,"dC":11.4,"v":"약(−)","rp":0},"bear|bear":{"n":8479,"dR":-0.257,"dC":1.84,"v":"무변별","rp":2}},"rgs":{"bull":{"n":560,"dR":0.755,"dC":6.43,"v":"무변별","rp":2},"up":{"n":560,"dR":-1.596,"dC":8.39,"v":"약(−)","rp":1},"side":{"n":161,"dR":2.616,"dC":-0.32,"v":"강(+)","rp":-1},"down":{"n":5249,"dR":0.838,"dC":-6.18,"v":"무변별","rp":2},"crash":{"n":14005,"dR":-0.311,"dC":1.73,"v":"무변별","rp":2}}}};
+var _Q5_RGL = { bull:'🔥불장', up:'📈상승장', side:'➡️횡보장', down:'📉하락장', crash:'🌋폭락장' };   // [S1270] 레짐 표기(_btRenderRegime 어휘 미러)
+//  구역 1개 → {색, 등급칩} — 재현 실패/보류는 색 없음
+function _q5Tone(e){
+  var T3='var(--text3)';
+  if(!e) return { bg:'', col:T3, chip:'', mark:'' };
+  if(e.v==='무변별') return { bg:'', col:T3, chip:'', mark:'' };
+  if(e.rp!==1) return { bg:'', col:T3, chip:e.v, mark:(e.rp===-1?'⚗보류':'재현✗') };   // 색 없음 — 판정 미확정
+  var pos=(e.dR>0);
+  return { bg:(pos?'rgba(22,163,74,.10)':'rgba(220,38,38,.08)'), col:(pos?'#16a34a':'#dc2626'), chip:e.v, mark:'재현✓' };
+}
+function _q5Num(v,d){ return (v>0?'+':'')+Number(v).toFixed(d==null?2:d); }
+//  분석탭 칸 사다리 카드에 붙는 지도 본체. curCell/curRg 없으면 강조만 생략(지도 자체는 종목 무관).
+function _q5MapHtml(mk, curCell, curRg){
+  try{
+    var M=_Q5_MAP&&_Q5_MAP[mk]; if(!M) return '';
+    var T2='var(--text2)', T3='var(--text3)', BLU='#2563eb';
+    var esc=function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k]; }); };
+    var SS=['bull','bear','mixed'], LS=['bull','bear','mixed'];
+    var SL={bull:'강세',bear:'약세',mixed:'중립'}, LL={bull:'상승세',bear:'하락세',mixed:'혼조세'};
+    var h='<div style="font-size:9px;font-weight:700;color:'+T3+';margin:9px 0 3px;padding-top:7px;border-top:1px solid var(--border)">🗺 칸×레짐 성과 지도 <span style="font-weight:400">(S1269 PREREG 측정 · 그 칸에 있던 <b>모든 봉</b> · 진입 무관)</span></div>';
+    h+='<div style="font-size:8px;color:'+T3+';line-height:1.5;margin-bottom:4px">기준선 '+mk.toUpperCase()+' n='+M.base.n+' · ret '+_q5Num(M.base.ret)+'% · crash '+M.base.crash.toFixed(2)+'% — 셀=<b>Δret</b>(위)·<b>Δcrash</b>(아래·+면 폭락 잦음)</div>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:8.5px;text-align:center">';
+    h+='<tr><td></td>'; for(var l0=0;l0<3;l0++) h+='<td style="color:'+T3+';font-size:8px">'+LL[LS[l0]]+'</td>'; h+='</tr>';
+    for(var si=0;si<3;si++){ var sx=SS[si]; h+='<tr><td style="color:'+T3+';font-size:8px">'+SL[sx]+'</td>';
+      for(var li=0;li<3;li++){ var ck=sx+'|'+LS[li], e=M.cells[ck], t=_q5Tone(e), cur=(ck===curCell);
+        var nm=(typeof _cellName==='function')?_cellName(ck):ck;
+        h+='<td style="padding:4px 2px;border:1px solid '+(cur?BLU:'var(--border)')+';'+(t.bg?('background:'+t.bg+';'):'')+'">'
+          +'<div style="font-size:7.5px;color:'+(cur?BLU:T3)+';font-weight:'+(cur?'800':'400')+'">'+esc(nm)+'</div>'
+          +'<div style="font-size:9.5px;font-weight:800;color:'+t.col+'">'+(e?_q5Num(e.dR):'–')+'</div>'
+          +'<div style="font-size:7.5px;color:'+T3+'">'+(e?_q5Num(e.dC):'–')+'</div>'
+          +(t.chip?('<div style="font-size:7px;color:'+t.col+';font-weight:700">'+esc(t.chip)+(t.mark?(' '+t.mark):'')+'</div>'):'')
+          +'</td>'; }
+      h+='</tr>'; }
+    h+='</table>';
+    h+='<div style="font-size:9px;font-weight:700;color:'+T3+';margin:7px 0 3px">레짐 마진 <span style="font-weight:400">(regime5At 5국 · 같은 모집단)</span></div>';
+    var RO=['bull','up','side','down','crash'];
+    for(var ri=0;ri<RO.length;ri++){ var rg=RO[ri], re=M.rgs[rg], rt=_q5Tone(re), rcur=(rg===curRg);
+      h+='<div style="display:flex;align-items:baseline;gap:6px;font-size:9px;padding:2.5px 4px;border-radius:5px;'+(rt.bg?('background:'+rt.bg+';'):'')+(rcur?'border:1px solid '+BLU+';':'')+'">'
+        +'<span style="font-weight:'+(rcur?'800':'600')+';color:'+(rcur?BLU:T2)+';min-width:56px">'+_Q5_RGL[rg]+'</span>'
+        +'<span style="color:'+rt.col+';font-weight:800">Δret '+(re?_q5Num(re.dR):'–')+'</span>'
+        +'<span style="color:'+T3+'">Δcrash '+(re?_q5Num(re.dC):'–')+'</span>'
+        +'<span style="margin-left:auto;color:'+rt.col+';font-weight:700;font-size:8px">'+(rt.chip?(esc(rt.chip)+(rt.mark?(' '+rt.mark):'')):'')+'</span>'
+        +'</div>'; }
+    h+='<div style="font-size:8px;color:'+T3+';line-height:1.6;margin-top:5px">문항 답 <b>cant</b>(현 기준하) — "가장 극대화" 단답이 성립할 <b>강(+)·재현 구역이 3시장 마진 2표 어디에도 없음</b>. 우위 축마저 시장별로 다름(KR=칸축·US=레짐축·COIN=표본 쏠림). '
+      +'<b>색 있는 구역만 재현✓</b> · ⚗보류=홀드아웃 반쪽 n&lt;100(강(+) 후보 2곳 전부 여기) · 재현✗=전반/후반 한정. '
+      +'대조군(ATR% 5분위 Δcrash) 통과 +19.96/+11.24/+7.18pp. 등급 임계는 사전선언값(Δret 2pp/1pp · Δcrash 5pp/2pp) — 사후 완화 없음. '
+      +'무조건부 지형이라 <b>"거기서 진입하면"이 아니라 "거기 있으면"</b>이다(위 규칙 분포와 모집단 다름) · 표시 전용·판정 무관.</div>';
+    return h;
+  }catch(e){ return ''; }
+}
 function _cellLadderCard(mk, qs, indicators){
   var GRN='#16a34a', RED='#dc2626', AMB='#ea580c', BLU='#2563eb', DKR='#7f1d1d', T2='var(--text2)', T3='var(--text3)';
   var esc=(typeof _bv2Esc==='function') ? _bv2Esc : function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k]; }); };
@@ -19965,7 +20038,8 @@ function _cellLadderCard(mk, qs, indicators){
     var reg={}, mktRules=0;
     for(var i=0;i<D.rules.length;i++){ var r=D.rules[i]; if(r.mkt!==mk) continue; mktRules++;
       var o=reg[r.cell]||(reg[r.cell]={real:0,fake:0,down:0}); o[r.kind]=(o[r.kind]||0)+1; }
-    if(!mktRules) return mute('🚧 '+esc(String(mk).toUpperCase())+'는 채택 규칙 0 — 이 시장은 판정 라운드에서 채택 칸이 없었다.');
+    if(!mktRules) return wrap('<div style="font-size:10px;color:'+T3+';line-height:1.55">🚧 '+esc(String(mk).toUpperCase())+'는 채택 규칙 0 — 이 시장은 판정 라운드에서 채택 칸이 없었다.</div>'
+      +(typeof _q5MapHtml==='function'?_q5MapHtml:function(){return '';})(mk, cs.cell, (function(){ try{ return (typeof SXExecCore!=='undefined'&&SXExecCore.regime5At)?SXExecCore.regime5At(rows, rows.length-1):null; }catch(_e1270a){ return null; } })()));   // [S1270] 규칙 0이어도 지도는 종목·규칙 무관 — 가드 위로
     var CLBL=(typeof _cellName==='function')?_cellName(cs.cell):cs.lbl;   // [S1127] cell_data cellLbl 미러 무시 — 키에서 도출   // [S1115b] 규칙 없는 칸은 core가 lbl=null — SSOT에서 직접 도출(NAVER 기술적반등서 'bull|bear' 노출 수정)
     // [S1127] 폴백 제거 — _cellName이 키 미해석 시 키 자체를 돌려주므로 null이 될 수 없다(S1115b 폴백 흡수).
     var h='<div style="font-size:11.5px;color:'+T2+';line-height:1.6;margin-bottom:6px">'
@@ -20013,6 +20087,8 @@ function _cellLadderCard(mk, qs, indicators){
           +(rr?('<div style="font-size:7.5px;color:'+T3+'">어휘 '+_vw+'</div>'):'')+'</td>'; }
       h+='</tr>'; }
     h+='</table>';
+    // [S1270] Q5 칸×레짐 성과 지도 — 무조건부 모집단(위 규칙 분포와 다름·캡션 명기)
+    h+=(typeof _q5MapHtml==='function'?_q5MapHtml:function(){return '';})(mk, cs.cell, (function(){ try{ return (typeof SXExecCore!=='undefined'&&SXExecCore.regime5At)?SXExecCore.regime5At(rows, rows.length-1):null; }catch(_e1270b){ return null; } })());
     h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.6;margin-top:6px">세트 v2 '+D.rules.length+'규칙 · '+esc((D.meta&&D.meta.axisGen)||'')+' 세대(단기 5&gt;10&gt;20) · '+esc((D.meta&&D.meta.ver)||'')+' 판정. <b>2층</b>: 규칙=강한/일반(soft) 신호(판정 통과) · 어휘 활동=겹침 k≥2(판정 없음). 이 카드는 <b>표시만</b> 한다 — C 판정·votes·시즌2 어디에도 반영되지 않는다. <b>D(회피)는 하락 관측이지 매도 지시가 아니다.</b> 규칙은 in-sample 적합 — 시간축 OOS 축적 중(현 기준하 보임).</div>';
     return wrap(h);
   }catch(e){ return ''; }
