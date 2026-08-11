@@ -13789,7 +13789,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1266';   // [S1266] 이격도 토스트 라벨 분위 정합: Q1/Q5만 '큼'·Q2/Q4는 방향만(하방/상방 이격)·Q3 밀착권 — v임계는 _q 폴백으로 강등     // [S1265] 신규 3종 침묵사 픽스: S1255 블록 _ssRows가 앞 try 스코프 밖 참조(ReferenceError→_e1255 침묵) — 실기기 3종 미push·기술지표 그룹 소멸·요약 '–'의 단일 원인. stock._lastAnalCandles 재유도+typeof 폴백(하네스 호환)     // [S1264] 기울기 배선(S1263 측정·PREREG f2a7c59a): kr neutral-pass(양꼬리 — 수익 약 4/4단조+위험 강)·us/coin desc(excl·U형/불규칙 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격 — 신규 3종 측정 아크 완결     // [S1263] 기울기(Q4보조) 사전등록·측정(PREREG f2a7c59a): 대조군 통과·KR 변별/US·COIN 장식·Q4 본답 아님 명시·알갱이 116k gz     // [S1262] 단기(세)·장기(장) 배지 근거 토스트 — 판정 규칙+현재값 명시(_sxbShortWhy/_sxbRegimeWhy, S596 패턴)     // [S1261] 헤드▲▼↔도넛전이 충돌 해소: ①전이 루프 excl 필터 실배선(S1054 주석-코드 불일치 정정 — 제거 도넛 Δ 오카운트 원인) ②헤드 ▲▼→녹/적(현재 색권 분포 표기·방향 글리프 오독 제거) ③전이 토스트 '검증 도넛만' 명시     // [S1260] 이격도 배선(S1259 측정·PREREG d4d2932c): kr neutral-pass(2축 강·양꼬리 확대형—방향색 없음)·us/coin desc(excl·U/역U 형태 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격     // [S1259] 이격도 사전등록·측정(하네스): 대조군 통과·KR 변별(Δret+2.36 4/4단조·Δcrash+6.85)/US·COIN 장식·Q2 본답 아님 명시·알갱이 116k gz     // [S1258] Q3 수렴도 배선: kr desc(excl)·us neutral-pass(주석 승격)·coin inverse-pass(3축 강) + 표시 임시식 폐기→S1257 시장별 측정 분위(우폐)·토스트 승격     // [S1257] Q3(수렴도) 사전등록·측정(PREREG 81a94edc): 대조군 통과·KR 장식/US·COIN 변별·문항답 cant(시장 상반이 실체)·알갱이 116k gz     // [S1256] excl(desc·rev) 도넛 제거 — 흐림 표시 폐지·빈그룹 가드·지표카운트 정합. 부활 원장=_DONUT_VALID(측정 통과 시 맵 갱신만으로 복귀)     // [S1255] 신규 서술 재료 3종(이격도·기울기·수렴도) 기술 섹션 편입 — 측정 전 neutral·Q&A 사전등록 연결·클릭 토스트, 섹션 종착지=Q5(칸×레짐 성과 지도) 각인     // [S1254] 전광판 헤드 2단 재조립: 1단=톤문구+지표카운트+캡션(+▶ 상단고정) · 2단=배지 밴드(세·장·전이→변동성→경고·이벤트, flex-wrap 통합) — 좌/우열 분산 철거·배지 빌더/핸들러 무변경     // [S1253] S1248 결함 교정: rows600 재검 마킹 '당일 1회'→'30분 쿨다운' — 장전 시도가 그날 몫을 소진해 장중 갱신을 막던 구조(8:21 스크린샷 8/7이 전조)     // [S1252] 로컬키 전수 재조사: 전체초기화 밖 키 0(접두 규율 유지)·진단 낙오 4건 분류(SX_STRAT_/CELLBK_/XMAT_→단기추세, SX_PRED_→앱)   // [S1251] 단일검증 게이트 2종 카드 이식: ⛩️레짐게이트(전 진입원·v3 SSOT)+🚪출구분할(불·상승=데드만/기타=ATR만, S1216 동일 의미론) — 칩·프리셋리셋·풀BT서명 편입, dead/atr 억제만(각인은 EC 몫)     // [S1250] 실험 2종 탭 이사(S1202 메커니즘): 레시피 신호감지→단일검증(sxExpHost1 선두)·이평선 기울기 예측→학습검증(sxExpHost3 선두, kNN 형제) — async 갱신 ID기반 확인·순수 이동     // [S1249] 死코드 전수조사(선언 2102개 스캔): 참조0 확정 8건 철거(_bv2Pct·_lastOf·_predQuizDestroy·_saveToSlot·_v3Meta·refreshMaster·resetAnalParams·sxEMA×중복2정의) — 동적조립·브래킷 접근 위험 전수 0 확인   // [S1248] fetchRows600 신선도: 끝봉<KST오늘인 확정캐시 하루 1회 재확정(당일봉 확보 시 교체·미공급 시 당일 재검중단 마킹), stale peek 브리지 차단 — 무TTL 세션캐시 층위 봉합("8/7 종가기준" 실측)     // [S1247] 확장 방식 최종 철거: 死코드 _loadMoreCandles(호출처 0)+stage 플래그 시스템+fetchCandlesExtended 본체·진단 참조 소멸, 진단 오호출 fetchCandles 교정 — S1205 원칙(확장 폐기→단발) 마무리     // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1268';   // [S1268] RS 배선(S1267 측정·PREREG 0b1c5260): kr 중립 전환(양꼬리·절차③)·us/coin desc(excl) + 토스트 측정 승격 — 추세·구조 요약 kr=변동성 단독·us='–'화 사전 인지     // [S1267] RS(상대강도) 사전등록·측정: 지수 4계열 실기기 동일 소스(야후 KS11/KQ11/GSPC·업비트 BTC)·정렬 미스매치 0·대조군 통과·KR 변별/US·COIN 장식·알갱이 116k gz     // [S1266] 이격도 토스트 라벨 분위 정합: Q1/Q5만 '큼'·Q2/Q4는 방향만(하방/상방 이격)·Q3 밀착권 — v임계는 _q 폴백으로 강등     // [S1265] 신규 3종 침묵사 픽스: S1255 블록 _ssRows가 앞 try 스코프 밖 참조(ReferenceError→_e1255 침묵) — 실기기 3종 미push·기술지표 그룹 소멸·요약 '–'의 단일 원인. stock._lastAnalCandles 재유도+typeof 폴백(하네스 호환)     // [S1264] 기울기 배선(S1263 측정·PREREG f2a7c59a): kr neutral-pass(양꼬리 — 수익 약 4/4단조+위험 강)·us/coin desc(excl·U형/불규칙 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격 — 신규 3종 측정 아크 완결     // [S1263] 기울기(Q4보조) 사전등록·측정(PREREG f2a7c59a): 대조군 통과·KR 변별/US·COIN 장식·Q4 본답 아님 명시·알갱이 116k gz     // [S1262] 단기(세)·장기(장) 배지 근거 토스트 — 판정 규칙+현재값 명시(_sxbShortWhy/_sxbRegimeWhy, S596 패턴)     // [S1261] 헤드▲▼↔도넛전이 충돌 해소: ①전이 루프 excl 필터 실배선(S1054 주석-코드 불일치 정정 — 제거 도넛 Δ 오카운트 원인) ②헤드 ▲▼→녹/적(현재 색권 분포 표기·방향 글리프 오독 제거) ③전이 토스트 '검증 도넛만' 명시     // [S1260] 이격도 배선(S1259 측정·PREREG d4d2932c): kr neutral-pass(2축 강·양꼬리 확대형—방향색 없음)·us/coin desc(excl·U/역U 형태 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격     // [S1259] 이격도 사전등록·측정(하네스): 대조군 통과·KR 변별(Δret+2.36 4/4단조·Δcrash+6.85)/US·COIN 장식·Q2 본답 아님 명시·알갱이 116k gz     // [S1258] Q3 수렴도 배선: kr desc(excl)·us neutral-pass(주석 승격)·coin inverse-pass(3축 강) + 표시 임시식 폐기→S1257 시장별 측정 분위(우폐)·토스트 승격     // [S1257] Q3(수렴도) 사전등록·측정(PREREG 81a94edc): 대조군 통과·KR 장식/US·COIN 변별·문항답 cant(시장 상반이 실체)·알갱이 116k gz     // [S1256] excl(desc·rev) 도넛 제거 — 흐림 표시 폐지·빈그룹 가드·지표카운트 정합. 부활 원장=_DONUT_VALID(측정 통과 시 맵 갱신만으로 복귀)     // [S1255] 신규 서술 재료 3종(이격도·기울기·수렴도) 기술 섹션 편입 — 측정 전 neutral·Q&A 사전등록 연결·클릭 토스트, 섹션 종착지=Q5(칸×레짐 성과 지도) 각인     // [S1254] 전광판 헤드 2단 재조립: 1단=톤문구+지표카운트+캡션(+▶ 상단고정) · 2단=배지 밴드(세·장·전이→변동성→경고·이벤트, flex-wrap 통합) — 좌/우열 분산 철거·배지 빌더/핸들러 무변경     // [S1253] S1248 결함 교정: rows600 재검 마킹 '당일 1회'→'30분 쿨다운' — 장전 시도가 그날 몫을 소진해 장중 갱신을 막던 구조(8:21 스크린샷 8/7이 전조)     // [S1252] 로컬키 전수 재조사: 전체초기화 밖 키 0(접두 규율 유지)·진단 낙오 4건 분류(SX_STRAT_/CELLBK_/XMAT_→단기추세, SX_PRED_→앱)   // [S1251] 단일검증 게이트 2종 카드 이식: ⛩️레짐게이트(전 진입원·v3 SSOT)+🚪출구분할(불·상승=데드만/기타=ATR만, S1216 동일 의미론) — 칩·프리셋리셋·풀BT서명 편입, dead/atr 억제만(각인은 EC 몫)     // [S1250] 실험 2종 탭 이사(S1202 메커니즘): 레시피 신호감지→단일검증(sxExpHost1 선두)·이평선 기울기 예측→학습검증(sxExpHost3 선두, kNN 형제) — async 갱신 ID기반 확인·순수 이동     // [S1249] 死코드 전수조사(선언 2102개 스캔): 참조0 확정 8건 철거(_bv2Pct·_lastOf·_predQuizDestroy·_saveToSlot·_v3Meta·refreshMaster·resetAnalParams·sxEMA×중복2정의) — 동적조립·브래킷 접근 위험 전수 0 확인   // [S1248] fetchRows600 신선도: 끝봉<KST오늘인 확정캐시 하루 1회 재확정(당일봉 확보 시 교체·미공급 시 당일 재검중단 마킹), stale peek 브리지 차단 — 무TTL 세션캐시 층위 봉합("8/7 종가기준" 실측)     // [S1247] 확장 방식 최종 철거: 死코드 _loadMoreCandles(호출처 0)+stage 플래그 시스템+fetchCandlesExtended 본체·진단 참조 소멸, 진단 오호출 fetchCandles 교정 — S1205 원칙(확장 폐기→단발) 마무리     // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -15928,6 +15928,11 @@ window._sxToggleAxisCards = _sxToggleAxisCards;
 function _sxbBuildWhyMsg(it){
   const v = it.v, k = it.k;
   // [S390] MTF / 투자자수급 — 전용 설명 (byValue 기본 메시지보다 우선)
+  if(k === '상대강도'){
+    const _mkR=(typeof currentMarket!=='undefined' && currentMarket)||'kr';
+    if(_mkR==='kr') return `🏁 상대강도 ${v} — 지수(KOSPI/KOSDAQ) 대비 20봉 초과수익 점수\n✅ S1267 측정 변별(양꼬리): Δret +3.1pp(강·4/4단조)·Δcrash +4.2pp(약·U형) — 강세=고수익·고crash 동반 → 방향색 제거(중립 전환)`;
+    return `🏁 상대강도 ${v} — 지수 대비 20봉 초과수익 점수\n⚗️ S1267 ${_mkR==='us'?'US 장식(수익 약·Q5 독주형)':'COIN 장식(위험 약·U형)'} — 렌더 제외·부활 원장 대기`;
+  }
   if(k === 'MTF'){
     const lv = v>=80?'강한 상승 정합':v>=60?'상승 우세':v>40?'혼조':v>=20?'하락 우세':'강한 하락 정합';
     return `📊 MTF ${v}점 — 일·주·월 ${lv} (상위TF 가중)`;
@@ -16788,6 +16793,8 @@ function _sxbHTML(){
 //   kr A/D·Chaikin·coin 눌림신호 = 약(1~2pp) 통과 등급. ADX(추세강도)는 S1052 neutral 유지(3시장 고ADX=고crash 재확인·방향 없는 강도).
 //   [S1258] 수렴도 = Q3 배선(S1257·PREREG 81a94edc) — cant의 실체는 시장 상반(coin 넓음유리 強 ↔ kr 좁음기미 弱). us는 pass여도 push가 neutral(방향無).
 //   [S1264] 기울기 = Q4보조 배선(S1263·PREREG f2a7c59a) — kr 양꼬리(이격도와 동형): 가파른 상승 기울기=고수익·고crash 동반. us U형·coin 불규칙=장식.
+//   [S1268] 상대강도 = RS 배선(S1267·PREREG 0b1c5260) — kr 양꼬리 4호(거래량·이격도·기울기·RS: 모멘텀 계열 공통 구조로 보임). us/coin 장식.
+//     추세·구조 요약 여파(사전 인지분): kr=변동성 단독 · us='–'(판정 재료 전무) · coin=구조위치+변동성 유지.
 //   [S1260] 이격도 = S1259 배선(PREREG d4d2932c) — KR만 변별(양꼬리: 위 이격 수익↑·crash↑ 동반 → 방향색 불가·중립). US U형·COIN 역U형은 형태 기록만(꼬리 재단은 후속 문항).
 const _DONUT_VALID = {
   kr: {
@@ -16796,12 +16803,14 @@ const _DONUT_VALID = {
     '추세신호':'desc','구조위치':'desc','눌림신호':'desc','EOM':'desc','스토캐스틱':'desc','볼린저%B':'desc','크로스신호':'desc','이평선 배열':'desc',
     '수렴도':'desc',  // [S1258] Q3(S1257): 위험축 약(+2.9pp) 1축뿐 — 장식(excl)
     '이격도':'pass',   // [S1260] S1259: 2축 강(Δret+2.36pp·4/4단조 / Δcrash+6.85pp 동반) — 양꼬리 확대형·방향색 없음 → neutral-pass(push neutral 유지)
-    '기울기':'pass'   // [S1264] S1263: 수익 약(+1.93pp·4/4단조)·위험 강(+7.33pp) 동반 — 양꼬리·방향색 없음 → neutral-pass(push neutral 유지)
+    '기울기':'pass',   // [S1264] S1263: 수익 약(+1.93pp·4/4단조)·위험 강(+7.33pp) 동반 — 양꼬리·방향색 없음 → neutral-pass(push neutral 유지)
+    '상대강도':'pass'   // [S1268] S1267: 수익 강(+3.14pp·4/4단조)·위험 약(+4.23pp·U형) 동반 — 양꼬리·중립 전환(push neutral, 절차③)
   },
   us: {
     '수렴도':'pass',   // [S1258] Q3(S1257): 확장축 단독 강(+11.9%)·수익/위험 무변별 — 방향無 neutral-pass(회색 유지·주석 승격)
     '이격도':'desc',   // [S1260] S1259: 수익 약 +1.52(U형: 양끝>중앙)·위험 무변별 — 장식(excl·형태 기록)
     '기울기':'desc',   // [S1264] S1263: 수익 약 +1.72(U형: 양끝>중앙)·위험 무변별 — 장식(excl·형태 기록)
+    '상대강도':'desc',   // [S1268] S1267: 수익 약 +1.91(Q5 독주형)·위험 무변별 — 장식(excl·형태 기록)
     '변동성':'rev',   // inverse 기대와 수익축 역(강 +2.0) — 고변동 Q5가 수익 독식("차단=대박 버림" 재확인). 위험축은 정합(+8.7).
     '추세신호':'desc','가격모멘텀':'desc','거래량':'desc','구조위치':'desc','눌림신호':'desc','A/D':'desc','EOM':'desc','Chaikin':'desc','MFI':'desc','대금전이':'desc','스토캐스틱':'desc','볼린저%B':'desc','크로스신호':'desc','이평선 배열':'desc'
   },
@@ -16809,6 +16818,7 @@ const _DONUT_VALID = {
     '수렴도':'pass',   // [S1258] Q3(S1257): 3축 강(Δret+3.59pp·Δcrash−16.8pp·ΔE−16.4%) — 인버스(수렴=crash 32.9% 주의)
     '이격도':'desc',   // [S1260] S1259: 위험 약 −3.51(역U형: Q5 재반등)·수익 무변별 — 장식(excl·형태 기록)
     '기울기':'desc',   // [S1264] S1263: 위험 약 +3.94(불규칙: Q4 최저·양끝 높음)·수익 무변별 — 장식(excl·형태 기록)
+    '상대강도':'desc',   // [S1268] S1267: 위험 약 +3.80(U형: Q5 crash 최다)·수익 무변별 — 장식(excl·형태 기록)
     '볼린저%B':'pass','스토캐스틱':'pass','변동성':'pass','구조위치':'pass','눌림신호':'pass','크로스신호':'pass',
     'Chaikin':'rev','A/D':'rev','대금전이':'rev','가격모멘텀':'rev','심리도':'rev',  // money-flow/모멘텀 계열 코인 역배선(run-up 구동)
     '추세신호':'desc','거래량':'desc','EOM':'desc','MFI':'desc','이평선 배열':'desc'
@@ -16827,13 +16837,15 @@ function _donutVStat(k){
 function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   D = D || {}; extras = extras || {};
   const g1=[], g2=[], g3=[], g4=[], g5=[];
+  const _isKrMkt = (((typeof currentMarket!=='undefined' && currentMarket)||'kr')==='kr');   // [S1268] RS 중립 전환(kr 한정) 스코프
   // ① 추세·구조
   // [S989] 5축 배제 — '추세방향'(sv4.trendScore) 제거. 추세는 추세신호(scores.trend)+추세강도(ADX)가 커버 · 기술적 판단=3×3 SSOT.
   if(scores && scores.trend!=null) g1.push({k:'추세신호', v:scores.trend, d:D.trend});
   if(extras.adx && extras.adx.v!=null) g1.push({k:'추세강도', v:extras.adx.v, d:extras.adx.d, byValue:true, neutral:true});      // [S362/S364] ADX 값 기준 분포 [S1052] neutral — ADX=방향없는 강도(강한 하락도 高). green=good 오배선 제거·회색 서술
   if(structPos!=null) g1.push({k:'구조위치', v:structPos, neutral:true, inverse:true, d:D.struct});                // [S362] 인버스 색(과열 빨/안정 녹)
   if(extras.vola && extras.vola.v!=null) g1.push({k:'변동성', v:extras.vola.v, neutral:true, inverse:true});       // [S362] ATR% — 변동성 심하면 빨강/양호 녹색
-  if(extras.rs && extras.rs.v!=null) g1.push({k:'상대강도', v:extras.rs.v, byValue:true});                         // [S438] RS — 시장(지수) 대비 강도. 점수색·분포 카운트 포함
+  // [S1268] RS 배선(S1267 측정): kr=중립 전환(양꼬리 — 색 제거·평균 제외, 절차③) / us·coin=desc→S1054 루프가 excl. byValue 분포 표기 유지.
+  if(extras.rs && extras.rs.v!=null) g1.push({k:'상대강도', v:extras.rs.v, byValue:true, neutral:_isKrMkt});           // [S438] RS — 시장(지수) 대비 강도
   // ② 모멘텀·진입
   if(scores && scores.momentum!=null) g2.push({k:'가격모멘텀', v:scores.momentum, d:D.momentum});
   // [S989] 5축 배제 — '반등준비'(sv4.readyScore) 제거. 눌림/반등 해석=3×3 SSOT + 눌림신호(pbScore).
