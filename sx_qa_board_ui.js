@@ -394,10 +394,43 @@
     M.push('</div>');
     var dd = g.byDepth;
     if (dd[1] + dd[2] + dd[3] > 0) {
+      //  [S1274] 깊이는 **툴팁만** 붙인다 — S1174가 "이름표를 배지 옆에 붙이면 판정처럼 읽힌다"고
+      //    화면에서 뺀 항목이다. 그 결정을 뒤집지 않고 desc만 title로 되살린다.
+      var _dp = (QA && QA.DEPTH) || {};
+      var _dt = function (n) { return _esc((_dp[n] && _dp[n].desc) || ''); };
       M.push('<div style="margin-top:4px;font-size:10px;color:' + T2 + '">답의 깊이 '
-        + '●○○ ' + dd[1] + ' · ●●○ ' + dd[2] + ' · ●●● ' + dd[3]
+        + '<span title="' + _dt(1) + '">●○○ ' + dd[1] + '</span> · '
+        + '<span title="' + _dt(2) + '">●●○ ' + dd[2] + '</span> · '
+        + '<span title="' + _dt(3) + '">●●● ' + dd[3] + '</span>'
         + (dd.none ? ' <span style="color:' + T3 + '">(미표기 ' + dd.none + ')</span>' : '') + '</div>');
     }
+    //  [S1274] 배지 뜻 참조줄 — 색만 보고는 무슨 상태인지 알 수 없었다(실제로 헷갈렸다).
+    //    ★어휘는 SXQA.ST SSOT에서 파생한다(하드코딩 미러 금지 — S1272 교훈: axisLong이 선언만 되고
+    //      소비자 0이라 카드마다 미러가 표류했다). ST 이름·설명이 바뀌면 여기도 따라 바뀐다.
+    //    ★판정 3색과 미답 2색을 줄로 나눈다 — 위 '판정 N건'은 판정 3색만 센 수인데 표에는 🟡·🔵도
+    //      같이 찍히므로, 나누지 않으면 헤더 수와 표 합계가 어긋나 보인다(47 vs 26).
+    var _ST = (QA && QA.ST) || null;
+    var _lg = function (st, fb) {
+      var e = _ST && _ST[st];
+      var ic = (e && e.icon) || fb[0], nm = (e && e.name) || fb[1], ds = (e && e.desc) || fb[2];
+      return '<span style="white-space:nowrap" title="' + _esc(ds) + '">' + ic
+        + '<b style="font-weight:700">' + _esc(nm) + '</b>'
+        + '<span style="color:' + T3 + '"> ' + _esc(ds) + '</span></span>';
+    };
+    var _undone = (g.bySt[0] || 0) + (g.bySt[1] || 0);
+    M.push('<div style="margin-top:7px;padding-top:6px;border-top:1px dotted ' + BD
+      + ';font-size:9px;color:' + T2 + ';line-height:1.85">'
+      + '<div style="color:' + T3 + ';font-weight:700;margin-bottom:1px">배지 뜻 — 참조용</div>'
+      + '<div>판정 ' + ansN + '건 &nbsp;'
+        + _lg(3, ['🟢', '그렇다', '쟀고 됐다']) + ' &nbsp;'
+        + _lg(2, ['⚫', '아니다', '쟀고 안 됐다']) + ' &nbsp;'
+        + _lg(4, ['⚪', '못 잰다', '데이터 없음 · 번역 불가']) + '</div>'
+      + '<div>미답 ' + _undone + '건 &nbsp;'
+        + _lg(1, ['🟡', '재는 중', '게이트 선언됨 · 측정 진행']) + ' &nbsp;'
+        + _lg(0, ['🔵', '안 잼', '궁금하지만 아직 안 재봄']) + '</div>'
+      + '<div style="color:' + T3 + '">🟡·🔵는 위 판정 수에 안 들어간다 — 아직 답이 없다. '
+      + '사람이 옮기는 건 🔵↔🟡뿐이고, ⚫·🟢·⚪는 답이 달릴 때만 바뀐다(수정 불가).</div>'
+      + '</div>');
     if (!ansN) M.push('<div style="margin-top:5px;font-size:9.5px;color:' + T3 + '">'
       + '아직 판정이 없다 — 답이 쌓이면 축마다 어디로 몰리는지가 여기 드러난다.</div>');
     return box(M.join(''));
