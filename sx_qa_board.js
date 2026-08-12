@@ -403,7 +403,7 @@
   function importAll(obj) {
     var rows = (obj && Array.isArray(obj.rows)) ? obj.rows : (Array.isArray(obj) ? obj : null);
     if (!rows) return Promise.reject(new Error('rows 없음 — 게시판 내보내기 파일이 맞나'));
-    var R = { added: 0, answered: 0, gated: 0, locked: 0, bad: 0 };
+    var R = { added: 0, answered: 0, gated: 0, retagged: 0, locked: 0, bad: 0 };   // [S1278] retagged 추가
     return _tx('readwrite').then(function (h) {
       var chain = Promise.resolve();
       rows.forEach(function (inc) {
@@ -418,8 +418,21 @@
               inc.ver = inc.ver || VER;
               return _wrap(h.s.add(inc)).then(function () { R.added++; });
             }
-            if (cur.ans != null) { R.locked++; return; }        // 답 있음 → 손 안 댐
             var touched = false;
+            //  [S1278] 축(tag)은 **답 잠금과 분리한다.** 축은 판정이 아니라 지도 좌표다 —
+            //    보드 규약: "축이 틀리면 지도가 거짓말을 한다. 적을 때 잘못 고른 걸 나중에
+            //    바로잡을 수 있어야 한다. 안 그러면 지도가 틀린 채로 굳는다"(setMeta 주석).
+            //    text/ts는 봉인이라고 명시됐지만 tag는 봉인 대상으로 선언된 적이 없고
+            //    setMeta가 이미 변경을 허용한다. 그래서 답이 달린 레코드도 축은 바뀐다.
+            //    ⚠답·게이트는 여기서 절대 바뀌지 않는다 — 아래 잠금이 그대로 지킨다.
+            //    ⚠TAGS 유효 키만 받는다. 오타가 축을 만들어내면 지도에 없는 칸이 생긴다.
+            if (_str(inc.tag) && TAGS[_str(inc.tag)] && cur.tag !== _str(inc.tag)) {
+              cur.tag = _str(inc.tag); R.retagged++; touched = true;
+            }
+            if (cur.ans != null) {                              // 답 있음 → 답·게이트는 손 안 댐
+              R.locked++;
+              return touched ? _wrap(h.s.put(cur)) : undefined; // 축만 바뀐 경우엔 저장한다
+            }
             if (cur.gate == null && _str(inc.gate)) {
               cur.gate = _str(inc.gate); cur.gateTs = inc.gateTs || Date.now();
               if (cur.st === 0) cur.st = 1;
