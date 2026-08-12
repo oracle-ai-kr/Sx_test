@@ -671,7 +671,8 @@
       catch (e) { S.msg = 'JSON 파싱 실패'; _refresh(); return; }
       window.SXQA.importAll(o).then(function (R) {
         S.msg = '새 질문 ' + R.added + ' · 답 착지 ' + R.answered + ' · 게이트 ' + R.gated
-              + ' · 잠겨서 건너뜀 ' + R.locked + (R.bad ? ' · 형식오류 ' + R.bad : '');
+              + ' · 잠겨서 건너뜀 ' + R.locked + (R.retagged ? ' · 축 옮김 ' + R.retagged : '')   /* [S1278] */
+              + (R.bad ? ' · 형식오류 ' + R.bad : '');
         _refresh();
       }).catch(function (e) { S.msg = '가져오기 실패: ' + ((e && e.message) || e); _refresh(); });
     };
