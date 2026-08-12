@@ -244,7 +244,13 @@
       if (r.gate && !r.ans) D.push('<div style="margin-top:4px"><b>게이트</b>(재기 전 선언) ' + _esc(r.gate) + '</div>');
 
       if (r.ans) {
-        var vTxt = { yes: '🟢 그렇다', no: '⚫ 아니다', cant: '⚪ 못 잰다' }[r.ans.verdict] || r.ans.verdict;
+        //  [S1275] ST SSOT 파생 — 하드코딩 미러 제거. verdict→st는 VERDICT_ST가 SSOT다.
+        //    ⚠ S1272와 같은 병이었다: ST에 icon·name이 있는데 카드마다 사본을 들고 있어
+        //      ST를 고쳐도 화면이 안 따라왔다(아래 유사질문 줄은 '못 잼'으로 어휘까지 갈라져 있었다).
+        var _vst = QA.VERDICT_ST && QA.VERDICT_ST[r.ans.verdict];
+        var _ve = (_vst != null && QA.ST) ? QA.ST[_vst] : null;
+        var vTxt = _ve ? (_ve.icon + ' ' + _ve.name)
+          : ({ yes: '🟢 그렇다', no: '⚫ 아니다', cant: '⚪ 못 잰다' }[r.ans.verdict] || r.ans.verdict);
         D.push('<div style="margin-top:7px;padding:8px 9px;border-radius:7px;background:var(--surface);border:1px solid ' + BD + '">');
         D.push('<div style="font-weight:800;color:var(--text)">A. ' + vTxt
           + (dep ? ' <span style="font-size:9.5px;color:var(--accent)" title="' + _esc(dep.desc) + '">' + dep.dots + '</span>' : '') + '</div>');
@@ -423,8 +429,8 @@
       + '<div style="color:' + T3 + ';font-weight:700;margin-bottom:1px">배지 뜻 — 참조용</div>'
       + '<div>판정 ' + ansN + '건 &nbsp;'
         + _lg(3, ['🟢', '그렇다', '쟀고 됐다']) + ' &nbsp;'
-        + _lg(2, ['⚫', '아니다', '쟀고 안 됐다']) + ' &nbsp;'
-        + _lg(4, ['⚪', '못 잰다', '데이터 없음 · 번역 불가']) + '</div>'
+        + _lg(2, ['⚫', '아니다', '쟀고 안 됐다 · 갈리지 않음(무변별) 포함']) + ' &nbsp;'
+        + _lg(4, ['⚪', '못 잰다', '번역 불가 · 데이터 없음 · 쟀지만 단답 불가']) + '</div>'
       + '<div>미답 ' + _undone + '건 &nbsp;'
         + _lg(1, ['🟡', '재는 중', '게이트 선언됨 · 측정 진행']) + ' &nbsp;'
         + _lg(0, ['🔵', '안 잼', '궁금하지만 아직 안 재봄']) + '</div>'
@@ -551,7 +557,8 @@
       hits.forEach(function (h) {
         var st = window.SXQA.ST[h.rec.st] || {};
         H.push('<div style="margin-top:3px;color:' + T3 + '">' + st.icon + ' ' + _esc(h.rec.text)
-          + (h.rec.ans ? ' → <b>' + ({ yes: '그렇다', no: '아니다', cant: '못 잼' })[h.rec.ans.verdict] + '</b>' : '') + '</div>');
+          //  [S1275] ST SSOT 파생 — st가 이미 위에서 잡혀 있으니 그 name을 쓴다('못 잼'→'못 잰다' 정합).
+          + (h.rec.ans ? ' → <b>' + _esc(st.name || h.rec.ans.verdict) + '</b>' : '') + '</div>');
       });
       H.push('</div>');
       e2.innerHTML = H.join('');
