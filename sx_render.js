@@ -13789,7 +13789,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1287';   // [S1268] RS 배선(S1267 측정·PREREG 0b1c5260): kr 중립 전환(양꼬리·절차③)·us/coin desc(excl) + 토스트 측정 승격 — 추세·구조 요약 kr=변동성 단독·us='–'화 사전 인지     // [S1267] RS(상대강도) 사전등록·측정: 지수 4계열 실기기 동일 소스(야후 KS11/KQ11/GSPC·업비트 BTC)·정렬 미스매치 0·대조군 통과·KR 변별/US·COIN 장식·알갱이 116k gz     // [S1266] 이격도 토스트 라벨 분위 정합: Q1/Q5만 '큼'·Q2/Q4는 방향만(하방/상방 이격)·Q3 밀착권 — v임계는 _q 폴백으로 강등     // [S1265] 신규 3종 침묵사 픽스: S1255 블록 _ssRows가 앞 try 스코프 밖 참조(ReferenceError→_e1255 침묵) — 실기기 3종 미push·기술지표 그룹 소멸·요약 '–'의 단일 원인. stock._lastAnalCandles 재유도+typeof 폴백(하네스 호환)     // [S1264] 기울기 배선(S1263 측정·PREREG f2a7c59a): kr neutral-pass(양꼬리 — 수익 약 4/4단조+위험 강)·us/coin desc(excl·U형/불규칙 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격 — 신규 3종 측정 아크 완결     // [S1263] 기울기(Q4보조) 사전등록·측정(PREREG f2a7c59a): 대조군 통과·KR 변별/US·COIN 장식·Q4 본답 아님 명시·알갱이 116k gz     // [S1262] 단기(세)·장기(장) 배지 근거 토스트 — 판정 규칙+현재값 명시(_sxbShortWhy/_sxbRegimeWhy, S596 패턴)     // [S1261] 헤드▲▼↔도넛전이 충돌 해소: ①전이 루프 excl 필터 실배선(S1054 주석-코드 불일치 정정 — 제거 도넛 Δ 오카운트 원인) ②헤드 ▲▼→녹/적(현재 색권 분포 표기·방향 글리프 오독 제거) ③전이 토스트 '검증 도넛만' 명시     // [S1260] 이격도 배선(S1259 측정·PREREG d4d2932c): kr neutral-pass(2축 강·양꼬리 확대형—방향색 없음)·us/coin desc(excl·U/역U 형태 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격     // [S1259] 이격도 사전등록·측정(하네스): 대조군 통과·KR 변별(Δret+2.36 4/4단조·Δcrash+6.85)/US·COIN 장식·Q2 본답 아님 명시·알갱이 116k gz     // [S1258] Q3 수렴도 배선: kr desc(excl)·us neutral-pass(주석 승격)·coin inverse-pass(3축 강) + 표시 임시식 폐기→S1257 시장별 측정 분위(우폐)·토스트 승격     // [S1257] Q3(수렴도) 사전등록·측정(PREREG 81a94edc): 대조군 통과·KR 장식/US·COIN 변별·문항답 cant(시장 상반이 실체)·알갱이 116k gz     // [S1256] excl(desc·rev) 도넛 제거 — 흐림 표시 폐지·빈그룹 가드·지표카운트 정합. 부활 원장=_DONUT_VALID(측정 통과 시 맵 갱신만으로 복귀)     // [S1255] 신규 서술 재료 3종(이격도·기울기·수렴도) 기술 섹션 편입 — 측정 전 neutral·Q&A 사전등록 연결·클릭 토스트, 섹션 종착지=Q5(칸×레짐 성과 지도) 각인     // [S1254] 전광판 헤드 2단 재조립: 1단=톤문구+지표카운트+캡션(+▶ 상단고정) · 2단=배지 밴드(세·장·전이→변동성→경고·이벤트, flex-wrap 통합) — 좌/우열 분산 철거·배지 빌더/핸들러 무변경     // [S1253] S1248 결함 교정: rows600 재검 마킹 '당일 1회'→'30분 쿨다운' — 장전 시도가 그날 몫을 소진해 장중 갱신을 막던 구조(8:21 스크린샷 8/7이 전조)     // [S1252] 로컬키 전수 재조사: 전체초기화 밖 키 0(접두 규율 유지)·진단 낙오 4건 분류(SX_STRAT_/CELLBK_/XMAT_→단기추세, SX_PRED_→앱)   // [S1251] 단일검증 게이트 2종 카드 이식: ⛩️레짐게이트(전 진입원·v3 SSOT)+🚪출구분할(불·상승=데드만/기타=ATR만, S1216 동일 의미론) — 칩·프리셋리셋·풀BT서명 편입, dead/atr 억제만(각인은 EC 몫)     // [S1250] 실험 2종 탭 이사(S1202 메커니즘): 레시피 신호감지→단일검증(sxExpHost1 선두)·이평선 기울기 예측→학습검증(sxExpHost3 선두, kNN 형제) — async 갱신 ID기반 확인·순수 이동     // [S1249] 死코드 전수조사(선언 2102개 스캔): 참조0 확정 8건 철거(_bv2Pct·_lastOf·_predQuizDestroy·_saveToSlot·_v3Meta·refreshMaster·resetAnalParams·sxEMA×중복2정의) — 동적조립·브래킷 접근 위험 전수 0 확인   // [S1248] fetchRows600 신선도: 끝봉<KST오늘인 확정캐시 하루 1회 재확정(당일봉 확보 시 교체·미공급 시 당일 재검중단 마킹), stale peek 브리지 차단 — 무TTL 세션캐시 층위 봉합("8/7 종가기준" 실측)     // [S1247] 확장 방식 최종 철거: 死코드 _loadMoreCandles(호출처 0)+stage 플래그 시스템+fetchCandlesExtended 본체·진단 참조 소멸, 진단 오호출 fetchCandles 교정 — S1205 원칙(확장 폐기→단발) 마무리     // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1289';   // [S1268] RS 배선(S1267 측정·PREREG 0b1c5260): kr 중립 전환(양꼬리·절차③)·us/coin desc(excl) + 토스트 측정 승격 — 추세·구조 요약 kr=변동성 단독·us='–'화 사전 인지     // [S1267] RS(상대강도) 사전등록·측정: 지수 4계열 실기기 동일 소스(야후 KS11/KQ11/GSPC·업비트 BTC)·정렬 미스매치 0·대조군 통과·KR 변별/US·COIN 장식·알갱이 116k gz     // [S1266] 이격도 토스트 라벨 분위 정합: Q1/Q5만 '큼'·Q2/Q4는 방향만(하방/상방 이격)·Q3 밀착권 — v임계는 _q 폴백으로 강등     // [S1265] 신규 3종 침묵사 픽스: S1255 블록 _ssRows가 앞 try 스코프 밖 참조(ReferenceError→_e1255 침묵) — 실기기 3종 미push·기술지표 그룹 소멸·요약 '–'의 단일 원인. stock._lastAnalCandles 재유도+typeof 폴백(하네스 호환)     // [S1264] 기울기 배선(S1263 측정·PREREG f2a7c59a): kr neutral-pass(양꼬리 — 수익 약 4/4단조+위험 강)·us/coin desc(excl·U형/불규칙 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격 — 신규 3종 측정 아크 완결     // [S1263] 기울기(Q4보조) 사전등록·측정(PREREG f2a7c59a): 대조군 통과·KR 변별/US·COIN 장식·Q4 본답 아님 명시·알갱이 116k gz     // [S1262] 단기(세)·장기(장) 배지 근거 토스트 — 판정 규칙+현재값 명시(_sxbShortWhy/_sxbRegimeWhy, S596 패턴)     // [S1261] 헤드▲▼↔도넛전이 충돌 해소: ①전이 루프 excl 필터 실배선(S1054 주석-코드 불일치 정정 — 제거 도넛 Δ 오카운트 원인) ②헤드 ▲▼→녹/적(현재 색권 분포 표기·방향 글리프 오독 제거) ③전이 토스트 '검증 도넛만' 명시     // [S1260] 이격도 배선(S1259 측정·PREREG d4d2932c): kr neutral-pass(2축 강·양꼬리 확대형—방향색 없음)·us/coin desc(excl·U/역U 형태 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격     // [S1259] 이격도 사전등록·측정(하네스): 대조군 통과·KR 변별(Δret+2.36 4/4단조·Δcrash+6.85)/US·COIN 장식·Q2 본답 아님 명시·알갱이 116k gz     // [S1258] Q3 수렴도 배선: kr desc(excl)·us neutral-pass(주석 승격)·coin inverse-pass(3축 강) + 표시 임시식 폐기→S1257 시장별 측정 분위(우폐)·토스트 승격     // [S1257] Q3(수렴도) 사전등록·측정(PREREG 81a94edc): 대조군 통과·KR 장식/US·COIN 변별·문항답 cant(시장 상반이 실체)·알갱이 116k gz     // [S1256] excl(desc·rev) 도넛 제거 — 흐림 표시 폐지·빈그룹 가드·지표카운트 정합. 부활 원장=_DONUT_VALID(측정 통과 시 맵 갱신만으로 복귀)     // [S1255] 신규 서술 재료 3종(이격도·기울기·수렴도) 기술 섹션 편입 — 측정 전 neutral·Q&A 사전등록 연결·클릭 토스트, 섹션 종착지=Q5(칸×레짐 성과 지도) 각인     // [S1254] 전광판 헤드 2단 재조립: 1단=톤문구+지표카운트+캡션(+▶ 상단고정) · 2단=배지 밴드(세·장·전이→변동성→경고·이벤트, flex-wrap 통합) — 좌/우열 분산 철거·배지 빌더/핸들러 무변경     // [S1253] S1248 결함 교정: rows600 재검 마킹 '당일 1회'→'30분 쿨다운' — 장전 시도가 그날 몫을 소진해 장중 갱신을 막던 구조(8:21 스크린샷 8/7이 전조)     // [S1252] 로컬키 전수 재조사: 전체초기화 밖 키 0(접두 규율 유지)·진단 낙오 4건 분류(SX_STRAT_/CELLBK_/XMAT_→단기추세, SX_PRED_→앱)   // [S1251] 단일검증 게이트 2종 카드 이식: ⛩️레짐게이트(전 진입원·v3 SSOT)+🚪출구분할(불·상승=데드만/기타=ATR만, S1216 동일 의미론) — 칩·프리셋리셋·풀BT서명 편입, dead/atr 억제만(각인은 EC 몫)     // [S1250] 실험 2종 탭 이사(S1202 메커니즘): 레시피 신호감지→단일검증(sxExpHost1 선두)·이평선 기울기 예측→학습검증(sxExpHost3 선두, kNN 형제) — async 갱신 ID기반 확인·순수 이동     // [S1249] 死코드 전수조사(선언 2102개 스캔): 참조0 확정 8건 철거(_bv2Pct·_lastOf·_predQuizDestroy·_saveToSlot·_v3Meta·refreshMaster·resetAnalParams·sxEMA×중복2정의) — 동적조립·브래킷 접근 위험 전수 0 확인   // [S1248] fetchRows600 신선도: 끝봉<KST오늘인 확정캐시 하루 1회 재확정(당일봉 확보 시 교체·미공급 시 당일 재검중단 마킹), stale peek 브리지 차단 — 무TTL 세션캐시 층위 봉합("8/7 종가기준" 실측)     // [S1247] 확장 방식 최종 철거: 死코드 _loadMoreCandles(호출처 0)+stage 플래그 시스템+fetchCandlesExtended 본체·진단 참조 소멸, 진단 오호출 fetchCandles 교정 — S1205 원칙(확장 폐기→단발) 마무리     // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -16896,21 +16896,62 @@ const _ITP_LEDGER = {   // 해석 행 라벨 → _DONUT_VALID 키 (여기 없으
 };
 //  배지 어휘: pass=배지 없음 / desc=[측정 미달](쟀고 판정 미달) / rev=[역방향](쟀고 방향이 반대)
 //    / 원장에 없음=[미측정]. 시장별로 다르므로 현 시장 기준(_donutVStat).
+//  [S1288] 상태 조회 SSOT — 배지·tone·주석줄이 모두 이 하나를 쓴다(파생 유지).
+function _itpStat(label){
+  try{ var key = _ITP_LEDGER[label]; return (key === undefined) ? null : _donutVStat(key); }
+  catch(_e1288a){ return null; }
+}
+function _itpTag(st){
+  return (st === 'pass') ? '' : (st === 'desc') ? '측정 미달' : (st === 'rev') ? '역방향' : '미측정';
+}
+function _itpTip(tag){
+  return (tag === '미측정')
+    ? '이 서술을 뒷받침하는 사전등록 측정이 없다 — 교과서 지식으로만 읽을 것'
+    : (tag === '측정 미달')
+    ? '쟀지만 판정 문턱에 미달했다(원장=desc) — 방향 근거로 쓰지 말 것'
+    : '쟀더니 방향이 반대였다(원장=rev) — 이 서술의 방향을 근거로 쓰지 말 것';
+}
 function _itpBadge(label){
   try{
-    var key = _ITP_LEDGER[label];
-    var st  = (key === undefined) ? null : _donutVStat(key);
-    var tag = (st === 'pass') ? '' : (st === 'desc') ? '측정 미달' : (st === 'rev') ? '역방향' : '미측정';
+    var tag = _itpTag(_itpStat(label));
     if(!tag) return '';
     var col = (tag === '미측정') ? 'var(--text3)' : '#ea580c';
-    var tip = (tag === '미측정')
-      ? '이 서술을 뒷받침하는 사전등록 측정이 없다 — 교과서 지식으로만 읽을 것'
-      : (tag === '측정 미달')
-      ? '쟀지만 판정 문턱에 미달했다(원장=desc) — 방향 근거로 쓰지 말 것'
-      : '쟀더니 방향이 반대였다(원장=rev) — 이 서술의 방향을 근거로 쓰지 말 것';
-    return '<span title="'+tip+'" style="margin-left:4px;font-size:8px;font-weight:700;color:'+col
+    return '<span title="'+_itpTip(tag)+'" style="margin-left:4px;font-size:8px;font-weight:700;color:'+col
       +';border:1px solid '+col+';border-radius:4px;padding:0 3px;white-space:nowrap">'+tag+'</span>';
   }catch(_e1283){ return ''; }
+}
+//  [S1288] 배지 뜻을 **화면에 노출**한다 — 모바일엔 hover가 없어 title 툴팁이 사실상 안 보였다.
+//    실기기 확인에서 초록 라벨 'OBV 상승' + 주황 [역방향] + 본문 "지속력이 강합니다"가 한 카드에서
+//    서로 다른 말을 하고 있었고, 뜻을 모르면 배지가 장식이 된다.
+function _itpNote(label){
+  try{
+    var tag = _itpTag(_itpStat(label));
+    if(!tag) return '';
+    var col = (tag === '미측정') ? 'var(--text3)' : '#ea580c';
+    return '<div style="margin-top:3px;font-size:8.5px;line-height:1.5;color:'+col+'">※ '+_itpTip(tag)+'</div>';
+  }catch(_e1288b){ return ''; }
+}
+//  [S1289] 합성 서술(핵심 이유·위험 요소) 전용 배지.
+//    이 카드는 SXI.composite() = compositeMomentum/Trend/Flow/Risk/Synergy 다섯 함수가 낸
+//    **손으로 쓴 조합 규칙**이다(예: "RSI 과열 + 거래량 동반 + BB 상단"). 개별 지표와 달리
+//    **조합 자체가 사전등록 측정된 적이 한 번도 없다** — 원장에 항목을 만들 수도 없다(조합은 무한하다).
+//    ⚠그런데 이 카드는 화면 최상단 요약이라 가장 강하게 읽힌다. 그래서 배지를 붙인다.
+//    ★tone은 건드리지 않는다: S1288 원칙대로 중립화는 rev(측정이 반대)일 때만이고,
+//      합성은 '반대'가 아니라 '근거 없음'이다. 색을 지우면 서술을 과하게 부정하게 된다.
+var _COMP_TIP = '여러 지표를 손으로 조합한 규칙이다 — 조합 자체를 사전등록으로 잰 적이 없다. 개별 지표 배지와 별개로 읽을 것';
+function _compBadge(){
+  try{
+    return '<span title="'+_COMP_TIP+'" style="margin-left:4px;font-size:8px;font-weight:700;color:var(--text3)'
+      +';border:1px solid var(--text3);border-radius:4px;padding:0 3px;white-space:nowrap;vertical-align:1px">미측정</span>'
+      +'<div style="margin-top:2px;font-size:8.5px;font-weight:400;line-height:1.5;color:var(--text3)">※ '+_COMP_TIP+'</div>';
+  }catch(_e1289){ return ''; }
+}
+//  [S1288] tone 중립화는 **rev일 때만** 한다.
+//    rev = "쟀더니 방향이 반대" — 측정이 반대라고 말하는데 라벨이 초록이면 화면이 자기모순을 낸다.
+//    ⚠desc·미측정은 색을 건드리지 않는다: "반대"가 아니라 "근거 없음"이므로 주석 한 줄로 충분하고,
+//      서술을 과하게 부정하지 않는다(S1283 원칙 — 지우지 않고 출처를 밝힌다).
+function _itpTone(label, tone){
+  return (_itpStat(label) === 'rev') ? 'neutral' : (tone || 'neutral');
 }
 function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   D = D || {}; extras = extras || {};
@@ -17570,7 +17611,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       let row = `<div class="anal-row itp-row"><span class="al">${label}</span><span class="ar ${valCls||''}">${dispVal}</span>`;
       if(itpObj){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
-        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${itpObj.tone||'neutral'}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div></div>`;
+        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpTone(label, itpObj.tone)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}</div>`;
       } else { row += `</div>`; }
       return row;
     };
@@ -17659,7 +17700,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge_inline:''}</span><span class="ar ${valCls||''}">${dispVal}</span>`;
       if(itpObj){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
-        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${itpObj.tone||'neutral'}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div></div>`;
+        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpTone(label, itpObj.tone)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}</div>`;
       } else { row += `</div>`; }
       return row;
     };
@@ -17726,7 +17767,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge:''}</span><span class="ar ${valCls||''}">${val}</span>`;
       if(itpData){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
-        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${itpData.tone}">${itpData.label}</span>${_itpBadge(label)}<div>${itpData.text}</div></div>`;   // [S1284] 배지 주입(세 번째 경로)
+        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpTone(label, itpData.tone)}">${itpData.label}</span>${_itpBadge(label)}<div>${itpData.text}</div>${_itpNote(label)}</div>`;   // [S1284] 배지 주입(세 번째 경로)
       } else {
         row += `</div>`;
       }
@@ -17793,7 +17834,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       return `<div class="anal-section">
       <div class="anal-section-title">캔들 패턴${_ko?'<span class="kis-off-badge" style="margin-left:6px">비활성</span>':''}${_itpBadge('캔들 패턴')}</div>
       ${_rows.join('')}
-      ${itp.candle?`<div class="itp-card show" style="margin-top:4px"><span class="itp-label ${itp.candle.tone}">${itp.candle.label}</span>${_itpBadge('캔들 패턴')}<div>${itp.candle.text}</div></div>`:''}
+      ${itp.candle?`<div class="itp-card show" style="margin-top:4px"><span class="itp-label ${_itpTone('캔들 패턴', itp.candle.tone)}">${itp.candle.label}</span>${_itpBadge('캔들 패턴')}<div>${itp.candle.text}</div>${_itpNote('캔들 패턴')}</div>`:''}
     </div>`;
     })()}
     `;
@@ -17869,9 +17910,9 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
         ${summary.actionGuide?`<div style="font-size:10px;padding:6px 8px;background:var(--surface2);border-radius:6px;margin:6px 0 4px;line-height:1.55"><span style="font-weight:700;color:var(--text)">행동 가이드</span><br><span style="color:var(--text2)">${summary.actionGuide}</span></div>`:''}
         ${summary.invalidation?`<div style="font-size:10px;padding:6px 8px;background:rgba(255,140,0,.06);border-radius:6px;margin-bottom:4px;line-height:1.55"><span style="font-weight:700;color:#ff8c00">무효화 조건</span><br><span style="color:var(--text2)">${summary.invalidation}</span></div>`:''}
         ${summary.buyTrigger?`<div style="font-size:10px;padding:6px 8px;background:var(--buy-bg);border-radius:6px;margin-bottom:6px;line-height:1.55"><span style="font-weight:700;color:var(--buy)">강화 조건</span><br><span style="color:var(--text2)">${summary.buyTrigger}</span></div>`:''}
-        ${summary.keyReasons.length?'<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px">핵심 이유</div>':''}
+        ${summary.keyReasons.length?'<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px">핵심 이유'+_compBadge()+'</div>':''}
         ${summary.keyReasons.map(c=>`<div class="itp-composite ${c.tone}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
-        ${summary.risks.length?'<div style="font-size:10px;font-weight:700;color:var(--sell);margin:6px 0 4px">위험 요소</div>':''}
+        ${summary.risks.length?'<div style="font-size:10px;font-weight:700;color:var(--sell);margin:6px 0 4px">위험 요소'+_compBadge()+'</div>':''}
         ${summary.risks.map(c=>`<div class="itp-composite ${c.tone}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
       </div>`;
     }
@@ -19242,9 +19283,9 @@ function _renderDisclosureUI(stock, scores, indicators, qs){
           ${overridden.actionGuide?`<div style="font-size:10px;padding:6px 8px;background:var(--surface2);border-radius:6px;margin:6px 0 4px;line-height:1.55"><span style="font-weight:700;color:var(--text)">행동 가이드</span><br><span style="color:var(--text2)">${overridden.actionGuide}</span></div>`:''}
           ${overridden.invalidation?`<div style="font-size:10px;padding:6px 8px;background:rgba(255,140,0,.06);border-radius:6px;margin-bottom:4px;line-height:1.55"><span style="font-weight:700;color:#ff8c00">무효화 조건</span><br><span style="color:var(--text2)">${overridden.invalidation}</span></div>`:''}
           ${overridden.buyTrigger?`<div style="font-size:10px;padding:6px 8px;background:var(--buy-bg);border-radius:6px;margin-bottom:6px;line-height:1.55"><span style="font-weight:700;color:var(--buy)">강화 조건</span><br><span style="color:var(--text2)">${overridden.buyTrigger}</span></div>`:''}
-          ${overridden.keyReasons&&overridden.keyReasons.length?'<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px">핵심 이유</div>':''}
+          ${overridden.keyReasons&&overridden.keyReasons.length?'<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px">핵심 이유'+_compBadge()+'</div>':''}
           ${(overridden.keyReasons||[]).map(c=>`<div class="itp-composite ${c.tone}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
-          ${overridden.risks&&overridden.risks.length?'<div style="font-size:10px;font-weight:700;color:var(--sell);margin:6px 0 4px">위험 요소</div>':''}
+          ${overridden.risks&&overridden.risks.length?'<div style="font-size:10px;font-weight:700;color:var(--sell);margin:6px 0 4px">위험 요소'+_compBadge()+'</div>':''}
           ${(overridden.risks||[]).map(c=>`<div class="itp-composite ${c.tone}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
         `;
       }
