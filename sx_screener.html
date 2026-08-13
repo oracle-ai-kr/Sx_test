@@ -981,6 +981,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .itp-label.neutral{background:var(--hold-bg);color:var(--hold);border:1px solid var(--hold-border)}
 .itp-label.warning{background:rgba(255,140,0,.1);color:#ff8c00;border:1px solid rgba(255,140,0,.2)}
 .itp-label.danger{background:var(--sell-bg);color:#d32f2f;border:1px solid rgba(211,47,47,.2)}
+.itp-label.muted{background:var(--surface2);color:var(--text3);border:1px solid var(--border)} /* [S1290] 근거 미달·역방향 전용 — neutral(--hold #f59e0b 호박)이 [역방향] 배지(#ea580c)와 색이 겹쳐 구분이 안 됐다.
+   ★테마 변수만 쓴다(--surface2/--text3/--border): 라이트·다크·세피아 전 테마에서 자동으로 따라간다. */
 .itp-label.mixed{background:rgba(147,51,234,.1);color:#9333ea;border:1px solid rgba(147,51,234,.25)} /* [S965] 혼조/mixed = 보라 팔레트 통일(#a855f7→#9333ea) */
 /* S56: 공시 배지 */
 .disc-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:8px;font-weight:700;margin:1px 2px;letter-spacing:-.2px}
