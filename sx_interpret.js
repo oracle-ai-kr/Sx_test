@@ -211,16 +211,26 @@ SXI.mfi = function(val){
   return {label:'과매수 (자금과잉)',tone:'warning',text:`MFI가 ${v.toFixed(1)}로 자금이 과도하게 유입된 상태입니다. 거래량 기준으로도 과열이며, 대규모 차익실현 매물이 나올 수 있습니다. 익절 타이밍을 검토하세요.`};
 };
 
+//  [S1292] 유사-경험 주장 제거 — '통계적으로'·'역사적으로' 13건.
+//    이 어구들은 **측정 결과를 인용하는 문장 형식**이다. 그런데 인용할 측정이 없다.
+//    배지([미측정]/[측정 미달])가 "안 쟀다"고 말하는데 본문이 "역사적으로 확률이 높다"고 하면
+//    화면이 정면으로 충돌한다 — 배지로 덮을 수 없는 종류의 문제였다.
+//    ★서술을 지우지 않았다(S1283 원칙). **출처만 바꿨다**:
+//      A) 교과서 귀속 9건: '통계적으로/역사적으로 ~하다' → '교과서에서는 ~로 본다'
+//      B) 우리 엔진에 대한 주장 4건: 교과서로 돌릴 수 없다(summary·practicalGuide의
+//         "통계적으로 유리/손실 확률이 높다"). 근거 주장을 빼고 **규율 진술**로 바꿨다.
+//    ⚠남은 것: '확률이 높'(15)·'신뢰도가 매우 높'(18) 33건은 정도 부사라 개별 판단이 필요 — 별건.
+//      '가능성이 높'(47)·'대부분'(16)은 헤지 표현이라 그대로 둔다(단정을 피하는 쪽이다).
 SXI.bb = function(pctB, width, isSqueeze){
   if(pctB==null) return null;
   const b=+pctB; let res;
   if(!Number.isFinite(b)) return null; // [PATCH-1] NaN/Infinity 방어
-  if(b<=0) res={label:'하단 이탈',tone:'bullish',text:`BB 하단 이탈(%B ${(b*100).toFixed(1)}%). 극단적 과매도 상태이며, 통계적으로 밴드 밖 체류 시간은 짧아 반등 가능성이 높습니다. 다만 강한 하락 추세에서는 밴드 워킹(연속 이탈)이 가능하므로, 반전 양봉+거래량 증가 확인 후 접근이 안전합니다. RSI 과매도 동시 발생 시 반등 확률이 크게 높아집니다.`};
+  if(b<=0) res={label:'하단 이탈',tone:'bullish',text:`BB 하단 이탈(%B ${(b*100).toFixed(1)}%). 극단적 과매도 상태입니다. 교과서에서는 밴드 밖 체류가 짧다고 보아 반등 가능성을 높게 봅니다. 다만 강한 하락 추세에서는 밴드 워킹(연속 이탈)이 가능하므로, 반전 양봉+거래량 증가 확인 후 접근이 안전합니다. RSI 과매도 동시 발생 시 반등 확률이 크게 높아집니다.`};
   else if(b<=0.2) res={label:'하단 근접',tone:'bullish',text:`BB 하단 근접(%B ${(b*100).toFixed(1)}%). 매수 관심 구간이며, 양봉 전환·거래량 증가 동반 시 반등 확률이 높아집니다. 하단 이탈로 확대되면 추가 하락이므로, 지지 확인 후 분할 접근이 적절합니다.`};
   else if(b<=0.5) res={label:'하단~중심',tone:'neutral',text:`BB 중심선 아래(%B ${(b*100).toFixed(1)}%). 약한 매도 우위이며, MA20(중심선) 회복 여부가 단기 방향의 열쇠입니다.`};
   else if(b<=0.8) res={label:'중심~상단',tone:'neutral',text:`BB 중심선 위(%B ${(b*100).toFixed(1)}%). 약한 매수 우위이며 상승 추세 유지 중. 중심선이 지지선 역할을 합니다.`};
   else if(b<=1.0) res={label:'상단 근접',tone:'warning',text:`BB 상단 근접(%B ${(b*100).toFixed(1)}%). 단기 과열 가능성이 있으며, 강한 추세에서는 밴드 워킹이 나올 수 있지만 모멘텀 둔화 시 되돌림도 클 수 있습니다.`};
-  else res={label:'상단 돌파',tone:'danger',text:`BB 상단 돌파(%B ${(b*100).toFixed(1)}%). 과열 상태이며, 통계적으로 밴드 밖에 오래 머물기 어렵습니다. 신규 진입은 추격이므로 위험하며, 눌림 확인 후 재진입이 안전합니다.`};
+  else res={label:'상단 돌파',tone:'danger',text:`BB 상단 돌파(%B ${(b*100).toFixed(1)}%). 과열 상태입니다. 교과서에서는 밴드 밖에 오래 머물기 어렵다고 봅니다. 신규 진입은 추격이므로 위험하며, 눌림 확인 후 재진입이 안전합니다.`};
   if(isSqueeze) res.text+=' 현재 BB폭 수축(스퀴즈) 상태 — 에너지 축적 중이며 돌파 시 폭발적 움직임 예상. 돌파 방향이 핵심입니다.';
   return res;
 };
@@ -228,7 +238,7 @@ SXI.bb = function(pctB, width, isSqueeze){
 SXI.bbWidth = function(width, isSqueeze){
   if(width==null) return null;
   if(!Number.isFinite(+width)) return null; // [PATCH-1] NaN/Infinity 방어
-  if(isSqueeze) return {label:'스퀴즈 (수축)',tone:'neutral',text:`BB폭이 ${(+width).toFixed(1)}%로 극도로 좁아진 스퀴즈 상태입니다. 시장이 에너지를 축적 중이며, 방향이 정해지면 폭발적 움직임이 예상됩니다. 역사적으로 BB 스퀴즈 후 돌파는 큰 추세의 시작이 되는 경우가 많습니다. 돌파 방향 확인 후 따라가는 전략이 안전합니다.`};
+  if(isSqueeze) return {label:'스퀴즈 (수축)',tone:'neutral',text:`BB폭이 ${(+width).toFixed(1)}%로 극도로 좁아진 스퀴즈 상태입니다. 시장이 에너지를 축적 중이며, 방향이 정해지면 폭발적 움직임이 예상됩니다. 교과서에서는 스퀴즈 후 돌파를 큰 추세의 시작으로 봅니다. 돌파 방향 확인 후 따라가는 전략이 안전합니다.`};
   if(+width>5) return {label:'확장 (고변동)',tone:'warning',text:`BB폭이 ${(+width).toFixed(1)}%로 크게 벌어져 변동성이 높은 구간입니다. 방향이 맞아도 진폭이 넓어 심리적 부담이 크며, 손절 간격도 넓혀야 합니다. 비중 축소 또는 분할 전략으로 접근하세요.`};
   return {label:'보통',tone:'neutral',text:`BB폭이 ${(+width).toFixed(1)}%로 정상 범위입니다. 일반적인 매매 환경입니다.`};
 };
@@ -340,7 +350,7 @@ SXI.advStochDiv = function(div, rsiDiv){
   if(!div) return null;
   const rsiSync = rsiDiv && ((div==='bullish'&&rsiDiv==='bullish')||(div==='bearish'&&rsiDiv==='bearish'));
   if(div==='bullish'){
-    const syncStr = rsiSync ? ' RSI 다이버전스도 동시에 발생하여 "이중 다이버전스" 상태입니다 — 반전 신뢰도가 매우 높아지며, 역사적으로 이 조합에서의 반등 확률은 상당히 높습니다. OBV 상승 다이버전스까지 3중으로 겹치면 강력한 바닥 신호입니다.' : ' RSI 다이버전스가 동시에 발생하지 않은 상태이므로 단독 신호로는 신뢰도가 보통입니다. RSI나 OBV에서도 다이버전스가 나타나는지 추가 확인이 필요합니다.';
+    const syncStr = rsiSync ? ' RSI 다이버전스도 동시에 발생하여 "이중 다이버전스" 상태입니다 — 교과서에서는 이 조합의 반전 신뢰도를 높게 봅니다. OBV 상승 다이버전스까지 3중으로 겹치면 강력한 바닥 신호입니다.' : ' RSI 다이버전스가 동시에 발생하지 않은 상태이므로 단독 신호로는 신뢰도가 보통입니다. RSI나 OBV에서도 다이버전스가 나타나는지 추가 확인이 필요합니다.';
     return {tone:'bullish',label:'Stoch 상승 다이버전스',text:`스토캐스틱이 가격보다 먼저 반등 신호를 보내고 있습니다. 가격은 저점을 낮추었지만 Stoch %K는 저점이 높아지며, 하락 모멘텀의 약화를 나타냅니다.${syncStr} 실제 반전 양봉과 거래량 증가가 동반되면 진입 시점으로 판단할 수 있습니다.`};
   }
   const syncStr = rsiSync ? ' RSI 하락 다이버전스도 동시에 발생하여 이중 확인 상태입니다. 상승 피로가 확실히 누적되고 있으며, 조정 가능성이 높습니다.' : '';
@@ -364,7 +374,7 @@ SXI.advMaConv = function(converging, spread, maArrange, bbSqueeze){
   else if(maArrange==='bearish') extras.push('역배열 유지 중');
   const extraStr = extras.length ? ' '+extras.join('. ')+'.' : '';
 
-  if(converging && +spread<=2) return {tone:'neutral',label:'강한 수렴 (변곡점 임박)',text:`MA5/20/60 이격 ${sp}%. 이동평균선이 거의 한 점으로 수렴하고 있어 강력한 변곡점이 임박했습니다.${extraStr} 이 수준의 수렴은 역사적으로 큰 추세의 시작점이 되는 경우가 많습니다. 볼린저 밴드 스퀴즈와 동시에 나타나면 돌파 시 폭발적 움직임이 예상됩니다. 방향을 예단하기보다, 돌파 방향(상방: MA5가 MA60 상향 돌파 + 양봉 + 거래량 증가 / 하방: MA5가 MA60 하향 이탈 + 음봉)을 확인한 후 따라가는 전략이 안전합니다. 거짓 돌파에 대비해 첫 진입은 소액으로 하고, 방향이 확인되면 추가 진입하세요.`};
+  if(converging && +spread<=2) return {tone:'neutral',label:'강한 수렴 (변곡점 임박)',text:`MA5/20/60 이격 ${sp}%. 이동평균선이 거의 한 점으로 수렴하고 있어 강력한 변곡점이 임박했습니다.${extraStr} 교과서에서는 이 수준의 수렴을 큰 추세의 시작점으로 봅니다. 볼린저 밴드 스퀴즈와 동시에 나타나면 돌파 시 폭발적 움직임이 예상됩니다. 방향을 예단하기보다, 돌파 방향(상방: MA5가 MA60 상향 돌파 + 양봉 + 거래량 증가 / 하방: MA5가 MA60 하향 이탈 + 음봉)을 확인한 후 따라가는 전략이 안전합니다. 거짓 돌파에 대비해 첫 진입은 소액으로 하고, 방향이 확인되면 추가 진입하세요.`};
   if(converging) return {tone:'neutral',label:'수렴 중',text:`MA5/20/60 이격 ${sp}%. 이동평균선이 모이고 있으며 방향 전환 또는 추세 재개의 전조입니다.${extraStr} 수렴이 더 진행되면 변곡점 임박 단계로 넘어갑니다. 현재는 방향이 정해지지 않은 관망 구간이며, 수렴 해소(이평선이 다시 벌어지기 시작) 방향이 핵심입니다. 수렴 중 거래량이 줄어드는 것은 정상이며, 거래량 급증과 함께 이평선이 벌어지면 새 추세의 시작입니다.`};
   if(+spread>8) return {tone:'warning',label:'과도한 분산',text:`MA5/20/60 이격 ${sp}%. 이동평균선이 매우 크게 벌어져 있어 추세가 과열된 상태입니다.${extraStr} 이 수준의 분산은 단기적으로 평균 회귀(조정)가 나올 가능성이 높습니다. 정배열 과분산이면 상승 과열 → 눌림 조정 예상, 역배열 과분산이면 하락 과매도 → 기술적 반등 예상입니다. 새로운 포지션 진입보다는 기존 포지션 정리를, 반대 방향 진입은 반전 신호 확인 후에 접근하세요.`};
   if(+spread>5) return {tone:'neutral',label:'분산 (추세 진행)',text:`MA5/20/60 이격 ${sp}%. 이동평균선이 벌어져 있어 현재 추세가 진행 중입니다.${extraStr} 정배열이면 상승 추세, 역배열이면 하락 추세가 유지되고 있습니다. 추세 방향 포지션 유지가 유리하며, 이격이 더 벌어지면 과열 구간으로 주의가 필요합니다. 이평선이 다시 모이기 시작하면 추세 둔화의 첫 번째 신호이므로 주의하세요.`};
@@ -567,7 +577,7 @@ SXI.maDisparity = function(d20, d60){
   if(v20!=null) detail.push(`MA20 이격 ${v20>=0?'+':''}${v20.toFixed(1)}%`);
   if(v60!=null) detail.push(`MA60 이격 ${v60>=0?'+':''}${v60.toFixed(1)}%`);
   const dtxt = detail.join(', ');
-  if(primary>10) return {label:'MA 극단 과열',tone:'danger',text:`이동평균선 대비 극단적으로 벌어졌습니다(${dtxt}). 이 수준의 괴리는 통계적으로 매우 드물며, 급격한 되돌림(평균 회귀)이 임박할 가능성이 높습니다. 보유 중이면 분할 익절을 즉시 시작하고, 신규 진입은 절대 자제하세요.`};
+  if(primary>10) return {label:'MA 극단 과열',tone:'danger',text:`이동평균선 대비 극단적으로 벌어졌습니다(${dtxt}). 교과서에서는 이 수준의 괴리를 드물게 보고 급격한 되돌림(평균 회귀)을 예상합니다. 보유 중이면 분할 익절을 즉시 시작하고, 신규 진입은 절대 자제하세요.`};
   if(primary>8) return {label:'MA 크게 과열',tone:'danger',text:`이동평균선 대비 괴리가 크게 벌어졌습니다(${dtxt}). 추세는 강할 수 있지만 신규 진입 기준으로는 과열 부담이 큽니다. 조정 시 이격이 줄어드는 과정에서 낙폭이 클 수 있으므로 주의하세요.`};
   if(primary>4) return {label:'MA 과열',tone:'warning',text:`이동평균선 대비 괴리가 벌어지고 있습니다(${dtxt}). 추세가 살아 있다면 가속이지만, 이격이 커질수록 이평선으로의 회귀 압력도 커집니다. 눌림 조정 시 이평선 근처까지 내려올 수 있으므로 추격 매수는 비중을 낮추세요.`};
   if(primary<-10) return {label:'MA 극단 이격',tone:'bullish',text:`이동평균선 대비 하방 괴리가 극단적입니다(${dtxt}). 패닉 셀링 구간일 수 있으며, 기술적 반등 시 폭이 클 수 있습니다. 다만 추세 확인 없이 역발상 매수는 위험하므로, 반전 신호(양봉+거래량) 확인 후 소액 접근하세요.`};
@@ -612,7 +622,7 @@ SXI.compositeMomentum = function(ind){
   if(rsi>=72 && macdH>0 && macdPH!=null && macdH<=macdPH) notes.push({tone:'warning',icon:'🌡️',title:'과열 후 모멘텀 둔화',text:'가격은 강하지만 상승 속도는 둔화되고 있습니다. 단기 익절과 추격 자제 쪽에 무게가 실립니다.'});
   // S51: 심리도 + RSI 복합
   const psyV=ind.psycho?.psycho??null;
-  if(psyV!=null && psyV>=80 && rsi>=70) notes.push({tone:'danger',icon:'[X]',title:'심리도 + RSI 이중 과열',text:`심리도 ${psyV.toFixed(0)}% + RSI ${rsi.toFixed(0)} — 투자 심리와 가격 모멘텀 모두 과열 상태입니다. 역사적으로 이 조합에서는 급조정 확률이 매우 높으며, 추격 매수는 절대 금물입니다. 분할 익절을 강력히 검토하세요.`});
+  if(psyV!=null && psyV>=80 && rsi>=70) notes.push({tone:'danger',icon:'[X]',title:'심리도 + RSI 이중 과열',text:`심리도 ${psyV.toFixed(0)}% + RSI ${rsi.toFixed(0)} — 투자 심리와 가격 모멘텀 모두 과열 상태입니다. 교과서에서는 이 조합을 급조정 위험 구간으로 봅니다. 추격 매수는 절대 금물입니다. 분할 익절을 강력히 검토하세요.`});
   if(psyV!=null && psyV<=20 && rsi<=30) notes.push({tone:'bullish',icon:'[O]',title:'심리도 + RSI 이중 과매도',text:`심리도 ${psyV.toFixed(0)}% + RSI ${rsi.toFixed(0)} — 투자 심리와 가격 모멘텀 모두 극단적 침체 구간입니다. 매도 에너지가 거의 소진되었으며, 기술적 반등 가능성이 높습니다. 거래량 증가·양봉 확인 후 분할 매수를 시작할 수 있는 구간입니다.`});
   if(psyV!=null && psyV<=20 && stK<=20 && stK>stD) notes.push({tone:'bullish',icon:'💎',title:'심리도 침체 + Stoch 바닥 반전',text:`심리도 ${psyV.toFixed(0)}%에서 스토캐스틱이 골든크로스했습니다. 극단적 비관 속 첫 반등 신호로, 단기 트레이딩 관점에서 매수 후보 구간입니다.`});
   return notes;
@@ -880,7 +890,7 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime){
       case '즉시 청산':
         tone='bearish';
         stateLine='매도 신호 발생';
-        mainText='분석 엔진이 매도 신호를 확인했습니다. 계획대로 매도를 실행하는 것이 통계적으로 유리합니다.';
+        mainText='분석 엔진이 매도 신호를 확인했습니다. 계획대로 매도를 실행하는 것이 이 엔진의 규칙입니다.';
         invalidation='신호 이후에도 분석 지표가 강하게 반등하면 재진입 기회를 볼 수 있으나, 규칙 우선이 원칙입니다.';
         break;
       case '매도 완료':
@@ -971,13 +981,13 @@ SXI.psycho = function(psy){
   const p=psy.psycho, np=psy.newPsycho, z=psy.zone;
   if(p==null) return null;
   const npStr = np!=null?' / 신심리도 '+np.toFixed(0)+'%':'';
-  if(p>=85) return {label:'극단적 과매수',tone:'danger',text:`심리도 ${p.toFixed(0)}%${npStr} — 투자 심리가 극단적으로 낙관에 치우쳐 있습니다. 최근 거래일 대부분이 상승으로, 시장 참여자 대다수가 추가 상승을 기대하는 과열 상태입니다. 역사적으로 이 수준에서는 차익실현 매물이 쏟아지며 급조정이 빈번합니다. 신규 매수는 매우 위험하며, 보유 중이면 분할 익절을 강력히 검토하세요. RSI 과매수·MFI 과잉과 동시 발생 시 조정 확률이 극대화됩니다.`};
+  if(p>=85) return {label:'극단적 과매수',tone:'danger',text:`심리도 ${p.toFixed(0)}%${npStr} — 투자 심리가 극단적으로 낙관에 치우쳐 있습니다. 최근 거래일 대부분이 상승으로, 시장 참여자 대다수가 추가 상승을 기대하는 과열 상태입니다. 교과서에서는 이 수준을 차익실현 매물이 쏟아지는 구간으로 봅니다. 신규 매수는 매우 위험하며, 보유 중이면 분할 익절을 강력히 검토하세요. RSI 과매수·MFI 과잉과 동시 발생 시 조정 확률이 극대화됩니다.`};
   if(p>=75 || z==='overbought') return {label:'과매수',tone:'warning',text:`심리도 ${p.toFixed(0)}%${npStr} — 과매수 구간입니다. 최근 거래일 중 상승일 비중이 75% 이상으로, 투자 심리가 과도한 낙관에 가깝습니다. 단기 조정 가능성이 높으며, 거래량 감소·윗꼬리 음봉 등 모멘텀 약화 신호가 보이면 고점 경계하세요. 강한 추세장에서는 과매수가 수일간 지속될 수 있으므로 MACD 둔화나 ADX 하락 같은 보조 확인이 필요합니다.`};
   if(p>=60) return {label:'낙관',tone:'bullish',text:`심리도 ${p.toFixed(0)}%${npStr} — 낙관 구간입니다. 상승일 비중이 우세하여 시장 심리가 긍정적이지만, 아직 과열은 아닙니다. MA 정배열·MACD 양수와 함께라면 건강한 상승 추세입니다. 다만 75% 이상으로 올라가면 과매수 진입이므로 점진적으로 경계 수준을 높여가세요.`};
   if(p>=40) return {label:'중립',tone:'neutral',text:`심리도 ${p.toFixed(0)}%${npStr} — 중립 구간입니다. 상승일과 하락일이 비슷한 비율로, 뚜렷한 심리 편향이 없습니다. 방향 결정을 위해 RSI·MACD·VHF 등 다른 기술 지표와 종합 판단이 필요합니다.${np!=null&&Math.abs(np-p)>10?' 신심리도와 심리도 간 괴리가 크면 최근 변동 패턴이 바뀌고 있다는 신호입니다.':''}`};
   if(p>=25) return {label:'비관',tone:'bearish',text:`심리도 ${p.toFixed(0)}%${npStr} — 비관 구간입니다. 하락일 비중이 우세하여 매도 심리가 강한 상태입니다. 추가 하락 가능성이 있으나, 25% 아래로 떨어지면 과매도 반등 구간이 됩니다. MACD 골든크로스·거래량 증가가 나타나면 심리 반전의 첫 신호로 볼 수 있습니다.`};
   if(p>=15) return {label:'과매도',tone:'bullish',text:`심리도 ${p.toFixed(0)}%${npStr} — 과매도 구간입니다. 최근 거래일 대부분이 하락으로, 매도 세력이 거의 소진된 상태입니다. 기술적 반등 가능성이 높으며, RSI 과매도·BB 하단 이탈과 동시 발생 시 반전 신뢰도가 매우 높습니다. 다만 강한 하락 추세에서는 과매도가 지속될 수 있으므로 실제 반전 양봉을 확인한 후 진입이 안전합니다.`};
-  return {label:'극단적 과매도',tone:'bullish',text:`심리도 ${p.toFixed(0)}%${npStr} — 극단적 과매도입니다. 거의 모든 거래일이 하락으로, 매도 에너지가 완전히 소진된 상태입니다. 역사적으로 이 수준에서는 강한 기술적 반등이 나올 확률이 높습니다. RSI 극단적 과매도·거래량 급감 후 증가가 함께 나타나면 바닥 신호가 됩니다. 분할 매수를 시작할 수 있는 구간이지만, 패닉 셀링 국면에서는 15% 이하 유지도 가능하므로 분할 접근이 필수입니다.`};
+  return {label:'극단적 과매도',tone:'bullish',text:`심리도 ${p.toFixed(0)}%${npStr} — 극단적 과매도입니다. 거의 모든 거래일이 하락으로, 매도 에너지가 완전히 소진된 상태입니다. 교과서에서는 이 수준에서 강한 기술적 반등을 기대합니다. RSI 극단적 과매도·거래량 급감 후 증가가 함께 나타나면 바닥 신호가 됩니다. 분할 매수를 시작할 수 있는 구간이지만, 패닉 셀링 국면에서는 15% 이하 유지도 가능하므로 분할 접근이 필수입니다.`};
 };
 
 SXI.chaikinOsc = function(co){
@@ -3330,7 +3340,7 @@ SXI.practicalGuide = function(verdictAction, analScore, btScore, summary, ind, s
       if(_momText && momBadge?.direction === 'down'){
         guide.steps.push(`게다가 ${_momText} — 점수도 낮고 모멘텀까지 꺾이고 있어 추가 하락 가능성이 높습니다.`);
       } else {
-        guide.steps.push(`이런 종목에 진입하면 통계적으로 손실 확률이 높습니다. 다른 종목을 검토하세요.`);
+        guide.steps.push(`이런 조건에서의 진입은 이 엔진이 권하지 않습니다. 다른 종목을 검토하세요.`);
       }
     } else {
       guide.steps = [
@@ -3376,7 +3386,7 @@ SXI.practicalGuide = function(verdictAction, analScore, btScore, summary, ind, s
       `수익이 나있다면 즉시 일부 또는 전량 익절을 고려하세요. 손실이 나있다면 손절선 근처라면 규칙대로 정리하는 것이 추가 손실을 막는 길입니다.`,
     ];
     guide.nextAction = '감정을 배제하고 매매 계획을 실행하세요. 익절 목표가에 도달하지 않았더라도, 분석 엔진 판정이 악화되면 선제적 매도가 현명할 수 있습니다.';
-    guide.caution = '"조금만 더 기다리면 회복할 것"이라는 생각에 매몰되지 마세요. 통계적으로 이 단계에서 보유를 지속하면 손실 확대 확률이 높습니다.';
+    guide.caution = '"조금만 더 기다리면 회복할 것"이라는 생각에 매몰되지 마세요. 이 단계에서 보유를 지속하는 것은 세운 계획을 벗어나는 선택입니다.';
     guide.crossCheck = 'BT 결과에서 "평균 보유기간"과 "최대 손실 구간"을 다시 확인하세요. 보유 기간이 평균을 초과했다면 매도 쪽으로 기울이는 것이 합리적입니다.';
 
   } else if(verdictAction === '즉시 청산'){
@@ -3385,7 +3395,7 @@ SXI.practicalGuide = function(verdictAction, analScore, btScore, summary, ind, s
     guide.steps = [
       `진입타이밍 ${s}점, 매매전략 ${b}점 — 보유 중인 종목에서 명확한 매도 신호가 발생했습니다. BT 엔진이 최근 2봉 이내에 매도 조건을 확인했습니다.`,
       `분석 엔진이 "즉시 매도" 판정을 내렸습니다. 이것은 BT와 분석 엔진이 모두 "지금 나가라"고 말하는 가장 강한 매도 신호입니다.`,
-      `망설이지 말고 계획한 대로 매도를 실행하세요. 매도 신호를 무시하고 버티면 통계적으로 손실이 확대될 가능성이 큽니다.`,
+      `망설이지 말고 계획한 대로 매도를 실행하세요. 매도 신호를 무시하고 버티면 세운 계획이 무너집니다.`,
     ];
     guide.nextAction = '즉시 시장가 또는 현재 호가 근처에서 매도하세요. "조금만 더 올라가면 팔자"는 욕심이 가장 흔한 실수입니다. 계획대로 실행하는 것이 장기 승률을 높입니다.';
     guide.caution = '매도 신호가 확정되었을 때 머뭇거리면 단 하루 만에 수 %씩 추가 손실을 볼 수 있습니다. 룰을 지킨 매도는 결코 후회할 선택이 아닙니다.';
