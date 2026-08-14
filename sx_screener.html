@@ -3410,7 +3410,7 @@ function renderCategories(){
           // 그룹의 kisRequired가 조건 단위로도 적용되도록 OR 처리
           const cLocked = (c.kisRequired || gLocked) && !window._kisEnabled;
           const cSensitive = _krNoKis && _sensitiveIds.has(c.id);
-          const badge = cSensitive ? '<span class="kis-off-badge">비활성</span>' : '';
+          const badge = cSensitive ? '<span class="kis-off-badge" title="장중이라 당일봉이 확정 전이다 — 조건은 정상 평가되며 마감 후 결과가 바뀔 수 있다(평일 16:00 이후·주말 해제)">장중 미확정</span>' : '';   // [S1291] 이 배지는 조건을 끄지 않는다(cLocked가 실제 차단) — '비활성'은 오해였다
           const axis4Badge = c.axis4 === 'buy'
             ? '<span class="buy-badge">매수판정</span>'
             : c.axis4 === 'sell'
