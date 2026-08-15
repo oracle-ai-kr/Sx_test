@@ -189,6 +189,20 @@ const SX_CONDITIONS = [
       {id:'gc_chaikin',name:'Chaikin Osc(3,10) × 0선',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'Chaikin Oscillator(EMA3-EMA10 of A/D) 0선 교차 - 최근 N봉 안에',recommend:'골든크로스 (매집-분산 전환)'},
     ]},
   ]},
+  //  [S1303] ★시장별 옵션 수 불일치 교정 — 국내 40 / 해외·코인 31이었다.
+  //    엔진 `Candle.analyze(rows)`는 **rows만 받고 시장 인자가 없다** — 38종 전부 시장 무관 탐지한다.
+  //    워커 `_candleIdMap`(sx_scan_worker.js:1099)과 `sx_screener.html:7434` 미러도 38종을 전부 갖고 있었다.
+  //    막고 있던 것은 **이 옵션 목록 하나**였다. 해외·코인 블록이 서로 바이트 동일한 것으로 보아
+  //    국내를 먼저 짜고 축약본을 복사한 뒤 동기화가 멈춘 흔적으로 보인다(의도적 제외 근거 없음).
+  //  ★탐지는 되는데 검색이 안 되던 양(OOS 스냅 실측):
+  //      US   봉 117,184 중 **52,845건** (인사이드데이 12.99% · 집게천정 7.22% · 아웃사이드데이 9.43% …)
+  //      COIN 봉  45,974 중 **21,127건** (인사이드데이 20.25% · 아웃사이드데이 9.31% …)
+  //  ★추가 9종: 인사이드데이·아웃사이드데이 / 하라미크로스·관통형·흑운형·집게바닥·집게천정 / 갭 태스키 2종
+  //    ⇒ 3시장 전부 38종 통일. 매핑표·엔진 무변경(옵션만 늘렸다).
+  //  ⚠관찰(미조치): COIN 갭 계열은 사실상 死옵션이다 — 45,974봉 중 갭상승 1·갭하락 4·태스키 0.
+  //    24시간 시장이라 갭이 안 생긴다. 그러나 `gap_up`·`gap_down`이 **이미 그 상태로 들어 있었으므로**
+  //    태스키만 빼면 새 불일치가 생긴다. 엔진이 시장을 구분하지 않으니 옵션도 구분하지 않는 쪽으로 통일했다.
+  //    死옵션은 무해하다(검색하면 0건 = 정확한 답). COIN 갭 4종을 함께 뺄지는 **별건 결정**.
   {id:'pattern',name:'패턴분석',phase:'p2',groups:[
     {id:'pat_basic',name:'기본 캔들',conditions:[
       {id:'candle_type',name:'캔들 유형',type:'multi_check',options:[
@@ -395,6 +409,7 @@ const COIN_CONDITIONS = [
       {id:'candle_type',name:'캔들 유형',type:'multi_check',options:[
         {id:'long_yang',name:'장대양봉'},{id:'long_eum',name:'장대음봉'},{id:'doji',name:'도지 (십자)'},
         {id:'hammer',name:'해머 (망치)'},{id:'shooting_star',name:'슈팅스타'},{id:'spinning_top',name:'스피닝 탑'},
+        {id:'inside_day',name:'인사이드데이'},{id:'outside_day',name:'아웃사이드데이'},   // [S1303] 국내에만 있던 것 — 엔진은 시장 무관
         {id:'gravestone_doji',name:'그레이브스톤 도지'},{id:'dragonfly_doji',name:'드래곤플라이 도지'},
         {id:'marubozu_bull',name:'양봉 마루보즈'},{id:'marubozu_bear',name:'음봉 마루보즈'},
         {id:'high_wave',name:'하이웨이브 캔들'},
@@ -404,7 +419,9 @@ const COIN_CONDITIONS = [
       {id:'reversal_pattern',name:'반전 패턴',type:'multi_check',options:[
         {id:'morning_star',name:'모닝스타'},{id:'evening_star',name:'이브닝스타'},
         {id:'bullish_engulfing',name:'상승장악형'},{id:'bearish_engulfing',name:'하락장악형'},
-        {id:'harami_bull',name:'하라미 상승'},{id:'harami_bear',name:'하라미 하락'},
+        {id:'harami_bull',name:'하라미 상승'},{id:'harami_bear',name:'하라미 하락'},{id:'harami_cross',name:'하라미크로스'},
+        {id:'piercing',name:'관통형 (상승)'},{id:'dark_cloud',name:'흑운형 (하락)'},
+        {id:'tweezer_bottom',name:'집게바닥'},{id:'tweezer_top',name:'집게천정'},
         {id:'bullish_counterattack',name:'상승 카운터어택'},{id:'bearish_counterattack',name:'하락 카운터어택'},
         {id:'morning_doji_star',name:'모닝 도지 스타'},{id:'evening_doji_star',name:'이브닝 도지 스타'},
         {id:'abandoned_baby_bull',name:'어밴던드 베이비 (상승)'},{id:'abandoned_baby_bear',name:'어밴던드 베이비 (하락)'},
@@ -415,6 +432,7 @@ const COIN_CONDITIONS = [
         {id:'three_white',name:'적삼병 (상승지속)'},{id:'three_black',name:'흑삼병 (하락지속)'},
         {id:'gap_up',name:'상승 갭'},{id:'gap_down',name:'하락 갭'},
         {id:'advance_block',name:'어드밴스 블럭'},{id:'stalled_pattern',name:'스톨드 패턴'},
+        {id:'upside_gap_tasuki',name:'업사이드갭 태스키'},{id:'downside_gap_tasuki',name:'다운사이드갭 태스키'},
       ],source:'calc_candle'},
     ]},
     {id:'pat_transition',name:'캔들 전이 (실험)',conditions:[
@@ -600,6 +618,7 @@ const US_CONDITIONS = [
       {id:'candle_type',name:'캔들 유형',type:'multi_check',options:[
         {id:'long_yang',name:'장대양봉'},{id:'long_eum',name:'장대음봉'},{id:'doji',name:'도지 (십자)'},
         {id:'hammer',name:'해머 (망치)'},{id:'shooting_star',name:'슈팅스타'},{id:'spinning_top',name:'스피닝 탑'},
+        {id:'inside_day',name:'인사이드데이'},{id:'outside_day',name:'아웃사이드데이'},   // [S1303] 국내에만 있던 것 — 엔진은 시장 무관
         {id:'gravestone_doji',name:'그레이브스톤 도지'},{id:'dragonfly_doji',name:'드래곤플라이 도지'},
         {id:'marubozu_bull',name:'양봉 마루보즈'},{id:'marubozu_bear',name:'음봉 마루보즈'},
         {id:'high_wave',name:'하이웨이브 캔들'},
@@ -609,7 +628,9 @@ const US_CONDITIONS = [
       {id:'reversal_pattern',name:'반전 패턴',type:'multi_check',options:[
         {id:'morning_star',name:'모닝스타'},{id:'evening_star',name:'이브닝스타'},
         {id:'bullish_engulfing',name:'상승장악형'},{id:'bearish_engulfing',name:'하락장악형'},
-        {id:'harami_bull',name:'하라미 상승'},{id:'harami_bear',name:'하라미 하락'},
+        {id:'harami_bull',name:'하라미 상승'},{id:'harami_bear',name:'하라미 하락'},{id:'harami_cross',name:'하라미크로스'},
+        {id:'piercing',name:'관통형 (상승)'},{id:'dark_cloud',name:'흑운형 (하락)'},
+        {id:'tweezer_bottom',name:'집게바닥'},{id:'tweezer_top',name:'집게천정'},
         {id:'bullish_counterattack',name:'상승 카운터어택'},{id:'bearish_counterattack',name:'하락 카운터어택'},
         {id:'morning_doji_star',name:'모닝 도지 스타'},{id:'evening_doji_star',name:'이브닝 도지 스타'},
         {id:'abandoned_baby_bull',name:'어밴던드 베이비 (상승)'},{id:'abandoned_baby_bear',name:'어밴던드 베이비 (하락)'},
@@ -620,6 +641,7 @@ const US_CONDITIONS = [
         {id:'three_white',name:'적삼병 (상승지속)'},{id:'three_black',name:'흑삼병 (하락지속)'},
         {id:'gap_up',name:'상승 갭'},{id:'gap_down',name:'하락 갭'},
         {id:'advance_block',name:'어드밴스 블럭'},{id:'stalled_pattern',name:'스톨드 패턴'},
+        {id:'upside_gap_tasuki',name:'업사이드갭 태스키'},{id:'downside_gap_tasuki',name:'다운사이드갭 태스키'},
       ],source:'calc_candle'},
     ]},
     {id:'pat_transition',name:'캔들 전이 (실험)',conditions:[
