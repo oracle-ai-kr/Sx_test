@@ -1233,6 +1233,13 @@ function _sxCellSignalCore(mk, ind, rows, idx, opts){   // [S1201] opts.btMode=t
     }
     for(var j2=0;j2<out.length;j2++){ out[j2].hit=(out[j2].k>=out[j2].kStarN); }
     var act=[];   // [S1177] 어휘 활동 — 단독 발동(k=1)은 표시하지 않는다(S835 겹침만 신뢰)
+    //  ⚠[S1313] `ruleCats`는 **'지금 이 칸'의 규칙 카테고리만** 담는다(위 rules 필터가 cell===ck).
+    //    그래서 아래 `continue`는 시장 전체가 아니라 **칸 단위**로 걸린다 →
+    //    **칸 규칙이 적을수록 어휘 활동 후보가 많아진다.** 2층 중복 방지의 구조적 부작용이다.
+    //  ★실측(OOS 스냅 · 종목당 최신봉): 어휘 활동 표시율 KR 79.6% / US 51.0% / **COIN 96.1%**,
+    //    평균 칩 1.9 / 1.5 / 2.8, 칸 규칙 평균 1.36 / 0.89 / **0.31**.
+    //    "코인만 어휘 활동이 보인다"는 인상의 실체가 이것이다 — **시장 게이트는 없다.**
+    //  ⚠따라서 칩 개수를 신호 강도로 읽으면 안 된다. 화면 각주에도 그렇게 적었다(sx_render.js S1313).
     if(!(opts&&opts.btMode)){   // [S1201] BT는 buy 판정만 필요 — 전 카테고리 순회(어휘 1,247) 생략
       for(var cat2 in VOC){ if(ruleCats[cat2]) continue; var k2=_kOf(cat2); if(k2>=2) act.push({ cat:cat2, kind:cat2.split('-')[1], k:k2 }); }
       act.sort(function(a,b){ return b.k-a.k; });
