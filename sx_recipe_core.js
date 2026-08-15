@@ -1241,7 +1241,22 @@ function _sxCellSignalCore(mk, ind, rows, idx, opts){   // [S1201] opts.btMode=t
     //    "코인만 어휘 활동이 보인다"는 인상의 실체가 이것이다 — **시장 게이트는 없다.**
     //  ⚠따라서 칩 개수를 신호 강도로 읽으면 안 된다. 화면 각주에도 그렇게 적었다(sx_render.js S1313).
     if(!(opts&&opts.btMode)){   // [S1201] BT는 buy 판정만 필요 — 전 카테고리 순회(어휘 1,247) 생략
-      for(var cat2 in VOC){ if(ruleCats[cat2]) continue; var k2=_kOf(cat2); if(k2>=2) act.push({ cat:cat2, kind:cat2.split('-')[1], k:k2 }); }
+      //  [S1314] 분모(n)를 함께 실어보낸다 — 규칙층은 `발동 k/kStar`로 척도가 있는데
+      //    활동층 칩은 맨숫자 k뿐이라 "10"이 큰지 작은지 화면에서 알 수 없었다.
+      //    ⚠분모는 **카테고리마다 다르다**(실측: us bullrun-down 4 · kr pullback-down 14 · coin 전부 40).
+      //      같은 k=4도 4/4와 4/40은 전혀 다른 사건이다. 분모 없이는 비교 자체가 성립하지 않는다.
+      //  [S1315] 고유 조건 수(u)도 함께 낸다 — k는 **충족된 조합 개수**이지 근거 개수가 아니다.
+      //    조합은 조건 2~3개의 AND이고 조건이 여러 조합에 반복될 수 있어 k를 "증거 k개"로 읽으면 어긋난다.
+      //    ⚠실측이 예상을 뒤집었다: 겹쳐서 u<k일 줄 알았는데 **평균 u/k = kr 1.48 · us 1.92 · coin 1.58**로
+      //      오히려 u가 크다(u<k인 칩은 kr 1.8% · us 0.0% · coin 3.4%뿐). 조합들이 서로 다른 조건을 물고 온다.
+      //      예: coin 유니스왑 deadcat-down k=8·u=9 (MA 정배열이 6회 반복되지만 나머지가 다양).
+      //    ⇒ 겹침을 경고하는 정적 문구 대신 **u를 계산해 보여준다**(사실 · 칩마다 다름).
+      for(var cat2 in VOC){ if(ruleCats[cat2]) continue;
+        var vs2=VOC[cat2]||[], k2=0, uk={};
+        for(var q2=0;q2<vs2.length;q2++){ var cc2=vs2[q2].conds, ok2=true;
+          for(var ci2=0;ci2<cc2.length;ci2++){ if(!_cellCondOk733(f,cc2[ci2])){ ok2=false; break; } }
+          if(ok2){ k2++; for(var ck2=0;ck2<cc2.length;ck2++) uk[cc2[ck2].key]=1; } }
+        if(k2>=2) act.push({ cat:cat2, kind:cat2.split('-')[1], k:k2, n:vs2.length, u:Object.keys(uk).length }); }
       act.sort(function(a,b){ return b.k-a.k; });
     }
     return { cell:ck, lbl:lbl, sig:out, act:act };
