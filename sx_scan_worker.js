@@ -2117,6 +2117,12 @@ function _slimResults(arr) {
     _score: s._score, _action: s._action, _reasons: s._reasons,
     _regime: s._regime ? { label: s._regime.label, icon: s._regime.icon } : null,
     _mkt: s._mkt || 'kr',
+    //  [S1304] ★_recentNHitBar 직렬화 — 계산(2622)해 놓고 여기서 버려져 화면 소비처가 0곳이었다.
+    //    워커는 '최근 N봉'(_recent_n_bars 기본 1~3) 슬라이드로 k봉 전에서도 통과시키는데,
+    //    표시용 indicators는 v3.10이 마지막 봉으로 되돌린다 — 즉 **판정은 3봉 전·표시는 현재봉**이 설계다.
+    //    그 결과 사용자는 "결과 종목이 조건과 안 맞는다"로 읽는다. 실제로는 몇 봉 전에 걸린 것이다.
+    //    ⇒ 어느 봉에서 걸렸는지를 결과까지 실어보내 카드에 배지로 띄운다(정합의 본질은 여기다).
+    _recentNHitBar: s._recentNHitBar || 0,
     _smartTags: s._smartTags, _filterScore: s._filterScore,
     _btScore: s._btScore, _btAction: s._btAction,
     // [2026-04 FIX] 스캔 시점 계산한 모멘텀을 메인스레드에 전달 → 분석탭 재판정 시 동일 입력 보장
