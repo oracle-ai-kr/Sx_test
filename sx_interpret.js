@@ -693,13 +693,27 @@ SXI.compositeTrend = function(ind){
   const disp20=ind.maDisparity?.disparity20??ind.maDisparityLegacy?.disparity20??null;
   const swHH=ind.swingStruct?.higherHighs??ind.swingStructLegacy?.higherHighs;
   const swLL=ind.swingStruct?.lowerLows??ind.swingStructLegacy?.lowerLows;
-  if(maArr==='bull' && disp20!=null && Math.abs(disp20)<=2.5) notes.push({tone:'bullish',icon:'[#]',title:'정배열 눌림 구간',text:'상승 추세가 유지되는 가운데 눌림 조정이 진행 중입니다. 추세 추종 관점에선 재진입 후보 구간입니다.'});
+  //  ⚠[S1317] adxV2 선언을 여기로 올렸다 — 아래 '정배열 눌림'이 ADX를 보게 되면서
+  //    원래 자리(S51 블록)의 const를 그대로 두면 **TDZ ReferenceError**가 난다(S1234 사고 계열).
+  const adxV2=ind.adx?.adx??ind.adx??0;
+  //  ★[S1317] '정배열 눌림 구간'에 ADX 게이트 — S1312와 **같은 사고**를 다른 카드에서 반복하고 있었다.
+  //    S1312가 레짐 카드에서 저ADX 구간의 '추세 추종' 권유를 걷어냈는데, 이 카드는 ADX를
+  //    **아예 보지 않아** 같은 종목·같은 화면에서 반대 조언이 남았다(백로그 #11).
+  //    실측(3시장 396종): 추세추종 어휘 노트 5건 중 ADX 게이트 없는 것 2건(이 노트와 '3중 수급 확인'),
+  //    두 노트 발동 40건 중 **26건(65%)이 ADX<25** — us AAPL 24.4 · TSLA 17.1 · kr 파마리서치 16.4.
+  //    ⇒ 정배열·눌림이라는 **사실은 그대로 두고** 추세 추종 권유만 ADX와 정합시킨다(S1312 문법 이식).
+  //    ⚠새 판정을 만들지 않는다 — tone·title·발동 조건 전부 불변이고 문구만 갈린다.
+  const _s1317W = adxV2 < 20, _s1317M = adxV2 >= 20 && adxV2 < 25;   // S1312와 같은 경계
+  if(maArr==='bull' && disp20!=null && Math.abs(disp20)<=2.5) notes.push({tone:'bullish',icon:'[#]',title:'정배열 눌림 구간',text:
+    _s1317W ? `상승 추세(정배열)가 유지되는 가운데 눌림 조정이 진행 중입니다. 다만 ADX ${Math.round(adxV2)}로 추세 강도가 받쳐주지 않아 추세 추종 전제가 서지 않습니다.`
+    : _s1317M ? `상승 추세(정배열)가 유지되는 가운데 눌림 조정이 진행 중입니다. 다만 ADX ${Math.round(adxV2)}로 추세 강도가 아직 약해, 추세 추종은 방향이 굳어진 뒤가 맞습니다.`
+    : '상승 추세가 유지되는 가운데 눌림 조정이 진행 중입니다. 추세 추종 관점에선 재진입 후보 구간입니다.'});
   if(squeeze && maArr==='bull') notes.push({tone:'bullish',icon:'💥',title:'BB 스퀴즈 + 정배열',text:'변동성이 극도로 수축된 상태에서 상승 추세가 유지되고 있습니다. 상방 돌파 시 강한 상승이 예상됩니다.'});
   if(macdD && maArr==='bear') notes.push({tone:'danger',icon:'🔻',title:'MACD 데드크로스 + 역배열',text:'모멘텀과 추세가 모두 하락을 가리킵니다. 보유 중이면 손절을 검토하세요.'});
   if(swHH && !swLL && rsi>=50 && rsi<=70) notes.push({tone:'bullish',icon:'[#]',title:'상승 스윙 + 적정 RSI',text:'스윙 구조가 상방 정리되면서 RSI도 과열 없이 강세 구간에 있습니다. 추세 지속 가능성이 높습니다.'});
   // S51: VHF 기반 복합 추세 판단
   const vhfV=ind.vhf?.val??null, vhfT=ind.vhf?.trending;
-  const adxV2=ind.adx?.adx??ind.adx??0;
+  // [S1317] adxV2는 위로 올렸다(정배열 눌림 게이트가 먼저 쓴다) — 여기서 재선언하면 SyntaxError
   const eomT=ind.eom?.trend, eomV=ind.eom?.val??0;
   const macdG2=ind.macd?.recentGolden??ind.macdLegacy?.recentGolden;
   if(vhfT==='ranging' && squeeze) notes.push({tone:'warning',icon:'🧨',title:'VHF 횡보 + BB 스퀴즈 → 폭발 임박',text:'VHF가 횡보를 확인하고 볼린저 밴드도 극도로 수축된 상태입니다. 에너지가 축적되어 있으며, 조만간 한 방향으로 강한 돌파가 나올 가능성이 높습니다. 돌파 방향을 예측하기보다 확인 후 진입이 안전합니다.'});
@@ -719,6 +733,7 @@ SXI.compositeFlow = function(ind){
   const volR=ind.volPattern?.volRatio??1;
   const rsi=typeof ind.rsi==="number"?ind.rsi:(ind.rsi?.val??ind.rsiLegacy??50);
   const bbPctB=ind.bb?.pctB;
+  const adxF=ind.adx?.adx??ind.adx??0;   // [S1317] '3중 수급 확인'의 추세추종 게이트용
   if(maArr==='bull' && obvT==='up') notes.push({tone:'bullish',icon:'[^]',title:'정배열 + OBV 상승',text:'추세와 수급이 모두 상승을 지지합니다. 건강한 상승 패턴이며 눌림목 매수에 적합합니다.'});
   if(maArr==='bull' && obvT==='down') notes.push({tone:'warning',icon:'[!]',title:'가격↑ OBV↓ 괴리',text:'가격은 상승하지만 거래량은 빠지고 있습니다. 매물 출회 시 급락 가능성에 유의하세요.'});
   if(obvT==='up' && maArr!=='bull' && maArr!=='bear') notes.push({tone:'bullish',icon:'[?]',title:'횡보 속 매집 가능성',text:'가격은 정체되어도 누적 거래량 흐름은 개선되고 있습니다. 세력성 매집 가능성을 의심할 수 있는 구간입니다.'});
@@ -733,7 +748,18 @@ SXI.compositeFlow = function(ind){
   // S51: Chaikin + OBV + EOM 3중 수급
   const coV=ind.chaikinOsc?.val??null, coT=ind.chaikinOsc?.trend;
   const eomV2=ind.eom?.val??null, eomT2=ind.eom?.trend;
-  if(coV!=null && coV>0 && obvT==='up' && eomV2!=null && eomV2>0) notes.push({tone:'bullish',icon:'[$]',title:'3중 수급 확인 (Chaikin+OBV+EOM)',text:`Chaikin Osc 양수(매집) + OBV 상승 + EOM 양수(매수 용이) — 세 가지 수급 지표가 동시에 매수를 지지합니다. 세력(큰손)가 적극적으로 물량을 확보하고 있을 가능성이 매우 높으며, 추세 추종 관점에서 강력한 매수 확인 신호입니다.`});
+  //  ★[S1317] '3중 수급 확인' — 두 가지를 함께 고친다.
+  //    ① 추세추종 권유에 ADX 게이트가 없었다(S1312가 레짐 카드에서 걷어낸 그 사고).
+  //    ② *"가능성이 매우 높으며 … 강력한 매수 확인 신호"* — S1302가 잡은 확률·신뢰도 계열과
+  //       **표현이 달라 걸러지지 않은** 근거 없는 강도 주장이다(백로그 #10).
+  //    ⇒ 지표 사실은 그대로 두고, 주체를 교과서로 옮기고(S1302 A그룹 문법),
+  //      추세 추종 권유는 ADX와 정합시키고, 조합 미측정을 명시한다(S1289).
+  if(coV!=null && coV>0 && obvT==='up' && eomV2!=null && eomV2>0) notes.push({tone:'bullish',icon:'[$]',title:'3중 수급 확인 (Chaikin+OBV+EOM)',text:
+    `Chaikin Osc 양수(매집) + OBV 상승 + EOM 양수(매수 용이) — 세 가지 수급 지표가 동시에 매수 쪽을 가리킵니다. 교과서에서는 이런 조합을 큰손의 물량 확보로 봅니다. `
+    + (adxF >= 25
+        ? `추세 추종 관점의 매수 확인 신호로도 봅니다`
+        : `다만 ADX ${Math.round(adxF)}로 추세 강도가 받쳐주지 않아 추세 추종 전제는 서지 않습니다`)
+    + ` — 이 조합은 측정된 적이 없습니다.`});
   if(coV!=null && coV<0 && obvT==='down' && eomV2!=null && eomV2<0) notes.push({tone:'danger',icon:'🚨',title:'3중 수급 이탈 (Chaikin+OBV+EOM)',text:`Chaikin Osc 음수(분산) + OBV 하락 + EOM 음수(매도 용이) — 세 가지 수급 지표가 모두 매도를 가리킵니다. 대량 매도가 진행 중이며 추가 하락 위험이 매우 높습니다. 보유 중이면 즉시 비중 축소를 검토하세요.`});
   if(coV!=null && coV>0 && obvT==='up' && maArr!=='bull') notes.push({tone:'bullish',icon:'🔎',title:'Chaikin+OBV 매집 (횡보 중)',text:'가격은 횡보하지만 Chaikin Osc와 OBV 모두 매집을 가리킵니다. 세력이 조용히 물량을 확보하는 패턴으로, 돌파 시 강한 상승이 기대됩니다.'});
   if(eomV2!=null && eomV2>0.5 && volR>=1.5) notes.push({tone:'bullish',icon:'[#]',title:'EOM 강세 + 거래량 유입',text:`EOM ${eomV2.toFixed(2)}로 가격 이동이 매우 용이한 가운데, 거래량도 평소의 ${volR.toFixed(1)}배로 증가했습니다. 매수 세력이 효율적으로 가격을 끌어올리고 있습니다.`});
@@ -768,6 +794,27 @@ SXI.compositeRisk = function(ind){
   return notes;
 };
 
+//  ══════ ★★[S1317] 발견 · 미조치 — 이 다섯 함수는 지표를 **잘못된 층에서** 읽는다 ══════
+//    `calcIndicators`는 평탄화된 객체를 낸다. 아래 10종은 **최상위에 존재하지 않고** `_advanced`
+//    아래에만 있는데(3시장 396종 전건 최상위 0%), 여기서는 `ind.maAlign`처럼 최상위로 직독한다:
+//        candle · maAlign · maDisparityLegacy · macdLegacy · rsiLegacy ·
+//        squeeze · swingStructLegacy · trend · volPattern · vwapLegacy
+//    프로덕션이 넘기는 것이 바로 그 평탄화 객체다(워커 `s._indicators = calcIndicators(...)`)
+//    → 47노트 중 **22건의 게이트가 조용히 undefined를 받는다**(S526 계열).
+//    ⚠효과가 두 방향으로 갈린다 — 이것이 이 결함이 오래 안 보인 이유다:
+//        긍정 게이트(`maArr==='bull'`)  → **영원히 발동 안 함**   (정배열 눌림 0/9 · 5중 상승 0/5)
+//        부정 게이트(`maArr!=='bull'`)  → **항상 발동**          (횡보 속 매집 165 → 정상 42)
+//        `volPattern?.volRatio ?? 1`   → 항상 1이라 `>=2` 불가  (거래량 폭발 0/13)
+//    실측(현행 → `_advanced` 사용 시): 발동 705→867 · 노출 노트 23→40종 · 3컷 잘림 29→55 ·
+//        tone 고아 **58→0**.
+//    ★★즉 S1317이 카드 대조로 자리를 만들어 준 '중립 노트 58건 침묵'은 **증상이고 원인은 이것**이다.
+//      `maArr`이 늘 'mixed'라 S979의 else 분기만 계속 탔다 — 형제 분기는 노출이 아니라
+//      **한 번도 발동한 적이 없었다**(정배열 0/8 · 역배열 0/50).
+//    ⇒ **이번 세션에서 고치지 않는다.** 한 줄(`SXI.composite(ind._advanced || ind)`)이면 되지만
+//      없던 노트 17종이 한꺼번에 화면에 나가고, 그중에 *"보유 중이면 즉시 손절"*·*"보유 유지가 최선"*
+//      처럼 **한 번도 화면에 나간 적 없는 강한 행동 지시**가 있다. 배선을 먼저 고치면 감사 없이 나간다.
+//      S1318에서 ①17종 문구 감사 → ②배선 교정 순서로 간다(S1301 순서 규율과 같은 이유).
+//    ⚠판정(verdictAction) 영향 0 — 이 다섯 함수는 서술 전용이고 판정 축에 들어가지 않는다.
 SXI.composite = function(ind){
   return [...SXI.compositeMomentum(ind),...SXI.compositeTrend(ind),...SXI.compositeFlow(ind),...SXI.compositeRisk(ind),...SXI.compositeSynergy(ind)];
 };
