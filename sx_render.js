@@ -13789,7 +13789,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1296';   // [S1296] 캔들 해석 카드 strongest 단일 반영 철폐: 방향 충돌 시 tone 'mixed'·양쪽 병기(우열 판정 금지 — score 합산은 미측정 가중치) + 동시 발동 패턴 병기 + CT 설명문 16종 추가(탐지 규칙 재진술). ★실측: 충돌 KR 3.6%/US 5.3%/COIN 2.9%·스톨드패턴(3,364회)·어드밴스블럭(2,028회)은 적삼병 부분집합이라 카드 노출 0회였다     // [S1268] RS 배선(S1267 측정·PREREG 0b1c5260): kr 중립 전환(양꼬리·절차③)·us/coin desc(excl) + 토스트 측정 승격 — 추세·구조 요약 kr=변동성 단독·us='–'화 사전 인지     // [S1267] RS(상대강도) 사전등록·측정: 지수 4계열 실기기 동일 소스(야후 KS11/KQ11/GSPC·업비트 BTC)·정렬 미스매치 0·대조군 통과·KR 변별/US·COIN 장식·알갱이 116k gz     // [S1266] 이격도 토스트 라벨 분위 정합: Q1/Q5만 '큼'·Q2/Q4는 방향만(하방/상방 이격)·Q3 밀착권 — v임계는 _q 폴백으로 강등     // [S1265] 신규 3종 침묵사 픽스: S1255 블록 _ssRows가 앞 try 스코프 밖 참조(ReferenceError→_e1255 침묵) — 실기기 3종 미push·기술지표 그룹 소멸·요약 '–'의 단일 원인. stock._lastAnalCandles 재유도+typeof 폴백(하네스 호환)     // [S1264] 기울기 배선(S1263 측정·PREREG f2a7c59a): kr neutral-pass(양꼬리 — 수익 약 4/4단조+위험 강)·us/coin desc(excl·U형/불규칙 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격 — 신규 3종 측정 아크 완결     // [S1263] 기울기(Q4보조) 사전등록·측정(PREREG f2a7c59a): 대조군 통과·KR 변별/US·COIN 장식·Q4 본답 아님 명시·알갱이 116k gz     // [S1262] 단기(세)·장기(장) 배지 근거 토스트 — 판정 규칙+현재값 명시(_sxbShortWhy/_sxbRegimeWhy, S596 패턴)     // [S1261] 헤드▲▼↔도넛전이 충돌 해소: ①전이 루프 excl 필터 실배선(S1054 주석-코드 불일치 정정 — 제거 도넛 Δ 오카운트 원인) ②헤드 ▲▼→녹/적(현재 색권 분포 표기·방향 글리프 오독 제거) ③전이 토스트 '검증 도넛만' 명시     // [S1260] 이격도 배선(S1259 측정·PREREG d4d2932c): kr neutral-pass(2축 강·양꼬리 확대형—방향색 없음)·us/coin desc(excl·U/역U 형태 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격     // [S1259] 이격도 사전등록·측정(하네스): 대조군 통과·KR 변별(Δret+2.36 4/4단조·Δcrash+6.85)/US·COIN 장식·Q2 본답 아님 명시·알갱이 116k gz     // [S1258] Q3 수렴도 배선: kr desc(excl)·us neutral-pass(주석 승격)·coin inverse-pass(3축 강) + 표시 임시식 폐기→S1257 시장별 측정 분위(우폐)·토스트 승격     // [S1257] Q3(수렴도) 사전등록·측정(PREREG 81a94edc): 대조군 통과·KR 장식/US·COIN 변별·문항답 cant(시장 상반이 실체)·알갱이 116k gz     // [S1256] excl(desc·rev) 도넛 제거 — 흐림 표시 폐지·빈그룹 가드·지표카운트 정합. 부활 원장=_DONUT_VALID(측정 통과 시 맵 갱신만으로 복귀)     // [S1255] 신규 서술 재료 3종(이격도·기울기·수렴도) 기술 섹션 편입 — 측정 전 neutral·Q&A 사전등록 연결·클릭 토스트, 섹션 종착지=Q5(칸×레짐 성과 지도) 각인     // [S1254] 전광판 헤드 2단 재조립: 1단=톤문구+지표카운트+캡션(+▶ 상단고정) · 2단=배지 밴드(세·장·전이→변동성→경고·이벤트, flex-wrap 통합) — 좌/우열 분산 철거·배지 빌더/핸들러 무변경     // [S1253] S1248 결함 교정: rows600 재검 마킹 '당일 1회'→'30분 쿨다운' — 장전 시도가 그날 몫을 소진해 장중 갱신을 막던 구조(8:21 스크린샷 8/7이 전조)     // [S1252] 로컬키 전수 재조사: 전체초기화 밖 키 0(접두 규율 유지)·진단 낙오 4건 분류(SX_STRAT_/CELLBK_/XMAT_→단기추세, SX_PRED_→앱)   // [S1251] 단일검증 게이트 2종 카드 이식: ⛩️레짐게이트(전 진입원·v3 SSOT)+🚪출구분할(불·상승=데드만/기타=ATR만, S1216 동일 의미론) — 칩·프리셋리셋·풀BT서명 편입, dead/atr 억제만(각인은 EC 몫)     // [S1250] 실험 2종 탭 이사(S1202 메커니즘): 레시피 신호감지→단일검증(sxExpHost1 선두)·이평선 기울기 예측→학습검증(sxExpHost3 선두, kNN 형제) — async 갱신 ID기반 확인·순수 이동     // [S1249] 死코드 전수조사(선언 2102개 스캔): 참조0 확정 8건 철거(_bv2Pct·_lastOf·_predQuizDestroy·_saveToSlot·_v3Meta·refreshMaster·resetAnalParams·sxEMA×중복2정의) — 동적조립·브래킷 접근 위험 전수 0 확인   // [S1248] fetchRows600 신선도: 끝봉<KST오늘인 확정캐시 하루 1회 재확정(당일봉 확보 시 교체·미공급 시 당일 재검중단 마킹), stale peek 브리지 차단 — 무TTL 세션캐시 층위 봉합("8/7 종가기준" 실측)     // [S1247] 확장 방식 최종 철거: 死코드 _loadMoreCandles(호출처 0)+stage 플래그 시스템+fetchCandlesExtended 본체·진단 참조 소멸, 진단 오호출 fetchCandles 교정 — S1205 원칙(확장 폐기→단발) 마무리     // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
+  window.SX_BUILD='S1299';   // [S1299] 백로그 '도지 행 배지' → **매핑 불가** 판정(S1298 요건 첫 적용·코드 무변경·주석 기록). 화면 도지=|c−o|/range<0.1(봉의 10.4~11.4%) ↔ 측정 도지=close===open 정확동가(0.37~2.94%) — 화면 도지의 74~97%가 측정 대상 아님. 역방향 누락 KR 350건(전건 고가=저가 완전평탄·range>0 가드). ★★부수: candleSign 도지 군은 시장 간 비교 불성립 — 종가 정수 비율 KR 100%/COIN 57.3%/US 1.7%로 close===open이 틱 구조에 직접 의존(S1279 판정 no는 불변·병기 Δcrash 해석만 영향). '상승장악'은 보드 측정 있으나 _MEAS_LEDGER 항목 없음 → 매핑 대상 없음(보드 답 등재 규약 미정)     // [S1298] _ITP_LEDGER 매핑 요건 신설(**같은 양**) + 17매핑 전수 감사 → 위반 4건 제거: 'MA 수렴도'(화면 MA5/20/60 원시% ↔ 원장 MA20/60/120÷ATR% — PREREG_S1257이 단기판 범위 밖 선언) · '가격 기울기'(20봉 가격변화율 ↔ MA20 기울기%/봉) · '거래량 MA'(volRatio 배수 ↔ MFI+VR+OBV 합성점수) · '시장 레짐'(레짐라벨 ↔ MA배열+ADX+PSAR 합성점수). ★오표시 제거: us 수렴도·kr 기울기 [측정 확인] 초록 / kr 거래량MA [역방향]+tone muted → 전부 [미측정]. 원장·도넛 무변경. ★범위 밖: 원장 수렴도 US pass 근거는 확장축이고 실측 ΔE=+0.382(사전 못박은 ΔE<0의 반대) — 화면 스퀴즈 서술과도 역. 화면 재료 별도 사전등록 필요     // [S1297] _DONUT_VALID 역할 분리 → _MEAS_LEDGER(측정 원장·SSOT) 개명. 조회구 _measStat / 파생 _donutExcl(도넛 제외)·_itpStat(배지). 비도넛 항목은 주석이 아니라 계산으로 안다 — _measLedgerAudit()가 렌더 기록 __SXB_DONUT_KEYS와 대조(손 목록 신설 금지·S1272). 실측: 배지전용='OBV 방향' 3시장 공통 1건 · 원장없는도넛=밸류/추세강도/MTF · 도넛 구성은 시장별로 다름(MFI=us·coin · 심리도=coin · 밸류=!coin)     // [S1296] 캔들 해석 카드 strongest 단일 반영 철폐: 방향 충돌 시 tone 'mixed'·양쪽 병기(우열 판정 금지 — score 합산은 미측정 가중치) + 동시 발동 패턴 병기 + CT 설명문 16종 추가(탐지 규칙 재진술). ★실측: 충돌 KR 3.6%/US 5.3%/COIN 2.9%·스톨드패턴(3,364회)·어드밴스블럭(2,028회)은 적삼병 부분집합이라 카드 노출 0회였다     // [S1268] RS 배선(S1267 측정·PREREG 0b1c5260): kr 중립 전환(양꼬리·절차③)·us/coin desc(excl) + 토스트 측정 승격 — 추세·구조 요약 kr=변동성 단독·us='–'화 사전 인지     // [S1267] RS(상대강도) 사전등록·측정: 지수 4계열 실기기 동일 소스(야후 KS11/KQ11/GSPC·업비트 BTC)·정렬 미스매치 0·대조군 통과·KR 변별/US·COIN 장식·알갱이 116k gz     // [S1266] 이격도 토스트 라벨 분위 정합: Q1/Q5만 '큼'·Q2/Q4는 방향만(하방/상방 이격)·Q3 밀착권 — v임계는 _q 폴백으로 강등     // [S1265] 신규 3종 침묵사 픽스: S1255 블록 _ssRows가 앞 try 스코프 밖 참조(ReferenceError→_e1255 침묵) — 실기기 3종 미push·기술지표 그룹 소멸·요약 '–'의 단일 원인. stock._lastAnalCandles 재유도+typeof 폴백(하네스 호환)     // [S1264] 기울기 배선(S1263 측정·PREREG f2a7c59a): kr neutral-pass(양꼬리 — 수익 약 4/4단조+위험 강)·us/coin desc(excl·U형/불규칙 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격 — 신규 3종 측정 아크 완결     // [S1263] 기울기(Q4보조) 사전등록·측정(PREREG f2a7c59a): 대조군 통과·KR 변별/US·COIN 장식·Q4 본답 아님 명시·알갱이 116k gz     // [S1262] 단기(세)·장기(장) 배지 근거 토스트 — 판정 규칙+현재값 명시(_sxbShortWhy/_sxbRegimeWhy, S596 패턴)     // [S1261] 헤드▲▼↔도넛전이 충돌 해소: ①전이 루프 excl 필터 실배선(S1054 주석-코드 불일치 정정 — 제거 도넛 Δ 오카운트 원인) ②헤드 ▲▼→녹/적(현재 색권 분포 표기·방향 글리프 오독 제거) ③전이 토스트 '검증 도넛만' 명시     // [S1260] 이격도 배선(S1259 측정·PREREG d4d2932c): kr neutral-pass(2축 강·양꼬리 확대형—방향색 없음)·us/coin desc(excl·U/역U 형태 기록) + 표시 임시식 폐기→시장별 측정 분위·토스트 승격     // [S1259] 이격도 사전등록·측정(하네스): 대조군 통과·KR 변별(Δret+2.36 4/4단조·Δcrash+6.85)/US·COIN 장식·Q2 본답 아님 명시·알갱이 116k gz     // [S1258] Q3 수렴도 배선: kr desc(excl)·us neutral-pass(주석 승격)·coin inverse-pass(3축 강) + 표시 임시식 폐기→S1257 시장별 측정 분위(우폐)·토스트 승격     // [S1257] Q3(수렴도) 사전등록·측정(PREREG 81a94edc): 대조군 통과·KR 장식/US·COIN 변별·문항답 cant(시장 상반이 실체)·알갱이 116k gz     // [S1256] excl(desc·rev) 도넛 제거 — 흐림 표시 폐지·빈그룹 가드·지표카운트 정합. 부활 원장=_DONUT_VALID(측정 통과 시 맵 갱신만으로 복귀)     // [S1255] 신규 서술 재료 3종(이격도·기울기·수렴도) 기술 섹션 편입 — 측정 전 neutral·Q&A 사전등록 연결·클릭 토스트, 섹션 종착지=Q5(칸×레짐 성과 지도) 각인     // [S1254] 전광판 헤드 2단 재조립: 1단=톤문구+지표카운트+캡션(+▶ 상단고정) · 2단=배지 밴드(세·장·전이→변동성→경고·이벤트, flex-wrap 통합) — 좌/우열 분산 철거·배지 빌더/핸들러 무변경     // [S1253] S1248 결함 교정: rows600 재검 마킹 '당일 1회'→'30분 쿨다운' — 장전 시도가 그날 몫을 소진해 장중 갱신을 막던 구조(8:21 스크린샷 8/7이 전조)     // [S1252] 로컬키 전수 재조사: 전체초기화 밖 키 0(접두 규율 유지)·진단 낙오 4건 분류(SX_STRAT_/CELLBK_/XMAT_→단기추세, SX_PRED_→앱)   // [S1251] 단일검증 게이트 2종 카드 이식: ⛩️레짐게이트(전 진입원·v3 SSOT)+🚪출구분할(불·상승=데드만/기타=ATR만, S1216 동일 의미론) — 칩·프리셋리셋·풀BT서명 편입, dead/atr 억제만(각인은 EC 몫)     // [S1250] 실험 2종 탭 이사(S1202 메커니즘): 레시피 신호감지→단일검증(sxExpHost1 선두)·이평선 기울기 예측→학습검증(sxExpHost3 선두, kNN 형제) — async 갱신 ID기반 확인·순수 이동     // [S1249] 死코드 전수조사(선언 2102개 스캔): 참조0 확정 8건 철거(_bv2Pct·_lastOf·_predQuizDestroy·_saveToSlot·_v3Meta·refreshMaster·resetAnalParams·sxEMA×중복2정의) — 동적조립·브래킷 접근 위험 전수 0 확인   // [S1248] fetchRows600 신선도: 끝봉<KST오늘인 확정캐시 하루 1회 재확정(당일봉 확보 시 교체·미공급 시 당일 재검중단 마킹), stale peek 브리지 차단 — 무TTL 세션캐시 층위 봉합("8/7 종가기준" 실측)     // [S1247] 확장 방식 최종 철거: 死코드 _loadMoreCandles(호출처 0)+stage 플래그 시스템+fetchCandlesExtended 본체·진단 참조 소멸, 진단 오호출 fetchCandles 교정 — S1205 원칙(확장 폐기→단발) 마무리     // [S1246] R모드 잔결함 2건: Season2 async 재그림 보라 소실(_resolvePurpleSv 복원)+토글 재그림 trades 모드정합(_chartTradesFor 실배선)   // [S1245] 차트 마커 간헐 어긋남 3원인 봉합: ①TM 확정 후 미니차트 재그림 훅(경합) ②날짜 정규화 비교+실패 warn ③마커·OPEN배경 날짜 우선 재탐색+Season2 캐시 rows 베이스 무효화(인덱스 밀림)   // [S1242] 갭가드 잔재 전면 철거(설정·서명gg·재사용비교·scan동봉·워커수신·표기 12곳) — 死바인딩 판정, BT=시즌2 갭무시 정합 확정   // [S1241] 민감지표 '비활성' 배지 장중 게이트(KST 평일 09:00~16:00, S235 완충 30분·sx_session SSOT)+死변수 _krNoKis 삭제   // [S1240] 월봉 "공급 벽" 오진 정정: 워커 sise 파서 trailing comma 내성(공란 소진율)+월 400 원복(주·월 _btTargetBars 정합)+parse_failed 폴백 경고 4곳 — 배포 순서: 워커 먼저   // [S1239] BT 그리드 확정기준 일관(OPEN 제외)+_btResult 기록자 풀스탬프 통일   // [S1234] 서명 블록 TDZ 픽스(수동 실행 카드 글자 증발)   // [S1233] 실행 서명 줄 위치 이동(그리드 직후)+진입 날짜 목록+서명 부재 표기   // [S1232] 자동↔수동 BT 정합: 실행서명 카드 표기·재사용 불가 사유 특정·btGetParams TF 혼합 봉합   // [S1231] 월봉 200 원복(네이버 공급 실측)+fx 왕복 보존+렌더 값변경 계측(obs)   // [S1230] 봉데이터 이중로딩 해소: P1 인플라이트합류·P2 캔들브리지(prime/peek)·P3 코인프로브·P4 낙오수거·P6 KIS 역할분리(일주월=네이버 단일소스·700폐지)   // [S1220] 레짐표 미청산 제외(분해 기준 통일)+PREREG-M1 동결 [S1219] 레짐 v3 [S1217~18] 상태어휘+폭락 [S1210~16] maCross·게이트·출구
   if(typeof document!=='undefined'){
     var _sxFillBuild=function(){ var e=document.getElementById('sxBuildBadge'); if(e){ e.textContent='🛠 '+window.SX_BUILD; e.title='로드된 render.js 빌드 — 배포 반영 확인용'; } var v=document.getElementById('tbVer'); if(v){ v.textContent=window.SX_BUILD; v.title='배포 시리얼 — render.js 빌드'; } };   // [S965] 스크리너 헤드 v3.9→시리얼(SX_BUILD 물림·한 곳만 갱신)
     if(document.readyState!=='loading') _sxFillBuild(); else document.addEventListener('DOMContentLoaded', _sxFillBuild);
@@ -16789,7 +16789,7 @@ function _sxbHTML(){
   groups.forEach(g=>{
     if(!g.items.length) return;
     // [S1256] excl(무변별 desc·역배선 rev) 도넛 제거 — S1054 흐림 표시 폐지. "판정 불가를 수용자에게 떠넘기지 않는다"(사용자 결정).
-    //   패자부활전: 등록부=_DONUT_VALID가 그대로 부활 원장 — 사전등록 측정 통과 시 맵 한 줄(desc→pass)로 복귀(rev는 역배선 재설계 후 재측정).
+    //   패자부활전: 등록부=_MEAS_LEDGER(S1297 개명·구 _DONUT_VALID)가 그대로 부활 원장 — 사전등록 측정 통과 시 맵 한 줄(desc→pass)로 복귀(rev는 역배선 재설계 후 재측정).
     //   값 계산(extras)은 유지 — 부활 대기·크로스 내부 재료 공유. 전 항목 excl인 그룹은 제목까지 생략.
     const _vis = g.items.filter(it=>!it.excl);
     if(!_vis.length) return;
@@ -16801,7 +16801,22 @@ function _sxbHTML(){
   det += `</div>`;
   return h + mini + det;
 }
-// [S1054] 도넛 검증맵 — S1053/S1053B 측정(OOS 스냅 0715-16 · FWD10 · crash r10≤−10% · 시장별 5분위) 기반 재료 선별.
+// ════════ [S1297] 역할 분리 — 이 맵의 정체는 '도넛 원장'이 아니라 **측정 원장**이다 ════════
+//   ★문제(개념 혼탁): 이름은 도넛(_DONUT_VALID·구명)인데 소비처가 둘이었다 —
+//     ① 도넛 제외(excl) ② 해석 행 배지(_ITP_LEDGER → _itpStat). 게다가 'OBV 방향'처럼
+//     **도넛에 push되지 않는 항목**이 들어 있어(배지 전용) 이름이 내용을 잘못 설명했다.
+//     "도넛 원장에 있는데 도넛이 아니다"를 주석 3줄로만 붙들고 있었다 — 주석은 표류한다(S1272).
+//   ★조치(S1272 교훈 준수 — 분리하되 한쪽은 반드시 **파생**):
+//     기반 = _MEAS_LEDGER (측정 원장 · SSOT · 재료×시장 → pass|desc|rev)
+//     조회 = _measStat(k)              ← 원장 단일 조회구
+//     파생 = _donutExcl(k)             ← 도넛 전용 소비 (desc·rev면 제외)
+//     파생 = _itpStat(label)           ← 해석 행 배지 (기존·유지)
+//   ★비도넛 항목은 주석이 아니라 **계산**으로 안다: _measLedgerAudit()가 실제 렌더가 조회한
+//     도넛 키 집합(__SXB_DONUT_KEYS — _buildBoardGroups 소비 지점에서 기록)과 원장을 대조한다.
+//     ⚠손으로 유지하는 두 번째 목록을 만들지 않는다 — 그게 S1272 axisLong 표류의 원인이었다.
+//   ★실측(S1297 정적 대조): 배지 전용 = 'OBV 방향' 3시장 공통 1건 / 원장 없는 도넛 = 밸류·추세강도·MTF
+//     (측정불능 = 외부·정적 데이터 → 상태 null → excl 없음·배지 없음. 현행 유지)
+// [S1054] 측정 원장(구 도넛 검증맵) — S1053/S1053B 측정(OOS 스냅 0715-16 · FWD10 · crash r10≤−10% · 시장별 5분위) 기반 재료 선별.
 //   ★이 스냅으로 선별했으므로 본 맵의 예측 주장은 새 빈티지(0723~ 백로그) 재검증 전까지 잠정 — gut-check 정본·시즌2 자동게이트 금지.
 //   pass = 변별력+방향 정합(색·평균·분포 유지) / desc = 무변별·장식(흐림 + 평균·분포·전이 제외) / rev = 색 방향과 반대로 측정(흐림+⚠+제외).
 //   미기재 = 측정불능(밸류·재무·공시·섹터·MTF·RS·도미넌스 등 외부/정적 데이터) → 서술 지위 유지(변경 없음).
@@ -16812,7 +16827,7 @@ function _sxbHTML(){
 //   [S1268] 상대강도 = RS 배선(S1267·PREREG 0b1c5260) — kr 양꼬리 4호(거래량·이격도·기울기·RS: 모멘텀 계열 공통 구조로 보임). us/coin 장식.
 //     추세·구조 요약 여파(사전 인지분): kr=변동성 단독 · us='–'(판정 재료 전무) · coin=구조위치+변동성 유지.
 //   [S1260] 이격도 = S1259 배선(PREREG d4d2932c) — KR만 변별(양꼬리: 위 이격 수익↑·crash↑ 동반 → 방향색 불가·중립). US U형·COIN 역U형은 형태 기록만(꼬리 재단은 후속 문항).
-const _DONUT_VALID = {
+const _MEAS_LEDGER = {
   kr: {
     'OBV 방향':'rev',   // [S1287] 등재 — PREREG 838b7026 · obvGap 부호 2분할(flat 실질 부재)
     //   Δcrash up +1.64pp(귀무 99.7%)·down −2.91pp — 상승군이 폭락 더 잦다 = 화면 서술('건강한 상승·지속성 강함')과 방향 반대
@@ -16853,31 +16868,100 @@ const _DONUT_VALID = {
     '추세신호':'desc','거래량':'desc','EOM':'desc','MFI':'desc','이평선 배열':'desc'
   }
 };
-// [S1054] 항목 라벨 → 검증 상태. '이평선 (?)' 등 동적 라벨은 접두 매칭.
-function _donutVStat(k){
-  const m = _DONUT_VALID[(typeof currentMarket!=='undefined' && currentMarket) || 'kr'] || {};
+// [S1054→S1297] 원장 단일 조회구(SSOT). 재료 라벨 → 측정 상태. '이평선 (?)' 등 동적 라벨은 접두 매칭.
+//   ⚠이 함수만이 _MEAS_LEDGER를 직접 읽는다. 아래 소비처는 전부 여기서 **파생**한다.
+function _measStat(k){
+  const m = _MEAS_LEDGER[(typeof currentMarket!=='undefined' && currentMarket) || 'kr'] || {};
   if(m[k] != null) return m[k];
   if(k && k.indexOf('이평선') === 0) return m['이평선 배열'] != null ? m['이평선 배열'] : null;
   return null;
 }
+// [S1297] 파생 ① 도넛 전용 소비 — 무변별(desc)·역배선(rev)은 도넛에서 빠진다(S1256 결정).
+//   ⚠'제외'는 도넛의 문제이지 원장의 성질이 아니다. 그래서 원장에 저장하지 않고 여기서 판단한다.
+function _donutExcl(k){ const st = _measStat(k); return st === 'desc' || st === 'rev'; }
+// [S1297] 파생 ② 원장 감사 — "어느 항목이 배지 전용인가"를 주석이 아니라 계산으로 답한다.
+//   __SXB_DONUT_KEYS = _buildBoardGroups의 원장 소비 지점이 기록한 **실제 조회 키 집합**.
+//   콘솔에서 _measLedgerAudit() 호출(전광판 1회 렌더 후). 사용자 화면 영향 없음.
+function _measLedgerAudit(mk){
+  const _mk = mk || (typeof currentMarket!=='undefined' && currentMarket) || 'kr';
+  const m = _MEAS_LEDGER[_mk] || {};
+  const seen = (typeof window!=='undefined' && window.__SXB_DONUT_KEYS) || null;
+  if(!seen) return { ok:false, market:_mk, reason:'도넛 키 미기록 — 전광판을 한 번 렌더한 뒤 호출할 것' };
+  //  ★[S1297] 도넛 구성은 **시장마다 다르다**(실측: MFI=us·coin만 · 심리도=coin만 · 밸류=coin 제외).
+  //    기록된 키가 다른 시장 것이면 대조 자체가 무의미하므로 판정하지 않고 사유를 돌려준다.
+  const _seenMk = (typeof window!=='undefined' && window.__SXB_DONUT_MKT) || null;
+  if(_seenMk && _seenMk !== _mk)
+    return { ok:false, market:_mk, keysFrom:_seenMk,
+             reason:'기록된 도넛 키가 '+_seenMk+' 시장 것이다 — 해당 시장을 렌더한 뒤 다시 호출할 것' };
+  const seenKeys = Object.keys(seen);
+  const hasMa = seenKeys.some(k=>k.indexOf('이평선') === 0);
+  const both = [], badgeOnly = [];
+  Object.keys(m).forEach(k=>{
+    const isDonut = (k === '이평선 배열') ? hasMa : (seen[k] === 1);
+    (isDonut ? both : badgeOnly).push(k);
+  });
+  const noLedger = seenKeys.filter(k=>{
+    const lk = (k.indexOf('이평선') === 0) ? '이평선 배열' : k;
+    return m[lk] == null;
+  });
+  return { ok:true, market:_mk, keysFrom:_seenMk||_mk, 원장항목:Object.keys(m).length,
+           도넛겸용:both, 배지전용:badgeOnly, 원장없는도넛:noLedger };
+}
+if(typeof window!=='undefined') window._measLedgerAudit = _measLedgerAudit;
 // 동기 점수로 전광판 초기 구성 + HTML 반환
 // [S357] 전광판 그룹(5카테고리 items) 빌더 — _buildScoreBoard와 멀티TF 5분류(_classifyBoardDist)의 단일 소스.
 //   기존 _buildScoreBoard 본문에서 g1~g5 push 로직을 그대로 추출 (동작 불변).
 // ════════ [S1283] 해석 서술 ↔ 측정 원장 접합 ════════
 //   문제: sx_interpret.js SXI 해석층은 72함수·256 서술분기(방향 주장 bullish 94 + bearish 37 = 131)를
-//     내보내는데 대부분이 측정으로 뒷받침되지 않는다. 도넛은 _DONUT_VALID 부활 원장으로 관리되지만
+//     내보내는데 대부분이 측정으로 뒷받침되지 않는다. 도넛은 _MEAS_LEDGER 부활 원장으로 관리되지만
 //     해석층은 그 원장 **밖**에 있었다 — 5축 폐기·종합해석 카드 교체로 정리해온 계열이 여기 남아 있었다.
 //   실측(S1283 조사): 화면에 나가는 해석 행 23종 중 원장 대응 항목이 있는 것 10종,
 //     나머지 13종은 원장 항목 자체가 없다(측정 이력 없음).
 //   ★조치: 서술을 지우지 않고 **배지로 출처를 밝힌다.** 서술은 교과서 지식으로서 값이 있고,
 //     문제는 그것이 측정된 것처럼 읽히는 것이었다. tone(색)은 건드리지 않는다 — 별건 결정.
-//   ★상태는 _DONUT_VALID에서 **파생**한다(중복 저장 금지 — S1272 axisLong 표류 재발 방지).
+//   ★상태는 _MEAS_LEDGER에서 **파생**한다(중복 저장 금지 — S1272 axisLong 표류 재발 방지).
 //     원장이 바뀌면 배지가 따라 바뀐다. S1282에서 coin 수렴도가 pass→desc로 내려갔고
 //     이 배지는 자동으로 [측정 미달]로 전환된다.
-const _ITP_LEDGER = {   // 해석 행 라벨 → _DONUT_VALID 키 (여기 없으면 = 원장 항목 없음 = 미측정)
+// ════════ [S1298] 매핑 요건 신설 — **같은 양**이어야 한다 ════════
+//   ★배경: 백로그 'SXI.maConvergence 부호 모순'을 잡으러 갔다가 더 큰 것이 나왔다.
+//     이 표는 화면 라벨을 원장 키에 잇는데, **잇는 조건이 어디에도 선언된 적이 없었다.**
+//     그래서 화면 행이 보여주는 양과 원장이 잰 양이 다른 매핑이 4건 섞여 있었다.
+//   ★요건(신설): `_ITP_LEDGER`에 매핑하려면 **화면 행이 표시하는 양 = 원장 항목이 측정한 양**이어야 한다.
+//     - 같은 양·다른 분할(절대 문턱 vs 측정 5분위)은 **허용**한다 — 배지는 '재료' 수준 주장이고
+//       툴팁도 그렇게 적혀 있다(S1289 관찰 #7의 과대 해석 위험은 별건으로 남는다).
+//     - **다른 양이면 매핑 금지.** 배지가 다른 물건의 측정을 이 행의 근거인 양 말하게 된다.
+//     ⚠S1286 조항 1(같은 양 + 같은 분할)은 **원장 등재** 규약이고, 이건 **매핑** 규약이다. 층이 다르다.
+//   ★전수 감사 결과 — 17매핑 중 **4건 위반**(아래 주석 처리 · 지우지 않고 사유를 남긴다):
+//     ① 'MA 수렴도'  화면 MA5/20/60 원시%      ↔ 원장 MA20/60/120÷ATR% (PREREG_S1257이 단기판을 **명시적 범위 밖**으로 선언)
+//     ② '가격 기울기' 화면 20봉 가격변화율        ↔ 원장 MA20 기울기 %/봉 (PREREG_S1263)   ← 이름만 같고 완전히 다른 양
+//     ③ '거래량 MA'   화면 volRatio(거래량 배수) ↔ 원장 scores.volume = MFI+VR+OBV 합성점수
+//     ④ '시장 레짐'   화면 ADX·BB폭 레짐 라벨    ↔ 원장 scores.trend = MA배열+ADX+PSAR 합성점수
+//   ★위반이 만들던 실제 오표시(제거 전):
+//     ① US에서 [측정 확인] **초록** — 근거 없이 강한 배지(SPEC_S1286: "근거 없이 강하게 나오면 더 나쁘다")
+//     ② KR에서 [측정 확인] **초록** — 동상
+//     ③ KR에서 [역방향] **주황 + tone muted** — 엉뚱한 재료의 rev로 이 행의 색을 지우고 있었다
+//     ④ 3시장 [측정 미달] — 방향을 약화시키는 쪽이나 "쟀지만 미달"은 이 양에 대해 사실이 아니다
+//   ★★범위 밖 발견(백로그): 원장 '수렴도'의 US pass 근거는 **확장축**(미래 실현범위)인데
+//     실측 ΔE = **+0.382**(Q1 3.056 → Q5 3.438 · 단조 4/4+)로 **넓을수록 미래 변동이 크다**이다.
+//     PREREG_S1257이 사전에 못박은 부호는 **ΔE<0**(수렴=스퀴즈 가설)이었고 US는 그 **반대**로 강했다.
+//     화면 서술 "강한 수렴 → 강력한 변곡점 임박·돌파 폭발"과도 부호가 반대다.
+//     ⚠단 재료가 달라(위 ①) 이 행의 근거로 쓸 수 없다 — 화면 재료(MA5/20/60 원시%)를 **별도 사전등록**해야 한다.
+const _ITP_LEDGER = {   // 해석 행 라벨 → _MEAS_LEDGER 키 (여기 없으면 = 원장 항목 없음 = 미측정)
   'A/D (수급)':'A/D', 'Chaikin (수급)':'Chaikin', 'EOM':'EOM',
-  'MA 수렴도':'수렴도', 'MA 이격도':'이격도', '가격 기울기':'기울기',
-  '거래량 MA':'거래량', '구조 위치':'구조위치', '눌림신호':'눌림신호', '심리도':'심리도',
+  //  [S1298] 'MA 수렴도':'수렴도' — **매핑 제거**(다른 양).
+  //    화면 = MAConvergence.analyze(closes): MA5/20/60 최대범위/평균×100 · ATR 정규화 없음 · 절대 문턱 1.5/2/5/8%
+  //    원장 = S1257 재료: MA20/60/120 최대범위/close×100 **÷ATR%(Wilder14)** · 시장별 5분위
+  //    ★PREREG_S1257이 "단기판(5/10/20)은 범위 밖"을 명시했다 — 화면은 그 범위 밖 축을 쓴다.
+  //  [S1298] '가격 기울기':'기울기' — **매핑 제거**(다른 양).
+  //    화면 = Trend.calc().pct = (close[n−1]−close[n−20])/close[n−20]×100  → **20봉 가격 변화율**
+  //    원장 = S1263 재료: (MA20 − MA20[5봉전])/MA20[5봉전]/5×100 (%/봉) → **MA20 기울기**
+  //    이름만 같고 잰 물건이 다르다. KR pass가 초록 [측정 확인]로 나가고 있었다.
+  'MA 이격도':'이격도',   // 같은 양 유지(d20 동일 · 화면이 d60을 병기하는 만큼만 부분) — 분할 차이는 허용 범위
+  //  [S1298] '거래량 MA':'거래량' — **매핑 제거**(다른 양).
+  //    화면 = volPattern.volRatio (오늘 거래량 / 평균 = **배수**)
+  //    원장 = scores.volume = 50 + (MFI−50)×0.3 + clamp((VR−100)×0.08) ± 5(OBV trend) → **합성점수**
+  //    ★KR 원장이 rev라 이 행에 [역방향] + tone muted가 걸려 있었다 — 잰 적 없는 양의 색을 지우고 있었다.
+  '구조 위치':'구조위치', '눌림신호':'눌림신호', '심리도':'심리도',
   //  [S1284] 기술적 지표 섹션(itpRow 경로 — advItpRow와 다른 세 번째 렌더 함수) 14종 추가.
   //    실기기 확인에서 이 섹션에 배지가 하나도 없었고, 오히려 방향을 더 단정하는 서술들이었다
   //    (MACD "보유 유지에 가장 유리" · SAR "보유 유지 구간" · OBV "지속성이 강함" 등).
@@ -16889,7 +16973,52 @@ const _ITP_LEDGER = {   // 해석 행 라벨 → _DONUT_VALID 키 (여기 없으
   //  [S1293] 시장 레짐 카드 — 네 번째 렌더 경로였다(advItpRow·itpRow·캔들·합성 어디에도 안 걸림).
   //    SXI.advRegime이 ADX·BB폭·방향 서술을 조립해 itp-card로 직접 내보낸다.
   //    원장 대응: '추세신호'(3시장 전부 desc — ADX 기반 추세 판정이 판정 문턱 미달).
-  '시장 레짐':'추세신호'
+  //  [S1298] '시장 레짐':'추세신호' — **매핑 제거**(다른 양).
+  //    화면 = SXI.advRegime(레짐 라벨·방향·ADX) — ADX·BB폭 기반 레짐 분류
+  //    원장 = scores.trend = 50 + (정배열이면 8+ADX×0.6) ± 5(PSAR) → **MA배열+ADX+PSAR 합성점수**
+  //    ⚠S1293이 "가장 가까운 항목"으로 의도해 붙인 매핑이다. 근사였고, 신설 요건에는 미달한다.
+  //      3시장 전부 desc였어서 표시 강도 변화는 작다([측정 미달]→[미측정]) — 그래도 사실이 아닌 쪽을 지운다.
+  //  (표 끝 — 위 4건은 전부 [미측정]로 떨어진다. 그것이 이 행들에 대해 **사실**이다.)
+  //
+  // ════════ [S1299] 매핑 판정 이력 — 붙이지 않기로 한 것들 ════════
+  //   백로그 '도지 행 단위 배지'(S1286 열린항목 2)를 배선하러 갔다가 **매핑 불가**로 판정했다.
+  //   S1298 신설 요건(같은 양)을 그대로 적용한 첫 사례다. 붙이지 않은 이유를 남긴다 —
+  //   기록이 없으면 이 백로그가 다시 올라온다.
+  //
+  //   ① `도지` 행 → S1279 `candleSign` 도지 군 : **매핑 불가(다른 양)**
+  //      화면 = `sx_analysis_engine.js:757` `range>0 && |close−open|/range < 0.1`  → **몸통이 작다**
+  //      측정 = PREREG_S1279 `close === open` **정확히 동가**(원시값 비교·허용오차 없음)
+  //      ★실측(보유 OOS 스냅 · 봉 272,278 — S1279 스냅과 다르므로 재현이 아니라 규모 확인):
+  //        화면 도지 비중 KR 10.44% · US 10.75% · COIN 11.41%
+  //        측정 도지 비중 KR  2.71% · US  0.37% · COIN  2.94%
+  //        화면 도지 중 측정 도지에 해당 = KR 22.9% · US **3.4%** · COIN 25.8%
+  //        → **화면에 '도지'라고 뜬 것의 74~97%는 측정 대상이 아니었다.**
+  //      ★역방향 누락도 있다: KR 측정 도지 2,942건 중 **350건은 화면 도지가 아니다** —
+  //        전건이 `고가=저가` 완전평탄 봉(상한가 점상 등)이고 화면은 `range>0` 가드로 제외한다.
+  //
+  //   ★★부수 발견 — `candleSign` 도지 군은 **시장 간 비교가 성립하지 않는다**
+  //      종가가 정수인 봉의 비율: KR **100%** · COIN 57.3% · US **1.7%**.
+  //      `close===open`은 호가 단위(틱 구조)에 직접 의존한다. 그래서 S1279의 도지 비중
+  //      KR 2.4 / US 0.2 / COIN 4.8%는 **시장 성질이 아니라 가격 표기 정밀도의 반영**으로 보인다.
+  //      실제 "몸통 없는 봉"은 3시장 모두 10~11%로 거의 같다.
+  //      ⚠S1279 판정(`no`)은 **바뀌지 않는다** — 도지는 승자 후보가 아니었고 US는 이미 자격 미달로
+  //        제외됐다. 영향받는 것은 S1279가 병기 기록한 **도지 Δcrash 3/3 약(−)** 의 해석이다:
+  //        세 시장의 '도지 군'이 서로 다른 물건일 수 있다(현 기준하).
+  //
+  //   ② `상승장악` 행 → 보드 ⚫ `q_s1168_013` : **매핑 대상 없음**
+  //      측정은 실재한다(3시장 n=11,630 · 수익·승률·낙폭 어느 축도 나이브와 갈리지 않음 · 가장 깨끗한 영 결과).
+  //      그러나 **`_MEAS_LEDGER`에 항목이 없다.** 보드 답(문항 verdict)과 원장 상태(재료 판정)는
+  //      다른 물건이고, 보드 답을 원장에 등재할 수 있는지는 **규약이 아직 없다**(S1286 조항 3은
+  //      결과 JSON의 `judgment[시장].material`만 다룬다). → 별건 결정 사항.
+  //
+  //   ⚠관찰(미조치): 완전평탄 봉(`high===low`)에서는 1봉 패턴이 전부 `range>0` 가드에 걸려
+  //     캔들 섹션이 **전면 침묵**한다(KR 350건·0.32%). 상한가 점상이 그 대표다. 표시 공백이지
+  //     거짓 주장은 아니므로 이번엔 손대지 않았다 — 채우려면 엔진에 없는 패턴을 만들어야 한다.
+  //
+  //   ⇒ 후속 사전등록 후보(측정 백로그):
+  //     · **화면 도지 재료**(몸통비 <10%) — 화면이 실제로 보여주는 양. 비중 10~11%로 n이 충분하고
+  //       틱 구조에 둔감해 **시장 간 비교가 성립한다**. S1279 몸통 크기 축 백로그와 같은 계열.
+  //     · **화면 수렴도 재료**(MA5/20/60 원시%) — S1298 ① 참조.
   //    ⚠아래는 원장 항목 자체가 없어 의도적으로 비워둔다 → [미측정]로 표시된다:
   //      RSI (14) · MACD · MACD Signal · ADX · +DI / -DI · CCI (20) · BB 폭 · SAR   ← OBV 방향은 S1287 등재로 제외
   //  ★[S1286→S1287] S1286 시점엔 등재 불가였다(분할 불일치). S1287에서 부호 분할로 재측정해 **등재 완료**.
@@ -16899,10 +17028,10 @@ const _ITP_LEDGER = {   // 해석 행 라벨 → _DONUT_VALID 키 (여기 없으
   //    ⇒ 따라서 [미측정] 배지가 정확하다. '캔들 패턴'도 같다(섹션은 묶음·측정은 1봉 부호와 상승장악형뿐).
 };
 //  배지 어휘: pass=배지 없음 / desc=[측정 미달](쟀고 판정 미달) / rev=[역방향](쟀고 방향이 반대)
-//    / 원장에 없음=[미측정]. 시장별로 다르므로 현 시장 기준(_donutVStat).
+//    / 원장에 없음=[미측정]. 시장별로 다르므로 현 시장 기준(_measStat).
 //  [S1288] 상태 조회 SSOT — 배지·tone·주석줄이 모두 이 하나를 쓴다(파생 유지).
 function _itpStat(label){
-  try{ var key = _ITP_LEDGER[label]; return (key === undefined) ? null : _donutVStat(key); }
+  try{ var key = _ITP_LEDGER[label]; return (key === undefined) ? null : _measStat(key); }
   catch(_e1288a){ return null; }
 }
 function _itpTag(st){
@@ -17022,7 +17151,7 @@ function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
     const _maLabel = extras.maAlign._missing ? '이평선 (?)' : '이평선 배열';
     g5.push({k:_maLabel, v:extras.maAlign.v, byValue:true});
   }
-  // [S1255→S1264] 신규 서술 재료 3종 측정 완료 — 수렴도(S1258)·이격도(S1260)·기울기(S1264), 원장(_DONUT_VALID) 주석 참조. 섹션 종착지=Q5(칸×레짐 성과 지도) 각인 유지.
+  // [S1255→S1264] 신규 서술 재료 3종 측정 완료 — 수렴도(S1258)·이격도(S1260)·기울기(S1264), 원장(_MEAS_LEDGER) 주석 참조. 섹션 종착지=Q5(칸×레짐 성과 지도) 각인 유지.
   //   〔섹션 종착지 각인 — 사용자 통찰(Q5)〕 이 '기술지표' 자리의 최종 형태는 원시 지표 나열이 아니라
   //   3×3 칸×레짐 구역별 홀드아웃 성과 지도(Q&A Q5)다. KR 원시 4종은 S1053 desc — 측정 통과분만 이 자리를 차지한다.
   // [S1260] 이격도 배선(S1259): kr=neutral-pass(양꼬리 확대형 — 방향색 없음·S1258 US 컨벤션) / us·coin=desc→S1054 루프가 excl.
@@ -17030,8 +17159,8 @@ function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   // [S1264] 기울기 Q4보조 배선(S1263): kr=pass+push중립(양꼬리 — 방향색 없음, S1260 disp kr 문법) / us·coin=desc→S1054 루프가 excl.
   if(extras.slope && extras.slope.v!=null) g5.push({k:'기울기', v:extras.slope.v, neutral:true, _pb:extras.slope._pb, _q:extras.slope._q});
   // [S1258] 수렴도 Q3 배선(S1257): coin=inverse(수렴=주의·빨 — 변동성·스토캐스틱 문법·평균 제외 유지) / us·kr=중립. kr은 desc→S1054 루프가 excl.
-  //  ⚠[S1282] `inverse:_isCoinMkt`는 현재 **무효**다 — coin이 desc로 강등돼 _donutVStat→excl 되고,
-  //    평균 산출부(_DONUT_VALID 소비 지점의 `!it.excl` 필터)와 색상부에서 모두 걸러진다.
+  //  ⚠[S1282] `inverse:_isCoinMkt`는 현재 **무효**다 — coin이 desc로 강등돼 _measStat→_donutExcl 되고,
+  //    평균 산출부(_MEAS_LEDGER 소비 지점의 `!it.excl` 필터)와 색상부에서 모두 걸러진다.
   //    ★그러나 지우지 않았다: S1282 사전등록의 조치 조항이 desc 전환과 토스트 교체만 선언했고,
   //      선언 밖 수정은 하지 않는다는 규율을 지킨다. 대신 위험을 코드에 남긴다 —
   //    ★★수렴도를 다시 pass로 되살릴 때 이 플래그가 **근거 없이 자동 부활**한다.
@@ -17045,11 +17174,17 @@ function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   // [S989] 5축 배제 — '추격여력'(upsideScore) 제거. 추세 강도=추세강도(ADX)+이평선배열이 커버. (피더 _boardExtras.upside 11796·툴팁 10807은 고아=무해, 다음 정리)
   // [S1054·B안] 검증맵 적용 — desc/rev는 excl 마킹 → _sxbAvg(카테고리 평균)·_classifyBoardDist(분포)·_sxbAvgDelta(전이)에서 제외.
   //   pass/미기재(측정불능)는 현행 유지. 표시 흐림·⚠는 _sxbHTML det 렌더에서 excl/vstat로 처리.
+  //  [S1297] 원장 소비 지점 — 여기서 조회한 키를 기록해 _measLedgerAudit()가 배지 전용 항목을
+  //    **계산**으로 뽑을 수 있게 한다(손 목록 금지 · S1272). excl 판단은 _donutExcl 파생을 쓴다.
+  const _dk = {};
   [g1,g2,g3,g4,g5].forEach(_gl=>_gl.forEach(it=>{
-    const _vs = _donutVStat(it.k);
-    if(_vs === 'desc' || _vs === 'rev'){ it.excl = true; it.vstat = _vs; }
-    else if(_vs === 'pass'){ it.vstat = 'pass'; }
+    if(it && it.k) _dk[it.k] = 1;
+    const _vs = _measStat(it.k);
+    if(_vs != null) it.vstat = _vs;              // pass|desc|rev (동작 불변 — 값 3종뿐)
+    if(_donutExcl(it.k)) it.excl = true;         // 파생: desc·rev만 도넛 제외
   }));
+  try{ if(typeof window!=='undefined'){ window.__SXB_DONUT_KEYS = _dk;
+    window.__SXB_DONUT_MKT = (typeof currentMarket!=='undefined' && currentMarket) || 'kr'; } }catch(_e1297){}
   return [
     {id:'trend', title:'추세·구조', items:g1},
     {id:'mom',   title:'모멘텀·진입', items:g2},
