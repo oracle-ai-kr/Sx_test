@@ -156,7 +156,7 @@ SXI.macd = function(hist, prevHist, recentGolden, recentDead){
   if(!Number.isFinite(h)) return null; // [PATCH-1] NaN/Infinity 방어
   if(recentGolden && h>=0) return {label:'골든크로스 (제로선 위)',tone:'bullish',text:'MACD선이 시그널선을 상향 돌파하면서 제로선 위에 있습니다. 기존 상승 추세가 재가속되는 강력한 신호이며, 거래량 동반 시 교과서에서는 신뢰도가 매우 높아진다고 봅니다. 눌림목 매수 진입 타이밍으로 적합하며, 히스토그램이 빠르게 줄어들기 시작하면 모멘텀 피로를 의심하세요.'};
   if(recentGolden) return {label:'골든크로스 (제로선 아래)',tone:'bullish',text:'MACD선이 제로선 아래에서 골든크로스했습니다. 하락 추세 내 방향 전환 초기 신호이며, 아직 완전한 추세 전환이라 단정하기 이릅니다. 제로선을 상향 돌파하면 추세 전환 확정이며, 그때까지는 기술적 반등으로 접근이 안전합니다.'};
-  if(recentDead && h<=0) return {label:'데드크로스 (제로선 아래)',tone:'danger',text:'MACD선이 제로선 아래에서 데드크로스했습니다. 하락 모멘텀이 본격 강화되는 구간으로 가장 위험한 MACD 조합 중 하나입니다. 보유 중이면 손절 기준 재점검 후 비중 축소를 우선 실행하세요. ADX 30 이상과 동시 발생 시 하락 가속 가능성이 매우 높습니다.'};
+  if(recentDead && h<=0) return {label:'데드크로스 (제로선 아래)',tone:'danger',text:'MACD선이 제로선 아래에서 데드크로스했습니다. 교과서에서는 이를 하락 모멘텀이 본격 강화되는 구간으로 보고 MACD 조합 중 가장 위험한 축에 넣습니다. 청산·비중 조정 시점은 미리 정한 규칙대로 판단하세요. ADX 30 이상이 겹치면 교과서는 하락 가속으로 읽습니다.'};
   if(recentDead) return {label:'데드크로스 (제로선 위)',tone:'bearish',text:'MACD선이 제로선 위에서 데드크로스했습니다. 상승 모멘텀이 피로를 보이는 단계이며, 추세 꺾임 초기 경고입니다. 추가 매수 자제하고, 히스토그램이 음수 전환되는지 주시하세요.'};
   if(h>0 && pH!=null && h>pH) return {label:'양수 확대',tone:'bullish',text:'MACD 히스토그램이 양수이면서 확대 중이어서 상승 모멘텀 가속입니다. 추세 지속 구간의 전형적 패턴이며, 보유 유지에 가장 유리합니다. 확대 폭이 줄어들기 시작하면 모멘텀 둔화 초기 신호이므로 익절 준비를 시작하세요.'};
   if(h>0 && pH!=null && h<=pH) return {label:'양수 축소',tone:'warning',text:'히스토그램이 양수이지만 줄어들고 있어 상승 속도가 둔화 중입니다. 아직 추세가 꺾인 것은 아니지만, 단기 익절과 추격 자제 쪽에 무게를 두세요. 히스토그램이 0 아래로 전환되면 본격적인 매도 압력이 시작될 수 있습니다.'};
@@ -673,12 +673,12 @@ SXI.compositeMomentum = function(ind){
   const macdPH=ind.macd?.prevHist??null;
   const macdG=ind.macd?.recentGolden??ind.macdLegacy?.recentGolden;
   if(rsi<=30 && stK<=25 && stK>stD) notes.push({tone:'bullish',icon:'[!]',title:'RSI 과매도 + Stoch 골든크로스',text:'단기 반등 조건이 동시에 형성되고 있습니다. 교과서에서는 추세 하락 중이면 기술적 반등, 횡보 하단이면 매수 시도 구간으로 봅니다.'});
-  else if(macdG && macdH<0 && macdPH!=null && macdH>macdPH) notes.push({tone:'bullish',icon:'[~]',title:'MACD 골든크로스 + 모멘텀 회복',text:'하락 모멘텀이 약해지며 방향 전환 초기 신호가 나타납니다. 거래량 증가 동반 여부를 함께 확인하세요'});
+  else if(macdG && macdH<0 && macdPH!=null && macdH>macdPH) notes.push({tone:'bullish',icon:'[~]',title:'MACD 골든크로스 + 모멘텀 회복',text:'하락 모멘텀이 약해지며 방향 전환 초기 신호가 나타납니다. 거래량 증가 동반 여부를 함께 확인하세요.'});
   if(rsi>=72 && macdH>0 && macdPH!=null && macdH<=macdPH) notes.push({tone:'warning',icon:'🌡️',title:'과열 후 모멘텀 둔화',text:'가격은 강하지만 상승 속도는 둔화되고 있습니다. 교과서에서는 이를 단기 익절과 추격 자제 쪽으로 읽습니다.'});
   // S51: 심리도 + RSI 복합
   const psyV=ind.psycho?.psycho??null;
   if(psyV!=null && psyV>=80 && rsi>=70) notes.push({tone:'danger',icon:'[X]',title:'심리도 + RSI 이중 과열',text:`심리도 ${psyV.toFixed(0)}% + RSI ${rsi.toFixed(0)} — 투자 심리와 가격 모멘텀 모두 과열 상태입니다. 교과서에서는 이 조합을 급조정 위험 구간으로 봅니다. 추격 매수는 절대 금물입니다. 분할 익절을 강력히 검토하세요.`});
-  if(psyV!=null && psyV<=20 && rsi<=30) notes.push({tone:'bullish',icon:'[O]',title:'심리도 + RSI 이중 과매도',text:`심리도 ${psyV.toFixed(0)}% + RSI ${rsi.toFixed(0)} — 투자 심리와 가격 모멘텀 모두 극단적 침체 구간입니다. 교과서에서는 매도 에너지가 소진된 자리로 보고 기술적 반등을 기대합니다. 거래량 증가·양봉이 함께 오는지 확인하세요`});
+  if(psyV!=null && psyV<=20 && rsi<=30) notes.push({tone:'bullish',icon:'[O]',title:'심리도 + RSI 이중 과매도',text:`심리도 ${psyV.toFixed(0)}% + RSI ${rsi.toFixed(0)} — 투자 심리와 가격 모멘텀 모두 극단적 침체 구간입니다. 교과서에서는 매도 에너지가 소진된 자리로 보고 기술적 반등을 기대합니다. 거래량 증가·양봉이 함께 오는지 확인하세요.`});
   if(psyV!=null && psyV<=20 && stK<=20 && stK>stD) notes.push({tone:'bullish',icon:'💎',title:'심리도 침체 + Stoch 바닥 반전',text:`심리도 ${psyV.toFixed(0)}%에서 스토캐스틱이 골든크로스했습니다. 교과서에서는 이를 극단적 비관 속 첫 반등 신호로 보고 단기 매수 후보로 다룹니다.`});
   return notes;
 };
@@ -710,18 +710,18 @@ SXI.compositeTrend = function(ind){
     _s1317W ? `상승 추세(정배열)가 유지되는 가운데 눌림 조정이 진행 중입니다. 다만 ADX ${Math.round(adxV2)}로 추세 강도가 받쳐주지 않아 추세 추종 전제가 서지 않습니다.`
     : _s1317M ? `상승 추세(정배열)가 유지되는 가운데 눌림 조정이 진행 중입니다. 다만 ADX ${Math.round(adxV2)}로 추세 강도가 아직 약해, 추세 추종은 방향이 굳어진 뒤가 맞습니다.`
     : '상승 추세가 유지되는 가운데 눌림 조정이 진행 중입니다. 교과서에서는 이를 추세 추종 관점의 재진입 후보로 봅니다.'});
-  if(squeeze && maArr==='bull') notes.push({tone:'bullish',icon:'💥',title:'BB 스퀴즈 + 정배열',text:'변동성이 극도로 수축된 상태에서 상승 추세가 유지되고 있습니다. 교과서에서는 수축 뒤의 상방 돌파를 강한 상승의 출발로 봅니다'});
-  if(macdD && maArr==='bear') notes.push({tone:'danger',icon:'🔻',title:'MACD 데드크로스 + 역배열',text:'모멘텀과 추세가 모두 하락을 가리킵니다. 청산 시점은 미리 정한 규칙대로 판단하세요'});
-  if(swHH && !swLL && rsi>=50 && rsi<=70) notes.push({tone:'bullish',icon:'[#]',title:'상승 스윙 + 적정 RSI',text:'스윙 구조가 상방 정리되면서 RSI도 과열 없이 강세 구간에 있습니다. 교과서에서는 이를 추세가 이어지기 좋은 배치로 봅니다'});
+  if(squeeze && maArr==='bull') notes.push({tone:'bullish',icon:'💥',title:'BB 스퀴즈 + 정배열',text:'변동성이 극도로 수축된 상태에서 상승 추세가 유지되고 있습니다. 교과서에서는 수축 뒤의 상방 돌파를 강한 상승의 출발로 봅니다.'});
+  if(macdD && maArr==='bear') notes.push({tone:'danger',icon:'🔻',title:'MACD 데드크로스 + 역배열',text:'모멘텀과 추세가 모두 하락을 가리킵니다. 청산 시점은 미리 정한 규칙대로 판단하세요.'});
+  if(swHH && !swLL && rsi>=50 && rsi<=70) notes.push({tone:'bullish',icon:'[#]',title:'상승 스윙 + 적정 RSI',text:'스윙 구조가 상방 정리되면서 RSI도 과열 없이 강세 구간에 있습니다. 교과서에서는 이를 추세가 이어지기 좋은 배치로 봅니다.'});
   // S51: VHF 기반 복합 추세 판단
   const vhfV=ind.vhf?.val??null, vhfT=ind.vhf?.trending;
   // [S1317] adxV2는 위로 올렸다(정배열 눌림 게이트가 먼저 쓴다) — 여기서 재선언하면 SyntaxError
   const eomT=ind.eom?.trend, eomV=ind.eom?.val??0;
   const macdG2=ind.macd?.recentGolden??ind.macdLegacy?.recentGolden;
-  if(vhfT==='ranging' && squeeze) notes.push({tone:'warning',icon:'🧨',title:'VHF 횡보 + BB 스퀴즈 → 폭발 임박',text:'VHF가 횡보를 확인하고 볼린저 밴드도 극도로 수축된 상태입니다. 교과서에서는 이를 에너지 축적으로 보고 한 방향 돌파를 예상합니다. 돌파 방향은 이 화면이 예측하지 않습니다'});
-  if(vhfT==='trending' && adxV2>=30 && maArr==='bull') notes.push({tone:'bullish',icon:'🚀',title:'VHF 추세 + ADX 강세 + 정배열',text:`VHF ${vhfV?.toFixed(2)||''}가 추세장을 확인하고, ADX ${Math.round(adxV2)}도 강한 방향성을 보여줍니다. 교과서에서는 추세 추종에 유리한 구간으로 보며 역추세 매매를 경계합니다`});
-  if(vhfT==='trending' && eomT==='bullish' && macdG2) notes.push({tone:'bullish',icon:'[!]',title:'VHF 추세 + EOM 매수 + MACD 골든 → 추세 가속', /* [S452] eomT 'up'→'bullish' (EOM.trend 어휘 일치) */text:'추세 형성(VHF) + 가격 이동 용이(EOM 양수) + 모멘텀 전환(MACD 골든)이 동시에 나타나고 있습니다. 교과서에서는 이 3중 확인을 상승 추세 가속 신호로 봅니다'});
-  if(vhfT==='trending' && adxV2>=30 && maArr==='bear') notes.push({tone:'danger',icon:'🔻',title:'VHF 추세 + ADX 강세 + 역배열 → 강한 하락',text:`VHF와 ADX 모두 강한 방향성을 보이며 MA 역배열 상태입니다. 교과서에서는 이 구간의 반등 매수를 경계합니다`});
+  if(vhfT==='ranging' && squeeze) notes.push({tone:'warning',icon:'🧨',title:'VHF 횡보 + BB 스퀴즈 → 폭발 임박',text:'VHF가 횡보를 확인하고 볼린저 밴드도 극도로 수축된 상태입니다. 교과서에서는 이를 에너지 축적으로 보고 한 방향 돌파를 예상합니다. 돌파 방향은 이 화면이 예측하지 않습니다.'});
+  if(vhfT==='trending' && adxV2>=30 && maArr==='bull') notes.push({tone:'bullish',icon:'🚀',title:'VHF 추세 + ADX 강세 + 정배열',text:`VHF ${vhfV?.toFixed(2)||''}가 추세장을 확인하고, ADX ${Math.round(adxV2)}도 강한 방향성을 보여줍니다. 교과서에서는 추세 추종에 유리한 구간으로 보며 역추세 매매를 경계합니다.`});
+  if(vhfT==='trending' && eomT==='bullish' && macdG2) notes.push({tone:'bullish',icon:'[!]',title:'VHF 추세 + EOM 매수 + MACD 골든 → 추세 가속', /* [S452] eomT 'up'→'bullish' (EOM.trend 어휘 일치) */text:'추세 형성(VHF) + 가격 이동 용이(EOM 양수) + 모멘텀 전환(MACD 골든)이 동시에 나타나고 있습니다. 교과서에서는 이 3중 확인을 상승 추세 가속 신호로 봅니다.'});
+  if(vhfT==='trending' && adxV2>=30 && maArr==='bear') notes.push({tone:'danger',icon:'🔻',title:'VHF 추세 + ADX 강세 + 역배열 → 강한 하락',text:`VHF와 ADX 모두 강한 방향성을 보이며 MA 역배열 상태입니다. 교과서에서는 이 구간의 반등 매수를 경계합니다.`});
   return notes;
 };
 
@@ -743,15 +743,15 @@ SXI.compositeFlow = function(ind){
   const rsi=typeof ind.rsi==="number"?ind.rsi:(ind.rsi?.val??ind.rsiLegacy??50);
   const bbPctB=ind.bb?.pctB;
   const adxF=ind.adx?.adx??ind.adx??0;   // [S1317] '3중 수급 확인'의 추세추종 게이트용
-  if(maArr==='bull' && obvT==='up') notes.push({tone:'bullish',icon:'[^]',title:'정배열 + OBV 상승',text:'추세와 수급이 모두 상승을 가리킵니다. 교과서에서는 이를 건강한 상승 패턴으로 보고 눌림목 매수 구간으로 다룹니다'});
+  if(maArr==='bull' && obvT==='up') notes.push({tone:'bullish',icon:'[^]',title:'정배열 + OBV 상승',text:'추세와 수급이 모두 상승을 가리킵니다. 교과서에서는 이를 건강한 상승 패턴으로 보고 눌림목 매수 구간으로 다룹니다.'});
   if(maArr==='bull' && obvT==='down') notes.push({tone:'warning',icon:'[!]',title:'가격↑ OBV↓ 괴리',text:'가격은 상승하지만 거래량은 빠지고 있습니다. 교과서에서는 이 괴리를 매물 출회 시 급락 위험으로 봅니다.'});
   if(obvT==='up' && maArr!=='bull' && maArr!=='bear') notes.push({tone:'bullish',icon:'[?]',title:'횡보 속 매집 가능성',text:'가격은 정체되어도 누적 거래량 흐름은 개선되고 있습니다. 교과서에서는 이를 큰손의 조용한 매집으로 읽습니다.'});
   if((vwapPos==='above'||vwapPos==='above_far') && volR>=1.5) notes.push({tone:'bullish',icon:'💧',title:'VWAP 상회 + 거래량 유입',text:'단기 평균 매입단가 위에서 거래량까지 붙고 있습니다. 교과서에서는 이를 매수 우위 흐름이 강화되는 자리로 봅니다.'});
   if(obvDiv==='bullish') notes.push({tone:'bullish',icon:'[?]',title:'OBV 상승 다이버전스',text:'가격은 저점을 낮추지만 모멘텀 둔화가 확인됩니다. 교과서에서는 이를 하락 압력이 약해지는 초기 반전 신호로 봅니다.'});
   if(obvDiv==='bearish') notes.push({tone:'bearish',icon:'[?]',title:'OBV 하락 다이버전스',text:'가격 상승 대비 상승 모멘텀이 약해지고 있습니다. 교과서에서는 이를 추세 피로 누적으로 봅니다.'});
   if(volR>=2){
-    if(_cdl.bullish) notes.push({tone:'bullish',icon:'🚀',title:'거래량 폭발 + 강세 캔들',text:`거래량이 평소의 ${volR.toFixed(1)}배로 급증하며 양봉이 나왔습니다. 교과서에서는 이런 봉을 큰손 진입 신호로 읽습니다`});
-    if(_cdl.bearish) notes.push({tone:'danger',icon:'💣',title:'거래량 폭발 + 약세 캔들',text:`거래량이 평소의 ${volR.toFixed(1)}배로 급증하며 음봉이 나왔습니다. 교과서에서는 이를 대량 매도 출회로 봅니다`});
+    if(_cdl.bullish) notes.push({tone:'bullish',icon:'🚀',title:'거래량 폭발 + 강세 캔들',text:`거래량이 평소의 ${volR.toFixed(1)}배로 급증하며 양봉이 나왔습니다. 교과서에서는 이런 봉을 큰손 진입 신호로 읽습니다.`});
+    if(_cdl.bearish) notes.push({tone:'danger',icon:'💣',title:'거래량 폭발 + 약세 캔들',text:`거래량이 평소의 ${volR.toFixed(1)}배로 급증하며 음봉이 나왔습니다. 교과서에서는 이를 대량 매도 출회로 봅니다.`});
   }
   if(bbPctB!=null && bbPctB<=0.1 && rsi<=35) notes.push({tone:'bullish',icon:'[v]',title:'BB 하단 + RSI 과매도',text:'가격 조정은 이어졌지만 하락 강도는 약해지고 있습니다. 교과서에서는 이를 단기 바닥 탐색 구간으로 봅니다.'});
   // S51: Chaikin + OBV + EOM 3중 수급
@@ -766,13 +766,13 @@ SXI.compositeFlow = function(ind){
   if(coV!=null && coV>0 && obvT==='up' && eomV2!=null && eomV2>0) notes.push({tone:'bullish',icon:'[$]',title:'3중 수급 확인 (Chaikin+OBV+EOM)',text:
     `Chaikin Osc 양수(매집) + OBV 상승 + EOM 양수(매수 용이) — 세 가지 수급 지표가 동시에 매수 쪽을 가리킵니다. 교과서에서는 이런 조합을 큰손의 물량 확보로 봅니다. `
     + (adxF >= 25
-        ? `추세 추종 관점의 매수 확인 신호로도 봅니다`
-        : `다만 ADX ${Math.round(adxF)}로 추세 강도가 받쳐주지 않아 추세 추종 전제는 서지 않습니다`)
+        ? `추세 추종 관점의 매수 확인 신호로도 봅니다.`
+        : `다만 ADX ${Math.round(adxF)}로 추세 강도가 받쳐주지 않아 추세 추종 전제는 서지 않습니다.`)
     + ``});
-  if(coV!=null && coV<0 && obvT==='down' && eomV2!=null && eomV2<0) notes.push({tone:'danger',icon:'🚨',title:'3중 수급 이탈 (Chaikin+OBV+EOM)',text:`Chaikin Osc 음수(분산) + OBV 하락 + EOM 음수(매도 용이) — 세 가지 수급 지표가 모두 매도 쪽을 가리킵니다. 교과서에서는 이를 대량 매도 진행으로 봅니다. 비중 조정 시점은 미리 정한 규칙대로 판단하세요`});
-  if(coV!=null && coV>0 && obvT==='up' && maArr!=='bull') notes.push({tone:'bullish',icon:'🔎',title:'Chaikin+OBV 매집 (횡보 중)',text:'가격은 횡보하지만 Chaikin Osc와 OBV 모두 매집을 가리킵니다. 교과서에서는 이를 큰손이 조용히 물량을 확보하는 패턴으로 보고 돌파를 주시합니다'});
+  if(coV!=null && coV<0 && obvT==='down' && eomV2!=null && eomV2<0) notes.push({tone:'danger',icon:'🚨',title:'3중 수급 이탈 (Chaikin+OBV+EOM)',text:`Chaikin Osc 음수(분산) + OBV 하락 + EOM 음수(매도 용이) — 세 가지 수급 지표가 모두 매도 쪽을 가리킵니다. 교과서에서는 이를 대량 매도 진행으로 봅니다. 비중 조정 시점은 미리 정한 규칙대로 판단하세요.`});
+  if(coV!=null && coV>0 && obvT==='up' && maArr!=='bull') notes.push({tone:'bullish',icon:'🔎',title:'Chaikin+OBV 매집 (횡보 중)',text:'가격은 횡보하지만 Chaikin Osc와 OBV 모두 매집을 가리킵니다. 교과서에서는 이를 큰손이 조용히 물량을 확보하는 패턴으로 보고 돌파를 주시합니다.'});
   if(eomV2!=null && eomV2>0.5 && volR>=1.5) notes.push({tone:'bullish',icon:'[#]',title:'EOM 강세 + 거래량 유입',text:`EOM ${eomV2.toFixed(2)}로 가격 이동이 매우 용이한 가운데, 거래량도 평소의 ${volR.toFixed(1)}배로 증가했습니다. 교과서에서는 이를 매수 쪽이 적은 힘으로 가격을 올리는 상태로 봅니다.`});
-  if(eomV2!=null && eomV2<-0.5 && volR>=1.5) notes.push({tone:'danger',icon:'💥',title:'EOM 약세 + 거래량 급증',text:`EOM ${eomV2.toFixed(2)}로 하락이 용이한 가운데, 거래량이 ${volR.toFixed(1)}배로 급증했습니다. 교과서에서는 이를 매도 우위 흐름으로 봅니다`});
+  if(eomV2!=null && eomV2<-0.5 && volR>=1.5) notes.push({tone:'danger',icon:'💥',title:'EOM 약세 + 거래량 급증',text:`EOM ${eomV2.toFixed(2)}로 하락이 용이한 가운데, 거래량이 ${volR.toFixed(1)}배로 급증했습니다. 교과서에서는 이를 매도 우위 흐름으로 봅니다.`});
   return notes;
 };
 
@@ -794,16 +794,16 @@ SXI.compositeRisk = function(ind){
   const vwapPos=ind.vwap?.position??ind.vwapLegacy?.position;
   const macdH=ind.macd?.hist??ind.macd?.histogram??0;
   const macdPH=ind.macd?.prevHist??null;
-  if(rsi>=75 && bbPctB!=null && bbPctB>=0.95) notes.push({tone:'danger',icon:'🌡️',title:'이중 과열 (RSI+BB)',text:'RSI와 볼린저 상단이 동시에 과열 구간입니다. 교과서에서는 이를 급락 위험 구간으로 봅니다. 비중 조정 시점은 미리 정한 규칙대로 판단하세요'});
+  if(rsi>=75 && bbPctB!=null && bbPctB>=0.95) notes.push({tone:'danger',icon:'🌡️',title:'이중 과열 (RSI+BB)',text:'RSI와 볼린저 상단이 동시에 과열 구간입니다. 교과서에서는 이를 급락 위험 구간으로 봅니다. 비중 조정 시점은 미리 정한 규칙대로 판단하세요.'});
   if(atrR>=4 && adxV>=30) notes.push({tone:'warning',icon:'[!]',title:'강한 추세 + 큰 흔들림',text:'추세는 강하지만 흔들림도 큰 구간입니다. 같은 폭이 수익 쪽으로도 손실 쪽으로도 빠르게 움직입니다 — 교과서에서는 이런 구간의 비중을 줄여 잡습니다.'});
   if(nearR && volR<0.8) notes.push({tone:'warning',icon:'🚧',title:'저항 앞 힘 약화',text:'상단 저항은 가까운데 거래량이 약합니다. 교과서에서는 이럴 때 돌파보다 눌림이나 실패 가능성도 함께 열어둡니다.'});
   if((vwapPos==='below'||vwapPos==='below_far') && macdH<0 && macdPH!=null && macdH<macdPH) notes.push({tone:'bearish',icon:'[v]',title:'반등보다 하방 우위',text:'단기 평균단가 아래에서 하락 모멘텀까지 강화되고 있습니다. 교과서에서는 이 구간의 반등을 기술적 반등으로 보수적으로 다룹니다.'});
-  if(adxV>=35 && maArr==='bear') notes.push({tone:'danger',icon:'[!]',title:'강한 하락 추세 (ADX '+Math.round(adxV)+')',text:'ADX가 높고 역배열 상태입니다. 교과서에서는 이 구간을 신규 매수에 불리한 자리로 봅니다'});
+  if(adxV>=35 && maArr==='bear') notes.push({tone:'danger',icon:'[!]',title:'강한 하락 추세 (ADX '+Math.round(adxV)+')',text:'ADX가 높고 역배열 상태입니다. 교과서에서는 이 구간을 신규 매수에 불리한 자리로 봅니다.'});
   // S51: AB Ratio + 심리도 복합 위험
   const abR=ind.abRatio?.ratio??null, abT=ind.abRatio?.trend;
   const psyR=ind.psycho?.psycho??null;
   if(abR!=null && abR>=1.8 && psyR!=null && psyR>=80) notes.push({tone:'danger',icon:'[X]',title:'AB Ratio 극단 매수 + 심리도 과열',text:`AB Ratio ${abR.toFixed(2)}(강한 매수세) + 심리도 ${psyR.toFixed(0)}%(과열) — 매수 열기가 극에 달했습니다. 장중 고가를 적극적으로 높이는 매수세와 과도한 낙관이 겹쳐, 급격한 차익실현 매물이 쏟아질 위험이 있습니다.`});
-  if(abR!=null && abR<=0.55 && psyR!=null && psyR<=20) notes.push({tone:'bullish',icon:'[O]',title:'AB Ratio 극단 매도 + 심리도 침체',text:`AB Ratio ${abR.toFixed(2)}(강한 매도세) + 심리도 ${psyR.toFixed(0)}%(과매도) — 교과서에서는 매도 에너지가 소진 직전인 자리로 보고, 양봉 + 거래량 증가가 함께 오면 바닥 반전 후보로 다룹니다`});
+  if(abR!=null && abR<=0.55 && psyR!=null && psyR<=20) notes.push({tone:'bullish',icon:'[O]',title:'AB Ratio 극단 매도 + 심리도 침체',text:`AB Ratio ${abR.toFixed(2)}(강한 매도세) + 심리도 ${psyR.toFixed(0)}%(과매도) — 교과서에서는 매도 에너지가 소진 직전인 자리로 보고, 양봉 + 거래량 증가가 함께 오면 바닥 반전 후보로 다룹니다.`});
   if(abT==='bearish' && rsi>=70) notes.push({tone:'warning',icon:'[!]',title:'AB 매도 우위인데 RSI 과매수',text:'가격은 아직 높지만 장중 매도 압력이 매수를 압도하고 있습니다. 고점에서의 물량 분산가 시작되었을 가능성이 있으며, 윗꼬리 음봉 출현에 주의하세요.'});
   return notes;
 };
@@ -864,11 +864,11 @@ SXI.compositeSynergy = function(ind){
 
   // 4. 완전 상승 확신: 정배열 + VHF 추세 + EOM 매수 + Chaikin 매집 + OBV 상승
   if(maArr==='bull' && vhfT==='trending' && eomV!=null && eomV>0 && coV!=null && coV>0 && obvT==='up')
-    notes.push({tone:'bullish',icon:'🏆',title:'5중 상승 확인 (추세+수급+모멘텀)',text:'MA 정배열 + VHF 추세장 + EOM 매수 용이 + Chaikin 매집 + OBV 상승 — 다섯 축이 모두 상승을 가리킵니다. 교과서에서는 이런 정렬을 강한 컨플루언스로 봅니다'});
+    notes.push({tone:'bullish',icon:'🏆',title:'5중 상승 확인 (추세+수급+모멘텀)',text:'MA 정배열 + VHF 추세장 + EOM 매수 용이 + Chaikin 매집 + OBV 상승 — 다섯 축이 모두 상승을 가리킵니다. 교과서에서는 이런 정렬을 강한 컨플루언스로 봅니다.'});
 
   // 5. 완전 하락 경고: 역배열 + VHF 추세 + EOM 매도 + Chaikin 분산 + OBV 하락
   if(maArr==='bear' && vhfT==='trending' && eomV!=null && eomV<0 && coV!=null && coV<0 && obvT==='down')
-    notes.push({tone:'danger',icon:'☠️',title:'5중 하락 경고 (추세+수급+모멘텀)',text:'MA 역배열 + VHF 추세장 + EOM 매도 용이 + Chaikin 분산 + OBV 하락 — 다섯 축이 모두 하락을 가리킵니다. 청산 시점은 미리 정한 규칙대로 판단하세요'});
+    notes.push({tone:'danger',icon:'☠️',title:'5중 하락 경고 (추세+수급+모멘텀)',text:'MA 역배열 + VHF 추세장 + EOM 매도 용이 + Chaikin 분산 + OBV 하락 — 다섯 축이 모두 하락을 가리킵니다. 청산 시점은 미리 정한 규칙대로 판단하세요.'});
 
   // 6. 횡보 중 방향 탐색: VHF 횡보 + EOM 방향 전환
   if(vhfT==='ranging' && eomV!=null && Math.abs(eomV)>0.3){
@@ -878,7 +878,7 @@ SXI.compositeSynergy = function(ind){
 
   // 7. 추세 전환 수렴: MACD 골든 + EOM 양수 전환 + AB 매수 전환 (비추세 구간)
   if(macdG && eomV!=null && eomV>0 && abT==='bullish' && vhfT!=='trending')
-    notes.push({tone:'bullish',icon:'[~]',title:'3중 전환 신호 (MACD+EOM+AB)',text:'MACD 골든크로스 + EOM 양수 전환 + AB Ratio 매수 우위 — 세 축이 동시에 전환되고 있습니다. 교과서에서는 이를 추세 형성 초기 신호로 보고 VHF 상승 확인을 함께 봅니다'});
+    notes.push({tone:'bullish',icon:'[~]',title:'3중 전환 신호 (MACD+EOM+AB)',text:'MACD 골든크로스 + EOM 양수 전환 + AB Ratio 매수 우위 — 세 축이 동시에 전환되고 있습니다. 교과서에서는 이를 추세 형성 초기 신호로 보고 VHF 상승 확인을 함께 봅니다.'});
 
   // 8. BB 확대 + VHF 추세 형성: 변동성 확장 확인 — [S979] maArr 방향 가드 (하락 추세에 "추종 적합" 오표기 수정)
   //  ⚠[S1319] `bb.width`는 **이미 % 단위**(실측 15~90)인데 표기에서 ×100을 또 해
@@ -890,7 +890,7 @@ SXI.compositeSynergy = function(ind){
     if(maArr==='bear')
       notes.push({tone:'danger',icon:'📢',title:'변동성 확장 + 하락 추세',text:`VHF 추세장 + BB 폭 ${bbW.toFixed(1)}% + ADX ${Math.round(adxV)} — BB 스퀴즈가 풀리며 추세가 시작됐고 방향은 아래쪽(역배열)이에요. 추세 추종은 곧 매도 방향이라, 교과서에서는 이 구간의 신규 매수를 피합니다.`});
     else if(maArr==='bull')
-      notes.push({tone:'bullish',icon:'📢',title:'변동성 확장 + 상승 추세',text:`VHF 추세장 + BB 폭 ${bbW.toFixed(1)}% + ADX ${Math.round(adxV)} — BB 스퀴즈가 풀리며 추세가 시작됐고 방향은 위쪽(정배열)이에요. 교과서에서는 이 구간을 추세 추종 진입 자리로 봅니다`});
+      notes.push({tone:'bullish',icon:'📢',title:'변동성 확장 + 상승 추세',text:`VHF 추세장 + BB 폭 ${bbW.toFixed(1)}% + ADX ${Math.round(adxV)} — BB 스퀴즈가 풀리며 추세가 시작됐고 방향은 위쪽(정배열)이에요. 교과서에서는 이 구간을 추세 추종 진입 자리로 봅니다.`});
     else
       notes.push({tone:'neutral',icon:'📢',title:'변동성 확장 + 추세 형성',text:`VHF 추세장 + BB 폭 ${bbW.toFixed(1)}% + ADX ${Math.round(adxV)} — BB 스퀴즈가 풀리며 추세가 형성 중이나 방향(정/역배열)이 아직 뚜렷하지 않아요. 방향 확인 후 대응하세요.`});
   }
@@ -2233,7 +2233,7 @@ SXI.advFundamental = function(fin, price, stock){
   // ── S60: PEG ──
   if(fin.peg != null){
     if(fin.peg > 0 && fin.peg <= 0.5){
-      lines.push(`PEG ${fin.peg.toFixed(2)} — 성장성 대비 극저평가입니다. PER이 EPS 성장률의 절반도 안 되는 수준으로, 피터 린치 기준으로 '숨겨진 성장주'에 해당합니다. 이익 성장이 1~2분기 더 확인되면 주가 재평가 가능성이 매우 높습니다.`);
+      lines.push(`PEG ${fin.peg.toFixed(2)} — 성장성 대비 극저평가입니다. PER이 EPS 성장률의 절반도 안 되는 수준으로, 피터 린치 기준으로 '숨겨진 성장주'에 해당합니다. 교과서에서는 이익 성장이 1~2분기 더 확인되면 주가 재평가가 따라온다고 봅니다 — 이 서술을 잰 측정은 없습니다.`);
       bullCount += 2;
     } else if(fin.peg <= 0.8){
       lines.push(`PEG ${fin.peg.toFixed(2)} — 성장성 대비 저평가입니다. PER이 이익 성장률보다 낮아 밸류에이션 매력이 높습니다. 다만 PEG는 과거 성장률 기준이므로, 향후에도 성장세가 유지될지 사업 전망을 확인하세요.`);
@@ -2437,7 +2437,7 @@ SXI.advMacro = function(macro){
   if(macro.vix){
     const v = macro.vix;
     if(v.price >= 30){
-      lines.push(`VIX ${v.price.toFixed(1)} — 극심한 공포 구간입니다. 모든 매수 신호의 신뢰도가 크게 하락하며, 현금 비중을 높이고 기존 포지션의 손절선을 긴축해야 합니다. 역발상 매수는 VIX 하향 반전 확인 후가 안전합니다.`);
+      lines.push(`VIX ${v.price.toFixed(1)} — 극심한 공포 구간입니다. 교과서에서는 이 구간에서 매수 신호를 낮춰 보고 현금 비중을 높이라고 봅니다 — VIX가 우리 신호의 적중을 낮춘다는 측정은 없습니다. 역발상 매수는 VIX 하향 반전 확인 후를 권합니다.`);
       score -= 25;
     } else if(v.price >= 20){
       lines.push(`VIX ${v.price.toFixed(1)} — 불안 구간입니다. 시장 변동성이 높아 기술적 신호의 노이즈가 커집니다. 포지션 크기를 줄이는 것이 바람직합니다.`);
@@ -2493,7 +2493,7 @@ SXI.advMacro = function(macro){
   return {
     tone, label: labels[tone], score: clamped,
     text: lines.join('\n'),
-    summary: tone === 'bullish' ? '글로벌 매크로 환경이 주식시장에 우호적입니다. 기술적 매수 신호와 결합 시 높은 신뢰도를 기대할 수 있습니다.'
+    summary: tone === 'bullish' ? '글로벌 매크로 환경이 주식시장에 우호적입니다. 교과서에서는 매크로 우호와 기술적 매수 신호가 겹칠 때를 더 나은 자리로 봅니다 — 이 결합을 잰 측정은 없습니다.'
       : tone === 'bearish' ? '매크로 역풍이 불고 있습니다. 기술적 매수 신호가 있더라도 포지션을 줄이고, 방어적 섹터·가치주 중심으로 접근하세요.'
       : '매크로 방향성이 불확실합니다. 기술적 분석에 더 큰 비중을 두되, 급변 가능성에 대비하세요.'
   };
@@ -2654,7 +2654,7 @@ SXI.advDisclosure = function(keywords){
   else if(hasSevere) summary = '관리종목·자본잠식·감자 등 심각한 펀더멘탈 위험이 감지되었습니다. 기술적 매수 신호가 있더라도 교과서에서는 신뢰도를 매우 낮게 보며, 반등 시 매도 전략이 적합합니다.';
   else if(hasWarning && hasPositive) summary = '호재와 악재 공시가 동시에 감지되었습니다. 공시 원문을 반드시 확인하고, 악재의 영향 규모를 우선 점검하세요.';
   else if(hasWarning) summary = '유상증자·전환사채·소송 등 주의가 필요한 공시가 감지되었습니다. 지분 희석 규모와 소송 결과에 따른 영향을 확인 후 판단하세요.';
-  else if(hasPositive) summary = '자사주·배당·흑자전환 등 호재성 공시가 감지되었습니다. 기술적 매수 신호와 결합 시 높은 신뢰도를 기대할 수 있습니다.';
+  else if(hasPositive) summary = '자사주·배당·흑자전환 등 호재성 공시가 감지되었습니다. 교과서에서는 호재 공시와 기술적 매수 신호가 겹칠 때를 더 나은 자리로 봅니다 — 이 결합을 잰 측정은 없습니다.';
   else summary = '공시 관련 특이사항 없음.';
 
   return {
