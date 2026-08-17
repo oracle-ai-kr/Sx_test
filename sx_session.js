@@ -186,8 +186,14 @@
   //   봉이 확정된 저녁·주말에도 상시 점등되던 것을, 근거가 실재하는 시간대로 한정한다.
   //   구간: KST 평일 regular.open(0900) ~ regular.close+30분(1600). +30분 완충 = 마감 직후 네이버가
   //   부분봉(시가0·거래량1%)을 잠시 내려보내던 이력(S235/S239) — 확정 신뢰 시점을 보수적으로 늦춤.
-  //   KST는 UTC+9 명시 계산(기기 시간대 무관). 공휴일은 미판별 — 장중 시간대면 점등되나 과잉표시일 뿐 무해.
-  function _sxKrDailyBarForming() {
+  //   KST는 UTC+9 명시 계산(기기 시간대 무관).
+  // ⚠[S1323] S1241이 *"공휴일은 미판별 — 과잉표시일 뿐 무해"* 라고 적어 두었는데 **무해하지 않았다.**
+  //   실기기(2026-08-17 월 · 광복절 대체공휴일 09:26)에서 휴장인데 배지가 뜨고 값이 흐려졌다.
+  //   ★시계는 "장이 열렸는가"의 **프록시**일 뿐이다 — 실제로 물어야 할 것은 **당일봉이 있는가**다.
+  //   ⇒ lastBarDate(YYYYMMDD)를 받으면 **당일봉 존재를 직접 확인**한다. 없으면 형성 중일 수 없다.
+  //     휴장·장전·데이터 지연이 전부 이 한 조건으로 걸러진다(공휴일 표를 만들지 않는다 — 표는 표류한다).
+  //   ⚠인자 없이 부르면 기존 동작 그대로다(후방호환) — 호출처가 봉을 못 구하는 경우가 있다.
+  function _sxKrDailyBarForming(lastBarDate) {
     try {
       var t = new Date(Date.now() + 9 * 3600000);            // KST
       var dow = t.getUTCDay();
@@ -196,7 +202,16 @@
       var s = _sxSession('kr').regular;
       var o = _sxSessionHHMMtoMin(s.open);  if (o == null) o = 540;
       var c = _sxSessionHHMMtoMin(s.close); if (c == null) c = 930;
-      return min >= o && min < (c + 30);
+      if (!(min >= o && min < (c + 30))) return false;       // 시간대 밖 = 확정
+      //  ★당일봉 확인 — 끝봉 날짜가 오늘(KST)이 아니면 형성 중인 봉 자체가 없다
+      if (lastBarDate != null) {
+        var d = String(lastBarDate).replace(/[^0-9]/g, '').slice(0, 8);
+        if (d.length !== 8) return true;                     // 형식 불명 → 보수 폴백(기존 동작)
+        var y = t.getUTCFullYear(), mo = t.getUTCMonth() + 1, da = t.getUTCDate();
+        var today = String(y) + ('0' + mo).slice(-2) + ('0' + da).slice(-2);
+        if (d !== today) return false;                       // 휴장·장전·지연 = 확정된 봉을 보고 있다
+      }
+      return true;
     } catch (_e) { return true; }                            // 판정 불가 시 배지 표시(기존 동작) 보수 폴백
   }
 
