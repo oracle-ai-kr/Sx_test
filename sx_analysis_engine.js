@@ -139,8 +139,14 @@ function _getPresetSourceLabel() {
   const tfLabels = {'30m':'30분','60m':'60분','240m':'4시간','4h':'4시간','day':'일봉','week':'주봉','month':'월봉'};
   const market = _getCurrentMarketKey();
   // [S1092] 옵티마이저 대표 프리셋(SX_OPT_BEST4·S1020 제거) + 레짐 ON/OFF 분기 철거
-  // 대표 프리셋 없으면 기본 하드코딩 표시
-  return `${mIcons[market]||''} ${mNames[market]||''} 기본값`;
+  //  ⚠[S1327] *'기본값'* 은 사실과 달랐다 — 두 가지를 가리키는 이름이었다:
+  //      SCR_ANAL_DEFAULTS = { bbLen:20, bbMult:2.0, buyTh:0, sellTh:0, tpMult:0, slMult:0 }  ← 진짜 '기본값'
+  //      kr 프리셋          = { bbLen:14, bbMult:1.9, buyTh:30, sellTh:20, tpMult:6.0, slMult:2.0 }  ← 화면에 나오는 값
+  //    `SCR_ANAL_DEFAULTS`의 `buyTh:0`은 **'미설정' 센티널**이고, 실제 판정에는 시장 프리셋이 들어간다.
+  //    즉 화면이 '기본값'이라 말하면서 보여주는 건 **시장 프리셋**이었다(S1322 PER 이름 충돌과 같은 계열).
+  //    ⇒ '프리셋'으로 고친다. 사용자 슬롯이 적용됐는지는 이 함수가 알지 못하므로 단정하지 않는다.
+  //    ⚠값·판정 무변경 — 라벨만.
+  return `${mIcons[market]||''} ${mNames[market]||''} 프리셋`;
 }
 // S77: 시장별 멀티슬롯 저장 (시장당 최대 5개)
 //   S211: 신규 키는 _SCR_MARKET_SLOT_KEYS 사용. 이 객체는 하위호환 alias.
