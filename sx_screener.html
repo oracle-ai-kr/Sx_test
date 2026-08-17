@@ -11052,7 +11052,23 @@ function updateParamHints(){
   const tf = currentTF || 'day';
   // 엔진의 SCR_TF_MA / SCR_TF_THRESHOLD 참조 (없으면 일봉 기본값)
   const ma = (typeof SCR_TF_MA!=='undefined' && SCR_TF_MA[tf]) ? SCR_TF_MA[tf] : {short:5,mid:20,long:60};
-  const th = (typeof SCR_TF_THRESHOLD!=='undefined' && SCR_TF_THRESHOLD[tf]) ? SCR_TF_THRESHOLD[tf] : {buy:62,sell:38};
+  //  ⚠★[S1329] 힌트가 **도달하지 않는 값**을 '자동값'이라 안내하고 있었다.
+  //    `SCR_TF_THRESHOLD['day'] = {buy:62, sell:38}` 인데 실제 적용은 시장 프리셋(kr30/us25/crypto35)이다.
+  //    `_getEffectiveTh`가 `p.buyTh > 0 ? p.buyTh : base.buy` 구조이고 시장 프리셋이 `buyTh`를
+  //    **항상 채워 넣으므로** `62/38`은 도달 불가다(S510이 MA short/mid/long에서 이미 같은 진단을 했다).
+  //    ⇒ 슬라이더를 0(자동)에 두면 화면은 `(62)`라 하는데 실제로는 **30**으로 판정된다.
+  //    ⚠`SCR_TIMING_GATE_MARGIN=15`는 30 스케일 기준이라(주석 L73: *'buyTh가 낮아 코인25/kr30/us35'*)
+  //      만약 62가 살아나면 `aTimingOn`이 62+15=77 기준이 되어 매수 판정이 사실상 봉쇄된다.
+  //    ⇒ **실제 적용될 값**을 SSOT(`_getEffectiveTh`)에서 받아 쓴다 — 재구현하면 또 갈린다.
+  //      실패 시에만 구 표로 폴백(그때는 힌트가 틀릴 수 있으나 화면이 죽지는 않는다).
+  const th = (function(){
+    try{
+      const f = (typeof SXE!=='undefined' && SXE._getEffectiveTh) ? SXE._getEffectiveTh
+              : (typeof _getEffectiveTh!=='undefined' ? _getEffectiveTh : null);
+      if(f){ const r = f(tf); if(r && r.buyTh > 0) return { buy: r.buyTh, sell: r.sellTh }; }
+    }catch(_e1329){}
+    return (typeof SCR_TF_THRESHOLD!=='undefined' && SCR_TF_THRESHOLD[tf]) ? SCR_TF_THRESHOLD[tf] : {buy:62,sell:38};
+  })();
   const defaults = (typeof SCR_ANAL_DEFAULTS!=='undefined') ? SCR_ANAL_DEFAULTS : {rsiLen:14,bbLen:20,bbMult:2.0,atrLen:14};
   const hintMap = {
     phRsiLen: defaults.rsiLen,
