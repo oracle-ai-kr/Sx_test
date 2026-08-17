@@ -51,6 +51,23 @@ const SCR_TF_THRESHOLD = {
   'D': { buy: 62, sell: 38 }, 'W': { buy: 62, sell: 38 }, 'M': { buy: 62, sell: 38 },
   '240m': { buy: 63, sell: 37 },
 };
+//  ⚠★[S1329] 위 buy/sell은 **도달하지 않는 폴백**이다 — S510이 아래 SCR_TF_MA에서 내린 것과 같은 진단.
+//    `_getEffectiveTh`가 `p.buyTh > 0 ? p.buyTh : base.buy` 구조이고, 시장 프리셋
+//    (SCR_ANAL_MARKET_DEFAULTS: kr buyTh:30 / us:25 / crypto:35)이 **항상 buyTh를 채워 넣는다.**
+//    ⇒ 실측(396종·일봉): `_adaptedTh` 고유값이 `{buyTh:30, sellTh:20}` **하나뿐**이고
+//      `_getEffectiveTh(day)`와 전건 일치. 여기 `62/38`은 한 번도 쓰이지 않는다.
+//  ★두 스케일이 공존한다 — rawScore 분포(396종: 중위 19 · p75 34 · p90 52 · max 82) 기준으로
+//      buyTh 30 → 상위 30.8%가 BUY 후보  (설계로 읽힘)
+//      buy   62 → 상위  4.5%만            (+SCR_TIMING_GATE_MARGIN 15면 77 → 거의 0)
+//    L73 주석이 못박는다: *'buyTh가 낮아(코인25/kr30/us35) 게이트가 헐거웠던 S512 보완 → 바만 +15'*
+//    즉 **SCR_TIMING_GATE_MARGIN=15는 30 스케일 기준으로 설계된 값**이다.
+//  ⚠위험: 사용자가 설정 슬라이더(`apBuyTh`, min=0)를 0으로 내리면 `p.buyTh=0`이 되어 이 표가 살아난다.
+//    그러면 `aTimingOn`이 62+15=77 기준이 되어 **매수 판정이 사실상 봉쇄**된다.
+//    ⇒ 다만 시장 프리셋이 항상 채우므로 현재 그 경로는 열리지 않는다(S1329 실측 확인).
+//  ⚠**값은 통일하지 않는다** — S510은 MA를 5/20/60으로 통일했지만, 여기 buy/sell은 **발동 조건**이라
+//    폴백이 살아나는 경로가 생기면 판정이 바뀐다. 통일은 사전등록 측정·선언 대상이다(S1282). 백로그로 넘긴다.
+//  ⚠[S1329] 설정 UI 힌트는 교정했다 — `updateParamHints`가 이 표 대신 `_getEffectiveTh`(SSOT)를 읽는다.
+//    그전까지 슬라이더 0(자동)에서 화면이 `(62)`라 안내하는데 실제 판정은 30이었다.
 // [S510] short/mid/long 통일 박제 — 전부 5/20/60.
 //   이유: 시장 기본 파라미터(SCR_ANAL_MARKET_DEFAULTS kr/us/crypto)가 maShort:5·maMid:20·maLong:60을
 //         하드코딩하고, MA.alignment·차트표시가 모두 `ip.maX > 0 ? ip : 이 표` 구조라 ip(5/20/60)가 항상 우선.
