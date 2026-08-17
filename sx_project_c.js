@@ -387,7 +387,16 @@
     var verdictFinal = verdictRaw;
 
     // ─── 3-0) [S512] A 타이밍 게이트 ───
-    //   비보유 '매수'는 C 4축 논리(셋업)뿐 아니라 A 발화(오늘 rawScore≥buyTh)도 동의할 때만.
+    //  ★[S1328] 이 주석은 **정확하다** — 각인해 둔다.
+  //    S1328 초판이 *"sx_project_c에 rawScore/buyTh 실참조 0건"* 만 보고 *"buyTh는 화면 판정과 무관"* 이라
+  //    오판했다. 실제로는 **이름을 갈아입고 들어온다**:
+  //      `aTimingOn` = (rawScore >= buyTh + SCR_TIMING_GATE_MARGIN)  ← engine L3260 에서 만들어짐
+  //      `safetyViol` = 🔒임계값(rawScore < buyTh+2) 등              ← engine L3211~3214
+  //    그리고 아래 L371(aTimingOn)·L380(safetyViol)이 그 값으로 **판정을 강등한다.**
+  //    실측(396종): buyTh 경로를 없앤다고 가정하면 화면 판정이 **30건(7.6%)** 달라진다.
+  //    🔒임계값은 287건으로 최다 위반이며 순수하게 buyTh가 만든다.
+  //    ⇒ **심볼 이름으로 소비처를 세면 안 된다** — 파생 변수로 갈아입은 경로를 놓친다(하네스 교훈).
+  //   비보유 '매수'는 C 4축 논리(셋업)뿐 아니라 A 발화(오늘 rawScore≥buyTh)도 동의할 때만.
     //   셋업은 매수급(passCount≥4)인데 오늘 A 트리거 미발화면 '관심'으로 (자리는 OK, 오늘은 아직 → 내일 재확인).
     //   · aTimingOn===false 일 때만 강등 (미전달/undefined면 게이트 미적용 → 기존 동작 보존).
     //   · A=논리·C=타이밍 역할분담을 단일 C 판정에 접어넣음. rawScore는 역추세 색채라 추세 셋업선 다소 약하게 걸림.
