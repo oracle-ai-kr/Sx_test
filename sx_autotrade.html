@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1355</div>
+    <div class="tb-build">S1357</div>
   </div>
 
   <div class="scroll-area">
@@ -443,7 +443,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1355</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1357</div>
   </div>
 </div>
 
@@ -965,6 +965,7 @@ function _atSrcChip(src){
 function atRenderBuyPreview(sig){
   const card=_$('atBuyPreviewCard'), list=_$('atBuyList'), cnt=_$('atBuyCount');
   if(!card||!list) return;
+  if(sig) _atLastSig=sig; // [S1357] 토글 즉시 재렌더용 캐시
   const buys=((sig&&sig.buyList)||[]).filter(b=>!_atHeldCodes.has(String(b.code))); // [S953] 보유 종목 제외(미보유만)
   if(!buys.length){ card.style.display='none'; return; }
   card.style.display='';
@@ -1138,11 +1139,16 @@ function atRenderSrcStats(){
 // ── [S1028] 진입/포지션 상한 UI (entry_config ↔ /state·/sx/autotrade/entry-config) ──
 let _enLoaded=false;
 let _enV4=true; // [S1355] 레거시 votes≥4 토글 상태(매수 후보 카드 표기용) — 서버값으로 매 갱신 동기
-function atToggleLegacyV4(){ _enV4=!!(_$('enLegacyV4')&&_$('enLegacyV4').checked); atSaveEntryConfig(); } // [S1355] 즉시 저장
+let _enV4Pend=false; // [S1357] 토글 저장 왕복 중 표시 — true 동안 폴링의 서버값 동기를 보류(옛 값이 체크박스를 되돌리는 스냅백 방지)
+let _atLastSig=null;  // [S1357] 마지막 신호 캐시 — 토글 직후 12초 폴링을 기다리지 않고 즉시 재렌더하기 위함
+function atToggleLegacyV4(){ _enV4=!!(_$('enLegacyV4')&&_$('enLegacyV4').checked); _enV4Pend=true; // [S1357]
+  try{ if(_atLastSig) atRenderBuyPreview(_atLastSig); }catch(_){ } // [S1357] 즉시 반영(제외 표기·카운트) — 워커 판정은 저장값 기준이라 표시 선반영은 안전
+  atSaveEntryConfig(); } // [S1355] 즉시 저장
 function atRenderEntryConfig(cfg, force){
   if(!cfg) return;
   // [S1355] 토글은 즉시저장형(타이핑 편집 없음) — 입력칸 가드(_enLoaded)와 무관하게 매 갱신 서버값으로 동기.
-  _enV4=(cfg.legacyV4Only!==false); const _v4El=_$('enLegacyV4'); if(_v4El) _v4El.checked=_enV4;
+  // [S1357] 단, 저장 왕복 중(_enV4Pend)엔 보류 — 저장 완료 전에 끼어든 폴링이 서버의 옛 값으로 체크박스·표기를 되돌리는 스냅백 방지.
+  if(!_enV4Pend){ _enV4=(cfg.legacyV4Only!==false); const _v4El=_$('enLegacyV4'); if(_v4El) _v4El.checked=_enV4; }
   if(_enLoaded && !force) return; // 최초 1회만 로드 → atRefresh가 편집/저장값 덮어쓰기 방지
   _enLoaded=true;
   const set=(id,v)=>{ const e=_$(id); if(e && v!=null) e.value=v; };
@@ -1160,10 +1166,11 @@ async function atSaveEntryConfig(){
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/entry-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
     const d=await r.json();
-    if(d && d.ok){ atRenderEntryConfig(d.entryConfig, true); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 레거시 '+d.entryConfig.maxHoldings+'/'+d.entryConfig.buyCapPerTick+' · V2 '+(d.entryConfig.v2Slots!=null?d.entryConfig.v2Slots:10)+'/'+(d.entryConfig.v2PerTick!=null?d.entryConfig.v2PerTick:2)+' · 레거시 v4만 '+(d.entryConfig.legacyV4Only!==false?'ON':'OFF'); } }
+    if(d && d.ok){ _enV4Pend=false; atRenderEntryConfig(d.entryConfig, true); try{ if(_atLastSig) atRenderBuyPreview(_atLastSig); }catch(_){ } if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 레거시 '+d.entryConfig.maxHoldings+'/'+d.entryConfig.buyCapPerTick+' · V2 '+(d.entryConfig.v2Slots!=null?d.entryConfig.v2Slots:10)+'/'+(d.entryConfig.v2PerTick!=null?d.entryConfig.v2PerTick:2)+' · 레거시 v4만 '+(d.entryConfig.legacyV4Only!==false?'ON':'OFF'); } }
     else if(d && d.needAuth){ _atToken=''; atShowGate(); }
     else if(msg){ msg.style.color='var(--sell)'; msg.textContent='저장 실패: '+((d&&d.error)||'알수없음'); }
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
+  _enV4Pend=false; // [S1357] 실패·거절 포함 왕복 종료 — 다음 12초 폴링이 서버값으로 체크박스·표기를 복원한다(표류 방지)
   if(btn){ btn.disabled=false; btn.textContent='💾 진입 상한 저장'; }
 }
 
