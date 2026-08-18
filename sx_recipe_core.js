@@ -1021,6 +1021,22 @@ function _condMatch733(f, conds, mode){
 
 // ───── 발동 판정 (구 sx_recipe_signal.js IIFE) ─────
 function _match(f, conds, mode){ try { return (typeof _condMatch733==='function') ? _condMatch733(f, conds, mode) : false; } catch(e){ return false; } }
+// ════ [S1356] 풀↔칸 매핑 표준 (사용자 확정 · 각인 전용 — 동작 변경 0) ════════════════════════════════════
+//   설계 의도(원본): 레거시·V2를 4종 풀(S1109)로 나눠 사용 + 3×3은 커버리지 구멍 탐지→대체제 탐색용.
+//   실구현 감사(S1356): 레거시=아래 _fires가 풀 게이트 원본(S864 발굴 표본필터 그 자체 · 등록은 deadcat/pullback
+//   2풀뿐 · bullrun/sidebear 등록 0) / V2=_sxCellSignalCore가 칸 게이트(S1178 발굴이 칸 단위 게이트 통과 →
+//   칸이 측정에 충실한 경계). ⇒ ★사용자 결정: 칸⊂풀(오발동 0 · 어긋남이 '좁은' 방향)이라 현행유지 확정.
+//   V2를 풀로 넓히는 것은 형제 칸 미검증 외삽(같은 풀 안에서도 칸마다 통과 어휘가 다름 — 예: kr 눌림목풀 =
+//   눌림목칸 pullback-real · 되돌림칸 sidebear-real)이라 금지 — 원하면 풀 단위 재발굴+사전등록(S1282) 사안.
+//   ── 풀↔칸 매핑표 (표준축 = 신축 셀 st|lt = S1209 칸 각인 축 = SX_CELL_DATA axisGen 'ma51020' · 9칸 완전 분할 ·
+//      풀 정의 SSOT = sx_render _dpMeta match: bullrun=단기강세(장기 무관)/pullback=lt bull·비강세/deadcat=lt bear·비강세/sidebear=lt mix·비강세) ──
+//     눌림목(pullback)   = { bear|bull 되돌림 · mixed|bull 눌림목 }                            (2칸)
+//     역배반등(deadcat)  = { bear|bear 추가하락 · mixed|bear 바닥확인 }                         (2칸)
+//     강세장(bullrun)    = { bull|bull 추가상승 · bull|bear 기술적반등 · bull|mixed 상승세전환 } (3칸 · st bull 행)
+//     횡보약세(sidebear) = { bear|mixed 하락세전환 · mixed|mixed 추세중립 }                     (2칸)
+//   ⚠축 이원 주의: 아래 _fires의 단기축은 구축(ind.maAlign · 판정엔진 5·20·60)이고 위 표의 셀은 신축(5·10·20)이라
+//     경계가 미묘히 다를 수 있다(각자 자기 발굴축과 정합 → 발동엔 무영향 · S1310 계열). ★풀별 성과 분해는 반드시
+//     S1209 칸 각인(신축 셀)→이 표로만 유도하고, 레거시 _fires 경계로 재분류하지 말 것(축 혼용 금지).
 function _wantLt(rec){ return rec.pool==='pullback' ? 'bull' : 'bear'; }
 function _fires(rec, f, lt, maBull){ return lt===_wantLt(rec) && !maBull && !!f && _match(f, rec.conds, rec.mode); }
 function _ltOf(ind){ try { return (typeof _ltStr733==='function') ? _ltStr733(ind.maAlignLT) : null; } catch(e){ return null; } }
@@ -1216,6 +1232,14 @@ function _cellKeyOf(ind, rows, idx, axisGen){
     return s+'|'+lt;
   }catch(e){ return null; }
 }
+// [S1356] V2 매수(kind real) 커버리지 실측 각인(S1178 데이터 29규칙 중 real 16 · 위 [S1356] 매핑표 기준 · 배터리가 데이터와 대조):
+//   kr 5규칙 = 4풀 전부(눌림목 2 · 역배 1 · 강세장 1 · 횡보 1) / us 9규칙 = 4풀 전부(★강세장 4로 최다) /
+//   ★coin 2규칙 = 눌림목 1·횡보 1뿐 — 역배·강세장 영역 매수 0(회피 down/fake만 6) = 현존 최대 커버리지 구멍.
+//   레거시도 bullrun/sidebear 등록 0이므로 coin의 그 두 영역은 시즌2 전 경로 침묵 — 대체제 발굴 1순위 후보.
+//   ⚠cat(어휘 혈통)≠발동 칸: S1178이 전 칸×전 카테고리 어휘를 전수 시험해 게이트 통과분만 칸에 앉힌 구조라
+//     sidebear-real 어휘가 되돌림 칸에서 채택되는 식(real 16 중 9가 어긋남) — cat 문자열로 풀을 읽지 말 것.
+//   ⚠SX_CELL_DATA cellLbl은 S1217 개명 전 구어휘(14/29 · 예: bear|bull '눌림목'→현행 '되돌림') — 발동은 키 매칭이라
+//     무영향 · v2 policy 문구에만 노출. 라벨 SSOT 동기는 백로그(데이터 파일 수정이라 별건 시리얼).
 function _sxCellSignalCore(mk, ind, rows, idx, opts){   // [S1201] opts.btMode=true → 활동층(act) 스킵(BT 봉당 호출 비용 절감)
   try{
     var D=(typeof SX_CELL_DATA!=='undefined')?SX_CELL_DATA:((typeof window!=='undefined'&&window.SX_CELL_DATA)||null);
