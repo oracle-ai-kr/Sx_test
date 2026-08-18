@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1217</div>
+    <div class="tb-build">S1355</div>
   </div>
 
   <div class="scroll-area">
@@ -284,8 +284,9 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <!-- ═══ [S951] 오늘의 매수 후보 (다음 장중 cron에 시장가 매수될 종목 미리보기) ═══ -->
     <div class="card" data-zone="kr" id="atBuyPreviewCard" style="display:none;">
       <div class="card-title">🛒 오늘의 매수 후보 <span class="tag" id="atBuyCount">·</span></div>
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-bottom:9px;cursor:pointer;"><input type="checkbox" id="enLegacyV4" onchange="atToggleLegacyV4()" style="width:16px;height:16px;"/> 레거시 <b>votes≥4</b>만 매수 <span style="font-size:9.5px;color:var(--text3);">(S1355 · OFF=votes≥1 기존 · bullVol·V2 비대상)</span></label>
       <div id="atBuyList"></div>
-      <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">votes≥1 레거시 레시피 <b>또는</b> V2 어휘규칙(real·강/일반) 발동 종목 · 다음 장중 cron(09:05~15:05)에 <b>시장가</b> 매수 · 이미 보유분·매수완료분은 자동 제외 · 우선순위 votes↓(V2 단독은 후순위)</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">votes≥1 레거시 레시피 <b>또는</b> V2 어휘규칙(real·강/일반) 발동 종목 · 다음 장중 cron(09:05~15:05)에 <b>시장가</b> 매수 · 이미 보유분·매수완료분은 자동 제외 · 우선순위 votes↓(V2 단독은 후순위) · <b>토글 ON</b>이면 레거시는 votes≥4만 매수(미달분은 회색 <b>제외</b> 표기 — 워커 판정과 같은 조건 · S1355)</div>
     </div>
 
     <!-- ═══ [S952] 차단 목록 (매수취소/강제청산) ═══ -->
@@ -338,8 +339,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
     <!-- ═══ [S949] 청산 설정 (이중ATR + MA/N일) ═══ -->
     <div class="card" data-zone="kr" id="atExitCard">
-      <div class="card-title">🎯 청산 설정 <span class="tag">이중ATR + MA/N일 · S949</span><span onclick="atExitReset()" title="기본값(2×/3×/MA5×20/유예10일)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
-      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레거시 votes≥1 / bullVol / V2 어휘규칙(S1178) · 청산은 전략 공통=초기ATR손절 + ATR트레일 + (MA5×20 <b>또는</b> N일). 값 변경 후 저장.</div>
+      <div class="card-title">🎯 청산 설정 <span class="tag">이중ATR + MA/N일/OFF · S1354</span><span onclick="atExitReset()" title="기본값(2×/3×/OFF·N30/유예10일)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레거시 votes / bullVol / V2 어휘규칙(S1178) · 청산은 전략 공통=초기ATR손절 + ATR트레일 + 최대보유(<b>OFF</b>·MA5×20·N일 택1 — OFF=이중ATR만·<b>기본</b>). 값 변경 후 저장.</div>
       <div id="atExitDiag" style="font-size:10px;color:var(--text3);margin-bottom:10px;">청산판정 기록 없음 — 워커 S1193 배포 후 첫 tick부터 표시.</div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">초기 손절 (×ATR)<input id="exAtrInit" type="number" step="0.5" min="0.5" max="6" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
@@ -347,6 +348,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       </div>
       <div style="font-size:10.5px;color:var(--text2);margin-bottom:5px;">최대보유 방식 (택1)</div>
       <div style="display:flex;gap:6px;margin-bottom:11px;">
+        <button type="button" id="exModeOff" onclick="atExitMode('off')" style="flex:1;padding:7px 0;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);">OFF (이중ATR만)</button>
         <button type="button" id="exModeMa" onclick="atExitMode('ma')" style="flex:1;padding:7px 0;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);">MA5×20 데드</button>
         <button type="button" id="exModeDays" onclick="atExitMode('days')" style="flex:1;padding:7px 0;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);">N일</button>
       </div>
@@ -441,7 +443,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1217</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1355</div>
   </div>
 </div>
 
@@ -505,7 +507,7 @@ function atRender(d){
   _atHeldCodes = new Set(((d.portfolio && d.portfolio.holdings) || []).map(h=>String(h.code))); // [S953] 보유코드(후보 필터)
   _atPosMeta = (d.positions) || {}; // [S1191] D+n·전략칩 메타
   try{ const xd=(d.state&&d.state.exitDiag)||null; const xe=_$('atExitDiag');
-    if(xe&&xd){ xe.innerHTML='마지막 청산판정 '+(xd.checked||0)+'/'+(xd.held!=null?xd.held:'?')+'종 판정 · 매도 '+(xd.sold||0)+' · 팩 '+(xd.packAsof?('<b>'+xd.packAsof+'</b> (팩소스 '+(xd.fromPack||0)+'종)'):'<b style=\"color:var(--sell);\">없음</b>')+(xd.fetchFail?(' · fetch실패 '+xd.fetchFail):'')+(xd.err?(' · <span style=\"color:var(--sell);\">'+_esc(xd.err)+'</span>'):'')+' · '+atRel(xd.at); }
+    if(xe&&xd){ xe.innerHTML = xd.skip ? ('마지막 청산판정 <b style=\"color:var(--hold);\">skip</b> — '+_esc(xd.skip)+' · '+atRel(xd.at)) : ('마지막 청산판정 '+(xd.checked||0)+'/'+(xd.held!=null?xd.held:'?')+'종 판정 · 매도 '+(xd.sold||0)+' · 팩 '+(xd.packAsof?('<b>'+xd.packAsof+'</b> (팩소스 '+(xd.fromPack||0)+'종)'):'<b style=\"color:var(--sell);\">없음</b>')+(xd.fetchFail?(' · fetch실패 '+xd.fetchFail):'')+(xd.err?(' · <span style=\"color:var(--sell);\">'+_esc(xd.err)+'</span>'):'')+' · '+atRel(xd.at)); } // [S1353] 워커가 적은 skip 사유 그대로 표기(종전 '0/?종·팩 없음' 오진 유도 해소)
   }catch(_){} // [S1193] 청산 진단
   atRenderBuyPreview(d.signal); // [S951] 오늘의 매수 후보 (보유분 제외)
   atRenderControlLiquidate(d.portfolio); // [S953] 제어 카드 청산 버튼
@@ -966,15 +968,20 @@ function atRenderBuyPreview(sig){
   const buys=((sig&&sig.buyList)||[]).filter(b=>!_atHeldCodes.has(String(b.code))); // [S953] 보유 종목 제외(미보유만)
   if(!buys.length){ card.style.display='none'; return; }
   card.style.display='';
-  if(cnt) cnt.textContent=buys.length+'종목';
+  // [S1355] 워커 매수 필터와 같은 조건으로 '제외' 판정 — 숨기지 않고 회색 표기(무엇이 왜 빠졌는지 화면이 스스로 말하게).
+  const _isCut=(b)=>(_enV4 && b.src==='recipe' && (b.votes||0)<4);
+  const _cutN=buys.filter(_isCut).length;
+  if(cnt) cnt.textContent=_cutN?((buys.length-_cutN)+'종 매수 · '+_cutN+'종 제외'):(buys.length+'종목');
   list.innerHTML=buys.map(b=>{
     if(b.name) _atNameMap[b.code]=b.name; // [S952] 코드→이름
     const vc = b.src==='v2'?'var(--accent)':(b.votes>=4?'var(--buy)':(b.votes>=2?'var(--accent2)':'var(--text2)'));
     const vt = b.src==='v2'?'V2 발동':'votes '+b.votes;   // [S1180] v2 후보는 votes 0이라 votes 대신 발동 표기
     const nm = _esc(b.name||b.code);
-    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">'
+    const _cut=_isCut(b); // [S1355]
+    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);'+(_cut?'opacity:.45;':'')+'">'
       +'<div style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">'+nm+'</span> <span style="font-size:10px;color:var(--text3);">'+_esc(b.code)+'</span>'+_atSrcChip(b.src)
-      +(b.provisional?' <span style="font-size:9px;color:var(--hold);border:1px solid var(--hold);border-radius:4px;padding:1px 4px;">OOS미확정</span>':'')+'</div>'
+      +(b.provisional?' <span style="font-size:9px;color:var(--hold);border:1px solid var(--hold);border-radius:4px;padding:1px 4px;">OOS미확정</span>':'')
+      +(_cut?' <span style="font-size:9px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 4px;">제외·v4미달</span>':'')+'</div>'
       +'<div style="text-align:right;"><span style="font-size:12px;font-weight:800;color:'+vc+';">'+vt+'</span>'
       +(b.realK?'<span style="font-size:9px;color:var(--text3);display:block;">겹침 '+b.realK+'</span>':'')+'</div>'
       +'<button onclick="atBlock(\''+_esc(b.code)+'\',\''+nm.replace(/\x27/g,"")+'\',false)" title="매수 제외" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;line-height:1;">🚫</button>'
@@ -983,12 +990,16 @@ function atRenderBuyPreview(sig){
 }
 
 // ── [S949] 청산 설정 UI (exit_config ↔ /state·/sx/autotrade/exit-config) ──
-let _exMode='ma'; // [S950] 기본 최대보유=MA5×20
+let _exMode='off'; // [S950] 기본 최대보유=MA5×20 → [S1354] 기본 OFF(이중ATR만·사용자 결정)
 function _exTabStyle(btn,on){ if(!btn)return; btn.style.borderColor=on?'var(--accent)':'var(--border)'; btn.style.background=on?'var(--accent)':'transparent'; btn.style.color=on?'#fff':'var(--text2)'; }
-function atExitMode(m){ _exMode=(m==='ma')?'ma':'days'; _exTabStyle(_$('exModeMa'),_exMode==='ma'); _exTabStyle(_$('exModeDays'),_exMode==='days'); const dr=_$('exDaysRow'); if(dr) dr.style.opacity=(_exMode==='days')?'1':'0.4'; const mr=_$('exMaRow'); if(mr) mr.style.opacity=(_exMode==='ma')?'1':'0.4'; }
-  // [S1089] MA 모드에선 워커가 maxHoldOn을 읽지 않는다(else if 배타 분기) — 체크박스를 비활성화해
+function atExitMode(m){ _exMode=(m==='ma')?'ma':(m==='off'?'off':'days'); // [S1354] 3상(off/ma/days)
+  _exTabStyle(_$('exModeOff'),_exMode==='off'); _exTabStyle(_$('exModeMa'),_exMode==='ma'); _exTabStyle(_$('exModeDays'),_exMode==='days');
+  const dr=_$('exDaysRow'); if(dr) dr.style.opacity=(_exMode==='days')?'1':'0.4'; const mr=_$('exMaRow'); if(mr) mr.style.opacity=(_exMode==='ma')?'1':'0.4';
+  // [S1089] MA/OFF 모드에선 워커가 maxHoldOn을 읽지 않는다(else if 배타 분기) — 체크박스를 비활성화해
   //   '30일 상한도 같이 걸려 있다'는 오독을 막는다. checked 상태는 유지(저장값 보존).
-  try { const _mh = document.getElementById('exMaxHoldOn'); if (_mh) _mh.disabled = (_exMode !== 'days'); } catch (_) {}
+  // [S1354] ⚠발견 수정: 종전엔 이 disabled 줄이 함수 밖(스크립트 최상위)에 있어 로드 시 1회만 돌았다 — 모드를 바꿔도
+  //   비활성 상태가 안 풀리던 결함(실기기 N일 모드에서 체크박스 회색 고정). 함수 안으로 이동해 모드 전환마다 갱신.
+  try { const _mh = document.getElementById('exMaxHoldOn'); if (_mh) _mh.disabled = (_exMode !== 'days'); } catch (_) {} }
 let _exLoaded=false;
 function atRenderExitConfig(cfg, force){
   if(!cfg) return;
@@ -997,11 +1008,11 @@ function atRenderExitConfig(cfg, force){
   const set=(id,v)=>{ const e=_$(id); if(e && v!=null) e.value=v; };
   set('exAtrInit', cfg.atrInitMult); set('exAtrTrail', cfg.atrTrailMult); set('exMaxHoldDays', cfg.maxHoldDays); set('exMaGrace', cfg.maGraceDays!=null?cfg.maGraceDays:10);
   const on=_$('exMaxHoldOn'); if(on) on.checked=(cfg.maxHoldOn!==false);
-  atExitMode(cfg.maxHoldMode==='ma'?'ma':'days');
+  atExitMode(cfg.maxHoldMode==='ma'?'ma':(cfg.maxHoldMode==='off'?'off':'days')); // [S1354] 3상
 }
 // [S950] 청산 임계값 기본으로 초기화 (↻) — 입력칸을 기본값으로 채우고 즉시 저장(persist).
 function atExitReset(){
-  atRenderExitConfig({ atrInitMult:2, atrTrailMult:3, maxHoldMode:'ma', maxHoldDays:30, maxHoldOn:true, maGraceDays:10 }, true);
+  atRenderExitConfig({ atrInitMult:2, atrTrailMult:3, maxHoldMode:'off', maxHoldDays:30, maxHoldOn:true, maGraceDays:10 }, true); // [S1354] 기본 off
   atSaveExitConfig();
 }
 async function atSaveExitConfig(){
@@ -1018,7 +1029,7 @@ async function atSaveExitConfig(){
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
   if(btn){ btn.disabled=false; btn.textContent='💾 청산 설정 저장'; }
 }
-function _exSummary(c){ if(!c)return''; const mh=(c.maxHoldMode==='ma')?'MA5×20 데드':(c.maxHoldOn!==false?(c.maxHoldDays+'일'):'상한없음'); return '초기'+c.atrInitMult+'×/트레일'+c.atrTrailMult+'× · 최대보유 '+mh+(c.maxHoldMode==='ma'&&c.maGraceDays!=null?(' · 유예'+c.maGraceDays+'일'):''); }
+function _exSummary(c){ if(!c)return''; const mh=(c.maxHoldMode==='off')?'없음(이중ATR만)':((c.maxHoldMode==='ma')?'MA5×20 데드':(c.maxHoldOn!==false?(c.maxHoldDays+'일'):'상한없음')); return '초기'+c.atrInitMult+'×/트레일'+c.atrTrailMult+'× · 최대보유 '+mh+(c.maxHoldMode==='ma'&&c.maGraceDays!=null?(' · 유예'+c.maGraceDays+'일'):''); } // [S1354] off 분기
 
 // ── [S1031] 실현손익 evidence (로드맵3 가계부) — /state.pnl 표시. 사전선언 게이트 판정 카드. ──
 function atRenderPnl(p){
@@ -1126,26 +1137,30 @@ function atRenderSrcStats(){
 }
 // ── [S1028] 진입/포지션 상한 UI (entry_config ↔ /state·/sx/autotrade/entry-config) ──
 let _enLoaded=false;
+let _enV4=true; // [S1355] 레거시 votes≥4 토글 상태(매수 후보 카드 표기용) — 서버값으로 매 갱신 동기
+function atToggleLegacyV4(){ _enV4=!!(_$('enLegacyV4')&&_$('enLegacyV4').checked); atSaveEntryConfig(); } // [S1355] 즉시 저장
 function atRenderEntryConfig(cfg, force){
   if(!cfg) return;
+  // [S1355] 토글은 즉시저장형(타이핑 편집 없음) — 입력칸 가드(_enLoaded)와 무관하게 매 갱신 서버값으로 동기.
+  _enV4=(cfg.legacyV4Only!==false); const _v4El=_$('enLegacyV4'); if(_v4El) _v4El.checked=_enV4;
   if(_enLoaded && !force) return; // 최초 1회만 로드 → atRefresh가 편집/저장값 덮어쓰기 방지
   _enLoaded=true;
   const set=(id,v)=>{ const e=_$(id); if(e && v!=null) e.value=v; };
   set('enMaxHold', cfg.maxHoldings); set('enBuyCap', cfg.buyCapPerTick); set('enV2Slots', cfg.v2Slots!=null?cfg.v2Slots:10); set('enV2PerTick', cfg.v2PerTick!=null?cfg.v2PerTick:2); // [S1183][S1184]
 }
 function atEntryReset(){
-  atRenderEntryConfig({ maxHoldings:30, buyCapPerTick:5, v2Slots:10, v2PerTick:2 }, true);
+  atRenderEntryConfig({ maxHoldings:30, buyCapPerTick:5, v2Slots:10, v2PerTick:2, legacyV4Only:true }, true); // [S1355] 기본 ON
   atSaveEntryConfig();
 }
 async function atSaveEntryConfig(){
   const msg=_$('enMsg'), btn=_$('enSaveBtn');
   const num=(id)=>{ const e=_$(id); return e?parseInt(e.value,10):null; };
-  const body={ maxHoldings:num('enMaxHold'), buyCapPerTick:num('enBuyCap'), v2Slots:num('enV2Slots'), v2PerTick:num('enV2PerTick') }; // [S1183][S1184]
+  const body={ maxHoldings:num('enMaxHold'), buyCapPerTick:num('enBuyCap'), v2Slots:num('enV2Slots'), v2PerTick:num('enV2PerTick'), legacyV4Only:!!(_$('enLegacyV4')&&_$('enLegacyV4').checked) }; // [S1183][S1184][S1355]
   if(btn){ btn.disabled=true; btn.textContent='저장 중…'; }
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/entry-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
     const d=await r.json();
-    if(d && d.ok){ atRenderEntryConfig(d.entryConfig, true); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 레거시 '+d.entryConfig.maxHoldings+'/'+d.entryConfig.buyCapPerTick+' · V2 '+(d.entryConfig.v2Slots!=null?d.entryConfig.v2Slots:10)+'/'+(d.entryConfig.v2PerTick!=null?d.entryConfig.v2PerTick:2); } }
+    if(d && d.ok){ atRenderEntryConfig(d.entryConfig, true); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 레거시 '+d.entryConfig.maxHoldings+'/'+d.entryConfig.buyCapPerTick+' · V2 '+(d.entryConfig.v2Slots!=null?d.entryConfig.v2Slots:10)+'/'+(d.entryConfig.v2PerTick!=null?d.entryConfig.v2PerTick:2)+' · 레거시 v4만 '+(d.entryConfig.legacyV4Only!==false?'ON':'OFF'); } }
     else if(d && d.needAuth){ _atToken=''; atShowGate(); }
     else if(msg){ msg.style.color='var(--sell)'; msg.textContent='저장 실패: '+((d&&d.error)||'알수없음'); }
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
