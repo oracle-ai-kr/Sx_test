@@ -2066,6 +2066,7 @@ function calcAllScreener(rows, tf) {
   const maAlignLT = _maAlignLT(closes, tf); // [S509] 장기 정배열 게이트 (C 경로선택 전용)
   const { pct: trendPct, slope } = Trend.calc(closes);
   const struct = Trend.structure(rows);
+  const swingObj = (typeof SwingStructure !== 'undefined' && SwingStructure.analyze) ? SwingStructure.analyze(rows) : null;   // [S1372] 스윙구조(HH/HL·LL/LH) — 5축 추세 재료
   const srLvls = Trend.levels(rows);
   const fib = Trend.fibonacci(rows);
   const atrObj = ATR.calc(rows, ip.atrLen);
@@ -2103,7 +2104,69 @@ function calcAllScreener(rows, tf) {
   const macdHist = macdObj.hist[n - 1] || 0;
   const macdHistPct = price ? (macdHist / price) * 100 : 0;
 
+  // ══════════════════════════════════════════════════════════════
+  //  [S1372] SPEC_S1371 ①단계 — **5축 원값**(`_axisRaw`). 화면 배선 없음 · 판정 무관 · 기존 도넛 무변경.
+  //   정의: `rawScore` = 지금 이 종목의 상태를 여러 **사실** 기준에 비추어 같은 시장 안에서 상대 위치로 요약한 값.
+  //         예측이 아니다 — *'구조위치가 낮으면 오르나'*(측정 대상·원장 소관)가 아니라
+  //         *'지금 20봉 범위의 어디에 있나'*(측정 불필요·그냥 참)를 묻는다. 상세는 `SPEC_S1371_rawscore_state.md`.
+  //   ⚠여기서는 **원값만** 담는다. 5분위 경계 각인은 ②단계, 집계는 ③단계, 화면은 ④단계.
+  //   ⚠각 값은 **부호·단위를 그대로** 둔다(분위 매핑이 방향을 정한다). `null`이면 그 재료는 축 평균에서 빠진다.
+  const _axisRaw = (function(){
+    const R = { pos:{}, vol:{}, trend:{}, flow:{}, rel:{} };
+    const _px = price;
+    try{
+      // ── ① 자리 — 범위 안 어디에 있나 ──
+      if(maDisp){ if(maDisp.disparity20 != null) R.pos.disp20 = maDisp.disparity20;
+                  if(maDisp.disparity60 != null) R.pos.disp60 = maDisp.disparity60; }
+      if(struct && struct.pos != null) R.pos.struct20 = struct.pos * 100;          // 0~100
+      //  ★[S1372] 60봉 구조위치 **신설** — `Trend.structure`가 20봉 고정이라 창만 바꾼 판본.
+      //    같은 식이고 사실 산출이라 사전등록 대상이 아니다(SPEC §3).
+      if(n >= 60){
+        let _h60 = -Infinity, _l60 = Infinity;
+        for(let i = n - 60; i < n; i++){ if(rows[i].high > _h60) _h60 = rows[i].high; if(rows[i].low < _l60) _l60 = rows[i].low; }
+        if(_h60 > _l60) R.pos.struct60 = (_px - _l60) / (_h60 - _l60) * 100;
+      }
+      if(vwap && vwap.val > 0 && _px > 0) R.pos.vwapGap = (_px / vwap.val - 1) * 100;   // VWAP 대비 %
+      //  피벗 위치: 전일 P 기준 S3~R3 구간 안에서의 위치(%). 밖이면 0/100으로 잘린다.
+      if(pivotPt && pivotPt.P != null && pivotPt.R3 != null && pivotPt.S3 != null && pivotPt.R3 > pivotPt.S3)
+        R.pos.pivotPos = Math.max(0, Math.min(100, (_px - pivotPt.S3) / (pivotPt.R3 - pivotPt.S3) * 100));
+
+      // ── ② 흔들림 — 얼마나 크게 움직이나 ──
+      if(atrObj && atrObj.pct > 0) R.vol.atrPct = atrObj.pct;
+      if(bbVal && bbVal.width > 0) R.vol.bbWidth = bbVal.width;      // 표준편차 기반(ATR%와 다른 계산)
+
+      // ── ③ 추세 — 정렬돼 있나, 어느 쪽인가 ──
+      if(maAlign) R.trend.maAlign = maAlign.bullish ? 1 : (maAlign.bearish ? -1 : 0);
+      if(trendPct != null) R.trend.pct20 = trendPct;
+      if(adxVal && adxVal.adx != null) R.trend.adx = adxVal.adx;
+      if(swingObj) R.trend.swing = (swingObj.higherHighs ? 1 : 0) - (swingObj.lowerLows ? 1 : 0);   // -1/0/1 (HH/LL)
+      //  수렴도 = MA20/60/120 최대 스프레드 ÷ ATR%. ⚠분모가 ATR이라 **흔들림 축이 아니라 추세 축**이다(SPEC §4).
+      if(_px > 0 && atrObj && atrObj.pct > 0 && closes.length >= 120){
+        const _sma=(len)=>{ let t=0; for(let q=n-len;q<n;q++) t+=closes[q]; return t/len; };
+        const _m20=_sma(20), _m60=_sma(60), _m120=_sma(120);
+        const _sp=(Math.max(_m20,_m60,_m120)-Math.min(_m20,_m60,_m120))/_px*100;
+        R.trend.conv = _sp / atrObj.pct;
+      }
+      if(ichimoku && ichimoku.score != null) R.trend.ichimoku = ichimoku.score;
+
+      // ── ④ 수급 — 돈이 들어오나 ──
+      if(volMA && volMA.vma20 > 0 && volMA.vol > 0) R.flow.volRatio = volMA.vol / volMA.vma20;   // 당봉 거래량 / 20봉 평균
+      if(obvObj) R.flow.obv = obvObj.trend === 'up' ? 1 : (obvObj.trend === 'down' ? -1 : 0);
+      if(adLine) R.flow.ad = adLine.trend === 'up' ? 1 : (adLine.trend === 'down' ? -1 : 0);
+
+      // ── ⑤ 상대·심리 — 남들과 견주면 ──
+      //  ⚠상대강도(지수 대비)는 지수 시세가 필요해 엔진 밖(`_rsCalc`)에서 붙는다 — ③단계에서 병합.
+      //  ⚠심리도는 **12봉**(`Psycho.calc(closes, period=12)`)이라 다른 축(20·60봉)과 창이 다르다 — SPEC §12 열린항목 1.
+      if(psycho && psycho.psycho != null) R.rel.psycho = psycho.psycho;
+    }catch(_e1372){ R._err = String(_e1372 && _e1372.message || _e1372).slice(0,80); }
+    //  결측 진단: 축별 산출 개수(③단계 집계가 축 전체 결측을 `–`로 처리할 때 쓴다)
+    R._n = { pos:Object.keys(R.pos).length, vol:Object.keys(R.vol).length, trend:Object.keys(R.trend).length,
+             flow:Object.keys(R.flow).length, rel:Object.keys(R.rel).length };
+    return R;
+  })();
+
   const base = {
+    _axisRaw,          // [S1372] SPEC_S1371 5축 원값 — 화면 미배선(②~④단계에서 사용)
     price,
     rsi: { val: rsiVal, arr: rsiArr, div: rsiDiv },
     macd: { line: macdObj.line[n - 1], sig: macdObj.sig[n - 1], hist: macdHist, histPct: macdHistPct, arr: macdObj },
