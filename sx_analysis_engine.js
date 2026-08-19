@@ -96,7 +96,15 @@ function _scrTfMa(tf) { return SCR_TF_MA[tf] || SCR_TF_MA['day']; }
 
 // ── 커스텀 분석 파라미터 ──
 const SCR_ANAL_PARAMS_KEY = 'SX_SCR_ANAL_PARAMS';
-const SCR_ANAL_DEFAULTS = { rsiLen: 14, bbLen: 20, bbMult: 2.0, maShort: 0, maMid: 0, maLong: 0, atrLen: 14, buyTh: 0, sellTh: 0, tpMult: 0, slMult: 0 };
+const SCR_ANAL_DEFAULTS = { rsiLen: 14, bbLen: 20, bbMult: 2.0, maShort: 0, maMid: 0, maLong: 0, atrLen: 14, buyTh: 0, sellTh: 0 };
+//  ⚠★[S1369] `tpMult: 0, slMult: 0` **철거**(사용자 결정). 9개 파라미터로 줄었다.
+//    사유 — ①문턱이 임의값이었고 **종목마다 적정값이 달라** 단일 배수로 재는 것에 의미가 없다
+//    ②청산 로직이 **둘로 갈려 있었다**: 화면은 `ep ± mult×ATR` 고정 배리어 · 실행(BT·시즌2)은 `sx_exec_core` **이중ATR**
+//      (`initStop = entry−2×ATR` / `trailStop = peak−3×ATR` / `stop = max(둘)` + MA5×20 데드크로스 유예10).
+//    ★S1368 감사 실측: `slMult`는 결국 초기 손절의 ATR 배수이고 **kr 2.0만 실행(`atrInitMult 2`)과 같다** —
+//      us 3.0(1.5배 느슨) · coin 1.0(절반 타이트)으로 **화면과 실행이 시장마다 어긋났다.**
+//      상방은 구조 자체가 달랐다(화면=고정 목표 6×/9×/3× · 실행=이익 목표 없음·트레일뿐).
+//    ⇒ 청산 규칙은 **이중ATR 하나**로 둔다. 비교 측정(고정 목표 vs 트레일)은 별도 사전등록 사안이며 백로그.
 // S211: 시장별 × 2레짐 = 6개 기본 하드코딩
 //   현재 사양: 시장 체계(kr/us/crypto) — 분석 대상 종목의 시장에 따라 자동 라우팅
 //   초기 하드코딩 매핑 (C안 — 깨끗이 시작):
@@ -133,9 +141,9 @@ const SCR_ANAL_MARKET_DEFAULTS = {
   //   고정 파라미터 (변경 안 함): rsiLen=14, atrLen=14, MA 5/20/60 — 글로벌 트레이딩 표준
   //   〔이력〕 v3.24 이전: 임의 설정값 (저작 초기 추정치) — 시장 특성 미반영 (수정됨)
   // 레짐 무관 fallback — 각 시장 ON 값 사용 (보편적 추세장 가정)
-  kr:     { rsiLen:14, bbLen:14, bbMult:1.9, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:30, sellTh:20, tpMult:6.0, slMult:2.0 },  // [S684] buyTh −10 (가벼운 바닥 · 점수게이트 토글용)
-  us:     { rsiLen:14, bbLen:20, bbMult:2.0, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:25, sellTh:15, tpMult:9.0, slMult:3.0 },  // [S684]
-  crypto: { rsiLen:14, bbLen:9,  bbMult:2.1, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:35, sellTh:25, tpMult:3.0, slMult:1.0 }   // [S684]
+  kr:     { rsiLen:14, bbLen:14, bbMult:1.9, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:30, sellTh:20 },  // [S684] buyTh −10 (가벼운 바닥 · 점수게이트 토글용)
+  us:     { rsiLen:14, bbLen:20, bbMult:2.0, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:25, sellTh:15 },  // [S684]
+  crypto: { rsiLen:14, bbLen:9,  bbMult:2.1, maShort:5, maMid:20, maLong:60, atrLen:14, buyTh:35, sellTh:25 }   // [S684]
 };
 // [S1092] 시장×레짐 6칸 기본값 철거 — S684에서 on/off를 전 시장 동일값으로 통일한 뒤
 //   레짐 축이 이미 동어반복이었다(측정 S1091: 매수판정 변경 1만봉당 3건). SCR_ANAL_MARKET_DEFAULTS 단일로 일원화.
