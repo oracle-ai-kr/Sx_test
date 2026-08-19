@@ -11082,17 +11082,51 @@ function updateParamHints(){
     return (typeof SCR_TF_THRESHOLD!=='undefined' && SCR_TF_THRESHOLD[tf]) ? SCR_TF_THRESHOLD[tf] : {buy:62,sell:38};
   })();
   const defaults = (typeof SCR_ANAL_DEFAULTS!=='undefined') ? SCR_ANAL_DEFAULTS : {rsiLen:14,bbLen:20,bbMult:2.0,atrLen:14};
+  //  ⚠★[S1365] **S1329 수정이 절반이었다** — `phBuyTh`/`phSellTh`만 SSOT로 돌리고 나머지 9칸을 두고 갔다.
+  //    실측(3시장 × 11칸 = **33칸** · 사용자 슬롯 없음·슬라이더 자동): **어긋남 10칸**.
+  //      ㉠`phBbLen`·`phBbMult`가 `SCR_ANAL_DEFAULTS`(20·2.0)를 읽는데 실제 적용은 **시장 프리셋**
+  //        (kr **14·1.9** · coin **9·2.1**) — S1327이 *'기본값이라는 이름이 두 가지를 가리킨다'* 고 적은 바로 그 표다.
+  //      ㉡`phTpMult`·`phSlMult`는 **`hintMap`에 아예 없어** HTML 하드코딩 `(2.5)`·`(1.5)`가 남는다.
+  //        실제는 kr **6·2** / us **9·3** / coin **3·1** ⇒ **3시장 전건 어긋남.**
+  //    ★⚠**US만 우연히 맞는다** — us 프리셋 `bbLen:20·bbMult:2.0`이 `SCR_ANAL_DEFAULTS`와 **같은 값**이다.
+  //      그래서 US 화면만 보면 결함이 보이지 않았고 오래 남았다(같은 계열: S1339 *'coin만 반대'*).
+  //    ⇒ 엔진이 실제로 읽는 SSOT는 **`_loadAnalParams()`** 다 — `calcAllScreener`의 `ip`(engine L2036)이고
+  //      `ip.bbLen`·`ip.bbMult`가 `BollingerBands.calc/squeeze`로, `ip.maShort/Mid/Long`이 `MA.alignment`로 들어간다.
+  //      **재구현 금지** — 그 함수를 그대로 부른다. 실패 시에만 구 표 폴백(그때는 힌트가 틀릴 수 있으나 화면이 죽지는 않는다).
+  const _apEff = (function(){
+    try{
+      const f = (typeof SXE!=='undefined' && SXE._loadAnalParams) ? SXE._loadAnalParams
+              : (typeof _loadAnalParams!=='undefined' ? _loadAnalParams : null);
+      if(f){ const r = f(); if(r && typeof r==='object') return r; }
+    }catch(_e1365){}
+    return null;
+  })();
+  //  `0`은 값이 아니라 **'미설정' 센티널**이다(S1327) — 그때만 폴백한다.
+  const _hv = (k, fb) => (_apEff && Number(_apEff[k]) > 0) ? _apEff[k] : fb;
+  //  ⚠TP/SL 폴백이 `'–'`인 이유 — **적용값이 호출처마다 다르다.** `_ap.tpMult`가 0이면
+  //    `sx_render.js:1614` 는 **10.6/0.8**, `sx_render.js:18853`·이 파일 L11368은 **2.5/1.5** 를 쓴다.
+  //    한 숫자로 안내할 수 없으므로 숫자를 지어내지 않는다.
+  //    ★현재 그 상태는 **도달 불가**다(아래 각인) — 즉 `'–'`는 실기기에 뜨지 않는다. 뜨면 그 자체가 신호다.
   const hintMap = {
-    phRsiLen: defaults.rsiLen,
-    phBbLen: defaults.bbLen,
-    phBbMult: defaults.bbMult,
-    phAtrLen: defaults.atrLen,
-    phMaShort: ma.short,
-    phMaMid: ma.mid,
-    phMaLong: ma.long,
-    phBuyTh: th.buy,
-    phSellTh: th.sell,
+    phRsiLen: _hv('rsiLen', defaults.rsiLen),
+    phBbLen: _hv('bbLen', defaults.bbLen),
+    phBbMult: _hv('bbMult', defaults.bbMult),
+    phAtrLen: _hv('atrLen', defaults.atrLen),
+    phMaShort: _hv('maShort', ma.short),
+    phMaMid: _hv('maMid', ma.mid),
+    phMaLong: _hv('maLong', ma.long),
+    phBuyTh: th.buy,     // [S1329] `_getEffectiveTh` 유지 — CUSTOM_THRESHOLDS 층이 하나 더 있어 `_loadAnalParams`보다 넓다
+    phSellTh: th.sell,   // [S1329] 동
+    phTpMult: _hv('tpMult', '–'),   // [S1365] 신규 — 그전까지 HTML 하드코딩 (2.5)가 남아 3시장 전건 어긋났다
+    phSlMult: _hv('slMult', '–'),   // [S1365] 신규 — 동 (1.5)
   };
+  //  ★[S1365] 각인 — 이 패널은 **읽기 전용**이다(발동 조건 아님·이 시리얼에서 손대지 않는다):
+  //    ㉠슬라이더 **11개 전부 `disabled`** (`apRsiLen`~`apSlMult`) ㉡`_readSliderParams()` **호출처 0건**(死코드·S1249가 놓쳤다)
+  //    ㉢저장 경로 2곳 중 L10669는 `const entry = null;` 하드코딩이라 **死**, L11163은 `_getSlotParams(mode)`
+  //      = **프리셋 그대로**를 저장하므로 `tpMult>0`이 유지된다.
+  //    ⇒ 따라서 `_ap.tpMult === 0` 은 **어느 경로로도 도달하지 않고**, 위 폴백 3종(10.6/0.8 · 2.5/1.5 ×2)은
+  //      `SCR_TF_THRESHOLD`의 62/38과 **같은 구조의 도달 불가값**이다(S1329). ⚠슬라이더를 살리면 그 순간
+  //      **같은 '자동' 상태가 호출처마다 다른 값**이 된다 — 슬라이더 활성화는 **발동 조건 변경**이라 별도 사전등록 대상(S1282). 백로그.
   for(const[id,val] of Object.entries(hintMap)){
     const el = document.getElementById(id);
     if(el) el.textContent = `(${val})`;
@@ -11246,15 +11280,29 @@ function updateAnalParamBadge(){
   const el = document.getElementById('analParamBadge');
   if(!el) return;
   const p = _loadAnalParams();
-  const d = SCR_ANAL_DEFAULTS;
-  const isDefault = p.rsiLen===d.rsiLen && p.bbLen===d.bbLen && p.bbMult===d.bbMult && p.atrLen===d.atrLen && p.maShort===d.maShort && p.maMid===d.maMid && p.maLong===d.maLong && p.buyTh===d.buyTh && p.sellTh===d.sellTh && (p.tpMult||0)===d.tpMult && (p.slMult||0)===d.slMult;
+  //  ⚠★[S1365] **같은 카드가 반대로 말하고 있었다** — 위는 `● 커스텀`, 아래(`_updateSlotStatus`)는 `✓ 모두 기본값`.
+  //    둘 다 자기 기준엔 맞았다. **'기본값'이 두 가지를 가리켰다**(S1300·S1322·S1327 이름 충돌 계열):
+  //      · 이 함수 = `SCR_ANAL_DEFAULTS` 대비 (bbLen 20 · maShort **0** · buyTh **0** · tpMult **0** — 0은 센티널)
+  //      · `_updateSlotStatus` = `_countMarketSlots`(사용자 저장 슬롯 수) 대비
+  //    ★실측: 시장 프리셋이 `maShort:5`·`buyTh:30`을 **항상 채우므로** `isDefault`는
+  //      **3시장 전부 false** ⇒ `'기본값 사용중'` 분기는 **도달 불가(死분기)**이고 화면은 늘 `● 커스텀`이었다.
+  //      (S1329가 `SCR_TF_THRESHOLD` 62/38에서 찾은 것과 **같은 구조** — 0 센티널 표를 실효값처럼 비교했다.)
+  //    ⇒ 비교 기준을 **시장 프리셋**으로 바꾼다. 그러면 死분기가 살아나고 아래 줄과 **같은 것을 가리킨다.**
+  //    ⚠표기 전용 — `p`(적용값)도 계산식도 판정도 무변경. 바뀌는 것은 `el.innerHTML` 한 곳뿐.
+  const _mkt1365 = (typeof currentMarket !== 'undefined')
+    ? (currentMarket === 'coin' ? 'crypto' : currentMarket) : 'kr';   // [S176] `_resetSlotsToDefaults` 관용구 이식(손 목록 신설 금지·S1272)
+  const _base1365 = (typeof SXE !== 'undefined' && SXE._getMarketDefaults)
+    ? SXE._getMarketDefaults(_mkt1365) : SCR_ANAL_DEFAULTS;
+  const isPreset = Object.keys(_base1365).every(k => _base1365[k] === p[k]);
     const regimeTag = ''; // [S1092] 레짐 배지 철거
-  if(isDefault){
+  //  두 분기가 **같은 요약**을 쓴다 — 앞 단어만 다르다(정보량 불변·S1283).
+  const _sum1365 = `RSI${p.rsiLen} BB${p.bbLen}×${p.bbMult} ATR${p.atrLen}${p.buyTh>0?' BUY='+p.buyTh:''}${p.sellTh>0?' SELL='+p.sellTh:''}${p.tpMult>0?' TP='+p.tpMult:''}${p.slMult>0?' SL='+p.slMult:''}`;
+  if(isPreset){
     el.className = 'param-badge default';
-    el.innerHTML = regimeTag + '기본값 사용중';
+    el.innerHTML = regimeTag + `프리셋 사용중 — ${_sum1365}`;   // [S1327] '기본값'이 아니라 '프리셋' — 같은 어휘로 통일
   } else {
     el.className = 'param-badge custom';
-    el.innerHTML = regimeTag + `● 커스텀 — RSI${p.rsiLen} BB${p.bbLen}×${p.bbMult} ATR${p.atrLen}${p.buyTh>0?' BUY='+p.buyTh:''}${p.sellTh>0?' SELL='+p.sellTh:''}${p.tpMult>0?' TP='+p.tpMult:''}${p.slMult>0?' SL='+p.slMult:''}`;
+    el.innerHTML = regimeTag + `● 커스텀 — ${_sum1365}`;
   }
   // [S176] 슬롯 상태 표시도 함께 갱신
   if(typeof _updateSlotStatus === 'function') _updateSlotStatus();
@@ -11276,7 +11324,10 @@ function _updateSlotStatus(){
   const cryCnt = SXE._countMarketSlots('crypto');
   const total = krCnt + usCnt + cryCnt;
   if(total === 0){
-    el.innerHTML = '<span style="color:var(--buy)">✓ 모두 기본값</span>';
+    //  ⚠[S1365] `✓ 모두 기본값` → `✓ 저장 슬롯 없음`. 이 함수가 세는 것은 **사용자 저장 슬롯 수**이지
+    //    파라미터가 기본값인지가 아니다. 위 배지와 같은 단어('기본값')를 쓰는 바람에 한 카드가 반대로 말했다.
+    //    ⇒ **세는 것을 그대로 적는다**(S1314 분모 병기·S1311 계열). 개수·판정·조건 무변경.
+    el.innerHTML = '<span style="color:var(--buy)">✓ 저장 슬롯 없음</span>';
   } else {
     const parts = [];
     if(krCnt > 0) parts.push(`🇰🇷 ${krCnt}`);
