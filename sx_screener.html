@@ -700,6 +700,27 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .sxb-arrow{font-size:10px;color:var(--accent);transition:transform .2s;flex-shrink:0;align-self:flex-start;margin-top:5px}   /* [S1254] 카드 세로 성장 대응 — 상단 고정 */
 .sxb.sxb-open .sxb-arrow{transform:rotate(90deg)}
 .sxb-mini{display:flex;justify-content:space-around;gap:4px;padding:2px 8px 12px;border-top:1px solid var(--border)}
+/*  [S1375] SPEC_S1371 ④단계 — 5축 탭 + 인라인 패널 */
+.ax-tabs{display:flex;justify-content:space-around;gap:2px;padding:6px 6px 0;border-top:1px solid var(--border)}
+.ax-tab{flex:1;cursor:pointer;padding:2px 0 6px;border-bottom:2px solid transparent;transition:border-color .15s}
+.ax-tab.ax-on{border-bottom-color:var(--accent)}
+.ax-tab.ax-on .sxb-circle-label{color:var(--accent);font-weight:800}
+.ax-panel{padding:8px 12px 12px;border-top:1px solid var(--border);background:var(--surface2)}
+.ax-panel-head{font-size:12px;font-weight:800;color:var(--text);margin-bottom:6px}
+.ax-panel-head b{font-size:15px;margin-left:4px}
+.ax-panel-head .ax-sub{font-size:10px;font-weight:600;color:var(--text3);margin-left:6px}
+.ax-rows{display:flex;flex-direction:column;gap:1px}
+.ax-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border)}
+.ax-k{flex:1;font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;min-width:0}
+.ax-raw{font-size:11px;color:var(--text);font-weight:600;text-align:right;min-width:64px}
+.ax-q{font-size:12px;font-weight:800;text-align:right;min-width:28px}
+.ax-badge{font-size:8px;padding:1px 4px;border-radius:4px;font-weight:700;white-space:nowrap}
+.ax-badge.ax-desc{color:var(--text3);background:var(--border)}
+.ax-badge.ax-rev{color:#ea580c;background:#ea580c1A}
+.ax-badge.ax-pass{color:#16a34a;background:#16a34a1A}
+.ax-foot{font-size:10px;color:var(--text3);margin-top:6px;padding-top:5px;border-top:1px solid var(--border)}
+.ax-note{font-size:9px;color:var(--text3);line-height:1.5;margin-top:4px}
+.ax-empty{font-size:11px;color:var(--text3);padding:10px 0;text-align:center}
 .sxb.sxb-open .sxb-mini{display:none}
 .sxb-detail{display:none;padding:4px 12px 12px;border-top:1px solid var(--border)}
 .sxb.sxb-open .sxb-detail{display:block}
