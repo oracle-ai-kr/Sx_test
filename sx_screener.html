@@ -1571,8 +1571,6 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       </div>
       <div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px">
         <div style="font-size:10px;color:var(--text3);margin-bottom:6px">BT 익절/손절 배수 (0=기본값 TP2.5/SL1.5)</div>
-        <div class="param-row"><span class="p-label">TP 배수 <span class="p-hint" id="phTpMult">(2.5)</span></span><input type="range" id="apTpMult" min="0" max="10.0" step="0.1" value="0" oninput="syncParamSlider(this)" disabled><span class="p-val" id="apTpMultVal">0</span></div>
-        <div class="param-row"><span class="p-label">SL 배수 <span class="p-hint" id="phSlMult">(1.5)</span></span><input type="range" id="apSlMult" min="0" max="5.0" step="0.1" value="0" oninput="syncParamSlider(this)" disabled><span class="p-val" id="apSlMultVal">0</span></div>
       </div>
       <!-- S211: 모드 칩(수익/안정/보수) → 시장 자동 라우팅 안내 배지로 교체
                   분석 대상 종목의 시장(국내/해외/코인)에 따라 자동으로 슬롯 선택됨. -->
@@ -11041,8 +11039,8 @@ function _renderSxAzFiltered(items){
 
 // ── 파라미터 UI ──
 // S68: 0=자동(TF기본값) 표시 대상
-const _autoParamIds = new Set(['apMaShort','apMaMid','apMaLong','apBuyTh','apSellTh','apTpMult','apSlMult']);
-const _autoParamHintMap = {apMaShort:'phMaShort',apMaMid:'phMaMid',apMaLong:'phMaLong',apBuyTh:'phBuyTh',apSellTh:'phSellTh',apTpMult:'phTpMult',apSlMult:'phSlMult'};
+const _autoParamIds = new Set(['apMaShort','apMaMid','apMaLong','apBuyTh','apSellTh']);   // [S1369] apTpMult·apSlMult 철거
+const _autoParamHintMap = {apMaShort:'phMaShort',apMaMid:'phMaMid',apMaLong:'phMaLong',apBuyTh:'phBuyTh',apSellTh:'phSellTh'};   // [S1369]
 
 function syncParamSlider(el){
   const valEl = document.getElementById(el.id+'Val');
@@ -11117,11 +11115,11 @@ function updateParamHints(){
     phMaLong: _hv('maLong', ma.long),
     phBuyTh: th.buy,     // [S1329] `_getEffectiveTh` 유지 — CUSTOM_THRESHOLDS 층이 하나 더 있어 `_loadAnalParams`보다 넓다
     phSellTh: th.sell,   // [S1329] 동
-    phTpMult: _hv('tpMult', '–'),   // [S1365] 신규 — 그전까지 HTML 하드코딩 (2.5)가 남아 3시장 전건 어긋났다
-    phSlMult: _hv('slMult', '–'),   // [S1365] 신규 — 동 (1.5)
+    //  ⚠[S1365→S1369] `phTpMult`/`phSlMult` **철거**. S1365가 방금 SSOT로 이었는데 S1369가 파라미터 자체를 없앤다 —
+    //    S1365의 진단(3시장 전건 어긋남)은 맞았고, **고칠 값이 아니라 없앨 값**이었다는 것이 S1368 감사로 드러났다.
   };
   //  ★[S1365] 각인 — 이 패널은 **읽기 전용**이다(발동 조건 아님·이 시리얼에서 손대지 않는다):
-  //    ㉠슬라이더 **11개 전부 `disabled`** (`apRsiLen`~`apSlMult`) ㉡`_readSliderParams()` **호출처 0건**(死코드·S1249가 놓쳤다)
+  //    ㉠슬라이더 **전부 `disabled`**(`apRsiLen`~`apSellTh` · [S1369] TP/SL 2개 철거로 11→9개) ㉡`_readSliderParams()` **호출처 0건**(死코드·S1249가 놓쳤다)
   //    ㉢저장 경로 2곳 중 L10669는 `const entry = null;` 하드코딩이라 **死**, L11163은 `_getSlotParams(mode)`
   //      = **프리셋 그대로**를 저장하므로 `tpMult>0`이 유지된다.
   //    ⇒ 따라서 `_ap.tpMult === 0` 은 **어느 경로로도 도달하지 않고**, 위 폴백 3종(10.6/0.8 · 2.5/1.5 ×2)은
@@ -11150,13 +11148,11 @@ function _readSliderParams(){
     maLong: parseInt(document.getElementById('apMaLong').value),
     buyTh: parseInt(document.getElementById('apBuyTh').value),
     sellTh: parseInt(document.getElementById('apSellTh').value),
-    tpMult: parseFloat(document.getElementById('apTpMult').value),
-    slMult: parseFloat(document.getElementById('apSlMult').value),
   };
 }
 
 const _PARAM_MARKET_LABELS = {kr:'🇰🇷 국내',us:'🇺🇸 해외',coin:'🪙 코인'};
-function _paramSlotSummary(p){ return `RSI${p.rsiLen} BB${p.bbLen}×${p.bbMult} ATR${p.atrLen}${p.maShort?' MA'+p.maShort:''}${p.buyTh>0?' B'+p.buyTh:''}${p.sellTh>0?' S'+p.sellTh:''}${p.tpMult>0?' TP'+p.tpMult:''}${p.slMult>0?' SL'+p.slMult:''}`; }
+function _paramSlotSummary(p){ return `RSI${p.rsiLen} BB${p.bbLen}×${p.bbMult} ATR${p.atrLen}${p.maShort?' MA'+p.maShort:''}${p.buyTh>0?' B'+p.buyTh:''}${p.sellTh>0?' S'+p.sellTh:''}`; }   // [S1369] TP/SL 제거
 
 // ─── 공용 모달 닫기 ───
 function _closeParamModal(id){ const el=document.getElementById(id); if(el) el.remove(); }
@@ -11261,7 +11257,7 @@ function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 
 function loadAnalParamsUI(){
   const p = _loadAnalParams();
-  const map = {apRsiLen:'rsiLen',apBbLen:'bbLen',apBbMult:'bbMult',apAtrLen:'atrLen',apMaShort:'maShort',apMaMid:'maMid',apMaLong:'maLong',apBuyTh:'buyTh',apSellTh:'sellTh',apTpMult:'tpMult',apSlMult:'slMult'};
+  const map = {apRsiLen:'rsiLen',apBbLen:'bbLen',apBbMult:'bbMult',apAtrLen:'atrLen',apMaShort:'maShort',apMaMid:'maMid',apMaLong:'maLong',apBuyTh:'buyTh',apSellTh:'sellTh'};   // [S1369] TP/SL 제거
   for(const[elId,key] of Object.entries(map)){
     const el = document.getElementById(elId);
     if(el){ el.value = p[key]??SCR_ANAL_DEFAULTS[key]; syncParamSlider(el); }
@@ -11296,7 +11292,7 @@ function updateAnalParamBadge(){
   const isPreset = Object.keys(_base1365).every(k => _base1365[k] === p[k]);
     const regimeTag = ''; // [S1092] 레짐 배지 철거
   //  두 분기가 **같은 요약**을 쓴다 — 앞 단어만 다르다(정보량 불변·S1283).
-  const _sum1365 = `RSI${p.rsiLen} BB${p.bbLen}×${p.bbMult} ATR${p.atrLen}${p.buyTh>0?' BUY='+p.buyTh:''}${p.sellTh>0?' SELL='+p.sellTh:''}${p.tpMult>0?' TP='+p.tpMult:''}${p.slMult>0?' SL='+p.slMult:''}`;
+  const _sum1365 = `RSI${p.rsiLen} BB${p.bbLen}×${p.bbMult} ATR${p.atrLen}${p.buyTh>0?' BUY='+p.buyTh:''}${p.sellTh>0?' SELL='+p.sellTh:''}`;   // [S1369] TP/SL 제거
   if(isPreset){
     el.className = 'param-badge default';
     el.innerHTML = regimeTag + `프리셋 사용중 — ${_sum1365}`;   // [S1327] '기본값'이 아니라 '프리셋' — 같은 어휘로 통일
@@ -11416,9 +11412,7 @@ function _renderScanParamSummary(){
     const maL = pm.maLong > 0 ? pm.maLong : _tfMa.long;
     const buy = pm.buyTh > 0 ? pm.buyTh : _tfTh.buy;
     const sell = pm.sellTh > 0 ? pm.sellTh : _tfTh.sell;
-    const tp = pm.tpMult > 0 ? pm.tpMult : 2.5;
-    const sl = pm.slMult > 0 ? pm.slMult : 1.5;
-    return `RSI${pm.rsiLen||14} BB${pm.bbLen||20}x${pm.bbMult||2.0} ATR${pm.atrLen||14} MA${maS}/${maM}/${maL} B${buy} S${sell} TP${tp} SL${sl}`;
+    return `RSI${pm.rsiLen||14} BB${pm.bbLen||20}x${pm.bbMult||2.0} ATR${pm.atrLen||14} MA${maS}/${maM}/${maL} B${buy} S${sell}`;   // [S1369] TP/SL 제거
   }
 
   let html = '';
