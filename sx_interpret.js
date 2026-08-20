@@ -1096,7 +1096,7 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts)
   //     `keyReasons`·`risks`는 이 함수 맨 앞에서 이미 정해졌으므로 분기를 바꿔도 불변(S1380 배터리 D7).
   //  ⚠`stateLine`에 `⛔`·`[주의]`·`치명적 공시`·`위험 공시`를 넣지 말 것 —
   //     `_getSummaryLayerConfig`가 그 넷을 공시 오버라이드 흔적으로 읽어 카드 레이어를 올린다.
-  let axisLine='',splitLine='',demotedLine='',violLine='';
+  let axisLine='',splitLine='',demotedLine='',violLine='',basisLine='';
   const _ax1381=(function(){
     try{
       const _a=(ind&&ind._advanced)||ind||null;
@@ -1115,7 +1115,10 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts)
     //  ⚠어휘도 축과 동일하다. 축·종합은 같은 계단(재료 분위 10/30/50/70/90) 위의 값이라 뜻이 같다.
     //    ★단, S1379가 말한 '분위'는 **재료 계단(값 공간)**이지 빈도 20%가 아니다 —
     //    실측 축 값 구간비는 kr 28.9/11.5/26.4/8.8/24.5로 균등과 멀다. 빈도를 뜻으로 읽지 말 것.
-    stateLine=(_s1381>=70?'아주 높은 편':_s1381>=60?'높은 편':_s1381>=41?'가운데':_s1381>=31?'낮은 편':'아주 낮은 편')+' '+_s1381;
+    //  ★[S1382] 머리말에 **주어와 비교 대상**을 넣는다 — `높은 편 61`만으론 *무엇이* *무엇에 비해*
+    //    높은지 화면에 없었다(실기기 지적). 기준 명시는 SPEC §1의 *'조건부 사실'* 요건이기도 하다.
+    stateLine='5축 종합 '+_s1381+' · 같은 시장에서 '
+      +(_s1381>=70?'아주 높은 편':_s1381>=60?'높은 편':_s1381>=41?'가운데':_s1381>=31?'낮은 편':'아주 낮은 편');
     tone=_s1381>=60?'bullish':_s1381>=41?'neutral':'bearish';
     //  ★축 단서는 **나열이 아니라 선택**이다 — 두 끝(≥70/≤30) 축을 다 적으면 봉의 절반이 3개 이상이 된다
     //    (kr 53.9%·us 46.9%·coin 49.7% · S1380-C). 길이가 고정되지 않아 S1320이 없앤 소음이 된다.
@@ -1128,6 +1131,14 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts)
       if(v>=70) _hi.push({k:k,v:v}); else if(v<=30) _lo.push({k:k,v:v});
     });
     if(_far) axisLine='가운데(50)에서 가장 먼 축은 '+_KO1381[_far.k]+' '+_far.v;
+    //  ★[S1382] 셈법 줄 — 5축 패널은 **스크롤해야 보이는 다른 카드**라 반복이 아니다.
+    //  ⚠`5분위`는 **재료 층위에서만 참**이다: 재료는 진짜 분위(10/30/50/70/90)로 매기지만
+    //    축은 그 평균, 종합은 축의 평균이라 **평균은 분위가 아니다**. 그래서 *'매긴 뒤 평균'*이라고
+    //    셈 순서를 밝힌다. 없는 순위를 주장하지 않는다 — S1376이 `상위 N%권`을 철거한 그 이유.
+    //  ⚠실측 비율(예: 이 구간은 kr 12.8%)을 화면에 올리는 안은 **채택하지 않았다** —
+    //    빈티지마다 다시 재야 하고 원장에 없는 수치라 사전등록 대상이 된다(서술 층위를 넘는다).
+    basisLine='재료를 같은 시장 5분위로 매긴 뒤 평균'
+      +(_ax1381.vintage?(' · 빈티지 '+_ax1381.vintage):'');
     if(_hi.length&&_lo.length){
       const _h=_hi.slice().sort(function(a,b){return b.v-a.v;})[0];
       const _l=_lo.slice().sort(function(a,b){return a.v-b.v;})[0];
@@ -1160,7 +1171,7 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts)
   }
   mainText += SXI._attachRegimeContext(_vaForRegime, regime);
   //  [S1381] 새 4종 — 두 오버라이드는 `{...baseSummary}` 스프레드라 그대로 보존된다(확인함).
-  return {tone,mainText,keyReasons,risks,composites,stateLine,actionGuide,invalidation,buyTrigger,axisLine,splitLine,demotedLine,violLine};
+  return {tone,mainText,keyReasons,risks,composites,stateLine,actionGuide,invalidation,buyTrigger,axisLine,splitLine,demotedLine,violLine,basisLine};
 };
 
 // ════════════════════════════════════════════════════════════
