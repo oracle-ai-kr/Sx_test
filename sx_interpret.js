@@ -1005,12 +1005,16 @@ SXI._attachRegimeContext = function(verdictAction, regime){
   return row[dir] || '';
 };
 
-SXI.summary = function(action, score, reasons, ind, verdictAction, regime){
+SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts){
   const composites = SXI.composite(ind);
   const keyReasons = composites.filter(c=>c.tone==='bullish'||c.tone==='bearish').slice(0,3);
   const risks = composites.filter(c=>c.tone==='danger'||c.tone==='warning');
   let tone='neutral',mainText='',stateLine='',actionGuide='',invalidation='',buyTrigger='';
-  const maArr=ind?.maAlign?.bullish?'bull':ind?.maAlign?.bearish?'bear':'mixed';
+  //  ★[S1381] 평탄화 다리 — `calcIndicators` 반환 목록에 `maAlign`이 없다(`_advanced`에만 있다).
+  //    S1319가 `SXI.composite`의 끊긴 5곳엔 다리를 놨으나 이 한 줄은 놓쳤다 ⇒ 13,608봉 전건 `mixed`였고
+  //    `'상승 추세 내 눌림 조정 구간'`과 아래 `invalidation`의 bull 분기가 **한 번도 발화하지 못했다**(SPEC §7-신 ③).
+  const _maSrc1381=(ind&&ind.maAlign)||(ind&&ind._advanced&&ind._advanced.maAlign)||null;
+  const maArr=_maSrc1381&&_maSrc1381.bullish?'bull':_maSrc1381&&_maSrc1381.bearish?'bear':'mixed';
   const vwapPos=ind?.vwap?.position??ind?.vwapLegacy?.position??'';
   const swHH=ind?.swingStruct?.higherHighs??ind?.swingStructLegacy?.higherHighs;
 
@@ -1084,7 +1088,68 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime){
     invalidation=maArr==='bull'?'VWAP 이탈 또는 최근 스윙 저점 이탈 시 눌림목 해석은 약화됩니다.':'추가 하락 시 매도 전환 가능성을 열어두세요.';
     buyTrigger='거래량 증가 + 저항 돌파가 나오면 BUY 전환 가능성이 높아집니다.';
   }
-  if(reasons && reasons.length) mainText+=' 단, 안전필터에서 '+reasons.join(', ')+' 조건이 감지되어 주의가 필요합니다.';
+  // ══════ [S1381] ⑤ 서술 게이트 — `action`에서 떼어내 5축 분위로 가른다 (SPEC_S1371 §7-신) ══════
+  //  ★왜: `action`은 `rawScore>=buyTh`와 **안전필터 강등**의 혼합물이라(kr 54.6%·us 64.0%·coin 38.0%가 강등)
+  //     서술이 *'점수가 낮다'*와 *'필터에 걸렸다'*를 구별하지 못했다. 맨문턱 BUY인데 머리말이
+  //     `약한 매도 우위`로 나가는 봉이 kr 29.6%·us 46.4%·coin 34.3%였다(SPEC §7-신 ⑤).
+  //  ⚠판정 무관: 이 블록은 stateLine/tone/새 3줄만 만든다. `action`·`aTimingOn`·`_safetyViol`은 **손대지 않는다**.
+  //     `keyReasons`·`risks`는 이 함수 맨 앞에서 이미 정해졌으므로 분기를 바꿔도 불변(S1380 배터리 D7).
+  //  ⚠`stateLine`에 `⛔`·`[주의]`·`치명적 공시`·`위험 공시`를 넣지 말 것 —
+  //     `_getSummaryLayerConfig`가 그 넷을 공시 오버라이드 흔적으로 읽어 카드 레이어를 올린다.
+  let axisLine='',splitLine='',demotedLine='',violLine='';
+  const _ax1381=(function(){
+    try{
+      const _a=(ind&&ind._advanced)||ind||null;
+      const R=(_a&&_a._axisRaw)||(ind&&ind._axisRaw)||null;
+      const _rs=(_a&&_a.rs)||(ind&&ind.rs)||null;
+      if(R&&typeof SXE!=='undefined'&&SXE.calcAxisScore) return SXE.calcAxisScore(R,_rs);
+    }catch(_e1381){}
+    return null;
+  })();
+  if(_ax1381&&typeof _ax1381.score==='number'&&_ax1381.axes){
+    const _KO1381={pos:'자리',vol:'흔들림',trend:'추세',flow:'수급',rel:'상대·심리'};
+    const _ORD1381=['pos','vol','trend','flow','rel'];
+    const _s1381=_ax1381.score;
+    //  ⚠경계는 **새로 정하지 않는다** — S1379 실측 전환점 [31,41,60,70]을 그대로 상속한다.
+    //    그래야 머리말·도넛 색·5축 패널 구간 이름이 한 화면에서 같은 눈금을 쓴다.
+    //  ⚠어휘도 축과 동일하다. 축·종합은 같은 계단(재료 분위 10/30/50/70/90) 위의 값이라 뜻이 같다.
+    //    ★단, S1379가 말한 '분위'는 **재료 계단(값 공간)**이지 빈도 20%가 아니다 —
+    //    실측 축 값 구간비는 kr 28.9/11.5/26.4/8.8/24.5로 균등과 멀다. 빈도를 뜻으로 읽지 말 것.
+    stateLine=(_s1381>=70?'아주 높은 편':_s1381>=60?'높은 편':_s1381>=41?'가운데':_s1381>=31?'낮은 편':'아주 낮은 편')+' '+_s1381;
+    tone=_s1381>=60?'bullish':_s1381>=41?'neutral':'bearish';
+    //  ★축 단서는 **나열이 아니라 선택**이다 — 두 끝(≥70/≤30) 축을 다 적으면 봉의 절반이 3개 이상이 된다
+    //    (kr 53.9%·us 46.9%·coin 49.7% · S1380-C). 길이가 고정되지 않아 S1320이 없앤 소음이 된다.
+    let _far=null,_fd=-1;const _hi=[],_lo=[];
+    _ORD1381.forEach(function(k){
+      const v=_ax1381.axes[k]&&_ax1381.axes[k].v;
+      if(typeof v!=='number') return;
+      const d=Math.abs(v-50);
+      if(d>_fd){_fd=d;_far={k:k,v:v};}   // 동률이면 축 순서가 이긴다 — 재량 0
+      if(v>=70) _hi.push({k:k,v:v}); else if(v<=30) _lo.push({k:k,v:v});
+    });
+    if(_far) axisLine='가운데(50)에서 가장 먼 축은 '+_KO1381[_far.k]+' '+_far.v;
+    if(_hi.length&&_lo.length){
+      const _h=_hi.slice().sort(function(a,b){return b.v-a.v;})[0];
+      const _l=_lo.slice().sort(function(a,b){return a.v-b.v;})[0];
+      //  어느 쪽이 맞는지는 판정하지 않는다 — S1376의 재료 엇갈림 문법을 축 층위로 올린 것.
+      splitLine='축이 갈렸습니다 — '+_KO1381[_h.k]+' '+_h.v+' ↔ '+_KO1381[_l.k]+' '+_l.v;
+    }
+  }
+  //  ★[S1381] 강등 줄 — `mainText` 꼬리에서 **떼어낸다**. 예전엔 서술 산문에 섞여 머리말이 그걸 몰랐다.
+  //  ⚠`🔒임계값`(=`rawScore<buyTh+2`)은 **구 rawScore 파생**이라 5축 서술에 섞지 않는다.
+  //     빼도 강등봉 중 표시할 게 없어지는 봉은 kr 0%·us 0.02%·coin 0.04%뿐이다(S1380-D).
+  //     ⚠`🔒변동성과다`(=`rawScore<buyTh+10`)도 같은 계열이나 **빼지 않는다** — coin이 7.5→25.3%로 비어버린다.
+  //  ⚠엔진의 `_safetyViol` 자체는 손대지 않는다 ⇒ 판정 캡은 `🔒임계값` 포함 전수를 그대로 센다(발동 조건 무변경).
+  const _vAll1381=(opts&&opts.safetyViol)||[];
+  const _viol1381=(_vAll1381.length?_vAll1381:(reasons||[])).filter(function(v){return v!=='🔒임계값';});
+  //  ⚠**실제 강등일 때만** 띄운다. 초판은 *'강등은 없는데 위반만 있을 때'* 분기를 뒀는데
+  //     E2E 실측에서 kr 49.9%·us 52.2%·coin 64.6%로 떠 합계 88.7~91.3% — **거의 항상 뜨는 줄**이 됐다.
+  //     ★S1377이 각인한 실패(경고가 배경이 되면 안 읽힌다)를 그대로 재현한 것이라 분기를 걷었다.
+  //     `reasons` 기준이면 kr 38.8%·us 36.8%·coin 26.8% — *'매수 문턱을 넘겼는데 걸렸다'*는 실제 사건이다.
+  if(reasons&&reasons.length){
+    demotedLine='매수 문턱은 넘겼으나 안전필터에 걸렸습니다';
+    violLine=_viol1381.join(' · ');
+  }
   // [S223] 27조합 — 비보유 verdictAction × regime.direction 컨텍스트 부착
   //   verdictAction 미지정 시 action(BUY/SELL/HOLD) + score를 기반으로 4종(매수/관심/관망/회피) 폴백 매핑
   let _vaForRegime = verdictAction;
@@ -1094,7 +1159,8 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime){
     else                     _vaForRegime = '관망';
   }
   mainText += SXI._attachRegimeContext(_vaForRegime, regime);
-  return {tone,mainText,keyReasons,risks,composites,stateLine,actionGuide,invalidation,buyTrigger};
+  //  [S1381] 새 4종 — 두 오버라이드는 `{...baseSummary}` 스프레드라 그대로 보존된다(확인함).
+  return {tone,mainText,keyReasons,risks,composites,stateLine,actionGuide,invalidation,buyTrigger,axisLine,splitLine,demotedLine,violLine};
 };
 
 // ════════════════════════════════════════════════════════════
