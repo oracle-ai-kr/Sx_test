@@ -1138,7 +1138,10 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts)
     //  ⚠실측 비율(예: 이 구간은 kr 12.8%)을 화면에 올리는 안은 **채택하지 않았다** —
     //    빈티지마다 다시 재야 하고 원장에 없는 수치라 사전등록 대상이 된다(서술 층위를 넘는다).
     basisLine='재료를 같은 시장 5분위로 매긴 뒤 평균'
-      +(_ax1381.vintage?(' · 빈티지 '+_ax1381.vintage):'');
+      //  ★[S1390] **무엇의** 빈티지인지 밝힌다 — `빈티지 2026-07-01`만 적으면 *'값도 7/1 기준'*으로
+      //    읽히는데 실제는 정반대다: 경계표(`_AXIS_EDGES`)만 코드에 각인된 고정값이고 **값은 지금 봉**이며
+      //    장중이면 흔들린다(SPEC §12-12 · 같은 날 JPM 45/43/44). 오독이 **위험한 쪽으로** 났다.
+      +(_ax1381.vintage?(' · 경계 빈티지 '+_ax1381.vintage+' · 값은 지금 봉'):'');
     if(_hi.length&&_lo.length){
       const _h=_hi.slice().sort(function(a,b){return b.v-a.v;})[0];
       const _l=_lo.slice().sort(function(a,b){return a.v-b.v;})[0];
