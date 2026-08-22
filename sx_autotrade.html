@@ -344,27 +344,23 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
     <!-- ═══ [S949] 청산 설정 (이중ATR + MA/N일) ═══ -->
     <div class="card" data-zone="kr" id="atExitCard">
-      <div class="card-title">🎯 청산 설정 <span class="tag">이중ATR + MA/N일/OFF · S1354</span><span onclick="atExitReset()" title="기본값(2×/3×/OFF·N30/유예10일)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
-      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레거시 votes / bullVol / V2 어휘규칙(S1178) · 청산은 전략 공통=초기ATR손절 + ATR트레일 + 최대보유(<b>OFF</b>·MA5×20·N일 택1 — OFF=이중ATR만·<b>기본</b>). 값 변경 후 저장.</div>
+      <div class="card-title">🎯 청산 설정 <span class="tag">4종 칩 + 3×3판 게이트 · S1393</span><span onclick="atExitReset()" title="기본값(4종 ON · 2×/3× · 유예10 · N30 OFF · 게이트 OFF)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레거시 votes / bullVol / V2 어휘규칙(S1178) · 청산=<b>4종 독립 칩 OR</b>(MA데드+유예 / 이중ATR / 칸fake / 칸down) + N일 컷(공통·실험용) + 3×3판 게이트[측정 미달·기본 OFF]. 칸fake·칸down=완성봉 원장 → <b>다음 거래일 청산</b>(원장 5일 초과 stale 시 자동 보류). 값 변경 후 저장.</div>
       <div id="atExitDiag" style="font-size:10px;color:var(--text3);margin-bottom:10px;">청산판정 기록 없음 — 워커 S1193 배포 후 첫 tick부터 표시.</div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">초기 손절 (×ATR)<input id="exAtrInit" type="number" step="0.5" min="0.5" max="6" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">트레일 (×ATR)<input id="exAtrTrail" type="number" step="0.5" min="0.5" max="8" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
       </div>
-      <div style="font-size:10.5px;color:var(--text2);margin-bottom:5px;">최대보유 방식 (택1)</div>
-      <div style="display:flex;gap:6px;margin-bottom:11px;">
-        <button type="button" id="exModeOff" onclick="atExitMode('off')" style="flex:1;padding:7px 0;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);">OFF (이중ATR만)</button>
-        <button type="button" id="exModeMa" onclick="atExitMode('ma')" style="flex:1;padding:7px 0;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);">MA5×20 데드</button>
-        <button type="button" id="exModeDays" onclick="atExitMode('days')" style="flex:1;padding:7px 0;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);">N일</button>
+      <div style="font-size:10.5px;color:var(--text2);margin-bottom:6px;">청산 칩 (독립 OR · S1393)</div>
+      <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:12px;">
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exAtrOn" onchange="_exWarnSync()" style="width:16px;height:16px;"/> 🛡️ <b>이중ATR</b> <span style="font-size:9.5px;color:var(--text3);">위 초기/트레일 배수 사용 · PREREG_S1392 전 도전팔 미충족 → 기본 ON 유지</span></label>
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exDeadOn" onchange="_exWarnSync()" style="width:16px;height:16px;"/> ✂️ <b>MA5×20 데드</b> · 유예 <input id="exMaGrace" type="number" step="1" min="0" max="20" style="width:52px;font-size:13px;padding:6px;box-sizing:border-box;"/>일 <span style="font-size:9.5px;color:var(--text3);">유예 중 데드 OFF(자기모순 방지)·완성봉만 S956</span></label>
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;"><input type="checkbox" id="exCfakeOn" style="width:16px;height:16px;"/> 🧩 <b>칸 fake 청산</b> <span style="font-size:9.5px;color:var(--text3);">원장 v2.avoid(fake) · 완성봉 → 다음 거래일</span></label>
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;"><input type="checkbox" id="exCdownOn" style="width:16px;height:16px;"/> ⛔ <b>칸 down 청산</b> <span style="font-size:9.5px;color:var(--text3);">원장 v2.avoid(down) · 완성봉 → 다음 거래일</span></label>
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exNbarOn" onchange="_exWarnSync()" style="width:16px;height:16px;"/> ⏱ <b>N일 컷</b> · N=<input id="exNbarDays" type="number" step="1" min="1" max="250" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/>일 <span style="font-size:9.5px;color:var(--text3);">공통 토글 · 실험용 자(기본 OFF)</span></label>
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exGateOn" style="width:16px;height:16px;"/> ⬛ <b>3×3판 출구게이트</b> <span style="font-size:9.5px;color:#d97706;font-weight:700;">[측정 미달 · PREREG_S1392 E팔 · 기본 OFF]</span> <span style="font-size:9.5px;color:var(--text3);">ON: 장기 정배=데드만·ATR 억제 / 혼조·역배=ATR만·데드 무시 / 축 불명·원장 stale=해제(전 칩)</span></label>
       </div>
-      <div id="exMaRow" style="display:flex;gap:14px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
-        <label style="font-size:11px;color:var(--text2);display:inline-flex;align-items:center;gap:5px;">진입 후 유예 <input id="exMaGrace" type="number" step="1" min="0" max="20" style="width:52px;font-size:13px;padding:6px;box-sizing:border-box;"/>일</label>
-        <span style="font-size:9.5px;color:var(--text3);">유예 중엔 MA청산 OFF(자기모순 방지)·ATR손절은 상시</span>
-      </div>
-      <div id="exDaysRow" style="display:flex;gap:14px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
-        <label style="font-size:11px;color:var(--text2);display:inline-flex;align-items:center;gap:5px;"><input type="checkbox" id="exMaxHoldOn" style="width:16px;height:16px;"/> N일 상한 사용 <span style="opacity:.7">(N일 모드 전용)</span></label>
-        <label style="font-size:11px;color:var(--text2);display:inline-flex;align-items:center;gap:5px;">N=<input id="exMaxHoldDays" type="number" step="1" min="1" max="250" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/>일</label>
-      </div>
+      <div id="exNoStopWarn" style="display:none;font-size:10px;color:var(--sell);margin-bottom:10px;">⚠ 무조건적 출구 없음 — 데드·이중ATR·N일이 전부 OFF면 칸fake/칸down 신호가 없는 종목은 청산 경로가 없습니다 (차단하지 않음·사실 고지).</div>
       <button type="button" id="exSaveBtn" onclick="atSaveExitConfig()" style="width:100%;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">💾 청산 설정 저장</button>
       <div id="exMsg" style="font-size:11px;margin-top:9px;line-height:1.5;"></div>
     </div>
@@ -447,7 +443,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1363</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1393</div>
   </div>
 </div>
 
@@ -1006,36 +1002,29 @@ function atRenderBuyPreview(sig){
   }).join('');
 }
 
-// ── [S949] 청산 설정 UI (exit_config ↔ /state·/sx/autotrade/exit-config) ──
-let _exMode='off'; // [S950] 기본 최대보유=MA5×20 → [S1354] 기본 OFF(이중ATR만·사용자 결정)
-function _exTabStyle(btn,on){ if(!btn)return; btn.style.borderColor=on?'var(--accent)':'var(--border)'; btn.style.background=on?'var(--accent)':'transparent'; btn.style.color=on?'#fff':'var(--text2)'; }
-function atExitMode(m){ _exMode=(m==='ma')?'ma':(m==='off'?'off':'days'); // [S1354] 3상(off/ma/days)
-  _exTabStyle(_$('exModeOff'),_exMode==='off'); _exTabStyle(_$('exModeMa'),_exMode==='ma'); _exTabStyle(_$('exModeDays'),_exMode==='days');
-  const dr=_$('exDaysRow'); if(dr) dr.style.opacity=(_exMode==='days')?'1':'0.4'; const mr=_$('exMaRow'); if(mr) mr.style.opacity=(_exMode==='ma')?'1':'0.4';
-  // [S1089] MA/OFF 모드에선 워커가 maxHoldOn을 읽지 않는다(else if 배타 분기) — 체크박스를 비활성화해
-  //   '30일 상한도 같이 걸려 있다'는 오독을 막는다. checked 상태는 유지(저장값 보존).
-  // [S1354] ⚠발견 수정: 종전엔 이 disabled 줄이 함수 밖(스크립트 최상위)에 있어 로드 시 1회만 돌았다 — 모드를 바꿔도
-  //   비활성 상태가 안 풀리던 결함(실기기 N일 모드에서 체크박스 회색 고정). 함수 안으로 이동해 모드 전환마다 갱신.
-  try { const _mh = document.getElementById('exMaxHoldOn'); if (_mh) _mh.disabled = (_exMode !== 'days'); } catch (_) {} }
+// ── [S949→S1393] 청산 설정 UI (exit_config ↔ /sx/autotrade/exit-config) — 4종 독립 칩 + 3×3판 게이트 + N일 공통. 구 택1(_exMode) 철거. ──
 let _exLoaded=false;
+function _exWarnSync(){ const g=(id)=>{ const e=_$(id); return !!(e&&e.checked); }; const w=_$('exNoStopWarn'); if(w) w.style.display=(g('exAtrOn')||g('exDeadOn')||g('exNbarOn'))?'none':'block'; } // [S1393] 무스톱 경고(사실 고지·차단 없음)
 function atRenderExitConfig(cfg, force){
   if(!cfg) return;
   if(_exLoaded && !force) return; // [S950] 최초 1회만 로드 → atRefresh(12s)가 편집/저장값 덮어쓰기 방지
   _exLoaded=true;
   const set=(id,v)=>{ const e=_$(id); if(e && v!=null) e.value=v; };
-  set('exAtrInit', cfg.atrInitMult); set('exAtrTrail', cfg.atrTrailMult); set('exMaxHoldDays', cfg.maxHoldDays); set('exMaGrace', cfg.maGraceDays!=null?cfg.maGraceDays:10);
-  const on=_$('exMaxHoldOn'); if(on) on.checked=(cfg.maxHoldOn!==false);
-  atExitMode(cfg.maxHoldMode==='ma'?'ma':(cfg.maxHoldMode==='off'?'off':'days')); // [S1354] 3상
+  const chk=(id,on)=>{ const e=_$(id); if(e) e.checked=!!on; };
+  set('exAtrInit', cfg.atrInitMult); set('exAtrTrail', cfg.atrTrailMult); set('exMaGrace', cfg.maGraceDays!=null?cfg.maGraceDays:10); set('exNbarDays', cfg.nbarDays!=null?cfg.nbarDays:30);
+  chk('exAtrOn', cfg.atrOn!==false); chk('exDeadOn', cfg.deadOn!==false); chk('exCfakeOn', cfg.cfakeOn!==false); chk('exCdownOn', cfg.cdownOn!==false); chk('exNbarOn', cfg.nbarOn===true); chk('exGateOn', cfg.gateOn===true); // [S1393]
+  _exWarnSync();
 }
 // [S950] 청산 임계값 기본으로 초기화 (↻) — 입력칸을 기본값으로 채우고 즉시 저장(persist).
 function atExitReset(){
-  atRenderExitConfig({ atrInitMult:2, atrTrailMult:3, maxHoldMode:'off', maxHoldDays:30, maxHoldOn:true, maGraceDays:10 }, true); // [S1354] 기본 off
+  atRenderExitConfig({ atrOn:true, atrInitMult:2, atrTrailMult:3, deadOn:true, maGraceDays:10, cfakeOn:true, cdownOn:true, nbarOn:false, nbarDays:30, gateOn:false }, true); // [S1393] 기본=4종 ON·게이트 OFF(PREREG_S1392 집행)
   atSaveExitConfig();
 }
 async function atSaveExitConfig(){
   const msg=_$('exMsg'), btn=_$('exSaveBtn');
   const num=(id)=>{ const e=_$(id); return e?parseFloat(e.value):null; };
-  const body={ atrInitMult:num('exAtrInit'), atrTrailMult:num('exAtrTrail'), maxHoldMode:_exMode, maxHoldDays:num('exMaxHoldDays'), maxHoldOn:!!(_$('exMaxHoldOn')&&_$('exMaxHoldOn').checked), maGraceDays:num('exMaGrace') };
+  const chk=(id)=>{ const e=_$(id); return !!(e&&e.checked); };
+  const body={ atrOn:chk('exAtrOn'), atrInitMult:num('exAtrInit'), atrTrailMult:num('exAtrTrail'), deadOn:chk('exDeadOn'), maGraceDays:num('exMaGrace'), cfakeOn:chk('exCfakeOn'), cdownOn:chk('exCdownOn'), nbarOn:chk('exNbarOn'), nbarDays:num('exNbarDays'), gateOn:chk('exGateOn') }; // [S1393] 신 스키마
   if(btn){ btn.disabled=true; btn.textContent='저장 중…'; }
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/exit-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
@@ -1046,7 +1035,12 @@ async function atSaveExitConfig(){
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
   if(btn){ btn.disabled=false; btn.textContent='💾 청산 설정 저장'; }
 }
-function _exSummary(c){ if(!c)return''; const mh=(c.maxHoldMode==='off')?'없음(이중ATR만)':((c.maxHoldMode==='ma')?'MA5×20 데드':(c.maxHoldOn!==false?(c.maxHoldDays+'일'):'상한없음')); return '초기'+c.atrInitMult+'×/트레일'+c.atrTrailMult+'× · 최대보유 '+mh+(c.maxHoldMode==='ma'&&c.maGraceDays!=null?(' · 유예'+c.maGraceDays+'일'):''); } // [S1354] off 분기
+function _exSummary(c){ if(!c) return ''; const on=[];
+  if(c.deadOn!==false) on.push('✂️데드(유예'+(c.maGraceDays!=null?c.maGraceDays:10)+')');
+  if(c.atrOn!==false) on.push('🛡️ATR '+c.atrInitMult+'×/'+c.atrTrailMult+'×');
+  if(c.cfakeOn!==false) on.push('🧩칸fake'); if(c.cdownOn!==false) on.push('⛔칸down');
+  if(c.nbarOn===true) on.push('⏱N'+(c.nbarDays||30)+'일');
+  return (on.length?on.join(' + '):'⚠청산 전부 OFF')+(c.gateOn===true?' · ⬛게이트ON':''); } // [S1393]
 
 // ── [S1031] 실현손익 evidence (로드맵3 가계부) — /state.pnl 표시. 사전선언 게이트 판정 카드. ──
 function atRenderPnl(p){
