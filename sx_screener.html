@@ -5618,8 +5618,11 @@ async function fetchDisclosureKeywords(code){
 async function fetchSecDisclosure(ticker){
   if(!ticker || currentMarket !== 'us') return [];
   const tk = String(ticker).toUpperCase();
-  // 캐시 — 한국과 동일 키 컨벤션 (SEC: prefix)
-  const cacheKey = 'SEC_DISC_' + tk;
+  // 캐시 — 한국(SX_DISC_)과 같은 접두 아래로. [S1399] 'SEC_DISC_'는 SX_ 접두 규율을 깨서
+  //   ① 진단 분류(CAT_RULES) ② 캐시 초기화(CACHE_PREFIXES) ③ 전체 초기화(ALL_PREFIXES) 셋 다에서 빠져 있었다.
+  //   실기기 실측: 기타 74개 중 약 67개가 이 키였고(약 163KB) 어느 버튼으로도 지워지지 않았다.
+  //   화면은 '공시 정보 21.4KB'라 말하는데 실제 공시 캐시는 그 8배였다. 접두 하나로 셋 다 자동 편입된다.
+  const cacheKey = 'SX_DISC_SEC_' + tk;
   const cached = _sxCacheRead(cacheKey, DISCLOSURE_TTL);
   if(cached) return cached.filings || [];
   // SEC API fetch — 90일 기본, 주요 form 자동 필터 (워커 디폴트)
@@ -6196,7 +6199,7 @@ async function fetchFinancialData(code, market){
 //  사용처: valuationJudge — historical PER 없는 종목의 시장평균 폴백 (시총 규모별 분기)
 // ════════════════════════════════════════════════════════════════════
 let _kosisMarketPer = null;     // 메모리 캐시
-const KOSIS_LS_KEY = 'sx_kosis_market_per';
+const KOSIS_LS_KEY = 'SX_FIN_KOSIS_PER';   // [S1399] 구 'sx_kosis_market_per' — 소문자 sx_는 ALL_PREFIXES('sx_ext_')에 안 걸려 전체 초기화가 못 지웠다. 7일 TTL 캐시라 SX_FIN_(캐시 초기화 대상) 아래로 옮긴다.
 const KOSIS_LS_TTL = 7 * 24 * 60 * 60 * 1000;   // 7일
 
 async function fetchKosisMarketPer(){
