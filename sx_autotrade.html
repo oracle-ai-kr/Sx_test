@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1363</div>
+    <div class="tb-build">S1394</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신(S1393 실기기에서 비동기 발견) -->
   </div>
 
   <div class="scroll-area">
@@ -443,7 +443,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1393</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1394</div>
   </div>
 </div>
 
@@ -507,7 +507,7 @@ function atRender(d){
   _atHeldCodes = new Set(((d.portfolio && d.portfolio.holdings) || []).map(h=>String(h.code))); // [S953] 보유코드(후보 필터)
   _atPosMeta = (d.positions) || {}; // [S1191] D+n·전략칩 메타
   try{ const xd=(d.state&&d.state.exitDiag)||null; const xe=_$('atExitDiag');
-    if(xe&&xd){ xe.innerHTML = xd.skip ? ('마지막 청산판정 <b style=\"color:var(--hold);\">skip</b> — '+_esc(xd.skip)+' · '+atRel(xd.at)) : ('마지막 청산판정 '+(xd.checked||0)+'/'+(xd.held!=null?xd.held:'?')+'종 판정 · 매도 '+(xd.sold||0)+' · 팩 '+(xd.packAsof?('<b>'+xd.packAsof+'</b> (팩소스 '+(xd.fromPack||0)+'종)'):'<b style=\"color:var(--sell);\">없음</b>')+(xd.fetchFail?(' · fetch실패 '+xd.fetchFail):'')+(xd.err?(' · <span style=\"color:var(--sell);\">'+_esc(xd.err)+'</span>'):'')+' · '+atRel(xd.at)); } // [S1353] 워커가 적은 skip 사유 그대로 표기(종전 '0/?종·팩 없음' 오진 유도 해소)
+    if(xe&&xd){ xe.innerHTML = xd.skip ? ('마지막 청산판정 <b style=\"color:var(--hold);\">skip</b> — '+_esc(xd.skip)+' · '+atRel(xd.at)) : ('마지막 청산판정 '+(xd.checked||0)+'/'+(xd.held!=null?xd.held:'?')+'종 판정 · 매도 '+(xd.sold||0)+' · 팩 '+(xd.packAsof?('<b>'+xd.packAsof+'</b> (팩소스 '+(xd.fromPack||0)+'종)'):'<b style=\"color:var(--sell);\">없음</b>')+(xd.fetchFail?(' · fetch실패 '+xd.fetchFail):'')+((xd.ledFresh!=null||xd.ledStale!=null)?(' · 원장조인 '+(xd.ledFresh||0)+'fresh/'+(xd.ledStale||0)+'stale'):'')+(xd.err?(' · <span style=\"color:var(--sell);\">'+_esc(xd.err)+'</span>'):'')+' · '+atRel(xd.at)); } // [S1353] 워커가 적은 skip 사유 그대로 표기(종전 '0/?종·팩 없음' 오진 유도 해소)
   }catch(_){} // [S1193] 청산 진단
   atRenderBuyPreview(d.signal); // [S951] 오늘의 매수 후보 (보유분 제외)
   atRenderControlLiquidate(d.portfolio); // [S953] 제어 카드 청산 버튼
