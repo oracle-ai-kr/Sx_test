@@ -22,7 +22,7 @@
 'use strict';
 
 // 고정 파라미터 (레시피-BT는 튜닝/모드 대상 없음 — 옵티마이저 소멸 근거)
-var CFG = { atrInitMult:2, atrTrailMult:3, maFast:5, maSlow:20, maxHoldMode:'ma', maxHoldDays:30, graceDays:10, atrPeriod:14 };
+var CFG = { atrOn:true, atrInitMult:2, atrTrailMult:3, deadOn:true, maFast:5, maSlow:20, graceDays:10, cfakeOn:true, cdownOn:true, nbarOn:false, nbarDays:30, gateOn:false, atrPeriod:14 };   // [S1397] 워커 S1393 미러 — 택1(maxHoldMode) 철거 → 4종 독립 칩 + N일 공통 + 3×3판 게이트(기본 OFF·PREREG_S1392 [측정 미달])
 
 // ── 워커식 그대로 이식한 헬퍼 (sxATR·sxSMA) ──
 function sxATR(candles, period){
@@ -88,29 +88,49 @@ function v2SignalAt(mk, ind, rows, i){
     return { cat:t.cat, tier:t.tier||'strict', k:t.k, kStar:t.kStarN, cell:cs.cell, lbl:cs.lbl||null };
   }catch(e){ return null; }
 }
-var SRC_ALL = { recipe:true, bullVol:true, v2:true, maCross:false };   // 기본 = 3원 전부 ON (시즌2 정합) · [S1210] maCross=후보(미검증·기본 OFF — 명시적 true일 때만 발동, 워커/시즌2 무영향)
+var SRC_ALL = { recipe:true, bullVol:true, v2:true, maCross:true };   // [S1397] 4원 전부 ON — maCross=크로스(S1396 시즌2 배선·장기정배 라우팅 내장·provisional)
 // opts.srcOn = { recipe, bullVol, v2 } — 개별 false로 끄면 그 진입원만 건너뜀(단일검증 토글).
 function entrySignalAt(mk, ind, rows, i, opts){
   var on=(opts&&opts.srcOn)||SRC_ALL;
   var votes=0;
   try{ if(typeof _sxRecipeVotesCore==='function'){ var v=_sxRecipeVotesCore(mk, ind, rows, i); votes=(v&&v.votes)||0; } }catch(_){}
   var _cfg=(opts&&opts.cfg)||CFG;
-  if(on.recipe!==false && votes>=1) return { buy:true, votes:votes, src:'recipe', cell:cellOfAt(ind,rows,i), gcAge:gcAgeAt(rows,i,_cfg) };   // [S1210] 전 진입원 칸 각인 [S1211] 추세나이
-  if(on.bullVol!==false && bullVolAt(mk, ind)) return { buy:true, votes:votes, src:'bullVol', cell:cellOfAt(ind,rows,i), gcAge:gcAgeAt(rows,i,_cfg) };
+  var _av=avoidAt(mk, ind, rows, i);   // [S1397] 전 봉 avoid 상시 각인 — 미러 청산(칸fake/칸down·전일 신호=원장 파리티)의 소스
+  if(on.recipe!==false && votes>=1) return { buy:true, votes:votes, src:'recipe', avoid:_av, cell:cellOfAt(ind,rows,i), gcAge:gcAgeAt(rows,i,_cfg) };   // [S1210] 전 진입원 칸 각인 [S1211] 추세나이
+  if(on.bullVol!==false && bullVolAt(mk, ind)) return { buy:true, votes:votes, src:'bullVol', avoid:_av, cell:cellOfAt(ind,rows,i), gcAge:gcAgeAt(rows,i,_cfg) };
+  if(on.maCross===true && maCrossAt(rows, i, _cfg) && ltAt(rows,i)==='bull'){   // [S1397] 크로스(S1396 시즌2 정합) — 장기 정배 라우팅 내장·사슬 3순위(recipe>bullVol>크로스>v2=시즌2 실효 순서·동시발화는 귀속만 S1392 Q3). 구 mGate(레짐5 축·S1212) 철거.
+    return { buy:true, votes:votes, src:'maCross', avoid:_av, cell:cellOfAt(ind,rows,i), gcAge:0 };
+  }
   if(on.v2!==false){
     var h=v2SignalAt(mk, ind, rows, i);
-    if(h) return { buy:true, votes:votes, src:'v2', v2Cat:h.cat, v2Tier:h.tier, v2K:h.k, v2Cell:h.cell, v2Lbl:h.lbl, cell:h.cell||cellOfAt(ind,rows,i), gcAge:gcAgeAt(rows,i,_cfg) };
+    if(h) return { buy:true, votes:votes, src:'v2', avoid:_av, v2Cat:h.cat, v2Tier:h.tier, v2K:h.k, v2Cell:h.cell, v2Lbl:h.lbl, cell:h.cell||cellOfAt(ind,rows,i), gcAge:gcAgeAt(rows,i,_cfg) };
   }
-  if(on.maCross===true && maCrossAt(rows, i, _cfg)){   // [S1210] 후보 — 꼴찌 우선순위(3원이 잡던 거래 불변·남는 구간만 추가) · 기본 OFF [S1211] M=크로스 당일=나이0(정의)
-    // [S1212] 레짐게이트(희창 가설: 불장·상승장 크로스만·하락장 데드캣 크로스 배제) — opts.maCrossRegime=['bull','up'] 등. null/미지정=무게이트.
-    var _mg=(opts&&opts.maCrossRegime)||null;
-    if(!_mg || _mg.indexOf(regimeAt(rows,i))>=0)
-      return { buy:true, votes:votes, src:'maCross', cell:cellOfAt(ind,rows,i), gcAge:0 };
-  }
-  return { buy:false, votes:votes, src:null };
+  return { buy:false, votes:votes, src:null, avoid:_av };
 }
 
 
+// [S1397] 장기축(60/120/200 정배/혼조/역배) — S1396 crossSignal·S1393 게이트와 동일하게 종가 SMA 직접 계산(축 이원화 차단).
+function ltAt(rows, i){
+  try{
+    if(!rows || i==null || i<199) return null;
+    var sc=[]; for(var k=0;k<=i;k++) sc.push(+(rows[k].close!=null?rows[k].close:rows[k].c));
+    function _m(len){ var t=0; for(var k2=i-len+1;k2<=i;k2++){ if(!(sc[k2]>0)) return null; t+=sc[k2]; } return t/len; }
+    var a=_m(60), b=_m(120), c=_m(200);
+    if(a==null||b==null||c==null) return null;
+    return (a>b&&b>c)?'bull':((a<b&&b<c)?'bear':'mixed');
+  }catch(e){ return null; }
+}
+// [S1397] 봉별 칸 경보(avoid) — 러너 원장 v2.avoid와 동일 소스(_sxCellSignalCore kind fake/down). 미러 BT 청산(칸fake/칸down)용.
+function avoidAt(mk, ind, rows, i){
+  try{
+    if(typeof _sxCellSignalCore!=='function') return null;
+    var cs=_sxCellSignalCore(mk, ind, rows, i);
+    if(!cs||!Array.isArray(cs.sig)) return { fake:false, down:false };
+    var f=false, d=false;
+    cs.sig.forEach(function(x){ if(x&&x.hit){ if(x.kind==='fake') f=true; else if(x.kind==='down') d=true; } });
+    return { fake:f, down:d };
+  }catch(e){ return null; }
+}
 // ══ [S1210] MA5×20 골든크로스 — 후보 진입원(기본 OFF·미검증) ══
 //   가설(희창): 상승추세 칸에서 레거시·v2보다 강한 구간 존재 + 3원이 못 덮는 구멍칸(bull|mixed 등) 커버.
 //   정의 = 청산 데드크로스(evalExitAt)의 정확한 거울: 완성봉 종가 SMA · 직전봉 5≤20 ∧ 현재봉 5>20.
@@ -227,47 +247,40 @@ function entryATRat(rows, entryIdx, cfg){
 // ── 청산 평가: 열린 포지션 + 현재 봉 → { exit, reason, price } ──
 //   pos = { entryPrice, entryATR, peakHigh, entryDay }  (호출자가 상태 유지 · peakHigh는 여기서 갱신)
 //   워커 runAutotradeExit 로직 정확 복제. 청산 트리거·가격은 raw 종가 기준.
-function evalExitAt(pos, rows, i, cfg){
+function evalExitAt(pos, rows, i, cfg, sigPrev){
+  // [S1397] 워커 atExitDecide(S1393) 미러 — 4종 독립 칩 OR + 3×3판 게이트 + N일 공통. 우선순위=데드→칸fake→칸down→N일→ATR(동시 충족=사유 라벨만 결정).
+  //   칸fake/칸down: sigPrev(전일 봉 신호=원장 파리티·1봉 지연) 기반 — sigPrev 없음(워밍업 등)=보류(워커 stale 동형). 트리거·가격은 종가(기존 관례).
+  //   게이트: 장기축 ltAt(전일 봉) — 'bull'=데드만·ATR 억제 / 'mixed'·'bear'=ATR만·데드 무시 / 축 불명=해제(전 칩). 칸·N일 불개입.
+  //   구 S1215(무시)·S1216(분할·레짐5 축) 정찰 옵션은 철거 — 시즌2 부재·게이트(3×3판)가 그 자리.
   cfg = cfg || CFG;
   var cur = rows[i]; if(!cur) return { exit:false };
   var cp = cur.close;
   if(!(pos.peakHigh > 0)) pos.peakHigh = pos.entryPrice;
-  if(cp > pos.peakHigh) pos.peakHigh = cp;                          // 트레일 최고가 갱신
-  var initStop  = pos.entryPrice - cfg.atrInitMult  * pos.entryATR; // 초기 손절
-  var trailStop = pos.peakHigh   - cfg.atrTrailMult * pos.entryATR; // 트레일
-  var stop = Math.max(initStop, trailStop);
-  // [S1216] 레짐 분할 출구(기본 미지정=현행) — cfg.exitSplitRegime=['bull','up']:
-  //   그 레짐 = MA데드만(ATR 손절·트레일 억제·억제봉 atrSkips 각인) / 나머지 레짐 = ATR만(데드 무시·maSkips 각인).
-  //   ★지정 레짐 ATR 억제 = 급락 하드브레이크 부재(데드 확정까지 노출·레짐 반전은 느림) — 정찰 전용·시즌2 비배선.
-  //   지정 시 S1215 무시모드(maExitSkipRegime)보다 우선(UI가 한 모드만 켠다).
-  var _sp=(cfg.exitSplitRegime&&cfg.exitSplitRegime.length)?cfg.exitSplitRegime:null;
-  var _inSp=_sp?(_sp.indexOf(regimeAt(rows,i))>=0):false;
-  if(cp <= stop){
-    if(_sp && _inSp){ pos.atrSkips=(pos.atrSkips||0)+1; }   // [S1216] 분할: 지정 레짐에선 ATR 억제(스톱 이하 버틴 봉수=반사실)
-    else return { exit:true, reason:(initStop >= trailStop) ? 'ATR손절' : 'ATR트레일', price:cp };
-  }
-  // MA 청산 (유예 경과 후)
-  if(cfg.maxHoldMode === 'ma'){
+  if(cp > pos.peakHigh) pos.peakHigh = cp;
+  var initStop  = pos.entryPrice - cfg.atrInitMult  * pos.entryATR;
+  var trailStop = pos.peakHigh   - cfg.atrTrailMult * pos.entryATR;
+  var lt = ltAt(rows, i-1);
+  var gated = (cfg.gateOn === true) && (lt === 'bull' || lt === 'mixed' || lt === 'bear');
+  var deadAllowed = (cfg.deadOn !== false) && (!gated || lt === 'bull');
+  var atrAllowed  = (cfg.atrOn  !== false) && (!gated || lt !== 'bull');
+  if(deadAllowed){
     var held = _dateDays(cur.date) - pos.entryDay;
     if(held != null && held >= cfg.graceDays){
       var sc=[]; for(var k=0;k<=i;k++) sc.push(rows[k].close);
       var a5=sxSMA(sc,cfg.maFast), a20=sxSMA(sc,cfg.maSlow), p5=sxSMA(sc.slice(0,-1),cfg.maFast), p20=sxSMA(sc.slice(0,-1),cfg.maSlow);
-      if(a5!=null&&a20!=null&&p5!=null&&p20!=null && p5>=p20 && a5<a20){
-        // [S1215] 출구 레짐게이트(기본 미지정=현행) — cfg.maExitSkipRegime에 든 레짐이면 데드크로스 무시(개입 횟수 각인).
-        //   ★데드는 이벤트라 한 번 무시하면 재발동 안 할 수 있음 → 사실상 그 거래는 트레일(고점−3×ATR) 단독 출구.
-        //   워커(runAutotradeExit)·시즌2는 이 옵션을 모름 — 시즌1 정찰 전용. 채택은 PREREG 측정 후.
-        if(_sp && !_inSp){                                                      // [S1216] 분할: 나머지 레짐에선 데드 무시(ATR이 출구)
-          pos.maSkips=(pos.maSkips||0)+1;
-        } else if(!_sp && cfg.maExitSkipRegime && cfg.maExitSkipRegime.length && cfg.maExitSkipRegime.indexOf(regimeAt(rows,i))>=0){
-          pos.maSkips=(pos.maSkips||0)+1;
-        } else
+      if(a5!=null&&a20!=null&&p5!=null&&p20!=null && p5>=p20 && a5<a20)
         return { exit:true, reason:'MA'+cfg.maFast+'x'+cfg.maSlow+'데드', price:cp };
-      }
     }
-  } else if(cfg.maxHoldMode === 'days'){
-    var heldD = _dateDays(cur.date) - pos.entryDay;
-    if(heldD != null && heldD >= cfg.maxHoldDays) return { exit:true, reason:'보유상한', price:cp };
   }
+  var _av=(sigPrev && sigPrev.avoid) ? sigPrev.avoid : null;
+  if(cfg.cfakeOn !== false && _av && _av.fake) return { exit:true, reason:'칸fake', price:cp };
+  if(cfg.cdownOn !== false && _av && _av.down) return { exit:true, reason:'칸down', price:cp };
+  if(cfg.nbarOn === true){
+    var heldD = _dateDays(cur.date) - pos.entryDay;
+    if(heldD != null && heldD >= (cfg.nbarDays||30)) return { exit:true, reason:'보유상한', price:cp };   // 표기=구 문자열 유지(워커 'N일 상한'과 의미 동일)
+  }
+  if(atrAllowed && cp <= Math.max(initStop, trailStop))
+    return { exit:true, reason:(initStop >= trailStop) ? 'ATR손절' : 'ATR트레일', price:cp };
   return { exit:false };
 }
 
@@ -302,7 +315,8 @@ function runLifecycle(rows, votesAt, opts){
     var pos = { entryPrice: rawEntry, entryATR: eATR, peakHigh: rawEntry, entryDay: _dateDays(rows[entryIdx].date) };
     var exitIdx=-1, reason=null;
     for(var bj = entryIdx+1; bj < N; bj++){
-      var ev = evalExitAt(pos, rows, bj, cfg);
+      var _sp=null; try{ var _s0=votesAt(bj-1); if(_s0 && typeof _s0==='object') _sp=_s0; }catch(_e){}   // [S1397] 전일 봉 신호=원장 파리티(칸fake/칸down 1봉 지연 소스)
+      var ev = evalExitAt(pos, rows, bj, cfg, _sp);
       if(ev.exit){ exitIdx=bj; reason=ev.reason; break; }
     }
     if(exitIdx < 0){ exitIdx = N-1; reason = 'EOD'; }              // 데이터 끝까지 보유(미청산)
@@ -315,9 +329,7 @@ function runLifecycle(rows, votesAt, opts){
       src: (siSig&&siSig.src)||'recipe', votes: (siSig&&siSig.votes)||0,               // [S1201] 진입원 각인
       v2Cat: (siSig&&siSig.v2Cat)||null, v2Tier: (siSig&&siSig.v2Tier)||null, v2K: (siSig&&siSig.v2K)||null,
       cell: (siSig&&siSig.cell)||null,                                                  // [S1210] 진입봉 칸(3×3) — 진입원×칸 분해용
-      gcAge: (siSig&&siSig.gcAge!=null)?siSig.gcAge:null,                                // [S1211] 진입봉 추세나이(5×20 GC 경과봉·null=250봉 내 없음)
-      maSkips: pos.maSkips||0,                                                           // [S1215] 무시된 데드크로스 횟수(0=미개입)
-      atrSkips: pos.atrSkips||0                                                          // [S1216] 분할모드에서 억제된 ATR 스톱 봉수(0=미개입)
+      gcAge: (siSig&&siSig.gcAge!=null)?siSig.gcAge:null                                 // [S1211] 진입봉 추세나이(5×20 GC 경과봉·null=250봉 내 없음) · [S1397] maSkips/atrSkips 각인 철거(S1215/16 옵션 소멸)
     });
     cursor = exitIdx + 1;
   }
