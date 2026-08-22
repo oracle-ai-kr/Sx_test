@@ -18,12 +18,61 @@
 (function(global){
   'use strict';
 
+  // ════════════════════════════════════════════════════════════
+  // [S1399] 로컬 데이터관리 누락 봉합 — 접두 규율 복원 + 분류 2건 + 소유 표시.
+  //   표시·저장 배선 층위 · 사전등록 없음 · 판정·발동조건·원장 변경 0 · 파일 2개(sx_screener.html · 이 파일).
+  //
+  // ①★가장 큰 결함: 공시 캐시가 접두로 갈려 있었다.
+  //     KR = 'SX_DISC_' + 종목코드   -> 분류 O · 캐시 초기화 O · 전체 초기화 O
+  //     US = 'SEC_DISC_' + 티커      -> 셋 다 ✗   (S323 · 원 주석은 '한국과 동일 키 컨벤션'이라 적혀 있었다)
+  //   실기기 진단 실측: '기타' 74개 중 약 67개가 SEC_DISC_ 이고 약 163KB였다.
+  //   ⇒ 화면은 '공시 정보 21.4KB · 18개'라 말하는데 실제 공시 캐시는 그 8배였고, 어느 초기화 버튼으로도 지워지지 않았다.
+  //   조치: 'SX_DISC_SEC_' 로 개명. 접두 하나로 CAT_RULES·CACHE_PREFIXES·ALL_PREFIXES 셋에 자동 편입된다(규칙표 신규 항목 0).
+  //   ⚠부작용 1회: 기존 US 공시 캐시가 전부 miss 되어 종목별로 SEC를 한 번 다시 받는다(24시간 캐시라 하루면 원상).
+  //
+  // ②'sx_kosis_market_per' -> 'SX_FIN_KOSIS_PER'. 소문자 sx_ 는 ALL_PREFIXES 의 'sx_ext_' 에 안 걸려
+  //   전체 초기화가 못 지웠고 CACHE_PREFIXES 에도 없어 캐시 초기화도 못 지웠다(7일 TTL 캐시인데 영구 잔존).
+  //
+  // ③한시 청소 접두 — 개명 전 기기에 남은 구 키(SEC_DISC_ 약 67개 · sx_kosis_market_per 1개)는 새 이름으로 안 잡힌다.
+  //   CACHE_PREFIXES·ALL_PREFIXES·CAT_RULES 에 구 이름을 그대로 넣어 캐시 초기화 한 번으로 걷히게 했다.
+  //   ★제거 조건: 실기기 진단에서 그 두 접두의 키가 0개로 확인되면 세 곳에서 함께 뺀다. 그때까지는 무해.
+  //
+  // ④분류 낙오 2건 추가 — SX_MAT_(카드 추가재료 목록 · SX_XMAT_ 와 다른 키라 안 걸렸다) · SX_REGIME_.
+  //   ⚠SX_REGIME_ 은 CAT_RULES 머리말이 '있다'는 전제로 쓰여 있었는데 실제 규칙이 없었다 — 주석은 사실이 아닐 수 있다(S1336 규칙10 ④). 주석도 정정했다.
+  //
+  // ⑤★소유 표시 — 이 origin(GitHub Pages)은 다른 프로젝트와 localStorage 를 공유한다.
+  //   실기기에서 lotto_expert_v4_draw_cache(12.3KB) · GH_DEPLOY_HISTORY(9.0KB) · ULT_VDASH_LOTTO(3.6KB)가 '기타'에 함께 잡혔다.
+  //   우리 것이 아니고 초기화 대상도 아닌데 화면이 74개를 전부 우리 키처럼 셌다 ⇒ 카테고리 요약에 '이 중 N개는 다른 앱' 한 줄,
+  //   개별 키에 '앱 밖' 배지. 판정 기준은 ALL_PREFIXES 하나다 — '전체 초기화가 지우는 범위'가 곧 '우리 소유'의 정의라 재량이 0이다.
+  //   ⚠지우지는 않는다. 남의 앱 데이터를 우리 버튼이 건드리면 안 된다(개별 삭제 버튼은 종전대로 있다).
+  //
+  // ⑥⚠채택하지 않은 안 — '_sxCacheRead 가 TTL 만료 시 removeItem'.
+  //   내가 먼저 제안했다가 따져보고 물렸다: 만료 키를 읽는 순간은 그 종목을 다시 볼 때뿐이고 바로 뒤 _sxCacheWrite 가 덮어쓴다.
+  //   ⇒ 정작 쌓이는 것(다시 안 보는 종목의 키)은 _sxCacheRead 가 영영 안 불려 손도 못 댄다. 효과가 거의 없다.
+  //   실제로 걷으려면 '진입 시 만료 스윕'(전수 순회)이 필요한데 주기를 새로 정해야 하고 이 시리얼과 층이 다르다.
+  //   사용량이 592.7KB/5MB(11.6%)로 급하지 않고, ①만으로 캐시 초기화 한 번에 163KB 가 회수된다 ⇒ 버튼이 정직해지는 것이 먼저. 백로그.
+  //
+  // ⑦내 감사의 계통 오차 기록 — 1차 스캔이 'SX_/sx_/at_/ORACLE_ 로 시작하는 문자열'만 훑어 SEC_DISC_ 를 통째로 놓쳤다.
+  //   찾으려던 것이 '접두 규율을 깬 키'인데 접두를 가정하고 찾았다. 규칙5 계열 ⇒ 규율 위반을 찾을 때 그 규율을 필터로 쓰지 않는다.
+  //
+  // ⑧검증 배터리 86항목 전건 통과 — A 개명(구본 양성과 짝지어) / B 규칙표를 원문에서 잘라 태워 11키 × 4축(분류·캐시·전체·소유) 실측
+  //   + 기존 분류 15키 무회귀(SX_OPT_REGIME_SEL 이 SX_REGIME_ 신규 규칙으로 안 새는지 포함) / C 소유 표시 / D 한시 접두와 제거 조건
+  //   / E 주석 정정 / F 무손상(_sxCacheRead 무변경·resetAll IDB 정리 보존·sx_render.js md5 불변·html 삭제 0줄).
+  //   sx_screener.html 은 변경이 든 script 블록(485KB)을 통째로 node --check 로 통과 확인.
+  //   ⚠검증기 오탐 1건: 같은 부분문자열이 CACHE/ALL 두 줄에 들어가는데 ===1 로 셌다(규칙11 — 무엇을 세는지). 줄 특정으로 교정.
+  //
+  // ⚠실기기 확인 대기: 캐시 초기화 1회 후 '기타'가 약 74개 -> 3개(다른 앱)로 줄고 그 3개에 '앱 밖' 배지가 붙는지 ·
+  //   미국 종목을 열면 SX_DISC_SEC_ 로 다시 쌓이는지 · 공시 정보 카테고리 크기가 실제 값으로 커지는지.
+  // ════════════════════════════════════════════════════════════
+
   // ─── 키 정의 (한 곳에서 관리) ───
   // [S224-fix5] SX_SCR_SEARCH_RESULTS_ 추가 — 국내/해외/코인 검색결과(271KB+)도 캐시 삭제 대상
   //   사용자 설정(필터/프리셋)은 SX_SCR_FILTERS_*/SX_SCR_PRESETS 등 다른 키이므로 영향 없음
-  const CACHE_PREFIXES = ['SX_DISC_','sx_ext_','SX_CDL_','SX_FIN_','ORACLE_','SX_DASH_CACHE_','SX_SCR_SEARCH_RESULTS_'];
+  // [S1399] 뒤 두 개는 **한시 청소 접두**다 — 개명 전 기기에 남은 구 키를 캐시 초기화 한 번으로 걷기 위한 것.
+  //   제거 조건: 실기기 진단에서 'SEC_DISC_'·'sx_kosis_market_per' 키가 0개로 확인되면 이 두 항목을 뺀다(그때까지는 무해).
+  const CACHE_PREFIXES = ['SX_DISC_','sx_ext_','SX_CDL_','SX_FIN_','ORACLE_','SX_DASH_CACHE_','SX_SCR_SEARCH_RESULTS_','SEC_DISC_','sx_kosis_market_per'];
   const EXCLUDE_FROM_CACHE_CLEAR = new Set(['SX_FIN_REPORT']);  // 사용자 설정 — 캐시 정리에서 제외
-  const ALL_PREFIXES = ['SX_','ORACLE_','sx_ext_','at_'];  // [S1044] at_ 추가 — 자동매매(at_session·at_collapsed)도 전체 초기화 대상(기존엔 누락)
+  const ALL_PREFIXES = ['SX_','ORACLE_','sx_ext_','at_','SEC_DISC_','sx_kosis_market_per'];  // [S1399] 뒤 두 개=한시 청소 접두(CACHE_PREFIXES와 같은 조건에서 함께 뺀다) · [S1044] at_ 추가 — 자동매매(at_session·at_collapsed)도 전체 초기화 대상(기존엔 누락)
 
   // [S224-fix5/fix6/fix7] 통합 toast 헬퍼 — 양 환경 모두에서 확실히 표시
   //   sx_screener.html: 자체 정의된 window.toast() 사용 (CSS 정의 있음, #toast DOM 사용)
@@ -65,6 +114,9 @@
   // [S553] prefix → 카테고리ID 매핑. 여러 prefix를 한 카테고리로 묶기 위함.
   //   순서 중요: 구체적 prefix가 앞. 기존 분류는 그대로 두고 신규만 뒤에 추가 → 기존 동작 불변.
   //   (예: SX_OPT_REGIME_SEL 은 SX_OPT_ 가 먼저라 옵티마이저로 유지, SX_REGIME_ 로 안 새어나감)
+  //   ⚠[S1399] 정정 — 위 괄호는 'SX_REGIME_ 규칙이 있다'는 전제로 쓰였는데 **그 규칙이 없었다**.
+  //     그래서 SX_REGIME_ADAPT·SX_REGIME_ON_MIGRATED가 계속 '기타'로 떨어지고 있었다(주석은 사실이 아닐 수 있다 · S1336 규칙10 ④).
+  //     아래 S1399 구역에서 실제로 추가했고, SX_OPT_가 앞이라는 원 취지는 그대로 성립한다.
   const CAT_RULES = [
     { p:'ORACLE_',           c:'ORACLE_'        },
     { p:'sx_ext_',           c:'sx_ext_'        },
@@ -116,7 +168,19 @@
     { p:'SX_CELLBK_',        c:'SX_TREND_'      },  // 칸 바구니(S1120) — 카드 소속
     { p:'SX_XMAT_',          c:'SX_TREND_'      },  // 카드 추가재료 편집(S1095대)
     { p:'SX_PRED_',          c:'SX_APP_'        },  // 예측원장 UI 토글(SX_PRED_BLIND 등)
+    // ── [S1399] 실기기 진단('기타' 74개) 전수 대조로 드러난 낙오 ──
+    { p:'SX_MAT_',           c:'SX_TREND_'      },  // SX_MAT_EXTRA=카드 추가재료 목록. SX_XMAT_(재료 편집 상태)와 **다른 키**라 그 규칙에 안 걸렸다.
+    { p:'SX_REGIME_',        c:'SX_APP_'        },  // SX_REGIME_ADAPT·SX_REGIME_ON_MIGRATED — 위 괄호가 있다고 말해온 그 규칙(S1399 정정).
+    // ── [S1399] 한시 청소용 분류 — 개명 전 구 키가 '기타'로 안 떨어지게. CACHE/ALL_PREFIXES와 같은 조건에서 함께 뺀다. ──
+    { p:'SEC_DISC_',            c:'SX_DISC_'    },  // 구 미국 공시 캐시 → 새 이름은 SX_DISC_SEC_
+    { p:'sx_kosis_market_per',  c:'SX_FIN_'     },  // 구 KOSIS 시장 PER 캐시 → 새 이름은 SX_FIN_KOSIS_PER
   ];
+
+  // [S1399] 이 origin(GitHub Pages)은 다른 프로젝트와 localStorage를 공유한다 — 실기기에서
+  //   lotto_expert_v4_draw_cache · GH_DEPLOY_HISTORY · ULT_VDASH_LOTTO 가 '기타'에 함께 잡혔다.
+  //   그것들은 우리 것이 아니고 초기화 대상도 아닌데 화면이 우리 키처럼 세고 있었다 ⇒ 소유를 표시한다.
+  //   판정 기준을 ALL_PREFIXES로 삼는다 — '전체 초기화가 지우는 범위'가 곧 '우리 소유'의 정의라 재량이 0이다.
+  function _isOwnKey(k){ try { return ALL_PREFIXES.some(function(p){ return String(k).indexOf(p) === 0; }); } catch(_) { return true; } }
 
   // 펼침 상태 보관 (모달 다시 그릴 때 유지)
   const _expandedCategories = new Set();
@@ -336,6 +400,15 @@
               <div style="height:100%;width:${barW}%;background:var(--accent,#2563eb)"></div>
             </div>
             ${lbl.desc ? `<div style="margin-top:4px;font-size:10px;color:var(--text3,#999)">${lbl.desc}</div>` : ''}
+            ${(function(){   /* [S1399] 앱 밖 키를 갈라 적는다 — 개수를 우리 것으로 세지 않기 위해 */
+                var fo = info.items.filter(function(it){ return !_isOwnKey(it.key); });
+                if(!fo.length) return '';
+                var fb = fo.reduce(function(a,b){ return a + b.bytes; }, 0);
+                return '<div style="margin-top:4px;font-size:10px;color:#d97706;line-height:1.5">'
+                     + '이 중 <b>' + fo.length + '개 · ' + formatSize(fb) + '</b>는 <b>다른 앱</b> 키입니다 — 같은 주소(origin)를 쓰는 다른 페이지가 저장한 것이라 '
+                     + 'SIGNAL X 소유가 아니고 캐시·전체 초기화 대상도 아닙니다(지우려면 아래 목록에서 개별 삭제).'
+                     + '</div>';
+              })()}
           </div>
       `;
 
@@ -347,7 +420,7 @@
           const safeKey = item.key.replace(/"/g, '&quot;').replace(/'/g, "\\'");
           html += `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border,#f0f0f0);font-size:11px">
-              <span style="color:var(--text2,#666);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:8px">${item.key}</span>
+              <span style="color:var(--text2,#666);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:8px">${item.key}${_isOwnKey(item.key) ? '' : '<span style="margin-left:5px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;background:#d9770622;color:#d97706;white-space:nowrap">앱 밖</span>'}</span>
               <span style="color:var(--text3,#999);font-size:10px;margin-right:8px;white-space:nowrap">${formatSize(item.bytes)}</span>
               <button onclick="SXS.removeKey('${safeKey}')" style="background:none;border:1px solid var(--border,#ddd);border-radius:4px;color:var(--sell,#dc2626);font-size:10px;padding:2px 6px;cursor:pointer">삭제</button>
             </div>
