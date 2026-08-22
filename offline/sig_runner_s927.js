@@ -25,6 +25,23 @@ const ATR_GATE_TH = parseFloat(process.env.ATR_GATE_TH||'8.5');
 // ── [S1041] 강세 거래량급증 신호 — KR 하락장×강세 + 거래량OSC≥73.31 & VR≥389.41 (검증완료: 발굴풀 전체게이트 + 시간분리 held-out 후반 통과). ──
 //   검증 때와 동일 ind(calcAllScreener)로 계산 → qs.ind 필드누락에 의한 조용한 실패 방지. KR 전용(US/COIN 부호 반대). provisional=paper 전진검증 중.
 function _ltBear(ind){ try{ if(typeof _ltStr733==='function') return _ltStr733(ind.maAlignLT)==='bear'; var lt=ind&&ind.maAlignLT; return !!(lt&&lt.gateOn&&lt.bearish); }catch(e){ return false; } }
+// ── [S1396] 크로스 진입(provisional·paper 전진검증) — MA5×20 골든크로스(마지막 완성봉) + 장기 60/120/200 정배 라우팅 내장 ──
+//   식은 시즌1 _stratBt·PREREG_S1392 하네스와 동일하게 종가 SMA 직접 계산 — maAlignLT 미사용(게이트 의미 차이 가능성 차단·측정 정합 우선).
+//   근거: PREREG_S1392 A부 — 크로스 에피소드 3창 전부 양(+9.59/+2.86/+3.47·4종 청산 고정) · 라우팅 Δ 방향 3/3(+4.60/+2.09/+0.31).
+//   ★전진 판정 게이트(사전선언·사후 변경 금지): src='cross' 완성거래 N≥20 도달 시점에 건당 기대값>0 AND 승률≥35% — 미충족이면 본 편입 OFF.
+//   BB회귀는 보류(S1392: 3창 평균 ~0에 신호 대량 — 자본 분산·수수료 출혈) · 재론=정의 개선 후 재측정 통과 시.
+function crossSignal(rows){
+  try{
+    var n=rows.length; if(n<201) return false;
+    var cl=rows.map(function(r){ return +((r.close!=null)?r.close:r.c); });
+    var sm=function(i,len){ if(i<len-1) return null; var t=0; for(var k=i-len+1;k<=i;k++){ var v=cl[k]; if(!(v>0)) return null; t+=v; } return t/len; };
+    var i=n-1;
+    var s5=sm(i,5), s20=sm(i,20), p5=sm(i-1,5), p20=sm(i-1,20);
+    if(!(s5!=null&&s20!=null&&p5!=null&&p20!=null&&s5>s20&&p5<=p20)) return false;
+    var m60=sm(i,60), m120=sm(i,120), m200=sm(i,200);
+    return !!(m60!=null&&m120!=null&&m200!=null&&m60>m120&&m120>m200);
+  }catch(e){ return false; }
+}
 function bullVolSignal(ind){ try{
   if(!ind||!ind.maAlign||!ind.maAlign.bullish) return false;         // 강세(단기 5/20/60 정배열)
   if(!_ltBear(ind)) return false;                                    // 하락장(장기 60/120/200 역배열)
@@ -43,7 +60,7 @@ function latestSignal(rows){
   // [S948] 레시피 투표 = 진입 결정 근거 (SSOT=_sxRecipeVotesCore). realK/fakeK = 발동 real/fake 겹침수.
   let votes=0, realK=0, fakeK=0, pure=false;
   try{ const rsig=_sxRecipeVotesCore(mk, qs.ind, rows, idx); if(rsig){ votes=rsig.votes||0; realK=rsig.realK||0; fakeK=rsig.fakeK||0; pure=!!rsig.pure; } }catch(e){}
-  let bullVol=false, atrPct=null; try{ const fullInd=(_E.calcAllScreener)?_E.calcAllScreener(rows,'day'):qs.ind; bullVol=bullVolSignal(fullInd); atrPct=(fullInd&&fullInd.atr&&typeof fullInd.atr.pct==='number')?fullInd.atr.pct:null; }catch(e){}  // [S1041] 강세 거래량급증 · [S1050] ATR%(게이트용)
+  let bullVol=false, cross=false, atrPct=null; try{ const fullInd=(_E.calcAllScreener)?_E.calcAllScreener(rows,'day'):qs.ind; bullVol=bullVolSignal(fullInd); cross=crossSignal(rows); /* [S1396] */ atrPct=(fullInd&&fullInd.atr&&typeof fullInd.atr.pct==='number')?fullInd.atr.pct:null; }catch(e){}  // [S1041] 강세 거래량급증 · [S1050] ATR%(게이트용)
   // [S1180] 레시피 v2(어휘규칙 S1178) — _sxCellSignalCore를 시즌1 판정과 동일하게 호출(qs.ind·같은 봉 idx). 데이터/라이브러리 미로드 시 null(안전).
   //   real-kind hit만 매수 후보(S1102 §8-3: DOWN·FAKE는 어떤 경로로도 매수투표 금지 — down/fake hit은 avoid로 기록만).
   //   strict(강)+soft(일반) 모두 수집(모의 최대관찰·tier 각인) — buy는 strict 우선 → k 내림차 정렬.
@@ -62,7 +79,7 @@ function latestSignal(rows){
       }
     }
   }catch(e){}
-  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off', bullVol:bullVol, atrPct:atrPct, v2:v2, cell:cellK, cellLbl:cellL };
+  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off', bullVol:bullVol, cross:!!cross /* [S1396] 전 종목 상시 각인(알갱이) */, atrPct:atrPct, v2:v2, cell:cellK, cellLbl:cellL };
 }
 
 // ── [S948] 레시피 기반 진입 정책 — votes≥1 → BUY. 엔진 점수축(등급) 미사용(원천 재료감사: ready/entry/trend/upside 다 약/역전).
@@ -84,11 +101,12 @@ codes.forEach((c,i)=>{
   const rows=raw.map(r=>Array.isArray(r)?({date:r[0],open:r[1],o:r[1],high:r[2],h:r[2],low:r[3],l:r[3],close:r[4],c:r[4],volume:r[5],v:r[5]}):r);
   let sig=null;
   try{ sig=latestSignal(rows); }catch(e){ errs.push(c+':'+(e&&e.message)); return; }
-  const {grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol, atrPct, v2, cell, cellLbl}=sig;
+  const {grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol, cross /* [S1396] */, atrPct, v2, cell, cellLbl}=sig;
   let P=policy(mk, votes, realK, rawScore);
   let src=(P.action==='BUY')?'recipe':null;
   // [S1041] 강세 거래량급증 편입 — votes-BUY(약세반등)가 아닐 때만 별도 BUY(상호배타). KR 전용. src=bullVol 태그(가계부 전략구분용).
   if(P.action!=='BUY' && bullVol && mk==='kr'){ P={ action:'BUY', score:(rawScore||0), policy:'kr:bullVol(하락장×강세·거래량OSC≥73.31&VR≥389.41)→BUY', provisional:true }; src='bullVol'; }
+    if(P.action!=='BUY' && cross && mk==='kr'){ P={ action:'BUY', score:(rawScore||0), policy:'kr:크로스(MA5×20 골든·장기정배 라우팅)→BUY', provisional:true }; src='cross'; } /* [S1396] 사슬 말미(recipe>bullVol>cross) — 동시발화는 귀속만 바뀌고 매수 무영향(S1392 Q3) · S1050 ATR게이트 미적용(v2·bullVol 선례=모의 최대관찰·atrPct 각인) · legacyV4Only 비대상(src recipe 전용) */
   // [S1180] 레시피 v2 진입 — 레거시·bullVol 미발동일 때만 별도 BUY(상호배타 우선순위: recipe > bullVol > v2 · 검증강도순).
   //   동시발동 정보는 v2 필드가 항상 실려 관찰 가능(레거시 BUY + v2 hit = 겹침). score는 워커 필터(score>0) 통과용 max(raw,1).
   //   ATR게이트(S1050)는 src==='recipe' 전용이라 v2엔 미적용(모의 최대관찰) — atrPct는 기록되므로 사후 분석 가능.
@@ -100,7 +118,7 @@ codes.forEach((c,i)=>{
   // [S1050] KR ATR 안전게이트 — 레시피 BUY이고 ATR% 초과 시 진입 억제(→HOLD). bullVol 미적용(별도검증·고변동 본질). src 유지(원 신호 기록).
   let atrGate=false;
   if(ATR_GATE_ON && P.action==='BUY' && src==='recipe' && atrPct!=null && atrPct>ATR_GATE_TH){ atrGate=true; P={ action:'HOLD', score:0, policy:'kr:ATR게이트(ATR%'+atrPct.toFixed(1)+'>'+ATR_GATE_TH+')→진입억제', provisional:true }; }
-  signals.push({ code:c, name:(snap.stocks[c]&&snap.stocks[c].name)||c, grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol:!!bullVol, v2:(v2||null), src:src, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, atrGate:atrGate, atrPct:(atrPct!=null?+atrPct.toFixed(2):null), cell:(cell||null), cellLbl:(cellLbl||null), barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null, close:(rows[rows.length-1]&&+rows[rows.length-1].close)||null }); // [S945]name [S948]votes [S1041]bullVol/src [S1083]close=금액균등 사이징용(워커 시세조회 없이) [S1180]v2=어휘규칙 판정(발동 시) [S1209]cell/cellLbl=진입 시점 칸(항상)
+  signals.push({ code:c, name:(snap.stocks[c]&&snap.stocks[c].name)||c, grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol:!!bullVol, cross:!!cross, v2:(v2||null), src:src, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, atrGate:atrGate, atrPct:(atrPct!=null?+atrPct.toFixed(2):null), cell:(cell||null), cellLbl:(cellLbl||null), barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null, close:(rows[rows.length-1]&&+rows[rows.length-1].close)||null }); // [S945]name [S948]votes [S1041]bullVol/src [S1083]close=금액균등 사이징용(워커 시세조회 없이) [S1180]v2=어휘규칙 판정(발동 시) [S1209]cell/cellLbl=진입 시점 칸(항상)
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
