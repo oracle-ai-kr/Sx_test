@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1394</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신(S1393 실기기에서 비동기 발견) -->
+    <div class="tb-build">S1396</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신(S1393 실기기에서 비동기 발견) -->
   </div>
 
   <div class="scroll-area">
@@ -286,7 +286,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="card-title">🛒 오늘의 매수 후보 <span class="tag" id="atBuyCount">·</span></div>
       <label style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-bottom:9px;cursor:pointer;"><input type="checkbox" id="enLegacyV4" onchange="atToggleLegacyV4()" style="width:16px;height:16px;"/> 레거시 <b>votes≥4</b>만 매수 <span style="font-size:9.5px;color:var(--text3);">(S1355 · OFF=votes≥1 기존 · bullVol·V2 비대상)</span></label>
       <div id="atBuyList"></div>
-      <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">votes≥1 레거시 레시피 <b>또는</b> V2 어휘규칙(real·강/일반) 발동 종목 · 다음 장중 cron(09:05~15:05)에 <b>시장가</b> 매수 · 이미 보유분·매수완료분은 자동 제외 · 우선순위 votes↓(V2 단독은 후순위) · <b>토글 ON</b>이면 레거시는 votes≥4만 매수(미달분은 회색 <b>제외</b> 표기 — 워커 판정과 같은 조건 · S1355)</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">votes≥1 레거시 레시피 <b>또는</b> V2 어휘규칙(real·강/일반) <b>또는</b> 크로스(MA5×20 골든+장기정배·S1396 provisional — 전진게이트: 완성 N≥20 시 기대값&gt;0·승률≥35% 미달→OFF) 발동 종목 · 다음 장중 cron(09:05~15:05)에 <b>시장가</b> 매수 · 이미 보유분·매수완료분은 자동 제외 · 우선순위 votes↓(V2 단독은 후순위) · <b>토글 ON</b>이면 레거시는 votes≥4만 매수(미달분은 회색 <b>제외</b> 표기 — 워커 판정과 같은 조건 · S1355)</div>
     </div>
 
     <!-- ═══ [S952] 차단 목록 (매수취소/강제청산) ═══ -->
@@ -345,7 +345,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <!-- ═══ [S949] 청산 설정 (이중ATR + MA/N일) ═══ -->
     <div class="card" data-zone="kr" id="atExitCard">
       <div class="card-title">🎯 청산 설정 <span class="tag">4종 칩 + 3×3판 게이트 · S1393</span><span onclick="atExitReset()" title="기본값(4종 ON · 2×/3× · 유예10 · N30 OFF · 게이트 OFF)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
-      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레거시 votes / bullVol / V2 어휘규칙(S1178) · 청산=<b>4종 독립 칩 OR</b>(MA데드+유예 / 이중ATR / 칸fake / 칸down) + N일 컷(공통·실험용) + 3×3판 게이트[측정 미달·기본 OFF]. 칸fake·칸down=완성봉 원장 → <b>다음 거래일 청산</b>(원장 5일 초과 stale 시 자동 보류). 값 변경 후 저장.</div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레거시 votes / bullVol / V2 어휘규칙 / 크로스(S1396·provisional) · 청산=<b>4종 독립 칩 OR</b>(MA데드+유예 / 이중ATR / 칸fake / 칸down) + N일 컷(공통·실험용) + 3×3판 게이트[측정 미달·기본 OFF]. 칸fake·칸down=완성봉 원장 → <b>다음 거래일 청산</b>(원장 5일 초과 stale 시 자동 보류). 값 변경 후 저장.</div>
       <div id="atExitDiag" style="font-size:10px;color:var(--text3);margin-bottom:10px;">청산판정 기록 없음 — 워커 S1193 배포 후 첫 tick부터 표시.</div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">초기 손절 (×ATR)<input id="exAtrInit" type="number" step="0.5" min="0.5" max="6" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
@@ -443,7 +443,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1394</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1396</div>
   </div>
 </div>
 
@@ -711,7 +711,7 @@ let _atPosMeta={}; // [S1191] code→{entryAt,src}
 // [S1196] 포트폴리오용 초소형 전략 칩 — 종목명 옆 인라인(테두리 없이 색 라벨만). 메타줄 줄바꿈 방지.
 function _atSrcChipSm(src){
   if(!src) return '';
-  const m={recipe:['레거시','var(--sell)'], v2:['V2','var(--accent)'], bullVol:['bV','var(--accent2)']}; // [S1197] 레거시=빨강(회색은 묻힘)
+  const m={recipe:['레거시','var(--sell)'], v2:['V2','var(--accent)'], bullVol:['bV','var(--accent2)'], cross:['크로스','var(--buy)']}; // [S1197] 레거시=빨강(회색은 묻힘)
   const t=m[src]||[src,'var(--text3)'];
   return ' <span style="font-size:8.5px;font-weight:800;color:'+t[1]+';vertical-align:2px;letter-spacing:0;">'+t[0]+'</span>';
 }
@@ -934,10 +934,26 @@ function atRenderControlLiquidate(pf){
   const box=_$('atCtrlLiquidate'); if(!box) return;
   const hs=(pf&&pf.holdings)||[];
   if(!hs.length){ box.innerHTML=''; return; }
-  let h='<div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--border);"><div style="font-size:10.5px;color:var(--text3);margin-bottom:7px;">🚨 즉시 청산 (악재/공시 대응 · 보유 종목만 강제 매도)</div><div style="display:flex;flex-wrap:wrap;gap:6px;">';
+  let h='<div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--border);"><div style="font-size:10.5px;color:var(--text3);margin-bottom:7px;">🚨 즉시 청산 (악재/공시 대응 · 보유 종목만 강제 매도)</div><button onclick="atLiquidateAll()" style="width:100%;margin-bottom:8px;font-size:12.5px;font-weight:800;padding:11px 0;border-radius:9px;border:1.5px solid var(--sell);background:var(--sell);color:#fff;cursor:pointer;font-family:inherit;">🚨 전체 청산 ('+hs.length+'종 일괄 차단·강제 매도)</button><div style="display:flex;flex-wrap:wrap;gap:6px;">';
   for(const x of hs){ h+='<button onclick="atBlock(\''+_esc(x.code)+'\',\''+_esc((x.name||x.code)).replace(/\x27/g,"")+'\',true)" style="font-size:11px;font-weight:700;padding:6px 11px;border-radius:7px;border:1px solid var(--sell-border);background:var(--sell-bg);color:var(--sell);cursor:pointer;">🚨 '+_esc(x.name||x.code)+' 청산</button>'; }
   h+='</div></div>';
   box.innerHTML=h;
+}
+// [S1395] 전체 청산 — 보유 전 종목을 add_many 1회로 일괄 차단(부분 실패·레이스 없음) 후, 가동 중이면 ⚡즉시 실행까지 연결. 긴급 대응용.
+async function atLiquidateAll(){
+  const hs=Array.from(_atHeldCodes||[]);
+  if(!hs.length){ alert('보유 종목이 없습니다.'); return; }
+  const names=hs.map(c=>_atNameMap[c]||c);
+  if(!confirm('🚨 전체 청산\n\n보유 '+hs.length+'종 전부를 차단·강제 매도합니다:\n'+names.slice(0,8).join(', ')+(names.length>8?(' 외 '+(names.length-8)+'종'):'')+'\n\n차단 중엔 재매수도 막힙니다(차단 목록에서 개별 재허용 가능). 계속할까요?')) return;
+  if(!confirm('마지막 확인 — '+hs.length+'종 전량 시장가 매도를 진행합니다.')) return;
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/blocklist',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify({action:'add_many', codes:hs}), signal:AbortSignal.timeout(12000) });
+    if(r.status===401){ atShowGate(); return; }
+    const d=await r.json().catch(()=>({}));
+    if(!(d&&d.ok)){ alert('차단 등록 실패: '+((d&&d.error)||r.status)); return; }
+    if(_atCmd.power==='on'){ await atExecNow(); }
+    else { alert('✅ '+hs.length+'종 차단 등록 완료.\n▶가동 상태에서 ⚡ 지금 실행(또는 다음 장중 cron)에 강제 매도됩니다.'); atRefresh(); }
+  }catch(e){ alert('전체 청산 실패: '+(e.message||e)); }
 }
 async function atBlock(code, name, isHeld){
   const nm=name||code;
@@ -988,7 +1004,7 @@ function atRenderBuyPreview(sig){
   list.innerHTML=buys.map(b=>{
     if(b.name) _atNameMap[b.code]=b.name; // [S952] 코드→이름
     const vc = b.src==='v2'?'var(--accent)':(b.votes>=4?'var(--buy)':(b.votes>=2?'var(--accent2)':'var(--text2)'));
-    const vt = b.src==='v2'?'V2 발동':'votes '+b.votes;   // [S1180] v2 후보는 votes 0이라 votes 대신 발동 표기
+    const vt = b.src==='v2'?'V2 발동':(b.src==='cross'?'골든크로스':(b.src==='bullVol'?'bullVol':'votes '+b.votes));   // [S1180] v2 후보는 votes 0이라 votes 대신 발동 표기
     const nm = _esc(b.name||b.code);
     const _cut=_isCut(b); // [S1355]
     return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);'+(_cut?'opacity:.45;':'')+'">'
