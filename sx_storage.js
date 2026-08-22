@@ -19,6 +19,33 @@
   'use strict';
 
   // ════════════════════════════════════════════════════════════
+  // [S1401] '기타'를 두 갈래가 아니라 **세 갈래**로 — 앱 밖 / 미등록 / 분류됨. 표시만 · 판정·초기화 동작 변경 0.
+  //
+  // ①실기기(S1399 배선 확인)에서 기타 22개 중 21개가 '앱 밖' 배지를 받았고 남은 하나가 'SX_ANALYSIS_ENTRY_GATES'(1.2KB)였다.
+  //   전 저장소 검색 결과 **0건** — 제거된 기능의 구 키다. 우리 접두라 전체 초기화 대상이긴 하나 진단은 '기타'라고만 말했다.
+  //
+  // ②★원인은 접두 하나 차이다 — 'SX_ANALYSIS_' 는 'SX_ANAL_' 로 시작하지 않는다(7번째 글자가 Y 대 _).
+  //   눈으로는 같은 계열로 보이는데 startsWith 로는 안 걸린다. 배터리 B군이 이 경계를 직접 확인한다.
+  //
+  // ③★그 키에 분류 규칙을 더하지 않았다 — 더하면 죽은 키가 살아있는 기능처럼 보이게 감춘다.
+  //   규칙을 늘리는 대신 화면이 말하게 한다: 우리 키인데 CAT_RULES 에 없으면 '미등록' 배지 + 요약 한 줄.
+  //   ⇒ 앞으로 새 키가 규칙 없이 생기면 **자동으로 화면에 뜬다**(손 목록을 늘리지 않는다 · S1272 정신).
+  //   소유(우리 것인가 · ALL_PREFIXES)와 분류(규칙표에 있는가 · CAT_RULES)는 **다른 질문**이라 판별기를 따로 뒀다.
+  //
+  // ④★같은 일을 하려던 도구가 이미 있었는데 안 돌고 있었다 — sx_screener.html L2696 '_sxFindStaleKeys'.
+  //   주석이 '저장소 진단 모달에서 호출 가능'이라 적혀 있었으나 실측 **호출처 0**(정의 1 · window 노출 1 · 호출 0)이라
+  //   콘솔을 직접 열지 않으면 한 번도 돌지 않았다. S1336 규칙10 ③(UI 는 렌더 요소와 핸들러 호출을 함께 본다) 계열이고,
+  //   S1328·S1399 에 이어 **주석이 사실이 아니었던 세 번째**다. 함수는 자기 목록(KNOWN_DYNAMIC_PREFIXES)을 갖고 있어 지우지 않고 주석만 정정했다(S1283).
+  //   ⚠그 목록은 CAT_RULES 와 별개라 표류할 수 있다 — 기록해 둔다.
+  //
+  // ⑤⚠내 앞 예상 정정 — S1399 에서 '기타가 3개로 줄 것'이라 적었는데 실제는 **21개가 앱 밖**이었다.
+  //   앞 스크린샷에서 보이던 3개만 세고 '외 44개' 안을 안 봤다. 원자료를 끝까지 안 보고 추정한 것(규칙10 ① 계열).
+  //   ⇒ 이 origin 의 다른 프로젝트 데이터가 27.4KB 이고, SIGNAL X 실사용량은 96.7 − 27.4 ≈ **69KB** 다.
+  //
+  // ⑥검증 36항목 전건 통과 — A 판별기 / B **실기기 관측 22키를 그대로 태워** 21:1 판정 + 분류된 11키에 배지 없음 + 경계 확인
+  //   / C 화면 배선 / D 주석 정정과 호출처 0 실측 / E 무손상(CAT_RULES 49개 유지 · CACHE/ALL_PREFIXES 무변경 · resetAll 무변경 · html 코드 변경 0=주석만).
+  // ════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════
   // [S1399] 로컬 데이터관리 누락 봉합 — 접두 규율 복원 + 분류 2건 + 소유 표시.
   //   표시·저장 배선 층위 · 사전등록 없음 · 판정·발동조건·원장 변경 0 · 파일 2개(sx_screener.html · 이 파일).
   //
@@ -181,6 +208,14 @@
   //   그것들은 우리 것이 아니고 초기화 대상도 아닌데 화면이 우리 키처럼 세고 있었다 ⇒ 소유를 표시한다.
   //   판정 기준을 ALL_PREFIXES로 삼는다 — '전체 초기화가 지우는 범위'가 곧 '우리 소유'의 정의라 재량이 0이다.
   function _isOwnKey(k){ try { return ALL_PREFIXES.some(function(p){ return String(k).indexOf(p) === 0; }); } catch(_) { return true; } }
+
+  // [S1401] '기타'는 두 갈래가 아니라 세 갈래였다 — 실기기에서 22개 중 21개가 앱 밖이고 남은 하나가
+  //   'SX_ANALYSIS_ENTRY_GATES'(1.2KB)였는데, 전 저장소 검색 0건 = 제거된 기능의 **구 키**다.
+  //   ⇒ 그 키에 분류 규칙을 더하면 죽은 키를 살아있는 기능처럼 보이게 감춘다. 규칙을 늘리는 대신 **말하게** 한다.
+  //   ⚠소유(우리 것인가)와 분류(규칙표에 있는가)는 다른 질문이다 — 판별기를 따로 둔다.
+  //   ★이 화면이 하는 일은 _sxFindStaleKeys(sx_screener.html L2696)가 콘솔로 하려던 것과 같다.
+  //     그 함수는 window 노출뿐이고 **모달에서 부르는 곳이 0**이라 사실상 안 돈다(S1336 규칙10 ③ — 렌더 요소와 핸들러 호출을 함께 봐야 한다).
+  function _isMappedKey(k){ try { return CAT_RULES.some(function(r){ return String(k).indexOf(r.p) === 0; }); } catch(_) { return true; } }
 
   // 펼침 상태 보관 (모달 다시 그릴 때 유지)
   const _expandedCategories = new Set();
@@ -409,6 +444,15 @@
                      + 'SIGNAL X 소유가 아니고 캐시·전체 초기화 대상도 아닙니다(지우려면 아래 목록에서 개별 삭제).'
                      + '</div>';
               })()}
+            ${(function(){   /* [S1401] 우리 키인데 분류가 없는 것 — 구 버전 잔재이거나 규칙표 누락. 화면이 직접 말한다. */
+                var un = info.items.filter(function(it){ return _isOwnKey(it.key) && !_isMappedKey(it.key); });
+                if(!un.length) return '';
+                var ub = un.reduce(function(a,b){ return a + b.bytes; }, 0);
+                return '<div style="margin-top:4px;font-size:10px;color:#0891b2;line-height:1.5">'
+                     + '<b>' + un.length + '개 · ' + formatSize(ub) + '</b>는 <b>SIGNAL X 키인데 분류가 없습니다</b> — 제거된 기능의 구 키이거나 분류 규칙 누락입니다. '
+                     + '전체 초기화 대상이며, 지금 쓰는 기능이 아니면 개별 삭제해도 됩니다.'
+                     + '</div>';
+              })()}
           </div>
       `;
 
@@ -420,7 +464,9 @@
           const safeKey = item.key.replace(/"/g, '&quot;').replace(/'/g, "\\'");
           html += `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border,#f0f0f0);font-size:11px">
-              <span style="color:var(--text2,#666);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:8px">${item.key}${_isOwnKey(item.key) ? '' : '<span style="margin-left:5px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;background:#d9770622;color:#d97706;white-space:nowrap">앱 밖</span>'}</span>
+              <span style="color:var(--text2,#666);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:8px">${item.key}${_isOwnKey(item.key)
+                ? (_isMappedKey(item.key) ? '' : '<span style="margin-left:5px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;background:#0891b222;color:#0891b2;white-space:nowrap">미등록</span>')
+                : '<span style="margin-left:5px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;background:#d9770622;color:#d97706;white-space:nowrap">앱 밖</span>'}</span>
               <span style="color:var(--text3,#999);font-size:10px;margin-right:8px;white-space:nowrap">${formatSize(item.bytes)}</span>
               <button onclick="SXS.removeKey('${safeKey}')" style="background:none;border:1px solid var(--border,#ddd);border-radius:4px;color:var(--sell,#dc2626);font-size:10px;padding:2px 6px;cursor:pointer">삭제</button>
             </div>
