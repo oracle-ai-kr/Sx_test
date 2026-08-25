@@ -394,7 +394,7 @@ function _drawFullCandle(id, data, closes, bb, H, fullLen, trades, svVerdict, fu
   if(trades && trades.length){
     var offset = (fullLen||data.length) - data.length;
     var BUY_C = '#22c55e', SELL_C = '#e8365a';
-    var _gr = _chartGreenRedMode(); // [S578] 'B'=BT마커 / 'S'=추세마커(아래 _drawTrendMarkers)
+    var _gr = _chartGreenRedMode(); // [S578→S1436] 'R'=백테스트 마커 / 'S'=추세마커(아래 _drawTrendMarkers) — 구 주석의 'B'는 S988에서 'R'로 바뀌었다
     var ms = Math.max(cw * 1.5, 12);
     function fmtSh(d){ if(!d) return ''; d=String(d); if(d.length===8&&d.indexOf('-')<0){ return parseInt(d.slice(4,6),10)+'/'+parseInt(d.slice(6,8),10); } var p=d.split(/[-T]/); if(p.length>=3) return parseInt(p[1],10)+'/'+parseInt(p[2],10); return d.slice(5,10); }
     function _markerStroke(ctx,fillC){ ctx.save(); ctx.shadowColor=fillC; ctx.shadowBlur=8; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0; ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.stroke(); ctx.shadowBlur=0; ctx.restore(); }
@@ -1068,7 +1068,8 @@ function drawScoreGauge(canvasId, score, label){
    ▼ 빨강 = 통합 "매도" (BT 매도 또는 보유중 + sell_ready)
    마커 없음 = 그 외
    ════════════════════════════════════════════════════════════ */
-// [S578] 녹/적 마커 그룹 선택 — 'B'(백테스트) | 'S'(단기추세). 기본 S. 보라(A/C)와 교차선택, 한 화면에 보라1+녹적1.
+// [S578→S1436] 녹/적 마커 그룹 선택 — 'R'(단일검증 오리지널 백테스트) | 'S'(단기매매 카드·활성 탭). 기본 S.
+//   ⚠구 주석은 'B'(백테스트)라 적었는데 S988이 값을 'R'로 바꿨다 — 코드는 맞게 돌았고 주석만 낡아 있었다(S1328 계열).
 function _chartGreenRedMode(){ try{ return (typeof localStorage!=='undefined' && localStorage.getItem('SX_CHART_GREENRED')==='R') ? 'R' : 'S'; }catch(_){ return 'S'; } } // [S988] 'R'=레시피·ATR(Season2 trades) / 'S'=단기추세 인라인
 // [S562] 단기추세 MA 크로스 마커 — 매수(골든) ▲ / 매도(데드) ▼ + 날짜 라벨.
 //   기간은 단기추세매매 카드 설정(SX_TREND_{market}) 따라감(기본 5×9). 화면 내 가장 최근 골든/데드 1개씩.
@@ -1118,6 +1119,12 @@ function _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, legendFont){
   // [S634] 차트 마커 동기화 — 분석탭 단기추세매매의 실제 진입/청산봉(예측 선행·조기청산·가드OFF 반영)을 날짜 기반으로 표시. 매칭 실패/마커없음 → 마지막 골든/데드 크로스 폴백.
   var PRED_C='#38bdf8'; // [S634] 예측 진입/청산 = 하늘색 (기존 C판정 보라 마커와 구분)
   var TM=(typeof window!=='undefined' && window._sxTrendCtx && window._sxTrendCtx.trendMarkers) || null;
+  // [S1436] ★활성 탭 — 단기매매 카드는 S1398부터 2탭(📈 MA 크로스 / 🧪 전략 조합)이다.
+  //   `cross`가 아니면 진입원이 레시피·칸이라 **MA 크로스 폴백은 엉뚱한 마커**다(전략 조합 탭인데 골든/데드가 뜬다).
+  //   ⇒ 그 탭에서는 폴백을 쓰지 않는다. **잘못된 마커보다 없는 게 낫다**(S1378 '숫자를 지어내지 않는다' 계열).
+  var _eng=(TM && TM.engine) || 'cross';
+  var _isCross=(_eng==='cross');
+  if(!_isCross){ gIdx=-1; dIdx=-1; }
   var ei=gIdx, xi=dIdx, ePred=false, xPred=false;
   if(TM){
     // [S1245] 날짜 정규화 비교 — '2026-08-05'≡'20260805'. 엄격 문자열 비교는 소스별 포맷 차이로 조용히 실패
@@ -1137,8 +1144,8 @@ function _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, legendFont){
     ctx.save();
     ctx.font='bold '+(legendFont||8)+'px Outfit,sans-serif'; ctx.textAlign='left';
     var lx=pad.l+2;
-    if(ei>=0){ ctx.fillStyle=ePred?PRED_C:TBUY; ctx.fillText(ePred?'\u25B2\uC608\uCE21\uC9C4\uC785':'\u25B2\uCD94\uC138\uB9E4\uC218', lx, 10); lx+=ePred?50:46; }
-    if(xi>=0){ ctx.fillStyle=xPred?PRED_C:TSELL; ctx.fillText(xPred?'\u25BC\uC608\uCE21\uCCAD\uC0B0':'\u25BC\uCD94\uC138\uB9E4\uB3C4', lx, 10); }
+    if(ei>=0){ ctx.fillStyle=ePred?PRED_C:TBUY; ctx.fillText(ePred?'\u25B2\uC608\uCE21\uC9C4\uC785':(_isCross?'\u25B2\uCD94\uC138\uB9E4\uC218':'\u25B2\uC804\uB7B5\uC9C4\uC785'), lx, 10); lx+=ePred?50:46; }   /* [S1436] 전략 조합 탭이면 '▲전략진입' */
+    if(xi>=0){ ctx.fillStyle=xPred?PRED_C:TSELL; ctx.fillText(xPred?'\u25BC\uC608\uCE21\uCCAD\uC0B0':(_isCross?'\u25BC\uCD94\uC138\uB9E4\uB3C4':'\u25BC\uC804\uB7B5\uCCAD\uC0B0'), lx, 10); }   /* [S1436] 거울상 — 진입만 바꾸고 청산을 두면 한 범례가 두 어휘를 쓴다(배터리 B6이 잡았다) */
     ctx.restore();
   }
 }
@@ -1321,7 +1328,7 @@ function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
   }
 
   var lastTr = trades[trades.length - 1];
-  var _gr = _chartGreenRedMode(); // [S578] 'B'=BT마커 / 'S'=추세마커
+  var _gr = _chartGreenRedMode(); // [S578→S1436] 'R'=백테스트 마커 / 'S'=추세마커
   var showBuyMarker = svVerdict && svVerdict.chartMarker === 'buy';
   var showSellMarker = svVerdict && svVerdict.chartMarker === 'sell';
 
