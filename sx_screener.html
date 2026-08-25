@@ -1557,8 +1557,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         <!-- [S992] 스캔 리스트 ▲ 마커 토글 삭제 — 매수마커 ▲ 필터 제거로 고아. 녹/적(차트 S/R)만 유지. -->
         <div style="font-size:11px;font-weight:700;color:var(--text);margin-top:12px">🟢🔴 녹/적 마커</div>
         <div id="chartGreenRedSeg" style="display:flex;gap:6px;margin-top:6px">
-          <span class="cm-seg" data-v="R" onclick="setChartMarker('greenred','R')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">레시피·ATR R</span>
-          <span class="cm-seg" data-v="S" onclick="setChartMarker('greenred','S')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">단기추세 S</span>
+          <span class="cm-seg" data-v="R" onclick="setChartMarker('greenred','R')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">백테스트 R</span>
+          <span class="cm-seg" data-v="S" onclick="setChartMarker('greenred','S')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">단기매매 S</span>
         </div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5"><b>R</b>: 단일검증 탭 <b>백테스트</b>의 매매 목록 — 진입▲ · 청산▼ (BT를 안 돌렸으면 마커 없음) · <b>S</b>: 단일검증 탭 <b>단기 매매 전략</b> 카드 — <b>보고 있는 탭</b>을 따라간다(📈 MA 크로스 = 골든/데드 · 🧪 전략 조합 = 레시피·칸 진입). MA 기간은 그 카드에서 설정. [S1436]</div>
       </div>
@@ -10778,10 +10778,23 @@ function _renderChartMarkerSeg(){
     var cur=c[pair[0]];
     Array.prototype.forEach.call(box.querySelectorAll('.cm-seg'), function(el){
       var on=el.getAttribute('data-v')===cur;
-      el.style.background = on ? '#2563eb' : 'var(--surface2)';
+      // [S1437] ★S가 켜져 있으면 **단기매매 카드의 활성 탭**에 따라 색을 달리한다.
+      //   출처는 S1436이 이미 실어 보낸 `_sxTrendCtx.trendMarkers.engine` **하나뿐**이다 — 새 저장소를 만들지 않는다.
+      //   ⚠종목을 아직 안 열었으면 engine을 모른다 ⇒ 그때는 **기본색으로 두고 힌트도 안 붙인다**(모르는 것을 지어내지 않는다).
+      //   ⚠색은 카드 탭바와 같은 계열로 맞춘다: 📈 MA 크로스 = 파랑(기존) · 🧪 전략 조합 = 보라.
+      var _eng=null;
+      try{ _eng=(window._sxTrendCtx && window._sxTrendCtx.trendMarkers && window._sxTrendCtx.trendMarkers.engine) || null; }catch(_e){}
+      var _accent='#2563eb';
+      if(on && el.getAttribute('data-v')==='S' && _eng && _eng!=='cross') _accent='#7c3aed';
+      el.style.background = on ? _accent : 'var(--surface2)';
       el.style.color      = on ? '#fff'    : 'var(--text2)';
-      el.style.borderColor= on ? '#2563eb' : 'var(--border)';
+      el.style.borderColor= on ? _accent : 'var(--border)';
       el.style.fontWeight = on ? '800'     : '600';
+      // [S1437] 켜진 S에만 지금 따라가는 탭을 적는다 — 버튼이 곧 사실이 된다(라벨 거짓말 방지 · S1406 계열).
+      if(el.getAttribute('data-v')==='S'){
+        var _hint = (on && _eng) ? (_eng==='cross' ? ' \uD83D\uDCC8' : ' \uD83E\uDDEA') : '';
+        el.textContent = '\uB2E8\uAE30\uB9E4\uB9E4 S' + _hint;
+      }
     });
   });
 }
