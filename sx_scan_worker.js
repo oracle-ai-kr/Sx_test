@@ -2127,6 +2127,10 @@ function _slimResults(arr) {
     //    그 결과 사용자는 "결과 종목이 조건과 안 맞는다"로 읽는다. 실제로는 몇 봉 전에 걸린 것이다.
     //    ⇒ 어느 봉에서 걸렸는지를 결과까지 실어보내 카드에 배지로 띄운다(정합의 본질은 여기다).
     _recentNHitBar: s._recentNHitBar || 0,
+    // [S1443] 스캔 깊이 — 빠뜨리면 계산해 놓고 화면 소비처가 0곳이 된다(S1304가 겪은 그 사고).
+    _scanBars: s._scanBars != null ? s._scanBars : null,
+    _scanTargetBars: s._scanTargetBars != null ? s._scanTargetBars : null,
+    _btBars: s._btBars != null ? s._btBars : null,
     _smartTags: s._smartTags, _filterScore: s._filterScore,
     _btScore: s._btScore, _btAction: s._btAction,
     // [2026-04 FIX] 스캔 시점 계산한 모멘텀을 메인스레드에 전달 → 분석탭 재판정 시 동일 입력 보장
@@ -2639,6 +2643,11 @@ async function startScan(config) {
             }
             s._indicators = indicators;
             s._recentNHitBar = passedK; // 디버깅/표시용: 0=현재봉, 1=직전봉, ...
+            // [S1443] ★스캔 깊이를 **실행 시점에** 각인한다 — 렌더 시점에 읽으면 조건을 바꾼 뒤
+            //   지난 결과에 새 깊이가 붙는다(S1423 '움직이는 입력' 계열을 미리 막는다).
+            //   _scanBars=실제 확보 봉 · _scanTargetBars=요청한 목표(_scCount) · 둘이 다르면 공급 부족이다.
+            s._scanBars = candles.length;
+            s._scanTargetBars = _scCount;
             if (candles.length > 0) {
               const lastCandle = candles[candles.length - 1];
               // [S244] 보조 필터용 마지막 봉 저장 — _slimResults에서 _ind로 직렬화
@@ -2882,6 +2891,7 @@ async function startScan(config) {
         const btResult = SXE.runBtEngine(rawRows, currentTF, {}, { applyRegimeAdjust: true });
               if (btResult && !btResult.error) {
                 s._btResult = btResult;
+                s._btBars = rawRows.length;   // [S1443] 이 카드의 BT 숫자가 나온 창 — 실측상 400↔600에서 거래수가 전 종목 달라진다
                 s._btScore = calcBtScore(btResult, s);
                 // [S993] BT 전이통계 계산 삭제 — _calcTransitionStats 제거(5축 기반·표시측 죽음).
                 // [v2.0] 4축 룰 + 모멘텀 보정 — scan_worker도 분석탭과 동일 입력 사용
