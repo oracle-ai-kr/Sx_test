@@ -269,7 +269,15 @@ const SX_CONDITIONS = [
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
+      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터. ⚠일봉 전용 — 다른 TF에서는 판정 불가라 전 종목 탈락(진단에 tf_not_day로 잡힘·S1442).'},
+      // [S1442] V2 어휘규칙 — 단일검증 탭 진입원 `🧬 V2 어휘규칙`과 **같은 판정**이다.
+      //   판정 SSOT = sx_exec_core.js `v2SignalAt` (칸 규칙 real-kind hit · DOWN·FAKE 매수투표 금지 · S1102 §8-3).
+      //   ⚠발굴풀 in-sample 적합 — 이 조건으로 뜨는 것은 검증이 아니라 재현이다(SX_CELL_DATA.meta.caveat).
+      {id:'_v2_signal',name:'V2 어휘규칙 🧬',type:'select',options:['설정안함','발동 (real)','강신호만 (strict)','일반신호 (soft)'],default:'설정안함',source:'calc_candle',desc:'3×3 칸 규칙(SX_CELL_DATA)의 real-kind 히트 종목. 단일검증 탭 진입원 v2와 동일 판정(sx_exec_core v2SignalAt). strict=강한 신호·soft=일반 신호. ⚠발굴풀 in-sample이라 재현이지 검증이 아님 · 일봉 전용.',recommend:'강신호만 → 시즌2 v2 진입 후보 선점'},
+      // [S1442] 재료 [충족] 배지 — 분석탭 `🧪 재료 카운트` 카드가 쓰는 **그 자·그 창**을 그대로 쓴다.
+      //   설정 출처 = 단일검증 탭 저장값(SX_XMAT_{시장}) · 재료 목록·요구 개수·창을 거기서 바꾸면 이 조건도 따라 바뀐다.
+      //   ⚠워커는 localStorage 미접근이라 메인이 스캔 시작 시 동봉한다(S309 선례).
+      {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
       {id:'trend_cross',name:'단기추세 신호 (MA 크로스)',type:'trend_cross',source:'calc_candle',desc:'단기 MA × 장기 MA 크로스 직접 탐색. 매수=골든크로스 / 매도=데드크로스, 각각 단기×장기 봉수 입력 (분석탭 단기추세매매와 맞춤). 기본 5×9'},
@@ -476,7 +484,15 @@ const COIN_CONDITIONS = [
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
+      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터. ⚠일봉 전용 — 다른 TF에서는 판정 불가라 전 종목 탈락(진단에 tf_not_day로 잡힘·S1442).'},
+      // [S1442] V2 어휘규칙 — 단일검증 탭 진입원 `🧬 V2 어휘규칙`과 **같은 판정**이다.
+      //   판정 SSOT = sx_exec_core.js `v2SignalAt` (칸 규칙 real-kind hit · DOWN·FAKE 매수투표 금지 · S1102 §8-3).
+      //   ⚠발굴풀 in-sample 적합 — 이 조건으로 뜨는 것은 검증이 아니라 재현이다(SX_CELL_DATA.meta.caveat).
+      {id:'_v2_signal',name:'V2 어휘규칙 🧬',type:'select',options:['설정안함','발동 (real)','강신호만 (strict)','일반신호 (soft)'],default:'설정안함',source:'calc_candle',desc:'3×3 칸 규칙(SX_CELL_DATA)의 real-kind 히트 종목. 단일검증 탭 진입원 v2와 동일 판정(sx_exec_core v2SignalAt). strict=강한 신호·soft=일반 신호. ⚠발굴풀 in-sample이라 재현이지 검증이 아님 · 일봉 전용.',recommend:'강신호만 → 시즌2 v2 진입 후보 선점'},
+      // [S1442] 재료 [충족] 배지 — 분석탭 `🧪 재료 카운트` 카드가 쓰는 **그 자·그 창**을 그대로 쓴다.
+      //   설정 출처 = 단일검증 탭 저장값(SX_XMAT_{시장}) · 재료 목록·요구 개수·창을 거기서 바꾸면 이 조건도 따라 바뀐다.
+      //   ⚠워커는 localStorage 미접근이라 메인이 스캔 시작 시 동봉한다(S309 선례).
+      {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
       {id:'trend_cross',name:'단기추세 신호 (MA 크로스)',type:'trend_cross',source:'calc_candle',desc:'단기 MA × 장기 MA 크로스 직접 탐색. 매수=골든크로스 / 매도=데드크로스, 각각 단기×장기 봉수 입력 (분석탭 단기추세매매와 맞춤). 기본 5×9'},
@@ -680,7 +696,15 @@ const US_CONDITIONS = [
   {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
     {id:'ta_signal',name:'분석 판정',conditions:[
       // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터.'},
+      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터. ⚠일봉 전용 — 다른 TF에서는 판정 불가라 전 종목 탈락(진단에 tf_not_day로 잡힘·S1442).'},
+      // [S1442] V2 어휘규칙 — 단일검증 탭 진입원 `🧬 V2 어휘규칙`과 **같은 판정**이다.
+      //   판정 SSOT = sx_exec_core.js `v2SignalAt` (칸 규칙 real-kind hit · DOWN·FAKE 매수투표 금지 · S1102 §8-3).
+      //   ⚠발굴풀 in-sample 적합 — 이 조건으로 뜨는 것은 검증이 아니라 재현이다(SX_CELL_DATA.meta.caveat).
+      {id:'_v2_signal',name:'V2 어휘규칙 🧬',type:'select',options:['설정안함','발동 (real)','강신호만 (strict)','일반신호 (soft)'],default:'설정안함',source:'calc_candle',desc:'3×3 칸 규칙(SX_CELL_DATA)의 real-kind 히트 종목. 단일검증 탭 진입원 v2와 동일 판정(sx_exec_core v2SignalAt). strict=강한 신호·soft=일반 신호. ⚠발굴풀 in-sample이라 재현이지 검증이 아님 · 일봉 전용.',recommend:'강신호만 → 시즌2 v2 진입 후보 선점'},
+      // [S1442] 재료 [충족] 배지 — 분석탭 `🧪 재료 카운트` 카드가 쓰는 **그 자·그 창**을 그대로 쓴다.
+      //   설정 출처 = 단일검증 탭 저장값(SX_XMAT_{시장}) · 재료 목록·요구 개수·창을 거기서 바꾸면 이 조건도 따라 바뀐다.
+      //   ⚠워커는 localStorage 미접근이라 메인이 스캔 시작 시 동봉한다(S309 선례).
+      {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
       {id:'trend_cross',name:'단기추세 신호 (MA 크로스)',type:'trend_cross',source:'calc_candle',desc:'단기 MA × 장기 MA 크로스 직접 탐색. 매수=골든크로스 / 매도=데드크로스, 각각 단기×장기 봉수 입력 (분석탭 단기추세매매와 맞춤). 기본 5×9'},
