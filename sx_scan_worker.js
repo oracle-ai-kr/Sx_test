@@ -68,6 +68,7 @@ let _oracleKosdaq = [];
 let _oracleEtf = [];
 let _oracleCoin = [];
 let _oracleUsKeys = {}; // {SP500:[], NDX:[], DOW:[], ETF:[]}
+let _oracleUniv = {};  // [S1441] {'코스피200':[], '코스닥150':[], '대표종목':[]} — 칩 라벨이 곧 키(메인이 동봉)
 let _stockMasterCache = null; // {ts, data}
 let _marketEnvData = null; // MarketEnv 스냅샷
 // [PATCH-14] 탐색 스킵 진단 — passFilters/checkTechConditions 탈락 원인 통계
@@ -2290,6 +2291,7 @@ async function startScan(config) {
   _oracleEtf = config.oracleEtf || [];
   _oracleCoin = config.oracleCoin || [];
   _oracleUsKeys = config.oracleUsKeys || {};
+  _oracleUniv = config.oracleUniv || {}; // [S1441]
   _stockMasterCache = config.stockMasterCache || null;
   _marketEnvData = config.marketEnvData || null;
   _scanAbort = false;
@@ -2342,7 +2344,14 @@ async function startScan(config) {
 
     // 2단계: 하위시장 필터
     let pool = [...master];
-    if (currentMarket === 'kr') {
+    // [S1441] 지수 구성종목 칩 — sx_screener.html 풀 필터의 미러. 한쪽만 고치면 워커와 메인이 다른 풀을 돈다.
+    const _univ = _oracleUniv[scanMarket];
+    if (_univ) {
+      // ⚠ 명단이 비면 조용히 0건이 되므로 사유를 말하고 멈춘다(메인과 같은 규약).
+      if (!_univ.length) { self.postMessage({ type: 'error', message: scanMarket + ' 종목 명단을 불러오지 못했습니다' }); return; }
+      const _univCodes = new Set(_univ.map(s => s.code));
+      pool = pool.filter(s => _univCodes.has(s.code));
+    } else if (currentMarket === 'kr') {
       if (scanMarket === '코스피') pool = pool.filter(s => s.market === '코스피' || s.market === 'KOSPI');
       else if (scanMarket === '코스닥') pool = pool.filter(s => s.market === '코스닥' || s.market.startsWith('KOSDAQ'));
       else if (scanMarket === 'ETF') pool = pool.filter(s => s.market === 'ETF');
