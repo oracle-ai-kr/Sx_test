@@ -10782,8 +10782,13 @@ function _renderChartMarkerSeg(){
       //   출처는 S1436이 이미 실어 보낸 `_sxTrendCtx.trendMarkers.engine` **하나뿐**이다 — 새 저장소를 만들지 않는다.
       //   ⚠종목을 아직 안 열었으면 engine을 모른다 ⇒ 그때는 **기본색으로 두고 힌트도 안 붙인다**(모르는 것을 지어내지 않는다).
       //   ⚠색은 카드 탭바와 같은 계열로 맞춘다: 📈 MA 크로스 = 파랑(기존) · 🧪 전략 조합 = 보라.
+      // [S1439] ★탭 출처 = **저장값**(`_trendEngineSaved`). 종목을 안 열어도 알 수 있다.
+      //   ⚠구판은 `_sxTrendCtx.trendMarkers.engine`만 봤는데 그건 **카드가 한 번 렌더돼야** 생긴다 ⇒
+      //     **새로고침 직후엔 없어서 기본색으로 떨어졌다**(사용자 발견: '뒤로가기는 맞는데 새로고침하면 진파랑').
+      //   ⚠렌더 파일이 아직 안 떴을 때만 ctx로 폴백하고, 그것도 없으면 칠하지 않는다.
       var _eng=null;
-      try{ _eng=(window._sxTrendCtx && window._sxTrendCtx.trendMarkers && window._sxTrendCtx.trendMarkers.engine) || null; }catch(_e){}
+      try{ _eng = (typeof window._trendEngineSaved==='function') ? window._trendEngineSaved()
+                : ((window._sxTrendCtx && window._sxTrendCtx.trendMarkers && window._sxTrendCtx.trendMarkers.engine) || null); }catch(_e){}
       // [S1438] ★S 버튼 색 = **카드 탭바와 같은 색**(사용자 요청). 색은 `window._TREND_TAB_COL` **하나에서만** 온다.
       //   ⚠여기에 색을 리터럴로 적지 않는다 — 탭 색을 바꾸는 순간 두 화면이 어긋난다(규칙17 ①).
       //   ⚠렌더가 sx_render.js보다 먼저 돌 수 있다 ⇒ 상수가 없으면 **기본색 그대로**(색을 지어내지 않는다).
