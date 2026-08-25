@@ -10,6 +10,7 @@
  *   - oracle_etf.json (ETF 마스터)
  *   - oracle_coin.json (Upbit + CoinGecko 시총)
  *   - oracle_us_sp500/ndx/dow/etf.json (해외)
+ *   - oracle_kospi200 / kosdaq150 / coin_major.json ([S1441] 대상 칩 지수풀 · 기준일 2026-08-25)
  *
  * 사용법:
  *   await OracleData.loadAll();                  // 앱 진입 시 1회
@@ -22,7 +23,10 @@
 (function(global){
   'use strict';
 
-  const KEYS = ['kospi','kosdaq','etf','coin','us_sp500','us_ndx','us_dow','us_etf'];
+  // [S1441] 지수 구성종목 3종 추가 — 대상 칩(코스피200·코스닥150·코인 대표종목)의 코드 목록.
+  //   ⚠ getAll()이 전 키를 합치므로 중복이 생길 수 있으나 소비처 0곳(sx_oracle.js 밖 참조 없음).
+  const KEYS = ['kospi','kosdaq','etf','coin','us_sp500','us_ndx','us_dow','us_etf',
+                'kospi200','kosdaq150','coin_major'];
 
   // 메모리 캐시
   const _cache = {};
