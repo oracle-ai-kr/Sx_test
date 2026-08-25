@@ -2318,11 +2318,18 @@ const TF_MAP = {
   coin:[{k:'5m',l:'5분'},{k:'15m',l:'15분'},{k:'30m',l:'30분'},{k:'60m',l:'1시간'},{k:'240m',l:'4시간'},{k:'day',l:'일봉'},{k:'week',l:'주봉'},{k:'month',l:'월봉'}],
 };
 
+// [S1441] 대상 칩에 지수 구성종목 풀 추가 — 코스피200 · 코스닥150 · 코인 대표종목.
+//   명단은 oracle_kospi200 / kosdaq150 / coin_major.json (기준일 2026-08-25 · 지수는 분기 리밸런싱이라 정적 스냅샷).
+//   ⚠ 미국 칩과 같은 방식이다 — oracle은 **코드 목록 용도로만** 쓰고 시세는 master에서 유지한다([S271] 교훈).
+//   기존 칩 위치는 건드리지 않고 뒤에 붙였다(누르던 자리가 바뀌면 손이 헷갈린다).
 const SCAN_MARKET_MAP = {
-  kr:  ['전체','코스피','코스닥','ETF'],
+  kr:  ['전체','코스피','코스닥','ETF','코스피200','코스닥150'],
   us:  ['전체','S&P500','NASDAQ','DOW30','ETF'],
-  coin:['전체'],
+  coin:['전체','대표종목'],
 };
+// [S1441] 대상 칩 → oracle 키 매핑 SSOT — 메인 풀 필터 · 워커 동봉 · A-Z 탐색이 같은 표를 읽는다.
+//   여기에만 적는다. 세 곳에 흩어 적으면 칩을 늘릴 때 한 곳만 고치는 사고가 난다(S1403 계열).
+const SCAN_UNIV_MAP = {'코스피200':'kospi200','코스닥150':'kosdaq150','대표종목':'coin_major'};
 
 // ── 조건트리 + 프리셋: sx_conditions.js로 분리 (S68) ──
 
@@ -4430,6 +4437,12 @@ function _buildScanConfig(){
   try{ oracleKosdaq = OracleData.get('kosdaq'); }catch(_){}
   try{ oracleEtf = OracleData.get('etf'); }catch(_){}
   try{ oracleCoin = OracleData.get('coin'); }catch(_){}
+  // [S1441] 지수 구성종목 명단 — 워커도 메인과 같은 명단으로 칩을 거른다.
+  //   칩 라벨을 그대로 키로 쓴다 → 워커가 SCAN_UNIV_MAP을 미러할 필요가 없다(미러는 반드시 표류한다).
+  const oracleUniv = {};
+  Object.entries(SCAN_UNIV_MAP).forEach(([chip, oracleKey])=>{
+    try{ oracleUniv[chip] = OracleData.get(oracleKey) || []; }catch(_){ oracleUniv[chip] = []; }
+  });
   const oracleUsKeys = {};
   // 키 매핑: SP500 → us_sp500, NDX → us_ndx, DOW → us_dow, ETF → us_etf
   const _usMap = {SP500:'us_sp500', NDX:'us_ndx', DOW:'us_dow', ETF:'us_etf'};
@@ -4502,7 +4515,7 @@ function _buildScanConfig(){
     currentAnalMode: (typeof _analMode !== 'undefined') ? _analMode : 'kr',
     currentMarket: (typeof currentMarket !== 'undefined') ? currentMarket : 'kr',
       analParamsStore: (function(){ try { return JSON.parse(localStorage.getItem('SX_SCR_ANAL_PARAMS_V3')||'{}'); } catch(_){ return {}; } })(), // [S1092] 레짐 축 제거
-    oracleKospi, oracleKosdaq, oracleEtf, oracleCoin, oracleUsKeys,
+    oracleKospi, oracleKosdaq, oracleEtf, oracleCoin, oracleUsKeys, oracleUniv,
     stockMasterCache, marketEnvData,
     scanRange: {from: range.from, to: range.to},
     cacheBuster: Date.now().toString(36),
@@ -4797,7 +4810,21 @@ async function _startScanLegacy(){
 
     // 2단계: 하위 시장 필터
     let pool = [...master];
-    if(currentMarket==='kr'){
+    // [S1441] 지수 구성종목 칩 — 시장 분기보다 먼저 처리한다(코스피/코스닥/ETF 칩과 상호 배타).
+    const _univKey = SCAN_UNIV_MAP[scanMarket];
+    if(_univKey){
+      let _univ = [];
+      try{ _univ = OracleData.get(_univKey) || []; }catch(_){}
+      // ⚠ 명단을 못 받았는데 그냥 거르면 풀이 0건이 되어 '조건에 맞는 종목 없음'으로 **조용히 둔갑**한다.
+      //   0건과 명단 로드 실패는 다른 사건이라 사유를 화면에 적고 멈춘다(바로 위 master 실패 처리와 같은 문법).
+      if(!_univ.length){
+        document.getElementById('resultArea').innerHTML = `<div class="result-empty">${scanMarket} 종목 명단을 불러오지 못했습니다<br><span style="font-size:10px;color:var(--text3)">새로고침 후 다시 시도해 주세요 (oracle_${_univKey}.json)</span></div>`;
+        scanState = 'idle'; updateScanUI(); return;
+      }
+      const _univCodes = new Set(_univ.map(s=>s.code));
+      pool = pool.filter(s=>_univCodes.has(s.code));
+      console.log(`[S1441] 대상 칩 ${scanMarket}: 명단 ${_univCodes.size}종 → 풀 ${pool.length}건 (master ${master.length})`);
+    } else if(currentMarket==='kr'){
       if(scanMarket==='코스피') pool = pool.filter(s=>s.market==='코스피'||s.market==='KOSPI');
       else if(scanMarket==='코스닥') pool = pool.filter(s=>s.market==='코스닥'||s.market.startsWith('KOSDAQ'));
       else if(scanMarket==='ETF') pool = pool.filter(s=>s.market==='ETF');
@@ -11059,12 +11086,14 @@ function _loadSxAzItems(){
   let items = [];
   if(m==='kr'){
     const tgt = scanMarket || '전체';
-    const keys = tgt==='코스피'?['kospi']:tgt==='코스닥'?['kosdaq']:tgt==='ETF'?['etf']:['kospi','kosdaq','etf'];
+    // [S1441] 지수 칩을 고른 상태면 A-Z 탐색도 그 명단만 보여준다 — 칩과 목록이 다른 말을 하지 않게.
+    const keys = SCAN_UNIV_MAP[tgt]?[SCAN_UNIV_MAP[tgt]]:tgt==='코스피'?['kospi']:tgt==='코스닥'?['kosdaq']:tgt==='ETF'?['etf']:['kospi','kosdaq','etf'];
     keys.forEach(k=>{ try{ const arr=OracleData.get(k); items=items.concat(arr.map((s,i)=>({code:s.code||s.ticker||'',name:s.name||'',market:s.market||s.MKT_NM||'',rank:s.rank||i+1}))); }catch(_){} });
   } else if(m==='us'){
     ['us_sp500','us_ndx','us_dow','us_etf'].forEach(k=>{ try{ const arr=OracleData.get(k); items=items.concat(arr.map((s,i)=>({code:s.code||s.ticker||'',name:s.name||'',market:s.market||s.MKT_NM||'',rank:s.rank||i+1}))); }catch(_){} });
   } else {
-    try{ const arr=OracleData.get('coin'); items=arr.map((s,i)=>({code:s.code||s.ticker||'',name:s.name||'',market:s.market||s.MKT_NM||'',rank:s.rank||i+1})); }catch(_){}
+    // [S1441] 코인도 대표종목 칩이면 그 명단만(위 kr 분기와 같은 규약).
+    try{ const arr=OracleData.get(SCAN_UNIV_MAP[scanMarket]||'coin'); items=arr.map((s,i)=>({code:s.code||s.ticker||'',name:s.name||'',market:s.market||s.MKT_NM||'',rank:s.rank||i+1})); }catch(_){}
   }
   const seen = new Set(); items = items.filter(s=>{ if(seen.has(s.code)) return false; seen.add(s.code); return true; });
   _sxAzItems = items;
