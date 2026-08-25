@@ -4437,6 +4437,19 @@ function _buildScanConfig(){
   try{ oracleKosdaq = OracleData.get('kosdaq'); }catch(_){}
   try{ oracleEtf = OracleData.get('etf'); }catch(_){}
   try{ oracleCoin = OracleData.get('coin'); }catch(_){}
+  // [S1442] 재료(xmat) 설정 동봉 — 워커는 localStorage를 못 읽는다(S309와 같은 이유·같은 해법).
+  //   ★조건 목록·요구 개수·창을 **여기서 만들지 않는다** — 분석탭 카드가 쓰는 함수를 그대로 부른다(재구현 0).
+  //   못 만들면 null로 보내고 워커가 사유를 남긴다(조용히 0건이 되는 것을 막는다).
+  let xmatCfg = null;
+  try{
+    if(typeof _xmatStore==='function' && typeof _xmatConds==='function'){
+      const _xst = _xmatStore(currentMarket);
+      const _xb = _xmatConds(_xst,'buy'), _xs = _xmatConds(_xst,'sell');
+      xmatCfg = { buy:_xb, sell:_xs,
+        needBuy:_xmatNeed(_xst,'buy',_xb.length), needSell:_xmatNeed(_xst,'sell',_xs.length),
+        winBuy:_xmatWin(_xst,'buy'), winSell:_xmatWin(_xst,'sell') };
+    }
+  }catch(_ex1442){ xmatCfg = null; }
   // [S1441] 지수 구성종목 명단 — 워커도 메인과 같은 명단으로 칩을 거른다.
   //   칩 라벨을 그대로 키로 쓴다 → 워커가 SCAN_UNIV_MAP을 미러할 필요가 없다(미러는 반드시 표류한다).
   const oracleUniv = {};
@@ -4516,6 +4529,7 @@ function _buildScanConfig(){
     currentMarket: (typeof currentMarket !== 'undefined') ? currentMarket : 'kr',
       analParamsStore: (function(){ try { return JSON.parse(localStorage.getItem('SX_SCR_ANAL_PARAMS_V3')||'{}'); } catch(_){ return {}; } })(), // [S1092] 레짐 축 제거
     oracleKospi, oracleKosdaq, oracleEtf, oracleCoin, oracleUsKeys, oracleUniv,
+    xmatCfg,   // [S1442] 재료 충족 조건용 — 단일검증 탭 저장값 스냅샷
     stockMasterCache, marketEnvData,
     scanRange: {from: range.from, to: range.to},
     cacheBuster: Date.now().toString(36),
@@ -5176,6 +5190,14 @@ async function _startScanLegacy(){
           if(_odF && _odF.value && _odF.value!=='설정안함' && qs){
             if(_odF.value==='강세 다이버전스' && qs.obvDiv!=='bullish') continue;
             if(_odF.value==='약세 다이버전스' && qs.obvDiv!=='bearish') continue;
+          }
+          // [S1442] V2 어휘규칙·재료 충족은 **워커 경로 전용**이다.
+          //   레거시 경로에는 봉·설정이 갖춰지지 않아 평가할 수 없다 ⇒ 조용히 통과시키되 그 사실을 1회 말한다
+          //   (S903이 레시피 감지에서 세운 규약과 같다 — 빈 결과보다 '명시된 무시'가 낫다).
+          {
+            const _v2Lg = getFilter('_v2_signal'), _xmLg = getFilter('_xmat_need');
+            const _onLg = (_v2Lg && _v2Lg.value && _v2Lg.value!=='설정안함') || (_xmLg && _xmLg.value && _xmLg.value!=='설정안함');
+            if(_onLg && !window._s1442LegacyWarned){ window._s1442LegacyWarned=true; if(typeof toast==='function') toast('⚠ V2 어휘규칙·재료 충족 조건은 레거시 경로에서 산출 불가 — 조건을 무시하고 통과시킵니다'); }
           }
           // 레시피 감지 [S894]
           const _rcpDF = getFilter('_recipe_detect');
@@ -7967,6 +7989,8 @@ function checkTechConditions(ind, techFilters, getFilter){
       case '_rsi_div': break;
       case '_obv_div': break;
       case '_recipe_detect': break;
+      case '_v2_signal': break;   // [S1442] 스캔 루프에서 rows 있는 자리에서 처리 — 여기선 무시(통과)
+      case '_xmat_need': break;   // [S1442] 동상
       case '_bt_pnl': break;
       case '_bt_winrate': break;
       case '_bt_trades': break;
