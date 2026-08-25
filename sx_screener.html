@@ -3095,7 +3095,15 @@ function init(){
       localStorage.removeItem(KEYS.SEARCH_RESULTS);
     }
     const saved = localStorage.getItem(searchResultsKey(currentMarket));
-    if(saved){ const d = JSON.parse(saved); searchResults = d.results||[]; sortKey = d.sortKey||'tradeAmount'; sortDir = d.sortDir||'desc'; }
+    if(saved){ const d = JSON.parse(saved); searchResults = d.results||[]; sortKey = d.sortKey||'tradeAmount'; sortDir = d.sortDir||'desc';
+      //  [S1446] ★스캔 시각도 되살린다 — `saveSearchResults`가 `ts`를 **이미 저장하고 있는데 읽는 곳이 없었다.**
+      //    그래서 새로고침하면 결과 헤더에서 `06:43:16`이 사라졌다(실기기 전후 대조에서 발견).
+      //    ⚠**전역 `SX_LAST_SCAN_KEY`(S215)를 쓰지 않는다** — 그건 *마지막으로 스캔한 시각(시장 무관)*이라,
+      //      국내를 스캔한 뒤 코인 탭을 열면 **코인 결과에 국내 스캔 시각이 붙는다**(라벨이 거짓말한다).
+      //      결과가 시장별로 저장되므로 시각도 **그 결과와 같은 payload의 `ts`**를 써야 짝이 맞는다.
+      //    ⚠`_setLastScanTime`을 부르지 않는다 — 그건 전역 키를 덮어써 *실제 마지막 스캔* 기록을 오염시킨다(읽기 전용 복원).
+      _lastScanTime = d.ts ? new Date(d.ts) : null;
+    }
   }catch(e){}
   // 시장 토글 UI 동기화 (탭0 + 탭1 양쪽)
   const mLabel = {kr:'국내',us:'해외',coin:'코인'}[currentMarket];
@@ -3286,8 +3294,10 @@ async function switchMarket(m){
       searchResults = d.results || [];
       sortKey = d.sortKey || sortKey || 'tradeAmount';
       sortDir = d.sortDir || sortDir || 'desc';
+      _lastScanTime = d.ts ? new Date(d.ts) : null;   // [S1446] 거울상 — init과 같은 규약(시장별 ts)
     } else {
       searchResults = []; // 해당 시장에 저장된 결과 없음
+      _lastScanTime = null;   // [S1446] ⚠결과가 없으면 시각도 비운다 — 안 비우면 앞 시장 시각이 남는다
     }
   }catch(e){ searchResults = []; }
   scanMarket = '전체';
