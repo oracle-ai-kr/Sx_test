@@ -1560,7 +1560,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
           <span class="cm-seg" data-v="R" onclick="setChartMarker('greenred','R')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">레시피·ATR R</span>
           <span class="cm-seg" data-v="S" onclick="setChartMarker('greenred','S')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">단기추세 S</span>
         </div>
-        <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5">R: 레시피·ATR 마커 — 레시피 진입▲ · 이중ATR/MA청산▼ (자동매매 정합) · S: 단기추세 골든/데드크로스. MA기간은 분석탭 카드에서 설정. [S992]</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5"><b>R</b>: 단일검증 탭 <b>백테스트</b>의 매매 목록 — 진입▲ · 청산▼ (BT를 안 돌렸으면 마커 없음) · <b>S</b>: 단일검증 탭 <b>단기 매매 전략</b> 카드 — <b>보고 있는 탭</b>을 따라간다(📈 MA 크로스 = 골든/데드 · 🧪 전략 조합 = 레시피·칸 진입). MA 기간은 그 카드에서 설정. [S1436]</div>
       </div>
     </div>
     <!-- [S993] 전이 구간 임계값 설정 UI 삭제 — BT 전이통계(5축) 제거. -->
@@ -10794,7 +10794,7 @@ function setChartMarker(group, val){
   _renderChartMarkerSeg();
   // 현재 분석탭 미니차트 즉시 갱신 (풀차트는 다음 openFull에서 반영). 차트 없으면 가드로 noop.
   try { if(typeof _trendRedrawChart==='function') _trendRedrawChart(); } catch(_){}
-  var lbl={ purple:{A:'진입타이밍 A', C:'안전제동 C'}, greenred:{R:'레시피·ATR R', S:'단기추세 S'} };
+  var lbl={ purple:{A:'진입타이밍 A', C:'안전제동 C'}, greenred:{R:'백테스트 R', S:'단기매매 S'} };   // [S1436] 라벨=사실
   toast('차트 마커: '+(group==='purple'?'보라':'녹/적')+' → '+(lbl[group][val]||val));
 }
 if(typeof window!=='undefined'){ window.setChartMarker=setChartMarker; window._renderChartMarkerSeg=_renderChartMarkerSeg; }
