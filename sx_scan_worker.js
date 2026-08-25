@@ -69,6 +69,7 @@ let _oracleEtf = [];
 let _oracleCoin = [];
 let _oracleUsKeys = {}; // {SP500:[], NDX:[], DOW:[], ETF:[]}
 let _oracleUniv = {};  // [S1441] {'코스피200':[], '코스닥150':[], '대표종목':[]} — 칩 라벨이 곧 키(메인이 동봉)
+let _xmatCfg = null;   // [S1442] {buy:[], sell:[], needBuy, needSell, winBuy, winSell} — 메인이 _xmatStore/_xmatConds로 만들어 동봉
 let _stockMasterCache = null; // {ts, data}
 let _marketEnvData = null; // MarketEnv 스냅샷
 // [PATCH-14] 탐색 스킵 진단 — passFilters/checkTechConditions 탈락 원인 통계
@@ -1060,6 +1061,8 @@ function checkTechConditions(ind, techFilters, getFilter) {
     if (!v || v === '설정안함') continue;
     switch (f.id) {
       case '_recipe_detect': break;   // [S895] 레시피 감지는 스캔루프(2977)에서 _rcpSig(rows有)로 필터 — checkTechConditions는 rows 없어 무시(통과)
+      case '_v2_signal': break;   // [S1442] 스캔루프에서 adv+candles로 직접 필터 — 여기선 무시(통과)
+      case '_xmat_need': break;   // [S1442] 동상
       case 'ma_arrangement': {
         if (!ind.ma5 || !ind.ma20 || !ind.ma60) return false;
         if (v === '정배열 (3개)' && !(ind.ma5 > ind.ma20 && ind.ma20 > ind.ma60)) return false;
@@ -2292,6 +2295,7 @@ async function startScan(config) {
   _oracleCoin = config.oracleCoin || [];
   _oracleUsKeys = config.oracleUsKeys || {};
   _oracleUniv = config.oracleUniv || {}; // [S1441]
+  _xmatCfg = config.xmatCfg || null;     // [S1442] 재료 설정(단일검증 탭 저장값 스냅샷)
   _stockMasterCache = config.stockMasterCache || null;
   _marketEnvData = config.marketEnvData || null;
   _scanAbort = false;
@@ -2792,6 +2796,79 @@ async function startScan(config) {
           // [S349] 스캔 시점 TF 기록 (메인 sx_screener.html 미러) — 분석탭 TF 전환 시 재계산 유도
           if(qs && typeof qs === 'object') qs._scanTF = currentTF;
 
+          // ══ [S1442] 엔진 판정 조건 2종 — V2 어휘규칙 · 재료 충족 ══
+          //  ★자리 선택이 이 시리얼의 핵심이다. 형제 조건인 레시피 감지(_recipe_detect)는 **BT 블록 안**에 있어
+          //    `rawRows.length>=60` 과 `btResult && !btResult.error` 를 통과해야만 평가된다 ⇒ BT가 실패하면
+          //    그 종목은 **조건을 안 받고 그냥 통과**한다(fail-open · 조용하다). 새 조건 둘은 adv·candles만 있으면
+          //    되므로 BT 앞에 두어 그 함정을 애초에 안 만든다.
+          //  ⚠탈락은 전부 _techFilterStats에 사유를 남긴다 — 0건이 나왔을 때 화면이 이유를 말할 수 있어야 한다.
+          {
+            const _s42Rej = (k)=>{ _techFilterStats[k] = (_techFilterStats[k]||0)+1; };
+            const _v2F = getFilter('_v2_signal');
+            const _xmF = getFilter('_xmat_need');
+            const _v2On = !!(_v2F && _v2F.value && _v2F.value!=='설정안함');
+            const _xmOn = !!(_xmF && _xmF.value && _xmF.value!=='설정안함');
+            if(_v2On || _xmOn){
+              // ⚠일봉 전용 — 칸 규칙·재료는 일봉으로 발굴했다. 다른 TF에 대면 모집단이 달라진다.
+              //   판정하지 않고 탈락시키되 **사유를 남긴다**(사유 없는 0건이 이 프로젝트의 반복 사고다).
+              if(currentTF !== 'day'){ _s42Rej(_v2On?'_v2_signal.tf_not_day':'_xmat_need.tf_not_day'); continue; }
+            }
+            // ── ① V2 어휘규칙 ──
+            if(_v2On){
+              let _cs42 = null;
+              try{ if(typeof _sxCellSignalCore==='function') _cs42 = _sxCellSignalCore(currentMarket, adv, candles, candles.length-1, { btMode:true }); }catch(_e42a){}
+              if(!_cs42){ _s42Rej('_v2_signal.no_cell_data'); continue; }   // SX_CELL_DATA 미로드 등 — 통과시키면 조용한 오답
+              // sx_exec_core v2SignalAt과 같은 선별: real-kind hit만. DOWN·FAKE는 매수 투표 금지(S1102 §8-3).
+              const _hit42 = (Array.isArray(_cs42.sig)?_cs42.sig:[]).filter(x=>x && x.hit && x.kind==='real');
+              const _hasStrict = _hit42.some(x=>(x.tier||'strict')==='strict');
+              const _hasSoft   = _hit42.some(x=>(x.tier||'strict')==='soft');
+              if(_v2F.value==='발동 (real)'      && !_hit42.length){ _s42Rej('_v2_signal.no_hit'); continue; }
+              if(_v2F.value==='강신호만 (strict)' && !_hasStrict){ _s42Rej('_v2_signal.no_strict'); continue; }
+              if(_v2F.value==='일반신호 (soft)'  && !_hasSoft){ _s42Rej('_v2_signal.no_soft'); continue; }
+              try{ if(s._scanResult){ s._scanResult.v2K=_hit42.length; s._scanResult.v2Cat=_hit42.length?_hit42[0].cat:null; s._scanResult.v2Tier=_hit42.length?(_hit42[0].tier||'strict'):null; s._scanResult.v2Cell=_cs42.cell||null; } }catch(_e42b){}
+            }
+            // ── ② 재료 [충족] 배지 ──
+            if(_xmOn){
+              const X = _xmatCfg;
+              if(!X || (!(X.buy||[]).length && !(X.sell||[]).length)){ _s42Rej('_xmat_need.no_conds'); continue; }   // 켜둔 재료가 없으면 판정 불가(단일검증 탭에서 켜야 한다)
+              // ★카드(_xmatCountBars→customCondBars→_scanStock)와 **같은 창**으로 센다 — 그쪽은 봉마다
+              //   `rows.slice(bar-249, bar+1)` 250봉으로 지표를 다시 낸다. 여기서 600봉짜리 adv를 그냥 쓰면
+              //   같은 종목·같은 봉인데 카드와 다른 수가 나온다(한 화면이 두 말을 한다).
+              const _lastB = candles.length-1;
+              const _featAt = (b)=>{ try{
+                const _sl = candles.slice(Math.max(0,b-249), b+1);
+                const _i42 = (typeof calcAllScreener==='function') ? calcAllScreener(_sl) : null;
+                return _i42 ? _extractFeats733(_i42, candles, b, true) : null;
+              }catch(_e42c){ return null; } };
+              // 창 안에서 **한 번이라도** 뜬 재료를 1로 센다(같은 재료가 여러 봉에 떠도 1) — S1413 규약 그대로.
+              const _cntSide = (conds, win)=>{
+                if(!conds || !conds.length) return -1;
+                const w = Math.max(1, Math.min(20, Math.round(+win||1))), seen = {};
+                let anyF = false;
+                for(let b=Math.max(0,_lastB-w+1); b<=_lastB; b++){
+                  const f = _featAt(b); if(!f) continue; anyF = true;
+                  for(let k=0;k<conds.length;k++){ if(seen[k]) continue; const c=conds[k], v=f[c.key];
+                    const ok = (c.type==='num') ? (typeof v==='number' && isFinite(v) && (c.dir==='lt' ? v<c.th : v>c.th)) : (v===1);
+                    if(ok) seen[k]=1; }
+                }
+                return anyF ? Object.keys(seen).length : -1;   // -1 = 산출 실패(0개와 구별한다)
+              };
+              const _nb42 = _cntSide(X.buy, X.winBuy), _ns42 = _cntSide(X.sell, X.winSell);
+              const _needB = Math.max(1, Math.round(+X.needBuy||1)), _needS = Math.max(1, Math.round(+X.needSell||1));
+              // ⚠산출 실패(-1)는 미달(false)이 아니라 **모름**이다 — 섞으면 표가 거짓말한다(S1412 규약).
+              const _needBoth = (_xmF.value==='매수 충족 · 매도 미달' || _xmF.value==='매수·매도 모두 충족');
+              if(_nb42===-1 && (_xmF.value!=='매도 재료 충족')){ _s42Rej('_xmat_need.buy_unknown'); continue; }
+              if(_ns42===-1 && (_xmF.value==='매도 재료 충족' || _needBoth)){ _s42Rej('_xmat_need.sell_unknown'); continue; }
+              const _okB42 = (_nb42>=0) && (_nb42 >= _needB);
+              const _okS42 = (_ns42>=0) && (_ns42 >= _needS);
+              if(_xmF.value==='매수 재료 충족'        && !_okB42){ _s42Rej('_xmat_need.buy'); continue; }
+              if(_xmF.value==='매도 재료 충족'        && !_okS42){ _s42Rej('_xmat_need.sell'); continue; }
+              if(_xmF.value==='매수 충족 · 매도 미달' && !(_okB42 && !_okS42)){ _s42Rej('_xmat_need.buy_only'); continue; }
+              if(_xmF.value==='매수·매도 모두 충족'   && !(_okB42 && _okS42)){ _s42Rej('_xmat_need.both'); continue; }
+              try{ if(s._scanResult){ s._scanResult.xmB=_nb42; s._scanResult.xmS=_ns42; s._scanResult.xmNB=_needB; s._scanResult.xmNS=_needS; } }catch(_e42d){}
+            }
+          }
+
           // BT 동시 실행
           try {
             const rawRows = candles.map(c => ({ date: c.date, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume }));
@@ -2828,7 +2905,7 @@ async function startScan(config) {
                   let _rcpSig = null;
                   try{ if(currentTF==='day' && typeof _sxRecipeVotesCore==='function' && qs && qs.ind && rawRows && rawRows.length){ _rcpSig=_sxRecipeVotesCore(currentMarket, qs.ind, rawRows, rawRows.length-1); } }catch(_eRc){}
                   try{ if(s._scanResult){ s._scanResult.rcpK=_rcpSig?(_rcpSig.realK||0):0; s._scanResult.rcpPure=!!(_rcpSig&&_rcpSig.pure&&(_rcpSig.votes|0)>0); s._scanResult.rcpFake=_rcpSig?(_rcpSig.fakeK||0):0; } }catch(_eRk){}   // [S894] 레시피 감지 조건 노출
-                  try{ var _rcpDFw=getFilter('_recipe_detect'); if(_rcpDFw && _rcpDFw.value && _rcpDFw.value!=='설정안함'){ var _rkw=_rcpSig?(_rcpSig.realK||0):0, _pureW=!!(_rcpSig&&_rcpSig.pure&&(_rcpSig.votes|0)>0); if((_rcpDFw.value==='발동(겹침1+)'&&_rkw<1)||(_rcpDFw.value==='순수발동'&&!_pureW)||(_rcpDFw.value==='겹침3+'&&_rkw<3)||(_rcpDFw.value==='겹침4+'&&_rkw<4)){ continue; } } }catch(_eRfw){}   // [S895] 레시피 감지 워커 필터 — checkTechConditions는 case 없어 무시하므로 여기서 _rcpSig(rows有)로 직접 제외
+                  try{ var _rcpDFw=getFilter('_recipe_detect'); if(_rcpDFw && _rcpDFw.value && _rcpDFw.value!=='설정안함'){ var _rkw=_rcpSig?(_rcpSig.realK||0):0, _pureW=!!(_rcpSig&&_rcpSig.pure&&(_rcpSig.votes|0)>0); if((_rcpDFw.value==='발동(겹침1+)'&&_rkw<1)||(_rcpDFw.value==='순수발동'&&!_pureW)||(_rcpDFw.value==='겹침3+'&&_rkw<3)||(_rcpDFw.value==='겹침4+'&&_rkw<4)){ _techFilterStats[_rcpSig?'_recipe_detect.no_fire':'_recipe_detect.tf_not_day'] = (_techFilterStats[_rcpSig?'_recipe_detect.no_fire':'_recipe_detect.tf_not_day']||0)+1; continue; } } }catch(_eRfw){}   // [S895] 레시피 감지 워커 필터 — checkTechConditions는 case 없어 무시하므로 여기서 _rcpSig(rows有)로 직접 제외
                   // 4축 점수 수집
                   const _scores4 = {
                     readyScore: qs ? (qs.readyScore ?? 0) : 0,
