@@ -10784,8 +10784,12 @@ function _renderChartMarkerSeg(){
       //   ⚠색은 카드 탭바와 같은 계열로 맞춘다: 📈 MA 크로스 = 파랑(기존) · 🧪 전략 조합 = 보라.
       var _eng=null;
       try{ _eng=(window._sxTrendCtx && window._sxTrendCtx.trendMarkers && window._sxTrendCtx.trendMarkers.engine) || null; }catch(_e){}
-      var _accent='#2563eb';
-      if(on && el.getAttribute('data-v')==='S' && _eng && _eng!=='cross') _accent='#7c3aed';
+      // [S1438] ★S 버튼 색 = **카드 탭바와 같은 색**(사용자 요청). 색은 `window._TREND_TAB_COL` **하나에서만** 온다.
+      //   ⚠여기에 색을 리터럴로 적지 않는다 — 탭 색을 바꾸는 순간 두 화면이 어긋난다(규칙17 ①).
+      //   ⚠렌더가 sx_render.js보다 먼저 돌 수 있다 ⇒ 상수가 없으면 **기본색 그대로**(색을 지어내지 않는다).
+      var _tabCol=null;
+      try{ _tabCol=(window._TREND_TAB_COL && _eng) ? window._TREND_TAB_COL[_eng] : null; }catch(_e2){}
+      var _accent = (on && el.getAttribute('data-v')==='S' && _tabCol) ? _tabCol : '#2563eb';
       el.style.background = on ? _accent : 'var(--surface2)';
       el.style.color      = on ? '#fff'    : 'var(--text2)';
       el.style.borderColor= on ? _accent : 'var(--border)';
