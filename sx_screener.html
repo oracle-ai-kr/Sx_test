@@ -404,6 +404,19 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 /* ── 탭2: 결과 ── */
 .result-summary{display:flex;align-items:center;gap:4px;margin-bottom:0;font-size:11px;color:var(--text2);position:sticky;top:-10px;background:var(--bg);z-index:6;padding:12px 12px 4px;margin:0 -12px}
 .result-summary .cnt{color:var(--accent);font-weight:700;font-family:'Outfit'}
+/* [S1447] ★결과 헤더 카운트 블록 — **두 줄 고정**. 〔원인〕 `.result-summary`가 flex인데 `검색 결과`·`78`·`종목`·시각이
+   **각각 별개의 flex 아이템**이었다(연속 텍스트는 익명 아이템이 된다). 버튼 4개가 전부 `flex-shrink:0`이라
+   폭이 모자라면 텍스트만 눌리고, 한글은 글자 사이에서 끊기므로 **최소폭이 1글자**가 된다 ⇒ 검/색/결/과 4줄.
+   ⇒ 셋을 `.rs-cnt` 한 덩어리로 묶고 자식마다 `nowrap`을 줘 **단어 단위로만** 접히게 한다.
+   ⚠폭은 오히려 준다 — 가로로 늘어서던 것(≈79px)이 두 줄로 접히며 ≈71px가 되어 버튼을 밀지 않는다. */
+.result-summary .rs-cnt{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:4px;row-gap:1px;min-width:0;line-height:1.3}
+.result-summary .rs-cnt>span{white-space:nowrap}
+/* [S1447] ★라벨은 **항상 제 줄** — 분할이 기기 폭에 따라 흔들리면 한 화면이 날마다 다른 모양이 된다.
+   ⇒ 1줄 `검색 결과` / 2줄 `78종목 시각` 로 고정한다(사용자 요청 그대로).
+   ⚠아주 좁은 폭(카운트 블록 가용 73px 미만 · 대략 320px 기기)에서는 시각이 3줄로 내려간다 —
+     넘치게 두는 것보다 낫다고 보고 그대로 둔다(넘치면 버튼을 밀어 가로 스크롤이 생긴다). */
+.result-summary .rs-cnt>span:first-child{flex:0 0 100%}
+.result-summary .scan-loading-text{white-space:nowrap}
 .result-summary .btn-reset{padding:3px 10px;border-radius:6px;background:var(--accent);color:#fff;border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;letter-spacing:.2px}
 .result-summary .btn-reset:active{filter:brightness(.85)}
 .result-empty{text-align:center;padding:36px 20px;color:var(--text3);font-size:12px}
@@ -1383,7 +1396,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <!-- [v3.10 헤더 고정] 페이지 첫 로드 시에도 진단/관심목록/초기화 버튼 노출
            (clearSearchResults / renderResults 호출 전 초기 상태) -->
       <div class="result-summary">
-        <span style="color:var(--text3);font-size:11px">검색 결과 없음</span>
+        <span style="color:var(--text3);font-size:11px;white-space:nowrap">검색 결과 없음</span>
         <button class="btn-diag" onclick="_sxVib(12);openScanDiagModal()" style="padding:3px 10px;border-radius:6px;background:var(--surface2);color:var(--text);border:1px solid var(--border);font-size:9px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;letter-spacing:.2px">📊 진단</button>
         <button class="btn-sector" onclick="_sxVib(12);openSectorRadarModal()">📡 업종레이더</button>
         <button class="btn-watchlist" onclick="_sxVib(12);toggleWatchlistView()">관심목록</button>
