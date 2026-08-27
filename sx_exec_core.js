@@ -215,6 +215,14 @@ var STATE_VOCAB = {
   regimeIcon: { bull:'🔥', up:'📈', side:'➡️', down:'📉', crash:'🌋' }
 };
 function cellLblOf(ck){ return (ck&&STATE_VOCAB.cell[ck])||ck||'?'; }
+// [S1450] 레짐 표기 조립도 SSOT가 맡는다 — S1449는 아이콘 표만 여기 두고 **조립은 render·bt가 각자** 했다.
+//   조립 규칙이 두 벌이면 그것도 미러다(붙임/띄어쓰기 차이가 곧 갈림의 씨앗). sp=true면 아이콘과 라벨 사이 공백.
+//   ⚠아이콘이 없으면 라벨만 — 글리프를 지어내지 않는다(S1423).
+function regimeTagOf(rg, sp){
+  var ic = (STATE_VOCAB.regimeIcon && STATE_VOCAB.regimeIcon[rg]) || '';
+  var lb = (STATE_VOCAB.regime && STATE_VOCAB.regime[rg]) || rg;
+  return ic ? (ic + (sp ? ' ' : '') + lb) : lb;
+}
 // [S1219] 레짐 v3(5국면·전면 재구성) — 골격(20 vs 200 ±1.5%)은 유지, **분화는 전부 동역학**(기울기·변동성·이격도):
 //   ① 상승측: 불장 = 기울기(MA20 10봉) ≥ +0.15%/봉 · 상승장 = 미달. **구 60>120>200 조항 폐기** — 3×3 장기축(상승세)과 문자 그대로 중복이라(희창 지적) 위치는 3×3, 동역학은 레짐으로 직교화.
 //   ② 하락측(S1218 유지): 폭락 = 기울기 ≤ −0.5%/봉 ∨ ATR14/종가 ≥ 5% ∨ 이격(종가/MA20) ≤ −7% · 하락장 = 미달.
@@ -368,6 +376,7 @@ var API = {
   bullVolAt: bullVolAt, v2SignalAt: v2SignalAt,                                        // [S1201]
   maCrossAt: maCrossAt, cellOfAt: cellOfAt, gcAgeAt: gcAgeAt, regimeAt: regimeAt,      // [S1210·S1211·S1212]
   STATE_VOCAB: STATE_VOCAB, cellLblOf: cellLblOf, regime5At: regime5At, stockStateAt: stockStateAt,   // [S1217]
+  regimeTagOf: regimeTagOf,                                                                           // [S1450]
   runLifecycle: runLifecycle
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = API;
