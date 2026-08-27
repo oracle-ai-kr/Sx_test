@@ -733,7 +733,7 @@ function _btRenderCellSrcGrid(trades){
   });
   if(ageHtml) ageHtml=`<div style="margin-top:5px;padding-top:4px;border-top:1px solid var(--border)"><div style="font-size:9.5px;font-weight:800;color:var(--text)">⏱ 추세나이(5×20 골든 경과)×진입원</div>${ageHtml}</div>`;
   // [S1212] ③ 레짐(S544)×진입원 — "불장·상승장에서 M vs 레시피" 정면 숫자(레짐게이트 가설의 판정면). 거래의 rg 각인 사용.
-  const RG_L={bull:'🔥불장',up:'📈상승장',side:'➡️횡보',down:'📉하락',crash:'🌋폭락'};   // [S1217] +폭락장
+  const RG_L={}; ['bull','up','side','down','crash'].forEach(function(_r){ RG_L[_r]=_btRegimeTag(_r, false); });   // [S1217→S1449] SSOT 유도 — 구 표는 `횡보`·`하락`으로 '장'을 빼 어휘 SSOT와 갈려 있었다. 최대 폭은 `상승장`(3자)이라 불변.
   const rgBy={};
   ts.forEach(t=>{ if(!t.rg||!RG_L[t.rg]) return; const k=SL[t.src]?t.src:'recipe';
     const o=rgBy[k]||(rgBy[k]={}); const sv=o[t.rg]||(o[t.rg]={n:0,w:0,sum:0}); sv.n++; if(t.pnl>0)sv.w++; sv.sum+=t.pnl; });
@@ -762,10 +762,21 @@ function _btRenderCellSrcGrid(trades){
   </div>`;
 }
 
+// [S1449] ★레짐 표기 SSOT 조회구 — 아래 두 표(`RG_L`·`L`)가 각자 리터럴을 들고 있어 **한 파일 안에서도 갈렸다**
+//   (`➡️횡보` vs `➡️ 횡보장`). 어휘·아이콘의 주인은 `sx_exec_core.js` `STATE_VOCAB`이므로 거기서 읽는다.
+//   ⚠**미러를 만들지 않는다**(S1441 문법) — 표를 여기 복사하면 다음에 또 갈린다.
+//   ⚠못 얻으면 라벨은 원문 키, 아이콘은 빈칸이다 — 지어내지 않는다(S1423). exec_core는 BT의 하드 의존이라 그 상태면 BT 자체가 안 돈다.
+function _btRegimeTag(rg, sp){
+  try{
+    var _EC=(typeof SXExecCore!=='undefined')?SXExecCore:(typeof window!=='undefined'?window.SXExecCore:null);
+    var V=(_EC&&_EC.STATE_VOCAB)||{}, ic=(V.regimeIcon&&V.regimeIcon[rg])||'', lb=(V.regime&&V.regime[rg])||rg;
+    return ic ? (ic + (sp?' ':'') + lb) : lb;
+  }catch(_e){ return rg; }
+}
 // [S544] 레짐별 BT 통계 렌더 (단일검증 BT 카드 하단)
 function _btRenderRegime(rb){
   if(!rb) return '';
-  var L = { bull:'🔥 불장', up:'📈 상승장', side:'➡️ 횡보장', down:'📉 하락장', crash:'🌋 폭락장' };   // [S1217]
+  var L = {}; ['bull','up','side','down','crash'].forEach(function(_r){ L[_r]=_btRegimeTag(_r, true); });   // [S1217→S1449] SSOT 유도(구 리터럴 표 폐기 · 값 동일)
   var rowsHtml = '';
   ['bull','up','side','down','crash'].forEach(function(rg){   // [S1217]
     var s = rb[rg]; if(!s || s.n < 1) return;
