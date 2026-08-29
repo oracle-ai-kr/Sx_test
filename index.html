@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 --><!-- [S964] KOSPI 큰수치=변동성 원자료·상위%제거 · 코인 도미넌스 칩 우측배치 --><!-- [S1465] 코인 거시지표 업비트 데이터랩 전환 — 공포탐욕=업비트 지수(밴드 20/40/60/80 · 매우공포~매우탐욕) · 김프→업비트 프리미엄(USDT·CMC 대비) · 도미넌스 배지→알트코인 시즌 지수(0-25 BTC시즌/26-74 중립/75-100 알트시즌 · 업비트 mdom은 마켓 점유율이라 1년 60.9~64.9% 준상수 → 참고 표기만) --><!-- [S1466] 코인 시세 모달 라벨 강조 — 알트코인 시즌 지수·BTC 도미넌스·업비트 프리미엄 라벨을 bold+var(--text2)로 (기본 dm-note는 text3 10px — 값 13px bold보다 한 단계 아래 강조 · 표시만, 판정 0) --><!-- [S1467] 코인 시세 모달에 시장 규모 2줄 추가 — 디지털 자산 시총(업비트 전체 마켓·원화)·거래대금 24H(원화), 전일 대비 등락률 포함. 워커 /coin/macro v2에 mcapKrw·katpKrw {v,r} 추가(overview 동일 1콜·추가 호출 0). 표시만, 판정 0 -->
+<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 --><!-- [S964] KOSPI 큰수치=변동성 원자료·상위%제거 · 코인 도미넌스 칩 우측배치 --><!-- [S1465] 코인 거시지표 업비트 데이터랩 전환 — 공포탐욕=업비트 지수(밴드 20/40/60/80 · 매우공포~매우탐욕) · 김프→업비트 프리미엄(USDT·CMC 대비) · 도미넌스 배지→알트코인 시즌 지수(0-25 BTC시즌/26-74 중립/75-100 알트시즌 · 업비트 mdom은 마켓 점유율이라 1년 60.9~64.9% 준상수 → 참고 표기만) --><!-- [S1466] 코인 시세 모달 라벨 강조 — 알트코인 시즌 지수·BTC 도미넌스·업비트 프리미엄 라벨을 bold+var(--text2)로 (기본 dm-note는 text3 10px — 값 13px bold보다 한 단계 아래 강조 · 표시만, 판정 0) --><!-- [S1467] 코인 시세 모달에 시장 규모 2줄 추가 — 디지털 자산 시총(업비트 전체 마켓·원화)·거래대금 24H(원화), 전일 대비 등락률 포함. 워커 /coin/macro v2에 mcapKrw·katpKrw {v,r} 추가(overview 동일 1콜·추가 호출 0). 표시만, 판정 0 --><!-- [S1468] 전일 대비 ▲▼ 부착 — 홈 공포탐욕 카드(pt·VIX 카드와 대칭)·시세 모달(알트시즌 pt / 도미넌스 %p / 프리미엄 "전일 ±%p")·F&G 모달 알트시즌 섹션(pt). ⚠프리미엄·도미넌스는 지표가 %라 rate 아닌 %p(절대변화) 표기. 워커 델타 별도 필드(fearGreed.d·altseasonD·kimchiD·mdomBtcD)라 기존 소비처 무변경 · 표시만, 판정 0 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -3290,6 +3290,9 @@ const SX={
         mdomBtc: coinStruct?.mdomBtc ?? null, // [S1465] 업비트 전체 마켓 시총 중 BTC 점유율 % (참고 표기)
         mcapKrw: coinStruct?.mcapKrw ?? null, // [S1467] 업비트 전체 마켓 시총 {v:원화, r:전일대비}
         katpKrw: coinStruct?.katpKrw ?? null, // [S1467] 업비트 거래대금 24H {v:원화, r:전일대비}
+        altD: coinStruct?.altD ?? null,       // [S1468] 알트시즌 전일 대비 pt
+        mdomD: coinStruct?.mdomD ?? null,     // [S1468] 도미넌스 전일 대비 %p
+        kmD: coinStruct?.kmD ?? null,         // [S1468] 프리미엄 전일 대비 %p
         kimchi: kimchi,        // [S360→S1465] 업비트 프리미엄(USDT) % — 글로벌(CMC) 대비 격차 (필드명 '김프' 유지)
         koreaFG: korFG,        // {value, components} or null (S129)
       };
@@ -3432,7 +3435,7 @@ const SX={
     // [S360→S1465] /coin/macro(워커 KV 10분 캐시) 공유 — 분석탭과 동일 소스/값. 소스: alternative.me → 업비트 데이터랩 공포탐욕(0~100).
     const m = await this._fetchCoinMacro();
     if(m && m.fearGreed && m.fearGreed.v != null){
-      return { value: m.fearGreed.v, classification: m.fearGreed.cls };
+      return { value: m.fearGreed.v, classification: m.fearGreed.cls, d: (m.fearGreed.d != null ? m.fearGreed.d : null) };   // [S1468] d=전일 대비 pt
     }
     return null;
   },
@@ -3758,7 +3761,10 @@ const SX={
       alt:     (m.altseason != null ? m.altseason : null),
       mdomBtc: (m.mdomBtc   != null ? m.mdomBtc   : null),
       mcapKrw: (m.mcapKrw   != null ? m.mcapKrw   : null),   // [S1467] {v:원화, r:전일대비율} 업비트 전체 마켓 시총
-      katpKrw: (m.katpKrw   != null ? m.katpKrw   : null)    // [S1467] {v:원화, r:전일대비율} 업비트 거래대금 24H
+      katpKrw: (m.katpKrw   != null ? m.katpKrw   : null),   // [S1467] {v:원화, r:전일대비율} 업비트 거래대금 24H
+      altD:    (m.altseasonD != null ? m.altseasonD : null),  // [S1468] 알트시즌 전일 대비 pt
+      mdomD:   (m.mdomBtcD   != null ? m.mdomBtcD   : null),  // [S1468] 도미넌스 전일 대비 %p
+      kmD:     (m.kimchiD    != null ? m.kimchiD    : null)   // [S1468] 프리미엄 전일 대비 %p
     };
   },
 
@@ -4266,7 +4272,11 @@ const SX={
         const st = this._getCryptoFGStatus(fg.value);
         coinCard.className = `fear-mini ${st.cls}`;
         // [S225] 일관성 차원 escape (숫자라 안전하지만 defense in depth)
-        if(coinValue) coinValue.innerHTML = `${_sxEsc(fg.value)}<span class="fm-scale">/100</span>`;
+        if(coinValue){
+          // [S1468] 전일 대비 pt — VIX 카드 등락 표기와 대칭 (fg.d = 워커 fearGreed.d)
+          const _fgD = (fg.d != null && isFinite(fg.d) && fg.d !== 0) ? ` <span style="font-size:12px;font-weight:700;color:${fg.d > 0 ? 'var(--up,#e03131)' : 'var(--down,#1971c2)'}">${fg.d > 0 ? '▲' : '▼'}${Math.abs(fg.d).toFixed(1)}</span>` : '';
+          coinValue.innerHTML = `${_sxEsc(fg.value)}<span class="fm-scale">/100</span>${_fgD}`;
+        }
         if(coinStatus) coinStatus.textContent = st.kor;
         if(coinSub){
           // [S963→S1465] 주도권 배지 — 글로벌 도미넌스 밴드 → 업비트 알트코인 시즌 지수. sub의 'Fear & Greed'를 칩으로 대체.
@@ -4474,6 +4484,8 @@ const SX={
         // [S1467] 시장 규모 2줄 — 업비트 데이터랩 mcap/katp (전일 대비 등락 포함 · 원화)
         const _fmtJo = (x) => x >= 1e12 ? (((x/1e12) >= 100 ? Math.round(x/1e12).toLocaleString() : (x/1e12).toFixed(2)) + '조') : (Math.round(x/1e8).toLocaleString() + '억');
         const _chgTag = (r) => { if(r == null || !isFinite(r) || r === 0) return ''; const p = (Math.abs(r)*100).toFixed(2); return r > 0 ? ` <span style="color:var(--up,#e03131);font-size:11px;font-weight:700">▲${p}%</span>` : ` <span style="color:var(--down,#1971c2);font-size:11px;font-weight:700">▼${p}%</span>`; };
+        // [S1468] 절대변화 태그 — u='pt'(숫자만)/'%p'(단위 병기) · 프리미엄·도미넌스는 지표가 %라 rate 아닌 %p가 정직
+        const _dTag = (d, u) => { if(d == null || !isFinite(d) || d === 0) return ''; const a = Math.abs(d); const s = (u === 'pt' ? (Number.isInteger(a) ? String(a) : a.toFixed(1)) : a.toFixed(2) + '%p'); return ` <span style="color:${d > 0 ? 'var(--up,#e03131)' : 'var(--down,#1971c2)'};font-size:11px;font-weight:700">${d > 0 ? '▲' : '▼'}${s}</span>`; };
         const mc = data?._extra?.mcapKrw;
         if(mc && mc.v != null){
           body.innerHTML += `<div class="dm-note">💰 <b style="color:var(--text2)">디지털 자산 시총</b>: <b style="color:var(--text);font-size:13px">${_fmtJo(mc.v)}</b>${_chgTag(mc.r)} <span style="color:var(--text3);font-size:10px">· 업비트 전체 마켓 · 원화 · 전일 대비</span></div>`;
@@ -4485,17 +4497,19 @@ const SX={
         const alt = data?._extra?.altseason;
         if(alt != null && this._getAltseasonStatus){
           const aSt = this._getAltseasonStatus(alt);
-          body.innerHTML += `<div class="dm-note">🌗 <b style="color:var(--text2)">알트코인 시즌 지수</b>: <b style="color:${aSt.color};font-size:13px">${alt}</b> <span style="color:var(--text3);font-size:10px">· ${aSt.label} — 상위 100 알트 90일 수익률 vs BTC (업비트)</span></div>`;
+          body.innerHTML += `<div class="dm-note">🌗 <b style="color:var(--text2)">알트코인 시즌 지수</b>: <b style="color:${aSt.color};font-size:13px">${alt}</b>${_dTag(data?._extra?.altD, 'pt')} <span style="color:var(--text3);font-size:10px">· ${aSt.label} — 상위 100 알트 90일 수익률 vs BTC (업비트)</span></div>`;
         }
         const dom = data?._extra?.mdomBtc;
         if(dom != null){
-          body.innerHTML += `<div class="dm-note">📊 <b style="color:var(--text2)">BTC 도미넌스</b>: <b style="color:var(--text);font-size:13px">${dom}%</b> <span style="color:var(--text3);font-size:10px">· 업비트 전체 마켓 시총 중 BTC 점유율 (1년 60.9~64.9% 준상수)</span></div>`;
+          body.innerHTML += `<div class="dm-note">📊 <b style="color:var(--text2)">BTC 도미넌스</b>: <b style="color:var(--text);font-size:13px">${dom}%</b>${_dTag(data?._extra?.mdomD, '%p')} <span style="color:var(--text3);font-size:10px">· 업비트 전체 마켓 시총 중 BTC 점유율 (1년 60.9~64.9% 준상수)</span></div>`;
         }
         // [S360→S1465] 업비트 프리미엄(USDT) — 구 김치프리미엄 자리 (글로벌 CMC 대비)
         const km = data?._extra?.kimchi;
         if(km != null){
           const _kmCol = km > 0 ? 'var(--up,#e03131)' : km < 0 ? 'var(--down,#1971c2)' : 'var(--text)';
-          body.innerHTML += `<div class="dm-note">🇰🇷 <b style="color:var(--text2)">업비트 프리미엄</b>: <b style="color:${_kmCol};font-size:13px">${km > 0 ? '+' : ''}${km}%</b> <span style="color:var(--text3);font-size:10px">· 글로벌(CMC) 대비 업비트 가격 격차 (USDT)</span></div>`;
+          const _kmD = data?._extra?.kmD;   // [S1468] 프리미엄 값 자체가 부호 있는 %라 "(전일 ±%p)" 라벨로 구분
+          const _kmDTag = (_kmD != null && isFinite(_kmD) && _kmD !== 0) ? ` <span style="color:var(--text3);font-size:10px">(전일 <span style="color:${_kmD > 0 ? 'var(--up,#e03131)' : 'var(--down,#1971c2)'};font-weight:700">${_kmD > 0 ? '▲' : '▼'}${Math.abs(_kmD).toFixed(2)}%p</span>)</span>` : '';
+          body.innerHTML += `<div class="dm-note">🇰🇷 <b style="color:var(--text2)">업비트 프리미엄</b>: <b style="color:${_kmCol};font-size:13px">${km > 0 ? '+' : ''}${km}%</b>${_kmDTag} <span style="color:var(--text3);font-size:10px">· 글로벌(CMC) 대비 업비트 가격 격차 (USDT)</span></div>`;
         }
       }
     }
@@ -4798,6 +4812,8 @@ const SX={
     }
     // [S251→S1465] 알트코인 시즌 지수 판정 (alt != null 일 때만) — 구 BTC 도미넌스 5단계 대체
     const altSt = (alt != null) ? this._getAltseasonStatus(alt) : null;
+    // [S1468] 알트시즌 전일 대비 pt 태그 (템플릿 밖 사전 조립 — 3중 중첩 회피)
+    const altDTag = (altSt && extra.altD != null && isFinite(extra.altD) && extra.altD !== 0) ? `<span style="font-size:11px;font-weight:700;color:${extra.altD > 0 ? 'var(--up,#e03131)' : 'var(--down,#1971c2)'}"> ${extra.altD > 0 ? '▲' : '▼'}${Math.abs(extra.altD)}</span>` : '';
     return `
       <div class="fmd-row"><div class="fmd-label">💡 현재 상태</div>
         <div class="fmd-title">${stTitle}</div>
@@ -4812,7 +4828,7 @@ const SX={
               <span class="fj-name">상위 100 알트 90일 수익률 vs BTC</span>
               <span class="fj-score" style="color:${altSt.color};font-weight:700">${altSt.label}</span>
             </div>
-            <div class="fj-sub"><b style="font-size:16px;color:var(--text)">${alt}</b><span style="color:var(--text3);font-size:10px">/100</span></div>
+            <div class="fj-sub"><b style="font-size:16px;color:var(--text)">${alt}</b><span style="color:var(--text3);font-size:10px">/100</span>${altDTag}</div>
             <div class="fj-bar"><div class="fj-bar-fill" style="width:${alt}%"></div></div>
             ${mdom != null ? `<div class="fj-sub" style="margin-top:4px;color:var(--text3);font-size:10px">참고 — 업비트 마켓 내 BTC 점유율 ${mdom}% (1년 범위 60.9~64.9%, 준상수)</div>` : ''}
           </div>
