@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 --><!-- [S964] KOSPI 큰수치=변동성 원자료·상위%제거 · 코인 도미넌스 칩 우측배치 --><!-- [S1465] 코인 거시지표 업비트 데이터랩 전환 — 공포탐욕=업비트 지수(밴드 20/40/60/80 · 매우공포~매우탐욕) · 김프→업비트 프리미엄(USDT·CMC 대비) · 도미넌스 배지→알트코인 시즌 지수(0-25 BTC시즌/26-74 중립/75-100 알트시즌 · 업비트 mdom은 마켓 점유율이라 1년 60.9~64.9% 준상수 → 참고 표기만) --><!-- [S1466] 코인 시세 모달 라벨 강조 — 알트코인 시즌 지수·BTC 도미넌스·업비트 프리미엄 라벨을 bold+var(--text2)로 (기본 dm-note는 text3 10px — 값 13px bold보다 한 단계 아래 강조 · 표시만, 판정 0) --><!-- [S1467] 코인 시세 모달에 시장 규모 2줄 추가 — 디지털 자산 시총(업비트 전체 마켓·원화)·거래대금 24H(원화), 전일 대비 등락률 포함. 워커 /coin/macro v2에 mcapKrw·katpKrw {v,r} 추가(overview 동일 1콜·추가 호출 0). 표시만, 판정 0 --><!-- [S1468] 전일 대비 ▲▼ 부착 — 홈 공포탐욕 카드(pt·VIX 카드와 대칭)·시세 모달(알트시즌 pt / 도미넌스 %p / 프리미엄 "전일 ±%p")·F&G 모달 알트시즌 섹션(pt). ⚠프리미엄·도미넌스는 지표가 %라 rate 아닌 %p(절대변화) 표기. 워커 델타 별도 필드(fearGreed.d·altseasonD·kimchiD·mdomBtcD)라 기존 소비처 무변경 · 표시만, 판정 0 --><!-- [S1469] 🌗 알트시즌 칩 2줄 스택 — 좁은 sub 폭에서 비의도 줄바꿈(라벨/숫자 어긋남) → flex-direction:column 중앙정렬로 의도화. 1줄=🌗 라벨(9.5px) · 2줄=지수(13px) · 표시만, 판정 0 -->
+<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 --><!-- [S964] KOSPI 큰수치=변동성 원자료·상위%제거 · 코인 도미넌스 칩 우측배치 --><!-- [S1465] 코인 거시지표 업비트 데이터랩 전환 — 공포탐욕=업비트 지수(밴드 20/40/60/80 · 매우공포~매우탐욕) · 김프→업비트 프리미엄(USDT·CMC 대비) · 도미넌스 배지→알트코인 시즌 지수(0-25 BTC시즌/26-74 중립/75-100 알트시즌 · 업비트 mdom은 마켓 점유율이라 1년 60.9~64.9% 준상수 → 참고 표기만) --><!-- [S1466] 코인 시세 모달 라벨 강조 — 알트코인 시즌 지수·BTC 도미넌스·업비트 프리미엄 라벨을 bold+var(--text2)로 (기본 dm-note는 text3 10px — 값 13px bold보다 한 단계 아래 강조 · 표시만, 판정 0) --><!-- [S1467] 코인 시세 모달에 시장 규모 2줄 추가 — 디지털 자산 시총(업비트 전체 마켓·원화)·거래대금 24H(원화), 전일 대비 등락률 포함. 워커 /coin/macro v2에 mcapKrw·katpKrw {v,r} 추가(overview 동일 1콜·추가 호출 0). 표시만, 판정 0 --><!-- [S1468] 전일 대비 ▲▼ 부착 — 홈 공포탐욕 카드(pt·VIX 카드와 대칭)·시세 모달(알트시즌 pt / 도미넌스 %p / 프리미엄 "전일 ±%p")·F&G 모달 알트시즌 섹션(pt). ⚠프리미엄·도미넌스는 지표가 %라 rate 아닌 %p(절대변화) 표기. 워커 델타 별도 필드(fearGreed.d·altseasonD·kimchiD·mdomBtcD)라 기존 소비처 무변경 · 표시만, 판정 0 --><!-- [S1469] 🌗 알트시즌 칩 2줄 스택 — 좁은 sub 폭에서 비의도 줄바꿈(라벨/숫자 어긋남) → flex-direction:column 중앙정렬로 의도화. 1줄=🌗 라벨(9.5px) · 2줄=지수(13px) · 표시만, 판정 0 --><!-- [S1470] 칩 어긋남 수정 — 원인: #fearCoin .fm-body 가로 flex에서 값 영역(62/100+▲▼)이 넓어지자 .fm-sub가 수축 → 칩 라벨이 글자 단위로 꺾임("중/립"). 조치: ①칩 라벨·값 span white-space:nowrap ②#fearCoin .fm-sub flex:0 0 auto(수축 금지 — 폭 부족분은 값 영역 델타가 아랫줄로 접히며 흡수) · 표시만, 판정 0 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -316,6 +316,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .fm-body{display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
 /* [S964] 코인 카드만 body 가로 — 좌:23/100, 우:도미넌스 칩(극단공포 배지 아래 정렬) */
 #fearCoin .fm-body{flex-direction:row;align-items:center;justify-content:space-between;gap:6px;}
+#fearCoin .fm-sub{flex:0 0 auto;}  /* [S1470] 칩(sub) 수축 금지 — 값 영역이 넓어져도 칩 라벨이 꺾이지 않게. 부족분은 값 쪽 델타 줄바꿈이 흡수 */
 .fm-value{
   font-family:'Outfit','Noto Sans KR',sans-serif;
   font-size:22px;font-weight:800;line-height:1;letter-spacing:-.5px;
@@ -4283,7 +4284,7 @@ const SX={
           const alt = extra.altseason;
           const altSt = (alt != null) ? this._getAltseasonStatus(alt) : null;
           if(altSt){
-            coinSub.innerHTML = `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:0;padding:2px 9px;border-radius:8px;font-size:9.5px;font-weight:700;line-height:1.25;color:${altSt.color};background:${altSt.color}1a;border:1px solid ${altSt.color}55"><span>🌗 ${_sxEsc(altSt.label)}</span><span style="font-size:13px;line-height:1.2">${_sxEsc(alt)}</span></span>`;   // [S1469] 2줄 스택(라벨/값) — 값 13px
+            coinSub.innerHTML = `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:0;padding:2px 9px;border-radius:8px;font-size:9.5px;font-weight:700;line-height:1.25;color:${altSt.color};background:${altSt.color}1a;border:1px solid ${altSt.color}55"><span style="white-space:nowrap">🌗 ${_sxEsc(altSt.label)}</span><span style="font-size:13px;line-height:1.2;white-space:nowrap">${_sxEsc(alt)}</span></span>`;   // [S1469→S1470] 2줄 스택(라벨/값 13px) + nowrap(글자 단위 꺾임 방지)
           } else {
             coinSub.textContent = 'Fear & Greed';
           }
