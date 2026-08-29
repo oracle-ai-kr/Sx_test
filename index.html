@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 --><!-- [S964] KOSPI 큰수치=변동성 원자료·상위%제거 · 코인 도미넌스 칩 우측배치 --><!-- [S1465] 코인 거시지표 업비트 데이터랩 전환 — 공포탐욕=업비트 지수(밴드 20/40/60/80 · 매우공포~매우탐욕) · 김프→업비트 프리미엄(USDT·CMC 대비) · 도미넌스 배지→알트코인 시즌 지수(0-25 BTC시즌/26-74 중립/75-100 알트시즌 · 업비트 mdom은 마켓 점유율이라 1년 60.9~64.9% 준상수 → 참고 표기만) --><!-- [S1466] 코인 시세 모달 라벨 강조 — 알트코인 시즌 지수·BTC 도미넌스·업비트 프리미엄 라벨을 bold+var(--text2)로 (기본 dm-note는 text3 10px — 값 13px bold보다 한 단계 아래 강조 · 표시만, 판정 0) --><!-- [S1467] 코인 시세 모달에 시장 규모 2줄 추가 — 디지털 자산 시총(업비트 전체 마켓·원화)·거래대금 24H(원화), 전일 대비 등락률 포함. 워커 /coin/macro v2에 mcapKrw·katpKrw {v,r} 추가(overview 동일 1콜·추가 호출 0). 표시만, 판정 0 --><!-- [S1468] 전일 대비 ▲▼ 부착 — 홈 공포탐욕 카드(pt·VIX 카드와 대칭)·시세 모달(알트시즌 pt / 도미넌스 %p / 프리미엄 "전일 ±%p")·F&G 모달 알트시즌 섹션(pt). ⚠프리미엄·도미넌스는 지표가 %라 rate 아닌 %p(절대변화) 표기. 워커 델타 별도 필드(fearGreed.d·altseasonD·kimchiD·mdomBtcD)라 기존 소비처 무변경 · 표시만, 판정 0 --><!-- [S1469] 🌗 알트시즌 칩 2줄 스택 — 좁은 sub 폭에서 비의도 줄바꿈(라벨/숫자 어긋남) → flex-direction:column 중앙정렬로 의도화. 1줄=🌗 라벨(9.5px) · 2줄=지수(13px) · 표시만, 판정 0 --><!-- [S1470] 칩 어긋남 수정 — 원인: #fearCoin .fm-body 가로 flex에서 값 영역(62/100+▲▼)이 넓어지자 .fm-sub가 수축 → 칩 라벨이 글자 단위로 꺾임("중/립"). 조치: ①칩 라벨·값 span white-space:nowrap ②#fearCoin .fm-sub flex:0 0 auto(수축 금지 — 폭 부족분은 값 영역 델타가 아랫줄로 접히며 흡수) · 표시만, 판정 0 -->
+<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 --><!-- [S964] KOSPI 큰수치=변동성 원자료·상위%제거 · 코인 도미넌스 칩 우측배치 --><!-- [S1465] 코인 거시지표 업비트 데이터랩 전환 — 공포탐욕=업비트 지수(밴드 20/40/60/80 · 매우공포~매우탐욕) · 김프→업비트 프리미엄(USDT·CMC 대비) · 도미넌스 배지→알트코인 시즌 지수(0-25 BTC시즌/26-74 중립/75-100 알트시즌 · 업비트 mdom은 마켓 점유율이라 1년 60.9~64.9% 준상수 → 참고 표기만) --><!-- [S1466] 코인 시세 모달 라벨 강조 — 알트코인 시즌 지수·BTC 도미넌스·업비트 프리미엄 라벨을 bold+var(--text2)로 (기본 dm-note는 text3 10px — 값 13px bold보다 한 단계 아래 강조 · 표시만, 판정 0) --><!-- [S1467] 코인 시세 모달에 시장 규모 2줄 추가 — 디지털 자산 시총(업비트 전체 마켓·원화)·거래대금 24H(원화), 전일 대비 등락률 포함. 워커 /coin/macro v2에 mcapKrw·katpKrw {v,r} 추가(overview 동일 1콜·추가 호출 0). 표시만, 판정 0 --><!-- [S1468] 전일 대비 ▲▼ 부착 — 홈 공포탐욕 카드(pt·VIX 카드와 대칭)·시세 모달(알트시즌 pt / 도미넌스 %p / 프리미엄 "전일 ±%p")·F&G 모달 알트시즌 섹션(pt). ⚠프리미엄·도미넌스는 지표가 %라 rate 아닌 %p(절대변화) 표기. 워커 델타 별도 필드(fearGreed.d·altseasonD·kimchiD·mdomBtcD)라 기존 소비처 무변경 · 표시만, 판정 0 --><!-- [S1469] 🌗 알트시즌 칩 2줄 스택 — 좁은 sub 폭에서 비의도 줄바꿈(라벨/숫자 어긋남) → flex-direction:column 중앙정렬로 의도화. 1줄=🌗 라벨(9.5px) · 2줄=지수(13px) · 표시만, 판정 0 --><!-- [S1470] 칩 어긋남 수정 — 원인: #fearCoin .fm-body 가로 flex에서 값 영역(62/100+▲▼)이 넓어지자 .fm-sub가 수축 → 칩 라벨이 글자 단위로 꺾임("중/립"). 조치: ①칩 라벨·값 span white-space:nowrap ②#fearCoin .fm-sub flex:0 0 auto(수축 금지 — 폭 부족분은 값 영역 델타가 아랫줄로 접히며 흡수) · 표시만, 판정 0 --><!-- [S1471] 데이터랩 확장 4종 — ①F&G 모달 7일 추세 스파크(공포탐욕·알트시즌 · lines/days) ②⚖️ 상승/하락 줄(워커 /coin/breadth 자체 집계 · KRW 288종 · datalab tick 사망/ratio 정의불일치 실측이라 미사용) ③상승률 = up/total(정의 명시) ④도미넌스 4분해 병기(ETH/스테이블/기타 · 합 100%) · 표시만, 판정 0 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -3255,6 +3255,7 @@ const SX={
         this._fetchNaverKrIndex('KOSDAQ', forceRefresh),  // [S280-C] KOSDAQ 실시간
         this._fetchNaverExchange('USDKRW', forceRefresh), // [S280-C] 원/달러 실시간
         this._fetchKimchi(),                              // [S360] 김치프리미엄 (코인 모달용, /coin/macro 공유)
+        this._fetchCoinBreadth(),                         // [S1471] KRW 마켓 상승/하락/보합 (워커 /coin/breadth)
       ]);
       const fgIdx = extraResults[0].status === 'fulfilled' ? extraResults[0].value : null;
       const coinStruct = extraResults[1].status === 'fulfilled' ? extraResults[1].value : null; // [S1465] {alt, mdomBtc} or null
@@ -3267,6 +3268,7 @@ const SX={
       const naverKosdaq = extraResults[6].status === 'fulfilled' ? extraResults[6].value : null;
       const naverUsdKrw = extraResults[7].status === 'fulfilled' ? extraResults[7].value : null;
       const kimchi      = extraResults[8].status === 'fulfilled' ? extraResults[8].value : null; // [S360]
+      const breadth     = extraResults[9].status === 'fulfilled' ? extraResults[9].value : null; // [S1471] {up,down,even,total}
       console.log('[Dash] _extra 결과:', { fearGreed: !!fgIdx, altseason: coinStruct?.alt ?? 'null', mdomBtc: coinStruct?.mdomBtc ?? 'null', mcap: coinStruct?.mcapKrw?.v ?? 'null', katp: coinStruct?.katpKrw?.v ?? 'null', koreaFG: korFG?.value ?? 'null', naverUpjong: naverUpjong?.count ?? 'null', naverTheme: naverTheme?.count ?? 'null', kospi: naverKospi?.price ?? 'null', kosdaq: naverKosdaq?.price ?? 'null', usdkrw: naverUsdKrw?.price ?? 'null' });
 
       // [S280-C] 네이버 데이터로 덮어쓰기 — data.index의 ^KS11/^KQ11, data.macro의 KRW=X
@@ -3294,6 +3296,10 @@ const SX={
         altD: coinStruct?.altD ?? null,       // [S1468] 알트시즌 전일 대비 pt
         mdomD: coinStruct?.mdomD ?? null,     // [S1468] 도미넌스 전일 대비 %p
         kmD: coinStruct?.kmD ?? null,         // [S1468] 프리미엄 전일 대비 %p
+        mdomEtc: coinStruct?.mdomEtc ?? null, // [S1471] BTC 외 점유율 [{code,v}] — ETH/스테이블/기타
+        fear7: coinStruct?.fear7 ?? null,     // [S1471] 공포탐욕 7일(과거→현재)
+        alt7: coinStruct?.alt7 ?? null,       // [S1471] 알트시즌 7일(과거→현재)
+        breadth: breadth,                     // [S1471] KRW 상승/하락/보합 {up,down,even,total}
         kimchi: kimchi,        // [S360→S1465] 업비트 프리미엄(USDT) % — 글로벌(CMC) 대비 격차 (필드명 '김프' 유지)
         koreaFG: korFG,        // {value, components} or null (S129)
       };
@@ -3456,6 +3462,21 @@ const SX={
       }
     }catch(e){ console.warn('[Dash] coin/macro fetch 실패:', e.message); }
     return this._coinMacroCache.data; // stale 폴백
+  },
+
+  // ── [S1471] KRW 마켓 상승/하락/보합 — 워커 /coin/breadth(KV 60초 · 시세 API 자체 집계) · 업비트 앱 '오늘의 마켓'과 동일 모수(KRW)
+  _coinBreadthCache: { data: null, ts: 0 },
+  async _fetchCoinBreadth(){
+    const now = Date.now();
+    if(this._coinBreadthCache.data && (now - this._coinBreadthCache.ts) < 60000) return this._coinBreadthCache.data;
+    try{
+      const res = await fetch(`${this._DASH_WORKER_BASE}/coin/breadth`, {signal: AbortSignal.timeout(8000)});
+      if(res.ok){
+        const j = await res.json();
+        if(j && j.total > 0 && j.up != null){ this._coinBreadthCache.data = j; this._coinBreadthCache.ts = now; return j; }
+      }
+    }catch(e){ console.warn('[Dash] coin/breadth fetch 실패:', e.message); }
+    return this._coinBreadthCache.data; // stale 폴백
   },
 
   // ── [S476] 주요 경제지표 발표일·수치 (워커 /macro/calendar, KV 6h) ──
@@ -3765,7 +3786,10 @@ const SX={
       katpKrw: (m.katpKrw   != null ? m.katpKrw   : null),   // [S1467] {v:원화, r:전일대비율} 업비트 거래대금 24H
       altD:    (m.altseasonD != null ? m.altseasonD : null),  // [S1468] 알트시즌 전일 대비 pt
       mdomD:   (m.mdomBtcD   != null ? m.mdomBtcD   : null),  // [S1468] 도미넌스 전일 대비 %p
-      kmD:     (m.kimchiD    != null ? m.kimchiD    : null)   // [S1468] 프리미엄 전일 대비 %p
+      kmD:     (m.kimchiD    != null ? m.kimchiD    : null),  // [S1468] 프리미엄 전일 대비 %p
+      mdomEtc: (m.mdomEtc    != null ? m.mdomEtc    : null),  // [S1471] BTC 외 점유율 [{code,v}]
+      fear7:   (m.fear7      != null ? m.fear7      : null),  // [S1471] 공포탐욕 7일(과거→현재)
+      alt7:    (m.alt7       != null ? m.alt7       : null)   // [S1471] 알트시즌 7일(과거→현재)
     };
   },
 
@@ -4495,6 +4519,12 @@ const SX={
         if(tv && tv.v != null){
           body.innerHTML += `<div class="dm-note">📈 <b style="color:var(--text2)">거래대금 24H</b>: <b style="color:var(--text);font-size:13px">${_fmtJo(tv.v)}</b>${_chgTag(tv.r)} <span style="color:var(--text3);font-size:10px">· 업비트 전체 마켓 · 원화 · 전일 대비</span></div>`;
         }
+        // [S1471] KRW 마켓 브레드스 — /coin/breadth 자체 집계. 상승률 정의: up/total(보합 포함 모수 · 전일 종가 대비)
+        const br = data?._extra?.breadth;
+        if(br && br.total > 0 && br.up != null){
+          const _upPct = Math.round(br.up / br.total * 100);
+          body.innerHTML += `<div class="dm-note">⚖️ <b style="color:var(--text2)">상승/하락</b>: <b style="color:var(--up,#e03131);font-size:13px">${br.up}↑</b> · <b style="color:var(--down,#1971c2);font-size:13px">${br.down}↓</b> · 보합 ${br.even} <span style="color:var(--text3);font-size:10px">· 상승률 ${_upPct}% (KRW 마켓 ${br.total}종 · 전일 종가 대비)</span></div>`;
+        }
         const alt = data?._extra?.altseason;
         if(alt != null && this._getAltseasonStatus){
           const aSt = this._getAltseasonStatus(alt);
@@ -4502,7 +4532,11 @@ const SX={
         }
         const dom = data?._extra?.mdomBtc;
         if(dom != null){
-          body.innerHTML += `<div class="dm-note">📊 <b style="color:var(--text2)">BTC 도미넌스</b>: <b style="color:var(--text);font-size:13px">${dom}%</b>${_dTag(data?._extra?.mdomD, '%p')} <span style="color:var(--text3);font-size:10px">· 업비트 전체 마켓 시총 중 BTC 점유율 (1년 60.9~64.9% 준상수)</span></div>`;
+          // [S1471] BTC 외 점유율 병기 — mdom/recents 4분해(BTC·ETH·STABLE·ETC = 합 100% 실측)
+          const _etcMap = { ETH: 'ETH', STABLE: '스테이블', ETC: '기타' };
+          const _etcArr = data?._extra?.mdomEtc;
+          const _etcTxt = (Array.isArray(_etcArr) && _etcArr.length) ? ' · ' + _etcArr.map(x => `${_etcMap[x.code] || x.code} ${x.v}%`).join(' · ') : '';
+          body.innerHTML += `<div class="dm-note">📊 <b style="color:var(--text2)">BTC 도미넌스</b>: <b style="color:var(--text);font-size:13px">${dom}%</b>${_dTag(data?._extra?.mdomD, '%p')} <span style="color:var(--text3);font-size:10px">· 업비트 전체 마켓 시총 중 BTC 점유율 (1년 60.9~64.9% 준상수)${_etcTxt}</span></div>`;
         }
         // [S360→S1465] 업비트 프리미엄(USDT) — 구 김치프리미엄 자리 (글로벌 CMC 대비)
         const km = data?._extra?.kimchi;
@@ -4811,6 +4845,24 @@ const SX={
         stDetail = '코인 시장이 과열 극단에 있습니다. 조정이나 급락이 임박할 수 있으니 신규 진입은 매우 조심하고, 수익 실현을 적극 검토할 때입니다.';
       }
     }
+    // [S1471] 7일 미니 추세 — lines/days(과거→현재). SVG 폴리라인(72×18) · min~max 정규화 · 상수열은 중앙 평선
+    const _spark = (arr, color) => {
+      if(!Array.isArray(arr) || arr.length < 2) return '';
+      const w = 72, h = 18, pad = 2;
+      const mn = Math.min(...arr), mx = Math.max(...arr), rg = mx - mn;
+      const pts = arr.map((v, i) => {
+        const nx = pad + i * (w - 2 * pad) / (arr.length - 1);
+        const ny = h - pad - (rg === 0 ? 0.5 : (v - mn) / rg) * (h - 2 * pad);
+        return `${nx.toFixed(1)},${ny.toFixed(1)}`;
+      }).join(' ');
+      return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    };
+    const _f7 = extra.fear7, _a7 = extra.alt7;
+    const trendRow = ((Array.isArray(_f7) && _f7.length >= 2) || (Array.isArray(_a7) && _a7.length >= 2)) ? `
+      <div class="fmd-row"><div class="fmd-label">📈 7일 추세</div>
+        ${Array.isArray(_f7) && _f7.length >= 2 ? `<div class="fmd-text" style="display:flex;align-items:center;gap:8px">😨 공포탐욕 ${_spark(_f7, 'var(--text2)')} <span style="font-size:11px;color:var(--text3)">${_f7[0]} → <b style="color:var(--text)">${_f7[_f7.length-1]}</b></span></div>` : ''}
+        ${Array.isArray(_a7) && _a7.length >= 2 ? `<div class="fmd-text" style="display:flex;align-items:center;gap:8px;margin-top:4px">🌗 알트시즌 ${_spark(_a7, 'var(--text2)')} <span style="font-size:11px;color:var(--text3)">${_a7[0]} → <b style="color:var(--text)">${_a7[_a7.length-1]}</b></span></div>` : ''}
+      </div>` : '';
     // [S251→S1465] 알트코인 시즌 지수 판정 (alt != null 일 때만) — 구 BTC 도미넌스 5단계 대체
     const altSt = (alt != null) ? this._getAltseasonStatus(alt) : null;
     // [S1468] 알트시즌 전일 대비 pt 태그 (템플릿 밖 사전 조립 — 3중 중첩 회피)
@@ -4821,6 +4873,7 @@ const SX={
         <div class="fmd-text fmd-dim">${stDetail}</div>
       </div>
       <div class="fmd-row"><div class="fmd-label">📊 방식</div><div class="fmd-text">업비트 데이터랩 제공. 업비트 디지털 자산의 가격·거래량 기반 시장 심리 지수 (0~100).</div></div>
+      ${trendRow}
       ${altSt ? `
       <div class="fmd-row"><div class="fmd-label">🌗 알트코인 시즌 지수</div>
         <div class="fmd-judge">
