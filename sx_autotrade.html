@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1396</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신(S1393 실기기에서 비동기 발견) -->
+    <div class="tb-build">S1464</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신(S1393 실기기에서 비동기 발견) -->
   </div>
 
   <div class="scroll-area">
@@ -381,6 +381,23 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div id="enMsg" style="font-size:11px;margin-top:9px;line-height:1.5;"></div>
     </div>
 
+    <!-- ═══ [S1464] 텔레그램 알림 (매수 후보 · 주문 체결) ═══ -->
+    <div class="card" data-zone="kr" id="atNotifyCard">
+      <div class="card-title">🔔 텔레그램 알림 <span class="tag">매수후보·주문 체결 · S1464</span></div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">① <b>매수 후보</b> — 신호 수신 직후(평일 15:30경) 다음 장 매수 예정·제외 종목 요약. 재수신 무스팸(asof 멱등)·<b>후보 0종도 한 줄 발송</b>(신호 파이프라인 생존신호). ② <b>주문 체결</b> — 장중 cron tick마다 이번 tick 체결·거절·신호를 <b>1건 배치</b> 발송(주문 없는 tick 침묵). 봇 토큰은 저장 후 비표시 — 변경할 때만 다시 입력.</div>
+      <label style="display:block;font-size:10.5px;color:var(--text2);line-height:1.5;margin-bottom:8px;">봇 토큰 (@BotFather)<input id="nfToken" type="password" autocomplete="off" placeholder="봇 토큰 (123456:ABC-…)" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+      <label style="display:block;font-size:10.5px;color:var(--text2);line-height:1.5;margin-bottom:10px;">챗 ID (@userinfobot)<input id="nfChatId" type="text" inputmode="numeric" autocomplete="off" placeholder="예: 123456789" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+      <div style="display:flex;gap:16px;margin-bottom:12px;">
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="nfCandOn" type="checkbox" checked style="width:16px;height:16px;"/>매수 후보</label>
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="nfOrdersOn" type="checkbox" checked style="width:16px;height:16px;"/>주문 체결·거절</label>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" id="nfSaveBtn" onclick="atSaveNotifyConfig()" style="flex:2;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">💾 저장</button>
+        <button type="button" id="nfTestBtn" onclick="atTestNotify()" style="flex:1;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">📨 테스트</button>
+      </div>
+      <div id="nfMsg" style="font-size:11px;margin-top:9px;line-height:1.5;"></div>
+    </div>
+
     <!-- ═══ [S1031] 실현손익 evidence (로드맵3 · 가계부) ═══ -->
     <div class="card" data-zone="kr" id="atPnlCard">
       <div class="card-title">📒 실현손익 evidence <span class="tag">로드맵3 · S1031</span></div>
@@ -443,7 +460,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1396</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1464</div>
   </div>
 </div>
 
@@ -526,6 +543,7 @@ function atRender(d){
   atRenderPortfolio(d.portfolio);  // [S933] KIS 잔고/손익 패널
   atRenderExitConfig(d.exitConfig); // [S949] 청산 설정 입력칸 동기화
   atRenderEntryConfig(d.entryConfig); // [S1028] 진입 상한 입력칸 동기화
+  atRenderNotifyConfig(d.notifyConfig); // [S1464] 텔레그램 알림 설정 동기화(최초 1회)
   atRenderPnl(d.pnl); // [S1031] 실현손익 evidence 카드
   // [S943] 장중 배지(서버 계산 marketOpen·공휴일 반영)
   const mb=_$('atMktBadge');
@@ -1198,6 +1216,46 @@ async function atSaveEntryConfig(){
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
   _enV4Pend=false; // [S1357] 실패·거절 포함 왕복 종료 — 다음 12초 폴링이 서버값으로 체크박스·표기를 복원한다(표류 방지)
   if(btn){ btn.disabled=false; btn.textContent='💾 진입 상한 저장'; }
+}
+
+// ── [S1464] 텔레그램 알림 설정 (notify-config ↔ KV at:notify) — 토큰은 서버 비반환(hasToken만)·빈 토큰 저장=기존 유지 ──
+let _nfLoaded=false;
+function atRenderNotifyConfig(cfg){
+  if(!cfg || _nfLoaded) return; // 최초 1회만 로드 → atRefresh(12s)가 편집값 덮어쓰기 방지(입력칸·체크 모두)
+  _nfLoaded=true;
+  const t=_$('nfToken'); if(t && cfg.hasToken) t.placeholder='저장됨 — 변경 시에만 입력';
+  const c=_$('nfChatId'); if(c && cfg.chatId) c.value=cfg.chatId;
+  const a=_$('nfCandOn'); if(a) a.checked=(cfg.candOn!==false);
+  const b=_$('nfOrdersOn'); if(b) b.checked=(cfg.ordersOn!==false);
+}
+async function atSaveNotifyConfig(){
+  const msg=_$('nfMsg'), btn=_$('nfSaveBtn');
+  const body={ token:(_$('nfToken')?_$('nfToken').value.trim():''), chatId:(_$('nfChatId')?_$('nfChatId').value.trim():''), candOn:!!(_$('nfCandOn')&&_$('nfCandOn').checked), ordersOn:!!(_$('nfOrdersOn')&&_$('nfOrdersOn').checked) };
+  if(btn){ btn.disabled=true; btn.textContent='저장 중…'; }
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/notify-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
+    const d=await r.json();
+    if(d && d.ok && d.notifyConfig){
+      const nc=d.notifyConfig;
+      const t=_$('nfToken'); if(t){ t.value=''; t.placeholder=nc.hasToken?'저장됨 — 변경 시에만 입력':'봇 토큰 (123456:ABC-…)'; } // 토큰을 화면에 안 남긴다
+      if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 토큰 '+(nc.hasToken?'✔':'✖ 없음')+' · 챗ID '+(nc.chatId||'—')+' · 후보 '+(nc.candOn?'ON':'OFF')+' · 주문 '+(nc.ordersOn?'ON':'OFF'); }
+    }
+    else if(d && d.needAuth){ _atToken=''; atShowGate(); }
+    else if(msg){ msg.style.color='var(--sell)'; msg.textContent='저장 실패: '+((d&&d.error)||'알수없음'); }
+  }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
+  if(btn){ btn.disabled=false; btn.textContent='💾 저장'; }
+}
+async function atTestNotify(){
+  const msg=_$('nfMsg'), btn=_$('nfTestBtn');
+  if(btn){ btn.disabled=true; btn.textContent='발송 중…'; }
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/notify-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify({action:'test'}), signal:AbortSignal.timeout(12000) });
+    const d=await r.json();
+    if(d && d.ok){ if(msg){ msg.style.color='var(--buy)'; msg.textContent='📨 테스트 발송됨 — 텔레그램 수신을 확인하세요'; } }
+    else if(d && d.needAuth){ _atToken=''; atShowGate(); }
+    else if(msg){ msg.style.color='var(--sell)'; msg.textContent='테스트 실패: '+((d&&d.error)||'알수없음'); }
+  }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
+  if(btn){ btn.disabled=false; btn.textContent='📨 테스트'; }
 }
 
 // ── [S947→S1359] 신호 진단 — 구세대 등급 in-sample 표(SX_MEASURE·2026-07-09 정적)와 렌더를 제거했다.
