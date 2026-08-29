@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 --><!-- [S964] KOSPI 큰수치=변동성 원자료·상위%제거 · 코인 도미넌스 칩 우측배치 -->
+<!-- SIGNAL X App v3.7d --><!-- [S961] 색상 팔레트 SSOT 8색 통일 · 시세 한국식 전면 · 공포/침체권 회색 · 카드 수치-배지 동기화 --><!-- [S962] 코인 F&G 함수↔모달범례 정합(극단공포 등) · 알트시즌 보라→회색 --><!-- [S963] KOSPI 미니카드 변동성 앞세우기(불안 배지·침체권 착시 해소) · 코인 도미넌스 배지 추가 --><!-- [S964] KOSPI 큰수치=변동성 원자료·상위%제거 · 코인 도미넌스 칩 우측배치 --><!-- [S1465] 코인 거시지표 업비트 데이터랩 전환 — 공포탐욕=업비트 지수(밴드 20/40/60/80 · 매우공포~매우탐욕) · 김프→업비트 프리미엄(USDT·CMC 대비) · 도미넌스 배지→알트코인 시즌 지수(0-25 BTC시즌/26-74 중립/75-100 알트시즌 · 업비트 mdom은 마켓 점유율이라 1년 60.9~64.9% 준상수 → 참고 표기만) -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -3240,13 +3240,13 @@ const SX={
         });
       });
 
-      // S127+S129: 추가 데이터 병렬 fetch — 코인 F&G + BTC 도미넌스 + 한국 F&G + [S249] 네이버 sector
+      // S127+S129: 추가 데이터 병렬 fetch — 코인 F&G + 코인 구조(알트시즌·업비트 도미넌스 [S1465]) + 한국 F&G + [S249] 네이버 sector
       //   [S280-C] 네이버 한국 지수(KOSPI/KOSDAQ) + 환율(USDKRW) 병렬 추가
       //              Yahoo ^KS11/KRW=X 옛 값 반환 문제 해결 → 네이버 실시간 데이터로 덮어쓰기
       //   Promise.allSettled로 개별 실패 격리 (하나 실패해도 나머지 반영)
       const extraResults = await Promise.allSettled([
         this._fetchCryptoFearGreed(),
-        this._fetchBtcDominance(),
+        this._fetchCoinStructure(),                      // [S1465] 알트시즌 지수 + 업비트 마켓 도미넌스(참고) — 구 _fetchBtcDominance 대체
         this._fetchKoreaFearGreed(),
         this._fetchNaverSector('upjong'),  // [S249] 한국 섹터용 — 업종 데이터
         this._fetchNaverSector('theme'),   // [S249] 한국 섹터용 — 테마 데이터 (2차전지 등 보조)
@@ -3256,7 +3256,7 @@ const SX={
         this._fetchKimchi(),                              // [S360] 김치프리미엄 (코인 모달용, /coin/macro 공유)
       ]);
       const fgIdx = extraResults[0].status === 'fulfilled' ? extraResults[0].value : null;
-      const btcDom = extraResults[1].status === 'fulfilled' ? extraResults[1].value : null;
+      const coinStruct = extraResults[1].status === 'fulfilled' ? extraResults[1].value : null; // [S1465] {alt, mdomBtc} or null
       const korFG = extraResults[2].status === 'fulfilled' ? extraResults[2].value : null;
       // [S249] 네이버 sector 데이터 수신
       const naverUpjong = extraResults[3].status === 'fulfilled' ? extraResults[3].value : null;
@@ -3266,7 +3266,7 @@ const SX={
       const naverKosdaq = extraResults[6].status === 'fulfilled' ? extraResults[6].value : null;
       const naverUsdKrw = extraResults[7].status === 'fulfilled' ? extraResults[7].value : null;
       const kimchi      = extraResults[8].status === 'fulfilled' ? extraResults[8].value : null; // [S360]
-      console.log('[Dash] _extra 결과:', { fearGreed: !!fgIdx, btcDominance: btcDom, koreaFG: korFG?.value ?? 'null', naverUpjong: naverUpjong?.count ?? 'null', naverTheme: naverTheme?.count ?? 'null', kospi: naverKospi?.price ?? 'null', kosdaq: naverKosdaq?.price ?? 'null', usdkrw: naverUsdKrw?.price ?? 'null' });
+      console.log('[Dash] _extra 결과:', { fearGreed: !!fgIdx, altseason: coinStruct?.alt ?? 'null', mdomBtc: coinStruct?.mdomBtc ?? 'null', koreaFG: korFG?.value ?? 'null', naverUpjong: naverUpjong?.count ?? 'null', naverTheme: naverTheme?.count ?? 'null', kospi: naverKospi?.price ?? 'null', kosdaq: naverKosdaq?.price ?? 'null', usdkrw: naverUsdKrw?.price ?? 'null' });
 
       // [S280-C] 네이버 데이터로 덮어쓰기 — data.index의 ^KS11/^KQ11, data.macro의 KRW=X
       //   매칭 실패 시 Yahoo 값 유지 (안전 폴백)
@@ -3285,9 +3285,10 @@ const SX={
         if (k) { k.price = naverUsdKrw.price; k.change = naverUsdKrw.changePercent; k._source = 'naver'; }
       }
       data._extra = {
-        fearGreed: fgIdx,      // {value, classification} or null
-        btcDominance: btcDom,  // 퍼센트 숫자 or null
-        kimchi: kimchi,        // [S360] 김프 % or null (업비트 vs 글로벌)
+        fearGreed: fgIdx,      // {value, classification} or null — [S1465] 업비트 데이터랩 공포탐욕(밴드 20/40/60/80)
+        altseason: coinStruct?.alt ?? null,   // [S1465] 알트코인 시즌 지수 0~100 (업비트 · 구 btcDominance 대체)
+        mdomBtc: coinStruct?.mdomBtc ?? null, // [S1465] 업비트 전체 마켓 시총 중 BTC 점유율 % (참고 표기)
+        kimchi: kimchi,        // [S360→S1465] 업비트 프리미엄(USDT) % — 글로벌(CMC) 대비 격차 (필드명 '김프' 유지)
         koreaFG: korFG,        // {value, components} or null (S129)
       };
 
@@ -3426,7 +3427,7 @@ const SX={
   },
 
   async _fetchCryptoFearGreed(){
-    // [S360] /coin/macro(워커 KV 10분 캐시) 공유 — 분석탭과 동일 소스/값. 기존 alternative.me 직접호출 대체.
+    // [S360→S1465] /coin/macro(워커 KV 10분 캐시) 공유 — 분석탭과 동일 소스/값. 소스: alternative.me → 업비트 데이터랩 공포탐욕(0~100).
     const m = await this._fetchCoinMacro();
     if(m && m.fearGreed && m.fearGreed.v != null){
       return { value: m.fearGreed.v, classification: m.fearGreed.cls };
@@ -3739,14 +3740,18 @@ const SX={
   },
 
   async _fetchKimchi(){
-    // [S360] 김치프리미엄 % (업비트 KRW-BTC vs 코인베이스 글로벌KRW) — /coin/macro 공유
+    // [S360→S1465] 업비트 프리미엄(USDT) % — 글로벌(CMC) 대비 업비트 가격 격차. 워커가 datalab premium 전달(구 김프 계산식 폐기). /coin/macro 공유
     const m = await this._fetchCoinMacro();
     return (m && m.kimchi != null) ? m.kimchi : null;
   },
-  async _fetchBtcDominance(){
-    // [S360] /coin/macro(워커 KV 10분 캐시) 공유 — 분석탭과 동일 소스/값. 기존 coingecko 직접호출 대체.
+  async _fetchCoinStructure(){
+    // [S360→S1465] 코인 구조 지표 — /coin/macro 공유. 구 _fetchBtcDominance(글로벌 도미넌스) 대체.
+    //   〔전환 이력〕 업비트 mdom은 "업비트 마켓 내 점유율"이라 1년 분포 60.9~64.9%(p5 62.0/p95 64.6, n=365) 준상수 —
+    //   글로벌 도미넌스용 해석밴드(알트시즌~BTC독주)를 대면 1년 내내 'BTC 우위' 고정 = 판정 기능 상실.
+    //   ⇒ 알트/BTC 주도권 판단은 업비트 알트코인 시즌 지수(0~100)로 이관, mdom은 참고 숫자로만 표기.
     const m = await this._fetchCoinMacro();
-    return (m && m.dominance != null) ? m.dominance : null;
+    if(m && m.altseason != null) return { alt: m.altseason, mdomBtc: (m.mdomBtc != null ? m.mdomBtc : null) };
+    return null;
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -4050,11 +4055,11 @@ const SX={
         el.innerHTML = `<div>${_sxEsc(top1.emo||'')} ${_sxEsc(top1.name)} <span class="${topC.cls}">${topC.str}</span></div>` +
                        `<div>${_sxEsc(bot1.emo||'')} ${_sxEsc(bot1.name)} <span class="${botC.cls}">${botC.str}</span></div>`;
       } else if(cat === 'coin'){
-        // S127: 코인은 BTC + 도미넌스 표시 (이더리움 생략, 도미넌스로 대체)
+        // S127→[S1465]: 코인은 BTC + 도미넌스 표시 — 도미넌스 = 업비트 마켓 내 BTC 점유율(mdomBtc)
         const btcItem = valid.find(i => i.sym === 'BTC-USD') || valid[0];
         const btcC = this._fmtChg(btcItem.change);
         const extra = data._extra || {};
-        const dom = extra.btcDominance;
+        const dom = extra.mdomBtc;   // [S1465] 글로벌 도미넌스 → 업비트 마켓 점유율
         // [S225] 종목명 escape — XSS 방어
         el.innerHTML = `<div>${_sxEsc(btcItem.name)} <span class="${btcC.cls}">${btcC.str}</span></div>` +
                        (dom != null
@@ -4123,17 +4128,18 @@ const SX={
   // S127: 공포지수 상태 헬퍼
   // ═══════════════════════════════════════════════════════════════
   // 코인 F&G (0~100, 높을수록 탐욕)
-  // ── 공포탐욕지수 5단계 매핑 ([S962] 모달 범례·표준 alternative.me와 정합)
-  //    0~24 극단공포 / 25~44 공포 / 45~55 중립 / 56~74 탐욕 / 75~100 극단탐욕
-  //    (기존 14/24/74/84·공포/경계/중립/과열/탐욕 = 범례와 불일치 버그 → 수정)
-  //    CSS 클래스명은 기존 색상 시맨틱 유지 (fg-extreme-fear → [S961] 회색 = 극단공포/완전침체)
+  // ── 공포탐욕지수 5단계 매핑 ([S962→S1465] 업비트 데이터랩 공식 단계와 정합)
+  //    0~20 매우공포 / 20~40 공포 / 40~60 중립 / 60~80 탐욕 / 80~100 매우탐욕
+  //    (경계값 20/40/60/80은 상위 단계 귀속 — API lower/upper 겹침 정의라 한쪽 확정 · indicator/fear/stage 실측 2026-08-29)
+  //    (구 alternative.me 밴드 0-24/25-44/45-55/56-74/75+ 는 소스 전환으로 폐기 · 라벨 극단→매우로 업비트 공식 어휘)
+  //    CSS 클래스명은 기존 색상 시맨틱 유지 (fg-extreme-fear → [S961] 회색)
   _getCryptoFGStatus(val){
     if(val == null) return { label:'—', cls:'', kor:'—' };
-    if(val <= 24)   return { label:'Extreme Fear', cls:'fg-extreme-fear',  kor:'극단공포' };
-    if(val <= 44)   return { label:'Fear',         cls:'fg-fear',          kor:'공포' };
-    if(val <= 55)   return { label:'Neutral',      cls:'fg-neutral',       kor:'중립' };
-    if(val <= 74)   return { label:'Greed',        cls:'fg-greed',         kor:'탐욕' };
-    return                { label:'Extreme Greed', cls:'fg-extreme-greed', kor:'극단탐욕' };
+    if(val < 20)    return { label:'Extreme Fear', cls:'fg-extreme-fear',  kor:'매우공포' };
+    if(val < 40)    return { label:'Fear',         cls:'fg-fear',          kor:'공포' };
+    if(val < 60)    return { label:'Neutral',      cls:'fg-neutral',       kor:'중립' };
+    if(val < 80)    return { label:'Greed',        cls:'fg-greed',         kor:'탐욕' };
+    return                { label:'Extreme Greed', cls:'fg-extreme-greed', kor:'매우탐욕' };
   },
 
   // 한국 VKOSPI (VIX와 유사 스케일)
@@ -4190,16 +4196,14 @@ const SX={
     return                    { label:'안정',   cls:'k-calm' };     // 녹색
   },
 
-  // [S251] BTC 도미넌스 5단계 해석 (객관적 시장 상태 묘사 — 가치 판단 없음)
-  //   알트 시즌(낮음) ↔ BTC 독주(높음)
-  //   color는 KOSPI 추세와 같은 5색 시스템 (보라/파랑/녹색/주황/빨강)이지만 의미는 다름
-  _getBtcDominanceStatus(dom){
-    if(dom == null) return { label:'—', color:'var(--text2)' };
-    if(dom < 40)    return { label:'알트 시즌', color:'#64748b' };  // [S962] 보라→회색(범례칩 정합·보라는 혼조 전용)
-    if(dom < 50)    return { label:'알트 우위', color:'#2563eb' };  // 파랑
-    if(dom < 60)    return { label:'균형',      color:'#16a34a' };  // 녹색
-    if(dom < 70)    return { label:'BTC 우위',  color:'#ea580c' };  // 주황
-    return                 { label:'BTC 독주',  color:'#dc2626' };  // 빨강
+  // [S251→S1465] 알트코인 시즌 지수 3단계 (업비트 공식 경계 0~25 / 26~74 / 75~100)
+  //   구 BTC 도미넌스 5단계 배지 대체 — 업비트 mdom은 "마켓 내 점유율"이라 1년 분포 60.9~64.9% 준상수(밴드 판정 불능).
+  //   색: BTC시즌 주황 / 중립 녹색 / 알트시즌 파랑 (기존 시맨틱 상속 — BTC 계열 난색 · 알트 계열 한색 · 균형 녹색)
+  _getAltseasonStatus(alt){
+    if(alt == null) return { label:'—', color:'var(--text2)' };
+    if(alt <= 25)   return { label:'BTC 시즌',  color:'#ea580c' };  // 주황 (구 'BTC 우위' 색 상속)
+    if(alt < 75)    return { label:'중립',      color:'#16a34a' };  // 녹색
+    return               { label:'알트 시즌', color:'#2563eb' };  // 파랑 (구 '알트 우위' 색 상속)
   },
 
   // ── 시장 지표 미니 카드 렌더 (S134: 한국 = KOSPI 시장 대체 지표) ──
@@ -4243,7 +4247,7 @@ const SX={
       }
     }
 
-    // 🪙 코인 공포탐욕지수 (alternative.me)
+    // 🪙 코인 공포탐욕지수 (업비트 데이터랩) — [S1465] 소스 전환
     const coinCard = document.getElementById('fearCoin');
     const coinValue = document.getElementById('fearCoinValue');
     const coinStatus = document.getElementById('fearCoinStatus');
@@ -4257,11 +4261,11 @@ const SX={
         if(coinValue) coinValue.innerHTML = `${_sxEsc(fg.value)}<span class="fm-scale">/100</span>`;
         if(coinStatus) coinStatus.textContent = st.kor;
         if(coinSub){
-          // [S963] 도미넌스 배지 추가 — 알트/BTC 어느 쪽 강세인지. sub의 'Fear & Greed'를 도미넌스 칩으로 대체.
-          const dom = extra.btcDominance;
-          const domSt = (dom != null) ? this._getBtcDominanceStatus(dom) : null;
-          if(domSt){
-            coinSub.innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:8px;font-size:9.5px;font-weight:700;line-height:1.6;color:${domSt.color};background:${domSt.color}1a;border:1px solid ${domSt.color}55">₿ ${_sxEsc(domSt.label)} ${_sxEsc(dom.toFixed(1))}%</span>`;
+          // [S963→S1465] 주도권 배지 — 글로벌 도미넌스 밴드 → 업비트 알트코인 시즌 지수. sub의 'Fear & Greed'를 칩으로 대체.
+          const alt = extra.altseason;
+          const altSt = (alt != null) ? this._getAltseasonStatus(alt) : null;
+          if(altSt){
+            coinSub.innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:8px;font-size:9.5px;font-weight:700;line-height:1.6;color:${altSt.color};background:${altSt.color}1a;border:1px solid ${altSt.color}55">🌗 ${_sxEsc(altSt.label)} ${_sxEsc(alt)}</span>`;
           } else {
             coinSub.textContent = 'Fear & Greed';
           }
@@ -4458,16 +4462,21 @@ const SX={
           </span>
         </div>`;
       } else if(cat === 'coin'){
-        // S127: 코인 모달에 BTC 도미넌스 추가
-        const dom = data?._extra?.btcDominance;
-        if(dom != null){
-          body.innerHTML += `<div class="dm-note">📊 BTC 도미넌스: <b style="color:var(--text);font-size:13px">${dom}%</b> <span style="color:var(--text3);font-size:10px">· 전체 암호화폐 시총 중 비트코인 비중</span></div>`;
+        // S127→[S1465] 코인 모달 — 업비트 데이터랩 기준 구조 지표 3줄(알트시즌·도미넌스·프리미엄)
+        const alt = data?._extra?.altseason;
+        if(alt != null && this._getAltseasonStatus){
+          const aSt = this._getAltseasonStatus(alt);
+          body.innerHTML += `<div class="dm-note">🌗 알트코인 시즌 지수: <b style="color:${aSt.color};font-size:13px">${alt}</b> <span style="color:var(--text3);font-size:10px">· ${aSt.label} — 상위 100 알트 90일 수익률 vs BTC (업비트)</span></div>`;
         }
-        // [S360] 김치프리미엄 — 도미넌스 밑에 추가 (업비트 프리미엄)
+        const dom = data?._extra?.mdomBtc;
+        if(dom != null){
+          body.innerHTML += `<div class="dm-note">📊 BTC 도미넌스: <b style="color:var(--text);font-size:13px">${dom}%</b> <span style="color:var(--text3);font-size:10px">· 업비트 전체 마켓 시총 중 BTC 점유율 (1년 60.9~64.9% 준상수)</span></div>`;
+        }
+        // [S360→S1465] 업비트 프리미엄(USDT) — 구 김치프리미엄 자리 (글로벌 CMC 대비)
         const km = data?._extra?.kimchi;
         if(km != null){
           const _kmCol = km > 0 ? 'var(--up,#e03131)' : km < 0 ? 'var(--down,#1971c2)' : 'var(--text)';
-          body.innerHTML += `<div class="dm-note">🇰🇷 김치프리미엄: <b style="color:${_kmCol};font-size:13px">${km > 0 ? '+' : ''}${km}%</b> <span style="color:var(--text3);font-size:10px">· 업비트 vs 글로벌 시세 격차</span></div>`;
+          body.innerHTML += `<div class="dm-note">🇰🇷 업비트 프리미엄: <b style="color:${_kmCol};font-size:13px">${km > 0 ? '+' : ''}${km}%</b> <span style="color:var(--text3);font-size:10px">· 글로벌(CMC) 대비 업비트 가격 격차 (USDT)</span></div>`;
         }
       }
     }
@@ -4741,71 +4750,71 @@ const SX={
     `;
   },
 
-  // ── 코인 F&G 모달 콘텐츠 ──
+  // ── 코인 F&G 모달 콘텐츠 ── [S1465] 업비트 데이터랩 기준 재작성 (밴드 20/40/60/80 · BTC 도미넌스 섹션 → 알트시즌 지수)
   _renderCoinModalBody(data){
     const extra = data._extra || {};
     const fg = extra.fearGreed;
     const val = fg?.value;
-    const dom = extra.btcDominance;
-    // 동적 해석 2단계: 짧은 제목 + 상세 (S130b)
+    const alt = extra.altseason;
+    const mdom = extra.mdomBtc;
+    // 동적 해석 2단계: 짧은 제목 + 상세 (S130b) — [S1465] 컷 20/40/60/80 (업비트 공식 · 경계는 상위 단계 귀속)
     let stTitle = '—', stDetail = '';
     if(val != null){
-      if(val <= 24){
-        stTitle = '극단 공포';
+      if(val < 20){
+        stTitle = '매우 공포';
         stDetail = '암호화폐 시장에 극심한 공포가 깔려 있는 상태입니다. 역발상 투자자들이 관심을 가지는 구간이지만, 추가 하락 가능성도 함께 고려해야 합니다.';
-      } else if(val <= 44){
+      } else if(val < 40){
         stTitle = '공포 우세';
         stDetail = '투자자들이 겁을 먹고 코인을 처분하는 분위기입니다. 과도한 공포가 저가 매수 기회로 이어질 수 있으나, 시장 바닥 확인이 우선입니다.';
-      } else if(val <= 55){
-        stTitle = '균형';
+      } else if(val < 60){
+        stTitle = '중립';
         stDetail = '특별한 감정 없이 시장이 조용한 구간입니다. 큰 방향성 없이 횡보하거나 세부 이슈에 따라 움직일 가능성이 높습니다.';
-      } else if(val <= 74){
+      } else if(val < 80){
         stTitle = '탐욕 확산';
         stDetail = '상승세에 편승하려는 투자자가 늘어나는 과열 초기 단계입니다. 추격 매수보다는 분할 익절을 고려할 만한 구간입니다.';
       } else {
-        stTitle = '극단 탐욕';
+        stTitle = '매우 탐욕';
         stDetail = '코인 시장이 과열 극단에 있습니다. 조정이나 급락이 임박할 수 있으니 신규 진입은 매우 조심하고, 수익 실현을 적극 검토할 때입니다.';
       }
     }
-    // [S251] BTC 도미넌스 5단계 해석 (dom != null 일 때만 계산)
-    const domSt = (dom != null) ? this._getBtcDominanceStatus(dom) : null;
+    // [S251→S1465] 알트코인 시즌 지수 판정 (alt != null 일 때만) — 구 BTC 도미넌스 5단계 대체
+    const altSt = (alt != null) ? this._getAltseasonStatus(alt) : null;
     return `
       <div class="fmd-row"><div class="fmd-label">💡 현재 상태</div>
         <div class="fmd-title">${stTitle}</div>
         <div class="fmd-text fmd-dim">${stDetail}</div>
       </div>
-      <div class="fmd-row"><div class="fmd-label">📊 방식</div><div class="fmd-text">alternative.me 제공. 글로벌 암호화폐 시장의 투자자 감정 지수.</div></div>
-      ${domSt ? `
-      <div class="fmd-row"><div class="fmd-label">₿ BTC 도미넌스</div>
+      <div class="fmd-row"><div class="fmd-label">📊 방식</div><div class="fmd-text">업비트 데이터랩 제공. 업비트 디지털 자산의 가격·거래량 기반 시장 심리 지수 (0~100).</div></div>
+      ${altSt ? `
+      <div class="fmd-row"><div class="fmd-label">🌗 알트코인 시즌 지수</div>
         <div class="fmd-judge">
           <div class="fj-item">
             <div class="fj-top">
-              <span class="fj-name">전체 암호화폐 시총 중 BTC 비중</span>
-              <span class="fj-score" style="color:${domSt.color};font-weight:700">${domSt.label}</span>
+              <span class="fj-name">상위 100 알트 90일 수익률 vs BTC</span>
+              <span class="fj-score" style="color:${altSt.color};font-weight:700">${altSt.label}</span>
             </div>
-            <div class="fj-sub"><b style="font-size:16px;color:var(--text)">${dom}%</b></div>
-            <div class="fj-bar"><div class="fj-bar-fill" style="width:${dom}%"></div></div>
+            <div class="fj-sub"><b style="font-size:16px;color:var(--text)">${alt}</b><span style="color:var(--text3);font-size:10px">/100</span></div>
+            <div class="fj-bar"><div class="fj-bar-fill" style="width:${alt}%"></div></div>
+            ${mdom != null ? `<div class="fj-sub" style="margin-top:4px;color:var(--text3);font-size:10px">참고 — 업비트 마켓 내 BTC 점유율 ${mdom}% (1년 범위 60.9~64.9%, 준상수)</div>` : ''}
           </div>
         </div>
       </div>
       ` : ''}
       <div class="fmd-row"><div class="fmd-label">📏 해석 기준</div>
-        <div class="fmd-text" style="font-size:11px;color:var(--text2);margin-bottom:6px">😨 <b>공포탐욕</b> — 투자자 감정 (0~100)</div>
+        <div class="fmd-text" style="font-size:11px;color:var(--text2);margin-bottom:6px">😨 <b>공포탐욕</b> — 투자자 감정 (0~100 · 업비트 공식 5단계)</div>
         <div class="fmd-text">
-          <span class="fmd-chip fg-extreme-fear">0~24 극단공포</span>
-          <span class="fmd-chip fg-fear">25~44 공포</span>
-          <span class="fmd-chip fg-neutral">45~55 중립</span>
-          <span class="fmd-chip fg-greed">56~74 탐욕</span>
-          <span class="fmd-chip fg-extreme-greed">75~ 극단탐욕</span>
+          <span class="fmd-chip fg-extreme-fear">~20 매우공포</span>
+          <span class="fmd-chip fg-fear">20~40 공포</span>
+          <span class="fmd-chip fg-neutral">40~60 중립</span>
+          <span class="fmd-chip fg-greed">60~80 탐욕</span>
+          <span class="fmd-chip fg-extreme-greed">80~ 매우탐욕</span>
         </div>
-        ${domSt ? `
-        <div class="fmd-text" style="font-size:11px;color:var(--text2);margin-top:10px;margin-bottom:6px">₿ <b>BTC 도미넌스</b> — 시장 구조 (낮을수록 알트 활성)</div>
+        ${altSt ? `
+        <div class="fmd-text" style="font-size:11px;color:var(--text2);margin-top:10px;margin-bottom:6px">🌗 <b>알트시즌 지수</b> — 주도 자산 (높을수록 알트 주도)</div>
         <div class="fmd-text">
-          <span class="fmd-chip fg-extreme-fear">~40% 알트시즌</span>
-          <span class="fmd-chip fg-fear">40~50% 알트우위</span>
-          <span class="fmd-chip fg-neutral">50~60% 균형</span>
-          <span class="fmd-chip fg-greed">60~70% BTC우위</span>
-          <span class="fmd-chip fg-extreme-greed">70%~ BTC독주</span>
+          <span class="fmd-chip fg-greed">0~25 BTC시즌</span>
+          <span class="fmd-chip fg-neutral">26~74 중립</span>
+          <span class="fmd-chip fg-fear">75~ 알트시즌</span>
         </div>
         ` : ''}
       </div>
