@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1474</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1477</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -265,7 +265,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         </div>
       </div>
       <div id="atCoinLedger" style="margin-top:8px;"><div style="font-size:10px;color:var(--text3);">② 원장 로드 대기…</div></div>
-      <div style="font-size:9.5px;color:var(--text3);margin-top:6px;line-height:1.6;">전략 판정은 <b>②</b>에서(각인·관측소 — avoid 조기청산 A/B는 별건 사전등록) · <b>③</b>은 슬리피지·수수료·최소호가·API거절 등 가상원장이 못 재는 <b>체결 마찰</b>만 · <b>① 가동</b>: 일일갱신 S1192 + 주말 소생 S1472(cron 매일) · <b>② 가동 S1472</b>: 진입 D+1시가 · 수수료 0.05% · 최소주문 5,000원 · 청산 KR 코어 SSOT · 멱등 (code,side,asof) · 승격은 설계원칙 4조 게이트.</div>
+      <div style="font-size:9.5px;color:var(--text3);margin-top:6px;line-height:1.6;">전략 판정은 <b>②</b>에서(각인·관측소 — avoid 조기청산 A/B는 별건 사전등록) · <b>③</b>은 슬리피지·수수료·최소호가·API거절 등 가상원장이 못 재는 <b>체결 마찰</b>만 · <b>① 가동</b>: 일일갱신 S1192 + 주말 소생 S1472(cron 매일) · <b>② 가동 S1472</b>: 진입 D+1시가 · 수수료 0.05% · 최소주문 5,000원 · 청산 KR 코어 SSOT · 멱등 (code,side,asof) · 승격은 설계원칙 4조 게이트. · [S1477] 신규 진입원 bullVol·크로스: 코인 provisional — src별 전진게이트(완성 N≥20 시 기대값>0·승률≥35% 미달→자동 OFF)·우선순위 legacy→bullVol→cross·발동분은 후보 카드 미표시(체결·게이트는 활동 로그와 state.gates).</div>
     </div>
 
     <!-- ═══ [S1473] 코인 오늘의 매수 후보 — KR 카드(S951) 동형 · 설정은 코인 전용(entry-config?mkt=coin) ═══ -->
@@ -469,7 +469,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1474</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1477</div>
   </div>
 </div>
 
