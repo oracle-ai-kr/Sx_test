@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1464</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신(S1393 실기기에서 비동기 발견) -->
+    <div class="tb-build">S1472</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -242,7 +242,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
     <!-- ═══ [S1189→S1190] COIN 트랙 (독립 카드·coin 구역) — KIS 모의(paper)가 없는 시장이라 ②가상 원장이 그 자리를 대신한다. ═══ -->
     <div class="card" data-zone="coin">
-      <div class="card-title">🛰️ COIN 트랙 <span class="tag">사다리 · S1189</span></div>
+      <div class="card-title">🛰️ COIN 트랙 <span class="tag">사다리 S1189 · 원장 S1472</span></div>
       <div class="pipe-wrap">
         <div class="pipe">
           <div class="pipe-node" id="pnCoinSnap">
@@ -264,7 +264,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
           </div>
         </div>
       </div>
-      <div style="font-size:9.5px;color:var(--text3);margin-top:6px;line-height:1.6;">전략 판정은 <b>②</b>에서(각인·관측소·avoid 조기청산 A/B) · <b>③</b>은 슬리피지·수수료·최소호가·API거절 등 가상원장이 못 재는 <b>체결 마찰</b>만 · 현재 코인 스냅 7/26 정지 → <b>①이 다음 단계</b> · 승격은 설계원칙 4조 게이트.</div>
+      <div id="atCoinLedger" style="margin-top:8px;"><div style="font-size:10px;color:var(--text3);">② 원장 로드 대기…</div></div>
+      <div style="font-size:9.5px;color:var(--text3);margin-top:6px;line-height:1.6;">전략 판정은 <b>②</b>에서(각인·관측소 — avoid 조기청산 A/B는 별건 사전등록) · <b>③</b>은 슬리피지·수수료·최소호가·API거절 등 가상원장이 못 재는 <b>체결 마찰</b>만 · <b>① 가동</b>: 일일갱신 S1192 + 주말 소생 S1472(cron 매일) · <b>② 가동 S1472</b>: 진입 D+1시가 · 수수료 0.05% · 최소주문 5,000원 · 청산 KR 코어 SSOT · 멱등 (code,side,asof) · 승격은 설계원칙 4조 게이트.</div>
     </div>
 
     <!-- ═══ 상태보드 (연동 대기 자리) ═══ -->
@@ -460,7 +461,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1464</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1472</div>
   </div>
 </div>
 
@@ -1352,6 +1353,42 @@ _atToken = (function(){ try{ return localStorage.getItem('at_session')||''; }cat
 try{ atRenderMeasure(); }catch(_){} // [S947] 정적 카드 — 로그인 무관 렌더
 // [S1190] 구역 탭 — zone-hidden 클래스만 토글(!important)해 카드별 인라인 show/hide와 충돌 없음. 구역은 localStorage 기억.
 let _atZone='kr'; try{ _atZone=localStorage.getItem('at_zone')||'kr'; }catch(_){}
+// ═══════ [S1472] COIN ② 가상 체결 원장 보드 — /sx/autotrade/coin/state · 규약: 진입 D+1시가 · 수수료 0.05% · 최소주문 5,000원 · 청산 KR 코어 SSOT ═══════
+let _atCoinLedAt=0;
+function _atCoinFmt(n,d){ if(n==null||!isFinite(n)) return '—'; return Number(n).toLocaleString('ko-KR',{maximumFractionDigits:(d==null?0:d)}); }
+async function atLoadCoinLedger(force){
+  const el=_$('atCoinLedger'); if(!el||!_atToken) return;
+  if(!force && Date.now()-_atCoinLedAt<11000) return; _atCoinLedAt=Date.now();
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/coin/state',{ headers:atAuthHeaders(), signal:AbortSignal.timeout(12000) });
+    if(r.status===404){ el.innerHTML='<div style="font-size:10px;color:var(--text3);">② 원장 미배선 — 워커 S1472 배포 대기</div>'; return; }
+    const d=await r.json();
+    if(!d||!d.ok){ el.innerHTML='<div style="font-size:10px;color:var(--text3);">원장 조회 실패'+((d&&d.error)?(' · '+d.error):'')+'</div>'; return; }
+    const st=d.state||{}, w=d.wallet||{};
+    try{ // 파이프 dot 점등 — ①=asof 신선도(≤3일=주말 완충) · ②=원장 26h 내 가동
+      const a=String(st.asof||'').replace(/[^0-9]/g,'').slice(0,8);
+      const ageOk=(a.length===8)&&(((Date.now()+9*3600*1000)-Date.UTC(+a.slice(0,4),+a.slice(4,6)-1,+a.slice(6,8)))/86400000<=3);
+      const d1=document.querySelector('#pnCoinSnap .pipe-dot'), d2=document.querySelector('#pnCoinPaper .pipe-dot');
+      if(d1) d1.style.background=ageOk?'var(--buy)':'var(--text3)';
+      if(d2) d2.style.background=(st.on&&st.at&&(Date.now()-st.at)<26*3600*1000)?'var(--buy)':'var(--text3)';
+    }catch(_){}
+    const pos=d.positions||{}; const codes=Object.keys(pos);
+    codes.sort((a,b)=>(((pos[b]||{}).qty||0)*((pos[b]||{}).lastPx||0))-(((pos[a]||{}).qty||0)*((pos[a]||{}).lastPx||0)));
+    let rows='';
+    for(const c of codes.slice(0,12)){ const p=pos[c]||{}; const pl=(p.avgPrice>0&&p.lastPx>0)?((p.lastPx/p.avgPrice-1)*100):null;
+      rows+='<div class="st-row"><span class="k">'+c+(p.src?(' <span style="font-size:8.5px;color:var(--text3);">'+p.src+'</span>'):'')+'</span><span class="v">'+_atCoinFmt(p.lastPx,(p.lastPx<100?2:0))+' · '+(pl==null?'—':('<b style="color:'+(pl>=0?'var(--buy)':'var(--sell)')+';">'+(pl>=0?'+':'')+pl.toFixed(2)+'%</b>'))+'</span></div>'; }
+    let trh='';
+    for(const t of (d.trades||[]).slice(0,5)){ const pc=(typeof t.realizedPct==='number')?(t.realizedPct*100):null;
+      trh+='<div style="font-size:10px;color:var(--text2);padding:2px 0;">'+(t.code||'')+' '+(t.reason||'')+' <b style="color:'+((pc||0)>=0?'var(--buy)':'var(--sell)')+';">'+(pc==null?'—':((pc>=0?'+':'')+pc.toFixed(2)+'%'))+'</b></div>'; }
+    el.innerHTML=
+      '<div class="st-row"><span class="k">가상 NAV</span><span class="v"><b>'+_atCoinFmt(d.nav)+'</b>원 · 현금 '+_atCoinFmt(st.cash!=null?st.cash:w.cash)+'</span></div>'
+     +'<div class="st-row"><span class="k">보유 / 실현합</span><span class="v">'+codes.length+'종 · <b style="color:'+((d.realized||0)>=0?'var(--buy)':'var(--sell)')+';">'+((d.realized||0)>=0?'+':'')+_atCoinFmt(d.realized)+'</b>원 · '+(d.tradesN||0)+'건</span></div>'
+     +'<div class="st-row"><span class="k">신호 asof / tick</span><span class="v">'+(st.asof?String(st.asof).slice(0,10):'—')+' · '+(st.at?new Date(st.at).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—')+(st.staleSkip?' · <span style="color:var(--hold);">asof stale</span>':'')+'</span></div>'
+     +((st.bought||st.sold||st.pendWait||st.cashSkip)?('<div style="font-size:9.5px;color:var(--text3);margin:2px 0;">이번 tick: 매수 '+(st.bought||0)+' · 매도 '+(st.sold||0)+' · D+1대기 '+(st.pendWait||0)+' · 현금스킵 '+(st.cashSkip||0)+(st.minSkip?(' · 최소주문미달 '+st.minSkip):'')+'</div>'):'')
+     +(rows?('<div style="margin-top:6px;font-size:10px;font-weight:800;color:var(--text2);">보유 (평가액 상위)</div>'+rows):'<div style="font-size:10px;color:var(--text3);margin-top:6px;">보유 없음 — D+1 시가 대기 또는 후보 없음</div>')
+     +(trh?('<div style="margin-top:6px;font-size:10px;font-weight:800;color:var(--text2);">최근 실현</div>'+trh):'');
+  }catch(e){ try{ el.innerHTML='<div style="font-size:10px;color:var(--text3);">원장 조회 실패 · '+((e&&e.message)||'')+'</div>'; }catch(_){} }
+}
 function atZoneSet(z){
   _atZone=z; try{ localStorage.setItem('at_zone',z); }catch(_){}
   document.querySelectorAll('[data-zone]').forEach(el=>{
@@ -1363,10 +1400,11 @@ function atZoneSet(z){
     b.style.background=on?'var(--accent)':'transparent'; b.style.color=on?'#fff':'var(--text2)'; b.style.borderColor=on?'var(--accent)':'var(--border)';
   });
   try{ if(z==='coin'&&_atMeasMkt!=='coin') atMeasSet('coin'); else if(z==='kr'&&_atMeasMkt!=='kr') atMeasSet('kr'); }catch(_){}
+  try{ if(z==='coin') atLoadCoinLedger(true); }catch(_){}  // [S1472] 존 진입 시 원장 즉시 로드
 }
 try{ atZoneSet(_atZone); }catch(_){}
 if(_atToken){ atRefresh(); atLoadChecklist(); atLoadEquity(); atLoadSrcStats(); } else { atShowGate(); }
-try{ setInterval(()=>{ if(_atToken) atRefresh(); }, 12000); }catch(_){}
+try{ setInterval(()=>{ if(_atToken){ atRefresh(); if(_atZone==='coin') atLoadCoinLedger(); } }, 12000); }catch(_){}  // [S1472] 코인 존이면 원장도 함께 갱신
 </script>
 </body>
 </html>
