@@ -105,8 +105,8 @@ codes.forEach((c,i)=>{
   let P=policy(mk, votes, realK, rawScore);
   let src=(P.action==='BUY')?'recipe':null;
   // [S1041] 강세 거래량급증 편입 — votes-BUY(약세반등)가 아닐 때만 별도 BUY(상호배타). KR 전용. src=bullVol 태그(가계부 전략구분용).
-  if(P.action!=='BUY' && bullVol && mk==='kr'){ P={ action:'BUY', score:(rawScore||0), policy:'kr:bullVol(하락장×강세·거래량OSC≥73.31&VR≥389.41)→BUY', provisional:true }; src='bullVol'; }
-    if(P.action!=='BUY' && cross && mk==='kr'){ P={ action:'BUY', score:(rawScore||0), policy:'kr:크로스(MA5×20 골든·장기정배 라우팅)→BUY', provisional:true }; src='cross'; } /* [S1396] 사슬 말미(recipe>bullVol>cross) — 동시발화는 귀속만 바뀌고 매수 무영향(S1392 Q3) · S1050 ATR게이트 미적용(v2·bullVol 선례=모의 최대관찰·atrPct 각인) · legacyV4Only 비대상(src recipe 전용) */
+  if(P.action!=='BUY' && bullVol && (mk==='kr'||mk==='coin')){ P={ action:'BUY', score:(rawScore||0), policy:mk+':bullVol(하락장×강세·거래량OSC≥73.31&VR≥389.41)→BUY', provisional:true }; src='bullVol'; }
+    if(P.action!=='BUY' && cross && (mk==='kr'||mk==='coin')){ P={ action:'BUY', score:(rawScore||0), policy:mk+':크로스(MA5×20 골든·장기정배 라우팅)→BUY', provisional:true }; src='cross'; } /* [S1396] 사슬 말미(recipe>bullVol>cross) — 동시발화는 귀속만 바뀌고 매수 무영향(S1392 Q3) · S1050 ATR게이트 미적용(v2·bullVol 선례=모의 최대관찰·atrPct 각인) · legacyV4Only 비대상(src recipe 전용) */ /* [S1477] coin 개방 — 게이트는 워커측(runCoinPaperExec) */
   // [S1180] 레시피 v2 진입 — 레거시·bullVol 미발동일 때만 별도 BUY(상호배타 우선순위: recipe > bullVol > v2 · 검증강도순).
   //   동시발동 정보는 v2 필드가 항상 실려 관찰 가능(레거시 BUY + v2 hit = 겹침). score는 워커 필터(score>0) 통과용 max(raw,1).
   //   ATR게이트(S1050)는 src==='recipe' 전용이라 v2엔 미적용(모의 최대관찰) — atrPct는 기록되므로 사후 분석 가능.
