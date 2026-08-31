@@ -377,6 +377,7 @@ var API = {
   maCrossAt: maCrossAt, cellOfAt: cellOfAt, gcAgeAt: gcAgeAt, regimeAt: regimeAt,      // [S1210·S1211·S1212]
   STATE_VOCAB: STATE_VOCAB, cellLblOf: cellLblOf, regime5At: regime5At, stockStateAt: stockStateAt,   // [S1217]
   regimeTagOf: regimeTagOf,                                                                           // [S1450]
+  ltAt: ltAt,                                                                                        // [S1503] 장기축 조회 노출 — 시즌1 단기매매 카드 ⬛ 3×3판 출구게이트가 미러를 만들지 않고 이 함수만 부른다(설계원칙1). 산출식·소비처 무변경.
   runLifecycle: runLifecycle
 };
 if(typeof module !== 'undefined' && module.exports) module.exports = API;
