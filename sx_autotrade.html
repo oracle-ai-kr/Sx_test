@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1501</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1502</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -495,7 +495,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1501</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1502</div>
   </div>
 </div>
 
@@ -1496,7 +1496,7 @@ const _cpnCol=(v)=>(v>=0?'#c62828':'#1e5bd6');
 async function atCoinPost(path, body){ const r=await fetch(AT_WORKER_BASE+path,{method:'POST',headers:atAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify(body||{}),signal:AbortSignal.timeout(20000)}); return await r.json(); }
 async function atCoinCtrl(kind, arg){
   if(_coinCtrlPend) return;
-  const cfm={ halt:'코인 긴급정지 — 코인 매수·청산 판정을 전부 멈춥니다(KR 무관). 진행할까요?', liqAll:'코인 보유 전량을 현재가로 가상 매도하고 차단합니다. 진행할까요?', liq:'['+arg+'] 현재가로 가상 매도 + 차단. 진행할까요?' };
+  const cfm={ halt:'코인 긴급정지 — 보유 전량을 현재가로 가상 매도(차단 없음)하고 매수·청산 판정을 전부 멈춥니다(KR 무관). 진행할까요?', liqAll:'코인 보유 전량을 현재가로 가상 매도하고 차단합니다. 진행할까요?', liq:'['+arg+'] 현재가로 가상 매도 + 차단. 진행할까요?' };
   if(cfm[kind] && !window.confirm(cfm[kind])) return;
   _coinCtrlPend=true;
   try{
@@ -1540,7 +1540,7 @@ function atRenderCoinExtra(d){
     ctl.innerHTML=
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
       +'<button onclick="atCoinCtrl(\''+(stopped?'start':'stop')+'\')" style="'+_cBtn+'flex:1;min-width:140px;color:'+(stopped?'var(--buy)':'var(--hold)')+';">'+(stopped?'▶ 진입 재개':'⏸ 정지 (신규 진입 중단)')+'</button>'
-      +'<button onclick="atCoinCtrl(\''+(halted?'resume':'halt')+'\')" style="'+_cBtn+'flex:1;min-width:140px;color:'+(halted?'var(--buy)':'#c62828')+';border-color:'+(halted?'var(--buy)':'#c62828')+';">'+(halted?'🟢 긴급정지 해제':'⛔ 긴급정지 (코인 전체)')+'</button>'
+      +'<button onclick="atCoinCtrl(\''+(halted?'resume':'halt')+'\')" style="'+_cBtn+'flex:1;min-width:140px;color:'+(halted?'var(--buy)':'#c62828')+';border-color:'+(halted?'var(--buy)':'#c62828')+';">'+(halted?'🟢 긴급정지 해제':'⛔ 긴급정지 (전량 청산+전체 중단)')+'</button>'
       +'</div>'
       +'<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">상태: '+(halted?'<b style="color:#c62828;">긴급정지</b>':(stopped?'<b style="color:var(--hold);">진입 정지(청산 판정만)</b>':'<b style="color:var(--buy);">가동</b>'))+' · 모드 <b>② 가상(paper)</b> <span style="color:var(--text3);">— ③ 소액 live 준비 시 선택지</span></div>'
       +'<div style="display:flex;gap:8px;margin-bottom:10px;"><button onclick="atCoinCtrl(\'exec\')" style="'+_cBtn+'flex:1;color:var(--accent);border-color:var(--accent);">⚡ 코인만 지금 실행</button><button onclick="atCoinCtrl(\'risk\')" style="'+_cBtn+'flex:1;color:#c62828;border-color:#c62828;">🛡 위험 점검 지금</button></div>'
@@ -1548,7 +1548,7 @@ function atRenderCoinExtra(d){
       +(codes.length?('<button onclick="atCoinCtrl(\'liqAll\')" style="'+_cBtn+'width:100%;background:#c62828;color:#fff;border-color:#c62828;margin-bottom:8px;">🚨 전체 청산 ('+codes.length+'종 일괄 차단·가상 매도)</button>'
         +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'+codes.map(c=>'<button onclick="atCoinCtrl(\'liq\',\''+_esc(c)+'\')" style="'+_cBtn+'padding:6px 10px;font-size:11px;color:#c62828;border-color:#c62828;background:transparent;">🚨 '+_esc(c)+' 청산</button>').join('')+'</div>')
         :'<div style="font-size:11px;color:var(--text3);">보유 없음</div>')
-      +'<div style="font-size:9.5px;color:var(--text3);margin-top:8px;line-height:1.5;">정지=coinOn(신규 진입만 중단·청산 판정 유지) · 긴급정지=at:coin:cmd.halt(매수·청산 판정 전체 중단·KR 긴급정지와 독립) · 즉시 청산=②는 가상 매도, ③ 전환 시 업비트 주문으로 교체되는 자리(S1487)</div>';
+      +'<div style="font-size:9.5px;color:var(--text3);margin-top:8px;line-height:1.5;">정지=coinOn(신규 진입만 중단·청산 판정 유지) · 긴급정지=보유 전량 즉시 가상 청산(차단 없음) + 매수·청산 판정 중단 — 해제 시 신호대로 재진입(S1502) · KR 제어와 완전 독립(KR 긴급정지·KR ⚡는 코인에 영향 없음) · 즉시 청산=②는 가상 매도, ③ 전환 시 업비트 주문으로 교체되는 자리(S1487)</div>';
   }
   show('atCoinCtrlCard');
   // ── 포트폴리오
