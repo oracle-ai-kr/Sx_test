@@ -93,10 +93,15 @@ function policy(mk, votes, realK, rawScore){
   return { action:'HOLD', score:0, policy:mk+':votes0→HOLD(레시피 미발동)', provisional:false };
 }
 
+// [S1497] 코인 확정봉 판정 — 업비트 일봉 경계 09:00 KST(=00:00 UTC): 형성중 봉 날짜 = 현재 UTC 날짜. 실행 시각의 형성중 봉을 제거하고 마지막 확정봉을 asof로(KR/US는 장마감 후 실행=이미 확정봉·무관). 끄기=env COIN_FORMING=1 · 테스트=env SX_NOW.
+const _nowMs = process.env.SX_NOW ? Date.parse(process.env.SX_NOW) : Date.now();
+const COIN_COMPLETED_ONLY = (mk==='coin') && (process.env.COIN_FORMING!=='1');
+const _coinBarDay = new Date(_nowMs).toISOString().slice(0,10);
 let signals=[], errs=[], skip=0;
 const t0=Date.now();
 codes.forEach((c,i)=>{
-  const raw=snap.stocks[c].rows;
+  let raw=snap.stocks[c].rows;
+  if(COIN_COMPLETED_ONLY && raw && raw.length){ const lr=raw[raw.length-1]; const ld=String(Array.isArray(lr)?lr[0]:(lr&&lr.date)).slice(0,10); if(ld===_coinBarDay) raw=raw.slice(0,-1); }  // [S1497] 형성중 봉 제거 → 마지막 행=확정봉
   if(!raw||raw.length<160){ skip++; return; }
   const rows=raw.map(r=>Array.isArray(r)?({date:r[0],open:r[1],o:r[1],high:r[2],h:r[2],low:r[3],l:r[3],close:r[4],c:r[4],volume:r[5],v:r[5]}):r);
   let sig=null;
@@ -123,11 +128,12 @@ codes.forEach((c,i)=>{
 });
 // 요약
 const cnt=(f)=>signals.filter(f).length;
-const ledger={ schema:'sx_signal_ledger_v1', mkt:mk, asof:snap.baseDate, generated:new Date().toISOString(),
+const asofFinal = (COIN_COMPLETED_ONLY && signals.length) ? (signals.map(s=>s.barDate).filter(Boolean).sort().pop() || snap.baseDate) : snap.baseDate;  // [S1497] 코인=마지막 확정봉 날짜(ISO 09:00 형식 그대로)
+const ledger={ schema:'sx_signal_ledger_v1', mkt:mk, asof:asofFinal, generated:new Date().toISOString(),
   universe:codes.length, evaluated:signals.length, skipped:skip, errN:errs.length, errs:errs.slice(0,5),
   summary:{ BUY:cnt(s=>s.action==='BUY'), bullVolBUY:cnt(s=>s.src==='bullVol'), v2BUY:cnt(s=>s.src==='v2'), v2Overlap:cnt(s=>s.src==='recipe'&&s.v2&&s.v2.buy&&s.v2.buy.length>0), v2AvoidHit:cnt(s=>s.v2&&s.v2.avoid&&s.v2.avoid.length>0), atrGated:cnt(s=>s.atrGate), HOLD:cnt(s=>s.action==='HOLD'), SELL:cnt(s=>s.action==='SELL'), provisional:cnt(s=>s.provisional), // [S1180] v2BUY=v2 단독진입 · v2Overlap=레거시BUY∩v2hit(겹침 관찰) · v2AvoidHit=down/fake hit(기록만)
             votes:{ v1:cnt(s=>s.votes===1), v2:cnt(s=>s.votes===2), v3:cnt(s=>s.votes===3), v4:cnt(s=>s.votes>=4) }, // [S948] 레시피 투표 분포
             grade:{ 매수:cnt(s=>s.grade==='매수'), 관심:cnt(s=>s.grade==='관심'), 관망:cnt(s=>s.grade==='관망'), 회피:cnt(s=>s.grade==='회피') } },
   signals };
 fs.writeFileSync(outPath, JSON.stringify(ledger,null,1));
-console.error('DONE sig '+mk+' asof='+snap.baseDate+': 평가 '+signals.length+'/'+codes.length+' | BUY '+ledger.summary.BUY+'(bullVol '+ledger.summary.bullVolBUY+'·v2 '+ledger.summary.v2BUY+'·겹침 '+ledger.summary.v2Overlap+') atrGated '+ledger.summary.atrGated+' HOLD '+ledger.summary.HOLD+' SELL '+ledger.summary.SELL+' (prov '+ledger.summary.provisional+') err='+errs.length+' '+((Date.now()-t0)/1000|0)+'s → '+outPath);
+console.error('DONE sig '+mk+' asof='+asofFinal+(COIN_COMPLETED_ONLY?'(확정봉·S1497)':'')+': 평가 '+signals.length+'/'+codes.length+' | BUY '+ledger.summary.BUY+'(bullVol '+ledger.summary.bullVolBUY+'·v2 '+ledger.summary.v2BUY+'·겹침 '+ledger.summary.v2Overlap+') atrGated '+ledger.summary.atrGated+' HOLD '+ledger.summary.HOLD+' SELL '+ledger.summary.SELL+' (prov '+ledger.summary.provisional+') err='+errs.length+' '+((Date.now()-t0)/1000|0)+'s → '+outPath);
