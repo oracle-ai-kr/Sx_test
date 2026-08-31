@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1477</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1479</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -265,13 +265,14 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         </div>
       </div>
       <div id="atCoinLedger" style="margin-top:8px;"><div style="font-size:10px;color:var(--text3);">② 원장 로드 대기…</div></div>
-      <div style="font-size:9.5px;color:var(--text3);margin-top:6px;line-height:1.6;">전략 판정은 <b>②</b>에서(각인·관측소 — avoid 조기청산 A/B는 별건 사전등록) · <b>③</b>은 슬리피지·수수료·최소호가·API거절 등 가상원장이 못 재는 <b>체결 마찰</b>만 · <b>① 가동</b>: 일일갱신 S1192 + 주말 소생 S1472(cron 매일) · <b>② 가동 S1472</b>: 진입 D+1시가 · 수수료 0.05% · 최소주문 5,000원 · 청산 KR 코어 SSOT · 멱등 (code,side,asof) · 승격은 설계원칙 4조 게이트. · [S1477] 신규 진입원 bullVol·크로스: 코인 provisional — src별 전진게이트(완성 N≥20 시 기대값>0·승률≥35% 미달→자동 OFF)·우선순위 legacy→bullVol→cross·발동분은 후보 카드 미표시(체결·게이트는 활동 로그와 state.gates).</div>
+      <div style="font-size:9.5px;color:var(--text3);margin-top:6px;line-height:1.6;">전략 판정은 <b>②</b>에서(각인·관측소 — avoid 조기청산 A/B는 별건 사전등록) · <b>③</b>은 슬리피지·수수료·최소호가·API거절 등 가상원장이 못 재는 <b>체결 마찰</b>만 · <b>① 가동</b>: 일일갱신 S1192 + 주말 소생 S1472(cron 매일) · <b>② 가동 S1472</b>: 진입 D+1시가 · 수수료 0.05% · 최소주문 5,000원 · 청산 KR 코어 SSOT · 멱등 (code,side,asof) · 승격은 설계원칙 4조 게이트. · [S1477] 신규 진입원 bullVol·크로스: 코인 provisional — src별 전진게이트(완성 N≥20 시 기대값>0·승률≥35% 미달→자동 OFF)·우선순위 legacy→bullVol→cross·발동분은 후보 카드 미표시(체결·게이트는 활동 로그와 state.gates). · [S1478] 업비트 유의 지정·KRW 거래목록 부재(거래종료) 종목은 매수 제외, 주의(caution)는 배지만 — tick당 마켓목록 1회·실패 시 캐시 폴백·캐시도 없으면 fail-open(경보). 보유분은 경보만(청산 규약 무변경). · [S1479] 주의 종목 제외는 토글(코인 설정 cautionExclude · 기본 OFF).</div>
     </div>
 
     <!-- ═══ [S1473] 코인 오늘의 매수 후보 — KR 카드(S951) 동형 · 설정은 코인 전용(entry-config?mkt=coin) ═══ -->
     <div class="card" data-zone="coin" id="atCoinBuyCard" style="display:none;">
       <div class="card-title">🛒 오늘의 매수 후보 <span class="tag" id="atCoinBuyCount">·</span></div>
       <label style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-bottom:9px;cursor:pointer;"><input type="checkbox" id="enCoinV4" onchange="atCoinToggleV4()" style="width:16px;height:16px;"/> 레거시 <b>votes≥4</b>만 매수 <span style="font-size:9.5px;color:var(--text3);">(코인 기본 OFF · S1473 — 실측 votes {0,1} · [S1474] votes=시장 사다리: coin은 겹침 승격 미검증으로 1 고정(S877) → 사다리 승격 검증 후 재점등용)</span></label>
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-bottom:9px;cursor:pointer;"><input type="checkbox" id="enCoinCau" onchange="atCoinToggleCau()" style="width:16px;height:16px;"/> <b>주의</b> 종목도 매수 제외 <span style="font-size:9.5px;color:var(--text3);">(기본 OFF=배지만 · S1479 — 업비트 caution(가격급등락·거래량급증 등) · ON이면 워커도 같은 판정으로 제외 · 유의·거래종료는 토글 무관 항상 제외)</span></label>
       <div id="atCoinBuyList"></div>
       <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">코인 신호원장(15:30 KST 생성·형성중 봉) BUY 발동 종목 · 체결은 <b>D+1 일봉 시가</b>(09:00 KST 경계) · 이미 보유·해당 asof 매수완료·차단은 자동 제외 · 우선순위 votes↓ · <b>토글 ON</b>이면 레거시 votes≥4만(미달 회색 <b>제외</b> — 워커 판정과 같은 조건)</div>
     </div>
@@ -469,7 +470,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1477</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1479</div>
   </div>
 </div>
 
@@ -1392,14 +1393,14 @@ async function atLoadCoinLedger(force){
       '<div class="st-row"><span class="k">가상 NAV</span><span class="v"><b>'+_atCoinFmt(d.nav)+'</b>원 · 현금 '+_atCoinFmt(st.cash!=null?st.cash:w.cash)+'</span></div>'
      +'<div class="st-row"><span class="k">보유 / 실현합</span><span class="v">'+codes.length+'종 · <b style="color:'+((d.realized||0)>=0?'var(--buy)':'var(--sell)')+';">'+((d.realized||0)>=0?'+':'')+_atCoinFmt(d.realized)+'</b>원 · '+(d.tradesN||0)+'건</span></div>'
      +'<div class="st-row"><span class="k">신호 asof / tick</span><span class="v">'+(st.asof?String(st.asof).slice(0,10):'—')+' · '+(st.at?new Date(st.at).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—')+(st.staleSkip?' · <span style="color:var(--hold);">asof stale</span>':'')+'</span></div>'
-     +((st.bought||st.sold||st.pendWait||st.cashSkip)?('<div style="font-size:9.5px;color:var(--text3);margin:2px 0;">이번 tick: 매수 '+(st.bought||0)+' · 매도 '+(st.sold||0)+' · D+1대기 '+(st.pendWait||0)+' · 현금스킵 '+(st.cashSkip||0)+(st.minSkip?(' · 최소주문미달 '+st.minSkip):'')+'</div>'):'')
+     +((st.bought||st.sold||st.pendWait||st.cashSkip||st.warnSkip||st.delistSkip)?('<div style="font-size:9.5px;color:var(--text3);margin:2px 0;">이번 tick: 매수 '+(st.bought||0)+' · 매도 '+(st.sold||0)+' · D+1대기 '+(st.pendWait||0)+' · 현금스킵 '+(st.cashSkip||0)+(st.minSkip?(' · 최소주문미달 '+st.minSkip):'')+(st.warnSkip?(' · 유의제외 '+st.warnSkip):'')+(st.delistSkip?(' · 목록부재 '+st.delistSkip):'')+'</div>'):'')
      +(rows?('<div style="margin-top:6px;font-size:10px;font-weight:800;color:var(--text2);">보유 (평가액 상위)</div>'+rows):'<div style="font-size:10px;color:var(--text3);margin-top:6px;">보유 없음 — D+1 시가 대기 또는 후보 없음</div>')
      +(trh?('<div style="margin-top:6px;font-size:10px;font-weight:800;color:var(--text2);">최근 실현</div>'+trh):'');
     try{ atRenderCoinBuy(d); }catch(_){}  // [S1473] 후보 카드 동시 렌더(같은 응답 재사용·추가 fetch 0)
   }catch(e){ try{ el.innerHTML='<div style="font-size:10px;color:var(--text3);">원장 조회 실패 · '+((e&&e.message)||'')+'</div>'; }catch(_){} }
 }
 // ─── [S1473] 코인 오늘의 매수 후보 — KR atRenderBuyPreview(S951/S1355) 동형 · 설정 코인 전용 ───
-let _coinV4Pend=false;
+let _coinV4Pend=false, _coinCauPend=false;
 async function atCoinToggleV4(){
   const on=!!(_$('enCoinV4')&&_$('enCoinV4').checked); _coinV4Pend=true;  // [S1357 문법] 저장 왕복 중 폴링 스냅백 방지
   try{
@@ -1408,11 +1409,20 @@ async function atCoinToggleV4(){
   }catch(_){ }
   _coinV4Pend=false; atLoadCoinLedger(true);
 }
+async function atCoinToggleCau(){  // [S1479] 주의 제외 토글 — V4 토글과 같은 저장 문법(entry-config?mkt=coin·스냅백 가드)
+  const on=!!(_$('enCoinCau')&&_$('enCoinCau').checked); _coinCauPend=true;
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/entry-config?mkt=coin',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify({cautionExclude:on}), signal:AbortSignal.timeout(12000) });
+    await r.json();
+  }catch(_){ }
+  _coinCauPend=false; atLoadCoinLedger(true);
+}
 function atRenderCoinBuy(d){
   const card=_$('atCoinBuyCard'), list=_$('atCoinBuyList'), cnt=_$('atCoinBuyCount');
   if(!card||!list) return;
   const cfg=(d&&d.entryCfg)||{};
   if(!_coinV4Pend){ const e=_$('enCoinV4'); if(e) e.checked=(cfg.legacyV4Only===true); }
+  if(!_coinCauPend){ const e2=_$('enCoinCau'); if(e2) e2.checked=(cfg.cautionExclude===true); }  // [S1479]
   const v4=(cfg.legacyV4Only===true);
   const held=new Set(Object.keys((d&&d.positions)||{}));
   const asof=(d&&d.sigMeta&&d.sigMeta.asof)||null;
@@ -1421,18 +1431,24 @@ function atRenderCoinBuy(d){
   if(!buys.length){ card.style.display='none'; return; }
   card.style.display='';
   const _isCut=(b)=>(v4 && b.src==='recipe' && (b.votes||0)<4);   // [S1355] 워커 판정과 같은 식
-  const _cutN=buys.filter(_isCut).length;
+  const mev=(d&&d.mev)||null; const _warnS=new Set((mev&&mev.warn)||[]), _krwS=(mev&&Array.isArray(mev.krw))?new Set(mev.krw):null, _cau=(mev&&mev.caution)||{};
+  const _isWarn=(b)=>_warnS.has(String(b.code)), _isGone=(b)=>(!!_krwS&&!_krwS.has(String(b.code)));   // [S1478] 워커 판정과 같은 식(유의·목록부재=제외, 주의=배지)
+  const _cauOn=(cfg.cautionExclude===true); const _isCauCut=(b)=>(_cauOn&&!!_cau[String(b.code)]);   // [S1479] 토글 ON이면 주의도 제외(워커 동일 식)
+  const _cutN=buys.filter(b=>_isCut(b)||_isWarn(b)||_isGone(b)||_isCauCut(b)).length;
   if(cnt) cnt.textContent=_cutN?((buys.length-_cutN)+'종 매수 · '+_cutN+'종 제외'):(buys.length+'종목');
   list.innerHTML=buys.map(b=>{
     if(b.name) _atNameMap[b.code]=b.name;
     const vc=b.src==='v2'?'var(--accent)':((b.votes||0)>=4?'var(--buy)':((b.votes||0)>=2?'var(--accent2)':'var(--text2)'));
     const vt=b.src==='v2'?'V2 발동':('votes '+(b.votes||0));
     const nm=_esc(b.name||b.code);
-    const _cut=_isCut(b);
+    const _cut=_isCut(b)||_isWarn(b)||_isGone(b)||_isCauCut(b);
     return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);'+(_cut?'opacity:.45;':'')+'">'
       +'<div style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">'+nm+'</span> <span style="font-size:10px;color:var(--text3);">'+_esc(b.code)+'</span>'+_atSrcChip(b.src)
       +(b.provisional?' <span style="font-size:9px;color:var(--hold);border:1px solid var(--hold);border-radius:4px;padding:1px 4px;">OOS미확정</span>':'')
-      +(_cut?' <span style="font-size:9px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 4px;">제외·v4미달</span>':'')+'</div>'
+      +(_isCut(b)?' <span style="font-size:9px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 4px;">제외·v4미달</span>':'')
+      +(_isWarn(b)?' <span style="font-size:9px;color:#c62828;border:1px solid #c62828;border-radius:4px;padding:1px 4px;">🚫유의·제외</span>':'')
+      +(_isGone(b)?' <span style="font-size:9px;color:#c62828;border:1px solid #c62828;border-radius:4px;padding:1px 4px;">거래목록 부재·제외</span>':'')
+      +(_cau[String(b.code)]?' <span style="font-size:9px;color:var(--hold);border:1px dashed var(--hold);border-radius:4px;padding:1px 4px;" title="'+_esc(_cau[String(b.code)].join(','))+'">'+(_cauOn?'제외·주의':'주의')+'</span>':'')+'</div>'
       +'<div style="text-align:right;"><span style="font-size:12px;font-weight:800;color:'+vc+';">'+vt+'</span>'
       +(b.realK?'<span style="font-size:9px;color:var(--text3);display:block;">겹침 '+b.realK+'</span>':'')+'</div>'
       +'<button onclick="atBlock(\''+_esc(b.code)+'\',\''+nm.replace(/\x27/g,"")+'\',false)" title="매수 제외" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;line-height:1;">🚫</button>'
