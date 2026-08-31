@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1493</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1494</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -495,7 +495,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1493</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1494</div>
   </div>
 </div>
 
@@ -1415,7 +1415,7 @@ async function atLoadCoinLedger(force){
     for(const t of (d.trades||[]).slice(0,5)){ const pc=(typeof t.realizedPct==='number')?(t.realizedPct*100):null;
       trh+='<div style="font-size:10px;color:var(--text2);padding:2px 0;">'+(t.code||'')+' '+(t.reason||'')+' <b style="color:'+((pc||0)>=0?'var(--buy)':'var(--sell)')+';">'+(pc==null?'—':((pc>=0?'+':'')+pc.toFixed(2)+'%'))+'</b></div>'; }
     el.innerHTML=
-      '<div class="st-row"><span class="k">가상 NAV</span><span class="v"><b>'+_atCoinFmt(d.nav)+'</b>원 · 현금 '+_atCoinFmt(st.cash!=null?st.cash:w.cash)+'</span></div>'
+      '<div class="st-row"><span class="k">가상 NAV</span><span class="v"><b>'+_atCoinFmt(d.nav)+'</b>원 · 현금 '+_atCoinFmt((w&&w.cash!=null)?w.cash:st.cash)+'</span></div>'  // [S1494] 현금은 지갑 실시간(state.cash는 tick 스냅 — 위험감시 청산 후 stale)
      +'<div class="st-row"><span class="k">보유 / 실현합</span><span class="v">'+codes.length+'종 · <b style="color:'+((d.realized||0)>=0?'var(--buy)':'var(--sell)')+';">'+((d.realized||0)>=0?'+':'')+_atCoinFmt(d.realized)+'</b>원 · '+(d.tradesN||0)+'건</span></div>'
      +'<div class="st-row"><span class="k">신호 asof / tick</span><span class="v">'+(st.asof?String(st.asof).slice(0,10):'—')+' · '+(st.at?new Date(st.at).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—')+(st.staleSkip?' · <span style="color:var(--hold);">asof stale</span>':'')+'</span></div>'
      +((st.bought||st.sold||st.pendWait||st.cashSkip||st.warnSkip||st.delistSkip||st.riskSold)?('<div style="font-size:9.5px;color:var(--text3);margin:2px 0;">이번 tick: 매수 '+(st.bought||0)+' · 매도 '+(st.sold||0)+' · D+1대기 '+(st.pendWait||0)+' · 현금스킵 '+(st.cashSkip||0)+(st.minSkip?(' · 최소주문미달 '+st.minSkip):'')+(st.warnSkip?(' · 유의제외 '+st.warnSkip):'')+(st.delistSkip?(' · 목록부재 '+st.delistSkip):'')+(st.riskSold?(' · <b style="color:#c62828;">위험청산 '+st.riskSold+'</b>'):'')+'</div>'):'')
