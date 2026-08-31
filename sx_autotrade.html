@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1481</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1488</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -277,6 +277,31 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">코인 신호원장(15:30 KST 생성·형성중 봉) BUY 발동 종목 · 체결은 <b>D+1 일봉 시가</b>(09:00 KST 경계) · 이미 보유·해당 asof 매수완료·차단은 자동 제외 · 우선순위 votes↓ · <b>토글 ON</b>이면 레거시 votes≥4만(미달 회색 <b>제외</b> — 워커 판정과 같은 조건)</div>
     </div>
 
+    <!-- ═══ [S1488] 코인 카드 6종 — 제어·포트폴리오·주문 피드·실현손익·자금 추적·설정 (coin/state 응답 재사용·추가 fetch 0) ═══ -->
+    <div class="card" data-zone="coin" id="atCoinCtrlCard" style="display:none;">
+      <div class="card-title">🎛️ 코인 제어 <span class="tag">정지·긴급정지·⚡·즉시 청산 · S1487</span></div>
+      <div id="atCoinCtrlBody"></div>
+    </div>
+    <div class="card" data-zone="coin" id="atCoinPortCard" style="display:none;">
+      <div class="card-title">💰 코인 포트폴리오 <span class="tag">가상 원장 · S1488</span></div>
+      <div id="atCoinPortBody"></div>
+    </div>
+    <div class="card" data-zone="coin" id="atCoinOrdersCard" style="display:none;">
+      <div class="card-title">🧾 코인 주문 피드 <span class="tag" id="atCoinOrdersCount">·</span></div>
+      <div id="atCoinOrdersBody"></div>
+    </div>
+    <div class="card" data-zone="coin" id="atCoinEvidCard" style="display:none;">
+      <div class="card-title">📒 코인 실현손익 evidence <span class="tag" id="atCoinEvidCount">·</span></div>
+      <div id="atCoinEvidBody"></div>
+    </div>
+    <div class="card" data-zone="coin" id="atCoinEquityCard" style="display:none;">
+      <div class="card-title">💹 코인 자금 추적 <span class="tag">NAV 일별 · S1472</span></div>
+      <div id="atCoinEquityBody"></div>
+    </div>
+    <div class="card" data-zone="coin" id="atCoinCfgCard" style="display:none;">
+      <div class="card-title">📊 코인 설정 <span class="tag">진입 상한 · entry-config?mkt=coin</span></div>
+      <div id="atCoinCfgBody"></div>
+    </div>
     <!-- ═══ 상태보드 (연동 대기 자리) ═══ -->
     <div class="card" data-zone="kr">
       <div class="card-title">📡 상태보드 <span class="tag">제어 연동 · S929</span></div>
@@ -470,7 +495,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1481</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1488</div>
   </div>
 </div>
 
@@ -1399,6 +1424,7 @@ async function atLoadCoinLedger(force){
      +(rows?('<div style="margin-top:6px;font-size:10px;font-weight:800;color:var(--text2);">보유 (평가액 상위)</div>'+rows):'<div style="font-size:10px;color:var(--text3);margin-top:6px;">보유 없음 — D+1 시가 대기 또는 후보 없음</div>')
      +(trh?('<div style="margin-top:6px;font-size:10px;font-weight:800;color:var(--text2);">최근 실현</div>'+trh):'');
     try{ atRenderCoinBuy(d); }catch(_){}  // [S1473] 후보 카드 동시 렌더(같은 응답 재사용·추가 fetch 0)
+    try{ atRenderCoinExtra(d); }catch(_){}  // [S1488] 코인 카드 6종
   }catch(e){ try{ el.innerHTML='<div style="font-size:10px;color:var(--text3);">원장 조회 실패 · '+((e&&e.message)||'')+'</div>'; }catch(_){} }
 }
 // ─── [S1473] 코인 오늘의 매수 후보 — KR atRenderBuyPreview(S951/S1355) 동형 · 설정 코인 전용 ───
@@ -1456,6 +1482,123 @@ function atRenderCoinBuy(d){
       +'<button onclick="atBlock(\''+_esc(b.code)+'\',\''+nm.replace(/\x27/g,"")+'\',false)" title="매수 제외" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;line-height:1;">🚫</button>'
       +'</div>';
   }).join('');
+}
+
+// [S1488] 코인 카드 6종 렌더 — 제어(S1487 엔드포인트)·포트폴리오·주문 피드·실현손익·자금 추적·설정. KR 렌더 무접촉(코인 전용 함수).
+let _coinCtrlPend=false;
+const _cBtn='padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-weight:700;font-size:12.5px;cursor:pointer;';
+const _cfmt=(n)=>{ n=+n||0; return (n<0?'-':'')+Math.round(Math.abs(n)).toLocaleString('ko-KR'); };
+const _cpx=(p)=>{ p=+p||0; return p>=100?Math.round(p).toLocaleString('ko-KR'):(p>=1?p.toFixed(2):p.toPrecision(4)); };
+const _cqty=(q)=>{ q=+q||0; return q>=1000?Math.round(q).toLocaleString('ko-KR'):(+q.toPrecision(6)).toString(); };
+const _cago=(t)=>{ if(!t) return '—'; const s=Math.max(0,(Date.now()-t)/1000); if(s<60) return Math.round(s)+'초 전'; if(s<3600) return Math.round(s/60)+'분 전'; if(s<86400) return Math.round(s/3600)+'시간 전'; return Math.round(s/86400)+'일 전'; };
+const _cdays=(t)=>{ if(!t) return '—'; return 'D+'+Math.max(0,Math.floor((Date.now()-t)/86400000)); };
+const _cpnCol=(v)=>(v>=0?'#c62828':'#1e5bd6');
+async function atCoinPost(path, body){ const r=await fetch(AT_WORKER_BASE+path,{method:'POST',headers:atAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify(body||{}),signal:AbortSignal.timeout(20000)}); return await r.json(); }
+async function atCoinCtrl(kind, arg){
+  if(_coinCtrlPend) return;
+  const cfm={ halt:'코인 긴급정지 — 코인 매수·청산 판정을 전부 멈춥니다(KR 무관). 진행할까요?', liqAll:'코인 보유 전량을 현재가로 가상 매도하고 차단합니다. 진행할까요?', liq:'['+arg+'] 현재가로 가상 매도 + 차단. 진행할까요?' };
+  if(cfm[kind] && !window.confirm(cfm[kind])) return;
+  _coinCtrlPend=true;
+  try{
+    if(kind==='halt') await atCoinPost('/sx/autotrade/coin/cmd',{halt:true});
+    else if(kind==='resume') await atCoinPost('/sx/autotrade/coin/cmd',{halt:false});
+    else if(kind==='stop') await atCoinPost('/sx/autotrade/entry-config?mkt=coin',{coinOn:false});
+    else if(kind==='start') await atCoinPost('/sx/autotrade/entry-config?mkt=coin',{coinOn:true});
+    else if(kind==='exec') await atCoinPost('/sx/autotrade/coin/exec',{});
+    else if(kind==='liqAll') await atCoinPost('/sx/autotrade/coin/liquidate',{all:true});
+    else if(kind==='liq') await atCoinPost('/sx/autotrade/coin/liquidate',{code:arg});
+  }catch(_){ }
+  _coinCtrlPend=false; atLoadCoinLedger(true);
+}
+async function atCoinSaveCfg(){
+  const mh=+((_$('coinMaxHold')||{}).value), bc=+((_$('coinBuyCap')||{}).value);
+  if(!(mh>0)||!(bc>0)) return;
+  _coinCtrlPend=true; try{ await atCoinPost('/sx/autotrade/entry-config?mkt=coin',{maxHoldings:mh,buyCapPerTick:bc}); }catch(_){ } _coinCtrlPend=false;
+  const sb=_$('atCoinCfgBody'); if(sb){ sb.dataset.mh=''; }  // 강제 재렌더
+  atLoadCoinLedger(true);
+}
+function atRenderCoinExtra(d){
+  const show=(id)=>{ const c=_$(id); if(c) c.style.display=''; };
+  const cfg=(d&&d.entryCfg)||{}, cmd=(d&&d.cmd)||{}, pos=(d&&d.positions)||{}, orders=(d&&d.orders)||[], trades=(d&&d.trades)||[], eq=(d&&d.equity)||[];
+  const codes=Object.keys(pos).filter(k=>pos[k]&&pos[k].qty>0);
+  // ── 제어
+  const ctl=_$('atCoinCtrlBody');
+  if(ctl && !_coinCtrlPend){
+    const halted=cmd.halt===true, stopped=cfg.coinOn===false;
+    ctl.innerHTML=
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
+      +'<button onclick="atCoinCtrl(\''+(stopped?'start':'stop')+'\')" style="'+_cBtn+'flex:1;min-width:140px;color:'+(stopped?'var(--buy)':'var(--hold)')+';">'+(stopped?'▶ 진입 재개':'⏸ 정지 (신규 진입 중단)')+'</button>'
+      +'<button onclick="atCoinCtrl(\''+(halted?'resume':'halt')+'\')" style="'+_cBtn+'flex:1;min-width:140px;color:'+(halted?'var(--buy)':'#c62828')+';border-color:'+(halted?'var(--buy)':'#c62828')+';">'+(halted?'🟢 긴급정지 해제':'⛔ 긴급정지 (코인 전체)')+'</button>'
+      +'</div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">상태: '+(halted?'<b style="color:#c62828;">긴급정지</b>':(stopped?'<b style="color:var(--hold);">진입 정지(청산 판정만)</b>':'<b style="color:var(--buy);">가동</b>'))+' · 모드 <b>② 가상(paper)</b> <span style="color:var(--text3);">— ③ 소액 live 준비 시 선택지</span></div>'
+      +'<button onclick="atCoinCtrl(\'exec\')" style="'+_cBtn+'width:100%;margin-bottom:10px;color:var(--accent);border-color:var(--accent);">⚡ 코인만 지금 실행 (스윕→매수)</button>'
+      +'<div style="font-size:10.5px;color:var(--text3);margin-bottom:6px;">🚨 즉시 청산 (현재가 가상 매도 · 차단 · 보유 종목만)</div>'
+      +(codes.length?('<button onclick="atCoinCtrl(\'liqAll\')" style="'+_cBtn+'width:100%;background:#c62828;color:#fff;border-color:#c62828;margin-bottom:8px;">🚨 전체 청산 ('+codes.length+'종 일괄 차단·가상 매도)</button>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'+codes.map(c=>'<button onclick="atCoinCtrl(\'liq\',\''+_esc(c)+'\')" style="'+_cBtn+'padding:6px 10px;font-size:11px;color:#c62828;border-color:#c62828;background:transparent;">🚨 '+_esc(c)+' 청산</button>').join('')+'</div>')
+        :'<div style="font-size:11px;color:var(--text3);">보유 없음</div>')
+      +'<div style="font-size:9.5px;color:var(--text3);margin-top:8px;line-height:1.5;">정지=coinOn(신규 진입만 중단·청산 판정 유지) · 긴급정지=at:coin:cmd.halt(매수·청산 판정 전체 중단·KR 긴급정지와 독립) · 즉시 청산=②는 가상 매도, ③ 전환 시 업비트 주문으로 교체되는 자리(S1487)</div>';
+  }
+  show('atCoinCtrlCard');
+  // ── 포트폴리오
+  const pb=_$('atCoinPortBody');
+  if(pb){
+    const rows=codes.map(k=>{ const p=pos[k]; const cur=p.lastPx||p.avgPrice||0; const cost=p.qty*(p.avgPrice||0)+(p.entryFee||0); const val=p.qty*cur; const pnl=val-cost; return {code:k,p,cur,val,cost,pnl,pct:(cost>0?pnl/cost*100:0)}; }).sort((a,b)=>b.val-a.val);
+    const tot=rows.reduce((s,r)=>s+r.pnl,0), totCost=rows.reduce((s,r)=>s+r.cost,0);
+    const srcCol=(s)=>(s==='v2'?'#1e5bd6':(s==='cross'?'#7c3aed':(s==='bullVol'?'#e67e22':'#c62828')));
+    pb.innerHTML= rows.length? ('<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span>총 평가손익</span><b style="color:'+_cpnCol(tot)+';">'+(tot>=0?'+':'')+'₩'+_cfmt(tot)+' ('+(tot>=0?'▲':'▼')+Math.abs(totCost>0?tot/totCost*100:0).toFixed(2)+'%)</b></div>'
+      +'<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:4px 6px;font-size:10.5px;color:var(--text3);border-bottom:1px solid var(--border);padding-bottom:4px;"><span>종목</span><span style="text-align:right;">평단</span><span style="text-align:right;">현재가</span><span style="text-align:right;">평가손익</span></div>'
+      +rows.map(r=>'<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:2px 6px;font-size:11.5px;padding:6px 0;border-bottom:1px solid var(--border);align-items:center;"><span><b>'+_esc(r.code)+'</b> <span style="font-size:9px;font-weight:700;color:'+srcCol(r.p.src)+';">'+_esc(r.p.src==='recipe'?'레거시':(r.p.src||'—'))+'</span><div style="font-size:9.5px;color:var(--text3);">'+_cqty(r.p.qty)+' · '+_cdays(r.p.entryAt)+'</div></span><span style="text-align:right;">'+_cpx(r.p.avgPrice)+'</span><span style="text-align:right;">'+_cpx(r.cur)+'</span><span style="text-align:right;color:'+_cpnCol(r.pnl)+';">'+(r.pnl>=0?'+':'')+'₩'+_cfmt(r.pnl)+'<div style="font-size:9.5px;">'+(r.pnl>=0?'▲':'▼')+Math.abs(r.pct).toFixed(2)+'%</div></span></div>').join('')
+      +'<div style="font-size:9.5px;color:var(--text3);margin-top:6px;">② 가상 원장 · 현재가=마지막 tick 형성중 봉 · 평가손익은 진입 수수료 포함 원가 기준 · ③ 전환 시 업비트 잔고로 교체</div>')
+      : '<div style="font-size:11px;color:var(--text3);padding:6px 0;">보유 없음</div>';
+    show('atCoinPortCard');
+  }
+  // ── 주문 피드
+  const ob=_$('atCoinOrdersBody');
+  if(ob){
+    const cnt=_$('atCoinOrdersCount'); if(cnt) cnt.textContent=orders.length+'건 · 체결·가상';
+    ob.innerHTML= orders.length? orders.slice(0,40).map(o=>{ const buy=o.side==='BUY'; return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:11.5px;"><span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;color:'+(buy?'var(--buy)':'#c62828')+';border:1px solid currentColor;flex:none;">'+(buy?'매수':'매도')+'</span><span style="flex:1;min-width:0;"><b>'+_esc(o.code)+'</b> · '+_cqty(o.qty)+'개'+(buy?'':' · '+_esc(String(o.exitReason||'').split(' ·')[0]))+'<div style="font-size:9.5px;color:var(--text3);">'+_cago(o.at)+' · @'+_cpx(o.price)+(o.src?' · '+_esc(o.src==='recipe'?'레거시':o.src):'')+(o.asof?' · asof '+_esc(String(o.asof).slice(0,10)):'')+'</div></span><span style="font-size:10px;color:var(--text3);flex:none;">'+(o.virtual?'가상':_esc(o.status||''))+'</span></div>'; }).join('') : '<div style="font-size:11px;color:var(--text3);padding:6px 0;">주문 없음</div>';
+    show('atCoinOrdersCard');
+  }
+  // ── 실현손익 evidence
+  const eb=_$('atCoinEvidBody');
+  if(eb){
+    const cl=trades.filter(t=>t&&typeof t.realizedPct==='number');
+    const n=cl.length, w=cl.filter(t=>t.realizedPct>0).length, sumA=cl.reduce((s,t)=>s+(t.realizedAmt||0),0), avg=n?cl.reduce((s,t)=>s+t.realizedPct,0)/n*100:0;
+    const bySrc={}; for(const t of cl){ const k=t.src||'—'; bySrc[k]=bySrc[k]||{n:0,w:0,s:0}; bySrc[k].n++; if(t.realizedPct>0) bySrc[k].w++; bySrc[k].s+=t.realizedPct; }
+    const cnt=_$('atCoinEvidCount'); if(cnt) cnt.textContent='완성 '+n+'건';
+    eb.innerHTML= n? ('<div style="font-size:12px;margin-bottom:6px;">완성 <b>'+n+'</b>건 · 승률 <b>'+(w/n*100).toFixed(0)+'%</b> · 평균 <b style="color:'+_cpnCol(avg)+';">'+(avg>=0?'+':'')+avg.toFixed(2)+'%</b> · 실현 <b style="color:'+_cpnCol(sumA)+';">'+(sumA>=0?'+':'')+'₩'+_cfmt(sumA)+'</b></div>'
+      +'<div style="font-size:10.5px;color:var(--text2);margin-bottom:8px;">'+Object.keys(bySrc).map(k=>_esc(k==='recipe'?'레거시':k)+' '+bySrc[k].n+'건 '+(bySrc[k].w/bySrc[k].n*100).toFixed(0)+'% '+(bySrc[k].s/bySrc[k].n*100>=0?'+':'')+(bySrc[k].s/bySrc[k].n*100).toFixed(2)+'%').join(' · ')+'</div>'
+      +cl.slice().sort((a,b)=>(b.exitAt||0)-(a.exitAt||0)).slice(0,30).map(t=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;"><span><b>'+_esc(t.code)+'</b> <span style="font-size:9.5px;color:var(--text3);">'+_esc(t.src==='recipe'?'레거시':(t.src||'—'))+' · '+_esc(String(t.reason||'').split(' ·')[0])+' · '+_cago(t.exitAt)+'</span></span><b style="color:'+_cpnCol(t.realizedPct)+';">'+(t.realizedPct>=0?'+':'')+(t.realizedPct*100).toFixed(2)+'%</b></div>').join('')
+      +'<div style="font-size:9.5px;color:var(--text3);margin-top:6px;">② 가상 원장 완성 거래(trades:coin) · 수수료 왕복 0.1% 반영 · n&lt;30 구간은 정찰용 · 청산 규약 S1472</div>')
+      : '<div style="font-size:11px;color:var(--text3);padding:6px 0;">완성 거래 없음 — 첫 청산 후 채워집니다.</div>';
+    show('atCoinEvidCard');
+  }
+  // ── 자금 추적
+  const qb=_$('atCoinEquityBody');
+  if(qb){
+    if(eq.length){
+      const first=eq[0], last=eq[eq.length-1], tot=(last.na||0)-(first.na||0), rv=eq.slice().reverse();
+      qb.innerHTML='<div style="font-size:12px;margin-bottom:4px;">시작 '+_esc(String(first.d||'').slice(5))+' ₩'+_cfmt(first.na)+' → 현재 ₩'+_cfmt(last.na)+'</div>'
+        +'<div style="font-size:12px;margin-bottom:8px;">누적 <b style="color:'+_cpnCol(tot)+';">'+(tot>=0?'+':'')+'₩'+_cfmt(tot)+' ('+(tot>=0?'▲':'▼')+Math.abs(first.na>0?tot/first.na*100:0).toFixed(2)+'%)</b> · 현금 ₩'+_cfmt(last.ca)+'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px 6px;font-size:10.5px;color:var(--text3);border-bottom:1px solid var(--border);padding-bottom:4px;"><span>일자</span><span style="text-align:right;">Δ순자산</span><span style="text-align:right;">Δ%</span><span style="text-align:right;">순자산</span></div>'
+        +rv.slice(0,20).map((x,i)=>{ const prev=rv[i+1]; const dv=prev?(x.na-prev.na):null; const dp=(prev&&prev.na>0)?dv/prev.na*100:null; return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:2px 6px;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--border);"><span>'+_esc(String(x.d||'').slice(5))+'</span><span style="text-align:right;color:'+(dv==null?'var(--text3)':_cpnCol(dv))+';">'+(dv==null?'—':((dv>=0?'+':'-')+'₩'+_cfmt(Math.abs(dv))))+'</span><span style="text-align:right;color:'+(dp==null?'var(--text3)':_cpnCol(dp))+';">'+(dp==null?'—':((dp>=0?'▲':'▼')+Math.abs(dp).toFixed(2)+'%'))+'</span><span style="text-align:right;">'+Math.round((x.na||0)/1000).toLocaleString('ko-KR')+'k</span></div>'; }).join('')
+        +'<div style="font-size:9.5px;color:var(--text3);margin-top:6px;">일별 NAV 스냅(tick마다 그날 값 교체) · 입출금 없는 가상 원장이라 Δ=전략 성과 · 180일 롤링(S1472)</div>';
+    } else qb.innerHTML='<div style="font-size:11px;color:var(--text3);padding:6px 0;">기록 없음 — 첫 tick 후 채워집니다.</div>';
+    show('atCoinEquityCard');
+  }
+  // ── 설정(진입 상한) — 입력 중 스냅백 방지: 값이 바뀌었고 포커스가 없을 때만 재렌더
+  const sb=_$('atCoinCfgBody');
+  if(sb){
+    const mh=(cfg.maxHoldings!=null?cfg.maxHoldings:30), bc=(cfg.buyCapPerTick!=null?cfg.buyCapPerTick:5);
+    const focused=(document.activeElement===_$('coinMaxHold')||document.activeElement===_$('coinBuyCap'));
+    if(!focused && (sb.dataset.mh!==String(mh)||sb.dataset.bc!==String(bc))){
+      sb.dataset.mh=String(mh); sb.dataset.bc=String(bc);
+      sb.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;"><label style="font-size:11px;color:var(--text2);">보유상한 (개)<input id="coinMaxHold" type="number" min="1" max="200" value="'+mh+'" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface2);color:var(--text);"/></label><label style="font-size:11px;color:var(--text2);">tick당 매수 (개)<input id="coinBuyCap" type="number" min="1" max="20" value="'+bc+'" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface2);color:var(--text);"/></label></div>'
+        +'<button onclick="atCoinSaveCfg()" style="'+_cBtn+'width:100%;background:var(--accent);color:#fff;border-color:var(--accent);">💾 코인 진입 상한 저장</button>'
+        +'<div style="font-size:9.5px;color:var(--text3);margin-top:8px;line-height:1.5;">사이징=NAV÷(보유상한+5) 금액균등(S1472) · votes≥4·주의 제외 토글은 후보 카드에 · 청산 배수는 KR SSOT 공유(2/3 · 변경은 사전등록 사안 S1482)</div>';
+    }
+    show('atCoinCfgCard');
+  }
 }
 function atZoneSet(z){
   _atZone=z; try{ localStorage.setItem('at_zone',z); }catch(_){}
