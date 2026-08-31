@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1480</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1481</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -271,8 +271,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <!-- ═══ [S1473] 코인 오늘의 매수 후보 — KR 카드(S951) 동형 · 설정은 코인 전용(entry-config?mkt=coin) ═══ -->
     <div class="card" data-zone="coin" id="atCoinBuyCard" style="display:none;">
       <div class="card-title">🛒 오늘의 매수 후보 <span class="tag" id="atCoinBuyCount">·</span></div>
-      <label style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-bottom:9px;cursor:pointer;"><input type="checkbox" id="enCoinV4" onchange="atCoinToggleV4()" style="width:16px;height:16px;"/> 레거시 <b>votes≥4</b>만 매수 <span style="font-size:9.5px;color:var(--text3);">(코인 기본 OFF · S1473 — 실측 votes {0,1} · [S1474] votes=시장 사다리: coin은 겹침 승격 미검증으로 1 고정(S877) → 사다리 승격 검증 후 재점등용)</span></label>
-      <label style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-bottom:9px;cursor:pointer;"><input type="checkbox" id="enCoinCau" onchange="atCoinToggleCau()" style="width:16px;height:16px;"/> <b>주의</b> 종목도 매수 제외 <span style="font-size:9.5px;color:var(--text3);">(기본 OFF=배지만 · S1479 — 업비트 caution(가격급등락·거래량급증 등) · ON이면 워커도 같은 판정으로 제외 · 유의·거래종료는 토글 무관 항상 제외)</span></label>
+      <label style="display:flex;align-items:flex-start;gap:10px;font-size:11.5px;color:var(--text2);margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="enCoinV4" onchange="atCoinToggleV4()" style="width:22px;height:22px;flex:none;margin:1px 0 0 0;"/><span style="flex:1;min-width:0;"><span style="display:block;white-space:normal;line-height:1.3;">레거시 <b>votes≥4</b>만 매수</span><span style="display:block;font-size:9.5px;color:var(--text3);line-height:1.35;margin-top:2px;">(코인 기본 OFF · S1473 — 실측 votes {0,1} · [S1474] votes=시장 사다리: coin은 겹침 승격 미검증으로 1 고정(S877) → 사다리 승격 검증 후 재점등용)</span></span></label>  <!-- [S1481] 토글 22px·2줄 블록(세로 찌그러짐 해소) -->
+      <label style="display:flex;align-items:flex-start;gap:10px;font-size:11.5px;color:var(--text2);margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="enCoinCau" onchange="atCoinToggleCau()" style="width:22px;height:22px;flex:none;margin:1px 0 0 0;"/><span style="flex:1;min-width:0;"><span style="display:block;white-space:normal;line-height:1.3;"><b>주의</b> 종목도 매수 제외</span><span style="display:block;font-size:9.5px;color:var(--text3);line-height:1.35;margin-top:2px;">(기본 OFF=배지만 · S1479 — 업비트 caution(가격급등락·거래량급증 등) · ON이면 워커도 같은 판정으로 제외 · 유의·거래종료는 토글 무관 항상 제외)</span></span></label>  <!-- [S1481] 토글 22px·2줄 블록(세로 찌그러짐 해소) -->
       <div id="atCoinBuyList"></div>
       <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">코인 신호원장(15:30 KST 생성·형성중 봉) BUY 발동 종목 · 체결은 <b>D+1 일봉 시가</b>(09:00 KST 경계) · 이미 보유·해당 asof 매수완료·차단은 자동 제외 · 우선순위 votes↓ · <b>토글 ON</b>이면 레거시 votes≥4만(미달 회색 <b>제외</b> — 워커 판정과 같은 조건)</div>
     </div>
@@ -294,7 +294,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <!-- ═══ [S951] 오늘의 매수 후보 (다음 장중 cron에 시장가 매수될 종목 미리보기) ═══ -->
     <div class="card" data-zone="kr" id="atBuyPreviewCard" style="display:none;">
       <div class="card-title">🛒 오늘의 매수 후보 <span class="tag" id="atBuyCount">·</span></div>
-      <label style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-bottom:9px;cursor:pointer;"><input type="checkbox" id="enLegacyV4" onchange="atToggleLegacyV4()" style="width:16px;height:16px;"/> 레거시 <b>votes≥4</b>만 매수 <span style="font-size:9.5px;color:var(--text3);">(S1355 · OFF=votes≥1 기존 · bullVol·V2 비대상)</span></label>
+      <label style="display:flex;align-items:flex-start;gap:10px;font-size:11.5px;color:var(--text2);margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="enLegacyV4" onchange="atToggleLegacyV4()" style="width:22px;height:22px;flex:none;margin:1px 0 0 0;"/><span style="flex:1;min-width:0;"><span style="display:block;white-space:normal;line-height:1.3;">레거시 <b>votes≥4</b>만 매수</span><span style="display:block;font-size:9.5px;color:var(--text3);line-height:1.35;margin-top:2px;">(S1355 · OFF=votes≥1 기존 · bullVol·V2 비대상)</span></span></label>  <!-- [S1481] 토글 22px·2줄 블록(세로 찌그러짐 해소) -->
       <div id="atBuyList"></div>
       <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">votes≥1 레거시 레시피 <b>또는</b> V2 어휘규칙(real·강/일반) <b>또는</b> 크로스(MA5×20 골든+장기정배·S1396 provisional — 전진게이트: 완성 N≥20 시 기대값&gt;0·승률≥35% 미달→OFF) 발동 종목 · 다음 장중 cron(09:05~15:05)에 <b>시장가</b> 매수 · 이미 보유분·매수완료분은 자동 제외 · 우선순위 votes↓(V2 단독은 후순위) · <b>토글 ON</b>이면 레거시는 votes≥4만 매수(미달분은 회색 <b>제외</b> 표기 — 워커 판정과 같은 조건 · S1355)</div>
     </div>
@@ -470,7 +470,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1480</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1481</div>
   </div>
 </div>
 
