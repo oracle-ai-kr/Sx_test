@@ -10,9 +10,11 @@ name: SX Autotrade Signals
 on:
   schedule:
     # 매일 06:30 UTC = 15:30 KST. [S940] 스냅은 실행 시 최신 일봉으로 자동 리빌드(런타임 · kr네이버/coin업비트/us야후).
-    # [S1472] 평일(1-5)→매일(*) — 코인은 24/7 봉이라 주말 신호도 소생. kr/us는 주말 재실행해도 asof 멱등(S1464 · 같은 마지막 봉→원장 교체·알림 무스팸)이라 무해.
+    # [S1472] 평일→매일로 넓혔던 것을 [S1497]에서 분리: KR/US=06:30 UTC(15:30 KST) 평일 — 장마감 후 확정봉 · 코인=00:05 UTC(09:05 KST) 매일 — 업비트 일봉 경계(09:00 KST) 직후 확정봉.
+    #   어느 cron이 발동했는지는 github.event.schedule로 분기 → env MARKETS(at_signals_push.sh가 해당 시장만 실행).
     # ※ 스케줄은 GitHub 규칙상 "기본 브랜치"에서만 실행됨 → main = 검증본. [S946]
-    - cron: '30 6 * * *'
+    - cron: '30 6 * * 1-5'
+    - cron: '5 0 * * *'
   push:
     # [S946] main 한정 — 실험 브랜치(recipe-lab)의 스냅 커밋이 신호를 밀지 않게. (기본 브랜치명이 다르면 여기 맞출 것)
     branches:
@@ -22,7 +24,12 @@ on:
       - 'snap_kr.json'
       - 'snap_us.json'
       - 'snap_coin.json'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      markets:
+        description: '실행 시장(쉼표 구분: kr,us,coin)'
+        required: false
+        default: 'kr,us,coin'
 
 concurrency:
   group: sx-autotrade-signals
@@ -45,4 +52,6 @@ jobs:
           AT_KEY: ${{ secrets.SX_AT_KEY }}
           SRC: .
           OFF_DIR: offline
+          # [S1497] 스케줄 분기: 00:05 UTC cron=coin · 06:30 UTC cron=kr,us · push/수동=입력값(기본 전부)
+          MARKETS: ${{ github.event_name == 'schedule' && (github.event.schedule == '5 0 * * *' && 'coin' || 'kr,us') || (github.event.inputs.markets || 'kr,us,coin') }}
         run: bash offline/at_signals_push.sh
