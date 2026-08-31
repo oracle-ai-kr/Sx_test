@@ -23,9 +23,12 @@ cat "$OFF/sx_offline_shim.js" \
 node --check "$BUILD"
 
 echo "[2/3] 시장별 신호 생성 + PUT"
+MARKETS="${MARKETS:-kr,us,coin}"   # [S1497] 실행 시장 필터(쉼표) — yml이 cron별로 주입: 06:30 UTC=kr,us · 00:05 UTC=coin(확정봉)
+echo "  MARKETS=$MARKETS"
 FAIL=0
 for pair in "kr:snap_kr.json" "us:snap_us.json" "coin:snap_coin.json"; do
   mkt="${pair%%:*}"; snap="${pair##*:}"
+  case ",$MARKETS," in *",$mkt,"*) ;; *) echo "  - $mkt skip (MARKETS)"; continue;; esac
   if [ ! -f "$SRC/$snap" ]; then echo "  - $mkt skip (no $snap)"; continue; fi
   out="/tmp/sig_$mkt.json"
   # [S940] 스냅 자동갱신 — 최신 캔들로 리빌드(런타임·커밋 안 함). 미지원(us)/실패 시 커밋 스냅 폴백. [S1192] coin=업비트 지원.
