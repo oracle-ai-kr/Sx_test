@@ -378,9 +378,9 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ [S949] 청산 설정 (이중ATR + MA/N일) ═══ -->
-    <div class="card" data-zone="kr" id="atExitCard">
-      <div class="card-title">🎯 청산 설정 <span class="tag">4종 칩 + 3×3판 게이트 · S1393</span><span onclick="atExitReset()" title="기본값(4종 ON · 2×/3× · 유예10 · N30 OFF · 게이트 OFF)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
-      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">진입=레거시 votes / bullVol / V2 어휘규칙 / 크로스(S1396·provisional) · 청산=<b>4종 독립 칩 OR</b>(MA데드+유예 / 이중ATR / 칸fake / 칸down) + N일 컷(공통·실험용) + 3×3판 게이트[측정 미달·기본 OFF]. 칸fake·칸down=완성봉 원장 → <b>다음 거래일 청산</b>(원장 5일 초과 stale 시 자동 보류). 값 변경 후 저장.</div>
+    <div class="card" data-zone="kr coin" id="atExitCard">
+      <div class="card-title">🎯 청산 설정 <span class="tag" id="exMktBadge">🇰🇷 국내</span><span onclick="atExitReset()" title="기본값(4종 ON · 2×/3× · 유예10 · N30 OFF · 게이트 OFF)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">[S1506] <b>항목은 두 시장 공용, 값은 시장별로 독립</b>입니다 — 위 <b>국내/코인</b> 탭을 바꾸면 그 시장의 저장값을 편집합니다(한쪽을 바꿔도 다른 쪽은 안 따라옵니다). 청산=<b>4종 독립 칩 OR</b>(MA데드+유예 / 이중ATR / 칸fake / 칸down) + N일 컷(공통·실험용) + 3×3판 게이트[측정 미달·기본 OFF]. 칸fake·칸down=완성봉 원장 → <b>다음 거래일 청산</b>(원장 5일 초과 stale 시 자동 보류). 값 변경 후 저장.</div>
       <div id="atExitDiag" style="font-size:10px;color:var(--text3);margin-bottom:10px;">청산판정 기록 없음 — 워커 S1193 배포 후 첫 tick부터 표시.</div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">초기 손절 (×ATR)<input id="exAtrInit" type="number" step="0.5" min="0.5" max="6" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
@@ -394,6 +394,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;"><input type="checkbox" id="exCdownOn" style="width:16px;height:16px;"/> ⛔ <b>칸 down 청산</b> <span style="font-size:9.5px;color:var(--text3);">원장 v2.avoid(down) · 완성봉 → 다음 거래일</span></label>
         <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exNbarOn" onchange="_exWarnSync()" style="width:16px;height:16px;"/> ⏱ <b>N일 컷</b> · N=<input id="exNbarDays" type="number" step="1" min="1" max="250" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/>일 <span style="font-size:9.5px;color:var(--text3);">공통 토글 · 실험용 자(기본 OFF)</span></label>
         <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exGateOn" style="width:16px;height:16px;"/> ⬛ <b>3×3판 출구게이트</b> <span style="font-size:9.5px;color:#d97706;font-weight:700;">[측정 미달 · PREREG_S1392 E팔 · 기본 OFF]</span> <span style="font-size:9.5px;color:var(--text3);">ON: 장기 정배=데드만·ATR 억제 / 혼조·역배=ATR만·데드 무시 / 축 불명·원장 stale=해제(전 칩)</span></label>
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exTpPctOn" style="width:16px;height:16px;"/> 🚀 <b>TP급등</b> · 당일 봉 상승률 ≥ <input id="exTpPct" type="number" step="1" min="5" max="300" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/>% <span style="font-size:9.5px;color:var(--text3);">[S1499·S1506] 코인 기본 ON(PREREG_S1500 채택 30%) · KR 기본 OFF — 켜는 것은 사전등록 사안</span></label>
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exTpAtrOn" style="width:16px;height:16px;"/> 🏹 <b>TP_ATR</b> · 미실현 이익 ≥ <input id="exTpAtrMult" type="number" step="0.5" min="0.5" max="20" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/>×진입ATR <span style="font-size:9.5px;color:var(--text3);">[S1499·S1506] 코인 기본 ON(3×) · KR 기본 OFF</span></label>
       </div>
       <div id="exNoStopWarn" style="display:none;font-size:10px;color:var(--sell);margin-bottom:10px;">⚠ 무조건적 출구 없음 — 데드·이중ATR·N일이 전부 OFF면 칸fake/칸down 신호가 없는 종목은 청산 경로가 없습니다 (차단하지 않음·사실 고지).</div>
       <button type="button" id="exSaveBtn" onclick="atSaveExitConfig()" style="width:100%;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">💾 청산 설정 저장</button>
@@ -576,7 +578,7 @@ function atRender(d){
     _oe.innerHTML = _err ? ('<div style="border:1px solid var(--sell-border);background:var(--sell-bg);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:var(--sell);line-height:1.55;">⚠ 주문 거절 ('+_esc(_err.code)+' '+_esc(_err.side)+'): '+_esc(_err.error)+'</div>') : '';
   }
   atRenderPortfolio(d.portfolio);  // [S933] KIS 잔고/손익 패널
-  atRenderExitConfig(d.exitConfig); // [S949] 청산 설정 입력칸 동기화
+  atRenderExitConfig(d.exitConfig, false, 'kr'); // [S949] 청산 설정 입력칸 동기화 · [S1506] 시장 태그
   atRenderEntryConfig(d.entryConfig); // [S1028] 진입 상한 입력칸 동기화
   atRenderNotifyConfig(d.notifyConfig); // [S1464] 텔레그램 알림 설정 동기화(최초 1회)
   atRenderPnl(d.pnl); // [S1031] 실현손익 evidence 카드
@@ -1072,33 +1074,40 @@ function atRenderBuyPreview(sig){
 }
 
 // ── [S949→S1393] 청산 설정 UI (exit_config ↔ /sx/autotrade/exit-config) — 4종 독립 칩 + 3×3판 게이트 + N일 공통. 구 택1(_exMode) 철거. ──
-let _exLoaded=false;
+let _exLoadedMkt=null;   // [S1506] 시장별 로드 가드(구 _exLoaded 불리언 → 어느 시장을 그렸는지) — 존을 바꾸면 다시 그린다
+function _exMkt(){ return (_atZone==='coin') ? 'coin' : 'kr'; }   // [S1506] 존이 곧 시장 탭(중복 UI 0)
 function _exWarnSync(){ const g=(id)=>{ const e=_$(id); return !!(e&&e.checked); }; const w=_$('exNoStopWarn'); if(w) w.style.display=(g('exAtrOn')||g('exDeadOn')||g('exNbarOn'))?'none':'block'; } // [S1393] 무스톱 경고(사실 고지·차단 없음)
-function atRenderExitConfig(cfg, force){
+function atRenderExitConfig(cfg, force, mkt){
   if(!cfg) return;
-  if(_exLoaded && !force) return; // [S950] 최초 1회만 로드 → atRefresh(12s)가 편집/저장값 덮어쓰기 방지
-  _exLoaded=true;
+  const m=(mkt==='coin')?'coin':'kr';
+  if(m!==_exMkt()) return;   // [S1506] 다른 시장의 응답이 늦게 와도 현재 탭을 덮어쓰지 않는다
+  if(_exLoadedMkt===m && !force) return; // [S950] 시장당 최초 1회만 → 주기 새로고침이 편집/저장값 덮어쓰기 방지
+  _exLoadedMkt=m;
+  const bd=_$('exMktBadge'); if(bd) bd.textContent=(m==='coin')?'₿ 코인':'🇰🇷 국내';
   const set=(id,v)=>{ const e=_$(id); if(e && v!=null) e.value=v; };
   const chk=(id,on)=>{ const e=_$(id); if(e) e.checked=!!on; };
   set('exAtrInit', cfg.atrInitMult); set('exAtrTrail', cfg.atrTrailMult); set('exMaGrace', cfg.maGraceDays!=null?cfg.maGraceDays:10); set('exNbarDays', cfg.nbarDays!=null?cfg.nbarDays:30);
   chk('exAtrOn', cfg.atrOn!==false); chk('exDeadOn', cfg.deadOn!==false); chk('exCfakeOn', cfg.cfakeOn!==false); chk('exCdownOn', cfg.cdownOn!==false); chk('exNbarOn', cfg.nbarOn===true); chk('exGateOn', cfg.gateOn===true); // [S1393]
+  set('exTpPct', cfg.tpPct!=null?cfg.tpPct:30); set('exTpAtrMult', cfg.tpAtrMult!=null?cfg.tpAtrMult:3);
+  chk('exTpPctOn', cfg.tpPctOn===true); chk('exTpAtrOn', cfg.tpAtrOn===true);   // [S1506] 익절 2칩
   _exWarnSync();
 }
 // [S950] 청산 임계값 기본으로 초기화 (↻) — 입력칸을 기본값으로 채우고 즉시 저장(persist).
 function atExitReset(){
-  atRenderExitConfig({ atrOn:true, atrInitMult:2, atrTrailMult:3, deadOn:true, maGraceDays:10, cfakeOn:true, cdownOn:true, nbarOn:false, nbarDays:30, gateOn:false }, true); // [S1393] 기본=4종 ON·게이트 OFF(PREREG_S1392 집행)
+  const _c=(_exMkt()==='coin');   // [S1506] 초기화도 시장별 — 코인 익절 기본 ON(PREREG_S1500 채택값)·KR OFF
+  atRenderExitConfig({ atrOn:true, atrInitMult:2, atrTrailMult:3, deadOn:true, maGraceDays:10, cfakeOn:true, cdownOn:true, nbarOn:false, nbarDays:30, gateOn:false, tpPctOn:_c, tpPct:30, tpAtrOn:_c, tpAtrMult:3 }, true, _exMkt()); // [S1393] 기본=4종 ON·게이트 OFF(PREREG_S1392 집행)
   atSaveExitConfig();
 }
 async function atSaveExitConfig(){
   const msg=_$('exMsg'), btn=_$('exSaveBtn');
   const num=(id)=>{ const e=_$(id); return e?parseFloat(e.value):null; };
   const chk=(id)=>{ const e=_$(id); return !!(e&&e.checked); };
-  const body={ atrOn:chk('exAtrOn'), atrInitMult:num('exAtrInit'), atrTrailMult:num('exAtrTrail'), deadOn:chk('exDeadOn'), maGraceDays:num('exMaGrace'), cfakeOn:chk('exCfakeOn'), cdownOn:chk('exCdownOn'), nbarOn:chk('exNbarOn'), nbarDays:num('exNbarDays'), gateOn:chk('exGateOn') }; // [S1393] 신 스키마
+  const body={ atrOn:chk('exAtrOn'), atrInitMult:num('exAtrInit'), atrTrailMult:num('exAtrTrail'), deadOn:chk('exDeadOn'), maGraceDays:num('exMaGrace'), cfakeOn:chk('exCfakeOn'), cdownOn:chk('exCdownOn'), nbarOn:chk('exNbarOn'), nbarDays:num('exNbarDays'), gateOn:chk('exGateOn'), tpPctOn:chk('exTpPctOn'), tpPct:num('exTpPct'), tpAtrOn:chk('exTpAtrOn'), tpAtrMult:num('exTpAtrMult') }; // [S1393] 신 스키마 · [S1506] 익절 2칩
   if(btn){ btn.disabled=true; btn.textContent='저장 중…'; }
   try{
-    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/exit-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/exit-config?mkt='+_exMkt(),{ method:'POST',   /* [S1506] 현재 탭 시장에 저장 */ headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
     const d=await r.json();
-    if(d && d.ok){ atRenderExitConfig(d.exitConfig, true); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · '+_exSummary(d.exitConfig); } }
+    if(d && d.ok){ atRenderExitConfig(d.exitConfig, true, _exMkt()); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ '+(_exMkt()==='coin'?'코인':'국내')+' 저장됨 · '+_exSummary(d.exitConfig); } }
     else if(d && d.needAuth){ _atToken=''; atShowGate(); }
     else if(msg){ msg.style.color='var(--sell)'; msg.textContent='저장 실패: '+((d&&d.error)||'알수없음'); }
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
@@ -1511,12 +1520,7 @@ async function atCoinCtrl(kind, arg){
   }catch(_){ }
   _coinCtrlPend=false; atLoadCoinLedger(true);
 }
-async function atCoinSaveExit(){  // [S1501] exit-config?mkt=coin — 익절 4키만 전송(스톱 배수 등은 서버가 현행 유지)
-  const b={ tpPctOn:!!(_$('coinTpPctOn')&&_$('coinTpPctOn').checked), tpPct:+((_$('coinTpPct')||{}).value), tpAtrOn:!!(_$('coinTpAtrOn')&&_$('coinTpAtrOn').checked), tpAtrMult:+((_$('coinTpAtr')||{}).value) };
-  if(!(b.tpPct>0)||!(b.tpAtrMult>0)) return;
-  _coinCtrlPend=true; try{ await atCoinPost('/sx/autotrade/exit-config?mkt=coin',b); }catch(_){ } _coinCtrlPend=false;
-  const sb=_$('atCoinCfgBody'); if(sb) sb.dataset.xk=''; atLoadCoinLedger(true);
-}
+// [S1506] atCoinSaveExit 철거 — 익절 편집이 통합 청산 카드(atSaveExitConfig)로 일원화됐다. 남겨두면 같은 키를 두 경로가 쓰는 흩어짐이 된다.
 async function atCoinTgToggle(){  // [S1498] notify-config coinOn(KR 설정 파일 공유·다른 키 보존)
   const on=!!(_$('coinTgOn')&&_$('coinTgOn').checked); _coinCtrlPend=true;
   try{ await atCoinPost('/sx/autotrade/notify-config',{coinOn:on}); }catch(_){ }
@@ -1603,25 +1607,24 @@ function atRenderCoinExtra(d){
   if(sb){
     const mh=(cfg.maxHoldings!=null?cfg.maxHoldings:30), bc=(cfg.buyCapPerTick!=null?cfg.buyCapPerTick:5);
     const nt=(d&&d.notify)||{}; const tgOn=(nt.coinOn!==false);  // [S1498] 텔레그램 코인 알림 마스터
-    const xc=(d&&d.exitCfg)||{}; const xk=[xc.tpPctOn,xc.tpPct,xc.tpAtrOn,xc.tpAtrMult,xc.atrTrailMult].join('|');  // [S1501] 익절 칩 설정
-    const focused=['coinMaxHold','coinBuyCap','coinTpPct','coinTpAtr'].some(id=>document.activeElement===_$(id));
-    if(!focused && (sb.dataset.mh!==String(mh)||sb.dataset.bc!==String(bc)||sb.dataset.tg!==String(tgOn)||sb.dataset.xk!==xk)){
-      sb.dataset.mh=String(mh); sb.dataset.bc=String(bc); sb.dataset.tg=String(tgOn); sb.dataset.xk=xk;
+    const xc=(d&&d.exitCfg)||{};
+    atRenderExitConfig(xc, false, 'coin');   // [S1506] 통합 청산 카드에 코인 값 공급(코인 존일 때만 그려진다)
+    const focused=['coinMaxHold','coinBuyCap'].some(id=>document.activeElement===_$(id));
+    if(!focused && (sb.dataset.mh!==String(mh)||sb.dataset.bc!==String(bc)||sb.dataset.tg!==String(tgOn))){
+      sb.dataset.mh=String(mh); sb.dataset.bc=String(bc); sb.dataset.tg=String(tgOn);
       sb.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;"><label style="font-size:11px;color:var(--text2);">보유상한 (개)<input id="coinMaxHold" type="number" min="1" max="200" value="'+mh+'" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface2);color:var(--text);"/></label><label style="font-size:11px;color:var(--text2);">tick당 매수 (개)<input id="coinBuyCap" type="number" min="1" max="20" value="'+bc+'" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface2);color:var(--text);"/></label></div>'
         +'<button onclick="atCoinSaveCfg()" style="'+_cBtn+'width:100%;background:var(--accent);color:#fff;border-color:var(--accent);">💾 코인 진입 상한 저장</button>'
         +'<label style="display:flex;align-items:flex-start;gap:10px;margin-top:12px;cursor:pointer;"><input type="checkbox" id="coinTgOn" onchange="atCoinTgToggle()" '+(tgOn?'checked':'')+' style="flex:none;width:22px;height:22px;margin:1px 0 0;accent-color:var(--accent);"/><span style="display:block;min-width:0;flex:1;"><span style="display:block;font-size:12.5px;color:var(--text);line-height:1.35;">텔레그램 <b>코인 알림</b> (매수 후보 · 가상 주문)</span><span style="display:block;font-size:9.5px;color:var(--text3);margin-top:2px;line-height:1.4;">'+(nt.hasToken?'KR 텔레그램 설정(토큰·채팅ID·후보/주문 토글) 공유 · 후보=코인 신호 수신 시 1회, 주문=tick·위험감시·수동 청산 배치 · S1498':'⚠ KR 탭 텔레그램 카드에서 토큰·채팅ID를 먼저 설정하세요 · S1498')+'</span></span></label>'
-        +'<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--border);"><div style="font-size:11.5px;font-weight:700;color:var(--text2);margin-bottom:8px;">청산 익절 칩 <span style="font-size:9.5px;font-weight:600;color:var(--text3);">S1499·S1501 — 4칩(이중ATR '+_esc(String(xc.atrInitMult!=null?xc.atrInitMult:2))+'/'+_esc(String(xc.atrTrailMult!=null?xc.atrTrailMult:3))+'·데드·칸fake·칸down) 위에 OR · 코인 전용</span></div>'
-        +'<label style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;"><input type="checkbox" id="coinTpPctOn" '+(xc.tpPctOn?'checked':'')+' style="flex:none;width:22px;height:22px;accent-color:var(--accent);"/><span style="font-size:12px;color:var(--text);flex:1;"><b>TP급등</b> — 당일 봉 상승률 ≥</span><input id="coinTpPct" type="number" min="5" max="300" step="1" value="'+(xc.tpPct!=null?xc.tpPct:30)+'" style="width:72px;padding:6px;border:1px solid var(--border);border-radius:8px;font-size:14px;text-align:right;background:var(--surface2);color:var(--text);"/><span style="font-size:12px;color:var(--text2);">%</span></label>'
-        +'<label style="display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="coinTpAtrOn" '+(xc.tpAtrOn?'checked':'')+' style="flex:none;width:22px;height:22px;accent-color:var(--accent);"/><span style="font-size:12px;color:var(--text);flex:1;"><b>TP_ATR</b> — 미실현 이익 ≥</span><input id="coinTpAtr" type="number" min="0.5" max="20" step="0.5" value="'+(xc.tpAtrMult!=null?xc.tpAtrMult:3)+'" style="width:72px;padding:6px;border:1px solid var(--border);border-radius:8px;font-size:14px;text-align:right;background:var(--surface2);color:var(--text);"/><span style="font-size:12px;color:var(--text2);">×진입ATR</span></label>'
-        +'<button onclick="atCoinSaveExit()" style="'+_cBtn+'width:100%;">💾 코인 익절 저장</button>'
-        +'<div style="font-size:9.5px;color:var(--text3);margin-top:6px;line-height:1.5;">기본 ON(30%·3×ATR) = PREREG_S1500 3창 채택값 — 현행 대비 기대값 2021 +2.3~2.7p · 2023 +3.8p · 2026 +1.8p(낙관·비관 순서 공통). 값 변경은 사전등록 사안 — 바꾸면 사유를 기록해 두세요.</div></div>'
-        +'<div style="font-size:9.5px;color:var(--text3);margin-top:8px;line-height:1.5;">사이징=NAV÷(보유상한+5) 금액균등(S1472) · votes≥4·주의 제외 토글은 후보 카드에 · 스톱 배수(2/3)는 KR SSOT 공유(변경은 사전등록 사안 S1482)</div>';
+        +'<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--border);font-size:10.5px;color:var(--text3);line-height:1.6;">[S1506] <b>청산 설정은 위 🎯 청산 설정 카드</b>로 옮겼습니다 — 항목이 두 시장 공용 한 벌이고 값만 시장별로 독립입니다. 여기 있던 익절 2칩은 같은 키를 두 곳에서 편집하게 되므로 철거했습니다.</div>'
+        +'<div style="font-size:9.5px;color:var(--text3);margin-top:8px;line-height:1.5;">사이징=NAV÷(보유상한+5) 금액균등(S1472) · votes≥4·주의 제외 토글은 후보 카드에 · ⚠[S1506] 정정: 스톱 배수는 KR과 <b>공유가 아니라 독립</b>입니다(구 캡션이 틀렸습니다 — 코인 설정을 한 번이라도 저장하면 그 시점 값이 코인 키에 동결됩니다)</div>';
     }
     show('atCoinCfgCard');
   }
 }
 function atZoneSet(z){
   _atZone=z; try{ localStorage.setItem('at_zone',z); }catch(_){}
+  _exLoadedMkt=null;   // [S1506] 존=시장이므로 청산 카드를 그 시장 값으로 다시 그린다(다음 응답에서)
+  try{ const bd=_$('exMktBadge'); if(bd) bd.textContent=(z==='coin')?'₿ 코인':'🇰🇷 국내'; }catch(_){}
   document.querySelectorAll('[data-zone]').forEach(el=>{
     const ok=(el.getAttribute('data-zone')||'').split(' ').indexOf(z)>=0;
     el.classList.toggle('zone-hidden', !ok);
