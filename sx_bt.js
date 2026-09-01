@@ -1265,7 +1265,7 @@ function btGetOpts(){
   //     적용 범위: sx_bt.js 모든 경로(단일검증/관심종목 BT/교차검증/워크포워드/대시보드).
   //     옵티마이저는 별개 호출(sx_optimizer.js에서 직접 true 전달) → 영향 없음.
   const _esrc=_btEntrySrc();
-  return { slippage:slip, applyRegimeAdjust:true, entrySrc:_esrc, exitCfg:{ deadOn:_esrc.xDead===true, atrOn:_esrc.xAtr===true, cfakeOn:_esrc.xCf===true, cdownOn:_esrc.xCd===true, nbarOn:_esrc.xN===true, nbarDays:30, gateOn:_esrc.xGate===true } };   // [S1397] 시즌2 S1393 미러 — 구 mGate/xMode(레짐5 축 S1212/15/16) 철거·3×3판 게이트가 대체
+  return { slippage:slip, applyRegimeAdjust:true, entrySrc:_esrc, exitCfg:{ deadOn:_esrc.xDead===true, atrOn:_esrc.xAtr===true, cfakeOn:_esrc.xCf===true, cdownOn:_esrc.xCd===true, nbarOn:_esrc.xN===true, nbarDays:((+_esrc.xNd>0)?Math.round(+_esrc.xNd):30), gateOn:_esrc.xGate===true } };   /* [S1505] 하드코딩 30 → 사용자 입력값 */   // [S1397] 시즌2 S1393 미러 — 구 mGate/xMode(레짐5 축 S1212/15/16) 철거·3×3판 게이트가 대체
 }
 
 // [S1213] 진입원 서명 — BT 결과 재사용(S215) 키. 엔진 폴백(EC.SRC_ALL)과 동일 규약으로 정규화:
@@ -1276,7 +1276,8 @@ function _btSrcSigOf(opts){
   const d=(opts&&opts.entrySrc)||{recipe:true,bullVol:true,v2:true,maCross:true};   // [S1397] 크로스 기본 ON(시즌2 S1396 정합)
   const m=(d.maCross!==false);
   const x=(opts&&opts.exitCfg)||{};
-  const xg='x'+[x.deadOn!==false,x.atrOn!==false,x.cfakeOn!==false,x.cdownOn!==false,x.nbarOn===true,x.gateOn===true].map(b=>b?1:0).join('');   // [S1397] 청산 칩 비트 서명 — 서명 변경으로 기존 저장 BT 전부 stale→자동 재계산(의도)   // [S1215·16] 출구모드 재사용 키(분석탭=미지정=x-)
+  const xg='x'+[x.deadOn!==false,x.atrOn!==false,x.cfakeOn!==false,x.cdownOn!==false,x.nbarOn===true,x.gateOn===true].map(b=>b?1:0).join('')
+    + ((x.nbarOn===true)?('d'+((+x.nbarDays>0)?Math.round(+x.nbarDays):30)):'');   // [S1397] 청산 칩 비트 서명 — 서명 변경으로 기존 저장 BT 전부 stale→자동 재계산(의도)   // [S1215·16] 출구모드 재사용 키(분석탭=미지정=x-)
   return [d.recipe!==false?1:0, d.bullVol!==false?1:0, d.v2!==false?1:0, m?1:0, xg].join('|');
 }
 if(typeof window!=='undefined') window._btSrcSigOf=_btSrcSigOf;
@@ -1318,11 +1319,21 @@ if(typeof window!=='undefined') window._btStampResult=_btStampResult;
 const SX_BT_SRC_KEY='SX_BT_ENTRY_SRC_v3';   // [S1397] v2→v3 리셋 — 시즌2 정합(크로스 ON·청산 4종·게이트) 기본으로 재시작. 구 키 즉시 제거(S1237 선례·무보존).
 try{ if(typeof localStorage!=='undefined'){ localStorage.removeItem('SX_BT_ENTRY_SRC_v1'); localStorage.removeItem('SX_BT_ENTRY_SRC_v2'); } }catch(_lgK){}
 function _btEntrySrc(){
-  const d={ recipe:true, bullVol:true, v2:true, maCross:true, xDead:true, xAtr:true, xCf:true, xCd:true, xN:false, xGate:false };   // [S1397] 시즌2 정합 기본 — 진입 4원 ON(크로스=S1396 provisional) · 청산 4종 ON·N일/게이트 OFF(S1393)
+  const d={ recipe:true, bullVol:true, v2:true, maCross:true, xDead:true, xAtr:true, xCf:true, xCd:true, xN:false, xGate:false, xNd:30 };   /* [S1505] xNd=N일 컷 값(수동 입력) — 구 저장본엔 없으므로 기본 30(종전 하드코딩값 그대로 = 동작 변경 0) */   // [S1397] 시즌2 정합 기본 — 진입 4원 ON(크로스=S1396 provisional) · 청산 4종 ON·N일/게이트 OFF(S1393)
   try{ const raw=localStorage.getItem(SX_BT_SRC_KEY); if(raw){ const o=JSON.parse(raw);
     ['recipe','bullVol','v2','maCross','xDead','xAtr','xCf','xCd','xN','xGate'].forEach(k=>{ if(typeof o[k]==='boolean') d[k]=o[k]; });
+    if(o.xNd!=null && isFinite(+o.xNd) && +o.xNd>0) d.xNd=Math.min(365,Math.max(1,Math.round(+o.xNd)));   /* [S1505] 값 복원 — 범위 1~365일 */
   } }catch(_){}
   return d;
+}
+// [S1505] N일 컷 값 입력 — 값이 서명(_btSrcSigOf)에 들어가므로 바꾸면 저장 BT가 stale이 되어 자동 재계산된다.
+//   ⚠그 배선이 없으면 N=5로 바꿔도 N=30으로 돌린 캐시가 재사용된다 — 화면은 5라 말하고 숫자는 30인 조용한 오답(S1215 계열).
+function btSetNbarDays(v){
+  const st=_btEntrySrc(); const n=+v;
+  if(!isFinite(n)||n<=0) return;
+  st.xNd=Math.min(365,Math.max(1,Math.round(n)));
+  try{ localStorage.setItem(SX_BT_SRC_KEY, JSON.stringify(st)); }catch(_){}
+  _btRenderEntrySrcBar();
 }
 function btToggleEntrySrc(k){
   const st=_btEntrySrc();
@@ -1340,18 +1351,20 @@ const _BT_SRC_META={
 function _btRenderEntrySrcBar(){
   const el=document.getElementById('btEntrySrcBar'); if(!el) return;
   const st=_btEntrySrc();
+  const _nd=(+st.xNd>0)?Math.round(+st.xNd):30;   // [S1505] 칩 라벨·입력칸이 같은 값을 읽는다
   el.innerHTML='<span style="font-size:10px;font-weight:800;color:var(--text3);margin-right:2px">진입원</span>'
     + ['recipe','bullVol','v2','maCross'].map(k=>{ const m=_BT_SRC_META[k], on=st[k];
         return `<span onclick="_sxVib(10);btToggleEntrySrc('${k}')" title="${m.tip}" style="font-size:10px;font-weight:800;padding:4px 10px;border-radius:13px;border:1px solid ${m.c}${on?'':'55'};cursor:pointer;${on?`background:${m.c};color:#fff`:`background:transparent;color:${m.c}`}">${m.ic} ${m.lbl} ${on?'ON':'OFF'}</span>`;
       }).join('')
     + (st.v2?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">⚠ V2 규칙은 발굴풀 <b>in-sample</b> — 이 BT에서 오르는 건 검증이 아니라 재현이다. 정직한 판정은 시즌2 paper(시간축 OOS).</div>':'')
     + '<div style="width:100%;height:1px;margin:6px 0 4px;background:var(--border)"></div><span style="font-size:10px;font-weight:800;color:var(--text3);margin-right:2px">청산</span>'
-    + [['xDead','✂️데드','#3b82f6','MA5×20 데드(유예10·완성봉) — 시즌2 S1393 4종 칩'],['xAtr','🛡️ATR','#e8365a','이중ATR 2×/3× — PREREG_S1392 전 도전팔 미충족 → 기본 ON 유지'],['xCf','🧩칸F','#b45309','칸fake 청산 — 전일 봉 신호(원장 파리티·1봉 지연·워밍업 구간=보류)'],['xCd','⛔칸D','#dc2626','칸down 청산 — 전일 봉 신호(1봉 지연)'],['xN','⏱N30','#f97316','N일 컷(30일) — 공통 토글·실험용 자·기본 OFF'],['xGate','⬛게이트','#7c3aed','3×3판 출구게이트 [측정 미달·PREREG_S1392 E팔·기본 OFF] — ON: 장기 정배=데드만·ATR 억제 / 혼조·역배=ATR만·데드 무시 / 축 불명=해제(전 칩)']].map(x=>{ const on=st[x[0]]===true;
+    + [['xDead','✂️데드','#3b82f6','MA5×20 데드(유예10·완성봉) — 시즌2 S1393 4종 칩'],['xAtr','🛡️ATR','#e8365a','이중ATR 2×/3× — PREREG_S1392 전 도전팔 미충족 → 기본 ON 유지'],['xCf','🧩칸F','#b45309','칸fake 청산 — 전일 봉 신호(원장 파리티·1봉 지연·워밍업 구간=보류)'],['xCd','⛔칸D','#dc2626','칸down 청산 — 전일 봉 신호(1봉 지연)'],['xN','⏱N'+_nd,'#f97316','N일 컷 — 진입 후 '+_nd+'일(달력일·봉 아님)이 지나면 무조건 청산. 값은 오른쪽 칸에서 직접 입력(1~365). 공통 토글·실험용 자·기본 OFF. ⚠값을 바꾸면 저장된 BT가 stale이 되어 다시 돌아간다'],['xGate','⬛게이트','#7c3aed','3×3판 출구게이트 [측정 미달·PREREG_S1392 E팔·기본 OFF] — ON: 장기 정배=데드만·ATR 억제 / 혼조·역배=ATR만·데드 무시 / 축 불명=해제(전 칩)']].map(x=>{ const on=st[x[0]]===true;
         return `<span onclick="_sxVib(10);btToggleEntrySrc('${x[0]}')" title="${x[3]}" style="font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:12px;border:1px solid ${x[2]}${on?'':'55'};cursor:pointer;${on?`background:${x[2]}18;color:${x[2]}`:'background:transparent;color:var(--text3)'}">${x[1]}${on?'':' OFF'}</span>`; }).join('')   // [S1397] 시즌2 S1393 미러 칩
+    + (st.xN===true?`<input id="btNbarDays" type="number" step="1" min="1" max="365" value="${_nd}" onchange="window.btSetNbarDays&&btSetNbarDays(this.value)" style="width:52px;padding:3px 6px;margin-left:3px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:9.5px;font-weight:700;text-align:center"><span style="font-size:8.5px;color:var(--text3);margin-left:2px">일</span>`:'')   // [S1505] 수동 입력 — 칩 ON일 때만
     + (st.xGate===true?'<div style="width:100%;font-size:8.5px;color:#7c3aed;line-height:1.5;margin-top:3px">⬛ 게이트 ON — 장기 정배=데드만·ATR 억제 / 혼조·역배=ATR만·데드 무시 / 축 불명·워밍업=해제. <b>[측정 미달·PREREG_S1392 E팔]</b>(W1 한정 강세·W2/W3 무익) — 정찰용.</div>':'')
     + (st.maCross?'<div style="width:100%;font-size:8.5px;color:#16a34a;line-height:1.5;margin-top:3px">📈 크로스(S1396) — 시즌2 <b>배선됨</b>(provisional·장기 정배 라우팅 내장·사슬 3순위). 전진게이트: 완성거래 N≥20 시 기대값&gt;0·승률≥35% 미달→OFF(사전선언·변경 금지). 이 BT는 정찰.</div>':'');
 }
-if(typeof window!=='undefined'){ window.btToggleEntrySrc=btToggleEntrySrc; window._btRenderEntrySrcBar=_btRenderEntrySrcBar; window._btEntrySrc=_btEntrySrc; }
+if(typeof window!=='undefined'){ window.btToggleEntrySrc=btToggleEntrySrc; window.btSetNbarDays=btSetNbarDays; window._btRenderEntrySrcBar=_btRenderEntrySrcBar; window._btEntrySrc=_btEntrySrc; }   /* [S1505] */
 
 // ── 현재 분석 종목 가져오기 ──
 function _btCurrentStock(){
