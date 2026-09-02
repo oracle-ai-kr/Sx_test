@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1502</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1518</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1518] 청산 카드 새 4키(초기손절/트레일 다리 토글·무장 문턱·N봉 컷)+진입원 토글(KR·코인·후보 카드 제외 표기 워커 동식) · [S1517] 워커 청산 코어(두 다리·무장·봉 규약·KR 당일시가) · [S1506] 청산 설정 두 시장 공용(당시 배지 미갱신 — 정정) · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -272,6 +272,15 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <div class="card" data-zone="coin" id="atCoinBuyCard" style="display:none;">
       <div class="card-title">🛒 오늘의 매수 후보 <span class="tag" id="atCoinBuyCount">·</span></div>
       <label style="display:flex;align-items:flex-start;gap:10px;font-size:11.5px;color:var(--text2);margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="enCoinV4" onchange="atCoinToggleV4()" style="width:22px;height:22px;flex:none;margin:1px 0 0 0;"/><span style="flex:1;min-width:0;"><span style="display:block;white-space:normal;line-height:1.3;">레거시 <b>votes≥4</b>만 매수</span><span style="display:block;font-size:9.5px;color:var(--text3);line-height:1.35;margin-top:2px;">(코인 기본 OFF · S1473 — 실측 votes {0,1} · [S1474] votes=시장 사다리: coin은 겹침 승격 미검증으로 1 고정(S877) → 사다리 승격 검증 후 재점등용)</span></span></label>  <!-- [S1481] 토글 22px·2줄 블록(세로 찌그러짐 해소) -->
+      <div style="font-size:11px;color:var(--text2);margin:2px 0 10px;"><!-- [S1518] 코인 진입원 ON/OFF(entry-config?mkt=coin srcOn · 즉시 저장) -->
+        <div style="margin-bottom:6px;">진입원 <span style="font-size:9.5px;color:var(--text3);">(DECL_S1516 COIN=칸real만 · src별 전진게이트는 켜진 진입원에만)</span></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="enCoinSrcRecipe" onchange="atCoinToggleSrc()" style="width:18px;height:18px;"/> 레거시</label>
+          <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="enCoinSrcBullVol" onchange="atCoinToggleSrc()" style="width:18px;height:18px;"/> bullVol</label>
+          <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="enCoinSrcCross" onchange="atCoinToggleSrc()" style="width:18px;height:18px;"/> 📈크로스</label>
+          <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="enCoinSrcV2" onchange="atCoinToggleSrc()" style="width:18px;height:18px;"/> 🧩칸real(V2)</label>
+        </div>
+      </div>
       <label style="display:flex;align-items:flex-start;gap:10px;font-size:11.5px;color:var(--text2);margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="enCoinCau" onchange="atCoinToggleCau()" style="width:22px;height:22px;flex:none;margin:1px 0 0 0;"/><span style="flex:1;min-width:0;"><span style="display:block;white-space:normal;line-height:1.3;"><b>주의</b> 종목도 매수 제외</span><span style="display:block;font-size:9.5px;color:var(--text3);line-height:1.35;margin-top:2px;">(기본 OFF=배지만 · S1479 — 업비트 caution(가격급등락·거래량급증 등) · ON이면 워커도 같은 판정으로 제외 · 유의·거래종료는 토글 무관 항상 제외)</span></span></label>  <!-- [S1481] 토글 22px·2줄 블록(세로 찌그러짐 해소) -->
       <div id="atCoinBuyList"></div>
       <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">코인 신호원장(09:05 KST 생성·<b>확정봉</b> 판정 — 업비트 일봉 경계 09:00 직후·S1497) BUY 발동 종목 · 체결은 <b>D+1 일봉 시가</b>(09:00 KST 경계) · 이미 보유·해당 asof 매수완료·차단은 자동 제외 · 우선순위 votes↓ · <b>토글 ON</b>이면 레거시 votes≥4만(미달 회색 <b>제외</b> — 워커 판정과 같은 조건)</div>
@@ -320,6 +329,15 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <div class="card" data-zone="kr" id="atBuyPreviewCard" style="display:none;">
       <div class="card-title">🛒 오늘의 매수 후보 <span class="tag" id="atBuyCount">·</span></div>
       <label style="display:flex;align-items:flex-start;gap:10px;font-size:11.5px;color:var(--text2);margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="enLegacyV4" onchange="atToggleLegacyV4()" style="width:22px;height:22px;flex:none;margin:1px 0 0 0;"/><span style="flex:1;min-width:0;"><span style="display:block;white-space:normal;line-height:1.3;">레거시 <b>votes≥4</b>만 매수</span><span style="display:block;font-size:9.5px;color:var(--text3);line-height:1.35;margin-top:2px;">(S1355 · OFF=votes≥1 기존 · bullVol·V2 비대상)</span></span></label>  <!-- [S1481] 토글 22px·2줄 블록(세로 찌그러짐 해소) -->
+      <div style="font-size:11px;color:var(--text2);margin:2px 0 10px;"><!-- [S1518] 진입원 ON/OFF(워커 srcOn · 즉시 저장) -->
+        <div style="margin-bottom:6px;">진입원 <span style="font-size:9.5px;color:var(--text3);">(끄면 그 진입원만 발화한 후보는 제외 · 둘 이상 발화면 켜진 쪽으로 귀속 · DECL_S1516 KR=크로스+칸real)</span></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="enSrcRecipe" onchange="atToggleSrc()" style="width:18px;height:18px;"/> 레거시</label>
+          <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="enSrcBullVol" onchange="atToggleSrc()" style="width:18px;height:18px;"/> bullVol</label>
+          <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="enSrcCross" onchange="atToggleSrc()" style="width:18px;height:18px;"/> 📈크로스</label>
+          <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="enSrcV2" onchange="atToggleSrc()" style="width:18px;height:18px;"/> 🧩칸real(V2)</label>
+        </div>
+      </div>
       <div id="atBuyList"></div>
       <div style="font-size:10px;color:var(--text3);margin-top:9px;line-height:1.5;">votes≥1 레거시 레시피 <b>또는</b> V2 어휘규칙(real·강/일반) <b>또는</b> 크로스(MA5×20 골든+장기정배·S1396 provisional — 전진게이트: 완성 N≥20 시 기대값&gt;0·승률≥35% 미달→OFF) 발동 종목 · 다음 장중 cron(09:05~15:05)에 <b>시장가</b> 매수 · 이미 보유분·매수완료분은 자동 제외 · 우선순위 votes↓(V2 단독은 후순위) · <b>토글 ON</b>이면 레거시는 votes≥4만 매수(미달분은 회색 <b>제외</b> 표기 — 워커 판정과 같은 조건 · S1355)</div>
     </div>
@@ -380,11 +398,16 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <!-- ═══ [S949] 청산 설정 (이중ATR + MA/N일) ═══ -->
     <div class="card" data-zone="kr coin" id="atExitCard">
       <div class="card-title">🎯 청산 설정 <span class="tag" id="exMktBadge">🇰🇷 국내</span><span onclick="atExitReset()" title="기본값(4종 ON · 2×/3× · 유예10 · N30 OFF · 게이트 OFF)으로 초기화" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
-      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">[S1506] <b>항목은 두 시장 공용, 값은 시장별로 독립</b>입니다 — 위 <b>국내/코인</b> 탭을 바꾸면 그 시장의 저장값을 편집합니다(한쪽을 바꿔도 다른 쪽은 안 따라옵니다). 청산=<b>4종 독립 칩 OR</b>(MA데드+유예 / 이중ATR / 칸fake / 칸down) + N일 컷(공통·실험용) + 3×3판 게이트[측정 미달·기본 OFF]. 칸fake·칸down=완성봉 원장 → <b>다음 거래일 청산</b>(원장 5일 초과 stale 시 자동 보류). 값 변경 후 저장.</div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">[S1506] <b>항목은 두 시장 공용, 값은 시장별로 독립</b>입니다 — 위 <b>국내/코인</b> 탭을 바꾸면 그 시장의 저장값을 편집합니다(한쪽을 바꿔도 다른 쪽은 안 따라옵니다). 청산=<b>4종 독립 칩 OR</b>(MA데드+유예 / 이중ATR / 칸fake / 칸down) + N일 컷(공통·실험용) + 3×3판 게이트[측정 미달·기본 OFF]. 칸fake·칸down=완성봉 원장 → <b>다음 거래일 청산</b>(원장 5일 초과 stale 시 자동 보류). 값 변경 후 저장. [S1517·S1518] 이중ATR은 <b>초기 손절·트레일 두 다리를 따로</b> 켜고 끌 수 있고(코인 확정 조합=트레일 OFF), 트레일은 <b>무장 문턱</b>(최고가 ≥ 진입가+A×ATR) 뒤에만 작동합니다(KR 확정 2·0=항상). N 컷은 <b>N봉</b>(>0이면 봉 규약·시즌1 카드 동식·완성봉 기준)이 N일보다 우선합니다. 시장별 확정값은 DECL_S1516 §7-2.</div>
       <div id="atExitDiag" style="font-size:10px;color:var(--text3);margin-bottom:10px;">청산판정 기록 없음 — 워커 S1193 배포 후 첫 tick부터 표시.</div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">초기 손절 (×ATR)<input id="exAtrInit" type="number" step="0.5" min="0.5" max="6" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
         <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">트레일 (×ATR)<input id="exAtrTrail" type="number" step="0.5" min="0.5" max="8" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">무장 (×ATR)<input id="exTrArm" type="number" step="0.5" min="0" max="10" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label><!-- [S1517] trArm -->
+      </div>
+      <div style="display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap;"><!-- [S1518] 두 다리 토글(워커 slOn/trOn · 마스터 🛡️ OFF면 둘 다 미사용) -->
+        <label style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px;"><input type="checkbox" id="exSlOn" onchange="_exWarnSync()" style="width:16px;height:16px;"/> 🛑 초기 손절 다리</label>
+        <label style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px;"><input type="checkbox" id="exTrOn" onchange="_exWarnSync()" style="width:16px;height:16px;"/> 📉 트레일 다리 <span style="font-size:9.5px;color:var(--text3);">무장 0=항상 · A&gt;0=최고가≥진입가+A×ATR 뒤</span></label>
       </div>
       <div style="font-size:10.5px;color:var(--text2);margin-bottom:6px;">청산 칩 (독립 OR · S1393)</div>
       <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:12px;">
@@ -392,7 +415,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exDeadOn" onchange="_exWarnSync()" style="width:16px;height:16px;"/> ✂️ <b>MA5×20 데드</b> · 유예 <input id="exMaGrace" type="number" step="1" min="0" max="20" style="width:52px;font-size:13px;padding:6px;box-sizing:border-box;"/>일 <span style="font-size:9.5px;color:var(--text3);">유예 중 데드 OFF(자기모순 방지)·완성봉만 S956</span></label>
         <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;"><input type="checkbox" id="exCfakeOn" style="width:16px;height:16px;"/> 🧩 <b>칸 fake 청산</b> <span style="font-size:9.5px;color:var(--text3);">원장 v2.avoid(fake) · 완성봉 → 다음 거래일</span></label>
         <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;"><input type="checkbox" id="exCdownOn" style="width:16px;height:16px;"/> ⛔ <b>칸 down 청산</b> <span style="font-size:9.5px;color:var(--text3);">원장 v2.avoid(down) · 완성봉 → 다음 거래일</span></label>
-        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exNbarOn" onchange="_exWarnSync()" style="width:16px;height:16px;"/> ⏱ <b>N일 컷</b> · N=<input id="exNbarDays" type="number" step="1" min="1" max="250" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/>일 <span style="font-size:9.5px;color:var(--text3);">공통 토글 · 실험용 자(기본 OFF)</span></label>
+        <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exNbarOn" onchange="_exWarnSync()" style="width:16px;height:16px;"/> ⏱ <b>N 컷</b> · N일=<input id="exNbarDays" type="number" step="1" min="1" max="250" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/> · N봉=<input id="exNbarBars" type="number" step="1" min="0" max="250" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/> <span style="font-size:9.5px;color:var(--text3);">[S1517] N봉&gt;0이면 봉 규약(카드 동식·완성봉 기준·KR 확정 60) · 0이면 달력 일 규약 · 공통 토글</span></label>
         <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exGateOn" style="width:16px;height:16px;"/> ⬛ <b>3×3판 출구게이트</b> <span style="font-size:9.5px;color:#d97706;font-weight:700;">[측정 미달 · PREREG_S1392 E팔 · 기본 OFF]</span> <span style="font-size:9.5px;color:var(--text3);">ON: 장기 정배=데드만·ATR 억제 / 혼조·역배=ATR만·데드 무시 / 축 불명·원장 stale=해제(전 칩)</span></label>
         <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exTpPctOn" style="width:16px;height:16px;"/> 🚀 <b>TP급등</b> · 당일 봉 상승률 ≥ <input id="exTpPct" type="number" step="1" min="5" max="300" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/>% <span style="font-size:9.5px;color:var(--text3);">[S1499·S1506] 코인 기본 ON(PREREG_S1500 채택 30%) · KR 기본 OFF — 켜는 것은 사전등록 사안</span></label>
         <label style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><input type="checkbox" id="exTpAtrOn" style="width:16px;height:16px;"/> 🏹 <b>TP_ATR</b> · 미실현 이익 ≥ <input id="exTpAtrMult" type="number" step="0.5" min="0.5" max="20" style="width:58px;font-size:13px;padding:6px;box-sizing:border-box;"/>×진입ATR <span style="font-size:9.5px;color:var(--text3);">[S1499·S1506] 코인 기본 ON(3×) · KR 기본 OFF</span></label>
@@ -497,7 +520,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1502</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1518</div>
   </div>
 </div>
 
@@ -1041,7 +1064,7 @@ function atRenderBlocklist(){
 // [S1180] 전략 출처 칩 — src('recipe'|'v2'|'bullVol') → [레거시]/[V2]/[bullVol]. 구 기록(src 없음)은 표시 안 함.
 function _atSrcChip(src){
   if(!src) return '';
-  const m={recipe:['레거시','var(--sell)'], v2:['V2','var(--accent)'], bullVol:['bullVol','var(--accent2)']}; // [S1197] 색 언어 통일: 레거시=빨강/V2=파랑
+  const m={recipe:['레거시','var(--sell)'], v2:['V2','var(--accent)'], bullVol:['bullVol','var(--accent2)'], cross:['크로스','var(--buy)']};   // [S1518] cross 라벨 // [S1197] 색 언어 통일: 레거시=빨강/V2=파랑
   const t=m[src]||[src,'var(--text3)'];
   return ' <span style="font-size:9px;font-weight:700;color:'+t[1]+';border:1px solid '+t[1]+';border-radius:4px;padding:1px 4px;vertical-align:1px;">'+t[0]+'</span>';
 }
@@ -1053,19 +1076,22 @@ function atRenderBuyPreview(sig){
   if(!buys.length){ card.style.display='none'; return; }
   card.style.display='';
   // [S1355] 워커 매수 필터와 같은 조건으로 '제외' 판정 — 숨기지 않고 회색 표기(무엇이 왜 빠졌는지 화면이 스스로 말하게).
-  const _isCut=(b)=>(_enV4 && b.src==='recipe' && (b.votes||0)<4);
-  const _cutN=buys.filter(_isCut).length;
+  const _isSrcCut=(b)=>(_atSrcReattr(b,_enSrc)===null);   // [S1518] 워커 진입원 필터와 같은 식(거울)
+  const _srcOf=(b)=>{ const r=_atSrcReattr(b,_enSrc); return r?r.src:b.src; };   // [S1518] 재귀속된 진입원으로 칩·판정
+  const _isCut=(b)=>(_enV4 && _srcOf(b)==='recipe' && (b.votes||0)<4);
+  const _cutN=buys.filter(b=>_isCut(b)||_isSrcCut(b)).length;
   if(cnt) cnt.textContent=_cutN?((buys.length-_cutN)+'종 매수 · '+_cutN+'종 제외'):(buys.length+'종목');
   list.innerHTML=buys.map(b=>{
     if(b.name) _atNameMap[b.code]=b.name; // [S952] 코드→이름
-    const vc = b.src==='v2'?'var(--accent)':(b.votes>=4?'var(--buy)':(b.votes>=2?'var(--accent2)':'var(--text2)'));
-    const vt = b.src==='v2'?'V2 발동':(b.src==='cross'?'골든크로스':(b.src==='bullVol'?'bullVol':'votes '+b.votes));   // [S1180] v2 후보는 votes 0이라 votes 대신 발동 표기
+    const _sc=_srcOf(b);   // [S1518]
+    const vc = _sc==='v2'?'var(--accent)':(b.votes>=4?'var(--buy)':(b.votes>=2?'var(--accent2)':'var(--text2)'));
+    const vt = _sc==='v2'?'V2 발동':(_sc==='cross'?'골든크로스':(_sc==='bullVol'?'bullVol':'votes '+b.votes));   // [S1180] v2 후보는 votes 0이라 votes 대신 발동 표기
     const nm = _esc(b.name||b.code);
-    const _cut=_isCut(b); // [S1355]
+    const _cut=_isCut(b)||_isSrcCut(b); // [S1355] · [S1518]
     return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);'+(_cut?'opacity:.45;':'')+'">'
-      +'<div style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">'+nm+'</span> <span style="font-size:10px;color:var(--text3);">'+_esc(b.code)+'</span>'+_atSrcChip(b.src)
+      +'<div style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">'+nm+'</span> <span style="font-size:10px;color:var(--text3);">'+_esc(b.code)+'</span>'+_atSrcChip(_sc)
       +(b.provisional?' <span style="font-size:9px;color:var(--hold);border:1px solid var(--hold);border-radius:4px;padding:1px 4px;">OOS미확정</span>':'')
-      +(_cut?' <span style="font-size:9px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 4px;">제외·v4미달</span>':'')+'</div>'
+      +(_isSrcCut(b)?' <span style="font-size:9px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 4px;">제외·진입원OFF</span>':(_isCut(b)?' <span style="font-size:9px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 4px;">제외·v4미달</span>':''))+'</div>'
       +'<div style="text-align:right;"><span style="font-size:12px;font-weight:800;color:'+vc+';">'+vt+'</span>'
       +(b.realK?'<span style="font-size:9px;color:var(--text3);display:block;">겹침 '+b.realK+'</span>':'')+'</div>'
       +'<button onclick="atBlock(\''+_esc(b.code)+'\',\''+nm.replace(/\x27/g,"")+'\',false)" title="매수 제외" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;line-height:1;">🚫</button>'
@@ -1076,7 +1102,7 @@ function atRenderBuyPreview(sig){
 // ── [S949→S1393] 청산 설정 UI (exit_config ↔ /sx/autotrade/exit-config) — 4종 독립 칩 + 3×3판 게이트 + N일 공통. 구 택1(_exMode) 철거. ──
 let _exLoadedMkt=null;   // [S1506] 시장별 로드 가드(구 _exLoaded 불리언 → 어느 시장을 그렸는지) — 존을 바꾸면 다시 그린다
 function _exMkt(){ return (_atZone==='coin') ? 'coin' : 'kr'; }   // [S1506] 존이 곧 시장 탭(중복 UI 0)
-function _exWarnSync(){ const g=(id)=>{ const e=_$(id); return !!(e&&e.checked); }; const w=_$('exNoStopWarn'); if(w) w.style.display=(g('exAtrOn')||g('exDeadOn')||g('exNbarOn'))?'none':'block'; } // [S1393] 무스톱 경고(사실 고지·차단 없음)
+function _exWarnSync(){ const g=(id)=>{ const e=_$(id); return !!(e&&e.checked); }; const w=_$('exNoStopWarn'); if(w) w.style.display=((g('exAtrOn')&&(g('exSlOn')||g('exTrOn')))||g('exDeadOn')||g('exNbarOn'))?'none':'block'; } // [S1393] 무스톱 경고(사실 고지·차단 없음) · [S1518] 🛡️ ON이어도 두 다리가 다 OFF면 스톱이 없다
 function atRenderExitConfig(cfg, force, mkt){
   if(!cfg) return;
   const m=(mkt==='coin')?'coin':'kr';
@@ -1090,19 +1116,20 @@ function atRenderExitConfig(cfg, force, mkt){
   chk('exAtrOn', cfg.atrOn!==false); chk('exDeadOn', cfg.deadOn!==false); chk('exCfakeOn', cfg.cfakeOn!==false); chk('exCdownOn', cfg.cdownOn!==false); chk('exNbarOn', cfg.nbarOn===true); chk('exGateOn', cfg.gateOn===true); // [S1393]
   set('exTpPct', cfg.tpPct!=null?cfg.tpPct:30); set('exTpAtrMult', cfg.tpAtrMult!=null?cfg.tpAtrMult:3);
   chk('exTpPctOn', cfg.tpPctOn===true); chk('exTpAtrOn', cfg.tpAtrOn===true);   // [S1506] 익절 2칩
+  set('exTrArm', cfg.trArm!=null?cfg.trArm:0); set('exNbarBars', cfg.nbarBars!=null?cfg.nbarBars:0); chk('exSlOn', cfg.slOn!==false); chk('exTrOn', cfg.trOn!==false);   // [S1518] S1517 새 4키(부재=현행: 두 다리 ON·무장 0·봉 0)
   _exWarnSync();
 }
 // [S950] 청산 임계값 기본으로 초기화 (↻) — 입력칸을 기본값으로 채우고 즉시 저장(persist).
 function atExitReset(){
   const _c=(_exMkt()==='coin');   // [S1506] 초기화도 시장별 — 코인 익절 기본 ON(PREREG_S1500 채택값)·KR OFF
-  atRenderExitConfig({ atrOn:true, atrInitMult:2, atrTrailMult:3, deadOn:true, maGraceDays:10, cfakeOn:true, cdownOn:true, nbarOn:false, nbarDays:30, gateOn:false, tpPctOn:_c, tpPct:30, tpAtrOn:_c, tpAtrMult:3 }, true, _exMkt()); // [S1393] 기본=4종 ON·게이트 OFF(PREREG_S1392 집행)
+  atRenderExitConfig({ atrOn:true, atrInitMult:2, atrTrailMult:3, slOn:true, trOn:true, trArm:0, deadOn:true, maGraceDays:10, cfakeOn:true, cdownOn:true, nbarOn:false, nbarDays:30, nbarBars:0, gateOn:false, tpPctOn:_c, tpPct:30, tpAtrOn:_c, tpAtrMult:3 }, true, _exMkt());   /* [S1518] 새 4키 기본 */ // [S1393] 기본=4종 ON·게이트 OFF(PREREG_S1392 집행)
   atSaveExitConfig();
 }
 async function atSaveExitConfig(){
   const msg=_$('exMsg'), btn=_$('exSaveBtn');
   const num=(id)=>{ const e=_$(id); return e?parseFloat(e.value):null; };
   const chk=(id)=>{ const e=_$(id); return !!(e&&e.checked); };
-  const body={ atrOn:chk('exAtrOn'), atrInitMult:num('exAtrInit'), atrTrailMult:num('exAtrTrail'), deadOn:chk('exDeadOn'), maGraceDays:num('exMaGrace'), cfakeOn:chk('exCfakeOn'), cdownOn:chk('exCdownOn'), nbarOn:chk('exNbarOn'), nbarDays:num('exNbarDays'), gateOn:chk('exGateOn'), tpPctOn:chk('exTpPctOn'), tpPct:num('exTpPct'), tpAtrOn:chk('exTpAtrOn'), tpAtrMult:num('exTpAtrMult') }; // [S1393] 신 스키마 · [S1506] 익절 2칩
+  const body={ atrOn:chk('exAtrOn'), atrInitMult:num('exAtrInit'), atrTrailMult:num('exAtrTrail'), deadOn:chk('exDeadOn'), maGraceDays:num('exMaGrace'), cfakeOn:chk('exCfakeOn'), cdownOn:chk('exCdownOn'), nbarOn:chk('exNbarOn'), nbarDays:num('exNbarDays'), gateOn:chk('exGateOn'), tpPctOn:chk('exTpPctOn'), tpPct:num('exTpPct'), tpAtrOn:chk('exTpAtrOn'), tpAtrMult:num('exTpAtrMult'), slOn:chk('exSlOn'), trOn:chk('exTrOn'), trArm:num('exTrArm'), nbarBars:num('exNbarBars') }; // [S1393] 신 스키마 · [S1506] 익절 2칩 · [S1518] S1517 새 4키
   if(btn){ btn.disabled=true; btn.textContent='저장 중…'; }
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/exit-config?mkt='+_exMkt(),{ method:'POST',   /* [S1506] 현재 탭 시장에 저장 */ headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
@@ -1115,9 +1142,9 @@ async function atSaveExitConfig(){
 }
 function _exSummary(c){ if(!c) return ''; const on=[];
   if(c.deadOn!==false) on.push('✂️데드(유예'+(c.maGraceDays!=null?c.maGraceDays:10)+')');
-  if(c.atrOn!==false) on.push('🛡️ATR '+c.atrInitMult+'×/'+c.atrTrailMult+'×');
+  if(c.atrOn!==false){ const legs=[]; if(c.slOn!==false) legs.push('SL '+c.atrInitMult+'×'); if(c.trOn!==false) legs.push('TR '+c.atrTrailMult+'×'+((c.trArm>0)?'(무장'+c.trArm+')':'')); on.push('🛡️'+(legs.length?legs.join('/'):'두 다리 OFF')); }   // [S1518] 다리별 표기
   if(c.cfakeOn!==false) on.push('🧩칸fake'); if(c.cdownOn!==false) on.push('⛔칸down');
-  if(c.nbarOn===true) on.push('⏱N'+(c.nbarDays||30)+'일');
+  if(c.nbarOn===true) on.push((c.nbarBars>0)?('⏱N'+c.nbarBars+'봉'):('⏱N'+(c.nbarDays||30)+'일'));   // [S1518] 봉 규약 우선 표기
   return (on.length?on.join(' + '):'⚠청산 전부 OFF')+(c.gateOn===true?' · ⬛게이트ON':''); } // [S1393]
 
 // ── [S1031] 실현손익 evidence (로드맵3 가계부) — /state.pnl 표시. 사전선언 게이트 판정 카드. ──
@@ -1232,33 +1259,48 @@ let _atLastSig=null;  // [S1357] 마지막 신호 캐시 — 토글 직후 12초
 function atToggleLegacyV4(){ _enV4=!!(_$('enLegacyV4')&&_$('enLegacyV4').checked); _enV4Pend=true; // [S1357]
   try{ if(_atLastSig) atRenderBuyPreview(_atLastSig); }catch(_){ } // [S1357] 즉시 반영(제외 표기·카운트) — 워커 판정은 저장값 기준이라 표시 선반영은 안전
   atSaveEntryConfig(); } // [S1355] 즉시 저장
+let _enSrc={recipe:true,bullVol:true,cross:true,v2:true}; // [S1518] 진입원 토글 상태(후보 카드 제외 표기용) — 서버값으로 매 갱신 동기
+let _enSrcPend=false; // [S1518] 저장 왕복 중 스냅백 방지(S1357 문법)
+const _SRC_IDS={recipe:'enSrcRecipe',bullVol:'enSrcBullVol',cross:'enSrcCross',v2:'enSrcV2'};
+function _enSrcBody(){ const o={}; for(const k in _SRC_IDS){ const e=_$(_SRC_IDS[k]); o[k]=e?!!e.checked:true; } return o; }
+function atToggleSrc(){ _enSrc=_enSrcBody(); _enSrcPend=true; try{ if(_atLastSig) atRenderBuyPreview(_atLastSig); }catch(_){ } atSaveEntryConfig(); } // [S1518] 즉시 반영+저장
+// [S1518] 진입원 필터+재귀속 — ★워커 `_atSrcReattr`와 본문 동일(배터리가 문자 대조). 화면은 이 식으로만 '제외'를 표기한다(워커 판정의 거울).
+function _atSrcReattr(sig, srcOn) {
+  if (!sig || !srcOn || typeof srcOn !== 'object') return sig;
+  const on = (k) => srcOn[k] !== false;
+  if (on('recipe') && on('bullVol') && on('cross') && on('v2')) return sig;
+  const fired = { recipe: sig.src === 'recipe', bullVol: sig.bullVol === true, cross: sig.cross === true, v2: !!((sig.v2 && Array.isArray(sig.v2.buy) && sig.v2.buy.length) || (sig.v2n > 0)) };
+  for (const k of ['recipe', 'bullVol', 'cross', 'v2']) { if (on(k) && fired[k]) return (sig.src === k) ? sig : Object.assign({}, sig, { src: k, srcOrig: sig.src || null }); }
+  return null;
+}
 function atRenderEntryConfig(cfg, force){
   if(!cfg) return;
   // [S1355] 토글은 즉시저장형(타이핑 편집 없음) — 입력칸 가드(_enLoaded)와 무관하게 매 갱신 서버값으로 동기.
   // [S1357] 단, 저장 왕복 중(_enV4Pend)엔 보류 — 저장 완료 전에 끼어든 폴링이 서버의 옛 값으로 체크박스·표기를 되돌리는 스냅백 방지.
   if(!_enV4Pend){ _enV4=(cfg.legacyV4Only!==false); const _v4El=_$('enLegacyV4'); if(_v4El) _v4El.checked=_enV4; }
+  if(!_enSrcPend){ const so=cfg.srcOn||{}; _enSrc={recipe:so.recipe!==false,bullVol:so.bullVol!==false,cross:so.cross!==false,v2:so.v2!==false}; for(const k in _SRC_IDS){ const e=_$(_SRC_IDS[k]); if(e) e.checked=_enSrc[k]; } }   // [S1518] 부재=전부 ON
   if(_enLoaded && !force) return; // 최초 1회만 로드 → atRefresh가 편집/저장값 덮어쓰기 방지
   _enLoaded=true;
   const set=(id,v)=>{ const e=_$(id); if(e && v!=null) e.value=v; };
   set('enMaxHold', cfg.maxHoldings); set('enBuyCap', cfg.buyCapPerTick); set('enV2Slots', cfg.v2Slots!=null?cfg.v2Slots:10); set('enV2PerTick', cfg.v2PerTick!=null?cfg.v2PerTick:2); // [S1183][S1184]
 }
 function atEntryReset(){
-  atRenderEntryConfig({ maxHoldings:30, buyCapPerTick:5, v2Slots:10, v2PerTick:2, legacyV4Only:true }, true); // [S1355] 기본 ON
+  atRenderEntryConfig({ maxHoldings:30, buyCapPerTick:5, v2Slots:10, v2PerTick:2, legacyV4Only:true, srcOn:{recipe:true,bullVol:true,cross:true,v2:true} }, true); // [S1355] 기본 ON · [S1518] 진입원 전부 ON
   atSaveEntryConfig();
 }
 async function atSaveEntryConfig(){
   const msg=_$('enMsg'), btn=_$('enSaveBtn');
   const num=(id)=>{ const e=_$(id); return e?parseInt(e.value,10):null; };
-  const body={ maxHoldings:num('enMaxHold'), buyCapPerTick:num('enBuyCap'), v2Slots:num('enV2Slots'), v2PerTick:num('enV2PerTick'), legacyV4Only:!!(_$('enLegacyV4')&&_$('enLegacyV4').checked) }; // [S1183][S1184][S1355]
+  const body={ maxHoldings:num('enMaxHold'), buyCapPerTick:num('enBuyCap'), v2Slots:num('enV2Slots'), v2PerTick:num('enV2PerTick'), legacyV4Only:!!(_$('enLegacyV4')&&_$('enLegacyV4').checked), srcOn:_enSrcBody() }; // [S1183][S1184][S1355] · [S1518] 진입원
   if(btn){ btn.disabled=true; btn.textContent='저장 중…'; }
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/entry-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
     const d=await r.json();
-    if(d && d.ok){ _enV4Pend=false; atRenderEntryConfig(d.entryConfig, true); try{ if(_atLastSig) atRenderBuyPreview(_atLastSig); }catch(_){ } if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 레거시 '+d.entryConfig.maxHoldings+'/'+d.entryConfig.buyCapPerTick+' · V2 '+(d.entryConfig.v2Slots!=null?d.entryConfig.v2Slots:10)+'/'+(d.entryConfig.v2PerTick!=null?d.entryConfig.v2PerTick:2)+' · 레거시 v4만 '+(d.entryConfig.legacyV4Only!==false?'ON':'OFF'); } }
+    if(d && d.ok){ _enV4Pend=false; _enSrcPend=false; atRenderEntryConfig(d.entryConfig, true); try{ if(_atLastSig) atRenderBuyPreview(_atLastSig); }catch(_){ } if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 레거시 '+d.entryConfig.maxHoldings+'/'+d.entryConfig.buyCapPerTick+' · V2 '+(d.entryConfig.v2Slots!=null?d.entryConfig.v2Slots:10)+'/'+(d.entryConfig.v2PerTick!=null?d.entryConfig.v2PerTick:2)+' · 레거시 v4만 '+(d.entryConfig.legacyV4Only!==false?'ON':'OFF'); } }
     else if(d && d.needAuth){ _atToken=''; atShowGate(); }
     else if(msg){ msg.style.color='var(--sell)'; msg.textContent='저장 실패: '+((d&&d.error)||'알수없음'); }
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
-  _enV4Pend=false; // [S1357] 실패·거절 포함 왕복 종료 — 다음 12초 폴링이 서버값으로 체크박스·표기를 복원한다(표류 방지)
+  _enV4Pend=false; _enSrcPend=false; // [S1357] 실패·거절 포함 왕복 종료 — 다음 12초 폴링이 서버값으로 체크박스·표기를 복원한다(표류 방지)
   if(btn){ btn.disabled=false; btn.textContent='💾 진입 상한 저장'; }
 }
 
@@ -1454,12 +1496,23 @@ async function atCoinToggleCau(){  // [S1479] 주의 제외 토글 — V4 토글
   }catch(_){ }
   _coinCauPend=false; atLoadCoinLedger(true);
 }
+let _coinSrcPend=false; const _CSRC_IDS={recipe:'enCoinSrcRecipe',bullVol:'enCoinSrcBullVol',cross:'enCoinSrcCross',v2:'enCoinSrcV2'};   // [S1518]
+async function atCoinToggleSrc(){  // [S1518] 진입원 토글 — V4 토글과 같은 저장 문법(entry-config?mkt=coin·스냅백 가드)
+  const o={}; for(const k in _CSRC_IDS){ const e=_$(_CSRC_IDS[k]); o[k]=e?!!e.checked:true; } _coinSrcPend=true;
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/entry-config?mkt=coin',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify({srcOn:o}), signal:AbortSignal.timeout(12000) });
+    await r.json();
+  }catch(_){ }
+  _coinSrcPend=false; atLoadCoinLedger(true);
+}
 function atRenderCoinBuy(d){
   const card=_$('atCoinBuyCard'), list=_$('atCoinBuyList'), cnt=_$('atCoinBuyCount');
   if(!card||!list) return;
   const cfg=(d&&d.entryCfg)||{};
   if(!_coinV4Pend){ const e=_$('enCoinV4'); if(e) e.checked=(cfg.legacyV4Only===true); }
   if(!_coinCauPend){ const e2=_$('enCoinCau'); if(e2) e2.checked=(cfg.cautionExclude===true); }  // [S1479]
+  const _cso=cfg.srcOn||{}; const _coinSrc={recipe:_cso.recipe!==false,bullVol:_cso.bullVol!==false,cross:_cso.cross!==false,v2:_cso.v2!==false};   // [S1518] 부재=전부 ON
+  if(!_coinSrcPend){ for(const k in _CSRC_IDS){ const e3=_$(_CSRC_IDS[k]); if(e3) e3.checked=_coinSrc[k]; } }
   const v4=(cfg.legacyV4Only===true);
   const held=new Set(Object.keys((d&&d.positions)||{}));
   const asof=(d&&d.sigMeta&&d.sigMeta.asof)||null;
@@ -1467,21 +1520,25 @@ function atRenderCoinBuy(d){
   const buys=(((d&&d.sigMeta)||{}).buyList||[]).filter(b=>!held.has(String(b.code))&&!done.has(String(b.code)));
   card.style.display='';  // [S1480] 후보 0종에도 카드 유지(토글은 설정 컨트롤 — 후보 유무와 무관)
   if(!buys.length){ if(cnt) cnt.textContent='0종'; list.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px 0;">현재 후보 없음 — 신호 asof '+_esc(asof||'—')+'의 BUY 중 보유·매수완료 제외 후 0종. 다음 신호(15:30 KST)에서 갱신.</div>'; return; }
-  const _isCut=(b)=>(v4 && b.src==='recipe' && (b.votes||0)<4);   // [S1355] 워커 판정과 같은 식
+  const _isSrcCut=(b)=>(_atSrcReattr(b,_coinSrc)===null);   // [S1518] 워커 진입원 필터와 같은 식(거울)
+  const _srcOf=(b)=>{ const r=_atSrcReattr(b,_coinSrc); return r?r.src:b.src; };
+  const _isCut=(b)=>(v4 && _srcOf(b)==='recipe' && (b.votes||0)<4);   // [S1355] 워커 판정과 같은 식 · [S1518] 재귀속 src 기준
   const mev=(d&&d.mev)||null; const _warnS=new Set((mev&&mev.warn)||[]), _krwS=(mev&&Array.isArray(mev.krw))?new Set(mev.krw):null, _cau=(mev&&mev.caution)||{};
   const _isWarn=(b)=>_warnS.has(String(b.code)), _isGone=(b)=>(!!_krwS&&!_krwS.has(String(b.code)));   // [S1478] 워커 판정과 같은 식(유의·목록부재=제외, 주의=배지)
   const _cauOn=(cfg.cautionExclude===true); const _isCauCut=(b)=>(_cauOn&&!!_cau[String(b.code)]);   // [S1479] 토글 ON이면 주의도 제외(워커 동일 식)
-  const _cutN=buys.filter(b=>_isCut(b)||_isWarn(b)||_isGone(b)||_isCauCut(b)).length;
+  const _cutN=buys.filter(b=>_isCut(b)||_isSrcCut(b)||_isWarn(b)||_isGone(b)||_isCauCut(b)).length;   // [S1518]
   if(cnt) cnt.textContent=_cutN?((buys.length-_cutN)+'종 매수 · '+_cutN+'종 제외'):(buys.length+'종목');
   list.innerHTML=buys.map(b=>{
     if(b.name) _atNameMap[b.code]=b.name;
-    const vc=b.src==='v2'?'var(--accent)':((b.votes||0)>=4?'var(--buy)':((b.votes||0)>=2?'var(--accent2)':'var(--text2)'));
-    const vt=b.src==='v2'?'V2 발동':('votes '+(b.votes||0));
+    const _sc=_srcOf(b);   // [S1518]
+    const vc=_sc==='v2'?'var(--accent)':((b.votes||0)>=4?'var(--buy)':((b.votes||0)>=2?'var(--accent2)':'var(--text2)'));
+    const vt=_sc==='v2'?'V2 발동':(_sc==='cross'?'골든크로스':(_sc==='bullVol'?'bullVol':('votes '+(b.votes||0))));
     const nm=_esc(b.name||b.code);
-    const _cut=_isCut(b)||_isWarn(b)||_isGone(b)||_isCauCut(b);
+    const _cut=_isCut(b)||_isSrcCut(b)||_isWarn(b)||_isGone(b)||_isCauCut(b);   // [S1518]
     return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);'+(_cut?'opacity:.45;':'')+'">'
-      +'<div style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">'+nm+'</span> <span style="font-size:10px;color:var(--text3);">'+_esc(b.code)+'</span>'+_atSrcChip(b.src)
+      +'<div style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">'+nm+'</span> <span style="font-size:10px;color:var(--text3);">'+_esc(b.code)+'</span>'+_atSrcChip(_sc)
       +(b.provisional?' <span style="font-size:9px;color:var(--hold);border:1px solid var(--hold);border-radius:4px;padding:1px 4px;">OOS미확정</span>':'')
+      +(_isSrcCut(b)?' <span style="font-size:9px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 4px;">제외·진입원OFF</span>':'')   /* [S1518] */
       +(_isCut(b)?' <span style="font-size:9px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 4px;">제외·v4미달</span>':'')
       +(_isWarn(b)?' <span style="font-size:9px;color:#c62828;border:1px solid #c62828;border-radius:4px;padding:1px 4px;">🚫유의·제외</span>':'')
       +(_isGone(b)?' <span style="font-size:9px;color:#c62828;border:1px solid #c62828;border-radius:4px;padding:1px 4px;">거래목록 부재·제외</span>':'')
