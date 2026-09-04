@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1527</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1527] KR 후보 카드 `↻ 확정값`(진입원·제한종목·주의·votes≥4만 저장 · 상한 불변) + 레거시 진입원 OFF면 votes≥4 토글 비활성·미사용 표기 · [S1526] N컷 봉 규약만(N일 입력 제거 · 워커 nbarDays 폐지) · [S1525] N컷 두 입력(N일·N봉) 중 쓰이는 쪽만 활성 — N봉>0이면 N일 비활성+미사용 표기(실기기 혼동) · [S1524] ⚡ 지금 실행 타임아웃 15s→120s(signal timed out 정정)+마지막 실행 소요 표시+409(겹침) 안내 · [S1523] ↻ 확정값 버튼(청산·KR 진입·코인 진입 — 워커 defaults 소비·폴백 상수 거울) · [S1521] KR 제한종목 안전필터 토글(관리·경고·위험·거래정지·정리매매·당일무거래 하드 제외 · 주의급 토글) + 후보 카드 🚫/주의 배지(/state.restrict) · [S1518] 청산 카드 새 4키(초기손절/트레일 다리 토글·무장 문턱·N봉 컷)+진입원 토글(KR·코인·후보 카드 제외 표기 워커 동식) · [S1517] 워커 청산 코어(두 다리·무장·봉 규약·KR 당일시가) · [S1506] 청산 설정 두 시장 공용(당시 배지 미갱신 — 정정) · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1534</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1534] 📓 자리 압박 카드 실기기 정정 2건 — ①asof 형식이 시장마다 달라(KR `YYYYMMDD` · 코인 `YYYY-MM-DD`) 고정 slice가 KR에서 `903`을 찍었다 ⇒ 숫자만 남겨 뒤 4자리로 · ②KR 레거시 예산은 v2 보유를 안 세므로(S1183) 전체 30/30에도 레거시 자리가 남는다 ⇒ 群 자리가 전체와 어긋날 때만 `·자리N` 표기 · [S1533] 📓 자리 압박 카드(워커 S1532 탈락 대장 관측 — 병목 여유/지연/탈락·순위 상세) · [S1527] KR 후보 카드 `↻ 확정값`(진입원·제한종목·주의·votes≥4만 저장 · 상한 불변) + 레거시 진입원 OFF면 votes≥4 토글 비활성·미사용 표기 · [S1526] N컷 봉 규약만(N일 입력 제거 · 워커 nbarDays 폐지) · [S1525] N컷 두 입력(N일·N봉) 중 쓰이는 쪽만 활성 — N봉>0이면 N일 비활성+미사용 표기(실기기 혼동) · [S1524] ⚡ 지금 실행 타임아웃 15s→120s(signal timed out 정정)+마지막 실행 소요 표시+409(겹침) 안내 · [S1523] ↻ 확정값 버튼(청산·KR 진입·코인 진입 — 워커 defaults 소비·폴백 상수 거울) · [S1521] KR 제한종목 안전필터 토글(관리·경고·위험·거래정지·정리매매·당일무거래 하드 제외 · 주의급 토글) + 후보 카드 🚫/주의 배지(/state.restrict) · [S1518] 청산 카드 새 4키(초기손절/트레일 다리 토글·무장 문턱·N봉 컷)+진입원 토글(KR·코인·후보 카드 제외 표기 워커 동식) · [S1517] 워커 청산 코어(두 다리·무장·봉 규약·KR 당일시가) · [S1506] 청산 설정 두 시장 공용(당시 배지 미갱신 — 정정) · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -507,7 +507,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.6;"><b>표시 전용·판정 무관</b> — 기록만 하고 매수 순서에는 손대지 않습니다(S1532).
         <b>병목</b>: <span style="color:var(--text2);">지연</span>=tick 상한(<code>buyCapPerTick</code>)에 걸림 → 다음 tick에 삼 · <span style="color:var(--sell);">탈락</span>=빈자리 없음(<code>maxHoldings</code>) → 자리 나야 삼.
         ★<b>탈락이 쌓이기 시작하면</b> 그때부터 순위가 '누가 먼저'가 아니라 '누가 사느냐'를 정합니다 — 우선권을 붙일 값이 생기는 지점.
-        ⚠순위는 <b>지금 정렬</b>(votes↓ → src → realK↓)이고 궁합 점수는 아직 안 붙었습니다 — 이 대장이 그 <b>기준선</b>입니다.</div>
+        ⚠순위는 <b>지금 정렬</b>(votes↓ → src → realK↓)이고 궁합 점수는 아직 안 붙었습니다 — 이 대장이 그 <b>기준선</b>입니다.
+        <b>·자리N</b>은 群 자리가 전체 빈자리와 다를 때만 붙습니다 — KR 레거시 예산은 <b>v2 보유를 세지 않아서</b>(S1183 예산 분리) 전체가 꽉 차 보여도 레거시 자리가 남을 수 있습니다.</div>
     </div>
 
     <!-- ═══ [S934] 미검증 체크리스트 ═══ -->
@@ -538,7 +539,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1527</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1534</div>
   </div>
 </div>
 
@@ -794,6 +795,15 @@ async function atLoadCutlog(force){
   }catch(e){ if(el) el.textContent='조회 실패: '+(e&&e.message); }
 }
 function atCutFullSet(on){ _atCutWant=!!on; atLoadCutlog(false); }
+// [S1534] ⚠asof 형식이 **시장마다 다르다** — KR은 `YYYYMMDD`(8자), 코인은 `YYYY-MM-DD`(10자).
+//   S1533은 `slice(5,10)` 하나로 잘라 KR에서 `903`이 떴다(실기기에서 드러남 · 화면이 거짓 날짜를 말했다).
+//   ⇒ 숫자만 남겨 뒤 4자리(MMDD)를 쓴다 — 형식을 가정하지 않고 **자리수로 답한다**.
+function _atCutDay(a){
+  const d=String(a==null?'':a).replace(/[^0-9]/g,'');
+  if(d.length<4) return String(a||'');
+  const m=d.slice(-4,-2), dd=d.slice(-2);
+  return m+'-'+dd;
+}
 // 병목 라벨 SSOT — 워커가 보낸 코드값('none'|'tick'|'hold')을 사람 말로 옮기는 곳은 여기 한 군데다.
 const _AT_NECK={ none:{t:'여유',c:'var(--text3)'}, tick:{t:'지연',c:'var(--hold)'}, hold:{t:'탈락',c:'var(--sell)'} };
 function _atNeckTag(k){ const m=_AT_NECK[k]||{t:k||'?',c:'var(--text3)'};
@@ -826,11 +836,17 @@ function _atCutRender(){
   x+='<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">';
   x+='<div style="display:flex;font-size:9px;color:var(--text3);background:var(--surface2);padding:5px 8px;font-weight:700;"><span style="width:74px;">시각</span><span style="width:52px;text-align:right;">보유/한도</span><span style="flex:1;text-align:right;">群 후보→매수</span></div>';
   rows.slice(0,24).forEach(function(r){
+    // [S1534] ⚠KR 레거시 예산은 **v2 보유를 안 센다**(S1183 예산 분리) — 그래서 전체가 30/30인데도 레거시 자리가 남는다.
+    //   실기기에서 `30/30 · 레거시 0→5 여유`가 떠 '꽉 찼는데 왜 5칸?'으로 읽혔다.
+    //   ⇒ 群 자리가 전체 빈자리와 **어긋날 때만** `자리N`을 붙인다(맞으면 침묵 — 늘 떠 있으면 안 읽힌다 · S1320).
+    const _freeAll=(r.mh!=null&&r.held!=null)?Math.max(0,r.mh-r.held):null;
     const gs=(r.g||[]).map(function(g){
-      return '<span style="white-space:nowrap;">'+(g.k==='lg'?'레거시':(g.k==='v2'?'v2':'전체'))+' '+g.n+'→'+g.room+' '+_atNeckTag(g.neck)+'</span>';
+      const odd=(g.slots!=null&&_freeAll!=null&&g.slots!==_freeAll);
+      return '<span style="white-space:nowrap;">'+(g.k==='lg'?'레거시':(g.k==='v2'?'v2':'전체'))+' '+g.n+'→'+g.room
+        +(odd?('<span style="color:var(--text3);">·자리'+g.slots+'</span>'):'')+' '+_atNeckTag(g.neck)+'</span>';
     }).join(' <span style="color:var(--border);">|</span> ');
     x+='<div style="display:flex;font-size:10px;padding:5px 8px;border-top:1px solid var(--border);align-items:center;gap:4px;">'
-      +'<span style="width:74px;color:var(--text3);">'+String(r.asof||'').slice(5,10)+' '+(r.hm||'')+'</span>'
+      +'<span style="width:74px;color:var(--text3);">'+_atCutDay(r.asof)+' '+(r.hm||'')+'</span>'
       +'<span style="width:52px;text-align:right;color:var(--text2);">'+(r.held!=null?r.held:'?')+'/'+(r.mh!=null?r.mh:'?')+'</span>'
       +'<span style="flex:1;text-align:right;">'+gs+'</span></div>';
     // 상세(full=1) — 순위별 산 것/잘린 것. 궁합 점수를 붙일 때 이 자리가 그 근거가 된다.
