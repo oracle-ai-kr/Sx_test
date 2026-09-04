@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1538</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1538] 진입 상한 카드 4칸→3칸(보유상한·tick당·**1일 매수 한도**) — 워커 S1537 진입원 통합에 맞춤. V2 슬롯 두 칸 철거(KV 값은 되돌리기용 잔존·매수 계산 미사용) · 📓 자리 압박: 병목 `오늘끝` 추가·일일 소진(오늘 N/M) 표시·순위 상세에 `src`·`겹침(realK)` 병기(통합 후 v2가 밀리는지 이 자리에서 보인다) · [S1536] ⚠자리 압박 `보유/한도`가 **분자·분모 단위 불일치**였다 — `held(전체 30)/mh(레거시 상한 30)`이라 `30/30`으로 꽉 찬 듯 보였지만 KR 실제 총량은 레거시 30+V2 10=**40**이었다(S1183 두 풀). 총 상한을 기록에서 유도(`held+Σ群자리`)하고, 群이 둘 이상이면 `·자리N`을 항상 표기 · [S1535] ⚠같은 자리 두 번째 정정 — 코인 asof는 `YYYY-MM-DD`가 아니라 **ISO 일시**(`...T00:00:00Z`)라 S1534의 '뒤 4자리'가 `00-00`을 찍었다. 짐작을 버리고 워커가 이미 쓰는 규약(숫자만 남겨 **앞 8자리** · workers_v9.js L3500 `asofYmd`)으로 교체 · 못 읽으면 원문 표시(거짓 날짜를 만들지 않는다) · [S1534] 📓 자리 압박 카드 실기기 정정 2건 — ①asof 형식이 시장마다 달라(KR `YYYYMMDD` · 코인 `YYYY-MM-DD`) 고정 slice가 KR에서 `903`을 찍었다 ⇒ 숫자만 남겨 뒤 4자리로 · ②KR 레거시 예산은 v2 보유를 안 세므로(S1183) 전체 30/30에도 레거시 자리가 남는다 ⇒ 群 자리가 전체와 어긋날 때만 `·자리N` 표기 · [S1533] 📓 자리 압박 카드(워커 S1532 탈락 대장 관측 — 병목 여유/지연/탈락·순위 상세) · [S1527] KR 후보 카드 `↻ 확정값`(진입원·제한종목·주의·votes≥4만 저장 · 상한 불변) + 레거시 진입원 OFF면 votes≥4 토글 비활성·미사용 표기 · [S1526] N컷 봉 규약만(N일 입력 제거 · 워커 nbarDays 폐지) · [S1525] N컷 두 입력(N일·N봉) 중 쓰이는 쪽만 활성 — N봉>0이면 N일 비활성+미사용 표기(실기기 혼동) · [S1524] ⚡ 지금 실행 타임아웃 15s→120s(signal timed out 정정)+마지막 실행 소요 표시+409(겹침) 안내 · [S1523] ↻ 확정값 버튼(청산·KR 진입·코인 진입 — 워커 defaults 소비·폴백 상수 거울) · [S1521] KR 제한종목 안전필터 토글(관리·경고·위험·거래정지·정리매매·당일무거래 하드 제외 · 주의급 토글) + 후보 카드 🚫/주의 배지(/state.restrict) · [S1518] 청산 카드 새 4키(초기손절/트레일 다리 토글·무장 문턱·N봉 컷)+진입원 토글(KR·코인·후보 카드 제외 표기 워커 동식) · [S1517] 워커 청산 코어(두 다리·무장·봉 규약·KR 당일시가) · [S1506] 청산 설정 두 시장 공용(당시 배지 미갱신 — 정정) · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1540</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1540] 📓 자리 압박에 **구조 이전 기록 안내** — S1537 전 KR은 풀이 둘(30+10=40)이라 한도가 40, 통합 후는 30으로 찍힌다. 둘 다 그 시점엔 참인데 한 표에 섞이면 읽을 수 없어 사용자가 `30/40`을 불일치로 읽었다 ⇒ 두 모양이 섞였을 때만 한 줄 안내 + 해당 행 한도를 눌러 칠한다(안 섞이면 침묵 · 240 tick 지나면 저절로 사라짐) · [S1539] 코인 설정에도 **1일 매수 한도** 칸 — 워커 S1537이 두 시장 공용으로 이미 받고 있었고 UI만 빠져 있었다. 포커스 보존 목록·dataset 재렌더 감지에 함께 편입(둘 중 하나만 빠지면 타이핑 중 지워지거나 저장해도 화면이 안 바뀐다) · [S1538] 진입 상한 카드 4칸→3칸(보유상한·tick당·**1일 매수 한도**) — 워커 S1537 진입원 통합에 맞춤. V2 슬롯 두 칸 철거(KV 값은 되돌리기용 잔존·매수 계산 미사용) · 📓 자리 압박: 병목 `오늘끝` 추가·일일 소진(오늘 N/M) 표시·순위 상세에 `src`·`겹침(realK)` 병기(통합 후 v2가 밀리는지 이 자리에서 보인다) · [S1536] ⚠자리 압박 `보유/한도`가 **분자·분모 단위 불일치**였다 — `held(전체 30)/mh(레거시 상한 30)`이라 `30/30`으로 꽉 찬 듯 보였지만 KR 실제 총량은 레거시 30+V2 10=**40**이었다(S1183 두 풀). 총 상한을 기록에서 유도(`held+Σ群자리`)하고, 群이 둘 이상이면 `·자리N`을 항상 표기 · [S1535] ⚠같은 자리 두 번째 정정 — 코인 asof는 `YYYY-MM-DD`가 아니라 **ISO 일시**(`...T00:00:00Z`)라 S1534의 '뒤 4자리'가 `00-00`을 찍었다. 짐작을 버리고 워커가 이미 쓰는 규약(숫자만 남겨 **앞 8자리** · workers_v9.js L3500 `asofYmd`)으로 교체 · 못 읽으면 원문 표시(거짓 날짜를 만들지 않는다) · [S1534] 📓 자리 압박 카드 실기기 정정 2건 — ①asof 형식이 시장마다 달라(KR `YYYYMMDD` · 코인 `YYYY-MM-DD`) 고정 slice가 KR에서 `903`을 찍었다 ⇒ 숫자만 남겨 뒤 4자리로 · ②KR 레거시 예산은 v2 보유를 안 세므로(S1183) 전체 30/30에도 레거시 자리가 남는다 ⇒ 群 자리가 전체와 어긋날 때만 `·자리N` 표기 · [S1533] 📓 자리 압박 카드(워커 S1532 탈락 대장 관측 — 병목 여유/지연/탈락·순위 상세) · [S1527] KR 후보 카드 `↻ 확정값`(진입원·제한종목·주의·votes≥4만 저장 · 상한 불변) + 레거시 진입원 OFF면 votes≥4 토글 비활성·미사용 표기 · [S1526] N컷 봉 규약만(N일 입력 제거 · 워커 nbarDays 폐지) · [S1525] N컷 두 입력(N일·N봉) 중 쓰이는 쪽만 활성 — N봉>0이면 N일 비활성+미사용 표기(실기기 혼동) · [S1524] ⚡ 지금 실행 타임아웃 15s→120s(signal timed out 정정)+마지막 실행 소요 표시+409(겹침) 안내 · [S1523] ↻ 확정값 버튼(청산·KR 진입·코인 진입 — 워커 defaults 소비·폴백 상수 거울) · [S1521] KR 제한종목 안전필터 토글(관리·경고·위험·거래정지·정리매매·당일무거래 하드 제외 · 주의급 토글) + 후보 카드 🚫/주의 배지(/state.restrict) · [S1518] 청산 카드 새 4키(초기손절/트레일 다리 토글·무장 문턱·N봉 컷)+진입원 토글(KR·코인·후보 카드 제외 표기 워커 동식) · [S1517] 워커 청산 코어(두 다리·무장·봉 규약·KR 당일시가) · [S1506] 청산 설정 두 시장 공용(당시 배지 미갱신 — 정정) · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -543,7 +543,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1538</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1540</div>
   </div>
 </div>
 
@@ -838,6 +838,14 @@ function _atCutRender(){
       +'<div style="width:'+w('hold')+';background:var(--sell);"></div></div>'
       +'<div style="font-size:9.5px;margin-bottom:8px;">여유 '+(nk.none||0)+' · <span style="color:var(--hold);font-weight:700;">지연 '+(nk.tick||0)+'</span> · <span style="color:var(--sell);font-weight:800;">탈락 '+(nk.hold||0)+'</span> <span style="color:var(--text3);">(群 단위 · 총 잘림 '+s.cutTotal+'종)</span></div>';
   }
+  // [S1540] ⚠구조 이전(S1537 전) 기록이 섞이면 **한도 숫자가 판마다 달라진다** — KR은 그때 풀이 둘이라 총량이 30+10=40이었다.
+  //   둘 다 참인데 한 표에 섞이면 읽을 수가 없다 ⇒ 섞였을 때만 한 줄로 말한다(안 섞였으면 침묵 · S1320).
+  //   판별은 群 수다: 이전 기록은 레거시+v2 두 群, 통합 후는 한 群. 240 tick이 굴러가면 이 줄은 저절로 사라진다.
+  const _oldN=rows.filter(function(r){ return (r.g||[]).length>1; }).length;
+  if(_oldN>0){
+    x+='<div style="font-size:9px;color:var(--hold);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin-bottom:6px;line-height:1.5;">'
+      +'⚠ 아래 <b>'+_oldN+'판</b>은 <b>S1537 이전</b> 기록입니다 — 그땐 KR 풀이 둘이라(레거시 + V2 전용) 총량이 <b>40</b>이었습니다. 통합 후 기록은 <b>30</b>으로 찍힙니다. 한도 숫자가 판마다 다른 건 그 때문이고, 둘 다 그 시점엔 맞는 값입니다.</div>';
+  }
   // ③ 최근 tick — 설정(mh/cap)을 같이 실어 **한도를 줄여간 시점**이 눈에 보이게 한다
   x+='<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">';
   x+='<div style="display:flex;font-size:9px;color:var(--text3);background:var(--surface2);padding:5px 8px;font-weight:700;"><span style="width:74px;">시각</span><span style="width:52px;text-align:right;">보유/한도</span><span style="flex:1;text-align:right;">群 후보→매수</span></div>';
@@ -858,7 +866,8 @@ function _atCutRender(){
       +'<span style="width:74px;color:var(--text3);">'+_atCutDay(r.asof)+' '+(r.hm||'')
         /* [S1538] 일일 한도가 켜져 있으면 그날 소진 상황을 함께 — 안 켜져 있으면 침묵 */
         +((r.dc>0)?('<span style="display:block;font-size:8.5px;">오늘 '+(r.db!=null?r.db:'?')+'/'+r.dc+'</span>'):'')+'</span>'
-      +'<span style="width:52px;text-align:right;color:var(--text2);">'+(r.held!=null?r.held:'?')+'/'+(_capAll!=null?_capAll:'?')+'</span>'
+      /* [S1540] 구조 이전 행은 한도를 눌러 칠한다 — 위 안내 줄과 짝을 이뤄 '이 행이 그 행'임을 짚어준다 */
+      +'<span style="width:52px;text-align:right;color:'+(_multi?'var(--hold)':'var(--text2)')+';">'+(r.held!=null?r.held:'?')+'/'+(_capAll!=null?_capAll:'?')+'</span>'
       +'<span style="flex:1;text-align:right;">'+gs+'</span></div>';
     // 상세(full=1) — 순위별 산 것/잘린 것. 궁합 점수를 붙일 때 이 자리가 그 근거가 된다.
     if(_atCutWant && r.c && r.c.length){
@@ -1754,9 +1763,10 @@ async function atCoinTgToggle(){  // [S1498] notify-config coinOn(KR 설정 파�
 }
 async function atCoinSaveCfg(){
   const mh=+((_$('coinMaxHold')||{}).value), bc=+((_$('coinBuyCap')||{}).value);
-  if(!(mh>0)||!(bc>0)) return;
-  _coinCtrlPend=true; try{ await atCoinPost('/sx/autotrade/entry-config?mkt=coin',{maxHoldings:mh,buyCapPerTick:bc}); }catch(_){ } _coinCtrlPend=false;
-  const sb=_$('atCoinCfgBody'); if(sb){ sb.dataset.mh=''; }  // 강제 재렌더
+  const _bdEl=_$('coinBuyCapDay'), bd=_bdEl?+_bdEl.value:0;   // [S1539] 0=무제한이라 `>0` 검사에 넣지 않는다
+  if(!(mh>0)||!(bc>0)||!(bd>=0)) return;
+  _coinCtrlPend=true; try{ await atCoinPost('/sx/autotrade/entry-config?mkt=coin',{maxHoldings:mh,buyCapPerTick:bc,buyCapPerDay:bd}); }catch(_){ } _coinCtrlPend=false;
+  const sb=_$('atCoinCfgBody'); if(sb){ sb.dataset.mh=''; sb.dataset.bd=''; }  // 강제 재렌더
   atLoadCoinLedger(true);
 }
 function atRenderCoinExtra(d){
@@ -1832,17 +1842,21 @@ function atRenderCoinExtra(d){
   const sb=_$('atCoinCfgBody');
   if(sb){
     const mh=(cfg.maxHoldings!=null?cfg.maxHoldings:30), bc=(cfg.buyCapPerTick!=null?cfg.buyCapPerTick:5);
+    const bd=(cfg.buyCapPerDay!=null?cfg.buyCapPerDay:0);   // [S1539] 1일 매수 한도(0=무제한) — 워커 S1537이 두 시장 공용으로 이미 받는다
     const nt=(d&&d.notify)||{}; const tgOn=(nt.coinOn!==false);  // [S1498] 텔레그램 코인 알림 마스터
     const xc=(d&&d.exitCfg)||{};
     atRenderExitConfig(xc, false, 'coin');   // [S1506] 통합 청산 카드에 코인 값 공급(코인 존일 때만 그려진다)
-    const focused=['coinMaxHold','coinBuyCap'].some(id=>document.activeElement===_$(id));
-    if(!focused && (sb.dataset.mh!==String(mh)||sb.dataset.bc!==String(bc)||sb.dataset.tg!==String(tgOn))){
-      sb.dataset.mh=String(mh); sb.dataset.bc=String(bc); sb.dataset.tg=String(tgOn);
+    // [S1539] ⚠새 입력칸은 **두 곳에 같이** 넣어야 한다 — 포커스 목록에서 빠지면 타이핑 중 지워지고,
+    //   dataset 비교에서 빠지면 저장해도 화면이 안 바뀐다. 둘 다 조용한 사고라 배터리가 짝으로 본다.
+    const focused=['coinMaxHold','coinBuyCap','coinBuyCapDay'].some(id=>document.activeElement===_$(id));
+    if(!focused && (sb.dataset.mh!==String(mh)||sb.dataset.bc!==String(bc)||sb.dataset.bd!==String(bd)||sb.dataset.tg!==String(tgOn))){
+      sb.dataset.mh=String(mh); sb.dataset.bc=String(bc); sb.dataset.bd=String(bd); sb.dataset.tg=String(tgOn);
       sb.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;"><label style="font-size:11px;color:var(--text2);">보유상한 (개)<input id="coinMaxHold" type="number" min="1" max="200" value="'+mh+'" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface2);color:var(--text);"/></label><label style="font-size:11px;color:var(--text2);">tick당 매수 (개)<input id="coinBuyCap" type="number" min="1" max="20" value="'+bc+'" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface2);color:var(--text);"/></label></div>'
+        +'<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text2);">1일 매수 한도 (개 · 0=무제한)<input id="coinBuyCapDay" type="number" min="0" max="200" value="'+bd+'" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface2);color:var(--text);"/></label></div>'
         +'<button onclick="atCoinSaveCfg()" style="'+_cBtn+'width:100%;background:var(--accent);color:#fff;border-color:var(--accent);">💾 코인 진입 상한 저장</button>'
         +'<label style="display:flex;align-items:flex-start;gap:10px;margin-top:12px;cursor:pointer;"><input type="checkbox" id="coinTgOn" onchange="atCoinTgToggle()" '+(tgOn?'checked':'')+' style="flex:none;width:22px;height:22px;margin:1px 0 0;accent-color:var(--accent);"/><span style="display:block;min-width:0;flex:1;"><span style="display:block;font-size:12.5px;color:var(--text);line-height:1.35;">텔레그램 <b>코인 알림</b> (매수 후보 · 가상 주문)</span><span style="display:block;font-size:9.5px;color:var(--text3);margin-top:2px;line-height:1.4;">'+(nt.hasToken?'KR 텔레그램 설정(토큰·채팅ID·후보/주문 토글) 공유 · 후보=코인 신호 수신 시 1회, 주문=tick·위험감시·수동 청산 배치 · S1498':'⚠ KR 탭 텔레그램 카드에서 토큰·채팅ID를 먼저 설정하세요 · S1498')+'</span></span></label>'
         +'<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--border);font-size:10.5px;color:var(--text3);line-height:1.6;">[S1506] <b>청산 설정은 위 🎯 청산 설정 카드</b>로 옮겼습니다 — 항목이 두 시장 공용 한 벌이고 값만 시장별로 독립입니다. 여기 있던 익절 2칩은 같은 키를 두 곳에서 편집하게 되므로 철거했습니다.</div>'
-        +'<div style="font-size:9.5px;color:var(--text3);margin-top:8px;line-height:1.5;">사이징=NAV÷(보유상한+5) 금액균등(S1472) · votes≥4·주의 제외 토글은 후보 카드에 · ⚠[S1506] 정정: 스톱 배수는 KR과 <b>공유가 아니라 독립</b>입니다(구 캡션이 틀렸습니다 — 코인 설정을 한 번이라도 저장하면 그 시점 값이 코인 키에 동결됩니다)</div>';
+        +'<div style="font-size:9.5px;color:var(--text3);margin-top:8px;line-height:1.5;">[S1539] <b>1일 매수 한도</b>=하루에 새로 살 종목 수 상한(0=무제한) · 자리=min(tick당, 상한−보유, 1일한도−오늘산것) — 무엇이 묶었는지는 📓 자리 압박이 <b>지연/탈락/오늘끝</b>으로 말합니다 · 사이징=NAV÷(보유상한+5) 금액균등(S1472) · votes≥4·주의 제외 토글은 후보 카드에 · ⚠[S1506] 정정: 스톱 배수는 KR과 <b>공유가 아니라 독립</b>입니다(구 캡션이 틀렸습니다 — 코인 설정을 한 번이라도 저장하면 그 시점 값이 코인 키에 동결됩니다)</div>';
     }
     show('atCoinCfgCard');
   }
