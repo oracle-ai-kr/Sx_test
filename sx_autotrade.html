@@ -499,6 +499,17 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       </div>
     </div>
 
+
+    <!-- ═══ [S1533] 📓 자리 압박 · 탈락 대장 (워커 S1532 원장 관측) ═══ -->
+    <div class="card" data-zone="kr coin" id="atCutCard">
+      <div class="card-title">📓 자리 압박 <span class="tag">탈락 대장 · S1532 원장 · S1533 UI</span><span onclick="atLoadCutlog(true)" style="float:right;font-size:12px;color:var(--accent2);cursor:pointer;user-select:none;font-weight:700;">↻ 갱신</span></div>
+      <div id="atCutBody" style="font-size:11px;color:var(--text3);line-height:1.6;">아직 안 불러옴 — ↻ 갱신. 워커 S1532 배포 후 tick마다 쌓입니다(240 tick 롤링).</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.6;"><b>표시 전용·판정 무관</b> — 기록만 하고 매수 순서에는 손대지 않습니다(S1532).
+        <b>병목</b>: <span style="color:var(--text2);">지연</span>=tick 상한(<code>buyCapPerTick</code>)에 걸림 → 다음 tick에 삼 · <span style="color:var(--sell);">탈락</span>=빈자리 없음(<code>maxHoldings</code>) → 자리 나야 삼.
+        ★<b>탈락이 쌓이기 시작하면</b> 그때부터 순위가 '누가 먼저'가 아니라 '누가 사느냐'를 정합니다 — 우선권을 붙일 값이 생기는 지점.
+        ⚠순위는 <b>지금 정렬</b>(votes↓ → src → realK↓)이고 궁합 점수는 아직 안 붙었습니다 — 이 대장이 그 <b>기준선</b>입니다.</div>
+    </div>
+
     <!-- ═══ [S934] 미검증 체크리스트 ═══ -->
     <div class="card" data-zone="docs" id="atChecklistCard">
       <div class="card-title">📋 미검증 체크리스트 <span class="tag">보류·시간要 · S934</span><span onclick="atClAdd()" style="float:right;font-size:12px;color:var(--accent2);cursor:pointer;user-select:none;font-weight:700;">＋ 추가</span></div>
@@ -761,6 +772,86 @@ function _atWon(n){ if(n==null||!isFinite(n)) return '—'; return '₩'+Math.ro
 function _atPl(n){ if(n==null||!isFinite(n)) return '—'; const g=n>0?'+':(n<0?'-':''); return g+'₩'+Math.abs(Math.round(n)).toLocaleString(); }  // [S1032] 금액은 +/− (▲▼는 %에만 — 화살표 중복 제거·색으로 방향 유지)
 function _atPct(n){ if(n==null||!isFinite(n)) return '—'; const g=n>0?'▲':(n<0?'▼':''); return g+Math.abs(n).toFixed(2)+'%'; }  // [S1026] 손익 방향 ▲/▼
 function _atPlCol(n){ return n>0?'var(--c-red)':(n<0?'var(--c-blue)':'var(--text2)'); }  // [S1027] 손익 색 한국식 통일 — 수익(상승)=빨강/손실(하락)=파랑 (시세 _sxChg SSOT와 동일)
+
+// ── [S1533] 📓 자리 압박 · 탈락 대장 — 워커 S1532 원장(at:cutlog:{mkt}) 관측. ──
+//   ★이 카드가 답해야 하는 질문은 하나다: **우선권을 붙일 때가 됐나?**
+//     그 답은 병목 분포에 있다 — '지연'만 쌓이면 순서만 바뀌는 중이고, '탈락'이 쌓이면 선택이 갈리는 중이다.
+//   ⚠시장 탭을 따로 만들지 않는다 — 존이 곧 시장이다(S1506 규약·중복 UI 0).
+//   ⚠기본은 요약만 받는다(full=0). 후보 순위 행은 폭이 커서 눌렀을 때만 가져온다.
+let _atCutData={}, _atCutFull={}, _atCutWant=false;
+async function atLoadCutlog(force){
+  const el=_$('atCutBody'); const mk=(typeof _exMkt==='function')?_exMkt():'kr';
+  const key=mk+(_atCutWant?':full':'');
+  if(!force && _atCutData[key]){ _atCutRender(); return; }
+  if(el) el.textContent='불러오는 중…';
+  try{
+    const q='/sx/autotrade/cutlog?mkt='+mk+(_atCutWant?'&full=1&n=20':'&n=60');
+    const r=await fetch(AT_WORKER_BASE+q,{ headers:atAuthHeaders(), signal:AbortSignal.timeout(15000) });
+    const d=await r.json();
+    if(d && d.needAuth){ _atToken=''; atShowGate(); return; }
+    _atCutData[key]=d||{};
+    _atCutRender();
+  }catch(e){ if(el) el.textContent='조회 실패: '+(e&&e.message); }
+}
+function atCutFullSet(on){ _atCutWant=!!on; atLoadCutlog(false); }
+// 병목 라벨 SSOT — 워커가 보낸 코드값('none'|'tick'|'hold')을 사람 말로 옮기는 곳은 여기 한 군데다.
+const _AT_NECK={ none:{t:'여유',c:'var(--text3)'}, tick:{t:'지연',c:'var(--hold)'}, hold:{t:'탈락',c:'var(--sell)'} };
+function _atNeckTag(k){ const m=_AT_NECK[k]||{t:k||'?',c:'var(--text3)'};
+  return '<span style="font-size:9px;font-weight:800;color:'+m.c+';">'+m.t+'</span>'; }
+function _atCutRender(){
+  const el=_$('atCutBody'); if(!el) return;
+  const mk=(typeof _exMkt==='function')?_exMkt():'kr';
+  const d=_atCutData[mk+(_atCutWant?':full':'')];
+  if(!d){ el.innerHTML='아직 안 불러옴 — ↻ 갱신.'; return; }
+  const rows=(d.rows||[]), s=(d.summary||{ticks:0,cutTicks:0,cutTotal:0,neck:{}});
+  if(!rows.length){ el.innerHTML='축적 대기 — 워커 S1532 배포 후 첫 tick부터 쌓입니다. (자리가 남으면 <b>여유</b>로만 기록됩니다.)'; return; }
+  const nk=s.neck||{}, nAll=(nk.none||0)+(nk.tick||0)+(nk.hold||0);
+  let x='';
+  // ① 요약 — 이 세 숫자가 결정을 만든다
+  x+='<div style="display:flex;gap:5px;margin-bottom:7px;">'
+    +'<div style="flex:1;background:var(--surface2);border-radius:8px;padding:7px 3px;text-align:center;"><div style="font-size:14px;font-weight:800;color:var(--text);">'+s.ticks+'</div><div style="font-size:8.5px;">기록 tick</div></div>'
+    +'<div style="flex:1;background:var(--surface2);border-radius:8px;padding:7px 3px;text-align:center;"><div style="font-size:14px;font-weight:800;color:'+((s.cutTicks>0)?'var(--hold)':'var(--text3)')+';">'+s.cutTicks+'</div><div style="font-size:8.5px;">잘린 tick</div></div>'
+    +'<div style="flex:1;background:var(--surface2);border-radius:8px;padding:7px 3px;text-align:center;"><div style="font-size:14px;font-weight:800;color:'+((nk.hold>0)?'var(--sell)':'var(--text3)')+';">'+(nk.hold||0)+'</div><div style="font-size:8.5px;">★탈락 群</div></div>'
+    +'</div>';
+  // ② 병목 분포 막대 — 여유/지연/탈락 비율(群 단위)
+  if(nAll>0){
+    const w=k=>(100*(nk[k]||0)/nAll).toFixed(1)+'%';
+    x+='<div style="display:flex;height:9px;border-radius:5px;overflow:hidden;border:1px solid var(--border);margin-bottom:4px;">'
+      +'<div style="width:'+w('none')+';background:var(--border);"></div>'
+      +'<div style="width:'+w('tick')+';background:var(--hold);"></div>'
+      +'<div style="width:'+w('hold')+';background:var(--sell);"></div></div>'
+      +'<div style="font-size:9.5px;margin-bottom:8px;">여유 '+(nk.none||0)+' · <span style="color:var(--hold);font-weight:700;">지연 '+(nk.tick||0)+'</span> · <span style="color:var(--sell);font-weight:800;">탈락 '+(nk.hold||0)+'</span> <span style="color:var(--text3);">(群 단위 · 총 잘림 '+s.cutTotal+'종)</span></div>';
+  }
+  // ③ 최근 tick — 설정(mh/cap)을 같이 실어 **한도를 줄여간 시점**이 눈에 보이게 한다
+  x+='<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">';
+  x+='<div style="display:flex;font-size:9px;color:var(--text3);background:var(--surface2);padding:5px 8px;font-weight:700;"><span style="width:74px;">시각</span><span style="width:52px;text-align:right;">보유/한도</span><span style="flex:1;text-align:right;">群 후보→매수</span></div>';
+  rows.slice(0,24).forEach(function(r){
+    const gs=(r.g||[]).map(function(g){
+      return '<span style="white-space:nowrap;">'+(g.k==='lg'?'레거시':(g.k==='v2'?'v2':'전체'))+' '+g.n+'→'+g.room+' '+_atNeckTag(g.neck)+'</span>';
+    }).join(' <span style="color:var(--border);">|</span> ');
+    x+='<div style="display:flex;font-size:10px;padding:5px 8px;border-top:1px solid var(--border);align-items:center;gap:4px;">'
+      +'<span style="width:74px;color:var(--text3);">'+String(r.asof||'').slice(5,10)+' '+(r.hm||'')+'</span>'
+      +'<span style="width:52px;text-align:right;color:var(--text2);">'+(r.held!=null?r.held:'?')+'/'+(r.mh!=null?r.mh:'?')+'</span>'
+      +'<span style="flex:1;text-align:right;">'+gs+'</span></div>';
+    // 상세(full=1) — 순위별 산 것/잘린 것. 궁합 점수를 붙일 때 이 자리가 그 근거가 된다.
+    if(_atCutWant && r.c && r.c.length){
+      const li=r.c.map(function(c){
+        return '<span style="display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;margin:1px 2px 1px 0;border-radius:8px;'
+          /* ⚠CSS 변수에는 16진 알파를 못 붙인다 — 변수 뒤에 두 자리를 덧붙이면 무효값이라 배경이 통째로 날아간다.
+             (sx_render.js는 `#RRGGBBAA` 리터럴이라 되지만 여기 색은 변수다.) 이 파일의 다른 칩은 전부 단색 — 선례를 따른다.
+             ⚠각인에 그 무효 문자열을 **예시로 적지 않는다** — S1531에서 빌드로그가 자기 감지기를 깨뜨린 것과 같은 자리다. */
+          +(c.x?'background:var(--surface2);color:var(--buy);border:1px solid var(--buy);':'background:transparent;color:var(--text3);border:1px dashed var(--border);')
+          +'">'+(c.x?'':'✕')+c.r+'. '+c.c+(c.v!=null?('·v'+c.v):'')+'</span>';
+      }).join('');
+      x+='<div style="padding:3px 8px 7px;border-top:1px dashed var(--border);">'+li+'</div>';
+    }
+  });
+  x+='</div>';
+  x+='<div style="margin-top:6px;"><span onclick="atCutFullSet('+(_atCutWant?'false':'true')+')" style="font-size:9.5px;font-weight:800;padding:5px 10px;border-radius:12px;border:1px solid var(--border);color:var(--accent2);cursor:pointer;">'+(_atCutWant?'▾ 요약만 보기 (60판)':'▸ 순위 상세 보기 (20판)')+'</span>'
+    +'<span style="font-size:9px;color:var(--text3);margin-left:7px;">'+(_atCutWant?'✕=잘린 것 · v=votes':'표시 '+Math.min(rows.length,24)+'/'+rows.length+'판')+'</span></div>';
+  el.innerHTML=x;
+}
+
 // ── [S1191] 자금 추적 — /equity(일별 순자산 원장+가계부 실현 합) → 요약 + 최근 거래일별 Δ ──
 let _atEqCache=null;
 async function atLoadEquity(force){
@@ -1740,6 +1831,7 @@ function atZoneSet(z){
   });
   try{ if(z==='coin'&&_atMeasMkt!=='coin') atMeasSet('coin'); else if(z==='kr'&&_atMeasMkt!=='kr') atMeasSet('kr'); }catch(_){}
   try{ if(z==='coin') atLoadCoinLedger(true); }catch(_){}  // [S1472] 존 진입 시 원장 즉시 로드
+  try{ if(_atCutData && Object.keys(_atCutData).length) atLoadCutlog(false); else { const e=_$('atCutBody'); if(e) e.innerHTML='아직 안 불러옴 — ↻ 갱신.'; } }catch(_){}  // [S1533] 존=시장이라 대장도 그 시장 것으로 다시 그린다(안 불러왔으면 그대로 둔다 — 존 전환마다 KV를 때리지 않는다)
 }
 try{ atZoneSet(_atZone); }catch(_){}
 if(_atToken){ atRefresh(); atLoadChecklist(); atLoadEquity(); atLoadSrcStats(); } else { atShowGate(); }
