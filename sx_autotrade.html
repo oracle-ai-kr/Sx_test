@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1536</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1536] ⚠자리 압박 `보유/한도`가 **분자·분모 단위 불일치**였다 — `held(전체 30)/mh(레거시 상한 30)`이라 `30/30`으로 꽉 찬 듯 보였지만 KR 실제 총량은 레거시 30+V2 10=**40**이었다(S1183 두 풀). 총 상한을 기록에서 유도(`held+Σ群자리`)하고, 群이 둘 이상이면 `·자리N`을 항상 표기 · [S1535] ⚠같은 자리 두 번째 정정 — 코인 asof는 `YYYY-MM-DD`가 아니라 **ISO 일시**(`...T00:00:00Z`)라 S1534의 '뒤 4자리'가 `00-00`을 찍었다. 짐작을 버리고 워커가 이미 쓰는 규약(숫자만 남겨 **앞 8자리** · workers_v9.js L3500 `asofYmd`)으로 교체 · 못 읽으면 원문 표시(거짓 날짜를 만들지 않는다) · [S1534] 📓 자리 압박 카드 실기기 정정 2건 — ①asof 형식이 시장마다 달라(KR `YYYYMMDD` · 코인 `YYYY-MM-DD`) 고정 slice가 KR에서 `903`을 찍었다 ⇒ 숫자만 남겨 뒤 4자리로 · ②KR 레거시 예산은 v2 보유를 안 세므로(S1183) 전체 30/30에도 레거시 자리가 남는다 ⇒ 群 자리가 전체와 어긋날 때만 `·자리N` 표기 · [S1533] 📓 자리 압박 카드(워커 S1532 탈락 대장 관측 — 병목 여유/지연/탈락·순위 상세) · [S1527] KR 후보 카드 `↻ 확정값`(진입원·제한종목·주의·votes≥4만 저장 · 상한 불변) + 레거시 진입원 OFF면 votes≥4 토글 비활성·미사용 표기 · [S1526] N컷 봉 규약만(N일 입력 제거 · 워커 nbarDays 폐지) · [S1525] N컷 두 입력(N일·N봉) 중 쓰이는 쪽만 활성 — N봉>0이면 N일 비활성+미사용 표기(실기기 혼동) · [S1524] ⚡ 지금 실행 타임아웃 15s→120s(signal timed out 정정)+마지막 실행 소요 표시+409(겹침) 안내 · [S1523] ↻ 확정값 버튼(청산·KR 진입·코인 진입 — 워커 defaults 소비·폴백 상수 거울) · [S1521] KR 제한종목 안전필터 토글(관리·경고·위험·거래정지·정리매매·당일무거래 하드 제외 · 주의급 토글) + 후보 카드 🚫/주의 배지(/state.restrict) · [S1518] 청산 카드 새 4키(초기손절/트레일 다리 토글·무장 문턱·N봉 컷)+진입원 토글(KR·코인·후보 카드 제외 표기 워커 동식) · [S1517] 워커 청산 코어(두 다리·무장·봉 규약·KR 당일시가) · [S1506] 청산 설정 두 시장 공용(당시 배지 미갱신 — 정정) · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1538</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1538] 진입 상한 카드 4칸→3칸(보유상한·tick당·**1일 매수 한도**) — 워커 S1537 진입원 통합에 맞춤. V2 슬롯 두 칸 철거(KV 값은 되돌리기용 잔존·매수 계산 미사용) · 📓 자리 압박: 병목 `오늘끝` 추가·일일 소진(오늘 N/M) 표시·순위 상세에 `src`·`겹침(realK)` 병기(통합 후 v2가 밀리는지 이 자리에서 보인다) · [S1536] ⚠자리 압박 `보유/한도`가 **분자·분모 단위 불일치**였다 — `held(전체 30)/mh(레거시 상한 30)`이라 `30/30`으로 꽉 찬 듯 보였지만 KR 실제 총량은 레거시 30+V2 10=**40**이었다(S1183 두 풀). 총 상한을 기록에서 유도(`held+Σ群자리`)하고, 群이 둘 이상이면 `·자리N`을 항상 표기 · [S1535] ⚠같은 자리 두 번째 정정 — 코인 asof는 `YYYY-MM-DD`가 아니라 **ISO 일시**(`...T00:00:00Z`)라 S1534의 '뒤 4자리'가 `00-00`을 찍었다. 짐작을 버리고 워커가 이미 쓰는 규약(숫자만 남겨 **앞 8자리** · workers_v9.js L3500 `asofYmd`)으로 교체 · 못 읽으면 원문 표시(거짓 날짜를 만들지 않는다) · [S1534] 📓 자리 압박 카드 실기기 정정 2건 — ①asof 형식이 시장마다 달라(KR `YYYYMMDD` · 코인 `YYYY-MM-DD`) 고정 slice가 KR에서 `903`을 찍었다 ⇒ 숫자만 남겨 뒤 4자리로 · ②KR 레거시 예산은 v2 보유를 안 세므로(S1183) 전체 30/30에도 레거시 자리가 남는다 ⇒ 群 자리가 전체와 어긋날 때만 `·자리N` 표기 · [S1533] 📓 자리 압박 카드(워커 S1532 탈락 대장 관측 — 병목 여유/지연/탈락·순위 상세) · [S1527] KR 후보 카드 `↻ 확정값`(진입원·제한종목·주의·votes≥4만 저장 · 상한 불변) + 레거시 진입원 OFF면 votes≥4 토글 비활성·미사용 표기 · [S1526] N컷 봉 규약만(N일 입력 제거 · 워커 nbarDays 폐지) · [S1525] N컷 두 입력(N일·N봉) 중 쓰이는 쪽만 활성 — N봉>0이면 N일 비활성+미사용 표기(실기기 혼동) · [S1524] ⚡ 지금 실행 타임아웃 15s→120s(signal timed out 정정)+마지막 실행 소요 표시+409(겹침) 안내 · [S1523] ↻ 확정값 버튼(청산·KR 진입·코인 진입 — 워커 defaults 소비·폴백 상수 거울) · [S1521] KR 제한종목 안전필터 토글(관리·경고·위험·거래정지·정리매매·당일무거래 하드 제외 · 주의급 토글) + 후보 카드 🚫/주의 배지(/state.restrict) · [S1518] 청산 카드 새 4키(초기손절/트레일 다리 토글·무장 문턱·N봉 컷)+진입원 토글(KR·코인·후보 카드 제외 표기 워커 동식) · [S1517] 워커 청산 코어(두 다리·무장·봉 규약·KR 당일시가) · [S1506] 청산 설정 두 시장 공용(당시 배지 미갱신 — 정정) · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -435,14 +435,18 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     <!-- ═══ [S1028] 진입/포지션 상한 (매수 스로틀) ═══ -->
     <div class="card" data-zone="kr" id="atEntryCard">
       <div class="card-title">📊 진입/포지션 상한 <span class="tag">매수 스로틀 · S1028</span><span onclick="atEntryReset()" title="[S1523] KR 확정값으로 채우고 바로 저장 — 진입원 크로스+칸real · 제한종목 필터 ON · 상한 30/5 · V2 10/2" style="float:right;font-size:15px;color:var(--accent2);cursor:pointer;user-select:none;line-height:1;">↻</span></div>
-      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">신호 몰릴 때 한 번에 다 매수해 생기는 거절(subrequest·초당한도) 방지. 남는 후보는 다음 cron에 이어서 매수(우선순위 votes↓·겹침↓). 보유수가 상한 도달 시 신규매수 0. <b>V2 전용 슬롯</b>은 레거시 상한과 별도 풀(레거시 몫 무변경·비교군 보존, 사이징 동일). 슬롯/tick 모두 수동 — 슬롯 0=V2 차단, tick 0=신규만 일시정지.</div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:11px;">신호 몰릴 때 한 번에 다 매수해 생기는 거절(subrequest·초당한도) 방지. 남는 후보는 다음 cron에 이어서 매수(우선순위 votes↓·겹침↓). 보유수가 상한 도달 시 신규매수 0.
+        <b>[S1537] 진입원 통합</b> — V2 전용 슬롯을 폐기하고 <b>보유상한 하나</b>로 합쳤습니다(3시장 확정본 · v2를 비교군으로 쓰지 않기로 한 사용자 결정). 이제 진입원과 무관하게 한 풀에서 경쟁합니다.
+        <b>1일 매수 한도</b>는 하루에 새로 살 종목 수 상한입니다(0=무제한). 진입 시점을 여러 날에 흩어 '하필 그날에 몰아넣기'를 줄입니다.
+        ⚠자리 계산 = <b>min(tick당, 상한−보유, 1일한도−오늘산것)</b> — 셋 중 무엇이 묶었는지는 📓 자리 압박 카드가 <b>지연/탈락/오늘끝</b>으로 말합니다.
+        ⚠구 <code>v2Slots</code>·<code>v2PerTick</code> 값은 되돌리기용으로 KV에 남아 있지만 <b>매수 계산에는 쓰이지 않습니다</b>.</div>
       <div style="display:flex;gap:10px;margin-bottom:10px;">
-        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">레거시 보유상한 (개)<input id="enMaxHold" type="number" step="1" min="1" max="200" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
-        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">레거시 tick당 (개)<input id="enBuyCap" type="number" step="1" min="1" max="20" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">보유상한 (개)<input id="enMaxHold" type="number" step="1" min="1" max="200" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">tick당 (개)<input id="enBuyCap" type="number" step="1" min="1" max="20" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
       </div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
-        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">V2 전용 슬롯 (개)<input id="enV2Slots" type="number" step="1" min="0" max="50" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
-        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">V2 tick당 (개)<input id="enV2PerTick" type="number" step="1" min="0" max="20" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+        <label style="flex:1;font-size:10.5px;color:var(--text2);line-height:1.5;">1일 매수 한도 (개 · 0=무제한)<input id="enBuyCapDay" type="number" step="1" min="0" max="200" style="width:100%;margin-top:4px;font-size:13px;padding:7px;box-sizing:border-box;"/></label>
+        <label style="flex:1;"></label>
       </div>
       <button type="button" id="enSaveBtn" onclick="atSaveEntryConfig()" style="width:100%;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">💾 진입 상한 저장</button>
       <div id="enMsg" style="font-size:11px;margin-top:9px;line-height:1.5;"></div>
@@ -505,10 +509,10 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="card-title">📓 자리 압박 <span class="tag">탈락 대장 · S1532 원장 · S1533 UI</span><span onclick="atLoadCutlog(true)" style="float:right;font-size:12px;color:var(--accent2);cursor:pointer;user-select:none;font-weight:700;">↻ 갱신</span></div>
       <div id="atCutBody" style="font-size:11px;color:var(--text3);line-height:1.6;">아직 안 불러옴 — ↻ 갱신. 워커 S1532 배포 후 tick마다 쌓입니다(240 tick 롤링).</div>
       <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.6;"><b>표시 전용·판정 무관</b> — 기록만 하고 매수 순서에는 손대지 않습니다(S1532).
-        <b>병목</b>: <span style="color:var(--text2);">지연</span>=tick 상한(<code>buyCapPerTick</code>)에 걸림 → 다음 tick에 삼 · <span style="color:var(--sell);">탈락</span>=빈자리 없음(<code>maxHoldings</code>) → 자리 나야 삼.
+        <b>병목</b>: <span style="color:var(--text2);">지연</span>=tick 상한에 걸림 → 다음 tick에 삼 · <span style="color:var(--sell);">탈락</span>=빈자리 없음 → 자리 나야 삼 · <span style="color:var(--accent2);">오늘끝</span>=1일 한도 소진 → 내일 새 신호와 다시 경쟁.
         ★<b>탈락이 쌓이기 시작하면</b> 그때부터 순위가 '누가 먼저'가 아니라 '누가 사느냐'를 정합니다 — 우선권을 붙일 값이 생기는 지점.
         ⚠순위는 <b>지금 정렬</b>(votes↓ → src → realK↓)이고 궁합 점수는 아직 안 붙었습니다 — 이 대장이 그 <b>기준선</b>입니다.
-        ⚠<b>KR은 풀이 두 개</b>입니다(S1183) — 레거시 상한 30 + V2 전용 슬롯 10 = <b>실제 총량 40</b>. 그래서 <b>보유/한도</b>는 두 풀을 합친 총량이고, <b>·자리N</b>이 어느 풀에 자리가 남았는지를 말합니다(코인은 풀이 하나라 안 붙습니다).</div>
+        ⚠<b>[S1537] KR도 이제 풀이 하나</b>입니다 — V2 전용 슬롯을 폐기해 진입원과 무관하게 한 풀에서 경쟁합니다. 그래서 <b>·자리N</b>은 더 이상 붙지 않습니다(그 전 기록에는 남아 있습니다).</div>
     </div>
 
     <!-- ═══ [S934] 미검증 체크리스트 ═══ -->
@@ -539,7 +543,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1536</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1538</div>
   </div>
 </div>
 
@@ -806,7 +810,8 @@ function _atCutDay(a){
   return d.slice(4,6)+'-'+d.slice(6,8);
 }
 // 병목 라벨 SSOT — 워커가 보낸 코드값('none'|'tick'|'hold')을 사람 말로 옮기는 곳은 여기 한 군데다.
-const _AT_NECK={ none:{t:'여유',c:'var(--text3)'}, tick:{t:'지연',c:'var(--hold)'}, hold:{t:'탈락',c:'var(--sell)'} };
+// [S1537] 병목이 셋이 됐다 — `day`(오늘끝)를 `탈락`에 섞으면 안 된다. 오늘끝은 **내일 새 신호와 다시 경쟁**하지만 탈락은 매도가 나야 풀린다.
+const _AT_NECK={ none:{t:'여유',c:'var(--text3)'}, tick:{t:'지연',c:'var(--hold)'}, hold:{t:'탈락',c:'var(--sell)'}, day:{t:'오늘끝',c:'var(--accent2)'} };
 function _atNeckTag(k){ const m=_AT_NECK[k]||{t:k||'?',c:'var(--text3)'};
   return '<span style="font-size:9px;font-weight:800;color:'+m.c+';">'+m.t+'</span>'; }
 function _atCutRender(){
@@ -850,25 +855,30 @@ function _atCutRender(){
         +((_multi&&g.slots!=null)?('<span style="color:var(--text3);">·자리'+g.slots+'</span>'):'')+' '+_atNeckTag(g.neck)+'</span>';
     }).join(' <span style="color:var(--border);">|</span> ');
     x+='<div style="display:flex;font-size:10px;padding:5px 8px;border-top:1px solid var(--border);align-items:center;gap:4px;">'
-      +'<span style="width:74px;color:var(--text3);">'+_atCutDay(r.asof)+' '+(r.hm||'')+'</span>'
+      +'<span style="width:74px;color:var(--text3);">'+_atCutDay(r.asof)+' '+(r.hm||'')
+        /* [S1538] 일일 한도가 켜져 있으면 그날 소진 상황을 함께 — 안 켜져 있으면 침묵 */
+        +((r.dc>0)?('<span style="display:block;font-size:8.5px;">오늘 '+(r.db!=null?r.db:'?')+'/'+r.dc+'</span>'):'')+'</span>'
       +'<span style="width:52px;text-align:right;color:var(--text2);">'+(r.held!=null?r.held:'?')+'/'+(_capAll!=null?_capAll:'?')+'</span>'
       +'<span style="flex:1;text-align:right;">'+gs+'</span></div>';
     // 상세(full=1) — 순위별 산 것/잘린 것. 궁합 점수를 붙일 때 이 자리가 그 근거가 된다.
     if(_atCutWant && r.c && r.c.length){
       const li=r.c.map(function(c){
+        // [S1538] src·realK를 함께 — 통합(S1537) 후 v2 후보가 정렬에서 밀리는지 **이 자리에서 보인다**.
+        //   votes는 레거시 recipe 전용이라 대개 0이다. 실제로 순서를 정하는 건 realK(겹침)다.
+        const _tail=(c.s?('·'+c.s):'')+((c.k!=null&&c.k!==0)?('·겹'+c.k):'')+((c.v!=null&&c.v!==0)?('·v'+c.v):'');
         return '<span style="display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;margin:1px 2px 1px 0;border-radius:8px;'
           /* ⚠CSS 변수에는 16진 알파를 못 붙인다 — 변수 뒤에 두 자리를 덧붙이면 무효값이라 배경이 통째로 날아간다.
              (sx_render.js는 `#RRGGBBAA` 리터럴이라 되지만 여기 색은 변수다.) 이 파일의 다른 칩은 전부 단색 — 선례를 따른다.
              ⚠각인에 그 무효 문자열을 **예시로 적지 않는다** — S1531에서 빌드로그가 자기 감지기를 깨뜨린 것과 같은 자리다. */
           +(c.x?'background:var(--surface2);color:var(--buy);border:1px solid var(--buy);':'background:transparent;color:var(--text3);border:1px dashed var(--border);')
-          +'">'+(c.x?'':'✕')+c.r+'. '+c.c+(c.v!=null?('·v'+c.v):'')+'</span>';
+          +'">'+(c.x?'':'✕')+c.r+'. '+c.c+_tail+'</span>';
       }).join('');
       x+='<div style="padding:3px 8px 7px;border-top:1px dashed var(--border);">'+li+'</div>';
     }
   });
   x+='</div>';
   x+='<div style="margin-top:6px;"><span onclick="atCutFullSet('+(_atCutWant?'false':'true')+')" style="font-size:9.5px;font-weight:800;padding:5px 10px;border-radius:12px;border:1px solid var(--border);color:var(--accent2);cursor:pointer;">'+(_atCutWant?'▾ 요약만 보기 (60판)':'▸ 순위 상세 보기 (20판)')+'</span>'
-    +'<span style="font-size:9px;color:var(--text3);margin-left:7px;">'+(_atCutWant?'✕=잘린 것 · v=votes':'표시 '+Math.min(rows.length,24)+'/'+rows.length+'판')+'</span></div>';
+    +'<span style="font-size:9px;color:var(--text3);margin-left:7px;">'+(_atCutWant?'✕=잘린 것 · 겹=realK · v=votes':'표시 '+Math.min(rows.length,24)+'/'+rows.length+'판')+'</span></div>';
   el.innerHTML=x;
 }
 
@@ -1435,7 +1445,7 @@ function atRenderEntryConfig(cfg, force){
   if(_enLoaded && !force) return; // 최초 1회만 로드 → atRefresh가 편집/저장값 덮어쓰기 방지
   _enLoaded=true;
   const set=(id,v)=>{ const e=_$(id); if(e && v!=null) e.value=v; };
-  set('enMaxHold', cfg.maxHoldings); set('enBuyCap', cfg.buyCapPerTick); set('enV2Slots', cfg.v2Slots!=null?cfg.v2Slots:10); set('enV2PerTick', cfg.v2PerTick!=null?cfg.v2PerTick:2); // [S1183][S1184]
+  set('enMaxHold', cfg.maxHoldings); set('enBuyCap', cfg.buyCapPerTick); set('enBuyCapDay', cfg.buyCapPerDay!=null?cfg.buyCapPerDay:0); // [S1537] V2 슬롯 두 칸 철거(예산 미사용) · 1일 한도 신설
 }
 function atEntryReset(){
   atRenderEntryConfig(_atDef('kr','entry'), true);   // [S1523] KR 확정값(진입원 크로스+칸real · 제한종목 필터 ON) — 워커 defaults 우선·폴백 거울
@@ -1444,7 +1454,7 @@ function atEntryReset(){
 async function atSaveEntryConfig(){
   const msg=_$('enMsg'), btn=_$('enSaveBtn');
   const num=(id)=>{ const e=_$(id); return e?parseInt(e.value,10):null; };
-  const body={ maxHoldings:num('enMaxHold'), buyCapPerTick:num('enBuyCap'), v2Slots:num('enV2Slots'), v2PerTick:num('enV2PerTick'), legacyV4Only:!!(_$('enLegacyV4')&&_$('enLegacyV4').checked), srcOn:_enSrcBody(), restrictOn:!!(_$('enKrRestrict')&&_$('enKrRestrict').checked), cautionExclude:!!(_$('enKrCau')&&_$('enKrCau').checked) }; // [S1183][S1184][S1355] · [S1518] 진입원 · [S1521] 제한종목
+  const body={ maxHoldings:num('enMaxHold'), buyCapPerTick:num('enBuyCap'), buyCapPerDay:num('enBuyCapDay'), legacyV4Only:!!(_$('enLegacyV4')&&_$('enLegacyV4').checked), srcOn:_enSrcBody(), restrictOn:!!(_$('enKrRestrict')&&_$('enKrRestrict').checked), cautionExclude:!!(_$('enKrCau')&&_$('enKrCau').checked) }; // [S1183][S1184][S1355] · [S1518] 진입원 · [S1521] 제한종목
   if(btn){ btn.disabled=true; btn.textContent='저장 중…'; }
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/entry-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
