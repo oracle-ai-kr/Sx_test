@@ -1897,10 +1897,17 @@ function btRenderBasicResult(stock, r){
       const _balText = (typeof _balAtI === 'number') ? `${_fmtKrw(_balAtI)}원` : '';
       const _metaLine = (_entryD || _balText)
         ? `<div style="display:flex;justify-content:space-between;align-items:center;font-size:9px;color:var(--text3);margin-top:2px;margin-left:44px">
-             <span>${_entryD ? `${_entryD} ~ ${_exitD}` : ''}</span>
+             <span>${_entryD ? `${_entryD} ~ ${_exitD}` : ''}${(_srcTag||_xrTag) ? ` \u00B7 ${_srcTag}${_xrTag}` : ''}</span>
              <span style="font-weight:600">${_balText}</span>
            </div>`
         : '';
+      // [S1550] ★진입원→청산사유 — **엔진이 이미 각인해 둔 값**을 읽기만 한다(새 계산 0).
+      //   `src`는 S1201이 `runLifecycle`에서 각인했고(recipe/bullVol/v2/maCross) `exitReason`은 코어 청산 사유다.
+      //   ⚠크로스 탭 어휘(`📈골든크로스`)와 **다른 체계**라 공용화하지 않고 이 엔진의 어휘를 그대로 쓴다
+      //     — 뭉개면 한쪽이 조용히 0건으로 뜬다(S1529 계열). 라벨은 진입원별 분해가 쓰는 `_BT_SRC_META` 재사용.
+      const _sm = (typeof _BT_SRC_META!=='undefined') ? _BT_SRC_META[t.src||'recipe'] : null;
+      const _srcTag = _sm ? `<span style="font-size:9px;font-weight:800;color:${_sm.c}">${_sm.ic} ${_sm.lbl}</span>` : '';
+      const _xrTag = (t.type!=='OPEN' && t.exitReason) ? `<span style="font-size:9px;color:var(--text3)">\u2192${t.exitReason}</span>` : '';
       html += `<div class="bt-trade-item" style="flex-direction:column;align-items:stretch;padding:6px 8px">
         <div style="display:flex;align-items:center;gap:8px">
           <span class="bt-trade-type ${t.type}">${t.type}</span>
