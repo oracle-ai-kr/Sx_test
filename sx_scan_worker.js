@@ -1055,6 +1055,25 @@ function _candleTransitionScore(rows, indicators, market){
 
 
 // (이 함수는 메인 HTML과 동일한 로직이지만, Worker 전역의 sma를 참조)
+// [S1544] MA 배열 (직접 입력) — 판정 SSOT. sx_scan_worker.js ↔ sx_screener.html **바이트 동일 거울**(S1518 문법).
+//   ★한쪽만 고치면 두 경로가 같은 조건에 다른 답을 낸다(S1304가 슬라이드에서 겪은 그 계열) — 배터리가 문자 대조한다.
+//   규약: 마지막 봉 단일 판정 · 엄격 부등호 · 값이 안 읽히면 조건 자체를 끈 것으로 보고(cfg=null) 게이트를 안 건다.
+//   ⚠봉 부족(긴 쪽 봉수 미확보)은 **판정 불가=탈락**이다 — 조용한 전원 통과 금지(S1077 · 칸·레짐과 같은 처리).
+function _spMaOrderCfg(v){
+  if(!v || typeof v !== 'object') return null;
+  var n1 = parseInt(v.n1), n2 = parseInt(v.n2);
+  if(!(n1 >= 2) || !(n2 >= 2) || n1 > 240 || n2 > 240 || n1 === n2) return null;
+  return { n1: n1, n2: n2 };
+}
+function _spMaOrderOk(closes, cfg){
+  if(!cfg) return true;
+  if(!Array.isArray(closes)) return false;
+  var need = (cfg.n1 > cfg.n2) ? cfg.n1 : cfg.n2;
+  if(closes.length < need) return false;
+  var m1 = sma(closes, cfg.n1), m2 = sma(closes, cfg.n2);
+  if(!Number.isFinite(m1) || !Number.isFinite(m2)) return false;
+  return m1 > m2;
+}
 function checkTechConditions(ind, techFilters, getFilter) {
   for (const f of techFilters) {
     const v = f.value;
@@ -2428,10 +2447,14 @@ async function startScan(config) {
     const _spRegF  = activeFilters.find(f => f.id === 'struct_regime');
     const _spCellSel = (_spCellF && Array.isArray(_spCellF.value)) ? _spCellF.value : [];
     const _spRegSel  = (_spRegF  && Array.isArray(_spRegF.value))  ? _spRegF.value  : [];
-    const _spGateOn  = (_spCellSel.length > 0 || _spRegSel.length > 0);
+    // [S1544] MA 배열 (직접 입력) — 칸·레짐과 같은 선행 게이트. 값 검증을 한 번 하고 통과분만 태운다.
+    const _spMaOrdF = activeFilters.find(f => f.id === 'struct_ma_order');
+    const _spMaOrd = _spMaOrderCfg(_spMaOrdF && _spMaOrdF.value);
+    const _spGateOn  = (_spCellSel.length > 0 || _spRegSel.length > 0 || !!_spMaOrd);
     const techFilters = activeFilters.filter(f => { 
       if (f.id === '_recent_n_bars') return false; // 메타조건 제외
       if (f.id === 'struct_cell' || f.id === 'struct_regime') return false; // [S1243] 선행 게이트로 별도 평가(슬라이드·AND/OR 그룹 비편입)
+      if (f.id === 'struct_ma_order') return false; // [S1544] MA 배열도 같은 규약 — 선행 게이트
       const meta = findCondMeta(f.id); 
       return meta && meta.source === 'calc_candle'; 
     });
@@ -2544,21 +2567,31 @@ async function startScan(config) {
             //   판정 불가(null·EC 미로드·웜업 미달)=탈락(보수 — 조용한 전원 통과 금지). 메인 HTML 레거시 경로는
             //   case 미존재로 자동 통과(미지원 — S895 _recipe_detect 선례와 동일 취급).
             if (_spGateOn) {
-              let _spOk = false;
-              try {
-                const _EC = self.SXExecCore;
-                if (_EC && _EC.stockStateAt && candles.length >= 20) {
-                  const _spIndFull = calcIndicators(candles, currentTF);
-                  // [S1244] flat-top trap 교정 — calcIndicators 리턴은 평탄 축약본이라 maAlignLT(장기축)가 top-level에 없다
-                  //   (풀 지표는 _advanced=calcAllScreener 원본). S1243이 평탄본을 그대로 넘겨 _ltStr733='off'→cell 전원 null
-                  //   →칸 필터 전 종목 탈락(레짐 필터는 rows만 써서 생존 — 증상 비대칭의 원인).
-                  const _spInd = (_spIndFull && _spIndFull._advanced) || _spIndFull;
-                  const _ss = _EC.stockStateAt(_spInd, candles, candles.length - 1);
-                  const _cellOk = !_spCellSel.length || (_ss && _ss.cell && _spCellSel.some(id => id.replace('_','|') === _ss.cell));
-                  const _regOk  = !_spRegSel.length  || (_ss && _ss.regime && _spRegSel.indexOf(_ss.regime) >= 0);
-                  _spOk = _cellOk && _regOk;
-                }
-              } catch (_eSp) { _spOk = false; }
+              let _spOk = true;
+              // [S1544] MA 배열 — SXExecCore가 필요 없다(closes만 쓴다). 칸·레짐 블록 안에 넣으면
+              //   EC 미로드·웜업 미달일 때 배열 단독 스캔이 전원 탈락한다 ⇒ 분리 평가 후 AND.
+              if (_spMaOrd) {
+                try { _spOk = _spMaOrderOk(candles.map(_c => _c.close), _spMaOrd); }
+                catch (_eMo) { _spOk = false; }
+              }
+              if (_spOk && (_spCellSel.length > 0 || _spRegSel.length > 0)) {
+                let _spOk2 = false;
+                try {
+                  const _EC = self.SXExecCore;
+                  if (_EC && _EC.stockStateAt && candles.length >= 20) {
+                    const _spIndFull = calcIndicators(candles, currentTF);
+                    // [S1244] flat-top trap 교정 — calcIndicators 리턴은 평탄 축약본이라 maAlignLT(장기축)가 top-level에 없다
+                    //   (풀 지표는 _advanced=calcAllScreener 원본). S1243이 평탄본을 그대로 넘겨 _ltStr733='off'→cell 전원 null
+                    //   →칸 필터 전 종목 탈락(레짐 필터는 rows만 써서 생존 — 증상 비대칭의 원인).
+                    const _spInd = (_spIndFull && _spIndFull._advanced) || _spIndFull;
+                    const _ss = _EC.stockStateAt(_spInd, candles, candles.length - 1);
+                    const _cellOk = !_spCellSel.length || (_ss && _ss.cell && _spCellSel.some(id => id.replace('_','|') === _ss.cell));
+                    const _regOk  = !_spRegSel.length  || (_ss && _ss.regime && _spRegSel.indexOf(_ss.regime) >= 0);
+                    _spOk2 = _cellOk && _regOk;
+                  }
+                } catch (_eSp) { _spOk2 = false; }
+                _spOk = _spOk2;
+              }
               if (!_spOk) continue;
             }
             let passed = false;
