@@ -1887,8 +1887,13 @@ function btRenderBasicResult(stock, r){
       const pnlC = t.pnl>=0?'var(--buy)':'var(--sell)';
       // S110: 진입~청산 날짜 표시 (둘째 줄, 작은 회색)
       //   OPEN 포지션은 exitDate 없으므로 "... 보유중" 표기
-      const _entryD = _fmtDate(t.entryDate);
-      const _exitD = t.type === 'OPEN' ? '보유중' : _fmtDate(t.exitDate);
+      // [S1551] ★날짜를 두 자리 연도로 줄인다 — S1550 태그가 붙으면서 메타 줄이 넘쳤다.
+      //   실측(9px 근사 · 360px 기기 가용 300px): 최장 조합 322px로 **22px 초과**였고, 두 자리 연도가 **26px**를 던다.
+      //   ⚠연도는 남긴다 — 이 목록은 여러 해에 걸쳐 있어 24/25/26 구분이 필요하다.
+      //   ⚠`_fmtDate`는 다른 소비처가 있으므로 **여기서만** 줄인다(SSOT를 건드리지 않는다).
+      const _short = d => String(d || '').replace(/^20(\d\d)[.\-\/]/, '$1.').replace(/\s*~\s*/, '~');
+      const _entryD = _short(_fmtDate(t.entryDate));
+      const _exitD = t.type === 'OPEN' ? '보유중' : _short(_fmtDate(t.exitDate));
       // [S1550] ★진입원→청산사유 — **엔진이 이미 각인해 둔 값**을 읽기만 한다(새 계산 0).
       //   `src`는 S1201이 `runLifecycle`에서 각인했고(recipe/bullVol/v2/maCross) `exitReason`은 코어 청산 사유다.
       //   ⚠크로스 탭 어휘와 **다른 체계**라 공용화하지 않고 이 엔진의 어휘를 그대로 쓴다(뭉개면 한쪽이 조용히 0건으로 뜬다 · S1529 계열).
@@ -1904,9 +1909,12 @@ function btRenderBasicResult(stock, r){
       const _balAtI = _balances[i];
       const _balText = (typeof _balAtI === 'number') ? `${_fmtKrw(_balAtI)}원` : '';
       const _metaLine = (_entryD || _balText)
-        ? `<div style="display:flex;justify-content:space-between;align-items:center;font-size:9px;color:var(--text3);margin-top:2px;margin-left:44px">
-             <span>${_entryD ? `${_entryD} ~ ${_exitD}` : ''}${(_srcTag||_xrTag) ? ` \u00B7 ${_srcTag}${_xrTag}` : ''}</span>
-             <span style="font-weight:600">${_balText}</span>
+        ? `<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--text3);margin-top:2px;margin-left:44px">
+             <span style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:0 4px">
+               ${_entryD ? `<span style="white-space:nowrap">${_entryD}~${_exitD}</span>` : ''}
+               ${(_srcTag||_xrTag) ? `<span style="white-space:nowrap">\u00B7 ${_srcTag}${_xrTag}</span>` : ''}
+             </span>
+             <span style="flex:0 0 auto;white-space:nowrap;font-weight:600">${_balText}</span>
            </div>`
         : '';
       html += `<div class="bt-trade-item" style="flex-direction:column;align-items:stretch;padding:6px 8px">
