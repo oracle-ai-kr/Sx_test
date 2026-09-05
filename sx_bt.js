@@ -1889,6 +1889,14 @@ function btRenderBasicResult(stock, r){
       //   OPEN 포지션은 exitDate 없으므로 "... 보유중" 표기
       const _entryD = _fmtDate(t.entryDate);
       const _exitD = t.type === 'OPEN' ? '보유중' : _fmtDate(t.exitDate);
+      // [S1550] ★진입원→청산사유 — **엔진이 이미 각인해 둔 값**을 읽기만 한다(새 계산 0).
+      //   `src`는 S1201이 `runLifecycle`에서 각인했고(recipe/bullVol/v2/maCross) `exitReason`은 코어 청산 사유다.
+      //   ⚠크로스 탭 어휘와 **다른 체계**라 공용화하지 않고 이 엔진의 어휘를 그대로 쓴다(뭉개면 한쪽이 조용히 0건으로 뜬다 · S1529 계열).
+      //   ⚠★**선언은 반드시 `_metaLine` 앞**이다 — 초판이 뒤에 두어 `Cannot access '_srcTag' before initialization`
+      //     (실기기 발견 · S1409·S1234와 같은 TDZ 계열). 배터리가 문자열만 세고 이 블록을 **실행하지 않아** 못 잡았다.
+      const _sm = (typeof _BT_SRC_META!=='undefined') ? _BT_SRC_META[t.src||'recipe'] : null;
+      const _srcTag = _sm ? `<span style="font-size:9px;font-weight:800;color:${_sm.c}">${_sm.ic} ${_sm.lbl}</span>` : '';
+      const _xrTag = (t.type!=='OPEN' && t.exitReason) ? `<span style="font-size:9px;color:var(--text3)">\u2192${t.exitReason}</span>` : '';
       // [S240/S241] 거래별 잔고 — 둘째 줄(날짜 줄) 우측에 함께 표시
       //   〔이력〕 [S240]: 수익률 우측에 세로 누적 → 행 높이 늘고 위아래 간격 벌어짐
       //          [S241]: 날짜와 같은 둘째 줄 양쪽 정렬 (왼쪽 날짜 / 오른쪽 잔고) → 컴팩트
@@ -1901,13 +1909,6 @@ function btRenderBasicResult(stock, r){
              <span style="font-weight:600">${_balText}</span>
            </div>`
         : '';
-      // [S1550] ★진입원→청산사유 — **엔진이 이미 각인해 둔 값**을 읽기만 한다(새 계산 0).
-      //   `src`는 S1201이 `runLifecycle`에서 각인했고(recipe/bullVol/v2/maCross) `exitReason`은 코어 청산 사유다.
-      //   ⚠크로스 탭 어휘(`📈골든크로스`)와 **다른 체계**라 공용화하지 않고 이 엔진의 어휘를 그대로 쓴다
-      //     — 뭉개면 한쪽이 조용히 0건으로 뜬다(S1529 계열). 라벨은 진입원별 분해가 쓰는 `_BT_SRC_META` 재사용.
-      const _sm = (typeof _BT_SRC_META!=='undefined') ? _BT_SRC_META[t.src||'recipe'] : null;
-      const _srcTag = _sm ? `<span style="font-size:9px;font-weight:800;color:${_sm.c}">${_sm.ic} ${_sm.lbl}</span>` : '';
-      const _xrTag = (t.type!=='OPEN' && t.exitReason) ? `<span style="font-size:9px;color:var(--text3)">\u2192${t.exitReason}</span>` : '';
       html += `<div class="bt-trade-item" style="flex-direction:column;align-items:stretch;padding:6px 8px">
         <div style="display:flex;align-items:center;gap:8px">
           <span class="bt-trade-type ${t.type}">${t.type}</span>
