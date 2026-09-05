@@ -1144,6 +1144,18 @@ function _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, legendFont, fullR
   var _eng=(TM && TM.engine) || 'cross';
   var _isCross=(_eng==='cross');
   if(!_isCross){ gIdx=-1; dIdx=-1; }
+  // [S1549] ★★**크로스 탭에서도 폴백을 쓰지 않는다** — 사용자 실기기 발견(*'MA 크로스 탭만 마커 날짜가 매매 이력과 다르다'*).
+  //   기전: BT 마지막 거래 날짜가 **화면 창 밖**이면 `_ei<0`이라 `ei`가 `gIdx`(최근 MA 크로스)로 남았다.
+  //   그 크로스는 **매매 이력에 없는 날짜**인데 범례는 `▲추세매수`라 실거래처럼 읽혔다.
+  //   ⚠전략 조합 탭은 S1436이 폴백을 이미 막아 '마커 없음'이 되므로 어긋난 적이 없다 —
+  //     **사용자가 크로스 탭에서만 본 이유가 그것**이고, 크로스 탭만 다른 규약을 쓸 이유가 없다.
+  //   ★실측(재실행기 `offline/bat/recon_crossmk.js` · 실제 스냅 3시장 · 진입 20×60):
+  //     화면 밖이라 폴백이 뜨던 비율이 진입 KR 21.3 / US 21.6 / **COIN 58.8%**, 청산 14.9 / 23.7 / **75.4%**다.
+  //   ⚠S1245가 이 자리를 이미 알고 있었다 — 그때는 **날짜 포맷 불일치**를 원인으로 잡아 정규화로 고쳤다.
+  //     남은 절반은 **창 밖**이고 정규화로는 안 풀린다. 여기서 닫는다.
+  //   ⇒ TM이 있으면 폴백을 버린다. **잘못된 마커보다 없는 게 낫다**(S1436과 같은 문법).
+  //   ⚠TM 자체가 없을 때(카드 미렌더)는 종전대로 폴백을 그린다 — 그때는 대조할 실거래가 애초에 없다.
+  if(TM) { gIdx=-1; dIdx=-1; }
   var ei=gIdx, xi=dIdx, ePred=false, xPred=false;
   if(TM){
     // [S1245] 날짜 정규화 비교 — '2026-08-05'≡'20260805'. 엄격 문자열 비교는 소스별 포맷 차이로 조용히 실패
@@ -1163,7 +1175,7 @@ function _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, legendFont, fullR
     ctx.save();
     ctx.font='bold '+(legendFont||8)+'px Outfit,sans-serif'; ctx.textAlign='left';
     var lx=pad.l+2;
-    if(ei>=0){ ctx.fillStyle=ePred?PRED_C:TBUY; ctx.fillText(ePred?'\u25B2\uC608\uCE21\uC9C4\uC785':(_isCross?'\u25B2\uCD94\uC138\uB9E4\uC218':'\u25B2\uC804\uB7B5\uC9C4\uC785'), lx, 10); lx+=ePred?50:46; }   /* [S1436] 전략 조합 탭이면 '▲전략진입' */
+    if(ei>=0){ ctx.fillStyle=ePred?PRED_C:TBUY; ctx.fillText(ePred?'\u25B2\uC608\uCE21\uC9C4\uC785':((TM&&TM.open)?'\u25B2\uBCF4\uC720\uC911 \uC9C4\uC785':(_isCross?'\u25B2\uCD94\uC138\uB9E4\uC218':'\u25B2\uC804\uB7B5\uC9C4\uC785')), lx, 10); lx+=ePred?50:((TM&&TM.open)?58:46); }   /* [S1549] 보유중이면 범례가 그렇게 말한다 — ▼가 없는 이유가 화면에서 읽힌다 */   /* [S1436] 전략 조합 탭이면 '▲전략진입' */
     if(xi>=0){ ctx.fillStyle=xPred?PRED_C:TSELL; ctx.fillText(xPred?'\u25BC\uC608\uCE21\uCCAD\uC0B0':(_isCross?'\u25BC\uCD94\uC138\uB9E4\uB3C4':'\u25BC\uC804\uB7B5\uCCAD\uC0B0'), lx, 10); }   /* [S1436] 거울상 — 진입만 바꾸고 청산을 두면 한 범례가 두 어휘를 쓴다(배터리 B6이 잡았다) */
     ctx.restore();
   }
