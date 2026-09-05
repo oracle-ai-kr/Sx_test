@@ -3714,6 +3714,25 @@ function openCondModal(catId, condId){
         </div>
       </div>
     `;
+  } else if(c.type==='ma_order'){
+    // [S1544] MA 배열 (직접 입력) — 봉수 두 칸. 방향 칩 없음(입력을 뒤집으면 역배열).
+    const cur = val || {};
+    const n1 = cur.n1!=null?cur.n1:5, n2 = cur.n2!=null?cur.n2:20;
+    const recStr = c.recommend ? ` <span style="color:var(--accent);font-weight:500;font-size:10px">(추천: ${c.recommend})</span>` : '';
+    body.innerHTML = `
+      <div class="modal-section">
+        <div class="modal-label">봉수 입력${recStr}</div>
+        <div class="input-row">
+          <span class="unit">MA</span>
+          <input type="number" id="moN1" placeholder="N1" min="2" max="240" value="${n1}">
+          <span class="sep">&gt;</span>
+          <span class="unit">MA</span>
+          <input type="number" id="moN2" placeholder="N2" min="2" max="240" value="${n2}">
+          <span class="unit">봉</span>
+        </div>
+        <div class="modal-label" style="margin-top:8px;font-weight:400">앞이 뒤보다 위에 있는 종목을 찾는다. 뒤집어 넣으면(20 &gt; 5) 역배열. 마지막 봉 기준 단일 판정이라 '최근 N봉'과 OR그룹에 들어가지 않는다.</div>
+      </div>
+    `;
   }
 
   document.getElementById('condModal').classList.add('show');
@@ -3853,6 +3872,14 @@ function addCondition(){
     if(bOn) _p.push(`매수 ${bS}×${bL}`);
     if(sOn) _p.push(`매도 ${sS}×${sL}`);
     displayValue = _p.join(' · ');
+  } else if(c.type==='ma_order'){
+    // [S1544] 두 봉수가 같으면 판정이 항상 거짓이라 등록 자체를 막는다(조용한 0건 방지).
+    const _n1 = parseInt(document.getElementById('moN1').value);
+    const _n2 = parseInt(document.getElementById('moN2').value);
+    if(!(_n1>=2) || !(_n2>=2) || _n1>240 || _n2>240){ toast('MA 봉수는 2~240으로 입력하세요'); return; }
+    if(_n1===_n2){ toast('두 봉수가 같으면 항상 거짓입니다 — 다른 값으로 입력하세요'); return; }
+    value = { n1:_n1, n2:_n2 };
+    displayValue = `MA${_n1} > MA${_n2}`;
   }
 
   const cat = getConditions().find(ct=>ct.id===modalCatId);
@@ -4949,11 +4976,16 @@ async function _startScanLegacy(){
     const getFilter = (id) => activeFilters.find(f=>f.id===id);
 
     // S44: 기술적 필터 사전 판별 (루프 밖에서 1회)
+    // [S1544] MA 배열은 선행 게이트라 techFilters에서 뺀다 — 워커와 같은 규약(마지막 봉 단일 판정).
+    //   ★안 빼면 이 경로만 N봉 슬라이드를 태워 **같은 조건이 경로에 따라 다른 답**을 낸다(S1304가 고친 그 계열).
+    const _spMaOrdF = activeFilters.find(f=>f.id==='struct_ma_order');
+    const _spMaOrd = _spMaOrderCfg(_spMaOrdF && _spMaOrdF.value);
     const techFilters = activeFilters.filter(f=>{
+      if(f.id==='struct_ma_order') return false;   // [S1544] 선행 게이트
       const meta = findCondMeta(f.id);
       return meta && meta.source==='calc_candle';
     });
-    const needCandles = techFilters.length > 0;
+    const needCandles = techFilters.length > 0 || !!_spMaOrd;   // [S1544] 배열 단독 스캔도 캔들 필요
 
     // S51: KIS 필터 사전 판별 (루프 밖에서 1회)
     const KIS_FILTER_IDS = new Set(['bid_ask_ratio','total_bid_qty','total_ask_qty','trade_strength','buy_ratio','intraday_high_break','intraday_vwap_pos','program_realtime']);
@@ -5011,6 +5043,8 @@ async function _startScanLegacy(){
             _scanCandles = candleResults ? candleResults[bi] : await fetchCandles(s.code, _scCount);
             if(!_scanCandles || _scanCandles.length < 20) continue;
             indicators = calcIndicators(_scanCandles, currentTF);
+            // [S1544] MA 배열 선행 게이트 — 마지막 봉 단일 판정. 워커와 **같은 함수**(_spMaOrderOk)를 쓴다.
+            if(_spMaOrd && !_spMaOrderOk(indicators.closes, _spMaOrd)) continue;
             //  [S1304] ★'최근 N봉' 슬라이드 정합 — 워커(sx_scan_worker.js:2560~2612)는 슬라이드하는데
             //    이 레거시 경로는 **마지막 봉만** 봤다. 같은 조건인데 경로에 따라 답이 달랐다(정책 아닌 버그).
             //    워커 주석도 "메인 HTML은 슬라이드 없음 → k=0 강제로 동일"이라고 적어 차이를 알고 있었다.
@@ -7428,6 +7462,25 @@ function _gcScalarCross(startVal, endVal, threshold, dir){
 //   ema(arr,period): sma처럼 script 태그로 로드된 엔진 함수. 미충족 시 null(Number.isFinite로 걸러짐).
 
 // ============================================================
+// [S1544] MA 배열 (직접 입력) — 판정 SSOT. sx_scan_worker.js ↔ sx_screener.html **바이트 동일 거울**(S1518 문법).
+//   ★한쪽만 고치면 두 경로가 같은 조건에 다른 답을 낸다(S1304가 슬라이드에서 겪은 그 계열) — 배터리가 문자 대조한다.
+//   규약: 마지막 봉 단일 판정 · 엄격 부등호 · 값이 안 읽히면 조건 자체를 끈 것으로 보고(cfg=null) 게이트를 안 건다.
+//   ⚠봉 부족(긴 쪽 봉수 미확보)은 **판정 불가=탈락**이다 — 조용한 전원 통과 금지(S1077 · 칸·레짐과 같은 처리).
+function _spMaOrderCfg(v){
+  if(!v || typeof v !== 'object') return null;
+  var n1 = parseInt(v.n1), n2 = parseInt(v.n2);
+  if(!(n1 >= 2) || !(n2 >= 2) || n1 > 240 || n2 > 240 || n1 === n2) return null;
+  return { n1: n1, n2: n2 };
+}
+function _spMaOrderOk(closes, cfg){
+  if(!cfg) return true;
+  if(!Array.isArray(closes)) return false;
+  var need = (cfg.n1 > cfg.n2) ? cfg.n1 : cfg.n2;
+  if(closes.length < need) return false;
+  var m1 = sma(closes, cfg.n1), m2 = sma(closes, cfg.n2);
+  if(!Number.isFinite(m1) || !Number.isFinite(m2)) return false;
+  return m1 > m2;
+}
 function checkTechConditions(ind, techFilters, getFilter){
   const rows = ind.candles || [];
   for(const f of techFilters){
