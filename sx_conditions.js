@@ -254,6 +254,13 @@ const SX_CONDITIONS = [
       {id:'struct_regime',name:'레짐 (시장국면 v3)',type:'multi_check',options:[
         {id:'bull',name:'불장'},{id:'up',name:'상승장'},{id:'side',name:'횡보장'},{id:'down',name:'하락장'},{id:'crash',name:'폭락장'},
       ],source:'calc_candle',desc:'레짐 v3(S1219): 골격 20vs200 ±1.5% + 동역학(기울기·ATR·이격) 5국면 — 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 임계값은 일봉 선언값'},
+      // [S1544] MA 배열 (직접 입력) — 두 이동평균의 **현재 대소**만 본다(`MA(n1) > MA(n2)` 엄격 부등호).
+      //   ★방향 칩을 두지 않았다 — 입력을 뒤집으면(20 > 5) 그대로 역배열이라 자유도가 늘지 않는다.
+      //   ★칸·레짐과 **같은 선행 게이트 규약**: 마지막 봉 단일 판정 · N봉 슬라이드 비적용 · 항상 AND
+      //     (techFilters 제외 · OR그룹 비편입). 사유는 비용이 아니라 S1243이 적어둔 원칙 — 상태 서술이지 이벤트가 아니다.
+      //   ⚠기술적분석 > 이동평균선의 `MA 배열`(정배열/역배열 고정)과는 **다른 조건**이다. 이름을 갈라 둔 이유(S1300 이름 충돌 계열).
+      //   ⚠판정 SSOT = `_spMaOrderCfg`/`_spMaOrderOk` — sx_scan_worker.js와 sx_screener.html에 **바이트 동일 거울**(S1518 문법 · 한쪽만 고치면 안 됨).
+      {id:'struct_ma_order',name:'MA 배열 (직접 입력)',type:'ma_order',source:'calc_candle',desc:'MA N1선 > MA N2선 — 두 이동평균의 현재 대소 판정(2~240봉 직접 입력). 뒤집어 넣으면(20 > 5) 역배열. 칸·레짐과 같은 규약이라 마지막 봉 단일 판정이고 N봉 슬라이드·OR그룹에 들어가지 않는다(항상 AND). 긴 쪽 봉수만큼 확보 안 된 종목은 판정 불가로 탈락. ⚠기술적분석 > 이동평균선의 `MA 배열`(정배열/역배열 고정)과는 다른 조건',recommend:'5 > 20 (단기 정배열) / 20 > 60 (중기 정배열)'},
     ]},
   ]},
   {id:'market_env',name:'시장환경',phase:'p2',groups:[
@@ -470,6 +477,13 @@ const COIN_CONDITIONS = [
       {id:'struct_regime',name:'레짐 (시장국면 v3)',type:'multi_check',options:[
         {id:'bull',name:'불장'},{id:'up',name:'상승장'},{id:'side',name:'횡보장'},{id:'down',name:'하락장'},{id:'crash',name:'폭락장'},
       ],source:'calc_candle',desc:'레짐 v3(S1219): 골격 20vs200 ±1.5% + 동역학(기울기·ATR·이격) 5국면 — 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 임계값은 일봉 선언값'},
+      // [S1544] MA 배열 (직접 입력) — 두 이동평균의 **현재 대소**만 본다(`MA(n1) > MA(n2)` 엄격 부등호).
+      //   ★방향 칩을 두지 않았다 — 입력을 뒤집으면(20 > 5) 그대로 역배열이라 자유도가 늘지 않는다.
+      //   ★칸·레짐과 **같은 선행 게이트 규약**: 마지막 봉 단일 판정 · N봉 슬라이드 비적용 · 항상 AND
+      //     (techFilters 제외 · OR그룹 비편입). 사유는 비용이 아니라 S1243이 적어둔 원칙 — 상태 서술이지 이벤트가 아니다.
+      //   ⚠기술적분석 > 이동평균선의 `MA 배열`(정배열/역배열 고정)과는 **다른 조건**이다. 이름을 갈라 둔 이유(S1300 이름 충돌 계열).
+      //   ⚠판정 SSOT = `_spMaOrderCfg`/`_spMaOrderOk` — sx_scan_worker.js와 sx_screener.html에 **바이트 동일 거울**(S1518 문법 · 한쪽만 고치면 안 됨).
+      {id:'struct_ma_order',name:'MA 배열 (직접 입력)',type:'ma_order',source:'calc_candle',desc:'MA N1선 > MA N2선 — 두 이동평균의 현재 대소 판정(2~240봉 직접 입력). 뒤집어 넣으면(20 > 5) 역배열. 칸·레짐과 같은 규약이라 마지막 봉 단일 판정이고 N봉 슬라이드·OR그룹에 들어가지 않는다(항상 AND). 긴 쪽 봉수만큼 확보 안 된 종목은 판정 불가로 탈락. ⚠기술적분석 > 이동평균선의 `MA 배열`(정배열/역배열 고정)과는 다른 조건',recommend:'5 > 20 (단기 정배열) / 20 > 60 (중기 정배열)'},
     ]},
   ]},
   {id:'market_env',name:'시장환경',phase:'p2',groups:[
@@ -680,6 +694,13 @@ const US_CONDITIONS = [
       {id:'struct_regime',name:'레짐 (시장국면 v3)',type:'multi_check',options:[
         {id:'bull',name:'불장'},{id:'up',name:'상승장'},{id:'side',name:'횡보장'},{id:'down',name:'하락장'},{id:'crash',name:'폭락장'},
       ],source:'calc_candle',desc:'레짐 v3(S1219): 골격 20vs200 ±1.5% + 동역학(기울기·ATR·이격) 5국면 — 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 임계값은 일봉 선언값'},
+      // [S1544] MA 배열 (직접 입력) — 두 이동평균의 **현재 대소**만 본다(`MA(n1) > MA(n2)` 엄격 부등호).
+      //   ★방향 칩을 두지 않았다 — 입력을 뒤집으면(20 > 5) 그대로 역배열이라 자유도가 늘지 않는다.
+      //   ★칸·레짐과 **같은 선행 게이트 규약**: 마지막 봉 단일 판정 · N봉 슬라이드 비적용 · 항상 AND
+      //     (techFilters 제외 · OR그룹 비편입). 사유는 비용이 아니라 S1243이 적어둔 원칙 — 상태 서술이지 이벤트가 아니다.
+      //   ⚠기술적분석 > 이동평균선의 `MA 배열`(정배열/역배열 고정)과는 **다른 조건**이다. 이름을 갈라 둔 이유(S1300 이름 충돌 계열).
+      //   ⚠판정 SSOT = `_spMaOrderCfg`/`_spMaOrderOk` — sx_scan_worker.js와 sx_screener.html에 **바이트 동일 거울**(S1518 문법 · 한쪽만 고치면 안 됨).
+      {id:'struct_ma_order',name:'MA 배열 (직접 입력)',type:'ma_order',source:'calc_candle',desc:'MA N1선 > MA N2선 — 두 이동평균의 현재 대소 판정(2~240봉 직접 입력). 뒤집어 넣으면(20 > 5) 역배열. 칸·레짐과 같은 규약이라 마지막 봉 단일 판정이고 N봉 슬라이드·OR그룹에 들어가지 않는다(항상 AND). 긴 쪽 봉수만큼 확보 안 된 종목은 판정 불가로 탈락. ⚠기술적분석 > 이동평균선의 `MA 배열`(정배열/역배열 고정)과는 다른 조건',recommend:'5 > 20 (단기 정배열) / 20 > 60 (중기 정배열)'},
     ]},
   ]},
   {id:'market_env',name:'시장환경',phase:'p2',groups:[
