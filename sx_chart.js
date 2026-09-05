@@ -268,7 +268,7 @@ function drawMini(canvasId, rows, svVerdict){
     ctx.restore();
   }
   // [S578] 단기추세(S) 마커 — 거래 0건 폴백 경로에서도 표시(S562 한계 해소). 녹/적='S'일 때만.
-  if(_chartGreenRedMode() === 'S') _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, 8);
+  if(_chartGreenRedMode() === 'S') _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, 8, rows);   /* [S1548] 전체 봉 전달 */
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -522,7 +522,7 @@ function _drawFullCandle(id, data, closes, bb, H, fullLen, trades, svVerdict, fu
     ctx.fillStyle=CURRENT_C; ctx.fillText('● 현재', W-pad.r-2, 10);
   }
 
-  if(_chartGreenRedMode() === 'S') _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, 8); // [S578] 추세마커는 녹/적='S'에서만
+  if(_chartGreenRedMode() === 'S') _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, 8, fullRows); // [S578] 추세마커는 녹/적='S'에서만 · [S1548] 큰 차트도 같은 처리(규칙17 거울상 — fullRows는 이미 9번째 인자로 들어와 있었다)
   drawMALegend(ctx, closes, pad, H, 9);
 
   // [S663] 예측 오버레이 — 마지막 봉 종가를 앵커로 우측에 H봉 경로. (캔들 우측 공간에만 그림 → 캔들/마커와 미겹침)
@@ -1075,7 +1075,7 @@ function _chartGreenRedMode(){ try{ return (typeof localStorage!=='undefined' &&
 //   기간은 단기추세매매 카드 설정(SX_TREND_{market}) 따라감(기본 5×9). 화면 내 가장 최근 골든/데드 1개씩.
 //   [S578] 색을 녹/적(BT와 동일)으로 통일 — B/S 교차선택이라 한 번에 하나만 떠서 충돌 없음(범례 텍스트로 구분).
 //   sma()는 이 IIFE 내 배열반환 헬퍼. greenRed='S'일 때만 호출됨.
-function _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, legendFont){
+function _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, legendFont, fullRows){
   if(!data || data.length < 4 || !closes || !closes.length) return;
   var ts=5, tl=9;
   try{
@@ -1083,16 +1083,35 @@ function _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, legendFont){
     var raw=(typeof localStorage!=='undefined') ? localStorage.getItem('SX_TREND_'+tm) : null;
     if(raw){ var o=JSON.parse(raw); if(o){ if(+o.s>=1) ts=+o.s; if(+o.l>=2) tl=+o.l; } }
   }catch(e){}
-  if(ts>=tl || data.length < tl+1) return;
-  var mF=sma(closes, ts), mL=sma(closes, tl);
+  // [S1548] ★★MA 계산 창을 **화면 60봉이 아니라 전체 봉**으로 바꾼다 — 그리는 것만 화면 창이다.
+  //   ⚠구판은 `closes`(=data.map)로 MA를 만들어 두 가지가 함께 깨져 있었다:
+  //     ㉠게이트 `data.length < tl+1`이 **진입MA 긴 쪽이 60 이상이면 함수를 통째로 return** 시켰다.
+  //       화면이 정확히 60봉이라 `l=60`이 경계다(59면 뜨고 60이면 안 뜬다). 사용자 설정이 20×60이었다.
+  //     ㉡그리고 그 return 이 **TM 마커(실제 BT 진입·청산 날짜)까지 함께 막았다** — TM은 날짜 매칭이라
+  //       MA를 한 번도 안 쓰는데 MA 봉수 부족으로 못 그려졌다. 마커가 통째로 사라진 실기기 증상의 원인이다.
+  //     ㉢봉수가 충분할 때도 MA 웜업이 화면 창을 먹었다(`l=20`이면 앞 20봉이 비어 뒤 40봉에서만 크로스를 찾는다).
+  //       무엇보다 **카드 BT가 쓰는 MA와 다른 창**이라 폴백 마커가 실제 진입봉과 어긋날 수 있었다(S1245 잔여 뿌리).
+  //   ⇒ `fullRows`가 오면 전체 종가로 MA를 만들고 오프셋으로 화면 인덱스에 맞춘다. 안 오면 종전 그대로(후방호환).
+  //   ★실측(재실행기 `offline/bat/recon_marker.js` · 실제 스냅 3시장): 기본 5×9는 거의 안 움직이고
+  //     (US 0.0% · KR 0.5% · COIN 5.3%) **`있다→없음`은 전 조합에서 0**이다 — 보이던 마커가 사라지지 않는다.
+  //     사용자 설정 20×60은 구판이 **100% 차단**이었고 273종에서 마커가 새로 생긴다.
+  var _fr=(fullRows && fullRows.length>=data.length) ? fullRows : null;
+  var _fc=_fr ? _fr.map(function(d){ return (d&&d.close!=null)?d.close:null; }) : closes;
+  var _off=_fr ? (_fr.length - data.length) : 0;
+  if(_fc.indexOf(null)>=0){ _fc=closes; _off=0; }   // 전체 봉에 결측이 있으면 지어내지 않고 종전 경로로
+  // ★게이트를 **폴백 전용으로 좁힌다** — `ts>=tl`(크로스 미정의)·봉수 부족은 크로스 탐지만 막고,
+  //   아래 TM 마커는 그대로 그린다. 구판은 이 한 줄이 둘 다 막았다.
+  var _fbOk=!(ts>=tl || _fc.length < tl+1);
+  var mF=_fbOk?sma(_fc, ts):[], mL=_fbOk?sma(_fc, tl):[];
   var TBUY='#22c55e', TSELL='#e8365a'; // [S578] 녹/적 (BT매수/매도와 동일) — B/S 교차선택
   var ms=Math.max(cw*1.0, 9);
   function _fmt(d){ if(!d) return ''; d=String(d); if(d.length===8&&d.indexOf('-')<0) return parseInt(d.slice(4,6),10)+'/'+parseInt(d.slice(6,8),10); var p=d.split(/[-T]/); if(p.length>=3) return parseInt(p[1],10)+'/'+parseInt(p[2],10); return d.slice(5,10); }
   var gIdx=-1, dIdx=-1;
-  for(var i=data.length-1; i>=1; i--){
-    if(mF[i]==null||mL[i]==null||mF[i-1]==null||mL[i-1]==null) continue;
-    if(gIdx<0 && mF[i-1]<=mL[i-1] && mF[i]>mL[i]) gIdx=i;
-    if(dIdx<0 && mF[i-1]>=mL[i-1] && mF[i]<mL[i]) dIdx=i;
+  if(_fbOk) for(var i=data.length-1; i>=1; i--){   /* [S1548] 인덱스는 화면 창 · MA 조회는 전체 창(_off) */
+    var _a=mF[_off+i], _b=mL[_off+i], _pa=mF[_off+i-1], _pb=mL[_off+i-1];
+    if(_a==null||_b==null||_pa==null||_pb==null) continue;
+    if(gIdx<0 && _pa<=_pb && _a>_b) gIdx=i;
+    if(dIdx<0 && _pa>=_pb && _a<_b) dIdx=i;
     if(gIdx>=0 && dIdx>=0) break;
   }
   function _mk(idx, color, isBuy){
@@ -1358,7 +1377,7 @@ function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
     }
   }
 
-  if(_gr === 'S') _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, 7); // [S578] 추세마커는 녹/적='S'에서만
+  if(_gr === 'S') _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, 7, rows); // [S578] 추세마커는 녹/적='S'에서만 · [S1548] 전체 봉 전달
   drawMALegend(ctx, closes, pad, H, 8);
   // 마커 범례 — [S578] BT 마커(녹/적)는 'B'에서만, 보라(현재 A/C)는 항상
   ctx.font = '7px Outfit,sans-serif';
