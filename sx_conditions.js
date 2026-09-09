@@ -287,7 +287,9 @@ const SX_CONDITIONS = [
       {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
-      {id:'trend_cross',name:'단기추세 신호 (MA 크로스)',type:'trend_cross',source:'calc_candle',desc:'단기 MA × 장기 MA 크로스 직접 탐색. 매수=골든크로스 / 매도=데드크로스, 각각 단기×장기 봉수 입력 (분석탭 단기추세매매와 맞춤). 기본 5×9'},
+      // [S1574] 단기추세 신호(trend_cross) 철거 — 사용자 요청. 조건 정의만 뺐다(엔진 판정 5→4개 · 검증 분석 13→12개).
+      //   정의가 없으면 findCondMeta가 null이라 techFilters에 못 들어간다 ⇒ 워커 case·html 모달 분기는 도달 불가 사문(남겨 둠).
+      //   저장본에 남은 값은 sx_screener.html `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(조용히 통과 방지).
       {id:'knn_dday',name:'kNN 크로스 임박 (D-day)',type:'select',options:['설정안함','골든크로스 임박','데드크로스 임박'],default:'설정안함',source:'calc_candle',desc:'kNN+MA수렴으로 골든/데드 크로스가 3봉 내 임박(과거 유사패턴 적중 50%↑)한 종목. 분석탭 단기추세 D-day와 동일 엔진 · MA는 단기추세매매 설정(cfg.s×cfg.l) 동기화 · 룩어헤드 차단. [S633/S634]',recommend:'골든크로스 임박 → 곧 진입 신호 나올 후보 선점'},
     ]},
   ]},
@@ -509,7 +511,9 @@ const COIN_CONDITIONS = [
       {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
-      {id:'trend_cross',name:'단기추세 신호 (MA 크로스)',type:'trend_cross',source:'calc_candle',desc:'단기 MA × 장기 MA 크로스 직접 탐색. 매수=골든크로스 / 매도=데드크로스, 각각 단기×장기 봉수 입력 (분석탭 단기추세매매와 맞춤). 기본 5×9'},
+      // [S1574] 단기추세 신호(trend_cross) 철거 — 사용자 요청. 조건 정의만 뺐다(엔진 판정 5→4개 · 검증 분석 13→12개).
+      //   정의가 없으면 findCondMeta가 null이라 techFilters에 못 들어간다 ⇒ 워커 case·html 모달 분기는 도달 불가 사문(남겨 둠).
+      //   저장본에 남은 값은 sx_screener.html `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(조용히 통과 방지).
       {id:'knn_dday',name:'kNN 크로스 임박 (D-day)',type:'select',options:['설정안함','골든크로스 임박','데드크로스 임박'],default:'설정안함',source:'calc_candle',desc:'kNN+MA수렴으로 골든/데드 크로스가 3봉 내 임박(과거 유사패턴 적중 50%↑)한 종목. 분석탭 단기추세 D-day와 동일 엔진 · MA는 단기추세매매 설정(cfg.s×cfg.l) 동기화 · 룩어헤드 차단. [S633/S634]',recommend:'골든크로스 임박 → 곧 진입 신호 나올 후보 선점'},
     ]},
   ]},
@@ -728,7 +732,9 @@ const US_CONDITIONS = [
       {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
     ]},
     {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
-      {id:'trend_cross',name:'단기추세 신호 (MA 크로스)',type:'trend_cross',source:'calc_candle',desc:'단기 MA × 장기 MA 크로스 직접 탐색. 매수=골든크로스 / 매도=데드크로스, 각각 단기×장기 봉수 입력 (분석탭 단기추세매매와 맞춤). 기본 5×9'},
+      // [S1574] 단기추세 신호(trend_cross) 철거 — 사용자 요청. 조건 정의만 뺐다(엔진 판정 5→4개 · 검증 분석 13→12개).
+      //   정의가 없으면 findCondMeta가 null이라 techFilters에 못 들어간다 ⇒ 워커 case·html 모달 분기는 도달 불가 사문(남겨 둠).
+      //   저장본에 남은 값은 sx_screener.html `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(조용히 통과 방지).
       {id:'knn_dday',name:'kNN 크로스 임박 (D-day)',type:'select',options:['설정안함','골든크로스 임박','데드크로스 임박'],default:'설정안함',source:'calc_candle',desc:'kNN+MA수렴으로 골든/데드 크로스가 3봉 내 임박(과거 유사패턴 적중 50%↑)한 종목. 분석탭 단기추세 D-day와 동일 엔진 · MA는 단기추세매매 설정(cfg.s×cfg.l) 동기화 · 룩어헤드 차단. [S633/S634]',recommend:'골든크로스 임박 → 곧 진입 신호 나올 후보 선점'},
     ]},
   ]},
