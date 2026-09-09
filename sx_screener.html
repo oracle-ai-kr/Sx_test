@@ -2792,10 +2792,12 @@ const _LEGACY_FILTER_ID_MAP = {
 // [정리 2026-05] 시장별 제거된 조건 — 정의에 없으면 자동으로 활성필터에서 제외
 //   - COIN: 재무분석 4종 (PER/PBR/ROE/배당) — 코인에 무의미, 데이터 소스 부재로 모두 탈락 버그
 //   - US: ROE — 워커가 Yahoo에서 받아오지 않아 항상 null → 모두 탈락 버그
+// [S1574] trend_cross(단기추세 신호) 3시장 철거 — 저장본에 남으면 findCondMeta가 null이라
+//   techFilters에서 조용히 빠진다(카드에는 보이는데 판정엔 안 걸리는 상태). 로드 시 아예 뺀다.
 const _REMOVED_FILTER_IDS_BY_MARKET = {
-  'coin': new Set(['per', 'pbr', 'roe', 'dividend_yield']),
-  'us':   new Set(['roe']),
-  'kr':   new Set(),  // KR은 제거 항목 없음
+  'coin': new Set(['per', 'pbr', 'roe', 'dividend_yield', 'trend_cross']),
+  'us':   new Set(['roe', 'trend_cross']),
+  'kr':   new Set(['trend_cross']),  // [S1574] KR 첫 제거 항목
 };
 function _migrateLegacyFilterIds(filters, market){
   if(!Array.isArray(filters)) return filters;
