@@ -1443,33 +1443,6 @@ function checkTechConditions(ind, techFilters, getFilter) {
         if (v === '데드크로스' && !(sFast >= sSlow && eFast < eSlow)) return false;
         break;
       }
-      case 'trend_cross': {   // [S561] 단기추세 — 매수(골든 N1×N2) / 매도(데드 N3×N4) 단일 조건. value={buy:{on,s,l},sell:{on,s,l}}
-        if (!v || typeof v !== 'object') break;
-        const closes = ind.closes;
-        if (!Array.isArray(closes)) return false;
-        const N = _gcN(getFilter);
-        const _crossAt = function(sp, lp, dir){
-          sp = parseInt(sp); lp = parseInt(lp);
-          if (!(sp >= 1) || !(lp > sp)) return false;
-          if (closes.length < lp + 1) return false;
-          const sLen = closes.length - (N - 1);
-          if (sLen < lp) return false;
-          const eFast = sma(closes, sp), eSlow = sma(closes, lp);
-          const ss = closes.slice(0, sLen);
-          const sFast = sma(ss, sp), sSlow = sma(ss, lp);
-          if (!Number.isFinite(sFast) || !Number.isFinite(sSlow) || !Number.isFinite(eFast) || !Number.isFinite(eSlow)) return false;
-          if (dir === 'golden') return (sFast <= sSlow && eFast > eSlow);
-          return (sFast >= sSlow && eFast < eSlow);   // dead
-        };
-        const _bOn = !!(v.buy && v.buy.on), _sOn = !!(v.sell && v.sell.on);
-        if (!_bOn && !_sOn) break;   // 선택 없음 → 필터 안 함
-        const _bHit = _bOn ? _crossAt(v.buy.s, v.buy.l, 'golden') : false;
-        const _sHit = _sOn ? _crossAt(v.sell.s, v.sell.l, 'dead') : false;
-        if (_bOn && _sOn) { if (!_bHit && !_sHit) return false; }
-        else if (_bOn) { if (!_bHit) return false; }
-        else if (_sOn) { if (!_sHit) return false; }
-        break;
-      }
       case 'knn_dday': {   // [S633] kNN 크로스 임박 D-day — 최신봉만(슬라이드 k=0). ind._knnDday=crossDday 결과(루프 사전계산), 없으면 직접 호출.
         if (v !== '골든크로스 임박' && v !== '데드크로스 임박') break;
         let _kd = ind._knnDday;
@@ -2603,8 +2576,10 @@ async function startScan(config) {
             //   사유: 외부 슬라이드 + 내부 윈도우가 동시 작동하면 윈도우가 이중으로 넓어지고
             //         "현재 봉 기준 N봉 윈도우" 의미가 깨짐. 메인 HTML은 슬라이드 없음 → k=0 강제로 동일.
             //   [S592] trend_cross 추가 — _gcN 윈도우를 쓰는 19개 조건 중 유일하게 id가 'gc_'로 시작 안 해
+//   [S1575] ★그 trend_cross는 철거됐다(S1574 정의 삭제 → S1575 배선 철거). 항을 빼도 값이 같다 —
+//     techFilters는 findCondMeta를 통과한 것만 담기고 정의가 없으면 못 들어오므로 이 항은 이미 항상 거짓이었다.
             //          S317 도입 시 누락됐던 분(단기추세신호 단독/비-gc 조합 시 이중 윈도우 → 탐색범위 과대). gc_*와 동일 성격.
-            const _hasGcFilter = techFilters.some(f => f && typeof f.id === 'string' && (f.id.indexOf('gc_') === 0 || f.id === 'trend_cross' || f.id === 'knn_dday'));
+            const _hasGcFilter = techFilters.some(f => f && typeof f.id === 'string' && (f.id.indexOf('gc_') === 0 || f.id === 'knn_dday'));
             const Nactual = _hasGcFilter ? 1 : Math.min(_recentN, Math.max(1, cLen - 19));
             // [S622] 캔들전이 kNN 벡터 1회 구축 — 슬라이드 N봉 전체서 재사용(scoreAt). score() N회 재구축 방지.
             //   측정: N=25 풀시장 323초→~20초. 결과 동일(scoreAt(full,sigE,pre)===score(slice) 검증, 룩어헤드 차단 유지).
