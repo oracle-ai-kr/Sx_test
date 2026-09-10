@@ -2575,6 +2575,18 @@ async function startScan(config) {
         if (_scanAbort) break;
         const s = batch[bi];
         const _isTraced2 = _traceCode && s.code === _traceCode;
+        // [S1578] ★이 종목의 지연 판정 원장 — 반드시 **루프 머리**에 둔다(S1577 초판 버그 수정).
+        //   판정 자리가 여러 블록에 흩어져 있다: `_v2_signal`·`_xmat_need`는 `if(needCandles){ try{ … } }` **안**,
+        //   `_rsi_div`·`_obv_div`·`_bt_*` 9종·최종 결합은 그 **밖**(더 얕은 블록).
+        //   S1577 초판이 안쪽(try 안)에 선언해 바깥 자리에서 `_lg is not defined` → 워커가 통째로 죽고
+        //   화면은 '종목 데이터 로딩... 0/0'에서 영영 멈췄다(실기기 발견). 문법 검사·문자 대조·순수 함수 배터리는
+        //   **전부 통과했다** — 스코프는 실행만이 드러낸다. 그래서 배터리에 끝단 실행(E군)을 신설했다.
+        const _LG = _lateLedgerNew({
+          groupOf: _grpOf, andOn: _grpAndOn, orOn: _grpOrOn, lateOrN: lateOrFilters.length,
+          stat: k => { if (k) _techFilterStats[k] = (_techFilterStats[k] || 0) + 1; }
+        });
+        //  한 줄 게이트 — bad=사유키(탈락) / null(통과). 반환 true면 지금 버려도 된다.
+        const _lg = (id, bad) => { if (bad) return _LG.rej(id, bad); _LG.ok(id); return false; };
         self.postMessage({ type: 'progress', current: batchIdx[bi] + 1, total, name: s.name });
 
         let indicators = null, candles = null;
@@ -2709,14 +2721,7 @@ async function startScan(config) {
               try { indicators = calcIndicators(candles, currentTF); } catch (_) {}
               passedK = 0;
             }
-            // [S1577] 이 종목의 지연 판정 원장 — 아래 14종은 `continue` 대신 여기에 판정을 남긴다.
-            const _LG = _lateLedgerNew({
-              groupOf: _grpOf, andOn: _grpAndOn, orOn: _grpOrOn, lateOrN: lateOrFilters.length,
-              stat: k => { if (k) _techFilterStats[k] = (_techFilterStats[k] || 0) + 1; }
-            });
-            _LG.early(_eAndOk, _eOrHit);
-            //  한 줄 게이트 — bad=사유키(탈락) / null(통과). 반환 true면 지금 버려도 된다.
-            const _lg = (id, bad) => { if (bad) return _LG.rej(id, bad); _LG.ok(id); return false; };
+            _LG.early(_eAndOk, _eOrHit);   // [S1577] 조기 판정 결과를 원장에 넘긴다(선언은 루프 머리)
             if (_isTraced2 && techFilters.length > 0) {
               const _passedAt = passedK === 0 ? '현재봉' : `${passedK}봉 전`;
               _trace('2단계 기술적조건', '✅ 통과', `${_passedAt} 시점에서 모든 조건 충족`, '');
