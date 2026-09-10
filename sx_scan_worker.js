@@ -1398,6 +1398,21 @@ function checkTechConditions(ind, techFilters, getFilter) {
         if (!_gcScalarCross(coStart.val, coEnd.val, 0, dir)) return false;
         break;
       }
+      case 'gc_ma_5_10': {   // [S1576] MA(5) × MA(10) — gc_ma_5_20과 동식, 기간과 봉수 하한만 다름(11 / 10)
+        if (v !== '골든크로스' && v !== '데드크로스') break;
+        const closes = ind.closes;
+        if (!Array.isArray(closes) || closes.length < 11) return false;
+        const N = _gcN(getFilter);
+        const sLen = closes.length - (N - 1);
+        if (sLen < 10) return false;
+        const eFast = sma(closes, 5), eSlow = sma(closes, 10);
+        const startSlice = closes.slice(0, sLen);
+        const sFast = sma(startSlice, 5), sSlow = sma(startSlice, 10);
+        if (!Number.isFinite(sFast) || !Number.isFinite(sSlow) || !Number.isFinite(eFast) || !Number.isFinite(eSlow)) return false;
+        if (v === '골든크로스' && !(sFast <= sSlow && eFast > eSlow)) return false;
+        if (v === '데드크로스' && !(sFast >= sSlow && eFast < eSlow)) return false;
+        break;
+      }
       case 'gc_ma_5_20': {
         if (v !== '골든크로스' && v !== '데드크로스') break;
         const closes = ind.closes;
