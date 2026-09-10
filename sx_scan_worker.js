@@ -838,8 +838,10 @@ function _lateLedgerNew(cfg) {
   const groupOf = cfg.groupOf, stat = cfg.stat || function () {};
   const andOn = !!cfg.andOn, orOn = !!cfg.orOn, lateOrN = cfg.lateOrN | 0;
   let andFail = false, orHit = false, earlyAndOk = true, earlyOrHit = false;
+  const okIds = [];   // [S1579] 이 종목을 실제로 통과시킨 지연 조건 — 결과 카드 '🔎 검출'의 재료
   return {
     early: function (a, o) { earlyAndOk = !!a; earlyOrHit = !!o; },
+    hits: function () { return okIds.slice(); },
     // 탈락 판정. 반환 true = 지금 이 종목을 버려도 된다(= continue).
     rej: function (id, key) {
       stat(key);
@@ -847,7 +849,7 @@ function _lateLedgerNew(cfg) {
       andFail = true;
       return !(earlyOrHit || lateOrN > 0);           // OR 대안이 없을 때만 즉시 탈락
     },
-    ok: function (id) { if (groupOf(id) === 'or') orHit = true; },
+    ok: function (id) { if (okIds.indexOf(id) < 0) okIds.push(id); if (groupOf(id) === 'or') orHit = true; },
     // 최종 결합 — 2단계(_andApplicable/_orApplicable)와 **같은 규약**
     pass: function () {
       const a = earlyAndOk && !andFail, o = earlyOrHit || orHit;
@@ -2184,6 +2186,8 @@ function _slimResults(arr) {
     _scanTargetBars: s._scanTargetBars != null ? s._scanTargetBars : null,
     _btBars: s._btBars != null ? s._btBars : null,
     _smartTags: s._smartTags, _filterScore: s._filterScore,
+    // [S1579] 🔎 검출 신호 — 실어 보내지 않으면 계산해 놓고 화면 소비처가 0곳이 된다(S1304·S1443이 두 번 겪은 사고).
+    _hits: Array.isArray(s._hits) ? s._hits : null,
     _btScore: s._btScore, _btAction: s._btAction,
     // [2026-04 FIX] 스캔 시점 계산한 모멘텀을 메인스레드에 전달 → 분석탭 재판정 시 동일 입력 보장
     _scoreMomentum: s._scoreMomentum || null,
@@ -2587,6 +2591,8 @@ async function startScan(config) {
         });
         //  한 줄 게이트 — bad=사유키(탈락) / null(통과). 반환 true면 지금 버려도 된다.
         const _lg = (id, bad) => { if (bad) return _LG.rej(id, bad); _LG.ok(id); return false; };
+        // [S1579] 조기 판정 히트 — 2단계가 통과한 **그 봉에서** 어떤 조건이 걸었는지. 선언은 여기(루프 머리)여야 한다(S1578 교훈).
+        let _eHitAnd = [], _eHitOr = [];
         self.postMessage({ type: 'progress', current: batchIdx[bi] + 1, total, name: s.name });
 
         let indicators = null, candles = null;
@@ -2703,6 +2709,12 @@ async function startScan(config) {
               //   ⚠이 분기가 없으면 `_orOk`(항상 false)로 떨어져 전 종목이 조용히 탈락한다.
               else { allPass = true; _failedHere = null; }
               if (allPass) {
+                // [S1579] ★통과한 **그 지점에서만** 전 조건을 한 번 더 잰다(위 루프는 속도 때문에 중간에 끊는다).
+                //   통과 종목에만 드는 비용이라 전수 스캔 부담이 없고, '몇 봉 전에 걸렸나'(_recentNHitBar)와 같은 봉을 본다.
+                try {
+                  _eHitAnd = andTechFilters.filter(_t => checkTechConditions(indK, [_t], getFilter)).map(_t => _t.id);
+                  _eHitOr  = orTechFilters.filter(_t => checkTechConditions(indK, [_t], getFilter)).map(_t => _t.id);
+                } catch (_eHit) {}
                 indicators = indK; passed = true; passedK = k; break;
               }
               // 마지막 슬라이드 시점에서 떨어진 조건 → 진단용 (가장 가까운 시점 기준)
@@ -3158,6 +3170,23 @@ async function startScan(config) {
         // [S1577] ★지연 판정 원장 최종 결합 — 2단계와 같은 규약으로 (AND 전부) || (OR 하나).
         //   OR 그룹이 없으면 원장은 이미 위에서 즉시 탈락시켰으므로 여기선 항상 참이다(무회귀).
         if (!_LG.pass()) { _techFilterStats['_late_group_fail'] = (_techFilterStats['_late_group_fail'] || 0) + 1; continue; }
+        // [S1579] 🔎 검출 신호 각인 — 이 종목을 걸어낸 조건만 담는다(떨어진 조건은 안 담는다: OR로 살아난 종목에
+        //   실패한 AND를 같이 보이면 화면이 거짓말을 한다). 이름·값을 **실행 시점에** 박는다 — 나중에 필터를
+        //   바꿔도 지난 결과의 라벨이 따라 움직이지 않는다(S1443 '움직이는 입력' 계열 예방).
+        try {
+          const _mkHit = (id, g) => {
+            const _m = findCondMeta(id), _f = techFilters.find(x => x && x.id === id);
+            const _o = { i: id, g: g, n: (_m && _m.name) || id };
+            if (_f && typeof _f.value === 'string' && _f.value !== '설정안함') _o.v = _f.value;
+            return _o;
+          };
+          const _seen = {};
+          s._hits = []
+            .concat(_eHitAnd.map(id => _mkHit(id, 'and')))
+            .concat(_eHitOr.map(id => _mkHit(id, 'or')))
+            .concat(_LG.hits().map(id => _mkHit(id, _grpOf(id))))
+            .filter(h => (_seen[h.i] ? false : (_seen[h.i] = 1)));
+        } catch (_eHits) { s._hits = null; }
         searchResults.push(s);
         newFound++;
 
