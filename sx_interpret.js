@@ -1020,51 +1020,13 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts)
 
   // S103-fix7 Phase3-B-3: 보유중 5종 먼저 처리 (비보유 BUY/SELL/HOLD 분기보다 우선)
   //   _svVerdict.action이 보유 맥락이면 종합평도 보유자 관점으로 전환
-  const _isHolding = verdictAction && ['보유 유지','청산 준비','청산 검토','즉시 청산','매도 완료'].includes(verdictAction);
-
-  if(_isHolding){
-    // 보유중 맥락 — 비보유자용 actionGuide/buyTrigger는 숨김, stateLine/invalidation만 보유자 관점
-    switch(verdictAction){
-      case '보유 유지':
-        tone='bullish';
-        stateLine='보유 중 · 지표 양호';
-        mainText='보유 중인 포지션의 지표가 양호합니다. 중복된 판정은 상단 배너와 "이 결과를 어떻게 활용할까요?"를 참고하세요.';
-        invalidation='MA20 또는 주요 지지선 이탈 시 보유 판정이 약화될 수 있습니다.';
-        break;
-      case '청산 준비':
-        tone='neutral';
-        stateLine='보유 중 · 지표 약화 신호';
-        mainText='보유 중이지만 모멘텀이 약해지고 있습니다. 상단 판정과 실전 가이드를 함께 참고하세요.';
-        invalidation='지표가 다시 개선되면 보유 지속이 가능합니다. 반대로 지지선 이탈 시 "매도 검토" 단계로 격상될 수 있습니다.';
-        break;
-      case '청산 검토':
-        tone='bearish';
-        stateLine='보유 중 · 지표 악화';
-        mainText='보유 중인 종목의 지표가 명확히 악화되었습니다. 매도 계획 실행을 검토할 단계입니다.';
-        invalidation='주요 지지선 회복 + 거래량 동반 양봉 출현 시 회복 가능성이 있습니다.';
-        break;
-      case '즉시 청산':
-        tone='bearish';
-        stateLine='매도 신호 발생';
-        mainText='분석 엔진이 매도 신호를 확인했습니다. 계획대로 매도를 실행하는 것이 이 엔진의 규칙입니다.';
-        invalidation='신호 이후에도 분석 지표가 강하게 반등하면 재진입 기회를 볼 수 있으나, 규칙 우선이 원칙입니다.';
-        break;
-      case '매도 완료':
-        tone='bearish';
-        stateLine='매도 체결 완료';
-        mainText='이 종목의 매매 사이클이 완료되었습니다. 상단 배너의 익절/손절 결과를 확인하세요.';
-        invalidation='';
-        break;
-    }
-    // 보유중에는 actionGuide, buyTrigger 숨김 (비보유자 관점 메시지라 혼란 유발)
-    actionGuide='';
-    buyTrigger='';
-    if(reasons && reasons.length) mainText+=' 단, 안전필터에서 '+reasons.join(', ')+' 조건이 감지되어 주의가 필요합니다.';
-    // [S223] 27조합 — 보유중 verdictAction × regime.direction 컨텍스트 부착
-    mainText += SXI._attachRegimeContext(verdictAction, regime);
-    return {tone,mainText,keyReasons,risks,composites,stateLine,actionGuide,invalidation,buyTrigger};
-  }
-
+  // [S1584] ★보유중 산문 5종 분기 철거 — 4축 등급(`보유 유지`·`청산 준비`·`청산 검토`·`즉시 청산`·`매도 완료`)이
+  //   골라 쓰던 자리다. S1581 측정(OOS 3시장 · n=30,396 · PREREG md5 `1d1a086bb3e6`)에서 그 등급이 **변별 없음**으로
+  //   판정됐고, 사용자 결정으로 통째로 걷었다.
+  //   ⚠**BT 보유중이라는 사실은 안 잃는다** — `_buildSimPositionLine`이 `btSt`(BT 상태)를 직접 받아
+  //     보유중·청산신호·대기를 테두리 색과 본문으로 그대로 보여준다. 걷은 것은 그 위에 얹혀 있던 **등급 서술**뿐이다.
+  //   ⚠대신 보유중 종목도 이제 **비보유(진입 검토) 관점** 산문을 받는다 — 구판은 `actionGuide`·`buyTrigger`를
+  //     일부러 숨겼는데(*'비보유자 관점 메시지라 혼란 유발'*) 그 숨김도 함께 사라진다. 의도한 변경이다.
   // 비보유 (매수/관심/관망/회피) 또는 verdictAction 미지정 — 기존 BUY/SELL/HOLD 분기 유지
   if(action==='BUY'){
     tone='bullish';
