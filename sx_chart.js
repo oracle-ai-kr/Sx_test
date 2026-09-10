@@ -192,7 +192,7 @@ function drawMALegend(ctx, closes, pad, H, fontSize){
 /* ════════════════════════════════════════════════════════════
    미니 차트 (분석탭 상단 — 클릭 시 풀차트 열림)
    ════════════════════════════════════════════════════════════ */
-function drawMini(canvasId, rows, svVerdict){
+function drawMini(canvasId, rows){
   var canvas = document.getElementById(canvasId);
   if(!canvas) return;
   if(!rows || !rows.length) return; // null/undefined/빈배열 방어
@@ -228,45 +228,11 @@ function drawMini(canvasId, rows, svVerdict){
 
   drawMALegend(ctx, closes, pad, H, 8);
 
-  // [S358] 현재 C판정 보라 마커 (날짜 없음) — 상세차트 [C3] 정책과 일관성.
-  //   BT 거래가 0건이어도(=drawMiniWithTrades 미경유) 매수/매도 판정이면 마지막 봉에 표시.
-  if(svVerdict && (svVerdict.chartMarker === 'buy' || svVerdict.chartMarker === 'sell')){
-    var CURRENT_C = '#a855f7'; // 보라색 (Tailwind purple-500)
-    var _holdC2 = false; // [S579] 보라 마커 항상 솔리드 채움 (A 마커와 동일) — S361 보유중 속빈 렌더 비활성
-    var ms = Math.max(cw * 1.2, 10);
-    var li = data.length - 1;
-    if(li >= 0){
-      var mx = pad.l + li*cw + cw/2;
-      ctx.save();
-      ctx.beginPath();
-      if(svVerdict.chartMarker === 'buy'){
-        var by = yFn(data[li].low) + 1;
-        ctx.moveTo(mx, by - ms);
-        ctx.lineTo(mx - ms*0.7, by + ms*0.3);
-        ctx.lineTo(mx + ms*0.7, by + ms*0.3);
-      } else {
-        var sy = yFn(data[li].high) - 1;
-        ctx.moveTo(mx, sy + ms);
-        ctx.lineTo(mx - ms*0.7, sy - ms*0.3);
-        ctx.lineTo(mx + ms*0.7, sy - ms*0.3);
-      }
-      ctx.closePath();
-      if(_holdC2){
-        // 보유중(추가진입/부분익절): 속 비우고 보라 실선 굵은 테두리
-        ctx.lineJoin='round'; ctx.lineWidth=2.4; ctx.strokeStyle=CURRENT_C;
-        ctx.shadowColor=CURRENT_C; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
-      } else {
-        ctx.fillStyle = CURRENT_C; ctx.fill();
-        ctx.shadowColor=CURRENT_C; ctx.shadowBlur=6; ctx.strokeStyle='#000'; ctx.lineWidth=1.5; ctx.stroke(); ctx.shadowBlur=0;
-      }
-      ctx.restore();
-    }
-    // 보라 마커 범례 (drawMini엔 BT 범례 없음 → 현재 판정만 표기)
-    ctx.save();
-    ctx.font='8px Outfit,sans-serif'; ctx.textAlign='right';
-    ctx.fillStyle=CURRENT_C; ctx.fillText('● 현재', W-pad.r-2, 10);
-    ctx.restore();
-  }
+  // [S1582] ★보라 마커(4축 통합판정) 철거 — **도달 불가 사문이었다**.
+  //   차트에 판정을 넘기는 진입점이 전부 `_resolvePurpleSv(stock)`를 거치는데
+  //   그 함수는 S987 이후 **무조건 null**을 돌려준다 ⇒ 이 분기가 한 번도 그려진 적이 없다(S1336 각인이 이미 지목).
+  //   그리고 S1581 측정에서 4축 등급이 **변별 없음**으로 나왔다 — 되살릴 근거도 없다.
+  //   ⚠녹/적 마커(R=백테스트 · S=단기매매 · S1436)는 **무관·무변경**이다.
   // [S578] 단기추세(S) 마커 — 거래 0건 폴백 경로에서도 표시(S562 한계 해소). 녹/적='S'일 때만.
   if(_chartGreenRedMode() === 'S') _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, 8, rows);   /* [S1548] 전체 봉 전달 */
 }
@@ -274,7 +240,7 @@ function drawMini(canvasId, rows, svVerdict){
 /* ════════════════════════════════════════════════════════════
    풀 차트 오버레이 (캔들 + 거래량 + RSI + MACD)
    ════════════════════════════════════════════════════════════ */
-function openFull(rows, stockName, trades, svVerdict){
+function openFull(rows, stockName, trades){
   if(!rows||rows.length<10) return;
 
   var ov = document.getElementById('sxChartOverlay');
@@ -316,12 +282,12 @@ function openFull(rows, stockName, trades, svVerdict){
     '</div>';
 
   setTimeout(function(){
-    _drawFullCandle('sxFullCandle', data, closes, bb, 240, rows.length, trades, svVerdict, rows);
+    _drawFullCandle('sxFullCandle', data, closes, bb, 240, rows.length, trades, rows);
     _drawFullVolume('sxFullVol', data, 70);
     _drawFullRSI('sxFullRSI', rsiArr, 90);
     _drawFullMACD('sxFullMACD', macdObj, 90);
     // [S663] 예측 오버레이 토글 재렌더용 — 캔들 캔버스만 다시 그림(예측 ON/OFF 시)
-    window._sxCpFullRedraw = function(){ try{ _drawFullCandle('sxFullCandle', data, closes, bb, 240, rows.length, trades, svVerdict, rows); }catch(_e){} };
+    window._sxCpFullRedraw = function(){ try{ _drawFullCandle('sxFullCandle', data, closes, bb, 240, rows.length, trades, rows); }catch(_e){} };
   }, 80);
 }
 
@@ -351,7 +317,7 @@ function _cpToggleOverlay(){
 if(typeof window!=='undefined') window._cpToggleOverlay = _cpToggleOverlay;
 
 /* ── 풀차트: 캔들 + MA + BB ── */
-function _drawFullCandle(id, data, closes, bb, H, fullLen, trades, svVerdict, fullRows){
+function _drawFullCandle(id, data, closes, bb, H, fullLen, trades, fullRows){
   var canvas = document.getElementById(id);
   if(!canvas) return;
   var rect=canvas.getBoundingClientRect(); var W=Math.round(rect.width)||360;
@@ -447,8 +413,7 @@ function _drawFullCandle(id, data, closes, bb, H, fullLen, trades, svVerdict, fu
       ctx.restore();
     }
     var lastTr = trades[trades.length - 1];
-    var showBuy = svVerdict && svVerdict.chartMarker === 'buy';
-    var showSell = svVerdict && svVerdict.chartMarker === 'sell';
+    var showBuy = false, showSell = false;   // [S1582] 보라 마커 철거 — 판정은 어느 호출부에서도 null이었다
 
     // POLICY C (하이브리드): 두 종류 마커를 함께 표시 — 색상으로 시각 구분
     //   ① BT 마커 (녹/적, 날짜 라벨) — 마지막 BT 거래의 entry+exit
@@ -1063,7 +1028,7 @@ function drawScoreGauge(canvasId, score, label){
 /* ════════════════════════════════════════════════════════════
    S95→S99: 미니 차트 + 통합판정 마커 오버레이
    trades: [{entryIdx, exitIdx, type, ...}]
-   svVerdict: {action, chartMarker('buy'|'sell'|null), color, icon} — 통합판정
+   svVerdict: [S1582 철거] 4축 통합판정 보라 마커 — 도달 불가 사문이라 걷었다
    ▲ 초록 = 통합 "매수" (BT 매수 + buy_ready)
    ▼ 빨강 = 통합 "매도" (BT 매도 또는 보유중 + sell_ready)
    마커 없음 = 그 외
@@ -1181,12 +1146,12 @@ function _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, legendFont, fullR
   }
 }
 
-function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
+function drawMiniWithTrades(canvasId, rows, trades){
   var canvas = document.getElementById(canvasId);
   if(!canvas) return;
   if(!rows || !rows.length) return; // null/undefined/빈배열 방어
   // trades 없으면 기존 drawMini 동작
-  if(!trades || !trades.length){ drawMini(canvasId, rows, svVerdict); return; } // [S358] 0거래 폴백도 보라마커 전달
+  if(!trades || !trades.length){ drawMini(canvasId, rows); return; } // [S358] 0거래 폴백도 보라마커 전달
 
   var rect=canvas.getBoundingClientRect(); var W=Math.round(rect.width)||360;
   var H = 180; // 마커+날짜 공간 확보
@@ -1360,8 +1325,7 @@ function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
 
   var lastTr = trades[trades.length - 1];
   var _gr = _chartGreenRedMode(); // [S578→S1436] 'R'=백테스트 마커 / 'S'=추세마커
-  var showBuyMarker = svVerdict && svVerdict.chartMarker === 'buy';
-  var showSellMarker = svVerdict && svVerdict.chartMarker === 'sell';
+  var showBuyMarker = false, showSellMarker = false;   // [S1582] 보라 마커 철거 — 위와 같은 사유
 
   // POLICY C (하이브리드): 두 종류 마커를 함께 표시
   //   ① BT 마커 (기존 색상 + 날짜) — 마지막 BT 거래의 entry/exit
@@ -1403,7 +1367,7 @@ function drawMiniWithTrades(canvasId, rows, trades, svVerdict){
 
 // S97→S99: 매매이력 탭 → 미니차트 봉 하이라이트
 var _hlTimeout = null;
-function highlightBar(canvasId, barIdx, rows, trades, svVerdict){
+function highlightBar(canvasId, barIdx, rows, trades){
   var canvas = document.getElementById(canvasId);
   if(!canvas || !rows || !rows.length) return;
   // H를 동적으로 결정 — drawMini=160, drawMiniWithTrades=180 (캔버스 높이 일치 필수)
@@ -1411,8 +1375,8 @@ function highlightBar(canvasId, barIdx, rows, trades, svVerdict){
   var hasTrades = trades && trades.length > 0;
   var H = hasTrades ? 180 : 160;
   // 다시 그리기 (기존 마커 포함)
-  if(hasTrades) drawMiniWithTrades(canvasId, rows, trades, svVerdict);
-  else drawMini(canvasId, rows, svVerdict); // [S358]
+  if(hasTrades) drawMiniWithTrades(canvasId, rows, trades);
+  else drawMini(canvasId, rows); // [S358]
   var ctx = canvas.getContext('2d');
   var rect = canvas.getBoundingClientRect();
   var W = Math.round(rect.width) || 360;
@@ -1440,8 +1404,8 @@ function highlightBar(canvasId, barIdx, rows, trades, svVerdict){
   // 3초 후 하이라이트 제거
   clearTimeout(_hlTimeout);
   _hlTimeout = setTimeout(function(){
-    if(hasTrades) drawMiniWithTrades(canvasId, rows, trades, svVerdict);
-    else drawMini(canvasId, rows, svVerdict); // [S358]
+    if(hasTrades) drawMiniWithTrades(canvasId, rows, trades);
+    else drawMini(canvasId, rows); // [S358]
   }, 3000);
 }
 
