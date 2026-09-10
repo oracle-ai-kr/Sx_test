@@ -815,6 +815,51 @@ function passFilters(s, getFilter) {
   return true;
 }
 
+// ═══ [S1577] 지연 판정 원장 — AND/OR 그룹에 늦게 합류하는 조건 ═══════════
+//  〔무엇이 문제였나〕 아래 14종은 `checkTechConditions`가 **판정하지 않는다**
+//    (3종은 `case 'x': break;` · 11종은 case 자체가 없다). 그런데 `techFilters`에는 들어가므로
+//    OR 그룹에 넣으면 `_orOk`가 무조건 참이 되고 `allPass = _andOk || _orOk`가 항상 참 —
+//    ★AND 그룹이 통째로 죽었다(실측: MA 골든크로스가 명백히 거짓인 종목이 2단계 통과).
+//    반대로 실제 판정은 스캔 루프 뒤쪽에서 `continue`(하드 탈락)로 하는데 그 자리엔
+//    그룹 개념이 아예 없어서, OR 배지를 달아도 **필수 조건처럼** 걸렸다. 두 방향 다 틀렸다.
+//  〔고친 방식〕 2단계에서는 빼고(오염 제거), 판정 자리에서 원장에 넣어
+//    **마지막에 한 번** 2단계와 같은 규약으로 결합한다: (AND 전부) || (OR 하나).
+//  ⚠OR 그룹이 있으면 조기 AND 실패로 즉시 버릴 수 없다(OR 대안이 살릴 수 있으므로) —
+//    그만큼 분석을 더 돈다. OR 그룹이 없으면 종전과 완전히 같은 지점에서 즉시 탈락한다(성능 보존).
+const LATE_JUDGED_IDS = new Set([
+  '_recipe_detect', '_v2_signal', '_xmat_need',                          // 엔진 판정 3종
+  '_rsi_div', '_obv_div',                                                // 다이버전스 2종
+  '_bt_pnl', '_bt_winrate', '_bt_trades', '_bt_mdd', '_bt_pf',
+  '_bt_action', '_bt_buy_marker', '_bt_today_entry', '_bt_today_exit'    // BT 9종
+]);
+
+//  cfg: { groupOf(id)->'and'|'or', andOn, orOn, lateOrN, stat(key) }
+function _lateLedgerNew(cfg) {
+  const groupOf = cfg.groupOf, stat = cfg.stat || function () {};
+  const andOn = !!cfg.andOn, orOn = !!cfg.orOn, lateOrN = cfg.lateOrN | 0;
+  let andFail = false, orHit = false, earlyAndOk = true, earlyOrHit = false;
+  return {
+    early: function (a, o) { earlyAndOk = !!a; earlyOrHit = !!o; },
+    // 탈락 판정. 반환 true = 지금 이 종목을 버려도 된다(= continue).
+    rej: function (id, key) {
+      stat(key);
+      if (groupOf(id) === 'or') return false;        // OR 조건은 혼자서 탈락시키지 못한다
+      andFail = true;
+      return !(earlyOrHit || lateOrN > 0);           // OR 대안이 없을 때만 즉시 탈락
+    },
+    ok: function (id) { if (groupOf(id) === 'or') orHit = true; },
+    // 최종 결합 — 2단계(_andApplicable/_orApplicable)와 **같은 규약**
+    pass: function () {
+      const a = earlyAndOk && !andFail, o = earlyOrHit || orHit;
+      if (andOn && orOn) return a || o;
+      if (andOn) return a;
+      if (orOn) return o;
+      return true;                                    // 조건 0개 = 전부 통과
+    },
+    dbg: function () { return { earlyAndOk: earlyAndOk, earlyOrHit: earlyOrHit, andFail: andFail, orHit: orHit }; }
+  };
+}
+
 // ─── [S317] 골든크로스 헬퍼 ─────────────────────────────────────────────
 // 윈도우 크로스 의미:
 //   N=2: 직전봉(n-2)에서 A≤B, 현재봉(n-1)에서 A>B → 마지막 봉에서 교차 (가장 엄격)
@@ -2450,8 +2495,15 @@ async function startScan(config) {
     //   orFilters가 비어있으면(기존 프리셋·전부 AND 등록) andFilters만 보는 것과 완전히 동일 — 기존 동작 무변경.
     //   [S653] 둘다 1개 이상일 때의 결합방식은 AND→OR로 변경됨(아래 슬라이드 루프 참조).
     const _fGroup = f => (f && f.group === 'or') ? 'or' : 'and';
-    const andTechFilters = techFilters.filter(f => _fGroup(f) !== 'or');
-    const orTechFilters  = techFilters.filter(f => _fGroup(f) === 'or');
+    // [S1577] ★지연 판정 14종은 조기 그룹에서 뺀다 — checkTechConditions가 판정을 안 하므로
+    //   그대로 두면 `_andOk`엔 무의미하게 참, `_orOk`엔 **항상 참**을 넣어 AND 그룹을 죽인다.
+    const andTechFilters = techFilters.filter(f => _fGroup(f) !== 'or' && !LATE_JUDGED_IDS.has(f.id));
+    const orTechFilters  = techFilters.filter(f => _fGroup(f) === 'or' && !LATE_JUDGED_IDS.has(f.id));
+    const lateAndFilters = techFilters.filter(f => _fGroup(f) !== 'or' &&  LATE_JUDGED_IDS.has(f.id));
+    const lateOrFilters  = techFilters.filter(f => _fGroup(f) === 'or' &&  LATE_JUDGED_IDS.has(f.id));
+    const _grpAndOn = (andTechFilters.length + lateAndFilters.length) > 0;
+    const _grpOrOn  = (orTechFilters.length  + lateOrFilters.length)  > 0;
+    const _grpOf = id => { const f = techFilters.find(x => x && x.id === id); return f ? _fGroup(f) : 'and'; };
     const needCandles = techFilters.length > 0 || _spGateOn;   // [S1243] struct 단독 스캔도 캔들 필요
     const kisFilters = activeFilters.filter(f => KIS_FILTER_IDS.has(f.id));
     const needKis = kisFilters.length > 0 && _kisEnabled && currentMarket === 'kr';
@@ -2584,6 +2636,7 @@ async function startScan(config) {
             }
             let passed = false;
             let passedK = 0;
+            let _eAndOk = false, _eOrHit = false;   // [S1577] 조기 판정분의 그룹 결과(슬라이드 어느 지점에서든 한 번이라도)
             let _firstFailedCondId = null; // 조건별 진단용
             const cLen = candles.length;
             // N봉이 데이터보다 크면 가능한 만큼만
@@ -2628,10 +2681,15 @@ async function startScan(config) {
               for (const _tf of orTechFilters) {
                 if (checkTechConditions(indK, [_tf], getFilter)) { _orOk = true; break; }
               }
+              if (_andOk) _eAndOk = true;   // [S1577] 원장에 넘길 조기 결과
+              if (_orOk)  _eOrHit = true;
               let allPass, _failedHere;
               if (_andApplicable && _orApplicable) { allPass = _andOk || _orOk; _failedHere = allPass ? null : '_alt_path_fail'; }
               else if (_andApplicable) { allPass = _andOk; _failedHere = _andFail; }
-              else { allPass = _orOk; _failedHere = '_or_group'; }
+              else if (_orApplicable) { allPass = _orOk; _failedHere = '_or_group'; }
+              // [S1577] 조기 판정 조건이 0개(= 지연 판정만 켜져 있다) → 2단계는 통과시키고 원장에 맡긴다.
+              //   ⚠이 분기가 없으면 `_orOk`(항상 false)로 떨어져 전 종목이 조용히 탈락한다.
+              else { allPass = true; _failedHere = null; }
               if (allPass) {
                 indicators = indK; passed = true; passedK = k; break;
               }
@@ -2639,12 +2697,26 @@ async function startScan(config) {
               if (k === 0) _firstFailedCondId = _failedHere;
             }
             if (!passed) {
-              // [v3.11] 조건별 카운트
-              const _statKey = _firstFailedCondId || 'tech_all';
-              _techFilterStats[_statKey] = (_techFilterStats[_statKey] || 0) + 1;
-              if (_isTraced2) _trace('2단계 기술적조건', '❌ 탈락', _statKey, `최근 ${_recentN}봉 윈도우 안에 모든 조건 동시 충족 못함`);
-              continue;
+              // [S1577] ★지연 판정 OR가 남아 있으면 여기서 버리지 않는다 — 레시피·V2 같은 대안이 살릴 수 있다.
+              //   없으면 종전과 완전히 같은 자리에서 같은 사유로 탈락(성능·진단 보존).
+              if (lateOrFilters.length === 0) {
+                // [v3.11] 조건별 카운트
+                const _statKey = _firstFailedCondId || 'tech_all';
+                _techFilterStats[_statKey] = (_techFilterStats[_statKey] || 0) + 1;
+                if (_isTraced2) _trace('2단계 기술적조건', '❌ 탈락', _statKey, `최근 ${_recentN}봉 윈도우 안에 모든 조건 동시 충족 못함`);
+                continue;
+              }
+              try { indicators = calcIndicators(candles, currentTF); } catch (_) {}
+              passedK = 0;
             }
+            // [S1577] 이 종목의 지연 판정 원장 — 아래 14종은 `continue` 대신 여기에 판정을 남긴다.
+            const _LG = _lateLedgerNew({
+              groupOf: _grpOf, andOn: _grpAndOn, orOn: _grpOrOn, lateOrN: lateOrFilters.length,
+              stat: k => { if (k) _techFilterStats[k] = (_techFilterStats[k] || 0) + 1; }
+            });
+            _LG.early(_eAndOk, _eOrHit);
+            //  한 줄 게이트 — bad=사유키(탈락) / null(통과). 반환 true면 지금 버려도 된다.
+            const _lg = (id, bad) => { if (bad) return _LG.rej(id, bad); _LG.ok(id); return false; };
             if (_isTraced2 && techFilters.length > 0) {
               const _passedAt = passedK === 0 ? '현재봉' : `${passedK}봉 전`;
               _trace('2단계 기술적조건', '✅ 통과', `${_passedAt} 시점에서 모든 조건 충족`, '');
@@ -2835,34 +2907,51 @@ async function startScan(config) {
           //    되므로 BT 앞에 두어 그 함정을 애초에 안 만든다.
           //  ⚠탈락은 전부 _techFilterStats에 사유를 남긴다 — 0건이 나왔을 때 화면이 이유를 말할 수 있어야 한다.
           {
-            const _s42Rej = (k)=>{ _techFilterStats[k] = (_techFilterStats[k]||0)+1; };
+            // [S1577] _s42Rej 철거 — 사유 적립은 원장 stat 콜백(_LG)이 한 곳에서 한다.
             const _v2F = getFilter('_v2_signal');
             const _xmF = getFilter('_xmat_need');
             const _v2On = !!(_v2F && _v2F.value && _v2F.value!=='설정안함');
             const _xmOn = !!(_xmF && _xmF.value && _xmF.value!=='설정안함');
+            let _v2Judge = _v2On, _xmJudge = _xmOn;   // [S1577] TF 미지원이면 판정 불가 — 원장엔 실패로 남기고 아래 블록은 건너뛴다
             if(_v2On || _xmOn){
               // ⚠일봉 전용 — 칸 규칙·재료는 일봉으로 발굴했다. 다른 TF에 대면 모집단이 달라진다.
               //   판정하지 않고 탈락시키되 **사유를 남긴다**(사유 없는 0건이 이 프로젝트의 반복 사고다).
-              if(currentTF !== 'day'){ _s42Rej(_v2On?'_v2_signal.tf_not_day':'_xmat_need.tf_not_day'); continue; }
+              // [S1577] 두 조건이 각각 자기 그룹으로 귀속된다 — 한쪽이 OR이면 그 하나만 '미발동'이 될 뿐 종목을 못 버린다.
+              if(currentTF !== 'day'){
+                let _tfStop = false;
+                if(_v2On && _LG.rej('_v2_signal','_v2_signal.tf_not_day')) _tfStop = true;
+                if(_xmOn && _LG.rej('_xmat_need','_xmat_need.tf_not_day')) _tfStop = true;
+                if(_tfStop) continue;
+                _v2Judge = false; _xmJudge = false;
+              }
             }
             // ── ① V2 어휘규칙 ──
-            if(_v2On){
+            if(_v2Judge){
               let _cs42 = null;
               try{ if(typeof _sxCellSignalCore==='function') _cs42 = _sxCellSignalCore(currentMarket, adv, candles, candles.length-1, { btMode:true }); }catch(_e42a){}
-              if(!_cs42){ _s42Rej('_v2_signal.no_cell_data'); continue; }   // SX_CELL_DATA 미로드 등 — 통과시키면 조용한 오답
+              // [S1577] `continue` 사슬 → 사유 하나로 접어 원장에 넘긴다. ★판정식은 한 글자도 안 바꿨다.
+              let _v2Bad = null, _hit42 = [];
+              if(!_cs42){ _v2Bad = '_v2_signal.no_cell_data'; }   // SX_CELL_DATA 미로드 등 — 통과시키면 조용한 오답
+              else {
               // sx_exec_core v2SignalAt과 같은 선별: real-kind hit만. DOWN·FAKE는 매수 투표 금지(S1102 §8-3).
-              const _hit42 = (Array.isArray(_cs42.sig)?_cs42.sig:[]).filter(x=>x && x.hit && x.kind==='real');
+              _hit42 = (Array.isArray(_cs42.sig)?_cs42.sig:[]).filter(x=>x && x.hit && x.kind==='real');
               const _hasStrict = _hit42.some(x=>(x.tier||'strict')==='strict');
               const _hasSoft   = _hit42.some(x=>(x.tier||'strict')==='soft');
-              if(_v2F.value==='발동 (real)'      && !_hit42.length){ _s42Rej('_v2_signal.no_hit'); continue; }
-              if(_v2F.value==='강신호만 (strict)' && !_hasStrict){ _s42Rej('_v2_signal.no_strict'); continue; }
-              if(_v2F.value==='일반신호 (soft)'  && !_hasSoft){ _s42Rej('_v2_signal.no_soft'); continue; }
-              try{ if(s._scanResult){ s._scanResult.v2K=_hit42.length; s._scanResult.v2Cat=_hit42.length?_hit42[0].cat:null; s._scanResult.v2Tier=_hit42.length?(_hit42[0].tier||'strict'):null; s._scanResult.v2Cell=_cs42.cell||null; } }catch(_e42b){}
+              if(_v2F.value==='발동 (real)'      && !_hit42.length){ _v2Bad = '_v2_signal.no_hit'; }
+              else if(_v2F.value==='강신호만 (strict)' && !_hasStrict){ _v2Bad = '_v2_signal.no_strict'; }
+              else if(_v2F.value==='일반신호 (soft)'  && !_hasSoft){ _v2Bad = '_v2_signal.no_soft'; }
+              }
+              if(_lg('_v2_signal', _v2Bad)) continue;
+              if(!_v2Bad){
+                try{ if(s._scanResult){ s._scanResult.v2K=_hit42.length; s._scanResult.v2Cat=_hit42.length?_hit42[0].cat:null; s._scanResult.v2Tier=_hit42.length?(_hit42[0].tier||'strict'):null; s._scanResult.v2Cell=_cs42.cell||null; } }catch(_e42b){}
+              }
             }
             // ── ② 재료 [충족] 배지 ──
-            if(_xmOn){
+            if(_xmJudge){
               const X = _xmatCfg;
-              if(!X || (!(X.buy||[]).length && !(X.sell||[]).length)){ _s42Rej('_xmat_need.no_conds'); continue; }   // 켜둔 재료가 없으면 판정 불가(단일검증 탭에서 켜야 한다)
+              // [S1577] no_conds는 뒤 계산의 전제라 여기서 먼저 접는다(_cntSide가 X를 읽는다).
+              if(!X || (!(X.buy||[]).length && !(X.sell||[]).length)){ if(_lg('_xmat_need','_xmat_need.no_conds')) continue; }
+              else {   // 켜둔 재료가 없으면 판정 불가(단일검증 탭에서 켜야 한다)
               // ★카드(_xmatCountBars→customCondBars→_scanStock)와 **같은 창**으로 센다 — 그쪽은 봉마다
               //   `rows.slice(bar-249, bar+1)` 250봉으로 지표를 다시 낸다. 여기서 600봉짜리 adv를 그냥 쓰면
               //   같은 종목·같은 봉인데 카드와 다른 수가 나온다(한 화면이 두 말을 한다).
@@ -2889,15 +2978,19 @@ async function startScan(config) {
               const _needB = Math.max(1, Math.round(+X.needBuy||1)), _needS = Math.max(1, Math.round(+X.needSell||1));
               // ⚠산출 실패(-1)는 미달(false)이 아니라 **모름**이다 — 섞으면 표가 거짓말한다(S1412 규약).
               const _needBoth = (_xmF.value==='매수 충족 · 매도 미달' || _xmF.value==='매수·매도 모두 충족');
-              if(_nb42===-1 && (_xmF.value!=='매도 재료 충족')){ _s42Rej('_xmat_need.buy_unknown'); continue; }
-              if(_ns42===-1 && (_xmF.value==='매도 재료 충족' || _needBoth)){ _s42Rej('_xmat_need.sell_unknown'); continue; }
               const _okB42 = (_nb42>=0) && (_nb42 >= _needB);
               const _okS42 = (_ns42>=0) && (_ns42 >= _needS);
-              if(_xmF.value==='매수 재료 충족'        && !_okB42){ _s42Rej('_xmat_need.buy'); continue; }
-              if(_xmF.value==='매도 재료 충족'        && !_okS42){ _s42Rej('_xmat_need.sell'); continue; }
-              if(_xmF.value==='매수 충족 · 매도 미달' && !(_okB42 && !_okS42)){ _s42Rej('_xmat_need.buy_only'); continue; }
-              if(_xmF.value==='매수·매도 모두 충족'   && !(_okB42 && _okS42)){ _s42Rej('_xmat_need.both'); continue; }
-              try{ if(s._scanResult){ s._scanResult.xmB=_nb42; s._scanResult.xmS=_ns42; s._scanResult.xmNB=_needB; s._scanResult.xmNS=_needS; } }catch(_e42d){}
+              // [S1577] 판정식 무변경 — `continue` 사슬만 사유 하나로 접었다.
+              let _xmBad = null;
+              if(_nb42===-1 && (_xmF.value!=='매도 재료 충족')) _xmBad = '_xmat_need.buy_unknown';
+              else if(_ns42===-1 && (_xmF.value==='매도 재료 충족' || _needBoth)) _xmBad = '_xmat_need.sell_unknown';
+              else if(_xmF.value==='매수 재료 충족'        && !_okB42) _xmBad = '_xmat_need.buy';
+              else if(_xmF.value==='매도 재료 충족'        && !_okS42) _xmBad = '_xmat_need.sell';
+              else if(_xmF.value==='매수 충족 · 매도 미달' && !(_okB42 && !_okS42)) _xmBad = '_xmat_need.buy_only';
+              else if(_xmF.value==='매수·매도 모두 충족'   && !(_okB42 && _okS42)) _xmBad = '_xmat_need.both';
+              if(_lg('_xmat_need', _xmBad)) continue;
+              if(!_xmBad){ try{ if(s._scanResult){ s._scanResult.xmB=_nb42; s._scanResult.xmS=_ns42; s._scanResult.xmNB=_needB; s._scanResult.xmNS=_needS; } }catch(_e42d){} }
+              }
             }
           }
 
@@ -2938,7 +3031,7 @@ async function startScan(config) {
                   let _rcpSig = null;
                   try{ if(currentTF==='day' && typeof _sxRecipeVotesCore==='function' && qs && qs.ind && rawRows && rawRows.length){ _rcpSig=_sxRecipeVotesCore(currentMarket, qs.ind, rawRows, rawRows.length-1); } }catch(_eRc){}
                   try{ if(s._scanResult){ s._scanResult.rcpK=_rcpSig?(_rcpSig.realK||0):0; s._scanResult.rcpPure=!!(_rcpSig&&_rcpSig.pure&&(_rcpSig.votes|0)>0); s._scanResult.rcpFake=_rcpSig?(_rcpSig.fakeK||0):0; } }catch(_eRk){}   // [S894] 레시피 감지 조건 노출
-                  try{ var _rcpDFw=getFilter('_recipe_detect'); if(_rcpDFw && _rcpDFw.value && _rcpDFw.value!=='설정안함'){ var _rkw=_rcpSig?(_rcpSig.realK||0):0, _pureW=!!(_rcpSig&&_rcpSig.pure&&(_rcpSig.votes|0)>0); if((_rcpDFw.value==='발동(겹침1+)'&&_rkw<1)||(_rcpDFw.value==='순수발동'&&!_pureW)||(_rcpDFw.value==='겹침3+'&&_rkw<3)||(_rcpDFw.value==='겹침4+'&&_rkw<4)){ _techFilterStats[_rcpSig?'_recipe_detect.no_fire':'_recipe_detect.tf_not_day'] = (_techFilterStats[_rcpSig?'_recipe_detect.no_fire':'_recipe_detect.tf_not_day']||0)+1; continue; } } }catch(_eRfw){}   // [S895] 레시피 감지 워커 필터 — checkTechConditions는 case 없어 무시하므로 여기서 _rcpSig(rows有)로 직접 제외
+                  try{ var _rcpDFw=getFilter('_recipe_detect'); if(_rcpDFw && _rcpDFw.value && _rcpDFw.value!=='설정안함'){ var _rkw=_rcpSig?(_rcpSig.realK||0):0, _pureW=!!(_rcpSig&&_rcpSig.pure&&(_rcpSig.votes|0)>0); var _rcpBad=((_rcpDFw.value==='발동(겹침1+)'&&_rkw<1)||(_rcpDFw.value==='순수발동'&&!_pureW)||(_rcpDFw.value==='겹침3+'&&_rkw<3)||(_rcpDFw.value==='겹침4+'&&_rkw<4)) ? (_rcpSig?'_recipe_detect.no_fire':'_recipe_detect.tf_not_day') : null; if(_lg('_recipe_detect', _rcpBad)) continue; } }catch(_eRfw){}   // [S895] 레시피 감지 워커 필터 — checkTechConditions는 case 없어 무시하므로 여기서 _rcpSig(rows有)로 직접 제외
                   // 4축 점수 수집
                   const _scores4 = {
                     readyScore: qs ? (qs.readyScore ?? 0) : 0,
@@ -2989,30 +3082,30 @@ async function startScan(config) {
         {
           const qs = s._scanResult;
           const _rdF = getFilter('_rsi_div');
-          if (_rdF && _rdF.value && _rdF.value !== '설정안함' && qs) { if (_rdF.value === '강세 다이버전스' && qs.rsiDiv !== 'bullish') continue; if (_rdF.value === '약세 다이버전스' && qs.rsiDiv !== 'bearish') continue; }
+          if (_rdF && _rdF.value && _rdF.value !== '설정안함' && qs) { if (_lg('_rsi_div', (_rdF.value === '강세 다이버전스' && qs.rsiDiv !== 'bullish') ? '_rsi_div.no_bull' : (_rdF.value === '약세 다이버전스' && qs.rsiDiv !== 'bearish') ? '_rsi_div.no_bear' : null)) continue; }
           const _odF = getFilter('_obv_div');
-          if (_odF && _odF.value && _odF.value !== '설정안함' && qs) { if (_odF.value === '강세 다이버전스' && qs.obvDiv !== 'bullish') continue; if (_odF.value === '약세 다이버전스' && qs.obvDiv !== 'bearish') continue; }
+          if (_odF && _odF.value && _odF.value !== '설정안함' && qs) { if (_lg('_obv_div', (_odF.value === '강세 다이버전스' && qs.obvDiv !== 'bullish') ? '_obv_div.no_bull' : (_odF.value === '약세 다이버전스' && qs.obvDiv !== 'bearish') ? '_obv_div.no_bear' : null)) continue; }
         }
         // S79: 비지원 TF에서는 BT 필터 전체 스킵 (결과 노출 유지)
         if(_isBtSupportedTF(currentMarket, currentTF))
         {
           const _btPnlF = getFilter('_bt_pnl');
-          if (_btPnlF && _btPnlF.value) { const bt = s._btResult; if (!bt) continue; if (_btPnlF.value.min !== null && (bt.totalPnl ?? 0) < _btPnlF.value.min) continue; if (_btPnlF.value.max !== null && (bt.totalPnl ?? 0) > _btPnlF.value.max) continue; }
+          if (_btPnlF && _btPnlF.value) { const bt = s._btResult; const _V = _btPnlF.value; if (_lg('_bt_pnl', !bt ? '_bt_pnl.no_bt' : (_V.min !== null && (bt.totalPnl ?? 0) < _V.min) ? '_bt_pnl.min' : (_V.max !== null && (bt.totalPnl ?? 0) > _V.max) ? '_bt_pnl.max' : null)) continue; }   /* [S1577] 원장 경유 */
           const _btWrF = getFilter('_bt_winrate');
-          if (_btWrF && _btWrF.value) { const bt = s._btResult; if (!bt) continue; if (_btWrF.value.min !== null && bt.winRate < _btWrF.value.min) continue; if (_btWrF.value.max !== null && bt.winRate > _btWrF.value.max) continue; }
+          if (_btWrF && _btWrF.value) { const bt = s._btResult; const _V = _btWrF.value; if (_lg('_bt_winrate', !bt ? '_bt_winrate.no_bt' : (_V.min !== null && bt.winRate < _V.min) ? '_bt_winrate.min' : (_V.max !== null && bt.winRate > _V.max) ? '_bt_winrate.max' : null)) continue; }   /* [S1577] 원장 경유 */
           const _btTrF = getFilter('_bt_trades');
-          if (_btTrF && _btTrF.value) { const bt = s._btResult; if (!bt) continue; if (_btTrF.value.min !== null && bt.totalTrades < _btTrF.value.min) continue; if (_btTrF.value.max !== null && bt.totalTrades > _btTrF.value.max) continue; }
+          if (_btTrF && _btTrF.value) { const bt = s._btResult; const _V = _btTrF.value; if (_lg('_bt_trades', !bt ? '_bt_trades.no_bt' : (_V.min !== null && bt.totalTrades < _V.min) ? '_bt_trades.min' : (_V.max !== null && bt.totalTrades > _V.max) ? '_bt_trades.max' : null)) continue; }   /* [S1577] 원장 경유 */
           const _btMddF = getFilter('_bt_mdd');
-          if (_btMddF && _btMddF.value) { const bt = s._btResult; if (!bt) continue; const absMdd = Math.abs(bt.mdd || 0); if (_btMddF.value.min !== null && absMdd < _btMddF.value.min) continue; if (_btMddF.value.max !== null && absMdd > _btMddF.value.max) continue; }
+          if (_btMddF && _btMddF.value) { const bt = s._btResult; const _V = _btMddF.value; const absMdd = bt ? Math.abs(bt.mdd || 0) : 0; if (_lg('_bt_mdd', !bt ? '_bt_mdd.no_bt' : (_V.min !== null && absMdd < _V.min) ? '_bt_mdd.min' : (_V.max !== null && absMdd > _V.max) ? '_bt_mdd.max' : null)) continue; }   /* [S1577] 원장 경유 */
           const _btPfF = getFilter('_bt_pf');
-          if (_btPfF && _btPfF.value) { const bt = s._btResult; if (!bt) continue; if (_btPfF.value.min !== null && bt.profitFactor < _btPfF.value.min) continue; if (_btPfF.value.max !== null && bt.profitFactor > _btPfF.value.max) continue; }
+          if (_btPfF && _btPfF.value) { const bt = s._btResult; const _V = _btPfF.value; if (_lg('_bt_pf', !bt ? '_bt_pf.no_bt' : (_V.min !== null && bt.profitFactor < _V.min) ? '_bt_pf.min' : (_V.max !== null && bt.profitFactor > _V.max) ? '_bt_pf.max' : null)) continue; }   /* [S1577] 원장 경유 */
           // [v2.3] 종합행동지침 필터: 9종 verdictAction 직접 매칭
           //   우선순위: s._svVerdict.action (9종 원본) → s._btAction (4종 레거시 호환)
           //   〔이력〕 이전: s._btAction 4종 매핑값과 비교 → 9종 선택지와 불일치 발생 (수정됨)
           const _btActF = getFilter('_bt_action');
           if (_btActF && _btActF.value && _btActF.value !== '설정안함') {
             const _verdictVal = (s._svVerdict && s._svVerdict.action) || s._btAction;
-            if (!_verdictVal || _verdictVal !== _btActF.value) continue;
+            if (_lg('_bt_action', (!_verdictVal || _verdictVal !== _btActF.value) ? '_bt_action.mismatch' : null)) continue;   /* [S1577] 원장 경유 */
           }
           // [S992] 방향전이(_dir_mom)+매수마커 ▲(_c_buy_marker) 필터 매칭 삭제 — 5축 파생 방향전이·보라마커 스캔필터 배제. 조건정의(sx_conditions)·board(render)도 함께 제거.
           // [S452] 매도마커 ▼(_c_sell_marker) 조건 삭제 — 사용자 요청. 매수마커 ▲(C 보라)만 유지.
@@ -3020,19 +3113,19 @@ async function startScan(config) {
           //   [이전 버그] _isBuySignal=true → 오늘 진입만 통과, 어제 진입 보유중 누락
           const _btBuyMarkerF = getFilter('_bt_buy_marker');
           if (_btBuyMarkerF && _btBuyMarkerF.value && _btBuyMarkerF.value !== '설정안함') {
-            if (!s._btState || s._btState.state !== 'holding') continue;
+            if (_lg('_bt_buy_marker', (!s._btState || s._btState.state !== 'holding') ? '_bt_buy_marker.not_holding' : null)) continue;   /* [S1577] 원장 경유 */
           }
           // [S293] 오늘 매수진입 필터 — _isBuySignal=true (오늘 날짜 신규 진입만)
           //   BT 매수마커의 하위집합: 포지션 유지 중 + 오늘 진입
           const _btTodayEntryF = getFilter('_bt_today_entry');
           if (_btTodayEntryF && _btTodayEntryF.value && _btTodayEntryF.value !== '설정안함') {
-            if (!s._btState || s._btState.state !== 'holding' || !s._btState._isBuySignal) continue;
+            if (_lg('_bt_today_entry', (!s._btState || s._btState.state !== 'holding' || !s._btState._isBuySignal) ? '_bt_today_entry.no_entry' : null)) continue;   /* [S1577] 원장 경유 */
           }
           // [S1023] 오늘 청산 신호 필터 — state=sell_signal (exec_core 이중ATR/MA데드 청산이 오늘 발생)
           //   오늘 매수진입의 매도 짝. sell_signal은 btGetCurrentState가 청산 exitDate=오늘일 때만 반환.
           const _btTodayExitF = getFilter('_bt_today_exit');
           if (_btTodayExitF && _btTodayExitF.value && _btTodayExitF.value !== '설정안함') {
-            if (!s._btState || s._btState.state !== 'sell_signal') continue;
+            if (_lg('_bt_today_exit', (!s._btState || s._btState.state !== 'sell_signal') ? '_bt_today_exit.no_exit' : null)) continue;   /* [S1577] 원장 경유 */
           }
         }
 
@@ -3057,6 +3150,9 @@ async function startScan(config) {
           } catch (_) {}
         }
 
+        // [S1577] ★지연 판정 원장 최종 결합 — 2단계와 같은 규약으로 (AND 전부) || (OR 하나).
+        //   OR 그룹이 없으면 원장은 이미 위에서 즉시 탈락시켰으므로 여기선 항상 참이다(무회귀).
+        if (!_LG.pass()) { _techFilterStats['_late_group_fail'] = (_techFilterStats['_late_group_fail'] || 0) + 1; continue; }
         searchResults.push(s);
         newFound++;
 
