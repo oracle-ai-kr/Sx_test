@@ -13021,11 +13021,11 @@ window.addEventListener('popstate', function(e){
     sxcOv_pre.style.display = 'none';
     if(_currentAnalRows && typeof SXChart !== 'undefined'){
       setTimeout(function(){
-        var _sv = (typeof _resolvePurpleSv==='function') ? _resolvePurpleSv(currentAnalStock) : (currentAnalStock && (currentAnalStock._svChartMarker || currentAnalStock._svVerdict)); // [S580] A/C 토글 소스 반영 — 풀차트 왕복 시 보라 사라짐 수정
+        // [S1582] 보라 마커 철거 — 차트가 판정 인자를 더는 받지 않는다(도달 불가 사문)
         if(_currentAnalTrades && _currentAnalTrades.length && SXChart.drawMiniWithTrades){
-          SXChart.drawMiniWithTrades('miniCandleChart', _currentAnalRows, _currentAnalTrades, _sv);
+          SXChart.drawMiniWithTrades('miniCandleChart', _currentAnalRows, _currentAnalTrades);
         } else {
-          SXChart.drawMini('miniCandleChart', _currentAnalRows, _sv);
+          SXChart.drawMini('miniCandleChart', _currentAnalRows);
         }
       }, 50);
     }
@@ -13065,11 +13065,11 @@ window.addEventListener('popstate', function(e){
     // 미니차트 재렌더링 (BT마커 + 보라 C마커 포함)
     if(_currentAnalRows && typeof SXChart!=='undefined'){
       setTimeout(function(){
-        var _sv = (typeof _resolvePurpleSv==='function') ? _resolvePurpleSv(currentAnalStock) : (currentAnalStock && (currentAnalStock._svChartMarker || currentAnalStock._svVerdict)); // [S580] A/C 토글 소스 반영 — 풀차트 왕복 시 보라 사라짐 수정
+        // [S1582] 보라 마커 철거 — 차트가 판정 인자를 더는 받지 않는다(도달 불가 사문)
         if(_currentAnalTrades && _currentAnalTrades.length && SXChart.drawMiniWithTrades){
-          SXChart.drawMiniWithTrades('miniCandleChart', _currentAnalRows, _currentAnalTrades, _sv);
+          SXChart.drawMiniWithTrades('miniCandleChart', _currentAnalRows, _currentAnalTrades);
         } else {
-          SXChart.drawMini('miniCandleChart', _currentAnalRows, _sv);
+          SXChart.drawMini('miniCandleChart', _currentAnalRows);
         }
       }, 50);
     }
