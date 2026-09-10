@@ -165,6 +165,8 @@ const SX_CONDITIONS = [
   //     macd_signal/stoch_cross/eom_trend/chaikin_osc/trix_signal의 cross 옵션 이전
   {id:'goldencross',name:'골든크로스',phase:'p2',groups:[
     {id:'gc_trend',name:'추세 크로스 (MA/밴드/일목)',conditions:[
+      // [S1576] 사용자 요청 — 골든크로스 폴더 최단 조합. 판정은 gc_ma_5_20과 **같은 규약**(N봉 윈도우·시작점 A≤B → 현재 A>B).
+      {id:'gc_ma_5_10',name:'MA(5) × MA(10)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'단기 MA(5) × 단기 MA(10) - 최근 N봉 안에 교차. 폴더에서 가장 짧은 조합이라 신호가 잦고 잡음도 크다. N봉은 위 "최근 N봉" 메타조건에서 조정'},
       {id:'gc_ma_5_20',name:'MA(5) × MA(20)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'단기 MA(5) × 중기 MA(20) - 최근 N봉 안에 교차. 단기 추세 전환 신호'},
       {id:'gc_ma_5_60',name:'MA(5) × MA(60)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'단기 MA(5) × 장기 MA(60) - 최근 N봉 안에 교차. 단기-장기 추세 전환 (강한 신호)'},
       {id:'gc_ma_20_60',name:'MA(20) × MA(60)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'중기 MA(20) × 장기 MA(60) - 최근 N봉 안에 교차. 중장기 추세 전환'},
@@ -400,6 +402,8 @@ const COIN_CONDITIONS = [
   //     macd_signal/stoch_cross/eom_trend/chaikin_osc/trix_signal의 cross 옵션 이전
   {id:'goldencross',name:'골든크로스',phase:'p2',groups:[
     {id:'gc_trend',name:'추세 크로스 (MA/밴드/일목)',conditions:[
+      // [S1576] 사용자 요청 — 골든크로스 폴더 최단 조합. 판정은 gc_ma_5_20과 **같은 규약**(N봉 윈도우·시작점 A≤B → 현재 A>B).
+      {id:'gc_ma_5_10',name:'MA(5) × MA(10)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'단기 MA(5) × 단기 MA(10) - 최근 N봉 안에 교차. 폴더에서 가장 짧은 조합이라 신호가 잦고 잡음도 크다. N봉은 위 "최근 N봉" 메타조건에서 조정'},
       {id:'gc_ma_5_20',name:'MA(5) × MA(20)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'단기 MA(5) × 중기 MA(20) - 최근 N봉 안에 교차. 단기 추세 전환 신호'},
       {id:'gc_ma_5_60',name:'MA(5) × MA(60)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'단기 MA(5) × 장기 MA(60) - 최근 N봉 안에 교차. 단기-장기 추세 전환 (강한 신호)'},
       {id:'gc_ma_20_60',name:'MA(20) × MA(60)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'중기 MA(20) × 장기 MA(60) - 최근 N봉 안에 교차. 중장기 추세 전환'},
@@ -626,6 +630,8 @@ const US_CONDITIONS = [
   //     macd_signal/stoch_cross/eom_trend/chaikin_osc/trix_signal의 cross 옵션 이전
   {id:'goldencross',name:'골든크로스',phase:'p2',groups:[
     {id:'gc_trend',name:'추세 크로스 (MA/밴드/일목)',conditions:[
+      // [S1576] 사용자 요청 — 골든크로스 폴더 최단 조합. 판정은 gc_ma_5_20과 **같은 규약**(N봉 윈도우·시작점 A≤B → 현재 A>B).
+      {id:'gc_ma_5_10',name:'MA(5) × MA(10)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'단기 MA(5) × 단기 MA(10) - 최근 N봉 안에 교차. 폴더에서 가장 짧은 조합이라 신호가 잦고 잡음도 크다. N봉은 위 "최근 N봉" 메타조건에서 조정'},
       {id:'gc_ma_5_20',name:'MA(5) × MA(20)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'단기 MA(5) × 중기 MA(20) - 최근 N봉 안에 교차. 단기 추세 전환 신호'},
       {id:'gc_ma_5_60',name:'MA(5) × MA(60)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'단기 MA(5) × 장기 MA(60) - 최근 N봉 안에 교차. 단기-장기 추세 전환 (강한 신호)'},
       {id:'gc_ma_20_60',name:'MA(20) × MA(60)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'중기 MA(20) × 장기 MA(60) - 최근 N봉 안에 교차. 중장기 추세 전환'},
