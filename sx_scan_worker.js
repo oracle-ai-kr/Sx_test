@@ -2188,22 +2188,13 @@ function _slimResults(arr) {
     _smartTags: s._smartTags, _filterScore: s._filterScore,
     // [S1579] 🔎 검출 신호 — 실어 보내지 않으면 계산해 놓고 화면 소비처가 0곳이 된다(S1304·S1443이 두 번 겪은 사고).
     _hits: Array.isArray(s._hits) ? s._hits : null,
-    _btScore: s._btScore, _btAction: s._btAction,
+    _btScore: s._btScore,   // [S1589] `_btAction` 제거 — 4축 등급을 4종으로 접은 값이었다(소비처 0)
     // [2026-04 FIX] 스캔 시점 계산한 모멘텀을 메인스레드에 전달 → 분석탭 재판정 시 동일 입력 보장
     _scoreMomentum: s._scoreMomentum || null,
     // S103-fix7 Phase3-B-2b: C 판정 결과 메인 전달 (결과탭 아이콘/차트 마커/재계산 skip용)
     // [v3.10 결과탭 마커] verdictBeforeShift, momBadge 추가 직렬화 — 종목 카드에서 모멘텀 승급/강등 시각화용
     //   〔이력〕 이전 누락 시: 메인 스레드에서 모멘텀 보정 발생 여부 판별 불가 (label 텍스트 파싱은 깨지기 쉬움) → 직렬화 추가
-    _svVerdict: s._svVerdict ? {
-      action: s._svVerdict.action, icon: s._svVerdict.icon, color: s._svVerdict.color,
-      chartMarker: s._svVerdict.chartMarker, chartMarkerHold: s._svVerdict.chartMarkerHold, label: s._svVerdict.label,
-      verdictBeforeShift: s._svVerdict.verdictBeforeShift,
-      momBadge: s._svVerdict.momBadge ? {
-        direction: s._svVerdict.momBadge.direction,
-        label: s._svVerdict.momBadge.label,
-        icon: s._svVerdict.momBadge.icon
-      } : null
-    } : null,
+    // [S1589] `_svVerdict` 직렬화 철거 — 산출부를 끊었으니 실어 보낼 것이 없다.
     _btState: s._btState ? {
       state: s._btState.state, entry: s._btState.entry, entryDate: s._btState.entryDate,
       entryIdx: s._btState.entryIdx, totalBars: s._btState.totalBars,
@@ -3069,18 +3060,12 @@ async function startScan(config) {
                     totalTrades: btResult ? btResult.totalTrades : null
                   }) : null;
                   // v2.0 통합 판정
-                  const _svV = (typeof SXC !== 'undefined' && SXC.unifiedVerdictV2) ?
-                    SXC.unifiedVerdictV2(_btStateKey, _scores4, _svMom, _btStForVerdict) : null;
-                  if (_svV) {
-                    s._svVerdict = _svV; // 결과탭 C 아이콘/차트 마커용
-                    s._btState = _btSt;  // 분석탭 진입 시 재활용 가능
-                    s._btAction = (SXC.mapVerdictToBtAction) ? SXC.mapVerdictToBtAction(_svV.action) : null;
-                  } else {
-                    s._btAction = null;
-                  }
+                  // [S1589] ★4축 판정 산출 철거 — 소비처가 전부 끊겼다(S1582 차트 · S1583 결과탭 · S1584 분석탭
+                  //   · S1587 레짐 산문 · S1588 조건). 남은 것은 이 생산자뿐이라 여기서 끊는다.
+                  //   ⚠`s._btState`는 **계속 심는다** — BT 상태는 4축과 무관한 사실이고 분석탭이 재활용한다.
+                  s._btState = _btSt;
                 } catch (_cErr) {
-                  // SXC 미로드/판정 실패 등 안전망 — _btAction null로 두고 스킵
-                  s._btAction = null;
+                  // [S1589] BT 상태 주입 실패 안전망
                 }
               }
             }
