@@ -2795,9 +2795,9 @@ const _LEGACY_FILTER_ID_MAP = {
 // [S1574] trend_cross(단기추세 신호) 3시장 철거 — 저장본에 남으면 findCondMeta가 null이라
 //   techFilters에서 조용히 빠진다(카드에는 보이는데 판정엔 안 걸리는 상태). 로드 시 아예 뺀다.
 const _REMOVED_FILTER_IDS_BY_MARKET = {
-  'coin': new Set(['per', 'pbr', 'roe', 'dividend_yield', 'trend_cross']),
-  'us':   new Set(['roe', 'trend_cross']),
-  'kr':   new Set(['trend_cross']),  // [S1574] KR 첫 제거 항목
+  'coin': new Set(['per', 'pbr', 'roe', 'dividend_yield', 'trend_cross', '_bt_action']),
+  'us':   new Set(['roe', 'trend_cross', '_bt_action']),
+  'kr':   new Set(['trend_cross', '_bt_action']),  // [S1574] KR 첫 제거 항목 · [S1588] 종합행동지침 추가
 };
 function _migrateLegacyFilterIds(filters, market){
   if(!Array.isArray(filters)) return filters;
@@ -3446,7 +3446,7 @@ function renderCategories(){
     if(!phaseCats.length) return;
 
     let totalPhaseCount = 0;
-    phaseCats.forEach(cat=>cat.groups.forEach(g=>totalPhaseCount+=g.conditions.filter(c=>c.id!=='_bt_action').length));
+    phaseCats.forEach(cat=>cat.groups.forEach(g=>totalPhaseCount+=g.conditions.length));   // [S1588] _bt_action 숨김 술어 철거 — 조건 자체가 사라져 가릴 대상이 없다
 
     const phaseNode = document.createElement('div');
     phaseNode.className = 'phase-section';
@@ -3459,13 +3459,13 @@ function renderCategories(){
     let catsHTML = '';
     phaseCats.forEach(cat=>{
       let totalConds = 0;
-      cat.groups.forEach(g=>totalConds+=g.conditions.filter(c=>c.id!=='_bt_action').length);
+      cat.groups.forEach(g=>totalConds+=g.conditions.length);   // [S1588] 같은 사유
 
       // 모든 그룹의 조건들을 평면으로 모음
       let condHTML = '';
       cat.groups.forEach(g=>{
         const gLocked = g.kisRequired && !window._kisEnabled;
-        const visibleConds = g.conditions.filter(c=>c.id!=='_bt_action');
+        const visibleConds = g.conditions;   // [S1588] 같은 사유 — 이제 숨기는 조건이 없다
         if(!visibleConds.length) return;
         condHTML += visibleConds.map(c=>{
           // 그룹의 kisRequired가 조건 단위로도 적용되도록 OR 처리
@@ -4120,7 +4120,7 @@ function renderPresetBar(){
       // p1/p2/p3 모두 평면 나열
       phaseHTML += presets.map(p=>{
         const isActive = comboEntry && comboEntry.presetId===p.id;
-        const _isBtPreset = p.conditions && (p.conditions._bt_pnl || p.conditions._bt_winrate || p.conditions._bt_action || p.conditions._bt_trades || p.conditions._bt_mdd || p.conditions._bt_pf);
+        const _isBtPreset = p.conditions && (p.conditions._bt_pnl || p.conditions._bt_winrate || p.conditions._bt_trades || p.conditions._bt_mdd || p.conditions._bt_pf);
         const _btDisabled = _isBtPreset && typeof _isBtSupportedTF==='function' && !_isBtSupportedTF(currentMarket, currentTF);
         if(_btDisabled){
           return `<div class="preset-chip combo-${phase.id}" style="opacity:0.35;cursor:not-allowed;pointer-events:none" title="현재 TF 미지원">${p.name}</div>`;
@@ -5281,23 +5281,7 @@ async function _startScanLegacy(){
           // 종합행동지침
           // [v2.3] 9종 verdictAction 직접 매칭으로 변경 (결과탭 4종 _btAction 아님)
           //   우선순위: s._svVerdict.action (9종 원본) → s._btAction (4종 레거시 호환)
-          const _btActF = getFilter('_bt_action');
-          if(_btActF && _btActF.value && _btActF.value!=='설정안함'){
-            const _verdictVal = (s._svVerdict && s._svVerdict.action) || s._btAction;
-            if(!_verdictVal || _verdictVal!==_btActF.value) continue;
-            // [v3.10] 강등 자동 제외 — 신규 진입 의도 선택 시
-            //   사유: svVerdict.action='매수'여도 안전필터(_action=HOLD + 🔒/🚦)에 걸린 종목은
-            //         결과 리스트엔 남지만 BUY→HOLD 강등 상태 (사진4 진단 모달 3단계와 동일 정의).
-            //         사용자가 종합행동지침=매수/관심/관망 선택 시 이런 강등 종목은 제외하는 게
-            //         "신규 진입 후보"로서의 의미에 부합 (보유중 5종은 강등 개념 적용 안 함).
-            const _entryActions = ['매수','관심','관망'];
-            if(_entryActions.indexOf(_btActF.value) >= 0){
-              const _isDemoted = s._action === 'HOLD'
-                && Array.isArray(s._reasons)
-                && s._reasons.some(r => typeof r === 'string' && (r.indexOf('🔒') >= 0 || r.indexOf('🚦') >= 0));
-              if(_isDemoted) continue;
-            }
-          }
+          // [S1588] `_bt_action` 거울 판정 철거 — 워커와 같은 시리얼에서 함께 걷는다(규칙17 거울 동시 수정).
         }
 
         // S49: 재무 데이터 필터 (PER/PBR/ROE/EPS/배당/부채/52주)
@@ -8023,8 +8007,7 @@ function checkTechConditions(ind, techFilters, getFilter){
       case '_bt_trades': break;
       case '_bt_mdd': break;
       case '_bt_pf': break;
-      case '_bt_action': break;
-      // S49: 재무/수급/순위 — 스캔 루프에서 처리
+            // S49: 재무/수급/순위 — 스캔 루프에서 처리
       case 'per': case 'pbr': case 'roe': case 'eps': case 'dividend_yield': case 'debt_ratio': break;
       case 'foreign_net_buy': case 'foreign_net_buy_days': case 'inst_net_buy': case 'inst_net_buy_days': break;
       // [v3.16 잔재 정리] short_ratio 처리 제거됨. program_net_buy는 그대로 유지
