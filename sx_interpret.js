@@ -1009,6 +1009,12 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts)
   const composites = SXI.composite(ind);
   const keyReasons = composites.filter(c=>c.tone==='bullish'||c.tone==='bearish').slice(0,3);
   const risks = composites.filter(c=>c.tone==='danger'||c.tone==='warning');
+  // [S1587] ★rawScore 조언절 분리 — `SPEC_S1371 §9`는 rawScore를 *'같은 시장 안에서 상대 위치'*로 재정의하고
+  //   **'매수 시점은 답하지 않는다'**고 못박았다. 그런데 아래 분기들이 `score`로 *'진입을 자제하세요'*·
+  //   *'분할 진입이 적절하며'*를 말해 그 약속을 어기고 있었다(사용자 지적 · 열린항목 8·11).
+  //   ⇒ **문장을 새로 짓지 않고 조언절만 잘라낸다.** 조언밖에 없던 두 분기는 비운다 —
+  //     할 말이 없다는 뜻이고, 그 자리는 `stateLine`과 🔎 지금 켜진 신호(S1586)가 말한다.
+  //   ⚠예측력은 측정된 적이 없다(S1368 감사 ⑪: *'성과를 재지 않았다 — 별도 사전등록이 필요하다'*).
   let tone='neutral',mainText='',stateLine='',actionGuide='',invalidation='',buyTrigger='';
   //  ★[S1381] 평탄화 다리 — `calcIndicators` 반환 목록에 `maAlign`이 없다(`_advanced`에만 있다).
   //    S1319가 `SXI.composite`의 끊긴 5곳엔 다리를 놨으나 이 한 줄은 놓쳤다 ⇒ 13,608봉 전건 `mixed`였고
@@ -1030,23 +1036,23 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts)
   // 비보유 (매수/관심/관망/회피) 또는 verdictAction 미지정 — 기존 BUY/SELL/HOLD 분기 유지
   if(action==='BUY'){
     tone='bullish';
-    if(score>=75){stateLine='강한 상승 우위 구간';mainText='여러 지표가 상승을 지지하고 있습니다. 다만 추격 진입보다는 구조상 지지 확인이 함께 나오면 더 안정적입니다.';actionGuide='추세 방향 보유 유지가 유리하며, 눌림 시 분할 추가 매수 고려 가능합니다.';}
-    else if(score>=65){stateLine='매수 우위 구간';mainText='매수 우위 흐름이지만 확신 구간은 아닙니다. 거래량과 추세 지속 여부를 함께 확인하세요.';actionGuide='분할 진입이 적절하며, 한 번에 풀 비중 진입은 피하세요.';}
-    else{stateLine='약한 매수 신호';mainText='조건부 진입이 가능하지만, 손절 기준을 명확히 설정하고 소액으로 접근하세요.';actionGuide='소액 분할 진입 후 추세 확인 시 추가 진입을 고려하세요.';}
+    if(score>=75){stateLine='강한 상승 우위 구간';mainText='여러 지표가 상승을 지지하고 있습니다.';actionGuide='추세 방향 보유 유지가 유리하며, 눌림 시 분할 추가 매수 고려 가능합니다.';}
+    else if(score>=65){stateLine='매수 우위 구간';mainText='매수 우위 흐름이지만 확신 구간은 아닙니다.';actionGuide='분할 진입이 적절하며, 한 번에 풀 비중 진입은 피하세요.';}
+    else{stateLine='약한 매수 신호';mainText=''   /* [S1587] 조언만 있던 분기 — 비운다 */;actionGuide='소액 분할 진입 후 추세 확인 시 추가 진입을 고려하세요.';}
     invalidation=(vwapPos==='above'||vwapPos==='above_far')?'VWAP 이탈 또는 최근 스윙 저점 이탈 시 매수 해석이 약화됩니다.':'MA20 이탈 또는 직전 저점 이탈 시 매수 해석이 약화됩니다.';
     buyTrigger='거래량 증가 + 저항 돌파가 나오면 매수 해석이 강화됩니다.';
   } else if(action==='SELL'){
     tone='bearish';
-    if(score<=25){stateLine='강한 하락 우위 구간';mainText='여러 지표가 하락을 가리키고 있으며, 보유 중이면 손절 또는 비중 축소를 적극 검토하세요.';actionGuide='보유 중이면 손절 기준을 반드시 지키고, 미보유면 관망하세요.';}
-    else if(score<=35){stateLine='매도 우위 구간';mainText='추세가 하락으로 전환되고 있으며, 신규 매수를 자제하고 기존 포지션을 점검하세요.';actionGuide='추가 매수를 자제하고, 반등 시 비중 축소를 고려하세요.';}
-    else{stateLine='약한 매도 신호';mainText='즉각적인 매도보다는 추이를 지켜보되, 추가 하락에 대비한 손절 기준을 설정하세요.';actionGuide='손절 기준을 확인하고 추세 악화 시 비중 축소를 준비하세요.';}
+    if(score<=25){stateLine='강한 하락 우위 구간';mainText='여러 지표가 하락을 가리키고 있습니다.';actionGuide='보유 중이면 손절 기준을 반드시 지키고, 미보유면 관망하세요.';}
+    else if(score<=35){stateLine='매도 우위 구간';mainText='추세가 하락으로 전환되고 있습니다.';actionGuide='추가 매수를 자제하고, 반등 시 비중 축소를 고려하세요.';}
+    else{stateLine='약한 매도 신호';mainText=''   /* [S1587] 조언만 있던 분기 — 비운다 */;actionGuide='손절 기준을 확인하고 추세 악화 시 비중 축소를 준비하세요.';}
     invalidation='주요 이평선 회복 또는 거래량 동반 양봉 출현 시 매도 해석이 약화됩니다.';
     buyTrigger='';
   } else {
     tone='neutral';
-    if(score>=55){stateLine=maArr==='bull'?'상승 추세 내 눌림 조정 구간':'약한 매수 우위';mainText='추세는 아직 살아 있고 수급도 크게 무너지지 않았습니다. 다만 저항 인접 여부와 거래량 회복을 함께 확인해야 합니다.';actionGuide=swHH?'추격 진입보다 MA20 또는 VWAP 재지지 확인 후 분할 접근이 유리합니다.':'추세 확인 후 소액 분할 접근을 고려하세요.';}
-    else if(score>=45){stateLine='중립 구간';mainText='매수/매도 어느 쪽도 우위가 아닙니다. 다음 방향 결정을 기다리는 것이 현명합니다.';actionGuide='신규 진입을 보류하고, 방향이 정리된 후 접근하세요.';}
-    else{stateLine='약한 매도 우위';mainText='약간 매도 우위지만 추세가 확정되지 않았습니다. 보유 중이면 손절 기준을 확인하세요.';actionGuide='보유 중이면 손절 기준을 점검하고, 미보유면 관망하세요.';}
+    if(score>=55){stateLine=maArr==='bull'?'상승 추세 내 눌림 조정 구간':'약한 매수 우위';mainText='추세는 아직 살아 있고 수급도 크게 무너지지 않았습니다.';actionGuide=swHH?'추격 진입보다 MA20 또는 VWAP 재지지 확인 후 분할 접근이 유리합니다.':'추세 확인 후 소액 분할 접근을 고려하세요.';}
+    else if(score>=45){stateLine='중립 구간';mainText='매수/매도 어느 쪽도 우위가 아닙니다.';actionGuide='신규 진입을 보류하고, 방향이 정리된 후 접근하세요.';}
+    else{stateLine='약한 매도 우위';mainText='약간 매도 우위지만 추세가 확정되지 않았습니다.';actionGuide='보유 중이면 손절 기준을 점검하고, 미보유면 관망하세요.';}
     invalidation=maArr==='bull'?'VWAP 이탈 또는 최근 스윙 저점 이탈 시 눌림목 해석은 약화됩니다.':'추가 하락 시 매도 전환 가능성을 열어두세요.';
     buyTrigger='거래량 증가 + 저항 돌파가 나오면 BUY 전환 가능성이 높아집니다.';
   }
@@ -1126,15 +1132,13 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts)
     demotedLine='매수 문턱은 넘겼으나 안전필터에 걸렸습니다';
     violLine=_viol1381.join(' · ');
   }
-  // [S223] 27조합 — 비보유 verdictAction × regime.direction 컨텍스트 부착
-  //   verdictAction 미지정 시 action(BUY/SELL/HOLD) + score를 기반으로 4종(매수/관심/관망/회피) 폴백 매핑
-  let _vaForRegime = verdictAction;
-  if(!_vaForRegime){
-    if(action==='BUY')      _vaForRegime = (score>=65) ? '매수' : '관심';
-    else if(action==='SELL') _vaForRegime = (score<=25) ? '회피' : '관망';
-    else                     _vaForRegime = '관망';
-  }
-  mainText += SXI._attachRegimeContext(_vaForRegime, regime);
+  // [S1587] ★4축 레짐 27문장 철거 — **폴백이 등급을 되살리고 있었다.**
+  //   S1584가 `verdictAction`을 null로 끊었는데도 화면에 *'회피 신호가 나온 것은…'*이 떴다(실기기 발견).
+  //   원인이 바로 아래 지워진 블록이다: 인자가 비면 `action`+`score`로 4종을 **재구성**해 표를 다시 탔다.
+  //   ⇒ 폴백을 걷는다. 이제 `verdictAction`이 없으면 `_attachRegimeContext`가 `''`을 돌려주고 표는 도달 불가가 된다.
+  //   ⚠표 본체(27문장)는 지우지 않는다(S1283) — 참조 0인 채로 남긴다.
+  //   〔근거〕S1581 측정: 4축 등급 변별 없음(OOS 3시장 n=30,396 · PREREG md5 `1d1a086bb3e6`).
+  mainText += SXI._attachRegimeContext(verdictAction, regime);
   //  [S1381] 새 4종 — 두 오버라이드는 `{...baseSummary}` 스프레드라 그대로 보존된다(확인함).
   return {tone,mainText,keyReasons,risks,composites,stateLine,actionGuide,invalidation,buyTrigger,axisLine,splitLine,demotedLine,violLine,basisLine};
 };
