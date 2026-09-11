@@ -302,7 +302,10 @@ const SX_CONDITIONS = [
       {id:'_bt_trades',name:'BT 거래수',type:'range',unit:'회',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'총 청산 거래 수 - 너무 적으면 통계 신뢰성 ↓',recommend:'5↑ (최소 신뢰) / 10↑ (안정 통계)'},
       {id:'_bt_mdd',name:'BT MDD',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'최대 낙폭 절대값 - 작을수록 안정 (max로 사용)',recommend:'~15 (안정) / ~25 (보통)'},
       {id:'_bt_pf',name:'BT 손익비',type:'range',unit:'',min:0,max:10,default:{min:null,max:null},source:'calc_candle',desc:'총수익/총손실 비율 - 1↑=수익 우세, 1.5↑=양호, 2↑=우수',recommend:'1.5↑ (양호) / 2↑ (우수)'},
-      {id:'_bt_action',name:'종합행동지침',type:'select',options:['설정안함','매수','관심','관망','회피','보유 유지','청산 준비','청산 검토','즉시 청산','매도 완료'],default:'설정안함',source:'calc_candle',desc:'C로직 9종 판정 (A분석 × B매매전략 교차) - 매수=강력 진입, 관심=주시'},
+      // [S1588] 종합행동지침(`_bt_action`) 철거 — 4축 등급 9종을 그대로 고르는 조건이었다.
+      //   S1581 측정에서 그 등급이 **변별 없음**으로 판정됐고(OOS 3시장 n=30,396 · PREREG md5 `1d1a086bb3e6`),
+      //   화면에서도 숨겨져 있었다(`c.id!=='_bt_action'` 3곳) — 고를 수 없는데 저장본엔 남을 수 있는 조건이었다.
+      //   저장본은 `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(S1574 규약 · 조용히 통과 방지).
       {axis4:'buy',id:'_bt_buy_marker',name:'BT 매수마커',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 매수 신호를 낸 종목 - 차트에 ▲마커 표시된 상태 (_isBuySignal=true)',recommend:'매수마커 있음 → 당일 신규 매수 진입 신호 종목만 필터'},
       {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
       {id:'_bt_today_exit',name:'오늘 청산 신호',type:'select',options:['설정안함','오늘 청산'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 청산 신호를 낸 종목 (state=sell_signal · exec_core 이중ATR/MA데드 청산) - 오늘 매수진입의 매도 짝',recommend:'오늘 청산 → 당일 exec_core 청산 신호 종목만 필터'},  // [S1023] exec_core 청산 추적
@@ -530,7 +533,10 @@ const COIN_CONDITIONS = [
       {id:'_bt_pf',name:'BT 손익비',type:'range',unit:'',min:0,max:10,default:{min:null,max:null},source:'calc_candle',desc:'총수익/총손실 비율 - 1↑=수익 우세, 1.5↑=양호, 2↑=우수',recommend:'1.5↑ (양호) / 2↑ (우수)'},
       // [v1.9] 방향 전이 — _scoreMomentum.direction 기반 (배너의 "— 상승 전이중/하락 전이중" 텍스트와 동일 소스)
       //   매수/관심 프리셋 보강용: 신호여도 모멘텀이 상승 방향일 때만 통과시켜 함정 진입 한 번 더 차단
-      {id:'_bt_action',name:'종합행동지침',type:'select',options:['설정안함','매수','관심','관망','회피','보유 유지','청산 준비','청산 검토','즉시 청산','매도 완료'],default:'설정안함',source:'calc_candle',desc:'C로직 9종 판정 (A분석 × B매매전략 교차) - 매수=강력 진입, 관심=주시'},
+      // [S1588] 종합행동지침(`_bt_action`) 철거 — 4축 등급 9종을 그대로 고르는 조건이었다.
+      //   S1581 측정에서 그 등급이 **변별 없음**으로 판정됐고(OOS 3시장 n=30,396 · PREREG md5 `1d1a086bb3e6`),
+      //   화면에서도 숨겨져 있었다(`c.id!=='_bt_action'` 3곳) — 고를 수 없는데 저장본엔 남을 수 있는 조건이었다.
+      //   저장본은 `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(S1574 규약 · 조용히 통과 방지).
       {axis4:'buy',id:'_bt_buy_marker',name:'BT 매수마커',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 매수 신호를 낸 종목 - 차트에 ▲마커 표시된 상태 (_isBuySignal=true)',recommend:'매수마커 있음 → 당일 신규 매수 진입 신호 종목만 필터'},
       {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
       {id:'_bt_today_exit',name:'오늘 청산 신호',type:'select',options:['설정안함','오늘 청산'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 청산 신호를 낸 종목 (state=sell_signal · exec_core 이중ATR/MA데드 청산) - 오늘 매수진입의 매도 짝',recommend:'오늘 청산 → 당일 exec_core 청산 신호 종목만 필터'},  // [S1023] exec_core 청산 추적
@@ -753,7 +759,10 @@ const US_CONDITIONS = [
       {id:'_bt_pf',name:'BT 손익비',type:'range',unit:'',min:0,max:10,default:{min:null,max:null},source:'calc_candle',desc:'총수익/총손실 비율 - 1↑=수익 우세, 1.5↑=양호, 2↑=우수',recommend:'1.5↑ (양호) / 2↑ (우수)'},
       // [v1.9] 방향 전이 — _scoreMomentum.direction 기반 (배너의 "— 상승 전이중/하락 전이중" 텍스트와 동일 소스)
       //   매수/관심 프리셋 보강용: 신호여도 모멘텀이 상승 방향일 때만 통과시켜 함정 진입 한 번 더 차단
-      {id:'_bt_action',name:'종합행동지침',type:'select',options:['설정안함','매수','관심','관망','회피','보유 유지','청산 준비','청산 검토','즉시 청산','매도 완료'],default:'설정안함',source:'calc_candle',desc:'C로직 9종 판정 (A분석 × B매매전략 교차) - 매수=강력 진입, 관심=주시'},
+      // [S1588] 종합행동지침(`_bt_action`) 철거 — 4축 등급 9종을 그대로 고르는 조건이었다.
+      //   S1581 측정에서 그 등급이 **변별 없음**으로 판정됐고(OOS 3시장 n=30,396 · PREREG md5 `1d1a086bb3e6`),
+      //   화면에서도 숨겨져 있었다(`c.id!=='_bt_action'` 3곳) — 고를 수 없는데 저장본엔 남을 수 있는 조건이었다.
+      //   저장본은 `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(S1574 규약 · 조용히 통과 방지).
       {axis4:'buy',id:'_bt_buy_marker',name:'BT 매수마커',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 매수 신호를 낸 종목 - 차트에 ▲마커 표시된 상태 (_isBuySignal=true)',recommend:'매수마커 있음 → 당일 신규 매수 진입 신호 종목만 필터'},
       {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
       {id:'_bt_today_exit',name:'오늘 청산 신호',type:'select',options:['설정안함','오늘 청산'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 청산 신호를 낸 종목 (state=sell_signal · exec_core 이중ATR/MA데드 청산) - 오늘 매수진입의 매도 짝',recommend:'오늘 청산 → 당일 exec_core 청산 신호 종목만 필터'},  // [S1023] exec_core 청산 추적
