@@ -830,7 +830,7 @@ const LATE_JUDGED_IDS = new Set([
   '_recipe_detect', '_v2_signal', '_xmat_need',                          // 엔진 판정 3종
   '_rsi_div', '_obv_div',                                                // 다이버전스 2종
   '_bt_pnl', '_bt_winrate', '_bt_trades', '_bt_mdd', '_bt_pf',
-  '_bt_action', '_bt_buy_marker', '_bt_today_entry', '_bt_today_exit'    // BT 9종
+  '_bt_buy_marker', '_bt_today_entry', '_bt_today_exit'    // BT 8종 · [S1588] `_bt_action` 철거로 −1
 ]);
 
 //  cfg: { groupOf(id)->'and'|'or', andOn, orOn, lateOrN, stat(key) }
@@ -3119,11 +3119,8 @@ async function startScan(config) {
           // [v2.3] 종합행동지침 필터: 9종 verdictAction 직접 매칭
           //   우선순위: s._svVerdict.action (9종 원본) → s._btAction (4종 레거시 호환)
           //   〔이력〕 이전: s._btAction 4종 매핑값과 비교 → 9종 선택지와 불일치 발생 (수정됨)
-          const _btActF = getFilter('_bt_action');
-          if (_btActF && _btActF.value && _btActF.value !== '설정안함') {
-            const _verdictVal = (s._svVerdict && s._svVerdict.action) || s._btAction;
-            if (_lg('_bt_action', (!_verdictVal || _verdictVal !== _btActF.value) ? '_bt_action.mismatch' : null)) continue;   /* [S1577] 원장 경유 */
-          }
+          // [S1588] `_bt_action` 판정 철거 — 조건 정의가 사라져 `findCondMeta`가 null이고 techFilters에 못 들어온다.
+          //   S1575(trend_cross)와 같은 순서로 **정의·배선을 한 시리얼에서 함께** 걷는다.
           // [S992] 방향전이(_dir_mom)+매수마커 ▲(_c_buy_marker) 필터 매칭 삭제 — 5축 파생 방향전이·보라마커 스캔필터 배제. 조건정의(sx_conditions)·board(render)도 함께 제거.
           // [S452] 매도마커 ▼(_c_sell_marker) 조건 삭제 — 사용자 요청. 매수마커 ▲(C 보라)만 유지.
           // [S293 fix] BT 매수마커 필터 — state=holding (포지션 유지 중 전체, 어제 진입 포함)
