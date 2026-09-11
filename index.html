@@ -5510,10 +5510,10 @@ const SX={
     };
     
     for(const r of results){
-      const action = (r._svVerdict && r._svVerdict.action) || r._action || 'HOLD';
+      const action = r._action || 'HOLD';   // [S1589] 4축 판정 철거 — 엔진 action 폴백만 남는다
       const score = r._score || 0;
       const name = r.name || r.code;
-      const verdictLabel = (r._svVerdict && r._svVerdict.label) || '';
+      const verdictLabel = '';   // [S1589] 4축 라벨 철거 — 아래 정규식 분기는 action만 보게 된다
       const market = r._wlMarket || 'kr';
       const mktIcon = mktLabel(market);
       
