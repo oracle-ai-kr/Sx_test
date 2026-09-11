@@ -5152,19 +5152,11 @@ async function _startScanLegacy(){
                     winRate: btResult ? btResult.winRate : null,
                     totalTrades: btResult ? btResult.totalTrades : null
                   }) : null;
-                  const _svV = (typeof SXC !== 'undefined' && SXC.unifiedVerdict) ?
-                    SXC.unifiedVerdict(_btStateKey, _svJudge, s._btScore, _btStForVerdict) : null;
-                  if (_svV) {
-                    s._svVerdict = _svV; // 차트 마커/결과탭 아이콘용
-                    s._btState = _btSt;  // 분석탭 진입 시 재계산 skip 가능
-                    s._btAction = (SXC.mapVerdictToBtAction) ? SXC.mapVerdictToBtAction(_svV.action) : null;
-                  } else {
-                    s._btAction = null;
-                  }
+                  // [S1589] 4축 판정 산출 철거 — 워커와 같은 시리얼에서 함께 걷는다(규칙17 거울 동시 수정).
+                  //   ⚠`s._btState`는 계속 심는다 — BT 상태는 4축과 무관한 사실이다.
+                  s._btState = _btSt;
                 } catch(_cErr) {
-                  // SXC 미로드 등 안전망 — _btAction null로 두고 넘어감
-                  s._btAction = null;
-                  console.warn('[ScanBT/C]', s.code, _cErr);
+                  console.warn('[ScanBT]', s.code, _cErr);
                 }
               }
             }
