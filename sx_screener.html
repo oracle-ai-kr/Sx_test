@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>SX Screener</title>
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
+<script>/* [S1608] 첫 오류 배너 — 폰엔 콘솔이 없어 스크립트 파싱 실패·초기화 예외가 '검색 결과 없음' 같은 정적 화면으로만 보였다(실기기 2026-09-13). 오류가 없으면 아무 것도 안 그린다 · 최대 3건 · 배너 탭=닫기 · 파일명:줄:칸 + 메시지 · 프라미스는 프로그래밍 오류(TypeError·ReferenceError·SyntaxError·RangeError)만 */
+(function(){ var n=0; function show(t){ try{ n++; if(n>3) return; var b=document.getElementById('sxErrBanner'); if(!b){ b=document.createElement('div'); b.id='sxErrBanner'; b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#7f1d1d;color:#fff;font:11px/1.45 monospace;padding:8px 10px 10px;max-height:40vh;overflow:auto;white-space:pre-wrap;word-break:break-all;box-shadow:0 -2px 8px rgba(0,0,0,.3)'; b.onclick=function(){ b.remove(); }; (document.body||document.documentElement).appendChild(b); } b.textContent+=(b.textContent?'\n':'')+'⚠ '+t+(n===1?'\n(탭하면 닫힘 · 이 문구를 캡처해 전달)':''); }catch(_){} }
+  window.addEventListener('error', function(e){ var f=(e&&e.filename||'').split('/').pop().split('?')[0]; show((f?(f+':'+(e.lineno||0)+':'+(e.colno||0)+' '):'')+(e&&e.message||String(e&&e.error||e))); }, true);
+  window.addEventListener('unhandledrejection', function(e){ var r=e&&e.reason; if(r instanceof TypeError||r instanceof ReferenceError||r instanceof SyntaxError||r instanceof RangeError){ show('promise '+r.name+': '+r.message+' '+String((r.stack||'').split('\n')[1]||'').trim()); } });
+})();</script>
 <script src="sx_analysis_engine.js?v=59"></script><!-- [S1210~17] 각인 rg=레짐v2 -->
 <script src="sx_cell_data.js?v=4"></script><!-- [S1178] 신재료 2티어 29규칙+전체 어휘 --><script src="sx_recipe_core.js?v=13"></script><!-- [S877] 레시피 코어 — render/signal보다 먼저 · [S1103] v3 배선 추가로 v5→v6 · [S1104] 클러스터 kind 스코프 수정으로 v6→v7 -->
 <script src="sx_feature_library.js?v=7"></script><!-- [S999→S1057] 통합 재료 라이브러리 SSOT — 레시피+위험 공용 -->
