@@ -1,6 +1,7 @@
 // [S927] SX 신호생성기 (시즌2 두뇌 출력) — 스냅 각 종목 최신봉 verdict → 정책레이어 → 신호원장 JSON
 //  전역(cat 선행): SXVVAL(run·_assembleScores) · SXE · _C(unifiedVerdictV2 내부호출) · recipe_core
 //  [S1180] +SXFeatureLib(sx_feature_library.js)·SX_CELL_DATA(sx_cell_data.js) — 레시피 v2(어휘규칙) 판정용. 미로드 시 v2=null(레거시만 동작·안전).
+//  [S1632] US 분기 = 카드 사진1 세트(DECL §14) — 크로스(라우팅 없음=카드 3×3 OFF)·BB회귀(카드 range 진입식) 신호 + 귀속 BB회귀>크로스>레거시>칸real. KR·코인 원장 바이트 동일.
 //  [S1209] +칸 각인 — 모든 신호에 진입 시점 칸(cell/cellLbl)을 hit 여부와 무관하게 기록(3×3 진입 분포 관찰용). 미로드 시 cell=null(안전).
 //  최신봉 = V.run(h=0, warmup=n-4, target=5) 후 e최대 레코드. dck/dcf는 cv2rec 훅(§3 동일).
 //  정책레이어 = 등급→{action,score} 시장별. 근거 §1(시장분기)·②(US 회피특례)·S926(dck는 진입전용·물타기X).
@@ -50,6 +51,37 @@ function bullVolSignal(ind){ try{
   return true;
 }catch(e){ return false; } }
 
+// ── [S1632] US 카드 세트 신호(DECL §14 · 사용자 결정 2026-09-19 · 카드 사진1) — 카드 _stratBt(sx_render.js) 식을 복사했다(재구현 아님 · 배터리가 원문 대조).
+//   _usTrSma/_usTrStd = 카드 _trSma/_trStd 본문 그대로(누적합 SMA·모표준편차) — 카드와 같은 부동소수 경로라 경계 봉에서도 같은 답.
+//   크로스(US) = 카드 크로스(3×3 라우팅 OFF·월봉게이트 OFF·kNN OFF): 마지막 봉 MA5×20 골든만 — 장기축(60/120/200) 조건 없음. KR·코인 crossSignal(라우팅 내장)은 그대로.
+//   BB회귀(US) = 카드 range 진입(S1064): 장기 혼재(60/120/200 정배도 역배도 아님) ∧ %B(20,2) ≤ 0.2 ∧ 20일선 이격 < −8%. BB회귀 청산 레그(%B≥0.5·20봉캡)는 워커 몫(S1633).
+//   ⚠카드의 해외 단기MA(5×20)를 바꾸면 여기도 같이 바꿔야 한다(카드 cfg.s/cfg.l · 러너는 5×20 고정).
+function _usTrSma(a,p){ const o=new Array(a.length).fill(null); let s=0; for(let i=0;i<a.length;i++){ s+=a[i]; if(i>=p) s-=a[i-p]; if(i>=p-1) o[i]=s/p; } return o; }
+function _usTrStd(a,m,p){ const o=new Array(a.length).fill(null); for(let i=p-1;i<a.length;i++){ if(m[i]==null){o[i]=null;continue;} let s=0; for(let k=i-p+1;k<=i;k++){ const d=a[k]-m[i]; s+=d*d; } o[i]=Math.sqrt(s/p); } return o; }
+function crossSignalUS(rows){
+  try{
+    const n=rows.length; if(n<2) return false;
+    const close=rows.map(r=>+(r.close!=null?r.close:r.c));
+    const maS=_usTrSma(close,5), maL=_usTrSma(close,20);
+    const i=n-1;
+    const gc=(i>0&&maS[i]!=null&&maL[i]!=null&&maS[i-1]!=null&&maL[i-1]!=null&&maS[i]>maL[i]&&maS[i-1]<=maL[i-1]);
+    return !!gc;
+  }catch(e){ return false; }
+}
+function rangeSignalUS(rows){
+  try{
+    const n=rows.length; if(n<1) return false;
+    const close=rows.map(r=>+(r.close!=null?r.close:r.c));
+    const maR60=_usTrSma(close,60), maR120=_usTrSma(close,120), maR200=_usTrSma(close,200);
+    const maBB20=_usTrSma(close,20), stdBB=_usTrStd(close,maBB20,20);
+    const _isFlat=(i)=>{ const a=maR60[i],b=maR120[i],c=maR200[i]; return (a!=null&&b!=null&&c!=null&&!(a>b&&b>c)&&!(a<b&&b<c)); };
+    const _pctB=(i)=>{ const m=maBB20[i],s=stdBB[i]; if(m==null||s==null||s<=0) return 0.5; return (close[i]-(m-2*s))/(4*s); };
+    const _dev20=(i)=>{ const m=maBB20[i]; return (m!=null&&m>0)?(close[i]/m-1)*100:0; };
+    const i=n-1;
+    return !!(_isFlat(i) && _pctB(i)<=0.2 && _dev20(i)<-8);
+  }catch(e){ return false; }
+}
+
 // ── 최신봉 verdict 직접 추출 (vv 검증가드 우회) → {grade, rawScore, dck, dcf, lt} ──
 function latestSignal(rows){
   const idx=rows.length-1;
@@ -61,6 +93,8 @@ function latestSignal(rows){
   let votes=0, realK=0, fakeK=0, pure=false;
   try{ const rsig=_sxRecipeVotesCore(mk, qs.ind, rows, idx); if(rsig){ votes=rsig.votes||0; realK=rsig.realK||0; fakeK=rsig.fakeK||0; pure=!!rsig.pure; } }catch(e){}
   let bullVol=false, cross=false, atrPct=null; try{ const fullInd=(_E.calcAllScreener)?_E.calcAllScreener(rows,'day'):qs.ind; bullVol=bullVolSignal(fullInd); cross=crossSignal(rows); /* [S1396] */ atrPct=(fullInd&&fullInd.atr&&typeof fullInd.atr.pct==='number')?fullInd.atr.pct:null; }catch(e){}  // [S1041] 강세 거래량급증 · [S1050] ATR%(게이트용)
+  let rangeUs=false;   // [S1632] US 전용 — KR·코인은 이 두 줄을 안 탄다(crossSignal 라우팅판 그대로)
+  if(mk==='us'){ cross=crossSignalUS(rows); rangeUs=rangeSignalUS(rows); }
   // [S1180] 레시피 v2(어휘규칙 S1178) — _sxCellSignalCore를 시즌1 판정과 동일하게 호출(qs.ind·같은 봉 idx). 데이터/라이브러리 미로드 시 null(안전).
   //   real-kind hit만 매수 후보(S1102 §8-3: DOWN·FAKE는 어떤 경로로도 매수투표 금지 — down/fake hit은 avoid로 기록만).
   //   strict(강)+soft(일반) 모두 수집(모의 최대관찰·tier 각인) — buy는 strict 우선 → k 내림차 정렬.
@@ -79,7 +113,7 @@ function latestSignal(rows){
       }
     }
   }catch(e){}
-  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off', bullVol:bullVol, cross:!!cross /* [S1396] 전 종목 상시 각인(알갱이) */, atrPct:atrPct, v2:v2, cell:cellK, cellLbl:cellL };
+  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off', bullVol:bullVol, cross:!!cross /* [S1396] 전 종목 상시 각인(알갱이) */, atrPct:atrPct, v2:v2, cell:cellK, cellLbl:cellL, range:rangeUs /* [S1632] us만 참이 될 수 있음 */ };
 }
 
 // ── [S948] 레시피 기반 진입 정책 — votes≥1 → BUY. 엔진 점수축(등급) 미사용(원천 재료감사: ready/entry/trend/upside 다 약/역전).
@@ -106,9 +140,12 @@ codes.forEach((c,i)=>{
   const rows=raw.map(r=>Array.isArray(r)?({date:r[0],open:r[1],o:r[1],high:r[2],h:r[2],low:r[3],l:r[3],close:r[4],c:r[4],volume:r[5],v:r[5]}):r);
   let sig=null;
   try{ sig=latestSignal(rows); }catch(e){ errs.push(c+':'+(e&&e.message)); return; }
-  const {grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol, cross /* [S1396] */, atrPct, v2, cell, cellLbl}=sig;
+  const {grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol, cross /* [S1396] */, atrPct, v2, cell, cellLbl, range /* [S1632] */}=sig;
   let P=policy(mk, votes, realK, rawScore);
   let src=(P.action==='BUY')?'recipe':null;
+  // [S1632] US 우선순위 = 카드 _stratBt 진입 사슬(range → trend(크로스) → deadcat/pullback(레거시) → cell(칸real)) — BB회귀·크로스가 레거시보다 앞. KR·코인은 아래 기존 사슬 그대로.
+  if(mk==='us' && range){ P={ action:'BUY', score:(rawScore||0), policy:'us:BB회귀(장기혼재·%B≤0.2·20일선이격<−8%)→BUY', provisional:true }; src='range'; }
+  else if(mk==='us' && cross){ P={ action:'BUY', score:(rawScore||0), policy:'us:크로스(MA5×20 골든·라우팅 없음=카드 3×3 OFF)→BUY', provisional:true }; src='cross'; }
   // [S1041] 강세 거래량급증 편입 — votes-BUY(약세반등)가 아닐 때만 별도 BUY(상호배타). KR 전용. src=bullVol 태그(가계부 전략구분용).
   if(P.action!=='BUY' && bullVol && (mk==='kr'||mk==='coin')){ P={ action:'BUY', score:(rawScore||0), policy:mk+':bullVol(하락장×강세·거래량OSC≥73.31&VR≥389.41)→BUY', provisional:true }; src='bullVol'; }
     if(P.action!=='BUY' && cross && (mk==='kr'||mk==='coin')){ P={ action:'BUY', score:(rawScore||0), policy:mk+':크로스(MA5×20 골든·장기정배 라우팅)→BUY', provisional:true }; src='cross'; } /* [S1396] 사슬 말미(recipe>bullVol>cross) — 동시발화는 귀속만 바뀌고 매수 무영향(S1392 Q3) · S1050 ATR게이트 미적용(v2·bullVol 선례=모의 최대관찰·atrPct 각인) · legacyV4Only 비대상(src recipe 전용) */ /* [S1477] coin 개방 — 게이트는 워커측(runCoinPaperExec) */
@@ -124,6 +161,7 @@ codes.forEach((c,i)=>{
   let atrGate=false;
   if(ATR_GATE_ON && P.action==='BUY' && src==='recipe' && atrPct!=null && atrPct>ATR_GATE_TH){ atrGate=true; P={ action:'HOLD', score:0, policy:'kr:ATR게이트(ATR%'+atrPct.toFixed(1)+'>'+ATR_GATE_TH+')→진입억제', provisional:true }; }
   signals.push({ code:c, name:(snap.stocks[c]&&snap.stocks[c].name)||c, grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol:!!bullVol, cross:!!cross, v2:(v2||null), src:src, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, atrGate:atrGate, atrPct:(atrPct!=null?+atrPct.toFixed(2):null), cell:(cell||null), cellLbl:(cellLbl||null), barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null, close:(rows[rows.length-1]&&+rows[rows.length-1].close)||null }); // [S945]name [S948]votes [S1041]bullVol/src [S1083]close=금액균등 사이징용(워커 시세조회 없이) [S1180]v2=어휘규칙 판정(발동 시) [S1209]cell/cellLbl=진입 시점 칸(항상)
+  if(mk==='us') signals[signals.length-1].range=!!range;   // [S1632] US만 — KR·코인 행은 키 추가 0(바이트 동일)
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
@@ -135,5 +173,7 @@ const ledger={ schema:'sx_signal_ledger_v1', mkt:mk, asof:asofFinal, generated:n
             votes:{ v1:cnt(s=>s.votes===1), v2:cnt(s=>s.votes===2), v3:cnt(s=>s.votes===3), v4:cnt(s=>s.votes>=4) }, // [S948] 레시피 투표 분포
             grade:{ 매수:cnt(s=>s.grade==='매수'), 관심:cnt(s=>s.grade==='관심'), 관망:cnt(s=>s.grade==='관망'), 회피:cnt(s=>s.grade==='회피') } },
   signals };
+if(mk==='us'){ ledger.summary.rangeBUY=cnt(s=>s.src==='range'); ledger.summary.crossBUY=cnt(s=>s.src==='cross'); }   // [S1632] US만(KR·코인 요약 키 불변)
 fs.writeFileSync(outPath, JSON.stringify(ledger,null,1));
 console.error('DONE sig '+mk+' asof='+asofFinal+(COIN_COMPLETED_ONLY?'(확정봉·S1497)':'')+': 평가 '+signals.length+'/'+codes.length+' | BUY '+ledger.summary.BUY+'(bullVol '+ledger.summary.bullVolBUY+'·v2 '+ledger.summary.v2BUY+'·겹침 '+ledger.summary.v2Overlap+') atrGated '+ledger.summary.atrGated+' HOLD '+ledger.summary.HOLD+' SELL '+ledger.summary.SELL+' (prov '+ledger.summary.provisional+') err='+errs.length+' '+((Date.now()-t0)/1000|0)+'s → '+outPath);
+if(mk==='us') console.error('  [S1632] US BB회귀 BUY '+ledger.summary.rangeBUY+' · 크로스 BUY '+ledger.summary.crossBUY+' (카드 사진1 세트 · DECL §14)');
