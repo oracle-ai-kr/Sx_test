@@ -32,6 +32,7 @@ for pair in "kr:snap_kr.json" "us:snap_us.json" "coin:snap_coin.json"; do
   if [ ! -f "$SRC/$snap" ]; then echo "  - $mkt skip (no $snap)"; continue; fi
   out="/tmp/sig_$mkt.json"
   # [S940] 스냅 자동갱신 — 최신 캔들로 리빌드(런타임·커밋 안 함). 미지원(us)/실패 시 커밋 스냅 폴백. [S1192] coin=업비트 지원.
+  # [S1633] us는 S1228부터 지원(야후) — 위 '미지원(us)'는 옛 문구. Actions에서 야후 직접이 막히면 빌더가 워커 /proxy 경유(WORKER_BASE env 상속 · nocache).
   usesnap="$SRC/$snap"
   fresh="/tmp/fresh_snap_$mkt.json"
   if node "$OFF/snap_builder_s940.js" "$mkt" --pool "$SRC/$snap" --out "$fresh"; then
