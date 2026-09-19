@@ -1254,6 +1254,101 @@ async function _btFetchNaver(code, tf, count, vintage){
 // [S1237c] btGetParams 철거 — 레시피-BT 일원화(S1018) 이후 반환값(buyTh/sellTh/tp/sl)을 읽는 소비처가
 //   전무해진 고아 함수(전 파일 호출 0 확인). _getEffectiveTh/_loadAnalParams는 스캐너·프리셋 실소비처가
 //   살아 있어 존치. 구버전 클래식-BT 파라미터 축의 마지막 잔재 제거 — 레거시 무보존.
+// ════════ [S1641] 🔗 종목 페이지 BT = 시즌2 동기화 엔진(사용자 결정 2026-09-19) ════════
+//   엔진: 🧪전략조합 카드 _stratBt — DECL 확정값을 잰 엔진 · US는 워커 원장과 2,678건 전건 일치(S1634). 옛 SXExecCore(S1393 칩)는 종목 페이지에서 뺐다.
+//   설정: 이 브라우저에 시즌2 스냅샷(sx_s2_sync_v1 · 시즌2 화면 S1640이 남김)이 있으면 그 시장의 현재 설정으로 잠금 · 없으면 🧪전략조합 카드 설정(공개 사용자 — 시즌2 값·문구 0)
+//   매핑 규약(DECL §10·§14 · 시즌2 러너·워커 고정): MA 5×20 · 다음봉 시가 · 수수료 0.2% · 혼재차단 ON(KR·코인) · 월봉게이트 OFF · 가짜반등 OFF · 3×3 라우팅 KR·코인 ON / US OFF
+//     시즌2 cfakeOn ↔ 카드 exCellFake(🧩칸fake) · cdownOn ↔ exDown(카드는 신규 진입도 막음 → 안내) · votes≥4는 카드에 없는 거름(안내) · 데드 유예는 시즌2 달력 일 vs 카드 봉(안내)
+//   결과: 옛 엔진(sxRunBtEngine)과 같은 모양 — 거래 WIN/LOSS/OPEN · 지표는 옛 식(확정 거래 복리·MDD·연속손실·진입원 분해) 그대로 다시 셈 → 종목 페이지 소비처 무변경 · engine:'s2'
+//   범위: 자동 실행·단일검증·엔진판단만 — 관심종목·교차검증·학습검증·워크포워드는 옛 엔진 그대로
+const SXS2 = (function(){
+  const KEY='sx_s2_sync_v1', _sig={};
+  const SRC_MAP={ trend:'maCross', reentry:'maCross', pullback:'recipe', deadcat:'recipe', cell:'v2', range:'range', bullVol:'bullVol', bullvol:'bullVol' };
+  const XR_LABEL={ atrI:'🛡SL', atrT:'📉트레일', dead:'✂데드', fake:'가짜반등', cfake:'🧩칸fake', down:'⛔칸down', nbar:'⏱N봉컷', tpS:'🚀TP급등', tpP:'🚀TP급등', tpA:'🏹TP_ATR', tpF:'🎯TP고정', bb:'BB중단', cap:'봉캡', slp:'SL급락', predx:'예측청산' };
+  function snap(){ try{ const o=JSON.parse(localStorage.getItem(KEY)||'null'); return (o&&o.v===1)?o:null; }catch(_){ return null; } }
+  function _h(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h*33)^s.charCodeAt(i))>>>0; return h.toString(36); }
+  function fromSnap(mk, o){
+    if(mk==='us'){
+      const S=o.us&&o.us.set; if(!S||typeof S!=='object') return null; const on=S.srcOn||{};
+      return { at:o.us.at||o.at||null, notes:[],
+        cfg:{ s:5, l:20, nextOpen:true, atr2:true, _market:'us', reentry:false, bullVol:false, predict:false, xCross:false },
+        sc:{ cross:on.cross!==false, bb:on.range!==false, cell:on.v2!==false, pb:false, dc:false, grid3:false, pure:false, mGate:false, rgGate:false, xSplit:false,
+          exDead:false, deadGrace:0, exFake:false, exCellFake:false, exDown:false, exNBars:(+S.nbarBars>0?Math.round(+S.nbarBars):0), xGate3:false,
+          slOn:+S.slMult>0, slMult:(+S.slMult>0?+S.slMult:null), trOn:+S.trMult>0, trMult:(+S.trMult>0?+S.trMult:null), trArm:(+S.trArm>0?+S.trArm:0),
+          slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:+S.tpPct>0, tpPct:(+S.tpPct>0?+S.tpPct:30), tpAtrOn:+S.tpAtrMult>0, tpAtrMult:(+S.tpAtrMult>0?+S.tpAtrMult:3),
+          tpFixOn:+S.tpFixPct>0, tpFixPct:(+S.tpFixPct>0?+S.tpFixPct:10), tpFixMg:false, fee:true, feePct:(S.feeRoundPct!=null?+S.feeRoundPct:0.2), minK:1 } };
+    }
+    const P=o[mk]; if(!P||!P.exit||typeof P.exit!=='object') return null;
+    const x=P.exit, on=(P.entry&&P.entry.srcOn)||{}, notes=[];
+    if(P.entry && P.entry.legacyV4Only===true) notes.push('votes≥4는 카드에 없는 거름이라 레거시 진입이 더 넓게 잡혀요');
+    if(x.cdownOn===true) notes.push('칸down — 카드는 신규 진입도 막아요(시즌2는 청산만)');
+    if(x.deadOn===true) notes.push('데드 유예 — 시즌2 달력 '+(+x.maGraceDays||10)+'일 · 카드는 봉');
+    return { at:P.at||o.at||null, notes,
+      cfg:{ s:5, l:20, nextOpen:true, atr2:x.atrOn!==false, _market:mk, reentry:false, bullVol:on.bullVol===true, predict:false, xCross:false },
+      sc:{ cross:on.cross!==false, pb:on.pb!==false, dc:on.dc!==false, cell:on.v2!==false, bb:false, grid3:true, pure:true, mGate:false, rgGate:false, xSplit:false,
+        exDead:x.deadOn===true, deadGrace:(x.deadOn===true?(+x.maGraceDays||10):0), exFake:false, exCellFake:x.cfakeOn!==false, exDown:x.cdownOn===true,
+        exNBars:(x.nbarOn===true && +x.nbarBars>0)?Math.round(+x.nbarBars):0, xGate3:x.gateOn===true,
+        slOn:x.slOn!==false, slMult:(+x.atrInitMult>0?+x.atrInitMult:null), trOn:x.trOn!==false, trMult:(+x.atrTrailMult>0?+x.atrTrailMult:null), trArm:(+x.trArm>0?+x.trArm:0),
+        slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false,
+        tpPctOn:x.tpPctOn===true, tpPct:(+x.tpPct>0?+x.tpPct:30), tpAtrOn:x.tpAtrOn===true, tpAtrMult:(+x.tpAtrMult>0?+x.tpAtrMult:3), tpFixOn:x.tpFixOn===true, tpFixPct:(+x.tpFixPct>0?+x.tpFixPct:10), tpFixMg:false,
+        fee:true, feePct:0.2, minK:1 } };
+  }
+  function optsFor(mk){
+    const m=(mk==='us'||mk==='coin')?mk:'kr', o=snap(); let r=o?fromSnap(m,o):null, src='s2';
+    if(!r){ src='card'; const c0=(typeof _trendCfg==='function')?_trendCfg(m):{}, s0=(typeof _stratCfg==='function')?_stratCfg(m):{}; r={ cfg:Object.assign({}, c0, { _market:m }), sc:Object.assign({}, s0), notes:[], at:null }; }
+    return { mk:m, src, cfg:r.cfg, sc:r.sc, notes:r.notes||[], at:r.at||null, hash:src+'.'+m+'.'+_h(JSON.stringify([r.cfg, r.sc])) };
+  }
+  function tfOk(tf){ return !tf || tf==='day' || tf==='D' || tf==='1d'; }
+  async function sigFor(code, mk, rows){
+    if(!Array.isArray(rows) || rows.length<260 || typeof SXRecipeSignal==='undefined' || !SXRecipeSignal.stratSignalBars) return {};
+    const last=rows[rows.length-1]||{}, k=code+'|'+mk+'|'+rows.length+'|'+(last.date||last.t||'');
+    if(_sig[k]) return _sig[k];
+    let s={}; try{ s=(await SXRecipeSignal.stratSignalBars(code+'|'+mk, rows, mk))||{}; }catch(_){ s={}; }
+    _sig[k]=s; return s;
+  }
+  function shiftSig(sig, off){   // 봉 번호 키(스캔 bar) — 뒤쪽 조각을 돌릴 때 앞을 잘라낸 만큼 당긴다
+    const out={}; for(const k in (sig||{})){ const m=sig[k]; if(!m||typeof m!=='object'){ out[k]=m; continue; } const n={}; for(const i in m){ const j=(+i)-off; if(j>=0) n[j]=m[i]; } out[k]=n; } return out;
+  }
+  function _rg(rows, idx){ try{ const EC=(typeof window!=='undefined')?window.SXExecCore:null; return EC ? (EC.regime5At ? EC.regime5At(rows, idx) : (EC.regimeAt ? EC.regimeAt(rows, idx) : null)) : null; }catch(_){ return null; } }
+  function adapt(bt, rows, s2){
+    if(!bt) return { error:'봉이 부족해 카드 엔진을 돌릴 수 없어요' };
+    const trades=(bt.trades||[]).map(function(t){ const pnl=+(+t.pnl).toFixed(2); return { entry:t.entry, exit:t.exit, pnl:pnl, rawPnl:pnl, posScale:1, type:(pnl>0?'WIN':'LOSS'), exitReason:(XR_LABEL[t.xr]||t.xr||''), bars:t.bars, entryIdx:t.entryIdx, exitIdx:t.exitIdx, entryDate:t.entryDate||'', exitDate:t.exitDate||'', tp:null, sl:null, src:(SRC_MAP[t.src]||t.src||'recipe'), v2Cat:null, v2Tier:null, cell:t.cell||null, gcAge:null, rg:_rg(rows, t.entryIdx), xr:t.xr, s2Src:t.src }; });
+    if(bt.open){ const o=bt.open, pnl=+(+o.pnl).toFixed(2); trades.push({ entry:o.entry, exit:o.cur, pnl:pnl, rawPnl:pnl, posScale:1, type:'OPEN', exitReason:'미청산', bars:o.bars, entryIdx:o.entryIdx, exitIdx:rows.length-1, entryDate:o.entryDate||'', exitDate:'', tp:null, sl:null, src:(SRC_MAP[o.src]||o.src||'recipe'), v2Cat:null, v2Tier:null, cell:o.cell||null, gcAge:null, rg:_rg(rows, o.entryIdx), s2Src:o.src }); }
+    // 지표 — 옛 엔진(sxRunBtEngine) 식 그대로: 확정 거래만 · pf=총익/총손(손실 0이면 99) · 복리 equity−100 · MDD · 연속손실 · 진입원 분해
+    const wins=trades.filter(t=>t.type==='WIN'), losses=trades.filter(t=>t.type==='LOSS'), closed=wins.length+losses.length;
+    const winRate=closed?+(wins.length/closed*100).toFixed(1):0;
+    const avgWin=wins.length?+(wins.reduce((s,t)=>s+t.pnl,0)/wins.length).toFixed(2):0;
+    const avgLoss=losses.length?+Math.abs(losses.reduce((s,t)=>s+t.pnl,0)/losses.length).toFixed(2):0;
+    const totalWin=wins.reduce((s,t)=>s+t.pnl,0), totalLoss=Math.abs(losses.reduce((s,t)=>s+t.pnl,0));
+    const pf=totalLoss>0?+(totalWin/totalLoss).toFixed(2):(totalWin>0?99:0);
+    let equity=100, peak=100, maxDD=0; trades.forEach(t=>{ if(t.type==='OPEN') return; equity*=(1+t.pnl/100); if(equity>peak) peak=equity; const dd=peak>0?(peak-equity)/peak*100:0; if(dd>maxDD) maxDD=dd; });
+    const totalPnl=+((equity-100)).toFixed(2);
+    let maxConsecLoss=0, cur=0; trades.forEach(t=>{ if(t.type==='OPEN') return; if(t.type==='LOSS'){ cur++; if(cur>maxConsecLoss) maxConsecLoss=cur; } else cur=0; });
+    const _srcBreak={}; ['recipe','bullVol','v2','maCross','range'].forEach(k=>{ const ts=trades.filter(t=>(t.src||'recipe')===k && t.type!=='OPEN'); if(!ts.length){ _srcBreak[k]={ n:0 }; return; } const w=ts.filter(t=>t.pnl>0); let eq=1; ts.forEach(t=>{ eq*=(1+t.pnl/100); }); _srcBreak[k]={ n:ts.length, win:+(w.length/ts.length*100).toFixed(1), pnl:+((eq-1)*100).toFixed(2), avg:+(ts.reduce((a,t)=>a+t.pnl,0)/ts.length).toFixed(2) }; });
+    const sc=(s2&&s2.sc)||{}, cf=(s2&&s2.cfg)||{};
+    return { winRate, profitFactor:pf, totalPnl, mdd:+maxDD.toFixed(2), totalTrades:closed, avgWin, avgLoss, maxConsecLoss, scores:null, scores3:null, trades, rowsLength:rows.length,
+      gateBlocks:0, gateReasons:{}, gapSkips:0, entryMode:'nextOpen', gapGuard:false, volTarget:{ active:false }, _mode:null, modeGateSkips:0, engine:'s2', _srcBreak,
+      _entrySrc:{ recipe:!!(sc.pb||sc.dc), bullVol:!!cf.bullVol, v2:!!sc.cell, maCross:!!sc.cross, range:!!sc.bb },
+      _s2:{ src:(s2&&s2.src)||null, mk:(s2&&s2.mk)||null, at:(s2&&s2.at)||null, notes:(s2&&s2.notes)||[], hash:(s2&&s2.hash)||null, feePct:bt.feePct } };
+  }
+  async function run(rows, s2, fullRows, code){
+    if(!Array.isArray(rows) || !s2 || typeof _stratBt!=='function') return { error:'카드 엔진을 쓸 수 없어요' };
+    const base=(Array.isArray(fullRows) && fullRows.length>rows.length) ? fullRows : rows, off=base.length-rows.length;
+    let sig=await sigFor(code||'X', s2.mk, base); if(off>0) sig=shiftSig(sig, off);
+    let bt=null; try{ bt=_stratBt(rows, sig||{}, s2.cfg, s2.sc, null, null); }catch(e){ return { error:'카드 엔진 오류: '+((e&&e.message)||e) }; }
+    return adapt(bt, rows, s2);
+  }
+  return { KEY, SRC_MAP, XR_LABEL, snap, fromSnap, optsFor, tfOk, sigFor, shiftSig, adapt, run };
+})();
+if(typeof window!=='undefined') window.SXS2=SXS2;
+// [S1641] 종목 페이지 전용 옵션·실행 — 일봉이면 시즌2 동기화 엔진 · 아니면(또는 s2 없음) 옛 엔진 그대로
+function btGetOptsPage(){ const o=btGetOpts(); let s2=null; try{ s2=SXS2.optsFor((typeof currentMarket!=='undefined')?currentMarket:'kr'); }catch(_){ s2=null; } return s2 ? Object.assign({}, o, { engine:'s2', s2:s2 }) : o; }
+async function btRunPage(rows, tf, params, opts, fullRows){
+  if(!(opts && opts.engine==='s2' && opts.s2) || !SXS2.tfOk(tf)) return sxRunBtEngine(rows, tf, params, opts);
+  const code=(typeof currentAnalStock!=='undefined' && currentAnalStock && currentAnalStock.code) || 'X';
+  return SXS2.run(rows, opts.s2, fullRows, code);
+}
+if(typeof window!=='undefined'){ window.btGetOptsPage=btGetOptsPage; window.btRunPage=btRunPage; }
 function btGetOpts(){
   const slip = parseFloat(document.getElementById('btOptSlip')?.value||'1')/1000;
   // [S422] 진입 시점은 전역 SXE._btEntryMode(조기청산 모달 라디오: 종가/시가)가 단일 출처.
@@ -1273,6 +1368,7 @@ function btGetOpts(){
 //   〔버그 이력〕 S1201이 entrySrc 토글을 넣으며 재사용 비교(slip/entryMode/파라미터)엔 안 넣음 →
 //   첫 실행은 분석탭 저장 옵션에 entryMode 키가 없어 비교 실패=재계산(우연히 반영), 이후엔 재사용=토글 무시.
 function _btSrcSigOf(opts){
+  if(opts && opts.engine==='s2' && opts.s2) return 's2|'+opts.s2.hash;   // [S1641] 시즌2 동기화 엔진 — 설정 해시가 바뀌면 재사용 안 함(=시즌2 값이 바뀌면 자동 재계산)
   const d=(opts&&opts.entrySrc)||{recipe:true,bullVol:true,v2:true,maCross:true};   // [S1397] 크로스 기본 ON(시즌2 S1396 정합)
   const m=(d.maCross!==false);
   const x=(opts&&opts.exitCfg)||{};
@@ -1348,21 +1444,26 @@ const _BT_SRC_META={
   v2:{ ic:'🧬', lbl:'V2 어휘규칙', c:'#0891b2', tip:'[S1178→S1180] 칸 규칙 real-kind hit. ⚠발굴풀 in-sample 적합 — BT 성과는 검증이 아니라 재현.' },
   maCross:{ ic:'📈', lbl:'크로스', c:'#16a34a', tip:'[S1396→S1397] 시즌2 배선(provisional) — MA5×20 골든크로스(완성봉)+장기 60/120/200 정배 라우팅 내장. 사슬 3순위(recipe>bullVol>크로스>v2). 전진게이트: 완성거래 N≥20 시 기대값>0·승률≥35% 미달→OFF(사전선언).' }
 };
-function _btRenderEntrySrcBar(){
+function _btRenderEntrySrcBar(){   // [S1641] 종목 페이지 BT 설정 표시(잠금) — 시즌2 동기화 또는 🧪전략조합 카드 설정 · 옛 S1393 칩(데드·ATR 2×/3×·칸F·칸D·N일·게이트) 철거
   const el=document.getElementById('btEntrySrcBar'); if(!el) return;
-  const st=_btEntrySrc();
-  const _nd=(+st.xNd>0)?Math.round(+st.xNd):30;   // [S1505] 칩 라벨·입력칸이 같은 값을 읽는다
-  el.innerHTML='<span style="font-size:10px;font-weight:800;color:var(--text3);margin-right:2px">진입원</span>'
-    + ['recipe','bullVol','v2','maCross'].map(k=>{ const m=_BT_SRC_META[k], on=st[k];
-        return `<span onclick="_sxVib(10);btToggleEntrySrc('${k}')" title="${m.tip}" style="font-size:10px;font-weight:800;padding:4px 10px;border-radius:13px;border:1px solid ${m.c}${on?'':'55'};cursor:pointer;${on?`background:${m.c};color:#fff`:`background:transparent;color:${m.c}`}">${m.ic} ${m.lbl} ${on?'ON':'OFF'}</span>`;
-      }).join('')
-    + (st.v2?'<div style="width:100%;font-size:8.5px;color:#b45309;line-height:1.5;margin-top:3px">⚠ V2 규칙은 발굴풀 <b>in-sample</b> — 이 BT에서 오르는 건 검증이 아니라 재현이다. 정직한 판정은 시즌2 paper(시간축 OOS).</div>':'')
-    + '<div style="width:100%;height:1px;margin:6px 0 4px;background:var(--border)"></div><span style="font-size:10px;font-weight:800;color:var(--text3);margin-right:2px">청산</span>'
-    + [['xDead','✂️데드','#3b82f6','MA5×20 데드(유예10·완성봉) — 시즌2 S1393 4종 칩'],['xAtr','🛡️ATR','#e8365a','이중ATR 2×/3× — PREREG_S1392 전 도전팔 미충족 → 기본 ON 유지'],['xCf','🧩칸F','#b45309','칸fake 청산 — 전일 봉 신호(원장 파리티·1봉 지연·워밍업 구간=보류)'],['xCd','⛔칸D','#dc2626','칸down 청산 — 전일 봉 신호(1봉 지연)'],['xN','⏱N'+_nd,'#f97316','N일 컷 — 진입 후 '+_nd+'일(달력일·봉 아님)이 지나면 무조건 청산. 값은 오른쪽 칸에서 직접 입력(1~365). 공통 토글·실험용 자·기본 OFF. ⚠값을 바꾸면 저장된 BT가 stale이 되어 다시 돌아간다'],['xGate','⬛게이트','#7c3aed','3×3판 출구게이트 [측정 미달·PREREG_S1392 E팔·기본 OFF] — ON: 장기 정배=데드만·ATR 억제 / 혼조·역배=ATR만·데드 무시 / 축 불명=해제(전 칩)']].map(x=>{ const on=st[x[0]]===true;
-        return `<span onclick="_sxVib(10);btToggleEntrySrc('${x[0]}')" title="${x[3]}" style="font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:12px;border:1px solid ${x[2]}${on?'':'55'};cursor:pointer;${on?`background:${x[2]}18;color:${x[2]}`:'background:transparent;color:var(--text3)'}">${x[1]}${on?'':' OFF'}</span>`; }).join('')   // [S1397] 시즌2 S1393 미러 칩
-    + (st.xN===true?`<input id="btNbarDays" type="number" step="1" min="1" max="365" value="${_nd}" onchange="window.btSetNbarDays&&btSetNbarDays(this.value)" style="width:52px;padding:3px 6px;margin-left:3px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:9.5px;font-weight:700;text-align:center"><span style="font-size:8.5px;color:var(--text3);margin-left:2px">일</span>`:'')   // [S1505] 수동 입력 — 칩 ON일 때만
-    + (st.xGate===true?'<div style="width:100%;font-size:8.5px;color:#7c3aed;line-height:1.5;margin-top:3px">⬛ 게이트 ON — 장기 정배=데드만·ATR 억제 / 혼조·역배=ATR만·데드 무시 / 축 불명·워밍업=해제. <b>[측정 미달·PREREG_S1392 E팔]</b>(W1 한정 강세·W2/W3 무익) — 정찰용.</div>':'')
-    + (st.maCross?'<div style="width:100%;font-size:8.5px;color:#16a34a;line-height:1.5;margin-top:3px">📈 크로스(S1396) — 시즌2 <b>배선됨</b>(provisional·장기 정배 라우팅 내장·사슬 3순위). 전진게이트: 완성거래 N≥20 시 기대값&gt;0·승률≥35% 미달→OFF(사전선언·변경 금지). 이 BT는 정찰.</div>':'');
+  let s2=null; try{ s2=SXS2.optsFor((typeof currentMarket!=='undefined')?currentMarket:'kr'); }catch(_){ s2=null; }
+  if(!s2){ el.innerHTML='<span style="font-size:10px;color:var(--text3)">설정을 읽지 못했어요</span>'; return; }
+  const c=s2.cfg||{}, sc=s2.sc||{}, mkL=(s2.mk==='us'?'🇺🇸 US':(s2.mk==='coin'?'🪙 코인':'🇰🇷 KR'));
+  const f1=(v)=>(Math.round((+v)*10)/10);
+  const chip=(t,on)=>'<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;margin:2px 3px 2px 0;border-radius:10px;border:1px solid var(--border);'+(on?'color:var(--text);':'color:var(--text3);opacity:.5;text-decoration:line-through;')+'">'+t+'</span>';
+  const atrOn=(c.atr2!==false);
+  const en=[chip('📈크로스',!!sc.cross), chip('🟢정배real',!!sc.pb), chip('🔻역배real',!!sc.dc), chip('🧩칸real',!!sc.cell), chip('🌀BB회귀',!!sc.bb), chip('🔊bullVol',!!c.bullVol)];
+  const ex=[chip('🛡SL '+(sc.slMult!=null?f1(sc.slMult)+'×':'공유'), atrOn && sc.slOn!==false), chip('📉트레일 '+(sc.trMult!=null?f1(sc.trMult)+'×':'공유')+((+sc.trArm>0)?('(무장'+sc.trArm+')'):''), atrOn && sc.trOn!==false),
+    chip('🚀TP급등 '+sc.tpPct+'%', !!sc.tpPctOn), chip('🏹TP_ATR '+sc.tpAtrMult+'×', !!sc.tpAtrOn), chip('🎯TP고정 '+sc.tpFixPct+'%', !!sc.tpFixOn),
+    chip('⏱'+(+sc.exNBars||0)+'봉컷', +sc.exNBars>0), chip('🧩칸fake', !!sc.exCellFake), chip('⛔칸down', !!sc.exDown), chip('✂데드', !!sc.exDead), chip('⬛출구게이트', !!sc.xGate3)];
+  const gl=[chip('🔲3×3 라우팅', !!sc.grid3), chip('⚖️혼재차단', !!sc.pure), chip('📅월봉게이트', !!sc.mGate)];
+  const d=s2.at?new Date(s2.at):null, ts=d?((d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')):'';
+  const head=(s2.src==='s2')?('🔗 <b>시즌2 동기화</b> · '+mkL+' · '+ts+' 기준 · 잠금'):('🧪 <b>전략조합 카드 설정</b> · '+mkL+' · 바꾸려면 전략조합 카드에서');
+  const tfNote=((typeof _btTFVal!=='undefined') && !SXS2.tfOk(_btTFVal))?' · ⚠ 일봉이 아니라 이 봉 주기는 옛 엔진으로 돌아요':'';
+  const lab=(t)=>'<span style="font-size:10px;font-weight:800;color:var(--text3);margin-right:2px">'+t+'</span>';
+  el.innerHTML='<div style="font-size:10.5px;color:var(--text2);margin-bottom:3px">'+head+'</div>'
+    +'<div>'+lab('진입')+en.join('')+'</div><div>'+lab('청산')+ex.join('')+'</div><div>'+lab('게이트')+gl.join('')+'</div>'
+    +'<div style="font-size:9.5px;color:var(--text3);margin-top:3px;line-height:1.5">다음봉 시가 · 수수료 왕복 '+((sc.fee!==false)?(sc.feePct!=null?sc.feePct:0.2):0)+'% · 종목 하나 기준이라 보유상한·현금·열외·실시간 필터는 반영 안 돼요'+tfNote+((s2.notes&&s2.notes.length)?(' · ⚠ '+s2.notes.join(' · ')):'')+'</div>';
 }
 if(typeof window!=='undefined'){ window.btToggleEntrySrc=btToggleEntrySrc; window.btSetNbarDays=btSetNbarDays; window._btRenderEntrySrcBar=_btRenderEntrySrcBar; window._btEntrySrc=_btEntrySrc; }   /* [S1505] */
 
@@ -1403,7 +1504,7 @@ async function btRunBasic(){
     const _isExtSupported = (currentMarket === 'coin' || currentMarket === 'kr' || currentMarket === 'us');
     const _btTFVal = _btTF();
     const _targetCount = _btTargetBars(currentMarket, _btTFVal);
-    const _curOpts = btGetOpts();
+    const _curOpts = btGetOptsPage();   // [S1641] 종목 페이지 = 시즌2 동기화 옵션
     // [S1237] _curParams 제거 — 死파라미터(레시피-BT 미사용). 재사용 판정은 S1236에서 이미 제외.
     // 재사용 가능 여부 판정 (분석탭 결과와 옵션 일치 확인)
     const _canReuse = stock._btResult
@@ -1504,7 +1605,7 @@ async function btRunBasic(){
     await _btSleep(50);
 
     const params = {};   // [S1237] 死파라미터 — 레시피-BT(S1018)는 읽지 않음(진입=votes·청산=코어고정)
-    const opts = btGetOpts();
+    const opts = btGetOptsPage();   // [S1641] 종목 페이지 = 시즌2 동기화 옵션
 
     // S163-diag: btRunBasic(단일검증 탭)의 rows 진단 로그
     try{
@@ -1516,7 +1617,7 @@ async function btRunBasic(){
       console.log(`[S163-diag] [단일검증] ${stock.name||stock.code} rows: ${rows.length}봉 · 첫=${_fDate}(C${_fClose}) · 끝=${_lDate}(C${_lClose})`);
     }catch(_){}
 
-    const r = sxRunBtEngine(rows, _btTFVal, params, opts);
+    const r = await btRunPage(rows, _btTFVal, params, opts);   // [S1641]
     // S110 fix4: 실제 사용된 봉수 기록 (🔴/🔵/🟢 배지용)
     r.rowsLength = rows.length;
     try{ r._sxSig = _btMakeSig('수동', _btTFVal, rows, params, opts); r._sxReuseMiss = _reuseMiss; }catch(_sg){}   // [S1232] 실행 서명
@@ -1548,7 +1649,7 @@ async function btRunBasic(){
       try {
         if(rows.length >= 400 && typeof sxRunBtEngine === 'function'){
           const _rows200 = rows.slice(-200);
-          const _r200 = sxRunBtEngine(_rows200, _btTFVal, params, opts);
+          const _r200 = await btRunPage(_rows200, _btTFVal, params, opts, rows);   // [S1641] 200봉 조각 — 신호는 전체 봉으로 셈하고 번호만 당김
           if(!_r200.error && typeof _r200.totalPnl === 'number'){
             stock._btResult_200 = _r200;
             const _pnl600 = r.totalPnl || 0;
