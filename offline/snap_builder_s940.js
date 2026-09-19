@@ -1,5 +1,6 @@
 // [S940] SX 자동매매 스냅 자동갱신 — 헤드리스 fetch → 최신 스냅 리빌드(런타임·커밋 안 함).
 // [S1192] coin(업비트) 지원 추가 — KRW 마켓 일봉, 공개 API·무인증. us(야후)는 계속 exit 2 폴백.
+// [S1633] us: 야후 직접 → 막히면 워커 /proxy 경유(nocache) — 윗줄·아래 '(us)는 exit 2'는 S1228 이전 문구(S1228부터 us 지원).
 //   워커 sxFetchCandles(KR)와 동일 소스: fchart.stock.naver.com/sise.nhn (XML <item data="YYYYMMDD|o|h|l|c|v"/>).
 //   풀(종목 코드+이름)은 커밋된 snap에서 승계 = "풀 매니페스트" 역할. 캔들만 최신으로 교체.
 //   사용: node snap_builder_s940.js kr --pool snap_kr.json --out /tmp/fresh_snap_kr.json [--count 450]
@@ -68,15 +69,39 @@ async function fetchDailyCoin(code) {
   return rows.slice(-COUNT);
 }
 
+// [S1633] US 경로 — GitHub Actions 러너에서 야후 직접 호출이 막혀(2026-09-19 활동 로그 '신호 수신 US 2026-07-01' = 커밋 스냅 폴백 · 같은 요청이 다른 망에선 200)
+//   직접 → 실패하면 그 종목은 워커 /proxy 경유(앱·카드가 US 봉을 받는 바로 그 경로 · 같은 야후 응답 본문). 워커 경유는 nocache=1(KV 읽기·쓰기 0).
+//   '막힘'류 실패(HTTP 404·데이터 없음 제외)가 3연속이면 이후 종목은 직접을 건너뛴다(끈적 전환 · 야후를 계속 두드리지 않는다).
+//   종전엔 종목별 실패 사유를 삼켜 원인을 못 봤다 → 앞 3건 사유와 경로별 건수를 로그에 남긴다. WORKER_BASE 없으면 종전과 같다(직접만).
+const WORKER_BASE = String(process.env.WORKER_BASE || '').replace(/\/+$/, '');
+const _usPath = { direct: 0, proxy: 0, run: 0, sticky: false, why: [] };
+async function _yfJson(url, viaProxy) {
+  const u = viaProxy ? (WORKER_BASE + '/proxy?nocache=1&url=' + encodeURIComponent(url)) : url;
+  const res = await fetch(u, { headers: { 'User-Agent': UA, 'Accept': 'application/json' }, signal: AbortSignal.timeout(20000) });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const j = await res.json();
+  if (!(j && j.chart && j.chart.result && j.chart.result[0])) throw new Error('no chart data');
+  return j;
+}
 // [S1228] 야후 v8 chart — US 일봉. 커밋 스냅과 동일 규격 확인: 날짜=개장시각 ISO(13:30/14:30Z) · 가격=분할조정
 //   (커밋 snap_us의 NVDA 24-02 시가 70.07 = 10:1 분할 반영 = 야후 quote 배열 기본값과 일치).
 //   심볼 점표기(BRK.B) → 야후 대시(BRK-B) 변환. null 봉(휴장 결측)은 스킵.
 async function fetchDailyUS(code) {
   const sym = String(code).replace(/\./g, '-');
   const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?range=3y&interval=1d';
-  const res = await fetch(url, { headers: { 'User-Agent': UA, 'Accept': 'application/json' } });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const j = await res.json();
+  let j = null;   // [S1633] 직접 → (실패 시) 워커 경유
+  if (!_usPath.sticky) {
+    try { j = await _yfJson(url, false); _usPath.direct++; _usPath.run = 0; }
+    catch (e) {
+      const m = String((e && e.message) || e);
+      if (_usPath.why.length < 3) _usPath.why.push(sym + ' ' + m);
+      const blocked = !(/HTTP 404/.test(m) || /no chart data/.test(m));   // 상장폐지·데이터 없음은 '막힘'이 아니다
+      _usPath.run = blocked ? (_usPath.run + 1) : 0;
+      if (_usPath.run >= 3 && WORKER_BASE) _usPath.sticky = true;
+    }
+  }
+  if (!j && WORKER_BASE) { j = await _yfJson(url, true); _usPath.proxy++; }
+  if (!j) throw new Error('no chart data');
   const r = j && j.chart && j.chart.result && j.chart.result[0];
   if (!r || !Array.isArray(r.timestamp)) throw new Error('no chart data');
   const q = (r.indicators && r.indicators.quote && r.indicators.quote[0]) || {};
@@ -119,6 +144,7 @@ function dayDiff(a, b) {
     if ((i + 1) % 40 === 0) console.error('  ...' + (i + 1) + '/' + codes.length + ' (ok ' + ok + ' fail ' + fail + ')');
   }
 
+  if (mkt === 'us') console.error('[snap_builder] us 경로(S1633): 직접 ' + _usPath.direct + ' · 워커 경유 ' + _usPath.proxy + (_usPath.sticky ? ' (직접 3연속 실패 → 이후 워커 경유)' : '') + (WORKER_BASE ? '' : ' · WORKER_BASE 없음(직접만)') + (_usPath.why.length ? (' · 직접 실패 예: ' + _usPath.why.join(' | ')) : ''));
   // ── 검증 게이트 (미달 시 폴백) ──
   const covered = ok / codes.length;
   const minOk = (mkt === 'coin') ? 80 : (mkt === 'us' ? 70 : 100);   // [S1192] 풀 크기 차이 [S1228] us 풀 97
