@@ -74,7 +74,7 @@ async function fetchDailyCoin(code) {
 //   '막힘'류 실패(HTTP 404·데이터 없음 제외)가 3연속이면 이후 종목은 직접을 건너뛴다(끈적 전환 · 야후를 계속 두드리지 않는다).
 //   종전엔 종목별 실패 사유를 삼켜 원인을 못 봤다 → 앞 3건 사유와 경로별 건수를 로그에 남긴다. WORKER_BASE 없으면 종전과 같다(직접만).
 const WORKER_BASE = String(process.env.WORKER_BASE || '').replace(/\/+$/, '');
-const _usPath = { direct: 0, proxy: 0, run: 0, sticky: false, why: [] };
+const _usPath = { direct: 0, proxy: 0, run: 0, sticky: false, why: [], fill: 0 };   // [S1634] fill=마지막 봉 종가 보정 건수
 async function _yfJson(url, viaProxy) {
   const u = viaProxy ? (WORKER_BASE + '/proxy?nocache=1&url=' + encodeURIComponent(url)) : url;
   const res = await fetch(u, { headers: { 'User-Agent': UA, 'Accept': 'application/json' }, signal: AbortSignal.timeout(20000) });
@@ -82,6 +82,18 @@ async function _yfJson(url, viaProxy) {
   const j = await res.json();
   if (!(j && j.chart && j.chart.result && j.chart.result[0])) throw new Error('no chart data');
   return j;
+}
+// [S1634] 야후 마지막 봉 종가 결측 보정 — 2026-09-19 실측: 96종 중 21종의 9/18 봉이 시가·고가·저가·거래량은 있는데 종가만 null이었다(meta.regularMarketPrice가 그 종가 ·
+//   고가·저가·거래량도 meta 값과 일치). 종전엔 이 봉을 버려 그 종목이 9/17 봉으로 판정됐다(신호 기준일 9/18과 불일치 → SHOP BB회귀 편입·ALAB 탈락).
+//   조건: 마지막 봉 하나 · meta 시각이 그 봉과 같은 UTC 날짜 · 개장 뒤 3시간 이상(반일장 13:00 ET 포함 · 러너는 장 마감 뒤에만 돈다) · 그 봉 시가·고가·저가가 있을 때.
+function _usLastCloseFill(r, i) {
+  const m = r.meta || {}, q = (r.indicators && r.indicators.quote && r.indicators.quote[0]) || {};
+  const px = +m.regularMarketPrice, mt = +m.regularMarketTime, bt = +r.timestamp[i];
+  if (!(px > 0) || !(mt > 0) || !(bt > 0)) return null;
+  if (new Date(mt * 1000).toISOString().slice(0, 10) !== new Date(bt * 1000).toISOString().slice(0, 10)) return null;
+  if (!(mt - bt >= 3 * 3600)) return null;
+  if (!(+((q.open || [])[i]) > 0) || !(+((q.high || [])[i]) > 0) || !(+((q.low || [])[i]) > 0)) return null;
+  return px;
 }
 // [S1228] 야후 v8 chart — US 일봉. 커밋 스냅과 동일 규격 확인: 날짜=개장시각 ISO(13:30/14:30Z) · 가격=분할조정
 //   (커밋 snap_us의 NVDA 24-02 시가 70.07 = 10:1 분할 반영 = 야후 quote 배열 기본값과 일치).
@@ -107,7 +119,8 @@ async function fetchDailyUS(code) {
   const q = (r.indicators && r.indicators.quote && r.indicators.quote[0]) || {};
   const rows = [];
   for (let i = 0; i < r.timestamp.length; i++) {
-    const c = q.close && q.close[i];
+    let c = q.close && q.close[i];
+    if ((c == null || !(c > 0)) && i === r.timestamp.length - 1) { c = _usLastCloseFill(r, i); if (c > 0) _usPath.fill++; }   // [S1634] 마지막 봉 종가 결측 보정
     if (c == null || !(c > 0)) continue;   // 결측 봉 스킵
     rows.push([new Date(r.timestamp[i] * 1000).toISOString(),
       +((q.open || [])[i]) || 0, +((q.high || [])[i]) || 0, +((q.low || [])[i]) || 0, +c || 0, +((q.volume || [])[i]) || 0]);
@@ -144,7 +157,7 @@ function dayDiff(a, b) {
     if ((i + 1) % 40 === 0) console.error('  ...' + (i + 1) + '/' + codes.length + ' (ok ' + ok + ' fail ' + fail + ')');
   }
 
-  if (mkt === 'us') console.error('[snap_builder] us 경로(S1633): 직접 ' + _usPath.direct + ' · 워커 경유 ' + _usPath.proxy + (_usPath.sticky ? ' (직접 3연속 실패 → 이후 워커 경유)' : '') + (WORKER_BASE ? '' : ' · WORKER_BASE 없음(직접만)') + (_usPath.why.length ? (' · 직접 실패 예: ' + _usPath.why.join(' | ')) : ''));
+  if (mkt === 'us') console.error('[snap_builder] us 경로(S1633): 직접 ' + _usPath.direct + ' · 워커 경유 ' + _usPath.proxy + (_usPath.sticky ? ' (직접 3연속 실패 → 이후 워커 경유)' : '') + (WORKER_BASE ? '' : ' · WORKER_BASE 없음(직접만)') + (_usPath.why.length ? (' · 직접 실패 예: ' + _usPath.why.join(' | ')) : '') + (_usPath.fill ? (' · 마지막 봉 종가 보정 ' + _usPath.fill + '종(S1634)') : ''));
   // ── 검증 게이트 (미달 시 폴백) ──
   const covered = ok / codes.length;
   const minOk = (mkt === 'coin') ? 80 : (mkt === 'us' ? 70 : 100);   // [S1192] 풀 크기 차이 [S1228] us 풀 97
