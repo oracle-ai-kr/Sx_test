@@ -185,7 +185,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <button type="button" class="tb-back" onclick="goHome()">←</button>
       <div class="tb-title">자동매매 <span class="s2">시즌2</span></div>
     </div>
-    <div class="tb-build">S1634</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1634] 🇺🇸 US 트랙 탭(사용자 제안 2026-09-19) — 존 바 2줄(위 규율·대기열 얇게 · 아래 KR·COIN·US) · US 카드 6장(보드 NAV·⚡ 지금 판정·▶/⏸·원장 초기화 / 매수 대기(다음 봉 시가) / 보유(SL·트레일·TP 선) / 거래 기록(카드식 손익 병기) / 자금 추적 / 📐 세트) · /sx/autotrade/us/state 한 번 · 📜 활동 로그·🔬 신호 진단을 US 존에도(신호 진단은 US 탭으로) · 새 카드 id+data-ccx · [S1631] KR 주문 피드 — 가격 없는 매수가 보정 기간(7일)을 지났으면 "조회 대기" 대신 "체결가 미회수"(사용자 결정 2026-09-18) · 판정은 워커 _atFillNeeds 바이트 거울 + 같은 기간 식 · [S1630] 주문 피드 매수 체결가 — KR 행: 매수도 체결가(없으면 "체결가 조회 대기") · KR 상세: 매수 결과(매수가·매수금액·부분 체결·체결조회 보정 표기) · 코인 행: @가격 → "체결 ₩가격"(매수·매도 같은 말) · [S1628] 🛒 매수 후보 카드에 재진입 규칙 B — 청산 뒤 새 신호 전인 종목은 회색 + ⏳재진입 대기 칩(청산일·신호 기준일) · 제외 수에 포함 · _atReentryMap·_atReentryHold 워커 바이트 거울 · /state 주문 recent 캐시(_atOrdKr) · [S1626] 📟 코인 전광판(사용자 요청 2026-09-18) — COIN 트랙 바로 뒤 · 가상 NAV(크게)·시작/전일 대비·코인 평가액·평가손익·현금(가상 지갑 · 즉시 결제)·매수 가능(긴급정지·정지·최소주문 5,000원) + 코인+현금=NAV 한 줄 · coin/state 응답 재사용(추가 fetch 0 · 표시 전용) + 접힘 순번 고정: atInitCollapse가 data-ccx 카드(전광판 2장)를 순번에서 뺀다 — S1625가 민 규율·대기 2장의 접힘 기억 복원 · [S1625] 📟 계좌 전광판 카드(사용자 요청 2026-09-18 "전광판처럼 한번에") — 순자산(크게)·주식 평가액·평가손익·현금(결제 후 D+2 · 음수면 ⚠미수)·매수 가능(워커 _atCashBasis 바이트 거울 · 0이면 매수 멈춤) + 주식+현금=순자산 한 줄 · 예수금·결제 대기 · 시작/전일 대비(자금 추적과 같은 식) · 표시 전용 · 추가 fetch 0 · 상태보드 바로 뒤 · [S1624] 🌙 관측소 참고 열 — 누적 대조에 "애프터 종가→다음날 종가" 한 줄(적중·애프터↑/↓ 평균·상관 · 판정 열 아님) + 행별 값 + 카드 설명 · _atAmA2c 워커 바이트 거울 · [S1623] 포트폴리오 풋 ⚠미수 문구 — 매수 판정이 D+2 기준(워커 S1623 _atCashBasis)이라 결제 후 현금이 플러스가 될 때까지 KR 매수 보류 · [S1622] 🔄 잔고갱신 클라이언트 대기 15s→45s + 타임아웃 안내(보유 29종=KIS 잔고 2페이지 · 실기기 13:27 timeout · 워커 무변경) · [S1621] 포트폴리오 풋에 예수금 D+0·D+1·D+2·역산(순자산−주식평가) 병기 + D+2 음수면 ⚠미수 경고(측정 표시 · 워커 S1621 필드가 없으면 종전 문구) · [S1620] 열외 행도 회색(제외 집계 포함 · KR·코인) · [S1619] 긴급: S1617 KR 후보 배지가 정의되지 않은 `d`를 참조해 atRenderBuyPreview가 ReferenceError로 죽고, 그 뒤 카드(진입 설정·포트폴리오·갱신 시각)가 빈 채로 남던 것(실기기 2026-09-16 07:57 "새로고침하면 값이 다 사라짐") → 열외 집합을 atRefresh가 캐시(_atExclKr)하고 후보 카드는 캐시를 읽는다 · [S1618] 관측소 preAm 표시·힌트 30종 · [S1617] 🚫 진입 열외 카드(KR·코인) + 후보 배지 · [S1613] 관측소 실패 사유 표시 · [S1612] 🌙 애프터마켓 관측소 카드 · [S1610] 그림자 카드 힌트 cron 2-6 · [S1609] 📌 15:35 확정종가 판정(그림자) 카드 + 🧪 애프터마켓 모의 1주 시험 · [S1603] 확정 v3.1 COIN 칸fake ON(15봉컷 유지) — 폴백 거울 1키·↻ 툴팁 · [S1601] ★확정 셋팅 v3(사용자 결정 2026-09-12 · DECL_S1516 §10) — 폴백 상수 `AT_FB_*` 워커 거울 갱신: KR 청산 SL4·트레일3·무장2·TP급등 OFF·TP_ATR5·🎯TP고정 10 / KR 진입원 정배·역배·크로스·칸real(votes≥4 OFF) / COIN 15봉컷 ON·칸fake OFF · 카드 ↻ 확정값 툴팁·캡션 v3 · [S1597] 코인 설정 저장 문구가 바로 사라지던 것 정정 — 저장 직후 강제 재렌더(`atLoadCoinLedger(true)`)가 카드 innerHTML을 통째로 다시 그리며 S1596의 `coinCfgMsg`를 지웠다 → 문구를 모듈 상태(`_coinCfgMsgSt`)에 두고 렌더 템플릿이 그 값을 다시 그린다(다음 저장·새로고침까지 유지 · KR 카드와 같은 수명) · [S1596] html 단독 3건(사용자 요청 2026-09-12) ①<b>코인 설정 저장</b> 무반응 정정 — 저장은 됐지만 화면이 아무 말도 안 했다(KR 카드엔 ✅ 문구가 있고 코인 카드엔 없었음) → 버튼 아래 `✅ 저장됨 · 상한/tick/일 · 종목당 … · 💰현금맞춤` / 실패 시 `❌ 저장 실패` + 저장 중 버튼 비활성 ②<b>버튼 진동</b> — 문서 전역 클릭 위임(`button`·`[onclick]`·체크박스·select·summary)에 `_atBuzz()` 한 번(S914 goHome·S1093 기존 진동과 겹치면 짧게 두 번) ③<b>매수 후보 카드 필터 영역 기본 접기</b>(KR·코인) — votes≥4·진입원·제한종목/주의 토글을 `⚙ 매수 필터` 한 줄 요약(현재 값) 아래로 접고 탭하면 펼침(세션 내 상태 유지 · 새로 열면 다시 접힘) — 살펴보다 잘못 탭하는 사고 방지 · 판정·저장 로직 무변경 · [S1595] 🧾 주문 피드 매도 행에 <b>실현손익</b>(부제)과 펼침 '청산 결과'(매도가·매도금액·진입 평단·실현손익·보유일 — 워커 S1595가 매도 기록에 각인한 `entryPx`·`amount`·`pnl`·`pnlPct`·`entryAt` · 구 기록은 종전 문구) · 코인 주문 피드 매수 행 금액·매도 행 실현손익 · 워커 매퍼가 `src`를 다시 실어 KR 피드 전략 칩이 그려진다(S1180 이후 처음) · [S1593] ★사이징 후속 2건(사용자 결정 2026-09-12) ①💰<b>현금 맞춤</b> — 필요액이 가용현금을 넘으면 보류하던 것을 가용현금으로 살 수 있는 최대 주수로 <b>줄여 산다</b>(KR 정수 주수≥1 · 코인 수수료 포함 8자리 절사·최소주문 이상 · 1주도 안 되면 종전대로 보류) · 기본 ON(사용자 정책) · 진입 상한 카드·코인 설정 카드 토글 · 워커 로그 `💰 현금 맞춤 N→M` ②⏭<b>1주 초과 건너뛰기</b> — 신호 종가(1주 값)가 종목당 목표금액을 넘는 KR 후보를 자르기 전에 뺀다(자리는 다음 후보에게 · 기본 OFF=현행 · 코인은 소수 수량이라 해당 없음) · 후보 카드가 같은 식(`_atBudgetOf`·`_atOverBudget` 워커 거울)으로 <b>제외·1주초과</b> 표기(순자산은 /state 잔고 스냅 · 없으면 표기 안 함) · [S1591] ★시즌2 3건(사용자 요청 2026-09-11) ①🎯<b>TP고정</b> 익절 칩 — 진입가 대비 미실현 이익 ≥ N%(기본 10 · 두 시장 기본 OFF · 측정 0 · 켜거나 값 변경은 사전등록 사안 · 시즌1 🧪전략조합 🎯TP고정(S1592) 동식) · 청산 카드 행+저장+↻ 확정값 OFF(워커 exitCfg 17→19키 거울) ②<b>종목당 투자금</b> 사이징 모드(자동=순자산÷(보유상한+5)=현행 · 고정 금액(원) · 순자산 비중(%)) — KR 진입 상한 카드·코인 설정 카드에 칸(모드에 맞는 칸만 보이고 안내줄이 지금 값으로 셈해 준다) · 워커 `_atBudgetOf` SSOT · 기본 자동이라 배포만으론 변화 0 ③레거시 진입원을 <b>🟢정배real·🔻역배real</b> 두 토글로(pb/dc · 시즌1 카드 어휘) — 후보 칩이 신호의 장기축 lt로 [정배real]/[역배real]을 가른다 · votes≥4 토글은 둘 다 OFF일 때 비활성 · `_atSrcReattr` 워커 거울 동시 갱신(구 srcOn recipe 한 키는 두 키 모두 그 값) · 확정값 KR 둘 다 OFF·COIN 칸real만 · [S1541] 📓 자리 압박 `순위 상세` 버튼이 **눌러도 아무 변화가 없어** 고장으로 읽혔다(사용자 보고) — 순위는 워커가 `cut>0`인 판에만 남기므로(S1532) 잘림 0이면 볼 것이 없는 게 정상이다. 버튼이 그 말을 안 한 것이 잘못 ⇒ 볼 판이 없으면 버튼을 죽이고 이유를 적는다 · 고정 문구 (20판)/(60판) 제거(실제 판 수와 달라 오해) · [S1540] 📓 자리 압박에 **구조 이전 기록 안내** — S1537 전 KR은 풀이 둘(30+10=40)이라 한도가 40, 통합 후는 30으로 찍힌다. 둘 다 그 시점엔 참인데 한 표에 섞이면 읽을 수 없어 사용자가 `30/40`을 불일치로 읽었다 ⇒ 두 모양이 섞였을 때만 한 줄 안내 + 해당 행 한도를 눌러 칠한다(안 섞이면 침묵 · 240 tick 지나면 저절로 사라짐) · [S1539] 코인 설정에도 **1일 매수 한도** 칸 — 워커 S1537이 두 시장 공용으로 이미 받고 있었고 UI만 빠져 있었다. 포커스 보존 목록·dataset 재렌더 감지에 함께 편입(둘 중 하나만 빠지면 타이핑 중 지워지거나 저장해도 화면이 안 바뀐다) · [S1538] 진입 상한 카드 4칸→3칸(보유상한·tick당·**1일 매수 한도**) — 워커 S1537 진입원 통합에 맞춤. V2 슬롯 두 칸 철거(KV 값은 되돌리기용 잔존·매수 계산 미사용) · 📓 자리 압박: 병목 `오늘끝` 추가·일일 소진(오늘 N/M) 표시·순위 상세에 `src`·`겹침(realK)` 병기(통합 후 v2가 밀리는지 이 자리에서 보인다) · [S1536] ⚠자리 압박 `보유/한도`가 **분자·분모 단위 불일치**였다 — `held(전체 30)/mh(레거시 상한 30)`이라 `30/30`으로 꽉 찬 듯 보였지만 KR 실제 총량은 레거시 30+V2 10=**40**이었다(S1183 두 풀). 총 상한을 기록에서 유도(`held+Σ群자리`)하고, 群이 둘 이상이면 `·자리N`을 항상 표기 · [S1535] ⚠같은 자리 두 번째 정정 — 코인 asof는 `YYYY-MM-DD`가 아니라 **ISO 일시**(`...T00:00:00Z`)라 S1534의 '뒤 4자리'가 `00-00`을 찍었다. 짐작을 버리고 워커가 이미 쓰는 규약(숫자만 남겨 **앞 8자리** · workers_v9.js L3500 `asofYmd`)으로 교체 · 못 읽으면 원문 표시(거짓 날짜를 만들지 않는다) · [S1534] 📓 자리 압박 카드 실기기 정정 2건 — ①asof 형식이 시장마다 달라(KR `YYYYMMDD` · 코인 `YYYY-MM-DD`) 고정 slice가 KR에서 `903`을 찍었다 ⇒ 숫자만 남겨 뒤 4자리로 · ②KR 레거시 예산은 v2 보유를 안 세므로(S1183) 전체 30/30에도 레거시 자리가 남는다 ⇒ 群 자리가 전체와 어긋날 때만 `·자리N` 표기 · [S1533] 📓 자리 압박 카드(워커 S1532 탈락 대장 관측 — 병목 여유/지연/탈락·순위 상세) · [S1527] KR 후보 카드 `↻ 확정값`(진입원·제한종목·주의·votes≥4만 저장 · 상한 불변) + 레거시 진입원 OFF면 votes≥4 토글 비활성·미사용 표기 · [S1526] N컷 봉 규약만(N일 입력 제거 · 워커 nbarDays 폐지) · [S1525] N컷 두 입력(N일·N봉) 중 쓰이는 쪽만 활성 — N봉>0이면 N일 비활성+미사용 표기(실기기 혼동) · [S1524] ⚡ 지금 실행 타임아웃 15s→120s(signal timed out 정정)+마지막 실행 소요 표시+409(겹침) 안내 · [S1523] ↻ 확정값 버튼(청산·KR 진입·코인 진입 — 워커 defaults 소비·폴백 상수 거울) · [S1521] KR 제한종목 안전필터 토글(관리·경고·위험·거래정지·정리매매·당일무거래 하드 제외 · 주의급 토글) + 후보 카드 🚫/주의 배지(/state.restrict) · [S1518] 청산 카드 새 4키(초기손절/트레일 다리 토글·무장 문턱·N봉 컷)+진입원 토글(KR·코인·후보 카드 제외 표기 워커 동식) · [S1517] 워커 청산 코어(두 다리·무장·봉 규약·KR 당일시가) · [S1506] 청산 설정 두 시장 공용(당시 배지 미갱신 — 정정) · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
+    <div class="tb-build">S1640</div><!-- [S1394] 헤더 배지 — 하단 풋(SX_AUTOTRADE_BUILD)과 공동 갱신 · [S1640] 🔗 시즌1 단일검증 동기화용 설정 스냅샷(같은 사이트 브라우저 저장소 sx_s2_sync_v1 · KR·코인 청산 설정·진입원·votes≥4 · US 세트 · 서버 응답 도착 자리에서만 · 토큰·잔고 0) · [S1638] 📊 US 설정 카드에 🔔 텔레그램 US 알림 토글(usOn · 바로 저장 · 토큰 미설정·🔔 카드 후보/주문 토글 OFF면 안내) · [S1636] 📡 전진 관측소 수신 공백 제외(이웃 수신일 14일+ 끊긴 구간을 건너는 +H 쌍은 계산에서 빼고 개수 표기 · 원문 보존 · US 7/1 행) · US 보유 카드 ✂×r 칩(소급 조정된 포지션) · [S1635] US 탭 카드 4종(사용자 선택 2026-09-19) — 🧾 US 주문 피드(매수 시가·매도 종가·실현손익 · /us/state 재사용) · 📊 US 설정(보유상한·종목당 투자금 자동/고정$/순자산%·현금 맞춤·1주 초과 · 안내줄 _atBudgetOf 거울 · 입력 중 재렌더 금지 · 문구 상태 보존 · ↻ 확정값) · 📓 자리 압박·🚫 진입 열외 공용 카드를 US 존에도(US 존이면 mkt=us · 보류 사유 칩) · 매수 대기 🚫 열외 상태 · US 거래 기록 아이콘 📒(코인 evidence와 같은 짝) · [S1634] 🇺🇸 US 트랙 탭(사용자 제안 2026-09-19) — 존 바 2줄(위 규율·대기열 얇게 · 아래 KR·COIN·US) · US 카드 6장(보드 NAV·⚡ 지금 판정·▶/⏸·원장 초기화 / 매수 대기(다음 봉 시가) / 보유(SL·트레일·TP 선) / 거래 기록(카드식 손익 병기) / 자금 추적 / 📐 세트) · /sx/autotrade/us/state 한 번 · 📜 활동 로그·🔬 신호 진단을 US 존에도(신호 진단은 US 탭으로) · 새 카드 id+data-ccx · [S1631] KR 주문 피드 — 가격 없는 매수가 보정 기간(7일)을 지났으면 "조회 대기" 대신 "체결가 미회수"(사용자 결정 2026-09-18) · 판정은 워커 _atFillNeeds 바이트 거울 + 같은 기간 식 · [S1630] 주문 피드 매수 체결가 — KR 행: 매수도 체결가(없으면 "체결가 조회 대기") · KR 상세: 매수 결과(매수가·매수금액·부분 체결·체결조회 보정 표기) · 코인 행: @가격 → "체결 ₩가격"(매수·매도 같은 말) · [S1628] 🛒 매수 후보 카드에 재진입 규칙 B — 청산 뒤 새 신호 전인 종목은 회색 + ⏳재진입 대기 칩(청산일·신호 기준일) · 제외 수에 포함 · _atReentryMap·_atReentryHold 워커 바이트 거울 · /state 주문 recent 캐시(_atOrdKr) · [S1626] 📟 코인 전광판(사용자 요청 2026-09-18) — COIN 트랙 바로 뒤 · 가상 NAV(크게)·시작/전일 대비·코인 평가액·평가손익·현금(가상 지갑 · 즉시 결제)·매수 가능(긴급정지·정지·최소주문 5,000원) + 코인+현금=NAV 한 줄 · coin/state 응답 재사용(추가 fetch 0 · 표시 전용) + 접힘 순번 고정: atInitCollapse가 data-ccx 카드(전광판 2장)를 순번에서 뺀다 — S1625가 민 규율·대기 2장의 접힘 기억 복원 · [S1625] 📟 계좌 전광판 카드(사용자 요청 2026-09-18 "전광판처럼 한번에") — 순자산(크게)·주식 평가액·평가손익·현금(결제 후 D+2 · 음수면 ⚠미수)·매수 가능(워커 _atCashBasis 바이트 거울 · 0이면 매수 멈춤) + 주식+현금=순자산 한 줄 · 예수금·결제 대기 · 시작/전일 대비(자금 추적과 같은 식) · 표시 전용 · 추가 fetch 0 · 상태보드 바로 뒤 · [S1624] 🌙 관측소 참고 열 — 누적 대조에 "애프터 종가→다음날 종가" 한 줄(적중·애프터↑/↓ 평균·상관 · 판정 열 아님) + 행별 값 + 카드 설명 · _atAmA2c 워커 바이트 거울 · [S1623] 포트폴리오 풋 ⚠미수 문구 — 매수 판정이 D+2 기준(워커 S1623 _atCashBasis)이라 결제 후 현금이 플러스가 될 때까지 KR 매수 보류 · [S1622] 🔄 잔고갱신 클라이언트 대기 15s→45s + 타임아웃 안내(보유 29종=KIS 잔고 2페이지 · 실기기 13:27 timeout · 워커 무변경) · [S1621] 포트폴리오 풋에 예수금 D+0·D+1·D+2·역산(순자산−주식평가) 병기 + D+2 음수면 ⚠미수 경고(측정 표시 · 워커 S1621 필드가 없으면 종전 문구) · [S1620] 열외 행도 회색(제외 집계 포함 · KR·코인) · [S1619] 긴급: S1617 KR 후보 배지가 정의되지 않은 `d`를 참조해 atRenderBuyPreview가 ReferenceError로 죽고, 그 뒤 카드(진입 설정·포트폴리오·갱신 시각)가 빈 채로 남던 것(실기기 2026-09-16 07:57 "새로고침하면 값이 다 사라짐") → 열외 집합을 atRefresh가 캐시(_atExclKr)하고 후보 카드는 캐시를 읽는다 · [S1618] 관측소 preAm 표시·힌트 30종 · [S1617] 🚫 진입 열외 카드(KR·코인) + 후보 배지 · [S1613] 관측소 실패 사유 표시 · [S1612] 🌙 애프터마켓 관측소 카드 · [S1610] 그림자 카드 힌트 cron 2-6 · [S1609] 📌 15:35 확정종가 판정(그림자) 카드 + 🧪 애프터마켓 모의 1주 시험 · [S1603] 확정 v3.1 COIN 칸fake ON(15봉컷 유지) — 폴백 거울 1키·↻ 툴팁 · [S1601] ★확정 셋팅 v3(사용자 결정 2026-09-12 · DECL_S1516 §10) — 폴백 상수 `AT_FB_*` 워커 거울 갱신: KR 청산 SL4·트레일3·무장2·TP급등 OFF·TP_ATR5·🎯TP고정 10 / KR 진입원 정배·역배·크로스·칸real(votes≥4 OFF) / COIN 15봉컷 ON·칸fake OFF · 카드 ↻ 확정값 툴팁·캡션 v3 · [S1597] 코인 설정 저장 문구가 바로 사라지던 것 정정 — 저장 직후 강제 재렌더(`atLoadCoinLedger(true)`)가 카드 innerHTML을 통째로 다시 그리며 S1596의 `coinCfgMsg`를 지웠다 → 문구를 모듈 상태(`_coinCfgMsgSt`)에 두고 렌더 템플릿이 그 값을 다시 그린다(다음 저장·새로고침까지 유지 · KR 카드와 같은 수명) · [S1596] html 단독 3건(사용자 요청 2026-09-12) ①<b>코인 설정 저장</b> 무반응 정정 — 저장은 됐지만 화면이 아무 말도 안 했다(KR 카드엔 ✅ 문구가 있고 코인 카드엔 없었음) → 버튼 아래 `✅ 저장됨 · 상한/tick/일 · 종목당 … · 💰현금맞춤` / 실패 시 `❌ 저장 실패` + 저장 중 버튼 비활성 ②<b>버튼 진동</b> — 문서 전역 클릭 위임(`button`·`[onclick]`·체크박스·select·summary)에 `_atBuzz()` 한 번(S914 goHome·S1093 기존 진동과 겹치면 짧게 두 번) ③<b>매수 후보 카드 필터 영역 기본 접기</b>(KR·코인) — votes≥4·진입원·제한종목/주의 토글을 `⚙ 매수 필터` 한 줄 요약(현재 값) 아래로 접고 탭하면 펼침(세션 내 상태 유지 · 새로 열면 다시 접힘) — 살펴보다 잘못 탭하는 사고 방지 · 판정·저장 로직 무변경 · [S1595] 🧾 주문 피드 매도 행에 <b>실현손익</b>(부제)과 펼침 '청산 결과'(매도가·매도금액·진입 평단·실현손익·보유일 — 워커 S1595가 매도 기록에 각인한 `entryPx`·`amount`·`pnl`·`pnlPct`·`entryAt` · 구 기록은 종전 문구) · 코인 주문 피드 매수 행 금액·매도 행 실현손익 · 워커 매퍼가 `src`를 다시 실어 KR 피드 전략 칩이 그려진다(S1180 이후 처음) · [S1593] ★사이징 후속 2건(사용자 결정 2026-09-12) ①💰<b>현금 맞춤</b> — 필요액이 가용현금을 넘으면 보류하던 것을 가용현금으로 살 수 있는 최대 주수로 <b>줄여 산다</b>(KR 정수 주수≥1 · 코인 수수료 포함 8자리 절사·최소주문 이상 · 1주도 안 되면 종전대로 보류) · 기본 ON(사용자 정책) · 진입 상한 카드·코인 설정 카드 토글 · 워커 로그 `💰 현금 맞춤 N→M` ②⏭<b>1주 초과 건너뛰기</b> — 신호 종가(1주 값)가 종목당 목표금액을 넘는 KR 후보를 자르기 전에 뺀다(자리는 다음 후보에게 · 기본 OFF=현행 · 코인은 소수 수량이라 해당 없음) · 후보 카드가 같은 식(`_atBudgetOf`·`_atOverBudget` 워커 거울)으로 <b>제외·1주초과</b> 표기(순자산은 /state 잔고 스냅 · 없으면 표기 안 함) · [S1591] ★시즌2 3건(사용자 요청 2026-09-11) ①🎯<b>TP고정</b> 익절 칩 — 진입가 대비 미실현 이익 ≥ N%(기본 10 · 두 시장 기본 OFF · 측정 0 · 켜거나 값 변경은 사전등록 사안 · 시즌1 🧪전략조합 🎯TP고정(S1592) 동식) · 청산 카드 행+저장+↻ 확정값 OFF(워커 exitCfg 17→19키 거울) ②<b>종목당 투자금</b> 사이징 모드(자동=순자산÷(보유상한+5)=현행 · 고정 금액(원) · 순자산 비중(%)) — KR 진입 상한 카드·코인 설정 카드에 칸(모드에 맞는 칸만 보이고 안내줄이 지금 값으로 셈해 준다) · 워커 `_atBudgetOf` SSOT · 기본 자동이라 배포만으론 변화 0 ③레거시 진입원을 <b>🟢정배real·🔻역배real</b> 두 토글로(pb/dc · 시즌1 카드 어휘) — 후보 칩이 신호의 장기축 lt로 [정배real]/[역배real]을 가른다 · votes≥4 토글은 둘 다 OFF일 때 비활성 · `_atSrcReattr` 워커 거울 동시 갱신(구 srcOn recipe 한 키는 두 키 모두 그 값) · 확정값 KR 둘 다 OFF·COIN 칸real만 · [S1541] 📓 자리 압박 `순위 상세` 버튼이 **눌러도 아무 변화가 없어** 고장으로 읽혔다(사용자 보고) — 순위는 워커가 `cut>0`인 판에만 남기므로(S1532) 잘림 0이면 볼 것이 없는 게 정상이다. 버튼이 그 말을 안 한 것이 잘못 ⇒ 볼 판이 없으면 버튼을 죽이고 이유를 적는다 · 고정 문구 (20판)/(60판) 제거(실제 판 수와 달라 오해) · [S1540] 📓 자리 압박에 **구조 이전 기록 안내** — S1537 전 KR은 풀이 둘(30+10=40)이라 한도가 40, 통합 후는 30으로 찍힌다. 둘 다 그 시점엔 참인데 한 표에 섞이면 읽을 수 없어 사용자가 `30/40`을 불일치로 읽었다 ⇒ 두 모양이 섞였을 때만 한 줄 안내 + 해당 행 한도를 눌러 칠한다(안 섞이면 침묵 · 240 tick 지나면 저절로 사라짐) · [S1539] 코인 설정에도 **1일 매수 한도** 칸 — 워커 S1537이 두 시장 공용으로 이미 받고 있었고 UI만 빠져 있었다. 포커스 보존 목록·dataset 재렌더 감지에 함께 편입(둘 중 하나만 빠지면 타이핑 중 지워지거나 저장해도 화면이 안 바뀐다) · [S1538] 진입 상한 카드 4칸→3칸(보유상한·tick당·**1일 매수 한도**) — 워커 S1537 진입원 통합에 맞춤. V2 슬롯 두 칸 철거(KV 값은 되돌리기용 잔존·매수 계산 미사용) · 📓 자리 압박: 병목 `오늘끝` 추가·일일 소진(오늘 N/M) 표시·순위 상세에 `src`·`겹침(realK)` 병기(통합 후 v2가 밀리는지 이 자리에서 보인다) · [S1536] ⚠자리 압박 `보유/한도`가 **분자·분모 단위 불일치**였다 — `held(전체 30)/mh(레거시 상한 30)`이라 `30/30`으로 꽉 찬 듯 보였지만 KR 실제 총량은 레거시 30+V2 10=**40**이었다(S1183 두 풀). 총 상한을 기록에서 유도(`held+Σ群자리`)하고, 群이 둘 이상이면 `·자리N`을 항상 표기 · [S1535] ⚠같은 자리 두 번째 정정 — 코인 asof는 `YYYY-MM-DD`가 아니라 **ISO 일시**(`...T00:00:00Z`)라 S1534의 '뒤 4자리'가 `00-00`을 찍었다. 짐작을 버리고 워커가 이미 쓰는 규약(숫자만 남겨 **앞 8자리** · workers_v9.js L3500 `asofYmd`)으로 교체 · 못 읽으면 원문 표시(거짓 날짜를 만들지 않는다) · [S1534] 📓 자리 압박 카드 실기기 정정 2건 — ①asof 형식이 시장마다 달라(KR `YYYYMMDD` · 코인 `YYYY-MM-DD`) 고정 slice가 KR에서 `903`을 찍었다 ⇒ 숫자만 남겨 뒤 4자리로 · ②KR 레거시 예산은 v2 보유를 안 세므로(S1183) 전체 30/30에도 레거시 자리가 남는다 ⇒ 群 자리가 전체와 어긋날 때만 `·자리N` 표기 · [S1533] 📓 자리 압박 카드(워커 S1532 탈락 대장 관측 — 병목 여유/지연/탈락·순위 상세) · [S1527] KR 후보 카드 `↻ 확정값`(진입원·제한종목·주의·votes≥4만 저장 · 상한 불변) + 레거시 진입원 OFF면 votes≥4 토글 비활성·미사용 표기 · [S1526] N컷 봉 규약만(N일 입력 제거 · 워커 nbarDays 폐지) · [S1525] N컷 두 입력(N일·N봉) 중 쓰이는 쪽만 활성 — N봉>0이면 N일 비활성+미사용 표기(실기기 혼동) · [S1524] ⚡ 지금 실행 타임아웃 15s→120s(signal timed out 정정)+마지막 실행 소요 표시+409(겹침) 안내 · [S1523] ↻ 확정값 버튼(청산·KR 진입·코인 진입 — 워커 defaults 소비·폴백 상수 거울) · [S1521] KR 제한종목 안전필터 토글(관리·경고·위험·거래정지·정리매매·당일무거래 하드 제외 · 주의급 토글) + 후보 카드 🚫/주의 배지(/state.restrict) · [S1518] 청산 카드 새 4키(초기손절/트레일 다리 토글·무장 문턱·N봉 컷)+진입원 토글(KR·코인·후보 카드 제외 표기 워커 동식) · [S1517] 워커 청산 코어(두 다리·무장·봉 규약·KR 당일시가) · [S1506] 청산 설정 두 시장 공용(당시 배지 미갱신 — 정정) · [S1502] 코인 긴급정지=전량 청산+중단·KR/코인 제어 분리 · [S1501] 코인 익절 칩 UI(TP급등·TP_ATR 값·토글 저장) · [S1498] 텔레그램 코인 알림 토글(코인 설정 카드) · [S1497] 코인 신호 확정봉·09:05 KST(러너·yml) 캡션 · [S1496] S1477 캡션 정정(bullVol·크로스 후보 카드 표시됨) · [S1494] 보드 현금=지갑 실시간 · [S1493] 위험감시 폴링(🛡 버튼·보드 줄) · [S1491] 마켓목록 줄 배지화 · [S1490] 위험종목(유의·거래종료) 보유분 즉시 청산 표기 · [S1489] COIN 트랙 보드 보유/최근실현 제거(포트폴리오·evidence로 이관) · [S1488] 코인 카드 6종(제어·포트폴리오·주문 피드·evidence·자금 추적·설정 — S1487 엔드포인트) · [S1481] 토글 3종 22px·2줄 레이아웃 · [S1480] 코인 후보 카드 상시 표시(후보 0 안내)·보드 마켓목록/게이트 상태줄 · [S1479] 주의 제외 토글(enCoinCau) · [S1478] 유의·거래종료 매수 제외(주의 배지) · [S1477] 코인 진입원 bullVol·크로스(src 전진게이트) · [S1474] 토글 캡션 원인 정정(사다리 1 고정·S877) · [S1473] 코인 오늘의 매수 후보 카드(enCoinV4 토글=코인 전용 설정·entry-config?mkt=coin) · [S1472] COIN ② 가상 원장 보드(atCoinLedger)·존/인터벌 훅·stale 각주 갱신(정지 표기→①②가동·규칙17) -->
   </div>
 
   <div class="scroll-area">
@@ -212,13 +212,21 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="card-title">💼 US 보유 <span class="tag" id="usPosTag">—</span></div>
       <div id="usPos" style="font-size:12px;"></div>
     </div>
+    <div class="card" data-zone="us" id="usOrdCard" data-ccx>
+      <div class="card-title">🧾 US 주문 피드 <span class="tag" id="usOrdTag">가상 체결</span></div>
+      <div id="usOrd" style="font-size:12px;"></div>
+    </div>
     <div class="card" data-zone="us" id="usTradeCard" data-ccx>
-      <div class="card-title">🧾 US 거래 기록 <span class="tag">실현 evidence</span></div>
+      <div class="card-title">📒 US 거래 기록 <span class="tag">실현 evidence</span></div>
       <div id="usTrades" style="font-size:12px;"></div>
     </div>
     <div class="card" data-zone="us" id="usEqCard" data-ccx>
       <div class="card-title">📈 US 자금 추적 <span class="tag">NAV 일별</span></div>
       <div id="usEq" style="font-size:12px;"></div>
+    </div>
+    <div class="card" data-zone="us" id="usCfgCard" data-ccx>
+      <div class="card-title">📊 US 설정 <span class="tag">진입 상한 · 사이징 · us/config</span></div>
+      <div id="usCfg" style="font-size:12px;"></div>
     </div>
     <div class="card" data-zone="us" id="usSetCard" data-ccx>
       <div class="card-title">📐 US 세트 <span class="tag">DECL §14 · 카드 사진1</span></div>
@@ -415,12 +423,12 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
     </div>
 
     <!-- ═══ [S1617] 🚫 진입 열외 목록 — 수동(코드/이름) + 자동(시즌2 매매기록) · 진입만 막는다 ═══ -->
-    <div class="card" data-zone="kr coin" id="atExclCard">
+    <div class="card" data-zone="kr coin us" id="atExclCard">
       <div class="card-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">🚫 진입 열외 <span class="tag" id="atExclTag">KR · S1617</span>
         <span style="margin-left:auto;display:inline-flex;gap:12px;"><span onclick="atExclLoad()" style="font-size:11px;color:var(--text3);cursor:pointer;">🔄</span></span></div>
-      <div class="hint">여기 오른 종목은 <b>새로 사지 않습니다</b>(보유 중이면 청산은 그대로 · 강제청산하는 🚫차단 목록과 다름). <b>수동</b>: 코드 또는 종목명을 쉼표·줄바꿈으로(이름은 신호의 종목명과 정확히 같아야 함). <b>자동</b>: 시즌2 매매기록을 종목별로 누적해 <code>거래 n≥N ∧ 승률&lt;W% ∧ 복리수익≤R%</code>면 자동 열외(기본 OFF · 시장별 · 시즌1 3창 결과와는 별개 표본). 위 국내/코인 탭이 시장입니다.</div>
+      <div class="hint">여기 오른 종목은 <b>새로 사지 않습니다</b>(보유 중이면 청산은 그대로 · 강제청산하는 🚫차단 목록과 다름). <b>수동</b>: 코드 또는 종목명을 쉼표·줄바꿈으로(이름은 신호의 종목명과 정확히 같아야 함). <b>자동</b>: 시즌2 매매기록을 종목별로 누적해 <code>거래 n≥N ∧ 승률&lt;W% ∧ 복리수익≤R%</code>면 자동 열외(기본 OFF · 시장별 · 시즌1 3창 결과와는 별개 표본). 위 KR/COIN/US 탭이 시장입니다(US는 [S1635]부터 · 자동 규칙은 US 가상 원장 거래로 셈).</div>
       <div style="margin-top:6px;"><div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:3px;">수동 목록 <span id="atExclManualN" style="color:var(--text3);font-weight:400;"></span></div>
-        <textarea id="atExclManual" rows="3" placeholder="예: 005930, 카카오, KT&G  (코인: BTC, 볼타)" style="width:100%;box-sizing:border-box;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;"></textarea></div>
+        <textarea id="atExclManual" rows="3" placeholder="예: 005930, 카카오, KT&G  (코인: BTC, 볼타 · US: SHOP)" style="width:100%;box-sizing:border-box;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;"></textarea></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;font-size:12px;">
         <label style="display:inline-flex;align-items:center;gap:4px;"><input type="checkbox" id="atExclAutoOn"> 자동 열외</label>
         <span>n≥<input id="atExclMinN" type="number" min="1" max="200" style="width:52px;padding:3px 5px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></span>
@@ -608,7 +616,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 
 
     <!-- ═══ [S1533] 📓 자리 압박 · 탈락 대장 (워커 S1532 원장 관측) ═══ -->
-    <div class="card" data-zone="kr coin" id="atCutCard">
+    <div class="card" data-zone="kr coin us" id="atCutCard">
       <div class="card-title">📓 자리 압박 <span class="tag">탈락 대장 · S1532 원장 · S1533 UI</span><span onclick="atLoadCutlog(true)" style="float:right;font-size:12px;color:var(--accent2);cursor:pointer;user-select:none;font-weight:700;">↻ 갱신</span></div>
       <div id="atCutBody" style="font-size:11px;color:var(--text3);line-height:1.6;">아직 안 불러옴 — ↻ 갱신. 워커 S1532 배포 후 tick마다 쌓입니다(240 tick 롤링).</div>
       <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.6;"><b>표시 전용·판정 무관</b> — 기록만 하고 매수 순서에는 손대지 않습니다(S1532).
@@ -646,7 +654,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
       <div class="epis">※ in-sample 통과 ≠ 확정 — 모든 항목은 전진(OOS) 관문 후 승격. PREREG 동결 → 측정 → 판정 순서 고정.</div>
     </div>
 
-    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1634</div>
+    <div class="foot">SIGNAL X 시즌2 · SX_AUTOTRADE_BUILD S1640</div>
   </div>
 </div>
 
@@ -664,6 +672,17 @@ const AT_WORKER_BASE = (typeof window!=='undefined' && window.WORKER_BASE) ? win
 let _atCmd = { power:'off', halt:false, mode:'signal_only' };
 let _atToken='';
 function atAuthHeaders(extra){ const h=Object.assign({}, extra||{}); if(_atToken) h['x-at-auth']=_atToken; return h; }
+// [S1640] 🔗 시즌2 설정 스냅샷(시즌1 단일검증 동기화용) — 같은 사이트 브라우저 저장소(sx_s2_sync_v1)에만 · 서버·공개 0
+//   전략 설정만(청산 칩·진입원·votes≥4·US 세트) — 토큰·잔고·주문·사이징은 담지 않는다 · 실패해도 화면 무영향
+function _s2Entry(ec){ return (ec && typeof ec==='object') ? { srcOn: (ec.srcOn && typeof ec.srcOn==='object') ? Object.assign({}, ec.srcOn) : null, legacyV4Only: ec.legacyV4Only!==false } : null; }
+function _s2SnapPut(mk, patch){
+  try{
+    if(!mk || !patch) return; const K='sx_s2_sync_v1'; let o={}; try{ o=JSON.parse(localStorage.getItem(K)||'{}')||{}; }catch(_){ o={}; }
+    const p={}; for(const k in patch){ if(patch[k]!=null) p[k]=patch[k]; } if(!Object.keys(p).length) return;
+    const now=Date.now(); o.v=1; o[mk]=Object.assign({}, o[mk]||{}, p, { at: now }); o.at=now; o.build='S1640';
+    localStorage.setItem(K, JSON.stringify(o));
+  }catch(_){}
+}
 function atShowGate(){ const g=_$('atAuthGate'); if(g) g.style.display='flex'; }
 function atHideGate(){ const g=_$('atAuthGate'); if(g) g.style.display='none'; }
 function _$(id){ return document.getElementById(id); }
@@ -734,6 +753,7 @@ function atRender(d){
   _atDefaults.kr=(d.defaults&&typeof d.defaults==='object')?d.defaults:null;   // [S1523] 확정 기본값(워커 SSOT)
   atRenderExitConfig(d.exitConfig, false, 'kr'); // [S949] 청산 설정 입력칸 동기화 · [S1506] 시장 태그
   atRenderEntryConfig(d.entryConfig); // [S1028] 진입 상한 입력칸 동기화
+  try{ _s2SnapPut('kr', { exit: d.exitConfig||null, entry: _s2Entry(d.entryConfig) }); }catch(_){}   // [S1640] 🔗 시즌1 단일검증 동기화(KR 상태 응답)
   atRenderNotifyConfig(d.notifyConfig); // [S1464] 텔레그램 알림 설정 동기화(최초 1회)
   atRenderPnl(d.pnl); // [S1031] 실현손익 evidence 카드
   // [S943] 장중 배지(서버 계산 marketOpen·공휴일 반영)
@@ -916,7 +936,7 @@ function _atPlCol(n){ return n>0?'var(--c-red)':(n<0?'var(--c-blue)':'var(--text
 //   ⚠기본은 요약만 받는다(full=0). 후보 순위 행은 폭이 커서 눌렀을 때만 가져온다.
 let _atCutData={}, _atCutFull={}, _atCutWant=false;
 async function atLoadCutlog(force){
-  const el=_$('atCutBody'); const mk=(typeof _exMkt==='function')?_exMkt():'kr';
+  const el=_$('atCutBody'); const mk=(typeof _atZone!=='undefined'&&_atZone==='us')?'us':((typeof _exMkt==='function')?_exMkt():'kr');   /* [S1635] US 존 = US 대장(존이 곧 시장 · S1506) · typeof = 고립 하네스(verify_s1533)에서도 안전 */
   const key=mk+(_atCutWant?':full':'');
   if(!force && _atCutData[key]){ _atCutRender(); return; }
   if(el) el.textContent='불러오는 중…';
@@ -947,7 +967,7 @@ function _atNeckTag(k){ const m=_AT_NECK[k]||{t:k||'?',c:'var(--text3)'};
   return '<span style="font-size:9px;font-weight:800;color:'+m.c+';">'+m.t+'</span>'; }
 function _atCutRender(){
   const el=_$('atCutBody'); if(!el) return;
-  const mk=(typeof _exMkt==='function')?_exMkt():'kr';
+  const mk=(typeof _atZone!=='undefined'&&_atZone==='us')?'us':((typeof _exMkt==='function')?_exMkt():'kr');   /* [S1635] */
   const d=_atCutData[mk+(_atCutWant?':full':'')];
   if(!d){ el.innerHTML='아직 안 불러옴 — ↻ 갱신.'; return; }
   const rows=(d.rows||[]), s=(d.summary||{ticks:0,cutTicks:0,cutTotal:0,neck:{}});
@@ -1005,7 +1025,7 @@ function _atCutRender(){
       const li=r.c.map(function(c){
         // [S1538] src·realK를 함께 — 통합(S1537) 후 v2 후보가 정렬에서 밀리는지 **이 자리에서 보인다**.
         //   votes는 레거시 recipe 전용이라 대개 0이다. 실제로 순서를 정하는 건 realK(겹침)다.
-        const _tail=(c.s?('·'+c.s):'')+((c.k!=null&&c.k!==0)?('·겹'+c.k):'')+((c.v!=null&&c.v!==0)?('·v'+c.v):'');
+        const _tail=(c.s?('·'+c.s):'')+((c.k!=null&&c.k!==0)?('·겹'+c.k):'')+((c.v!=null&&c.v!==0)?('·v'+c.v):'')+((c.w&&c.w!=='buy')?('·'+({slot:'자리',cash:'현금',over:'1주초과',excl:'열외',held:'보유',reent:'재진입',nobar:'봉없음',budget:'금액0'}[c.w]||c.w)):'');   /* [S1635] US 보류 사유(행 w) — KR·코인 행엔 w가 없어 종전 그대로 */
         return '<span style="display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;margin:1px 2px 1px 0;border-radius:8px;'
           /* ⚠CSS 변수에는 16진 알파를 못 붙인다 — 변수 뒤에 두 자리를 덧붙이면 무효값이라 배경이 통째로 날아간다.
              (sx_render.js는 `#RRGGBBAA` 리터럴이라 되지만 여기 색은 변수다.) 이 파일의 다른 칩은 전부 단색 — 선례를 따른다.
@@ -1029,7 +1049,7 @@ function _atCutRender(){
   }else{
     x+='<span title="워커는 자리가 부족해 잘린 판에만 후보 순위를 남깁니다(S1532)." style="font-size:9.5px;font-weight:700;padding:5px 10px;border-radius:12px;border:1px dashed var(--border);color:var(--text3);">▸ 순위 상세 — 볼 판 없음</span>';
   }
-  x+='<span style="font-size:9px;color:var(--text3);margin-left:7px;">'+(_atCutWant?'✕=잘린 것 · 겹=realK · v=votes':'표시 '+Math.min(rows.length,24)+'/'+rows.length+'판')+'</span>';
+  x+='<span style="font-size:9px;color:var(--text3);margin-left:7px;">'+(_atCutWant?('✕=잘린 것 · 겹=realK · v=votes'+((mk==='us')?' · US는 뒤에 보류 사유(자리·현금·1주초과·열외·보유·재진입)':'')):'표시 '+Math.min(rows.length,24)+'/'+rows.length+'판')+'</span>';
   // 상세를 켰는데 정말로 아무 판에도 순위가 없으면 그 자리에서 이유를 말한다(빈 화면 금지).
   if(_atCutWant && !_hasDetail){
     x+='<div style="margin-top:6px;font-size:9.5px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 9px;line-height:1.55;">'
@@ -1325,9 +1345,9 @@ function atLogout(){
 }
 // ── [S1617] 🚫 진입 열외 카드 ──
 let _atExclMkt='kr', _atExclData=null;
-function _atExclCurMkt(){ try{ return (_atZone==='coin')?'coin':'kr'; }catch(_){ return 'kr'; } }   // [S1506] 존=시장
+function _atExclCurMkt(){ try{ return (_atZone==='coin')?'coin':((_atZone==='us')?'us':'kr'); }catch(_){ return 'kr'; } }   // [S1506] 존=시장
 async function atExclLoad(mkt){
-  _atExclMkt=(mkt==='coin'||mkt==='kr')?mkt:_atExclCurMkt(); const b=_$('atExclBody'); const tag=_$('atExclTag'); if(tag) tag.textContent=(_atExclMkt==='coin'?'코인':'KR')+' · S1617';
+  _atExclMkt=(mkt==='coin'||mkt==='kr'||mkt==='us')?mkt:_atExclCurMkt(); const b=_$('atExclBody'); const tag=_$('atExclTag'); if(tag) tag.textContent=(_atExclMkt==='coin'?'코인':(_atExclMkt==='us'?'US':'KR'))+' · S1617';
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/exclude?mkt='+_atExclMkt,{ headers: atAuthHeaders(), signal: AbortSignal.timeout(12000) });
     if(r.status===401){ atShowGate(); return; }
@@ -1356,7 +1376,7 @@ async function atExclSave(){
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/exclude?mkt='+_atExclMkt,{ method:'POST', headers: atAuthHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ mkt:_atExclMkt, manual, rule }), signal: AbortSignal.timeout(15000) });
     if(r.status===401){ atShowGate(); return; }
     const d=await r.json().catch(()=>({}));
-    if(d.ok){ if(msg) msg.textContent='✅ 저장됨 · '+(_atExclMkt==='coin'?'코인':'KR')+' 수동 '+d.manual.length+'종 · 자동 '+(d.rule.on?('ON('+d.autoSet.length+'종)'):'OFF')+' — 다음 tick·후보 카드부터 적용'; await atExclLoad(_atExclMkt); try{ atRefresh(); }catch(_){} }
+    if(d.ok){ if(msg) msg.textContent='✅ 저장됨 · '+(_atExclMkt==='coin'?'코인':(_atExclMkt==='us'?'US':'KR'))+' 수동 '+d.manual.length+'종 · 자동 '+(d.rule.on?('ON('+d.autoSet.length+'종)'):'OFF')+' — 다음 tick·후보 카드부터 적용'; await atExclLoad(_atExclMkt); try{ atRefresh(); }catch(_){} }
     else if(msg) msg.textContent='❌ 저장 실패 — '+(d.error||('응답 '+r.status));
   }catch(e){ if(msg) msg.textContent='❌ 저장 실패 — '+(e.message||e); }
   finally{ if(btn) btn.disabled=false; }
@@ -1633,7 +1653,7 @@ async function atSaveExitConfig(){
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/exit-config?mkt='+_exMkt(),{ method:'POST',   /* [S1506] 현재 탭 시장에 저장 */ headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
     const d=await r.json();
-    if(d && d.ok){ atRenderExitConfig(d.exitConfig, true, _exMkt()); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ '+(_exMkt()==='coin'?'코인':'국내')+' 저장됨 · '+_exSummary(d.exitConfig); } }
+    if(d && d.ok){ try{ _s2SnapPut(_exMkt(), { exit: d.exitConfig||null }); }catch(_){} /* [S1640] 저장 응답 */ atRenderExitConfig(d.exitConfig, true, _exMkt()); if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ '+(_exMkt()==='coin'?'코인':'국내')+' 저장됨 · '+_exSummary(d.exitConfig); } }
     else if(d && d.needAuth){ _atToken=''; atShowGate(); }
     else if(msg){ msg.style.color='var(--sell)'; msg.textContent='저장 실패: '+((d&&d.error)||'알수없음'); }
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
@@ -1773,7 +1793,7 @@ async function atKrEntrySrcReset(){  // [S1527] KR 후보 카드 ↻ 확정값 �
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/entry-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
     const dd=await r.json();
     _enSrcPend=false; _enV4Pend=false; _enRsPend=false;
-    if(dd && dd.ok){ atRenderEntryConfig(dd.entryConfig, true); try{ if(_atLastSig) atRenderBuyPreview(_atLastSig); }catch(_){ } }
+    if(dd && dd.ok){ atRenderEntryConfig(dd.entryConfig, true); try{ _s2SnapPut('kr', { entry: _s2Entry(dd.entryConfig) }); }catch(_){} /* [S1640] ↻ 확정값 저장 응답 */ try{ if(_atLastSig) atRenderBuyPreview(_atLastSig); }catch(_){ } }
     else if(dd && dd.needAuth){ _atToken=''; atShowGate(); }
     else alert('확정값 저장 실패: '+((dd&&dd.error)||'알수없음'));
   }catch(e){ _enSrcPend=false; _enV4Pend=false; _enRsPend=false; alert('확정값 저장 오류: '+(e&&e.message)); }
@@ -1858,7 +1878,7 @@ async function atSaveEntryConfig(){
   try{
     const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/entry-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
     const d=await r.json();
-    if(d && d.ok){ _enV4Pend=false; _enSrcPend=false; _enRsPend=false; atRenderEntryConfig(d.entryConfig, true); try{ if(_atLastSig) atRenderBuyPreview(_atLastSig); }catch(_){ } if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 상한 '+d.entryConfig.maxHoldings+'/tick '+d.entryConfig.buyCapPerTick+'/일 '+(d.entryConfig.buyCapPerDay||0)+' · 종목당 '+_atSizeStrH(d.entryConfig)+(d.entryConfig.cashFit!==false?' · 💰현금맞춤':'')+(d.entryConfig.skipOverBudget===true?' · ⏭1주초과 건너뜀':'')+' · 레거시 v4만 '+(d.entryConfig.legacyV4Only!==false?'ON':'OFF'); } }   // [S1593] 토글 표기 · [S1591] V2 슬롯 표기 철거(S1537 후 미사용) · 사이징 표기
+    if(d && d.ok){ _enV4Pend=false; _enSrcPend=false; _enRsPend=false; try{ _s2SnapPut('kr', { entry: _s2Entry(d.entryConfig) }); }catch(_){} /* [S1640] */ atRenderEntryConfig(d.entryConfig, true); try{ if(_atLastSig) atRenderBuyPreview(_atLastSig); }catch(_){ } if(msg){ msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 상한 '+d.entryConfig.maxHoldings+'/tick '+d.entryConfig.buyCapPerTick+'/일 '+(d.entryConfig.buyCapPerDay||0)+' · 종목당 '+_atSizeStrH(d.entryConfig)+(d.entryConfig.cashFit!==false?' · 💰현금맞춤':'')+(d.entryConfig.skipOverBudget===true?' · ⏭1주초과 건너뜀':'')+' · 레거시 v4만 '+(d.entryConfig.legacyV4Only!==false?'ON':'OFF'); } }   // [S1593] 토글 표기 · [S1591] V2 슬롯 표기 철거(S1537 후 미사용) · 사이징 표기
     else if(d && d.needAuth){ _atToken=''; atShowGate(); }
     else if(msg){ msg.style.color='var(--sell)'; msg.textContent='저장 실패: '+((d&&d.error)||'알수없음'); }
   }catch(e){ if(msg){ msg.style.color='var(--sell)'; msg.textContent='오류: '+(e&&e.message); } }
@@ -1933,8 +1953,14 @@ function _atOosRender(){
   const tr=_atOosData[_atMeasMkt]; if(!tr){ el.innerHTML='아직 안 불러옴 — ↻ 갱신. 신호 수신마다 하루치가 KV에 쌓여(120일 롤링).'; return; }
   const days=tr.days||[]; if(!days.length){ el.innerHTML='축적 대기 — 워커 S1187 배포 후 첫 신호 수신부터 쌓임.'; return; }
   const H=_atMeasHz, T={L:{n:'레거시',c:'var(--text2)',f:[],w:0},R:{n:'V2 real',c:'var(--accent)',f:[],w:0},F:{n:'fake',c:'var(--hold)',f:[],w:0},D:{n:'down',c:'var(--sell)',f:[],w:0}};
+  /* [S1636] 수신 공백 — +H는 '수신일 H개 뒤'라, 이웃 수신일이 14일(달력) 넘게 끊긴 구간을 건너는 쌍은 H봉이 아니다(US 7/1→9/18 · 야후 429로 2.5개월 정지).
+     원문(KV)은 그대로 두고 계산에서만 뺀다(알갱이 보존) · 날짜는 숫자만 읽는다(KR YYYYMMDD · 코인·US ISO 공용) · 못 읽으면 끊지 않는다(보수) */
+  const _dY=function(a){ const t=String(a==null?'':a).replace(/[^0-9]/g,'').slice(0,8); return (t.length===8)?Date.UTC(+t.slice(0,4),+t.slice(4,6)-1,+t.slice(6,8)):NaN; };
+  const _brk=[]; for(let q=0;q+1<days.length;q++){ _brk.push(((_dY(days[q+1].asof)-_dY(days[q].asof))/86400000)>14); }
+  let _gxD=0,_gxR=0;
   for(let i=0;i<days.length;i++){
     const d=days[i], m=days[i+H]||null;
+    if(_brk.slice(i,Math.min(i+H,days.length-1)).some(Boolean)){ _gxD++; _gxR+=(d.fired||[]).length; continue; }   /* [S1636] 공백을 건너는 창 */
     for(const f of (d.fired||[])){
       const c0=d.closes&&d.closes[f.c]; let r=null;
       if(m&&c0>0){ const c1=m.closes&&m.closes[f.c]; if(c1>0) r=(c1-c0)/c0*100; }
@@ -1942,7 +1968,7 @@ function _atOosRender(){
       if(f.L) put('L'); if(f.R>0) put('R'); if(f.F>0) put('F'); if(f.D>0) put('D');
     }
   }
-  let x='<div style="font-size:10px;color:var(--text3);margin-bottom:5px;">축적 '+days.length+'수신일 · '+String(days[0].asof).slice(0,10)+'~'+String(days[days.length-1].asof).slice(0,10)+' · +'+H+'d 성숙 기준</div>';
+  let x='<div style="font-size:10px;color:var(--text3);margin-bottom:5px;">축적 '+days.length+'수신일 · '+String(days[0].asof).slice(0,10)+'~'+String(days[days.length-1].asof).slice(0,10)+' · +'+H+'d 성숙 기준'+(_gxD?(' · <span style="color:var(--hold);font-weight:700;">수신 공백 건너는 '+_gxD+'일('+_gxR+'행) 제외</span> <span style="font-size:9px;">— 14일 넘게 끊긴 구간은 +H가 H봉이 아님 · 원문 보존</span>'):'')+'</div>';   /* [S1636] */
   x+='<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">';
   x+='<div style="display:flex;font-size:9.5px;color:var(--text3);background:var(--surface2);padding:5px 9px;font-weight:700;"><span style="flex:1;">트랙</span><span style="width:64px;text-align:right;">성숙/대기</span><span style="width:54px;text-align:right;">중앙</span><span style="width:44px;text-align:right;">승률</span><span style="width:52px;text-align:right;">≤−10%</span></div>';
   for(const k of ['L','R','F','D']){
@@ -2006,6 +2032,7 @@ let _atZone='kr'; try{ _atZone=localStorage.getItem('at_zone')||'kr'; }catch(_){
 // ═══════ [S1634] 🇺🇸 US 트랙 — 가상 원장(/sx/autotrade/us/state) · 카드 6장(보드·매수 대기·보유·거래 기록·자금 추적·세트) · 존 진입·12초 인터벌 ═══════
 //   var 선언 — 부트스트랩 atZoneSet(_atZone)보다 앞에 있어 TDZ 없음(S1550 교훈). 문구는 모듈 상태(_usMsgSt)로 두고 템플릿이 다시 그린다(S1597 교훈).
 var _usLedAt=0, _usLast=null, _usBusy=false, _usMsgSt='';
+var _usCfgSig='', _usCfgMsgSt='', _usCfgNav=null;   // [S1635] 📊 설정 카드 — 서버 값이 바뀔 때만 다시 그린다(입력 중 덮어쓰기 금지 · S1539) · 문구는 상태로(S1597)
 var _US_SRC_CHIP={range:['🌀','BB회귀','#0e7490'],cross:['📈','크로스','#2563eb'],v2:['🧩','칸real','#7c3aed']};
 function _us$(v,dp){ if(v==null||!isFinite(v)) return '—'; const a=Math.abs(v); return (v<0?'-':'')+'$'+a.toLocaleString('en-US',{minimumFractionDigits:(dp==null?0:dp),maximumFractionDigits:(dp==null?0:dp)}); }
 function _usPct(v,dp){ if(v==null||!isFinite(v)) return '—'; return (v>=0?'+':'')+Number(v).toFixed(dp==null?2:dp)+'%'; }
@@ -2013,8 +2040,9 @@ function _usClr(v){ return (v==null||!isFinite(v)||v===0)?'var(--text2)':(v>0?'#
 function _usSrcChip(s){ const c=_US_SRC_CHIP[s]||['','?','#666']; return '<span style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;color:#fff;background:'+c[2]+';">'+c[0]+' '+c[1]+'</span>'; }
 function _usMsg(t){ _usMsgSt=t||''; const m=_$('usMsg'); if(m) m.innerHTML=_usMsgSt; }
 function _usRender(d){
+  try{ if(d && d.ok && d.set) _s2SnapPut('us', { set: d.set }); }catch(_){}   // [S1640] 🔗 US 세트(US_SET)
   _usLast=d;
-  const L=d.ledger, m=d.meta||{}, P=d.paper||{}, S=d.set||{}, mh=(P.maxHoldings||30);
+  const L=d.ledger, m=d.meta||{}, P=d.paper||{}, S=d.set||{}, CF=d.cfg||d.cfgDef||{}, mh=(CF.maxHoldings||P.maxHoldings||30);   // [S1635] 상한은 📊 US 설정 값
   const b=_$('usBoard');
   if(b){
     let h='';
@@ -2045,11 +2073,11 @@ function _usRender(d){
       if(pd.mismatch) h+='<div style="color:#dc2626;font-size:11px;">⚠ 신호 기준일 '+_esc(pd.asof)+' ≠ 캔들팩 '+_esc(pd.mismatch)+' — 이번엔 대기 후보를 비웠어요.</div>';
       else if(!lst.length) h+='<div style="color:var(--text3);">오늘 신호에 사진1 세트 후보가 없어요.</div>';
       lst.forEach(function(x){
-        const st=(x.state==='held')?'<span style="color:var(--text3);">보유 중 · 제외</span>':((x.state==='reent')?'<span style="color:var(--text3);">⏳ 재진입 대기(청산 봉 신호)</span>':'<span style="color:#16a34a;font-weight:700;">시가 매수 대기</span>');
+        const st=(x.state==='held')?'<span style="color:var(--text3);">보유 중 · 제외</span>':((x.state==='reent')?'<span style="color:var(--text3);">⏳ 재진입 대기(청산 봉 신호)</span>':((x.state==='excl')?'<span style="color:#b91c1c;font-weight:700;">🚫 열외(진입 열외 목록)</span>':'<span style="color:#16a34a;font-weight:700;">시가 매수 대기</span>'));   /* [S1635] 열외 */
         h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);'+(x.state!=='wait'?'opacity:.55;':'')+'"><div><b>'+_esc(x.code)+'</b> '+_usSrcChip(x.src)+'</div><div style="font-size:11px;text-align:right;">'+st+'<br><span style="color:var(--text3);">종가 '+_us$(x.close,2)+' · 점수 '+_esc(x.rawScore)+'</span></div></div>';
       });
       if(pd.stale&&pd.stale.length) h+='<div style="font-size:10px;color:var(--text3);margin-top:4px;">신호 봉이 기준일이 아니라 뺀 종목(야후 결측 등): '+pd.stale.map(_esc).join(', ')+'</div>';
-      h+='<div style="font-size:10px;color:var(--text3);margin-top:6px;">순서 = BB회귀 › 크로스 › 칸real → 점수 → 코드 · 자리('+mh+')·현금이 모자라면 뒤에서부터 보류 · 1주 값이 종목당 목표금액(순자산÷'+(mh+(P.sizeDiv||5))+')을 넘으면 건너뜀</div>';
+      h+='<div style="font-size:10px;color:var(--text3);margin-top:6px;">순서 = BB회귀 › 크로스 › 칸real → 점수 → 코드 · 자리('+mh+')·현금이 모자라면 뒤에서부터 보류 · 종목당 '+_usSizeTxt(CF)+' · '+((CF.skipOverBudget===false)?'1주 값이 그보다 비싸도 1주는 삼':'1주 값이 그보다 비싸면 건너뜀')+' · 🚫 열외 종목은 사지 않음</div>';   /* [S1635] 설정 값 */
     }
     c.innerHTML=h;
   }
@@ -2059,12 +2087,14 @@ function _usRender(d){
     let h=ps.length?'':'<div style="color:var(--text3);">보유 없음</div>';
     ps.forEach(function(x){
       h+='<div style="padding:6px 0;border-bottom:1px solid var(--border);">'
-        +'<div style="display:flex;justify-content:space-between;"><div><b>'+_esc(x.code)+'</b> '+_usSrcChip(x.src)+' <span style="color:var(--text3);font-size:11px;">'+x.qty+'주</span></div><div style="font-weight:800;color:'+_usClr(x.pnlPct)+';">'+_usPct(x.pnlPct)+'</div></div>'
+        +'<div style="display:flex;justify-content:space-between;"><div><b>'+_esc(x.code)+'</b> '+_usSrcChip(x.src)+' <span style="color:var(--text3);font-size:11px;">'+x.qty+'주</span>'+((x.adj&&x.adj.length)?(' <span style="font-size:10px;font-weight:700;color:var(--hold);">✂×'+x.adj[x.adj.length-1].r+'</span>'):'')+'</div><div style="font-weight:800;color:'+_usClr(x.pnlPct)+';">'+_usPct(x.pnlPct)+'</div></div>'
         +'<div style="font-size:11px;color:var(--text3);">진입 '+_esc(x.entryDate)+' @'+_us$(x.entry,2)+' → 종가 '+_us$(x.lastClose,2)+' · 평가 '+_us$(x.value)+' · '+(x.held||0)+'/'+x.limit+'봉</div>'
         +'<div style="font-size:11px;color:var(--text3);">SL '+_us$(x.sl,2)+' · 트레일 '+(x.armed?_us$(x.trail,2):'무장 전')+' · TP_ATR '+_us$(x.tpAtr,2)+' · TP고정 '+_us$(x.tpFix,2)+(x.src==='range'?' · BB중단(%B≥0.5)':'')+'</div></div>';
     });
     p.innerHTML=h;
   }
+  const o=_$('usOrd');   // [S1635] 🧾 주문 피드
+  if(o){ const os=(L&&L.orders)||[]; o.innerHTML=_usOrdHtml(os); const tg=_$('usOrdTag'); if(tg) tg.textContent=os.length+'건 · 가상 체결'; }
   const t=_$('usTrades');
   if(t){
     const ts=(L&&L.trades)||[]; let h='';
@@ -2084,7 +2114,80 @@ function _usRender(d){
     e.innerHTML=h;
   }
   const s=_$('usSet');
-  if(s) s.innerHTML='진입: 📈크로스(5×20 · 라우팅 없음) · 🧩칸real · 🌀BB회귀(장기 혼재 · %B≤0.2 · 20일선 이격&lt;−8%)<br>게이트: 다음봉 시가 · 수수료 왕복 0.2%(원장은 편도 0.1%)<br>청산: '+(S.nbarBars||50)+'봉컷(BB회귀는 %B≥0.5 중단선·'+(S.rangeCap||20)+'봉캡) · SL '+S.slMult+'× · 트레일 '+S.trMult+'×(무장 '+S.trArm+'×) · TP급등 '+S.tpPct+'%(당일봉) · TP_ATR '+S.tpAtrMult+'× · TP고정 '+S.tpFixPct+'%<br>원장: 원금 '+_us$(P.init)+' · 보유상한 '+mh+' · 종목당 = 순자산÷'+(mh+(P.sizeDiv||5))+' · 정수 주수 · 1주 초과 건너뛰기 · 현금 맞춤<br><span style="color:var(--text3);">값 변경은 사전등록 사안(카드 3창 재측정 → DECL §14 갱신).</span>';
+  if(s) s.innerHTML='진입: 📈크로스(5×20 · 라우팅 없음) · 🧩칸real · 🌀BB회귀(장기 혼재 · %B≤0.2 · 20일선 이격&lt;−8%)<br>게이트: 다음봉 시가 · 수수료 왕복 0.2%(원장은 편도 0.1%)<br>청산: '+(S.nbarBars||50)+'봉컷(BB회귀는 %B≥0.5 중단선·'+(S.rangeCap||20)+'봉캡) · SL '+S.slMult+'× · 트레일 '+S.trMult+'×(무장 '+S.trArm+'×) · TP급등 '+S.tpPct+'%(당일봉) · TP_ATR '+S.tpAtrMult+'× · TP고정 '+S.tpFixPct+'%<br>원장(📊 US 설정 값): 원금 '+_us$(P.init)+' · 보유상한 '+mh+' · 종목당 '+_usSizeTxt(CF)+' · 정수 주수 · 1주 초과 건너뛰기 '+((CF.skipOverBudget===false)?'OFF':'ON')+' · 현금 맞춤 '+((CF.cashFit===false)?'OFF':'ON')+'<br><span style="color:var(--text3);">값 변경은 사전등록 사안(카드 3창 재측정 → DECL §14 갱신).</span>';
+  _usRenderCfg(d);   // [S1635] 📊 US 설정
+}
+// [S1635] 🧾 US 주문 피드 · 📊 US 설정 — /us/state 응답 재사용(추가 fetch 0) · 설정 저장은 /us/config
+function _usSizeTxt(c){ c=c||{}; return (c.sizeMode==='amt')?('고정 '+_us$(c.sizeAmt)):((c.sizeMode==='pct')?('순자산의 '+c.sizePct+'%'):('자동 = 순자산÷'+((c.maxHoldings||30)+5))); }
+function _usOrdHtml(os){
+  if(!os||!os.length) return '<div style="color:var(--text3);">아직 주문 없음 — 첫 판정은 기준 봉만 잡고, 다음 거래일부터 쌓여요.</div>';
+  let h='<div style="font-size:11px;color:var(--text3);margin-bottom:4px;">최근 '+Math.min(os.length,40)+'건 · 가상 체결(실주문 0) · 매수=그 봉 시가 · 매도=그 봉 종가 · 수수료 편도 0.1%</div>';
+  os.slice(0,40).forEach(function(o){
+    const buy=(o.side==='BUY');
+    h+='<div style="padding:5px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;"><div><span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:800;color:#fff;background:'+(buy?'#2563eb':'#dc2626')+';">'+(buy?'매수':'매도')+'</span> <b>'+_esc(o.code)+'</b> '+_usSrcChip(o.src)+'</div><div style="font-size:11px;color:var(--text3);">'+_esc(o.bar||'')+'</div></div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+o.qty+'주 @'+_us$(o.price,2)+' · '+_us$(o.amount)+' · 수수료 '+_us$(o.fee,2)+(buy?(' · 신호 '+_esc(o.sigAsof||'')):'')+'</div>'
+      +(buy?'':('<div style="font-size:11px;">'+_esc(o.reason||'')+' · 실현 <b style="color:'+_usClr(o.pnl)+';">'+((o.pnl>=0)?'+':'')+_us$(o.pnl)+' ('+_usPct(o.pnlPct)+')</b> · 진입 '+_esc(o.entryDate||'')+' @'+_us$(o.entryPx,2)+' · '+((o.held!=null)?o.held:'?')+'봉</div>'))
+      +'</div>';
+  });
+  return h;
+}
+function _usRenderCfg(d){
+  const el=_$('usCfg'); if(!el) return;
+  const c=d.cfg||d.cfgDef||{}, df=d.cfgDef||{}, sig=JSON.stringify([c,(d.notify||null)]);   /* [S1638] 알림 토글도 서명에 */
+  _usCfgNav=(d.ledger&&d.ledger.nav>0)?d.ledger.nav:((d.paper&&d.paper.init)||100000);
+  const act=(typeof document!=='undefined')?document.activeElement:null;
+  if(act && el.contains && el.contains(act) && /^(INPUT|SELECT|TEXTAREA)$/.test(act.tagName||'')){ atUsCfgCalc(); return; }   // 입력 중이면 다시 그리지 않는다
+  if(sig===_usCfgSig && el.innerHTML){ atUsCfgCalc(); const m=_$('usCfgMsg'); if(m) m.innerHTML=_usCfgMsgSt; return; }
+  _usCfgSig=sig;
+  const box='padding:6px 8px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;';
+  const ck=function(id,on,t,sub){ return '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;"><input type="checkbox" id="'+id+'"'+(on?' checked':'')+' onchange="atUsCfgCalc()" style="width:22px;height:22px;flex:none;"><span><b>'+t+'</b><br><span style="font-size:10px;color:var(--text3);">'+sub+'</span></span></label>'; };
+  let h='';
+  h+='<div style="display:flex;align-items:center;gap:8px;"><span style="width:92px;">보유상한</span><input id="usCfgMh" type="number" min="1" max="200" value="'+(c.maxHoldings||30)+'" oninput="atUsCfgCalc()" style="width:80px;'+box+'"><span style="font-size:11px;color:var(--text3);">종목</span></div>';
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;"><span style="width:92px;">종목당 투자금</span><select id="usCfgMode" onchange="atUsCfgCalc()" style="'+box+'">'
+    +'<option value="auto"'+((c.sizeMode!=='amt'&&c.sizeMode!=='pct')?' selected':'')+'>자동(순자산÷(상한+5))</option>'
+    +'<option value="amt"'+((c.sizeMode==='amt')?' selected':'')+'>고정 금액($)</option>'
+    +'<option value="pct"'+((c.sizeMode==='pct')?' selected':'')+'>순자산 비중(%)</option></select>'
+    +'<input id="usCfgAmt" type="number" min="1" step="100" placeholder="$" value="'+((c.sizeAmt>0)?c.sizeAmt:'')+'" oninput="atUsCfgCalc()" style="width:96px;'+box+'">'
+    +'<input id="usCfgPct" type="number" min="0.1" max="100" step="0.5" placeholder="%" value="'+((c.sizePct>0)?c.sizePct:'')+'" oninput="atUsCfgCalc()" style="width:80px;'+box+'"></div>';
+  h+=ck('usCfgFit', c.cashFit!==false, '💰 현금 맞춤', '현금이 모자라면 살 수 있는 만큼 줄여 산다(1주도 안 되면 보류)');
+  h+=ck('usCfgSkip', c.skipOverBudget!==false, '⏭ 1주 초과 건너뛰기', '1주 값이 종목당 금액을 넘으면 사지 않는다(끄면 1주는 산다)');
+  const nt=d.notify||null;   /* [S1638] 🔔 텔레그램 US 알림 마스터(usOn) — 토큰·후보/주문 토글은 🔔 알림 카드와 공유 · 켜고 끄면 바로 저장 */
+  if(nt){ const _off=[(nt.candOn===false)?'후보':'',(nt.ordersOn===false)?'주문':''].filter(Boolean);
+    h+='<label style="display:flex;align-items:center;gap:8px;margin-top:8px;"><input type="checkbox" id="usTgOn"'+((nt.usOn!==false)?' checked':'')+' onchange="atUsTgToggle()" style="width:22px;height:22px;flex:none;"><span><b>🔔 텔레그램 US 알림</b><br><span style="font-size:10px;color:var(--text3);">매수 후보(신호 도착 시) · 가상 판정(매수·청산) — 바로 저장'
+      +((!nt.hasToken)?' · <b style="color:#dc2626;">토큰 미설정 — 🔔 알림 카드에서 먼저</b>':'')+(_off.length?(' · 🔔 카드의 '+_off.join('·')+' 토글이 꺼져 있어 그 알림은 US도 안 옴'):'')+'</span></span></label>'; }
+  h+='<div id="usCfgCalc" style="font-size:11px;color:var(--text2);margin-top:8px;"></div>';
+  h+='<div style="display:flex;gap:6px;margin-top:8px;"><button type="button" onclick="atUsCfgSave(false)" style="padding:6px 12px;font-size:12px;font-weight:800;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;">저장</button>'
+    +'<button type="button" onclick="atUsCfgSave(true)" style="padding:6px 12px;font-size:12px;font-weight:800;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;">↻ 확정값</button></div>';
+  h+='<div id="usCfgMsg" style="font-size:11px;color:var(--text3);margin-top:4px;">'+_usCfgMsgSt+'</div>';
+  h+='<div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.5;">보유상한·사이징은 카드가 재지 않는 운용 값이라 여기서 바꿔요(다음 판정부터 · 이미 보유한 종목은 재배분하지 않음). 청산 세트 값은 사전등록 사안이라 📐 US 세트에서 읽기만 해요. 확정값 = 상한 '+(df.maxHoldings||30)+' · 자동 · 현금 맞춤 '+((df.cashFit===false)?'OFF':'ON')+' · 1주 초과 건너뛰기 '+((df.skipOverBudget===false)?'OFF':'ON')+'.</div>';
+  el.innerHTML=h;
+  atUsCfgCalc();
+}
+function atUsCfgCalc(){
+  const mh=+(((_$('usCfgMh')||{}).value)||0), md=((_$('usCfgMode')||{}).value)||'auto', a=_$('usCfgAmt'), p=_$('usCfgPct');
+  if(a&&a.style) a.style.display=(md==='amt')?'':'none'; if(p&&p.style) p.style.display=(md==='pct')?'':'none';
+  const nav=_usCfgNav||100000, div=((mh>0)?mh:30)+5;
+  const b=(md==='amt')?(+((a||{}).value||0)):((md==='pct')?(nav*(+((p||{}).value||0))/100):(nav/div));   // 워커 _atBudgetOf 거울
+  const el=_$('usCfgCalc'); if(!el) return;
+  el.innerHTML=(b>0)?('지금 값으로 셈하면 종목당 약 <b>'+_us$(b)+'</b> (순자산 '+_us$(nav)+' 기준'+((md==='auto')?(' ÷ '+div):'')+')'):'<span style="color:#dc2626;">종목당 금액이 0이에요 — 값을 넣어 주세요.</span>';
+}
+async function atUsTgToggle(){   // [S1638] notify-config usOn(KR 설정 파일 공유 · 워커가 미지정 키를 보존)
+  const on=!!(_$('usTgOn')&&_$('usTgOn').checked);
+  try{ const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/notify-config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify({usOn:on}), signal:AbortSignal.timeout(12000) }); const x=await r.json().catch(function(){ return {}; }); _usCfgMsgSt=(x&&x.ok)?('✅ 텔레그램 US 알림 '+(on?'ON':'OFF')):('❌ 알림 설정 실패 — '+_esc((x&&x.error)||('응답 '+r.status))); }
+  catch(e){ _usCfgMsgSt='❌ 알림 설정 실패 — '+_esc(String((e&&e.message)||e)); }
+  _usCfgSig=''; await atLoadUsLedger(true);
+}
+async function atUsCfgSave(useDef){
+  const d=_usLast||{}; const df=d.cfgDef||{ maxHoldings:30, sizeMode:'auto', sizeAmt:0, sizePct:0, cashFit:true, skipOverBudget:true };
+  const body=useDef?Object.assign({},df):{ maxHoldings:+(((_$('usCfgMh')||{}).value)||0), sizeMode:((_$('usCfgMode')||{}).value)||'auto', sizeAmt:+(((_$('usCfgAmt')||{}).value)||0), sizePct:+(((_$('usCfgPct')||{}).value)||0), cashFit:!!((_$('usCfgFit')||{}).checked), skipOverBudget:!!((_$('usCfgSkip')||{}).checked) };
+  _usCfgMsgSt='⏳ 저장 중…'; const m0=_$('usCfgMsg'); if(m0) m0.innerHTML=_usCfgMsgSt;
+  try{
+    const r=await fetch(AT_WORKER_BASE+'/sx/autotrade/us/config',{ method:'POST', headers:atAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(12000) });
+    const x=await r.json().catch(function(){ return {}; });
+    if(x&&x.ok){ const c=x.cfg||{}; _usCfgMsgSt='✅ 저장됨'+(useDef?'(확정값)':'')+' · 상한 '+c.maxHoldings+' · 종목당 '+_usSizeTxt(c)+' · 현금맞춤 '+(c.cashFit?'ON':'OFF')+' · 1주초과 건너뛰기 '+(c.skipOverBudget?'ON':'OFF')+' — 다음 판정부터'; _usCfgSig=''; await atLoadUsLedger(true); }
+    else { _usCfgMsgSt='❌ 저장 실패 — '+_esc((x&&x.error)||('응답 '+r.status)); const m1=_$('usCfgMsg'); if(m1) m1.innerHTML=_usCfgMsgSt; }
+  }catch(e){ _usCfgMsgSt='❌ 저장 실패 — '+_esc(String((e&&e.message)||e)); const m2=_$('usCfgMsg'); if(m2) m2.innerHTML=_usCfgMsgSt; }
 }
 async function atLoadUsLedger(force){
   if(!_atToken||!_$('usBoard')) return;
@@ -2286,7 +2389,7 @@ async function atCoinSaveCfg(){
   _coinCtrlPend=true; try{ d=await atCoinPost('/sx/autotrade/entry-config?mkt=coin',{maxHoldings:mh,buyCapPerTick:bc,buyCapPerDay:bd,sizeMode:sm,sizeAmt:sa,sizePct:sp,cashFit:cf}); }catch(e){ err=(e&&e.message)||'통신 실패'; } _coinCtrlPend=false;
   if(btn){ btn.disabled=false; btn.textContent='💾 코인 진입 상한 저장'; }
   if(msg){
-    if(d&&d.ok){ const c=d.entryConfig||{maxHoldings:mh,buyCapPerTick:bc,buyCapPerDay:bd,sizeMode:sm,sizeAmt:sa,sizePct:sp,cashFit:cf}; msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 상한 '+c.maxHoldings+'/tick '+c.buyCapPerTick+'/일 '+(c.buyCapPerDay||0)+' · 종목당 '+_atSizeStrH(c)+(c.cashFit!==false?' · 💰현금맞춤':''); }
+    if(d&&d.ok){ try{ _s2SnapPut('coin', { entry: _s2Entry(d.entryConfig) }); }catch(_){} /* [S1640] */ const c=d.entryConfig||{maxHoldings:mh,buyCapPerTick:bc,buyCapPerDay:bd,sizeMode:sm,sizeAmt:sa,sizePct:sp,cashFit:cf}; msg.style.color='var(--buy)'; msg.textContent='✅ 저장됨 · 상한 '+c.maxHoldings+'/tick '+c.buyCapPerTick+'/일 '+(c.buyCapPerDay||0)+' · 종목당 '+_atSizeStrH(c)+(c.cashFit!==false?' · 💰현금맞춤':''); }
     else { msg.style.color='var(--sell)'; msg.textContent='❌ 저장 실패 — '+(err||(d&&(d.error||d.msg))||'워커 응답 없음')+' · 다시 눌러 보세요'; }
     _coinCfgMsgSt={ txt: msg.textContent, col: msg.style.color };   // [S1597] 재렌더 뒤에도 남게
   }
@@ -2402,6 +2505,7 @@ function atRenderCoinExtra(d){
     const bd=(cfg.buyCapPerDay!=null?cfg.buyCapPerDay:0);   // [S1539] 1일 매수 한도(0=무제한) — 워커 S1537이 두 시장 공용으로 이미 받는다
     const nt=(d&&d.notify)||{}; const tgOn=(nt.coinOn!==false);  // [S1498] 텔레그램 코인 알림 마스터
     const xc=(d&&d.exitCfg)||{};
+    try{ if(d && d.ok) _s2SnapPut('coin', { exit: d.exitCfg||null, entry: _s2Entry(d.entryCfg) }); }catch(_){}   // [S1640] 🔗 코인 상태 응답
     atRenderExitConfig(xc, false, 'coin');   // [S1506] 통합 청산 카드에 코인 값 공급(코인 존일 때만 그려진다)
     // [S1539] ⚠새 입력칸은 **두 곳에 같이** 넣어야 한다 — 포커스 목록에서 빠지면 타이핑 중 지워지고,
     //   dataset 비교에서 빠지면 저장해도 화면이 안 바뀐다. 둘 다 조용한 사고라 배터리가 짝으로 본다.
@@ -2442,7 +2546,7 @@ function _coinSizeSync(){
 function atZoneSet(z){
   _atZone=z; try{ localStorage.setItem('at_zone',z); }catch(_){}
   _exLoadedMkt=null;   // [S1506] 존=시장이므로 청산 카드를 그 시장 값으로 다시 그린다(다음 응답에서)
-  try{ if(z==='kr'||z==='coin') atExclLoad(z); }catch(_){}   // [S1617] 열외 카드도 그 시장으로
+  try{ if(z==='kr'||z==='coin'||z==='us') atExclLoad(z); }catch(_){}   // [S1617] 열외 카드도 그 시장으로 · [S1635] us
   try{ const bd=_$('exMktBadge'); if(bd) bd.textContent=(z==='coin')?'₿ 코인':'🇰🇷 국내'; }catch(_){}
   document.querySelectorAll('[data-zone]').forEach(el=>{
     const ok=(el.getAttribute('data-zone')||'').split(' ').indexOf(z)>=0;
