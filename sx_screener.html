@@ -6236,7 +6236,13 @@ async function fetchFinancialData(code, market){
 // ════════════════════════════════════════════════════════════════════
 //  [S338] KOSIS 시장평균 PER fetch + localStorage 캐시
 // ════════════════════════════════════════════════════════════════════
-//  워커 /kosis/market-per 호출 → window._kosisMarketPer 캐시 + localStorage 백업
+//  〔이력〕 워커 /kosis/market-per 호출 → window._kosisMarketPer 캐시 + localStorage 백업
+//  [S1644] ★그 워커 경로가 없었다 — 배포 워커(v9.28·S1638)에 직접 호출하면 404이고 라우터엔 제거 흔적도 없다.
+//    그래서 KR 분석 진입마다 404 → 정적값(avgRecent 24.0/23.7/25.0/22.0 · 출처 기록 없음)으로 떨어졌고,
+//    실패는 캐시에 안 남아 페이지를 열 때마다 반복됐다(적정·목표주가가 파일값보다 대형주 30%·중형 12%·소형 9% 높았다).
+//    ⇒ 같은 사이트 market_per.json(사용자가 KOSIS 엑셀을 받아 파싱해 올리는 파일 · 월 1회)을 직접 읽는다.
+//    순서: 메모리 → localStorage(7일) → market_per.json → 만료 캐시(마지막 성공값) → 정적값(파일 거울 · 라벨에 '정적')
+//    응답 모양 { asOf, categories, _source }는 그대로라 getKosisPerForStock·valuationJudge는 무변경.
 //  응답 구조: { asOf, categories:{ KOSPI:{latest,avgRecent}, 대형주:{...}, ... }, _source }
 //  사용처: valuationJudge — historical PER 없는 종목의 시장평균 폴백 (시총 규모별 분기)
 // ════════════════════════════════════════════════════════════════════
@@ -6244,46 +6250,76 @@ let _kosisMarketPer = null;     // 메모리 캐시
 const KOSIS_LS_KEY = 'SX_FIN_KOSIS_PER';   // [S1399] 구 'sx_kosis_market_per' — 소문자 sx_는 ALL_PREFIXES('sx_ext_')에 안 걸려 전체 초기화가 못 지웠다. 7일 TTL 캐시라 SX_FIN_(캐시 초기화 대상) 아래로 옮긴다.
 const KOSIS_LS_TTL = 7 * 24 * 60 * 60 * 1000;   // 7일
 
+const KOSIS_PER_URL = 'market_per.json';   // [S1644] 같은 사이트 상대 경로(snap_manifest.json과 같은 방식) · 워커 경유 없음
+// [S1644] 최후 폴백 정적값 = market_per.json 거울(asOf · 판정에 쓰는 4칸의 latest/avgRecent)
+//   ⚠파일을 갱신하면 이 값도 같이 바꾼다 — 배터리 verify_s1644.js가 파일과 칸별로 대조한다(한쪽만 바꾸면 걸림).
+//   구본 값(avgRecent 24.0/23.7/25.0/22.0)은 파일(18.63/18.23/22.4/20.26)과 달랐다.
+const KOSIS_PER_STATIC = {
+  asOf: '202604',
+  categories: {
+    'KOSPI':  { latest: 27.36, avgRecent: 18.63 },
+    '대형주': { latest: 27.57, avgRecent: 18.23 },
+    '중형주': { latest: 27.10, avgRecent: 22.4 },
+    '소형주': { latest: 21.14, avgRecent: 20.26 },
+  },
+};
+
+// [S1644] market_per.json → 기존 응답 모양 { asOf, categories, _source }
+//   판정에 쓰는 4칸(KOSPI·대형주·중형주·소형주)의 avgRecent가 모두 양수여야 유효 — 아니면 null(폴백으로 간다)
+function _kosisPerFromFile(j){
+  if(!j || typeof j !== 'object' || !j.categories || typeof j.categories !== 'object') return null;
+  const need = ['KOSPI', '대형주', '중형주', '소형주'];
+  for(const k of need){
+    const v = j.categories[k];
+    if(!v || typeof v.avgRecent !== 'number' || !(v.avgRecent > 0)) return null;
+  }
+  const meta = (j._meta && typeof j._meta === 'object') ? j._meta : {};
+  const asOf = (meta.asOf != null) ? String(meta.asOf) : ((j.asOf != null) ? String(j.asOf) : null);
+  return { asOf: asOf, categories: j.categories, _source: 'market_per.json' };
+}
+
 async function fetchKosisMarketPer(){
   // 1) 메모리 캐시
   if(_kosisMarketPer && _kosisMarketPer.categories) return _kosisMarketPer;
 
-  // 2) localStorage 캐시 (7일)
+  // 2) localStorage 캐시 (7일) — [S1644] 만료분은 버리지 않고 쥐고 있다가 파일 읽기 실패 시 정적값보다 먼저 쓴다
+  let _stale = null;
   try{
     const raw = localStorage.getItem(KOSIS_LS_KEY);
     if(raw){
       const cached = JSON.parse(raw);
-      if(cached && cached.data && cached._ts && (Date.now() - cached._ts) < KOSIS_LS_TTL){
-        _kosisMarketPer = cached.data;
-        return _kosisMarketPer;
+      if(cached && cached.data && cached.data.categories && cached._ts){
+        if((Date.now() - cached._ts) < KOSIS_LS_TTL){
+          _kosisMarketPer = cached.data;
+          return _kosisMarketPer;
+        }
+        _stale = cached.data;
       }
     }
   }catch(_){}
 
-  // 3) 워커 호출
+  // 3) [S1644] 같은 사이트 market_per.json
   try{
-    const resp = await fetch(`${WORKER_BASE}/kosis/market-per?market=kr`, {
-      signal: AbortSignal.timeout(8000)
-    });
-    if(!resp || !resp.ok) throw new Error('worker ' + (resp ? resp.status : 'noresp'));
-    const data = await resp.json();
-    if(!data || !data.categories) throw new Error('no categories');
+    const resp = await fetch(KOSIS_PER_URL, { cache: 'no-cache', signal: AbortSignal.timeout(8000) });
+    if(!resp || !resp.ok) throw new Error('market_per.json ' + (resp ? resp.status : 'noresp'));
+    const data = _kosisPerFromFile(await resp.json());
+    if(!data) throw new Error('market_per.json 형식 불일치(4칸 avgRecent)');
     _kosisMarketPer = data;
     try{
       localStorage.setItem(KOSIS_LS_KEY, JSON.stringify({ data, _ts: Date.now() }));
     }catch(_){}
     return _kosisMarketPer;
   }catch(e){
-    console.warn('[S338] KOSIS fetch 실패:', e.message);
-    // 최후 폴백 — 워커 자체 폴백도 못 받으면 클라이언트 측 정적 데이터
+    console.warn('[S1644] market_per.json 읽기 실패:', e && e.message);
+    // 4) 만료 캐시 — 마지막으로 성공한 파일값(라벨엔 그 기준월이 그대로 나온다)
+    if(_stale){
+      _kosisMarketPer = Object.assign({}, _stale, { _stale: true });
+      return _kosisMarketPer;
+    }
+    // 5) 최후 폴백 — 정적값(파일 거울). 라벨 끝에 '(정적)'으로 드러난다(sx_render.js [S1644])
     _kosisMarketPer = {
-      asOf: '202604',
-      categories: {
-        'KOSPI':  { latest: 27.36, avgRecent: 24.0 },
-        '대형주': { latest: 27.57, avgRecent: 23.7 },
-        '중형주': { latest: 27.10, avgRecent: 25.0 },
-        '소형주': { latest: 21.14, avgRecent: 22.0 },
-      },
+      asOf: KOSIS_PER_STATIC.asOf,
+      categories: KOSIS_PER_STATIC.categories,
       _source: 'client_static',
     };
     return _kosisMarketPer;
