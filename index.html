@@ -82,7 +82,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
   padding:10px 16px;
   background:var(--bg);border-bottom:1px solid var(--border);
 }
-.tb-logo{display:flex;align-items:center;gap:8px;}
+.tb-logo{display:flex;align-items:center;gap:8px;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}   /* [S1639] 로고 3초 누르기 — 길게 누르기 메뉴·글자 선택 막음 */
 .tb-logo-mark{
   width:28px;height:28px;border-radius:8px;
   background:var(--accent);color:#fff;
@@ -1220,12 +1220,12 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 <div id="app">
   <!-- ═══ Top Bar ═══ -->
   <div class="top-bar" id="mainTopBar">
-    <div class="tb-logo">
+    <div class="tb-logo" id="tbLogo">
       <div class="tb-logo-mark">SX</div>
       <div class="tb-logo-text">SIGNAL <span>X</span></div>
     </div>
     <div style="display:flex;gap:6px;flex-shrink:0;"><!-- [S914] 상단 버튼 2개 체제: 자동매매(시즌2·고스트) + 조건검색(주버튼) -->
-      <button type="button" onclick="goAutotrade()" style="background:transparent;border:1px solid var(--accent);color:var(--accent2);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;flex-shrink:0;font-family:inherit;font-weight:600;">자동매매</button>
+      <button type="button" id="tbAutoBtn" onclick="goAutotrade()" style="display:none;background:transparent;border:1px solid var(--accent);color:var(--accent2);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;flex-shrink:0;font-family:inherit;font-weight:600;">자동매매</button><!-- [S1639] 시즌2 로그인 세션이 있는 브라우저에서만 보인다(_sxAutoBtnSync) · 숨은 입구 = SX 로고 3초 길게 누르기 -->
       <button type="button" onclick="goScreener()" style="background:var(--accent);border:none;color:#fff;font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;flex-shrink:0;font-family:inherit;font-weight:600;">조건검색</button>
     </div>
   </div>
@@ -5809,6 +5809,36 @@ function goAutotrade(){
   try{ if(navigator.vibrate) navigator.vibrate(15); }catch(_){}
   location.href='sx_autotrade.html';
 }
+
+// [S1639] 🔒 자동매매 입구 숨김 — 시즌1은 공개용이라 시즌2 입구를 안 보인다(보안이 아니라 가림 · 자물쇠는 워커 로그인 그대로)
+//   ① 버튼: 이 브라우저에 시즌2 로그인 세션(at_session — 시즌2 페이지가 로그인 성공 때 저장하고 401이면 스스로 지운다)이 있으면 보이고 없으면 숨는다.
+//      비밀번호·해시 같은 비밀은 이 파일에 없다(공개 파일이라 넣으면 소스보기로 다 보인다).
+//   ② 숨은 입구: SX 로고를 3초 길게 누르면 시즌2 페이지(로그인 화면)로 — 손을 떼거나 12px 넘게 움직이면 취소 · 길게 누르기 메뉴·글자 선택 막음
+//   ③ 뒤로가기(bfcache)·탭 복귀 때 다시 판정 — 시즌2에서 로그인하고 돌아오면 바로 보인다
+function _sxAutoBtnSync(){
+  var b=document.getElementById('tbAutoBtn'); if(!b) return;
+  var on=false; try{ on=!!localStorage.getItem('at_session'); }catch(_){ on=false; }
+  b.style.display=on?'':'none';
+}
+(function(){
+  var HOLD=3000, MOVE=12, t=null, x0=0, y0=0, lastTouch=0;
+  function clear(){ if(t){ clearTimeout(t); t=null; } }
+  function start(x,y){ clear(); x0=x; y0=y; t=setTimeout(function(){ t=null; try{ if(navigator.vibrate) navigator.vibrate([30,60,30]); }catch(_){} goAutotrade(); }, HOLD); }
+  function bind(){
+    var el=document.getElementById('tbLogo'); if(!el || el._sxHold) return; el._sxHold=true;
+    el.addEventListener('touchstart', function(e){ lastTouch=Date.now(); var p=e.touches&&e.touches[0]; start(p?p.clientX:0, p?p.clientY:0); }, {passive:true});
+    el.addEventListener('touchmove', function(e){ var p=e.touches&&e.touches[0]; if(p && (Math.abs(p.clientX-x0)>MOVE || Math.abs(p.clientY-y0)>MOVE)) clear(); }, {passive:true});
+    el.addEventListener('touchend', clear); el.addEventListener('touchcancel', clear);
+    el.addEventListener('mousedown', function(e){ if(Date.now()-lastTouch<800) return; start(e.clientX, e.clientY); });   // 터치 뒤 따라오는 호환 마우스 이벤트는 무시
+    el.addEventListener('mouseup', clear); el.addEventListener('mouseleave', clear);
+    el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  }
+  function init(){ bind(); _sxAutoBtnSync(); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+  window.addEventListener('pageshow', _sxAutoBtnSync);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) _sxAutoBtnSync(); });
+})();
+// [/S1639]
 
 async function goScreener(){
   try{ if(navigator.vibrate) navigator.vibrate(15); }catch(_){}
