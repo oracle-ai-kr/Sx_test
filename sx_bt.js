@@ -1460,10 +1460,20 @@ function _btRenderEntrySrcBar(){   // [S1641] 종목 페이지 BT 설정 표시(
   const d=s2.at?new Date(s2.at):null, ts=d?((d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')):'';
   const head=(s2.src==='s2')?('🔗 <b>시즌2 동기화</b> · '+mkL+' · '+ts+' 기준 · 잠금'):('🧪 <b>전략조합 카드 설정</b> · '+mkL+' · 바꾸려면 전략조합 카드에서');
   const tfNote=((typeof _btTFVal!=='undefined') && !SXS2.tfOk(_btTFVal))?' · ⚠ 일봉이 아니라 이 봉 주기는 옛 엔진으로 돌아요':'';
+  let stale='';   // [S1643] 저장된 결과가 이전 설정으로 계산됐으면 알린다 — 칩은 새 설정인데 결과는 옛 설정인 어긋남을 숨기지 않음(서명 = BT 재사용 판정과 같은 _btSrcSigOf)
+  try{ const _st=(typeof _btCurrentStock==='function')?_btCurrentStock():null, _ro=_st&&_st._btResultOpts; if(_ro && _ro.srcSig && typeof _btSrcSigOf==='function' && _ro.srcSig!==_btSrcSigOf({ engine:'s2', s2:s2 })) stale='<div style="font-size:10px;font-weight:800;color:#e67e22;margin-top:4px">⟳ 설정이 바뀌었어요 — 지금 결과는 이전 설정 기준이에요 · ▶ 백테스트 실행으로 다시 계산</div>'; }catch(_){ stale=''; }
   const lab=(t)=>'<span style="font-size:10px;font-weight:800;color:var(--text3);margin-right:2px">'+t+'</span>';
   el.innerHTML='<div style="font-size:10.5px;color:var(--text2);margin-bottom:3px">'+head+'</div>'
     +'<div>'+lab('진입')+en.join('')+'</div><div>'+lab('청산')+ex.join('')+'</div><div>'+lab('게이트')+gl.join('')+'</div>'
-    +'<div style="font-size:9.5px;color:var(--text3);margin-top:3px;line-height:1.5">다음봉 시가 · 수수료 왕복 '+((sc.fee!==false)?(sc.feePct!=null?sc.feePct:0.2):0)+'% · 종목 하나 기준이라 보유상한·현금·열외·실시간 필터는 반영 안 돼요'+tfNote+((s2.notes&&s2.notes.length)?(' · ⚠ '+s2.notes.join(' · ')):'')+'</div>';
+    +'<div style="font-size:9.5px;color:var(--text3);margin-top:3px;line-height:1.5">다음봉 시가 · 수수료 왕복 '+((sc.fee!==false)?(sc.feePct!=null?sc.feePct:0.2):0)+'% · 종목 하나 기준이라 보유상한·현금·열외·실시간 필터는 반영 안 돼요'+tfNote+((s2.notes&&s2.notes.length)?(' · ⚠ '+s2.notes.join(' · ')):'')+'</div>'+stale;   // [S1643] +stale
+}
+// [S1643] 표시판 자동 갱신 — ① 다른 탭에서 시즌2 설정이 바뀌면(스냅샷 갱신 · storage 이벤트는 바꾼 탭이 아닌 다른 탭에서만 뜬다 · key null=전체 지움)
+//   ② 화면 복귀(pageshow=뒤로가기 bfcache 복원 · visibilitychange=탭 복귀) — 같은 탭에서 시즌2를 다녀오면 storage가 안 오므로 · 표시판이 없으면 조용히 끝(함수 첫 줄 가드)
+if(typeof window!=='undefined' && window.addEventListener && !window.__sxS2PanelHook){
+  window.__sxS2PanelHook=true;
+  window.addEventListener('storage', function(e){ try{ if(!e || e.key===null || e.key===SXS2.KEY) _btRenderEntrySrcBar(); }catch(_){} });
+  window.addEventListener('pageshow', function(){ try{ _btRenderEntrySrcBar(); }catch(_){} });
+  if(typeof document!=='undefined' && document.addEventListener) document.addEventListener('visibilitychange', function(){ try{ if(document.visibilityState==='visible') _btRenderEntrySrcBar(); }catch(_){} });
 }
 if(typeof window!=='undefined'){ window.btToggleEntrySrc=btToggleEntrySrc; window.btSetNbarDays=btSetNbarDays; window._btRenderEntrySrcBar=_btRenderEntrySrcBar; window._btEntrySrc=_btEntrySrc; }   /* [S1505] */
 
@@ -1481,6 +1491,7 @@ function _btIsCoin(){
 async function btRunBasic(){
   const stock = _btCurrentStock();
   if(!stock){toast('종목을 먼저 선택하세요');return;}
+  try{ _btRenderEntrySrcBar(); }catch(_){}   // [S1643] 돌리는 설정 = 보이는 설정(시작 때 다시 그림)
 
   const btn = document.getElementById('btnBtBasic');
   const prog = document.getElementById('btBasicProg');
@@ -1707,6 +1718,7 @@ async function btRunBasic(){
     const _e = (typeof _esc==='function') ? _esc : (s=>String(s));
     result.innerHTML = `<div class="bt-card"><div class="bt-card-title">❌ 오류: ${_e(e.message)}</div></div>`;
   }
+  try{ _btRenderEntrySrcBar(); }catch(_){}   // [S1643] 끝나면 다시 그림 — 새 결과 서명이 저장됐으니 ⟳ 안내가 사라진다
   btn.disabled=false; prog.style.display='none'; progText.style.display='none';
 }
 
