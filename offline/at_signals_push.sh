@@ -56,6 +56,21 @@ fs.writeFileSync("/tmp/candle_pack_kr.json",JSON.stringify(out));console.error("
       if [ "$pcode" = "200" ]; then echo "  - kr 캔들팩 PUT ✓"; else echo "  - kr 캔들팩 PUT ✗ HTTP $pcode"; cat /tmp/pack_resp.json || true; fi
     fi
   fi
+  # [S1634] US 캔들팩 push — US 가상 원장이 신호와 같은 스냅의 봉으로 판정(워커가 야후를 따로 부르지 않음). 최근 120봉 · 신호 PUT보다 먼저(신호 수신이 판정을 부른다).
+  if [ "$mkt" = "us" ] && [ "$usesnap" = "$fresh" ]; then
+    node -e '
+const fs=require("fs");const s=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+const out={schema:"sx_candle_pack_v1",asof:s.baseDate,stocks:{}};
+for(const c in s.stocks){const r=s.stocks[c].rows||[];const t=r.slice(-120).map(p=>({time:Date.parse(String(p[0])),open:+p[1],high:+p[2],low:+p[3],close:+p[4],volume:+p[5]})).filter(x=>isFinite(x.time));if(t.length>=25)out.stocks[c]=t;}
+fs.writeFileSync("/tmp/candle_pack_us.json",JSON.stringify(out));console.error("  - us 캔들팩 "+Object.keys(out.stocks).length+"종 추출");' "$fresh" || echo "  - us 캔들팩 추출 실패(skip)"
+    if [ -f /tmp/candle_pack_us.json ]; then
+      pcode=$(curl -sS -o /tmp/pack_resp_us.json -w "%{http_code}" -X PUT \
+        "$WORKER_BASE/sx/autotrade/candles?mkt=us" \
+        -H "Content-Type: application/json" -H "x-at-key: $AT_KEY" \
+        --data-binary "@/tmp/candle_pack_us.json")
+      if [ "$pcode" = "200" ]; then echo "  - us 캔들팩 PUT ✓"; else echo "  - us 캔들팩 PUT ✗ HTTP $pcode"; cat /tmp/pack_resp_us.json || true; fi
+    fi
+  fi
   SNAP="$usesnap" OUT="$out" node "$BUILD" "$mkt"
   code=$(curl -sS -o /tmp/put_resp.json -w "%{http_code}" -X PUT \
     "$WORKER_BASE/sx/autotrade/signals?mkt=$mkt" \
@@ -63,6 +78,8 @@ fs.writeFileSync("/tmp/candle_pack_kr.json",JSON.stringify(out));console.error("
     --data-binary "@$out")
   if [ "$code" = "200" ]; then
     echo "  - $mkt PUT ✓ $(python3 -c "import json;d=json.load(open('/tmp/put_resp.json'));print('asof',d['asof'],'count',d['count'])" 2>/dev/null || true)"
+    # [S1634] US 원장 판정 결과 한 줄(신호 PUT 응답의 usLedger)
+    if [ "$mkt" = "us" ]; then node -e 'const d=(JSON.parse(require("fs").readFileSync("/tmp/put_resp.json","utf8")).usLedger)||{};console.log("  - us 원장 "+(d.error?("⚠ "+d.error):(d.skipped?d.skipped:(d.first?("첫 가동 · 기준 봉 "+d.lastBar+" · 대기 후보 "+d.pending+"종"):("봉 "+(((d.bars||[]).join(","))||"새 봉 없음")+" · 매수 "+d.buys+" · 청산 "+d.sells+" · NAV $"+Math.round(d.nav||0)+" · 보유 "+d.n)))));' 2>/dev/null || true; fi
   else
     echo "  - $mkt PUT ✗ HTTP $code"; cat /tmp/put_resp.json || true; FAIL=1
   fi
