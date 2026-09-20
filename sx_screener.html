@@ -6243,6 +6243,8 @@ async function fetchFinancialData(code, market){
 //    ⇒ 같은 사이트 market_per.json(사용자가 KOSIS 엑셀을 받아 파싱해 올리는 파일 · 월 1회)을 직접 읽는다.
 //    순서: 메모리 → localStorage(7일) → market_per.json → 만료 캐시(마지막 성공값) → 정적값(파일 거울 · 라벨에 '정적')
 //    응답 모양 { asOf, categories, _source }는 그대로라 getKosisPerForStock·valuationJudge는 무변경.
+//  [S1647] ① 코스닥 종목은 파일 kosdaq 블록의 'KOSDAQ 우량기업부'(12개월 평균)를 쓴다(사용자 결정 2026-09-20 · getKosisPerForStock)
+//    ② 파일을 먼저 확인한다(no-cache) — 7일 캐시를 먼저 믿어 파일 갱신이 기기마다 최대 7일 늦던 것 · localStorage는 읽기 실패 대비로만
 //  응답 구조: { asOf, categories:{ KOSPI:{latest,avgRecent}, 대형주:{...}, ... }, _source }
 //  사용처: valuationJudge — historical PER 없는 종목의 시장평균 폴백 (시총 규모별 분기)
 // ════════════════════════════════════════════════════════════════════
@@ -6254,13 +6256,20 @@ const KOSIS_PER_URL = 'market_per.json';   // [S1644] 같은 사이트 상대 �
 // [S1644] 최후 폴백 정적값 = market_per.json 거울(asOf · 판정에 쓰는 4칸의 latest/avgRecent)
 //   ⚠파일을 갱신하면 이 값도 같이 바꾼다 — 배터리 verify_s1644.js가 파일과 칸별로 대조한다(한쪽만 바꾸면 걸림).
 //   구본 값(avgRecent 24.0/23.7/25.0/22.0)은 파일(18.63/18.23/22.4/20.26)과 달랐다.
+// [S1647] 파일 갱신(빌더 S1646 합본 · 코스피 202509~202608 · 코스닥 202508~202607)에 맞춰 거울을 옮겼다 — 구 거울은 202604(대형주 18.23)
 const KOSIS_PER_STATIC = {
-  asOf: '202604',
+  asOf: '202608',
   categories: {
-    'KOSPI':  { latest: 27.36, avgRecent: 18.63 },
-    '대형주': { latest: 27.57, avgRecent: 18.23 },
-    '중형주': { latest: 27.10, avgRecent: 22.4 },
-    '소형주': { latest: 21.14, avgRecent: 20.26 },
+    'KOSPI':  { latest: 18.64, avgRecent: 21.56 },
+    '대형주': { latest: 18.57, avgRecent: 21.46 },
+    '중형주': { latest: 19.29, avgRecent: 22.68 },
+    '소형주': { latest: 20.03, avgRecent: 21.48 },
+  },
+  kosdaq: {   // [S1647] 코스닥 종목 기준 칸만(우량기업부) — 파일 kosdaq 블록의 거울
+    asOf: '202607',
+    categories: {
+      'KOSDAQ 우량기업부': { latest: 14.02, avgRecent: 22.98 },
+    },
   },
 };
 
@@ -6275,30 +6284,23 @@ function _kosisPerFromFile(j){
   }
   const meta = (j._meta && typeof j._meta === 'object') ? j._meta : {};
   const asOf = (meta.asOf != null) ? String(meta.asOf) : ((j.asOf != null) ? String(j.asOf) : null);
-  return { asOf: asOf, categories: j.categories, _source: 'market_per.json' };
+  const out = { asOf: asOf, categories: j.categories, _source: 'market_per.json' };
+  // [S1647] 코스닥 블록(빌더 S1646 version 2) — 있으면 그대로 싣는다 · 쓰는 자리는 getKosisPerForStock(코스닥 종목만)
+  const kq = (j.kosdaq && typeof j.kosdaq === 'object' && j.kosdaq.categories && typeof j.kosdaq.categories === 'object') ? j.kosdaq : null;
+  if(kq){
+    const km = (kq._meta && typeof kq._meta === 'object') ? kq._meta : {};
+    out.kosdaq = { asOf: (km.asOf != null) ? String(km.asOf) : null, categories: kq.categories };
+  }
+  return out;
 }
 
 async function fetchKosisMarketPer(){
   // 1) 메모리 캐시
   if(_kosisMarketPer && _kosisMarketPer.categories) return _kosisMarketPer;
 
-  // 2) localStorage 캐시 (7일) — [S1644] 만료분은 버리지 않고 쥐고 있다가 파일 읽기 실패 시 정적값보다 먼저 쓴다
-  let _stale = null;
-  try{
-    const raw = localStorage.getItem(KOSIS_LS_KEY);
-    if(raw){
-      const cached = JSON.parse(raw);
-      if(cached && cached.data && cached.data.categories && cached._ts){
-        if((Date.now() - cached._ts) < KOSIS_LS_TTL){
-          _kosisMarketPer = cached.data;
-          return _kosisMarketPer;
-        }
-        _stale = cached.data;
-      }
-    }
-  }catch(_){}
-
-  // 3) [S1644] 같은 사이트 market_per.json
+  // 2) [S1647] 파일을 먼저 확인 — cache:'no-cache'라 안 바뀌었으면 304로 가볍다.
+  //    〔이력〕 S1644는 localStorage 7일 캐시를 먼저 믿어서, 파일을 갱신해도 한 번 읽은 기기는 최대 7일 옛 값을 보였다
+  //    (2026-09-20 코스피+코스닥 합본 배포 때 드러남 · KOSIS_LS_TTL은 이제 신선도 판정에 안 쓴다). localStorage는 읽기 실패 대비로만 쓴다.
   try{
     const resp = await fetch(KOSIS_PER_URL, { cache: 'no-cache', signal: AbortSignal.timeout(8000) });
     if(!resp || !resp.ok) throw new Error('market_per.json ' + (resp ? resp.status : 'noresp'));
@@ -6311,19 +6313,38 @@ async function fetchKosisMarketPer(){
     return _kosisMarketPer;
   }catch(e){
     console.warn('[S1644] market_per.json 읽기 실패:', e && e.message);
-    // 4) 만료 캐시 — 마지막으로 성공한 파일값(라벨엔 그 기준월이 그대로 나온다)
-    if(_stale){
-      _kosisMarketPer = Object.assign({}, _stale, { _stale: true });
-      return _kosisMarketPer;
-    }
-    // 5) 최후 폴백 — 정적값(파일 거울). 라벨 끝에 '(정적)'으로 드러난다(sx_render.js [S1644])
+    // 3) 마지막으로 성공한 값(localStorage · 나이 무관) — 라벨엔 그 기준월이 그대로 나온다
+    try{
+      const raw = localStorage.getItem(KOSIS_LS_KEY);
+      if(raw){
+        const cached = JSON.parse(raw);
+        if(cached && cached.data && cached.data.categories){
+          _kosisMarketPer = Object.assign({}, cached.data, { _stale: true });
+          return _kosisMarketPer;
+        }
+      }
+    }catch(_){}
+    // 4) 최후 폴백 — 정적값(파일 거울 · 코스닥 칸 포함). 라벨 끝에 '(정적)'으로 드러난다(sx_render.js [S1644])
     _kosisMarketPer = {
       asOf: KOSIS_PER_STATIC.asOf,
       categories: KOSIS_PER_STATIC.categories,
+      kosdaq: KOSIS_PER_STATIC.kosdaq,
       _source: 'client_static',
     };
     return _kosisMarketPer;
   }
+}
+
+// [S1647] 코스닥 종목 판별 — 스크리너 스캔 필터와 같은 관례(market '코스닥' 또는 'KOSDAQ…'). 관심목록 항목은 market이 'kr'이라 marketLabel로 본다.
+//   market이 코스피로 분명하면 marketLabel보다 market이 이긴다. 그 밖(KONEX·미상)은 코스닥 아님 = 종전 코스피 규모별.
+const KOSDAQ_PER_KEY = 'KOSDAQ 우량기업부';
+function _kosisIsKosdaq(stock){
+  if(!stock) return false;
+  const isQ = (v) => { const s = String(v == null ? '' : v).trim(); return s === '코스닥' || s.toUpperCase().indexOf('KOSDAQ') === 0; };
+  const isP = (v) => { const s = String(v == null ? '' : v).trim(); return s === '코스피' || s.toUpperCase() === 'KOSPI'; };
+  if(isQ(stock.market)) return true;
+  if(isP(stock.market)) return false;
+  return isQ(stock.marketLabel);
 }
 
 // 종목 시총(억원)에 따라 KOSPI 규모 분류 PER 선택
@@ -6332,6 +6353,21 @@ async function fetchKosisMarketPer(){
 //   소형주: 시총 500억원 미만
 function getKosisPerForStock(stock, kosisData){
   if(!kosisData || !kosisData.categories) return null;
+  // [S1647] 코스닥 종목 = 코스닥 우량기업부 12개월 평균(사용자 결정 2026-09-20). 코스닥 종합·규모별은 적자 기업 탓에
+  //   12개월 평균이 45~200배로 부풀어(소형주는 12개월 중 5개월만 값) 적정주가 기준으로 못 쓴다. 우량기업부는 12/12 · 23배대.
+  //   코스닥 칸이 없거나(구 파일·구 캐시) 값이 비면 종전대로 아래 코스피 규모별로 간다. asOf는 코스닥 기준월(라벨 꼬리).
+  if(_kosisIsKosdaq(stock) && kosisData.kosdaq && kosisData.kosdaq.categories){
+    const kq = kosisData.kosdaq.categories[KOSDAQ_PER_KEY];
+    if(kq && typeof kq.avgRecent === 'number' && kq.avgRecent > 0){
+      return {
+        category: KOSDAQ_PER_KEY,
+        latest: kq.latest,
+        avgRecent: kq.avgRecent,
+        asOf: kosisData.kosdaq.asOf,
+        _source: kosisData._source,
+      };
+    }
+  }
   const c = kosisData.categories;
   const mcapEok = stock && stock.marketCap ? stock.marketCap : null;   // 단위: 억원
   let category = 'KOSPI';
