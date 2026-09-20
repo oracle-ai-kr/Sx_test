@@ -1,6 +1,8 @@
 // [S927] SX 신호생성기 (시즌2 두뇌 출력) — 스냅 각 종목 최신봉 verdict → 정책레이어 → 신호원장 JSON
 //  전역(cat 선행): SXVVAL(run·_assembleScores) · SXE · _C(unifiedVerdictV2 내부호출) · recipe_core
 //  [S1180] +SXFeatureLib(sx_feature_library.js)·SX_CELL_DATA(sx_cell_data.js) — 레시피 v2(어휘규칙) 판정용. 미로드 시 v2=null(레거시만 동작·안전).
+//  [S1651] 코인 신호에 univ('pool'=커밋 스냅 측정 풀 · 'ext'=업비트 자동 편입)와 tv30(30 완성봉 중위 거래대금·원)을 싣는다 — 빌더 동적 스냅이 준 값 그대로(계산 0).
+//    폴백 스냅(커밋본·구 빌더)이면 univ 'pool' · tv30 null → 워커 정렬은 종전과 같은 답. 원장에 ledger.univ(유니버스 메타)·summary.extN/extBUY. KR·US는 키 추가 0.
 //  [S1632] US 분기 = 카드 사진1 세트(DECL §14) — 크로스(라우팅 없음=카드 3×3 OFF)·BB회귀(카드 range 진입식) 신호 + 귀속 BB회귀>크로스>레거시>칸real. KR·코인 원장 바이트 동일.
 //  [S1209] +칸 각인 — 모든 신호에 진입 시점 칸(cell/cellLbl)을 hit 여부와 무관하게 기록(3×3 진입 분포 관찰용). 미로드 시 cell=null(안전).
 //  최신봉 = V.run(h=0, warmup=n-4, target=5) 후 e최대 레코드. dck/dcf는 cv2rec 훅(§3 동일).
@@ -162,6 +164,7 @@ codes.forEach((c,i)=>{
   if(ATR_GATE_ON && P.action==='BUY' && src==='recipe' && atrPct!=null && atrPct>ATR_GATE_TH){ atrGate=true; P={ action:'HOLD', score:0, policy:'kr:ATR게이트(ATR%'+atrPct.toFixed(1)+'>'+ATR_GATE_TH+')→진입억제', provisional:true }; }
   signals.push({ code:c, name:(snap.stocks[c]&&snap.stocks[c].name)||c, grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol:!!bullVol, cross:!!cross, v2:(v2||null), src:src, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, atrGate:atrGate, atrPct:(atrPct!=null?+atrPct.toFixed(2):null), cell:(cell||null), cellLbl:(cellLbl||null), barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null, close:(rows[rows.length-1]&&+rows[rows.length-1].close)||null }); // [S945]name [S948]votes [S1041]bullVol/src [S1083]close=금액균등 사이징용(워커 시세조회 없이) [S1180]v2=어휘규칙 판정(발동 시) [S1209]cell/cellLbl=진입 시점 칸(항상)
   if(mk==='us') signals[signals.length-1].range=!!range;   // [S1632] US만 — KR·코인 행은 키 추가 0(바이트 동일)
+  if(mk==='coin'){ const _st=snap.stocks[c]||{}, _sg=signals[signals.length-1]; _sg.univ=(_st.univ==='ext')?'ext':'pool'; _sg.tv30=(typeof _st.tv30==='number'&&isFinite(_st.tv30))?Math.round(_st.tv30):null; }   // [S1651] 코인만 — 확장 표시·거래대금(워커 후보 정렬 SSOT _coinCandCmp가 읽는다)
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
@@ -174,6 +177,8 @@ const ledger={ schema:'sx_signal_ledger_v1', mkt:mk, asof:asofFinal, generated:n
             grade:{ 매수:cnt(s=>s.grade==='매수'), 관심:cnt(s=>s.grade==='관심'), 관망:cnt(s=>s.grade==='관망'), 회피:cnt(s=>s.grade==='회피') } },
   signals };
 if(mk==='us'){ ledger.summary.rangeBUY=cnt(s=>s.src==='range'); ledger.summary.crossBUY=cnt(s=>s.src==='cross'); }   // [S1632] US만(KR·코인 요약 키 불변)
+if(mk==='coin'){ ledger.univ=snap.univ||null; ledger.summary.extN=cnt(s=>s.univ==='ext'); ledger.summary.extBUY=cnt(s=>s.univ==='ext'&&s.action==='BUY'); }   // [S1651] 코인만 — 유니버스 메타(빌더 동적 스냅 · 폴백이면 null)
 fs.writeFileSync(outPath, JSON.stringify(ledger,null,1));
 console.error('DONE sig '+mk+' asof='+asofFinal+(COIN_COMPLETED_ONLY?'(확정봉·S1497)':'')+': 평가 '+signals.length+'/'+codes.length+' | BUY '+ledger.summary.BUY+'(bullVol '+ledger.summary.bullVolBUY+'·v2 '+ledger.summary.v2BUY+'·겹침 '+ledger.summary.v2Overlap+') atrGated '+ledger.summary.atrGated+' HOLD '+ledger.summary.HOLD+' SELL '+ledger.summary.SELL+' (prov '+ledger.summary.provisional+') err='+errs.length+' '+((Date.now()-t0)/1000|0)+'s → '+outPath);
 if(mk==='us') console.error('  [S1632] US BB회귀 BUY '+ledger.summary.rangeBUY+' · 크로스 BUY '+ledger.summary.crossBUY+' (카드 사진1 세트 · DECL §14)');
+if(mk==='coin') console.error('  [S1651] 코인 유니버스 '+(ledger.univ?(ledger.univ.mode+' · 풀 '+ledger.univ.poolIn+' · 확장 '+ledger.univ.ext):'메타 없음(폴백 스냅)')+' · 확장 평가 '+ledger.summary.extN+' · 확장 BUY '+ledger.summary.extBUY);
