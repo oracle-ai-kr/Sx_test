@@ -1,57 +1,141 @@
 {
   "_meta": {
-    "version": 1,
+    "version": 2,
     "source": "KOSIS 국가통계포털 (kosis.kr)",
     "tableId": "DT_343_2010_S0033",
     "tableName": "코스피 주가이익비율 (PER)",
-    "asOf": "202604",
-    "asOfReadable": "2026년 4월",
-    "lastUpdated": "2026-05-28",
-    "period": "202505~202604 (12개월)",
+    "asOf": "202608",
+    "asOfReadable": "2026년 8월",
+    "lastUpdated": "2026-09-19",
+    "period": "202509~202608 (12개월)",
     "monthCount": 12,
     "updateFrequency": "월 1회 (KOSIS 갱신 후)",
-    "note": "KOSIS에서 다운로드한 월별 PER 데이터의 산술평균. 클라이언트는 avgRecent을 baseline으로 사용."
+    "note": "KOSIS에서 다운로드한 월별 PER 데이터의 산술평균. 클라이언트는 avgRecent을 baseline으로 사용.",
+    "downloadedAt": "2026.09.20 08:37",
+    "markets": [
+      "KOSPI",
+      "KOSDAQ"
+    ],
+    "layout": "categories=코스피 · kosdaq.categories=코스닥(기준월이 시장마다 다를 수 있음) · n=평균에 쓴 달 수(\"-\" 적자·미산출 달 제외) · latestMonth=latest 값의 달"
   },
   "categories": {
     "KOSPI": {
-      "latest": 27.36,
-      "avgRecent": 18.63,
-      "label": "KOSPI 종합"
+      "latest": 18.64,
+      "avgRecent": 21.56,
+      "label": "KOSPI 종합",
+      "n": 12,
+      "latestMonth": "202608"
     },
     "KOSPI 200": {
-      "latest": 27.04,
-      "avgRecent": 17.47,
-      "label": "KOSPI 200"
+      "latest": 18.17,
+      "avgRecent": 20.92,
+      "label": "KOSPI 200",
+      "n": 12,
+      "latestMonth": "202608"
     },
     "KOSPI 100": {
-      "latest": 27.27,
-      "avgRecent": 17.41,
-      "label": "KOSPI 100"
+      "latest": 18.02,
+      "avgRecent": 20.99,
+      "label": "KOSPI 100",
+      "n": 12,
+      "latestMonth": "202608"
     },
     "KOSPI 50": {
-      "latest": 26.7,
-      "avgRecent": 16.61,
-      "label": "KOSPI 50"
+      "latest": 17.67,
+      "avgRecent": 20.52,
+      "label": "KOSPI 50",
+      "n": 12,
+      "latestMonth": "202608"
     },
     "제조업": {
-      "latest": 37.41,
-      "avgRecent": 23.92,
-      "label": "제조업"
+      "latest": 22.48,
+      "avgRecent": 28.25,
+      "label": "제조업",
+      "n": 12,
+      "latestMonth": "202608"
     },
     "대형주": {
-      "latest": 27.57,
-      "avgRecent": 18.23,
-      "label": "대형주 (시총 5000억원+)"
+      "latest": 18.57,
+      "avgRecent": 21.46,
+      "label": "대형주 (시총 5000억원+)",
+      "n": 12,
+      "latestMonth": "202608"
     },
     "중형주": {
-      "latest": 27.1,
-      "avgRecent": 22.4,
-      "label": "중형주 (시총 500~5000억원)"
+      "latest": 19.29,
+      "avgRecent": 22.68,
+      "label": "중형주 (시총 500~5000억원)",
+      "n": 12,
+      "latestMonth": "202608"
     },
     "소형주": {
-      "latest": 21.14,
-      "avgRecent": 20.26,
-      "label": "소형주 (시총 500억원 미만)"
+      "latest": 20.03,
+      "avgRecent": 21.48,
+      "label": "소형주 (시총 500억원 미만)",
+      "n": 12,
+      "latestMonth": "202608"
+    }
+  },
+  "kosdaq": {
+    "_meta": {
+      "tableId": "DT_343_2010_S0073",
+      "tableName": "코스닥 주가이익비율 (PER)",
+      "asOf": "202607",
+      "asOfReadable": "2026년 7월",
+      "period": "202508~202607 (12개월)",
+      "monthCount": 12,
+      "downloadedAt": "2026.09.20 08:38"
+    },
+    "categories": {
+      "KOSDAQ": {
+        "latest": 45.35,
+        "avgRecent": 106.98,
+        "label": "KOSDAQ 종합",
+        "n": 12,
+        "latestMonth": "202607"
+      },
+      "KOSDAQ 150": {
+        "latest": 52.32,
+        "avgRecent": 98.18,
+        "label": "KOSDAQ 150",
+        "n": 12,
+        "latestMonth": "202607"
+      },
+      "KOSDAQ 우량기업부": {
+        "latest": 14.02,
+        "avgRecent": 22.98,
+        "label": "KOSDAQ 우량기업부",
+        "n": 12,
+        "latestMonth": "202607"
+      },
+      "KOSDAQ 벤처기업부": {
+        "latest": 2668.7,
+        "avgRecent": 2276.45,
+        "label": "KOSDAQ 벤처기업부",
+        "n": 2,
+        "latestMonth": "202604"
+      },
+      "대형주": {
+        "latest": 70.31,
+        "avgRecent": 118.9,
+        "label": "KOSDAQ 대형주",
+        "n": 12,
+        "latestMonth": "202607"
+      },
+      "중형주": {
+        "latest": 22.48,
+        "avgRecent": 45.26,
+        "label": "KOSDAQ 중형주",
+        "n": 12,
+        "latestMonth": "202607"
+      },
+      "소형주": {
+        "latest": 48.98,
+        "avgRecent": 199.56,
+        "label": "KOSDAQ 소형주",
+        "n": 5,
+        "latestMonth": "202607"
+      }
     }
   }
 }
