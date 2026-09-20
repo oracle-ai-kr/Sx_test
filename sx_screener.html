@@ -6387,6 +6387,83 @@ function getKosisPerForStock(stock, kosisData){
   };
 }
 
+// ════════════════════════════════════════════════════════════════════
+//  [S1648] 재무 파생 지표 — 한 곳에서 계산한다(식은 구 _fetchDartFinancial 그대로)
+//   ① _finEpsGrowth: EPS 성장률은 EPS 두 개(없으면 순이익 두 개)만 있으면 되므로 주가·시총과 뗐다.
+//      〔이력〕 v3.17~S1647은 '주가 기반' 블록(price>0 && mcap>0) 안에 있어서, 검색창으로 연 종목(가격 0·시총 0으로 목록에 들어감)은
+//      성장률이 null → 밸류 목표가가 'TTM EPS 그대로'로 성장률 없이 나왔다(실기기 2026-09-20 알테오젠·삼천당제약 — DART엔 전기 EPS가 있었다).
+//      순이익 폴백은 종전 (순이익÷추정 주식수) 비율과 수학적으로 같다(주식수가 약분된다).
+//   ② finFillPriceRatios: 주가 기반 지표(PER·추정 EPS·BPS·PBR·PSR·PCR·PEG·EV/EBITDA). 재무를 불러올 때 현재가·시총이 있으면 거기서 한 번(종전과 같음),
+//      없었으면 분석 렌더가 현재가를 확정한 뒤와 시총이 늦게 도착했을 때 **빈 칸만** 채운다 — 이미 있는 값은 바꾸지 않는다(스캔 시점 값 보존).
+//      PER·PEG는 DART EPS가 있으면 현재가만으로 되고, 나머지는 시총(→ 주식수 추정)이 있어야 한다. 채운 게 있으면 true.
+// ════════════════════════════════════════════════════════════════════
+function _finEpsGrowth(result){
+  if(result._epsSource === 'dart' && result.eps && result.epsPrev && result.epsPrev !== 0){
+    return ((result.eps - result.epsPrev) / Math.abs(result.epsPrev)) * 100;
+  }
+  if(result.netIncome && result.netIncomePrev && result.netIncomePrev !== 0){
+    return ((result.netIncome - result.netIncomePrev) / Math.abs(result.netIncomePrev)) * 100;
+  }
+  return null;
+}
+function _finEvEbitda(result, mcapEok){
+  // [Phase 3] EV/EBITDA = (시총 + 총부채 - 현금) / EBITDA — 시총은 억원
+  if(mcapEok > 0 && result.ebitda && result.ebitda > 0){
+    const netDebt = (result.totalDebt || 0) - (result.cash || 0);
+    const ev = mcapEok * 100000000 + netDebt;
+    return ev / result.ebitda;
+  }
+  return null;
+}
+function finFillPriceRatios(result, price, mcapIn){
+  if(!result || !(price > 0)) return false;
+  let mcap = mcapIn || 0;
+  if(mcap > 100000000) mcap = mcap / 100000000;   // 원 단위로 들어오면 억원으로(재무 조회와 같은 정규화)
+  let changed = false;
+  const shares = mcap > 0 ? (mcap * 100000000) / price : null;   // 발행주식수 추정 (BPS/PSR/PCR용)
+  if(result.epsGrowth == null){
+    const g = _finEpsGrowth(result);
+    if(g != null){ result.epsGrowth = g; changed = true; }
+  }
+  // [v3.17 EPS-FIX] PER — DART EPS가 있으면 그것(정확 · 현재가만 필요), 없으면 순이익÷추정 주식수(시총 필요)
+  if(result.eps != null && result.eps !== 0 && result._epsSource === 'dart'){
+    if(result.per == null){ result.per = price / result.eps; changed = true; }
+  } else if(result.netIncome && shares != null && result.per == null){
+    result.eps = result.netIncome / shares;
+    result._epsSource = 'estimated';
+    if(result.eps !== 0) result.per = price / result.eps;
+    changed = true;
+  }
+  if(shares != null){
+    if(result.totalEquity && result.pbr == null){
+      const bpsVal = result.totalEquity / shares;
+      result.bps = bpsVal;
+      if(bpsVal !== 0) result.pbr = price / bpsVal;
+      changed = true;
+    }
+    // S59: PSR = 시총(원) / 매출(원)
+    if(result.revenue && result.revenue > 0 && result.psr == null){
+      result.psr = (mcap * 100000000) / result.revenue;
+      changed = true;
+    }
+    // S59: PCR = 주가 / (영업CF/주식수) — DART에 영업CF 없으므로 영업이익 대용
+    if(result.operatingIncome && result.operatingIncome > 0 && result.pcr == null){
+      const cfps = result.operatingIncome / shares;
+      if(cfps > 0){ result.pcr = price / cfps; changed = true; }
+    }
+    if(result.evEbitda == null){
+      const ev = _finEvEbitda(result, mcap);
+      if(ev != null){ result.evEbitda = ev; changed = true; }
+    }
+  }
+  // S59: PEG = PER / EPS성장률
+  if(result.per && result.epsGrowth && result.epsGrowth > 0 && result.peg == null){
+    result.peg = result.per / result.epsGrowth;
+    changed = true;
+  }
+  return changed;
+}
+
 /**
  * S57→S58: DART 재무제표 직접 연동 (연간/반기/분기 선택 지원)
  * @returns {boolean} 성공 여부
@@ -6581,6 +6658,9 @@ async function _fetchDartFinancial(code, result){
   if(result.netIncome && result.netIncomePrev && result.netIncomePrev !== 0)
     result.netIncomeGrowth = ((result.netIncome - result.netIncomePrev) / Math.abs(result.netIncomePrev)) * 100;
 
+  // [S1648] EPS 성장률 — 주가·시총 없이 계산(_finEpsGrowth · 구판은 아래 주가 블록 안이라 검색창 진입 종목에서 빠졌다)
+  { const _g = _finEpsGrowth(result); if(_g != null) result.epsGrowth = _g; }
+
   // 가공 지표 계산 (주가 기반)
   // 발행주식수 추정: 현재 분석 중인 종목의 시가총액/주가 활용
   const stock = searchResults && searchResults.find(s => s.code === code);
@@ -6603,45 +6683,9 @@ async function _fetchDartFinancial(code, result){
   }
 
   if(price > 0 && mcap > 0){
-    const shares = (mcap * 100000000) / price; // 발행주식수 추정 (BPS/PSR/PCR용)
-    // [v3.17 EPS-FIX] PER 계산 — DART EPS가 있으면 그것 사용 (정확)
-    //   없으면 기존 추정 로직 폴백 (시총 ÷ 가격으로 주식수 추정)
-    if(result.eps != null && result.eps !== 0 && result._epsSource === 'dart'){
-      // DART에서 직접 가져온 EPS (가장 정확)
-      result.per = price / result.eps;
-    } else if(result.netIncome){
-      // 폴백: 시총 추정 기반 EPS (DART에 EPS 없는 종목용)
-      result.eps = result.netIncome / shares;
-      result._epsSource = 'estimated';
-      if(result.eps !== 0) result.per = price / result.eps;
-    }
-    if(result.totalEquity){
-      const bpsVal = result.totalEquity / shares;
-      result.bps = bpsVal;
-      if(bpsVal !== 0) result.pbr = price / bpsVal;
-    }
-    // S59: PSR = 시총(원) / 매출(원)
-    if(result.revenue && result.revenue > 0){
-      result.psr = (mcap * 100000000) / result.revenue;
-    }
-    // S59: PCR = 주가 / (영업CF/주식수) — DART에 영업CF 없으므로 영업이익 대용
-    if(result.operatingIncome && result.operatingIncome > 0){
-      const cfps = result.operatingIncome / shares;
-      if(cfps > 0) result.pcr = price / cfps;
-    }
-    // [v3.17 EPS-FIX] EPS 성장률 — DART EPS가 있으면 그것 사용
-    if(result._epsSource === 'dart' && result.eps && result.epsPrev && result.epsPrev !== 0){
-      result.epsGrowth = ((result.eps - result.epsPrev) / Math.abs(result.epsPrev)) * 100;
-    } else if(result.netIncome && result.netIncomePrev && result.netIncomePrev !== 0){
-      // 폴백: netIncome 기반 추정
-      const epsCur = result.netIncome / shares;
-      const epsPrev = result.netIncomePrev / shares;
-      if(epsPrev !== 0) result.epsGrowth = ((epsCur - epsPrev) / Math.abs(epsPrev)) * 100;
-    }
-    // S59: PEG = PER / EPS성장률
-    if(result.per && result.epsGrowth && result.epsGrowth > 0){
-      result.peg = result.per / result.epsGrowth;
-    }
+    // [S1648] 주가 기반 지표는 finFillPriceRatios 한 곳(식 무변경 · 빈 칸만 채우므로 새 result에선 종전과 같다)
+    //   EPS 성장률은 위로 옮겼다 — 이 블록이 안 돌면(검색창 진입 · 가격 0·시총 0) 성장률까지 빠지던 것
+    finFillPriceRatios(result, price, mcap);
   }
 
   // S59: ROA = 순이익 / 총자산 — [v3.17 EPS-FIX] 지배주주순이익 우선
@@ -6660,11 +6704,7 @@ async function _fetchDartFinancial(code, result){
   //   기존: 영업이익 대용 + 부채만 반영 → 현재: 정확한 EBITDA + 순부채(부채-현금)
   //   ebitda는 위에서 계산됨 (감가상각 추출 성공 시 정확값, 실패 시 영업이익 폴백 + _ebitdaApprox 마커)
   //   mcap은 위에서 단위 정규화됨 (억원)
-  if(mcap > 0 && result.ebitda && result.ebitda > 0){
-    const netDebt = (result.totalDebt || 0) - (result.cash || 0);
-    const ev = mcap * 100000000 + netDebt;
-    result.evEbitda = ev / result.ebitda;
-  }
+  { const _ev = _finEvEbitda(result, mcap); if(_ev != null) result.evEbitda = _ev; }   // [S1648] 식은 _finEvEbitda 한 곳(늦게 채울 때도 같은 함수)
   // S59: 유동비율 — DART 단일보고서에 유동자산/부채 미분리 → 총자산/총부채 근사
   if(result.totalAssets && result.totalDebt && result.totalDebt > 0){
     result.currentRatio = (result.totalAssets / result.totalDebt) * 100;
