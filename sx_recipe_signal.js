@@ -76,7 +76,10 @@
   // [S1116] 칸 사다리 신호 동반 추출 옵트인(매매전략 카드용) — _V3ON과 같은 패턴. 켜면 봉당 _sxCellSignalCore 1회(disc 어휘 추출+칸 규칙 평가·calcAllScreener 대비 미미).
   //   ★캐시 키 분리(_cs) 필수 — 플래그 없이 캐시된 스캔에는 cs가 없어 조용히 실패한다(v3와 동일 함정).
   var _CELLON = false, _CELLMK = 'kr';
-  function _cacheKey(sym, rows){ return sym+'_'+rows.length+'_'+(rows.length?rows[rows.length-1].close:0)+(_V3ON?'_v3':'')+(_CELLON?'_cs':''); }
+  // [S1657] ★첫 봉을 키에 넣는다 — 종전 키(종목_봉개수_마지막종가)는 **일봉 600봉과 4시간 600봉을 구분하지 못했다**
+  //   (둘 다 600봉 · 마지막 종가는 둘 다 '지금 가격'). 단기매매 카드가 봉 주기를 바꿔 같은 종목을 다시 스캔하면
+  //   앞 봉 주기에서 만든 봉별 특징 맵을 그대로 돌려줬다(재료 조건 발화가 조용히 틀린다). 렌더 `_trendRcpKey`와 짝.
+  function _cacheKey(sym, rows){ var _f=rows.length?(rows[0].date||rows[0].t||''):''; return sym+'_'+rows.length+'_'+_f+'_'+(rows.length?rows[rows.length-1].close:0)+(_V3ON?'_v3':'')+(_CELLON?'_cs':''); }
   async function _scanStock(sym, rows){
     var ck=_cacheKey(sym, rows); if(_scanCache[ck]) return _scanCache[ck];
     var arr=[], start=250;
