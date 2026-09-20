@@ -117,6 +117,10 @@ body.sx-white{
   --sell-bg:rgba(239,68,68,.06);--sell-border:rgba(239,68,68,.18);
 }
 
+/* [S1650] 시간외 줄 뱃지 색(sx_render.js _SX_EXT_BADGE) — 기본(다크)·블랙은 밝은 톤, 화이트·크림은 진한 톤 · 빨강·파랑 계열 없음(등락색과 구분) */
+:root{--sxb-krx:#64748b;--sxb-nxt:#0f766e;--sxb-reg:#4ade80;--sxb-pre:#fbbf24;--sxb-after:#c084fc;--sxb-int:#e879f9}
+body.sx-white,body.sx-cream{--sxb-krx:#475569;--sxb-nxt:#0f766e;--sxb-reg:#15803d;--sxb-pre:#b45309;--sxb-after:#6d28d9;--sxb-int:#a21caf}
+
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100dvh;-webkit-tap-highlight-color:transparent}
 
