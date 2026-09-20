@@ -76,6 +76,17 @@
 //    □ DEFAULTS.us 값 채우기 (미국 확장 출범 확정 시).
 //    □ filterOn 토글을 실제 동작과 연결 (2·3단계 완료 후).
 //
+//  〔C 단계 실측 결과 — [S1649] 2026-09-20 수집 · 9/14~9/18 · 5종목(삼성전자·SK하이닉스·셀트리온·알테오젠·에코프로비엠)〕
+//    ■ 일봉(네이버 차트 front-api) = KRX 정규장만. 애프터 마지막가가 정규 종가와 달랐던 알테오젠(253,500 vs 254,000)·
+//      에코프로비엠(105,200 vs 105,300)도 일봉 종가는 정규 종가. 지난 날짜는 네이버 일별 시세와 OHLCV 전부 같음.
+//      네이버 '통합'(KRX+NXT)은 별개 값 — 9/18 삼성전자 통합 시가 259,500·거래량 2,162만 vs 일봉 261,000·1,504만.
+//    ■ 분봉 = KIS 전용 · FID_INPUT_HOUR_1 15:30 → 시간외 봉 없음(네이버 분봉은 미사용 · YYYYMMDD 요청은 'Validation Failed').
+//    ■ ⇒ filterOn OFF 유지(거를 것 없음) · _sxSessionZone 호출처 없이 둠 · 일봉 경고 (a) 불필요.
+//      단 (b) '평일 16~20시에 당일봉이 바뀌는가'는 주말 수집이라 미확인 — 평일 저녁 실측 대상.
+//    ■ 시간외 값은 네이버 모바일 basic overMarketPriceInfo(AFTER_MARKET|PRE_MARKET · OPEN|CLOSE · overPrice · localTradedAt)로 받아
+//      분석 카드에 표시만(sx_render.js _extRowHTML). 네이버 통합 등락 기준가 ≠ KRX 전일 종가(삼성전자 9/18 통합 +2.97% vs KRX +1.56%).
+//    ■ KRX 프리(07:00~07:50)는 2027년 말로 연기 → pre.status 'postponed'. NXT 프리 08:00~08:50은 운영 중(모달·카드 표시만).
+//
 //  〔미러 동기화 원칙〕
 //    이 DEFAULTS(kr.regular 0900/1530)가 단일 진실원(SSOT).
 //    · sx_scan_worker.js: importScripts 공유 → 자동 동기화 (손댈 것 없음).
@@ -107,10 +118,12 @@
   //   시각 표기: 'HHMM' 4자리 문자열 (예 '0900', '1530'). 코인 마감 '2400'.
   var SX_SESSION_DEFAULTS = {
     kr: {
-      filterOn: false,                              // [B 스위치] 정규장 구간 필터 — 기본 OFF (실데이터 확인 후 ON)
-      regular: { open: '0900', close: '1530' },     // N1, N2 — 현재 실사용 (변경 없음)
-      pre:     { open: '0700', close: '0750' },     // N3, N4 — 9/14 예정값 (대기·미사용)
-      after:   { open: '1600', close: '2000' }      // N5, N6 — 9/14 예정값 (대기·미사용)
+      filterOn: false,                              // [B 스위치] 정규장 구간 필터 — OFF 유지: 거를 것이 없다([S1649] 실측 · 일봉·분봉 모두 KRX 정규장만)
+      regular: { open: '0900', close: '1530' },     // N1, N2 — KRX 정규장 · 지표·신호·BT 기준(실사용 · 변경 없음)
+      pre:     { open: '0700', close: '0750', status: 'postponed' },   // N3, N4 — KRX 프리 · [S1649] 2027년 말로 연기(미시행) → 구역 분류 제외
+      after:   { open: '1600', close: '2000', status: 'display' },     // N5, N6 — KRX 애프터 · 2026-09-14 시행 · [S1649] 분석 카드 시간외 줄 표시 전용
+      // [S1649] NXT(넥스트레이드) — 모달 표시 전용 문자열(HH:MM[:SS]) · 계산에 쓰지 않는다
+      nxt:     { pre: { open: '08:00', close: '08:50' }, regular: { open: '09:00:30', close: '15:20' }, after: { open: '15:40', close: '20:00' } }
     },
     us: {
       filterOn: false,
@@ -165,6 +178,7 @@
     for (var i = 0; i < zones.length; i++) {
       var z = cfg[zones[i]];
       if (!z || !z.open || !z.close) continue;
+      if (z.status === 'postponed') continue;       // [S1649] 미시행 구역(KRX 프리 · 2027년 말 연기)은 분류하지 않는다
       var o = _sxSessionHHMMtoMin(z.open);
       var c = _sxSessionHHMMtoMin(z.close);
       if (o == null || c == null) continue;
@@ -230,10 +244,15 @@
 
   function _rowHTML(label, cfgZone, mode, hint) {
     // [S577] 읽기 전용 표시 — input 없음. mode: 'active'(정규장·사용중) | 'pending'(9/14 예정·대기)
-    var pending = (mode === 'pending');
+    // [S1649] mode 추가 — 'display'(시간외 · 표시에만 사용) | 'postponed'(KRX 프리 · 2027년 말 연기). 흐린 칸 = 지표·신호에 안 쓰는 구역
+    var pending = (mode === 'pending' || mode === 'display' || mode === 'postponed');
     var op = (cfgZone && cfgZone.open)  ? cfgZone.open  : '—';
     var cl = (cfgZone && cfgZone.close) ? cfgZone.close : '—';
-    var tag = pending
+    var tag = (mode === 'postponed')   // [S1649]
+      ? '<span style="font-size:9px;color:var(--text3);font-weight:400">⏸ 2027년 말 연기 · 미시행</span>'
+      : (mode === 'display')
+      ? '<span style="font-size:9px;color:var(--accent,#2563eb);font-weight:600">● 표시에만 사용</span>'
+      : pending
       ? '<span style="font-size:9px;color:var(--text3);font-weight:400">🔒 9/14 예정 · 대기</span>'
       : '<span style="font-size:9px;color:var(--buy,#16a34a);font-weight:600">● 사용 중</span>';
     var box = 'display:inline-flex;align-items:center;justify-content:center;width:64px;padding:7px 6px;'
@@ -272,24 +291,33 @@
       + '<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;width:100%;'
       +   'max-width:360px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.5)">'
       +   '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">'
-      +     '<h4 style="margin:0;font-size:14px;color:var(--text)">🕐 정규장 시간 설정 <span style="font-size:10px;color:var(--text3);font-weight:400">' + mLabel + '</span></h4>'
+      +     '<h4 style="margin:0;font-size:14px;color:var(--text)">🕐 거래 세션 시간 <span style="font-size:10px;color:var(--text3);font-weight:400">' + mLabel + '</span></h4>'
       +     '<span style="font-size:18px;cursor:pointer;color:var(--text3);padding:0 6px" onclick="_sxSessionCloseModal()">✕</span>'
       +   '</div>'
       +   '<div style="flex:1;overflow-y:auto;padding:14px 16px">'
+      // [S1649] KRX/NXT 구분 · KRX 프리 2027 연기 · 시간외는 표시만 · 정규장 필터는 '거를 것 없음'(실측 근거와 날짜)
       +     '<div style="font-size:9px;color:var(--text3);line-height:1.6;margin-bottom:12px">'
-      +       '현재 적용 중인 거래 세션 시각입니다 (읽기 전용). 시각은 코드에 고정돼 있으며 변경 시 배포로 반영됩니다. '
-      +       '프리/애프터는 2026-09-14 이후 데이터 확인 뒤 활성화됩니다.'
+      +       '시즌1의 지표·신호·백테스트는 <b>KRX 정규장 일봉</b> 기준입니다. 시간외(KRX 애프터·NXT 프리/애프터)와 통합(KRX+NXT) 시세는 '
+      +       '분석 카드 현재가 밑에 <b>표시만</b> 합니다. 시각은 코드에 고정돼 있으며 변경 시 배포로 반영됩니다 (읽기 전용).'
       +     '</div>'
-      +     _rowHTML('정규장 (N1 ~ N2)', cfg.regular, 'active', '시작 ~ 마감')
-      +     '<div style="border-top:1px solid var(--border);margin:8px 0 12px"></div>'
-      +     _rowHTML('프리마켓 (N3 ~ N4)', cfg.pre, 'pending', '')
-      +     _rowHTML('애프터마켓 (N5 ~ N6)', cfg.after, 'pending', '')
+      +     '<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px">KRX <span style="font-size:9px;color:var(--text3);font-weight:400">한국거래소</span></div>'
+      +     _rowHTML('정규장 (N1 ~ N2)', cfg.regular, 'active', '지표·신호 기준')
+      +     _rowHTML('애프터마켓 (N5 ~ N6)', cfg.after, 'display', '9/14 시행')
+      +     _rowHTML('프리마켓 (N3 ~ N4)', cfg.pre, 'postponed', '')
+      +     '<div style="border-top:1px solid var(--border);margin:8px 0 10px"></div>'
+      +     (cfg.nxt ? ('<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:11px;font-weight:700;color:var(--text)">NXT '
+      +       '<span style="font-size:9px;color:var(--text3);font-weight:400">넥스트레이드</span></span>'
+      +       '<span style="font-size:9px;color:var(--accent,#2563eb);font-weight:600">● 표시에만 사용</span></div>'
+      +       '<div style="font-size:10px;color:var(--text2);line-height:1.7;font-family:ui-monospace,monospace;margin-bottom:10px">'
+      +       '프리 ' + cfg.nxt.pre.open + ' ~ ' + cfg.nxt.pre.close + '<br>정규 ' + cfg.nxt.regular.open + ' ~ ' + cfg.nxt.regular.close
+      +       '<br>애프터 ' + cfg.nxt.after.open + ' ~ ' + cfg.nxt.after.close + '</div>') : '')
       +     '<div style="border-top:1px solid var(--border);margin:8px 0 10px"></div>'
       +     '<label style="display:flex;align-items:flex-start;gap:8px;cursor:not-allowed;opacity:.55">'
       +       '<input type="checkbox" id="sxSesFilter" ' + (cfg.filterOn ? 'checked' : '') + ' disabled style="width:16px;height:16px;flex-shrink:0;margin-top:1px">'
       +       '<span style="font-size:11px;font-weight:600;color:var(--text);line-height:1.4">정규장 구간 필터 '
-      +         '<span style="font-size:9px;color:var(--text3);font-weight:500">🔒 9/14 이후</span><br>'
-      +         '<span style="font-size:9px;color:var(--text3);font-weight:400">ON 시 프리/애프터 분봉을 구역 분리하고 정규장만 지표 계산에 사용 — 실데이터 확인 후 활성화</span>'
+      +         '<span style="font-size:9px;color:var(--text3);font-weight:500">지금은 거를 것 없음</span><br>'
+      +         '<span style="font-size:9px;color:var(--text3);font-weight:400">일봉(네이버)·분봉(KIS, 15:30까지) 모두 KRX 정규장만 들어옵니다 — '
+      +         '2026-09-18 실측(5종목 · 9/14~9/18 · 애프터·NXT 체결 미혼입). 데이터에 시간외가 섞이기 시작하면 그때 켭니다.</span>'
       +       '</span>'
       +     '</label>'
       +   '</div>'
