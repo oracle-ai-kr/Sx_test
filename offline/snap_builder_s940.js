@@ -21,7 +21,11 @@ const poolPath = arg('--pool', 'snap_kr.json');
 const outPath = arg('--out', '/tmp/fresh_snap_' + mkt + '.json');
 const COUNT = parseInt(arg('--count', '450'), 10);
 
-if (mkt !== 'kr' && mkt !== 'coin' && mkt !== 'us') { console.error('[snap_builder] ' + mkt + ' 미지원(kr·coin·us) → 폴백'); process.exit(2); }   // [S1228] us(야후) 지원
+if (mkt !== 'kr' && mkt !== 'coin' && mkt !== 'us' && mkt !== 'coin4h') { console.error('[snap_builder] ' + mkt + ' 미지원(kr·coin·coin4h·us) → 폴백'); process.exit(2); }   // [S1228] us(야후) 지원 · [S1663] coin4h
+// [S1663] 코인 4시간봉 트랙(mkt=coin4h · 사용자 결정 2026-09-23 "코인만 4시간 · 일봉 트랙과 별도 탭") — 시즌1 4시간 카드(S1657~S1662)와 같은 봉(업비트 240분봉 · UTC 4시간 경계 = 09·13·17·21·01·05 KST).
+//   코인 일봉 경로와 **같은 함수·같은 유니버스 규칙**을 타고 캔들 끝점만 갈린다(candles/days → candles/minutes/240). date 필드는 candle_date_time_kst 그대로('YYYY-MM-DDTHH:00:00' — 일봉의 T09:00:00과 같은 형식·시각만 다르다).
+//   tv30(30일 중위 거래대금)·페그 판별용 종가열은 4시간봉을 UTC 날짜로 묶어 만든다(거래대금 = 그날 봉 합 · 종가 = 그날 마지막 봉) — 일봉 값과 같은 양(같은 날의 합).
+const IS_COIN = (mkt === 'coin' || mkt === 'coin4h'), COIN_TF4H = (mkt === 'coin4h');
 
 // 풀 로드 (코드+이름 승계). 커밋된 snap의 캔들은 무시하고 코드 목록만 사용.
 let pool;
@@ -32,7 +36,7 @@ if (codes.length < 10) { console.error('[snap_builder] 풀 종목 부족: ' + co
 const nameOf = c => (pool.stocks[c] && pool.stocks[c].name) || c;
 
 // ── [S1651] 코인 동적 유니버스 SSOT ──
-const COIN_DYNAMIC = (mkt === 'coin') && (process.env.COIN_DYNAMIC !== '0');
+const COIN_DYNAMIC = IS_COIN && (process.env.COIN_DYNAMIC !== '0');   // [S1663] coin4h도 동적 유니버스
 //   페그(가격이 법정화폐·금에 묶인 토큰) — 추세가 없어 칸 신호가 환율 흔들림에 반응한다. 확장분에서 항상 뺀다.
 //   ★실측(2026-09-20 업비트 KRW 289종): 페그 11종이 상장돼 있고 최근 한 달에만 JPYC·PYUSD·EURC 3종이 새로 들어왔다.
 //   미상장 예비(PAXG·DAI·TUSD·FDUSD·USDP)는 상장되는 날 바로 막히도록 미리 둔다(코드 충돌 없음 · 상장 전엔 무동작).
@@ -88,7 +92,7 @@ async function fetchDailyCoin(code) {
   const market = 'KRW-' + code;
   let all = [], to = '';
   while (all.length < COUNT + 20) {
-    const url = 'https://api.upbit.com/v1/candles/days?market=' + encodeURIComponent(market) + '&count=200' + (to ? ('&to=' + encodeURIComponent(to)) : '');
+    const url = 'https://api.upbit.com/v1/candles/' + (COIN_TF4H ? 'minutes/240' : 'days') + '?market=' + encodeURIComponent(market) + '&count=200' + (to ? ('&to=' + encodeURIComponent(to)) : '');   // [S1663] coin4h = 240분봉(경계·페이지네이션 규약은 일봉과 같다)
     const res = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': UA } });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const arr = await res.json();
@@ -109,7 +113,11 @@ async function fetchDailyCoin(code) {
   //   12종이 30일 중위의 3배 이상 급증 종목이었다(순위가 급등 추격이 된다) · 30일 중위 상위 20은 급증 2종 · 하루 뒤 상위 20 겹침 20/20.
   try {
     const _today = new Date().toISOString().slice(0, 10), byD = {};
-    for (const k of all) { const d = k && k.candle_date_time_utc; if (!d || String(d).slice(0, 10) >= _today) continue; byD[String(d).slice(0, 10)] = k; }
+    if (COIN_TF4H) {   // [S1663] 4시간봉 → UTC 날짜로 묶는다: 거래대금은 그날 봉 합 · 종가는 그날 마지막 봉(all이 최신→과거라 첫 출현이 마지막 봉) · 형성 중인 오늘(UTC)은 뺀다
+      for (const k of all) { const d = k && k.candle_date_time_utc; if (!d || String(d).slice(0, 10) >= _today) continue; const dd = String(d).slice(0, 10); if (!byD[dd]) byD[dd] = { candle_acc_trade_price: 0, trade_price: +k.trade_price }; byD[dd].candle_acc_trade_price += (+k.candle_acc_trade_price || 0); }
+    } else {
+      for (const k of all) { const d = k && k.candle_date_time_utc; if (!d || String(d).slice(0, 10) >= _today) continue; byD[String(d).slice(0, 10)] = k; }
+    }
     const ds = Object.keys(byD).sort().slice(-30);
     _coinAux[code] = { tv30: (ds.length >= 10) ? _coinMed(ds.map(d => +byD[d].candle_acc_trade_price)) : null, cl: ds.map(d => [d, +byD[d].trade_price]) };
   } catch (_) { _coinAux[code] = { tv30: null, cl: [] }; }
@@ -233,7 +241,7 @@ async function _coinDynamicMain(t0) {
     process.exit(2);
   }
   const snap = {
-    kind: 'sx_candle_snapshot', ver: 1, mkt: 'coin', tf: 'day',
+    kind: 'sx_candle_snapshot', ver: 1, mkt: mkt, tf: (COIN_TF4H ? '240m' : 'day'),   // [S1663] coin4h는 mkt·tf로 갈린다(러너 원장 mkt=coin4h)
     baseDate: maxDate, created: new Date().toISOString(), build: 'S1651-auto',
     poolName: krwSet ? '업비트 KRW 동적(S1651)' : '측정 풀 단독(S1651 · 목록 조회 실패)', n: ok, excluded,
     univ: { mode: krwSet ? 'upbit' : 'pool', krw: krwSet ? krwSet.size : null, pool: poolCodes.length, poolIn: nPool, ext: nExt,
@@ -242,7 +250,7 @@ async function _coinDynamicMain(t0) {
     fields: ['date', 'open', 'high', 'low', 'close', 'volume'], stocks
   };
   fs.writeFileSync(outPath, JSON.stringify(snap));
-  console.error('[snap_builder] \u2713 coin 동적(S1651) ' + ok + '종(풀 ' + nPool + ' · 확장 ' + nExt + ') · baseDate ' + maxDate + ' · 페그 제외 ' + pegListed.length + (pegAuto.length ? ('+자동 ' + pegAuto.join('·')) : '') + ' · 200봉 미만 ' + young.length + ' · 상폐 ' + poolDelisted.length + ' · 404 ' + err404 + ' · 오류 ' + errOther + ' · ' + (((Date.now() - t0) / 1000) | 0) + 's \u2192 ' + outPath);
+  console.error('[snap_builder] \u2713 ' + mkt + ' 동적(S1651' + (COIN_TF4H ? '·4시간봉 S1663' : '') + ') ' + ok + '종(풀 ' + nPool + ' · 확장 ' + nExt + ') · baseDate ' + maxDate + ' · 페그 제외 ' + pegListed.length + (pegAuto.length ? ('+자동 ' + pegAuto.join('·')) : '') + ' · 200봉 미만 ' + young.length + ' · 상폐 ' + poolDelisted.length + ' · 404 ' + err404 + ' · 오류 ' + errOther + ' · ' + (((Date.now() - t0) / 1000) | 0) + 's \u2192 ' + outPath);
   process.exit(0);
 }
 
@@ -256,10 +264,10 @@ async function _coinDynamicMain(t0) {
   for (let i = 0; i < codes.length; i++) {
     const c = codes[i];
     try {
-      const rows = (mkt === 'coin') ? await fetchDailyCoin(c) : (mkt === 'us' ? await fetchDailyUS(c) : await fetchDaily(c));   // [S1192] 시장별 소스 [S1228] +us
+      const rows = IS_COIN ? await fetchDailyCoin(c) : (mkt === 'us' ? await fetchDailyUS(c) : await fetchDaily(c));   // [S1192] 시장별 소스 [S1228] +us [S1663] coin4h
       if (rows.length < 60) { excluded.push(c); fail++; }        // 봉수 미달 = 제외
       else {
-        stocks[c] = (mkt === 'coin') ? { name: nameOf(c), src: 'upbit', rows } : (mkt === 'us' ? { name: nameOf(c), src: 'yahoo', rows } : { name: nameOf(c), rows });   // [S1192] [S1228]
+        stocks[c] = IS_COIN ? { name: nameOf(c), src: 'upbit', rows } : (mkt === 'us' ? { name: nameOf(c), src: 'yahoo', rows } : { name: nameOf(c), rows });   // [S1192] [S1228] [S1663]
         const ld = rows[rows.length - 1][0];
         if (ld > maxDate) maxDate = ld;
         ok++;
@@ -272,21 +280,21 @@ async function _coinDynamicMain(t0) {
   if (mkt === 'us') console.error('[snap_builder] us 경로(S1633): 직접 ' + _usPath.direct + ' · 워커 경유 ' + _usPath.proxy + (_usPath.sticky ? ' (직접 3연속 실패 → 이후 워커 경유)' : '') + (WORKER_BASE ? '' : ' · WORKER_BASE 없음(직접만)') + (_usPath.why.length ? (' · 직접 실패 예: ' + _usPath.why.join(' | ')) : '') + (_usPath.fill ? (' · 마지막 봉 종가 보정 ' + _usPath.fill + '종(S1634)') : ''));
   // ── 검증 게이트 (미달 시 폴백) ──
   const covered = ok / codes.length;
-  const minOk = (mkt === 'coin') ? 80 : (mkt === 'us' ? 70 : 100);   // [S1192] 풀 크기 차이 [S1228] us 풀 97
+  const minOk = IS_COIN ? 80 : (mkt === 'us' ? 70 : 100);   // [S1192] 풀 크기 차이 [S1228] us 풀 97 [S1663]
   if (ok < minOk || covered < 0.7) {
     console.error('[snap_builder] 커버리지 부족: ' + ok + '/' + codes.length + ' (' + ((covered * 100) | 0) + '%) → 폴백');
     process.exit(2);
   }
   const todayYmd = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const mdYmd = String(maxDate).replace(/[^0-9]/g, '').slice(0, 8);   // [S1192] coin ISO 날짜 정규화
-  const freshLim = (mkt === 'coin') ? 2 : 7;   // [S1192] 코인은 24/7 거래 — 이틀 넘게 낡으면 실패
+  const freshLim = IS_COIN ? 2 : 7;   // [S1192] 코인은 24/7 거래 — 이틀 넘게 낡으면 실패 [S1663]
   if (!maxDate || dayDiff(mdYmd, todayYmd) > freshLim) {
     console.error('[snap_builder] baseDate 신선도 실패: ' + (maxDate || '없음') + ' (오늘 ' + todayYmd + ') → 폴백');
     process.exit(2);
   }
 
   const snap = {
-    kind: 'sx_candle_snapshot', ver: 1, mkt: mkt, tf: 'day',
+    kind: 'sx_candle_snapshot', ver: 1, mkt: mkt, tf: (COIN_TF4H ? '240m' : 'day'),   // [S1663]
     baseDate: maxDate, created: new Date().toISOString(), build: 'S1192-auto',
     poolName: (pool && pool.poolName) || '발굴풀(대형)', n: ok, excluded,
     fields: ['date', 'open', 'high', 'low', 'close', 'volume'], stocks
