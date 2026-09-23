@@ -18,15 +18,16 @@ cat "$OFF/sx_offline_shim.js" \
     "$SRC/sx_cell_data.js" \
     "$SRC/sx_project_c.js" \
     "$SRC/sx_recipe_core.js" \
+    "$SRC/sx_exec_core.js" \
     "$SRC/sx_verdict_val.js" \
-    "$OFF/sig_runner_s927.js" > "$BUILD"   # [S1180] +feature_library·cell_data — 레시피 v2(어휘규칙) 판정용
+    "$OFF/sig_runner_s927.js" > "$BUILD"   # [S1180] +feature_library·cell_data — 레시피 v2(어휘규칙) 판정용 · [S1663] +exec_core — 코인 신호에 레짐 v3(rg5 · 🚪 출구 분할 축) 각인(미로드면 rg5=null · 안전)
 node --check "$BUILD"
 
 echo "[2/3] 시장별 신호 생성 + PUT"
-MARKETS="${MARKETS:-kr,us,coin}"   # [S1497] 실행 시장 필터(쉼표) — yml이 cron별로 주입: 06:30 UTC=kr,us · 00:05 UTC=coin(확정봉)
+MARKETS="${MARKETS:-kr,us,coin,coin4h}"   # [S1497] 실행 시장 필터(쉼표) — yml이 cron별로 주입: 06:30 UTC=kr,us · 00:05 UTC=coin,coin4h(확정봉) · [S1663] 04·08·12·16·20:05 UTC=coin4h(4시간봉 경계 직후)
 echo "  MARKETS=$MARKETS"
 FAIL=0
-for pair in "kr:snap_kr.json" "us:snap_us.json" "coin:snap_coin.json"; do
+for pair in "kr:snap_kr.json" "us:snap_us.json" "coin:snap_coin.json" "coin4h:snap_coin.json"; do   # [S1663] coin4h — 풀 매니페스트는 코인 일봉과 같은 파일(코드 목록만 쓴다) · 빌더가 240분봉으로 리빌드 · 폴백(커밋 스냅=일봉)이면 그 실행은 건너뛴다
   mkt="${pair%%:*}"; snap="${pair##*:}"
   case ",$MARKETS," in *",$mkt,"*) ;; *) echo "  - $mkt skip (MARKETS)"; continue;; esac
   if [ ! -f "$SRC/$snap" ]; then echo "  - $mkt skip (no $snap)"; continue; fi
@@ -38,6 +39,7 @@ for pair in "kr:snap_kr.json" "us:snap_us.json" "coin:snap_coin.json"; do
   if node "$OFF/snap_builder_s940.js" "$mkt" --pool "$SRC/$snap" --out "$fresh"; then
     usesnap="$fresh"; echo "  - $mkt 스냅 갱신 ✓ (런타임 최신)"
   else
+    if [ "$mkt" = "coin4h" ]; then echo "  - coin4h 스냅 갱신 실패 → 이번 실행 skip(일봉 커밋 스냅을 4시간 원장에 넣지 않는다)"; FAIL=1; continue; fi   # [S1663]
     echo "  - $mkt 스냅 갱신 skip → 커밋 스냅 사용"
   fi
   # [S1193] 청산용 캔들 팩 push (KR·신선 스냅 성공 시) — 워커 청산判定이 CF→네이버 직접 fetch에 의존하지 않게.
