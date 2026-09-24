@@ -16,8 +16,9 @@ on:
     #   [S1663] 코인 4시간봉 트랙(coin4h): 업비트 240분봉 경계(00·04·08·12·16·20 UTC = 09·13·17·21·01·05 KST) 직후 5분 · 하루 6회. 00:05 UTC는 coin(일봉)·coin4h 둘 다.
     #   ⚠ 비공개 repo Actions 분(무료 2,000분/월) — 코인 실행이 하루 1회→6회로 늘어난다(실행당 소요는 Actions 로그로 확인).
     - cron: '30 6 * * 1-5'
-    - cron: '5 0 * * *'
-    - cron: '5 4,8,12,16,20 * * *'
+    #   [S1672] 코인 회차의 1차 트리거는 워커 dispatch(봉 경계 +5분 · 스케줄 큐 안 탐). 아래 :25 스케줄은 폴백 — push.sh가 워커 asof를 먼저 물어 이미 도착했으면 수십 초 만에 끝난다(분 절약).
+    - cron: '25 0 * * *'
+    - cron: '25 4,8,12,16,20 * * *'
   push:
     # [S946] main 한정 — 실험 브랜치(recipe-lab)의 스냅 커밋이 신호를 밀지 않게. (기본 브랜치명이 다르면 여기 맞출 것)
     branches:
@@ -33,6 +34,10 @@ on:
         description: '실행 시장(쉼표 구분: kr,us,coin)'
         required: false
         default: 'kr,us,coin,coin4h'
+      force:
+        description: '워커 asof와 같아도 강제 실행(1)'
+        required: false
+        default: '0'
 
 concurrency:
   group: sx-autotrade-signals
@@ -56,5 +61,6 @@ jobs:
           SRC: .
           OFF_DIR: offline
           # [S1497] 스케줄 분기: 00:05 UTC cron=coin,coin4h · 04/08/12/16/20:05 UTC cron=coin4h · 06:30 UTC cron=kr,us · push/수동=입력값(기본 전부) [S1663]
-          MARKETS: ${{ github.event_name == 'schedule' && (github.event.schedule == '5 0 * * *' && 'coin,coin4h' || github.event.schedule == '5 4,8,12,16,20 * * *' && 'coin4h' || 'kr,us') || (github.event.inputs.markets || 'kr,us,coin,coin4h') }}
+          MARKETS: ${{ github.event_name == 'schedule' && (github.event.schedule == '25 0 * * *' && 'coin,coin4h' || github.event.schedule == '25 4,8,12,16,20 * * *' && 'coin4h' || 'kr,us') || (github.event.inputs.markets || 'kr,us,coin,coin4h') }}
+          FORCE: ${{ github.event.inputs.force || '0' }}   # [S1672] 1이면 워커 asof 확인 없이 무조건 빌드·PUT
         run: bash offline/at_signals_push.sh
