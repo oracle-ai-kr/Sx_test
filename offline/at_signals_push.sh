@@ -42,9 +42,9 @@ for pair in "kr:snap_kr.json" "us:snap_us.json" "coin:snap_coin.json" "coin4h:sn
   mkt="${pair%%:*}"; snap="${pair##*:}"
   case ",$MARKETS," in *",$mkt,"*) ;; *) echo "  - $mkt skip (MARKETS)"; continue;; esac
   if [ ! -f "$SRC/$snap" ]; then echo "  - $mkt skip (no $snap)"; continue; fi
-  if [ "$FORCE" != "1" ] && { [ "$mkt" = "coin" ] || [ "$mkt" = "coin4h" ]; }; then   # [S1672] 코인 두 트랙만(KR/US는 스케줄 그대로)
-    if [ "$mkt" = "coin4h" ]; then want=$(expected_asof 14400); else want=$(expected_asof 86400); fi
-    have=$(worker_asof "$mkt")
+  if [ "$FORCE" != "1" ] && { [ "$mkt" = "coin" ] || [ "$mkt" = "coin4h" ] || [ "$mkt" = "kr" ]; }; then   # [S1672] 코인 두 트랙 · [S1673] KR도(기대 = 오늘 KST 날짜 · 휴장일이면 불일치라 그냥 진행) · US는 KR과 같은 run이라 별도 확인 없음
+    if [ "$mkt" = "coin4h" ]; then want=$(expected_asof 14400); elif [ "$mkt" = "coin" ]; then want=$(expected_asof 86400); else want=$(date -u -d "@$(( ${SX_NOW_EPOCH:-$(date -u +%s)} + 32400 ))" +%Y-%m-%d); fi
+    have=$(worker_asof "$mkt"); [ "$mkt" = "kr" ] && have="${have:0:10}"
     if [ -n "$have" ] && [ "$have" = "$want" ]; then echo "  - $mkt skip (워커 asof $have = 기대 $want · 이미 도착 · S1672)"; continue; fi
     echo "  - $mkt 진행 (워커 asof ${have:-없음} · 기대 $want)"
   fi
