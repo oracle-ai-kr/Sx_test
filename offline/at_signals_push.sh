@@ -27,10 +27,27 @@ echo "[2/3] 시장별 신호 생성 + PUT"
 MARKETS="${MARKETS:-kr,us,coin,coin4h}"   # [S1497] 실행 시장 필터(쉼표) — yml이 cron별로 주입: 06:30 UTC=kr,us · 00:05 UTC=coin,coin4h(확정봉) · [S1663] 04·08·12·16·20:05 UTC=coin4h(4시간봉 경계 직후)
 echo "  MARKETS=$MARKETS"
 FAIL=0
+# [S1672] 중복 실행 회피 — 워커가 이미 이 봉의 원장을 갖고 있으면(=dispatch가 먼저 도착) 그 시장은 빌드·PUT을 건너뛴다(수십 초). 스케줄 폴백(:25)이 겹쳐도 Actions 분을 안 태운다. FORCE=1이면 무시.
+#   기대 asof = 마지막 마감 봉의 KST 시작 시각(coin 일봉 = 어제 09:00 · coin4h = 직전 4시간 봉) — 러너 asof(candle_date_time_kst)와 같은 형식.
+FORCE="${FORCE:-0}"
+expected_asof() {   # $1=봉 길이(초) · SX_NOW_EPOCH(시험용) 없으면 지금
+  local now="${SX_NOW_EPOCH:-$(date -u +%s)}" bar="$1" cur last
+  cur=$(( now / bar * bar )); last=$(( cur - bar ))
+  date -u -d "@$(( last + 32400 ))" +%Y-%m-%dT%H:%M:%S
+}
+worker_asof() {   # $1=mkt → 워커 원장 asof(없으면 빈 문자열)
+  curl -sS --max-time 15 -H "x-at-key: $AT_KEY" "$WORKER_BASE/sx/autotrade/signals/asof?mkt=$1" 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const o=JSON.parse(s);process.stdout.write(String(o.asof||""));}catch(e){}})' 2>/dev/null || true
+}
 for pair in "kr:snap_kr.json" "us:snap_us.json" "coin:snap_coin.json" "coin4h:snap_coin.json"; do   # [S1663] coin4h — 풀 매니페스트는 코인 일봉과 같은 파일(코드 목록만 쓴다) · 빌더가 240분봉으로 리빌드 · 폴백(커밋 스냅=일봉)이면 그 실행은 건너뛴다
   mkt="${pair%%:*}"; snap="${pair##*:}"
   case ",$MARKETS," in *",$mkt,"*) ;; *) echo "  - $mkt skip (MARKETS)"; continue;; esac
   if [ ! -f "$SRC/$snap" ]; then echo "  - $mkt skip (no $snap)"; continue; fi
+  if [ "$FORCE" != "1" ] && { [ "$mkt" = "coin" ] || [ "$mkt" = "coin4h" ]; }; then   # [S1672] 코인 두 트랙만(KR/US는 스케줄 그대로)
+    if [ "$mkt" = "coin4h" ]; then want=$(expected_asof 14400); else want=$(expected_asof 86400); fi
+    have=$(worker_asof "$mkt")
+    if [ -n "$have" ] && [ "$have" = "$want" ]; then echo "  - $mkt skip (워커 asof $have = 기대 $want · 이미 도착 · S1672)"; continue; fi
+    echo "  - $mkt 진행 (워커 asof ${have:-없음} · 기대 $want)"
+  fi
   out="/tmp/sig_$mkt.json"
   # [S940] 스냅 자동갱신 — 최신 캔들로 리빌드(런타임·커밋 안 함). 미지원(us)/실패 시 커밋 스냅 폴백. [S1192] coin=업비트 지원.
   # [S1633] us는 S1228부터 지원(야후) — 위 '미지원(us)'는 옛 문구. Actions에서 야후 직접이 막히면 빌더가 워커 /proxy 경유(WORKER_BASE env 상속 · nocache).
