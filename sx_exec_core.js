@@ -282,7 +282,10 @@ function evalExitAt(pos, rows, i, cfg, sigPrev){
   var deadAllowed = (cfg.deadOn !== false) && (!gated || lt === 'bull');
   var atrAllowed  = (cfg.atrOn  !== false) && (!gated || lt !== 'bull');
   if(deadAllowed){
-    var held = _dateDays(cur.date) - pos.entryDay;
+    // [S1691] ★유예를 **봉**으로 — `evalExitAt`은 `i`를 이미 받고 있으니 `i − entryIdx`가 곧 카드의 `held`다.
+    //   구본은 `_dateDays(cur.date) − pos.entryDay`(달력일)였다 — 카드·워커와 단위가 달랐다(S1689·S1691 정합).
+    //   ⚠`entryIdx`가 없는 옛 호출자에겐 종전 달력 셈으로 물러선다(깨지지 않게).
+    var held = (pos.entryIdx != null) ? (i - pos.entryIdx) : (_dateDays(cur.date) - pos.entryDay);
     if(held != null && held >= cfg.graceDays){
       var sc=[]; for(var k=0;k<=i;k++) sc.push(rows[k].close);
       var a5=sxSMA(sc,cfg.maFast), a20=sxSMA(sc,cfg.maSlow), p5=sxSMA(sc.slice(0,-1),cfg.maFast), p20=sxSMA(sc.slice(0,-1),cfg.maSlow);
@@ -330,7 +333,7 @@ function runLifecycle(rows, votesAt, opts){
     if(!(rawEntry > 0)){ cursor = si+1; continue; }
     var eATR = entryATRat(rows, entryIdx, cfg);
     if(!(eATR > 0)){ cursor = si+1; continue; }
-    var pos = { entryPrice: rawEntry, entryATR: eATR, peakHigh: rawEntry, entryDay: _dateDays(rows[entryIdx].date) };
+    var pos = { entryPrice: rawEntry, entryATR: eATR, peakHigh: rawEntry, entryDay: _dateDays(rows[entryIdx].date), entryIdx: entryIdx };   /* [S1691] ★`entryIdx`를 실어 준다 — 유예를 봉으로 세기 위한 유일한 추가 정보(기존 필드 보존) */
     var exitIdx=-1, reason=null;
     for(var bj = entryIdx+1; bj < N; bj++){
       var _sp=null; try{ var _s0=votesAt(bj-1); if(_s0 && typeof _s0==='object') _sp=_s0; }catch(_e){}   // [S1397] 전일 봉 신호=원장 파리티(칸fake/칸down 1봉 지연 소스)
