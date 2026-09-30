@@ -74,6 +74,16 @@ function _trTrix(close,p,sp){
   return {line:line, sig:sig, p:_p, sp:_sp, first:first};
 }
 // [S1709] 크로스 게이트 원자 3종 — 마지막 봉(i=n-1)에서 잰다. 시즌1 `_coinSlopeUp`·`_trGateOk`와 같은 식·같은 웜업 규약(null=막음).
+// [S1711] 진입쌍 **정배열 상태** — 시즌1 재진입 조건 `maS[i]>maL[i]`(교차가 아니라 상태). `crossPlain`과 같은 `sm()` 식의 부등호 하나 · 봉 부족=false.
+function maState(rows,s,l){
+  try{
+    var n=rows.length; if(n<l+1) return false;
+    var cl=rows.map(function(r){ return +((r.close!=null)?r.close:r.c); });
+    var sm=function(i,len){ if(i<len-1) return null; var t=0; for(var k=i-len+1;k<=i;k++){ var v=cl[k]; if(!(v>0)) return null; t+=v; } return t/len; };
+    var i=n-1, a=sm(i,s), b=sm(i,l);
+    return !!(a!=null&&b!=null&&a>b);
+  }catch(e){ return false; }
+}
 function gateAtoms(rows){
   try{
     var cl=rows.map(function(r){ return +((r.close!=null)?r.close:r.c); }), i=cl.length-1;
@@ -166,8 +176,9 @@ function latestSignal(rows){
      ⚠`crossPlain`은 이미 일반화된 감지기다(L53) — 새 판정 로직 0·새 지표 0, 인자만 다르다.
      ⚠웜업: `n < l+2`면 false. 60×쌍은 62봉이 필요하다 — 3시장 스냅 실측 부족 0종(평균 600봉). */
   const cross2060=crossPlain(rows,20,60), cross1060=crossPlain(rows,10,60);
+  const st510=maState(rows,5,10), st520=maState(rows,5,20), st2060=maState(rows,20,60), st1060=maState(rows,10,60);   /* [S1711] 🔄 재진입용 진입쌍 정배열 상태 4종 — 아직 읽는 곳 없음(워커 S1711) */
   const _ga=gateAtoms(rows);   /* [S1709] 크로스 게이트 원자 3종 */
-  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off', bullVol:bullVol, cross:!!cross /* [S1396] 전 종목 상시 각인(알갱이) */, atrPct:atrPct, v2:v2, cell:cellK, cellLbl:cellL, range:rangeUs /* [S1632] us만 참이 될 수 있음 */, cross510, cross520, rg5 /* [S1663] 코인만 값 · 그 외 null */, cross2060, cross1060 /* [S1704] 3시장 공통 */, g60up:_ga.g60up, gMa1060:_ga.gMa1060, gTx1060:_ga.gTx1060 /* [S1709] */ };
+  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off', bullVol:bullVol, cross:!!cross /* [S1396] 전 종목 상시 각인(알갱이) */, atrPct:atrPct, v2:v2, cell:cellK, cellLbl:cellL, range:rangeUs /* [S1632] us만 참이 될 수 있음 */, cross510, cross520, rg5 /* [S1663] 코인만 값 · 그 외 null */, cross2060, cross1060 /* [S1704] 3시장 공통 */, g60up:_ga.g60up, gMa1060:_ga.gMa1060, gTx1060:_ga.gTx1060 /* [S1709] */, st510, st520, st2060, st1060 /* [S1711] */ };
 }
 
 // ── [S948] 레시피 기반 진입 정책 — votes≥1 → BUY. 엔진 점수축(등급) 미사용(원천 재료감사: ready/entry/trend/upside 다 약/역전).
@@ -199,7 +210,7 @@ codes.forEach((c,i)=>{
   const rows=raw.map(r=>Array.isArray(r)?({date:r[0],open:r[1],o:r[1],high:r[2],h:r[2],low:r[3],l:r[3],close:r[4],c:r[4],volume:r[5],v:r[5]}):r);
   let sig=null;
   try{ sig=latestSignal(rows); }catch(e){ errs.push(c+':'+(e&&e.message)); return; }
-  const {grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol, cross:_crossR /* [S1396] */, atrPct, v2, cell, cellLbl, range /* [S1632] */, cross510, cross520, rg5 /* [S1663] */, cross2060, cross1060 /* [S1704] */, g60up, gMa1060, gTx1060 /* [S1709] */}=sig;
+  const {grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol, cross:_crossR /* [S1396] */, atrPct, v2, cell, cellLbl, range /* [S1632] */, cross510, cross520, rg5 /* [S1663] */, cross2060, cross1060 /* [S1704] */, g60up, gMa1060, gTx1060 /* [S1709] */, st510, st520, st2060, st1060 /* [S1711] */}=sig;
   const cross=(mk==='coin4h')?!!cross510:_crossR;   // [S1663] coin4h의 사슬 원자 = 순수 5×10(카드 4시간 세트 기본 · 워커 칩이 5×20으로 바꿔 읽을 수 있다 · cross520 동봉) · 코인 일봉·KR은 라우팅판 그대로
   let P=policy(mk, votes, realK, rawScore);
   let src=(P.action==='BUY')?'recipe':null;
@@ -223,7 +234,8 @@ codes.forEach((c,i)=>{
   signals.push({ code:c, name:(snap.stocks[c]&&snap.stocks[c].name)||c, grade, rawScore, votes, realK, fakeK, pure, dck, dcf, lt, bullVol:!!bullVol, cross:!!cross, v2:(v2||null), src:src, action:P.action, score:P.score, policy:P.policy, provisional:P.provisional, atrGate:atrGate, atrPct:(atrPct!=null?+atrPct.toFixed(2):null), cell:(cell||null), cellLbl:(cellLbl||null), barDate:(rows[rows.length-1]&&rows[rows.length-1].date)||null, close:(rows[rows.length-1]&&+rows[rows.length-1].close)||null }); // [S945]name [S948]votes [S1041]bullVol/src [S1083]close=금액균등 사이징용(워커 시세조회 없이) [S1180]v2=어휘규칙 판정(발동 시) [S1209]cell/cellLbl=진입 시점 칸(항상)
   if(mk==='us') signals[signals.length-1].range=!!range;   // [S1632] US만 — KR·코인 행은 키 추가 0(바이트 동일)
   if(IS_COIN){ const _st=snap.stocks[c]||{}, _sg=signals[signals.length-1]; _sg.univ=(_st.univ==='ext')?'ext':'pool'; _sg.tv30=(typeof _st.tv30==='number'&&isFinite(_st.tv30))?Math.round(_st.tv30):null; _sg.rg5=rg5||null; }   // [S1651] 코인만 — 확장 표시·거래대금(워커 후보 정렬 SSOT _coinCandCmp가 읽는다) · [S1663] 크로스 원자 2종·레짐 v3(coin·coin4h)
-  { const _sg=signals[signals.length-1]; _sg.cross510=!!cross510; _sg.cross520=!!cross520; _sg.cross2060=!!cross2060; _sg.cross1060=!!cross1060; _sg.g60up=!!g60up; _sg.gMa1060=!!gMa1060; _sg.gTx1060=!!gTx1060; }   /* [S1709] 게이트 원자 — 아직 읽는 곳 없음(워커 S1709가 읽는다) */   /* [S1707] 네 원자 전부 3시장 공통 */   /* [S1704] 3시장 공통 — 아직 **읽는 곳이 없다**(S1705가 읽는다) */
+  { const _sg=signals[signals.length-1]; _sg.cross510=!!cross510; _sg.cross520=!!cross520; _sg.cross2060=!!cross2060; _sg.cross1060=!!cross1060; _sg.g60up=!!g60up; _sg.gMa1060=!!gMa1060; _sg.gTx1060=!!gTx1060;
+    _sg.st510=!!st510; _sg.st520=!!st520; _sg.st2060=!!st2060; _sg.st1060=!!st1060; _sg.pbar=(rows.length>=2&&rows[rows.length-2]&&rows[rows.length-2].date)||null; }   /* [S1711] 🔄 재진입 원자 — 진입쌍 정배열 상태 4종 + 앞 봉 날짜(청산 봉 < i-1 판정용) · 아직 읽는 곳 없음(워커 S1711) */   /* [S1709] 게이트 원자 — 아직 읽는 곳 없음(워커 S1709가 읽는다) */   /* [S1707] 네 원자 전부 3시장 공통 */   /* [S1704] 3시장 공통 — 아직 **읽는 곳이 없다**(S1705가 읽는다) */
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
