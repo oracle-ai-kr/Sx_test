@@ -1237,13 +1237,30 @@ function _sxRecipeVotesCore(mk, ind, rows, idx){
     // [S1094] tradable:false = 시즌2 votes 미포함(매매 격리·미검증 레시피). _fires/표시엔 영향 없음(등록·발동은 유지·시즌1 카드엔 등장).
     for(var i=0;i<set.length;i++){ var r=set[i]; if(r.tradable===false) continue; if(_fires(r, f, lt, maBull)){ if(r.kind==='real') rk++; else fk++; } }
     var pure=(rk>0 && fk===0), mixed=(rk>0 && fk>0), v=0;
-    if(pure){
-      if(mk==='kr') v = rk>=4?4 : (rk>=3?3 : (rk>=2?2 : 1));
-      else if(mk==='us') v = (lt==='bull') ? (rk>=3?4:3) : 2;
-      else v = 1;
-    }
+    if(pure) v=_sxVotesLadder(mk, rk, lt);   /* [S1725] 사다리를 함수로 — 값은 종전과 글자까지 같다(배터리) */
     return { votes:v, pure:pure, mixed:mixed, realK:rk, fakeK:fk };
   }catch(e){ return null; }
+}
+// ───── [S1725] votes 사다리(S862·S877) — `_sxRecipeVotesCore`(시즌1 화면·워커 스캔)와 시즌2 러너(sig_runner)가 같은 함수를 부른다.
+function _sxVotesLadder(mk, rk, lt){
+  if(!(rk>0)) return 0;
+  if(mk==='kr') return rk>=4?4 : (rk>=3?3 : (rk>=2?2 : 1));
+  if(mk==='us') return (lt==='bull') ? (rk>=3?4:3) : 2;
+  return 1;
+}
+// ───── [S1725] 레거시 **풀별** 겹침 — 시즌1 전략조합 봉맵(sx_recipe_signal `_stratSignalBars` S1117 루프)과 시즌2 러너(sig_runner `latestSignal`)가 **한 함수**를 부른다(PREREG_S1725).
+//   pullback 풀 real 동시발동 수(kPb) · deadcat 풀 real 동시발동 수(kDc) · 두 풀의 fake 동시발동 수(kPbFake·kDcFake).
+//   ⚠bullrun·sidebear 풀(코인 세트)은 세지 않는다 — 시즌1 `_stratBt` 는 pb/dc/칸 봉맵만 본다(사용자 결정 2026-10-01 "시즌1 쪽으로 맞춘다").
+//   ⚠tradable:false 도 센다 — 시즌1 봉맵이 세기 때문(S1094 격리는 `_sxRecipeVotesCore` 쪽 이야기 · 사용자 결정 2026-10-01 11:17 "맞추자").
+//   `set` 은 호출자가 고른다(시즌1 `_R()` = 현재 시장 세트·미리보기 우선 · 러너 = RECIPES_BY_MKT[mkE]).
+function _sxLegacyPoolCore(set, f, lt, maBull){
+  var out={ kPb:0, kDc:0, kPbFake:0, kDcFake:0 };
+  if(!Array.isArray(set) || !f) return out;
+  for(var i=0;i<set.length;i++){ var r=set[i]; if(!r) continue;
+    if(r.pool==='pullback'){ if(r.kind==='real'){ if(_fires(r,f,lt,maBull)) out.kPb++; } else if(r.kind==='fake'){ if(_fires(r,f,lt,maBull)) out.kPbFake++; } }
+    else if(r.pool==='deadcat'){ if(r.kind==='real'){ if(_fires(r,f,lt,maBull)) out.kDc++; } else if(r.kind==='fake'){ if(_fires(r,f,lt,maBull)) out.kDcFake++; } }
+  }
+  return out;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
