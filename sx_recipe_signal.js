@@ -312,20 +312,17 @@
     try{ scan=await _scanStock(sym, rows); }catch(e){ scan=null; }
     finally{ _CELLON=_pv; _CELLMK=_pm; }
     if(!Array.isArray(scan)) return EMPTY;
-    var pbR=_R().filter(function(r){ return r.kind==='real' && r.pool==='pullback'; });
-    var pbF=_R().filter(function(r){ return r.kind==='fake' && r.pool==='pullback'; });
-    var dcRr=_R().filter(function(r){ return r.kind==='real' && r.pool==='deadcat'; });
-    var dcFf=_R().filter(function(r){ return r.kind==='fake' && r.pool==='deadcat'; });
+    var _set=_R();   /* [S1725] 세트 한 번 — 풀별 겹침은 공용 코어가 센다(러너와 같은 함수 · 재구현 0) */
     var out={pbReal:{},pbFake:{},dcReal:{},dcFake:{},cellReal:{},cellDown:{},cellFake:{},cellOf:{}};
     for(var i=0;i<scan.length;i++){ var s=scan[i];
-      // [S1117] real 맵 값 = 동시발동 개수(겹침 임계 minK용·truthy라 S1116 소비측 호환). fake는 청산/혼재 판정용이라 boolean 유지(break 조기종료).
+      // [S1117] real 맵 값 = 동시발동 개수(겹침 임계 minK용·truthy라 S1116 소비측 호환). fake는 청산/혼재 판정용이라 boolean 유지.
       //   ⚠L-15/L-17 주의: 절대 개수는 세트종속·부분집합 팽창 영향 — 임계값은 세트 바뀌면 재측정.
-      var kPb=0; for(var a=0;a<pbR.length;a++){ if(_fires(pbR[a], s.f, s.lt, s.maBull)) kPb++; }
-      if(kPb) out.pbReal[s.bar]=kPb;
-      for(var b=0;b<pbF.length;b++){ if(_fires(pbF[b], s.f, s.lt, s.maBull)){ out.pbFake[s.bar]=true; break; } }
-      var kDc=0; for(var c=0;c<dcRr.length;c++){ if(_fires(dcRr[c], s.f, s.lt, s.maBull)) kDc++; }
-      if(kDc) out.dcReal[s.bar]=kDc;
-      for(var d=0;d<dcFf.length;d++){ if(_fires(dcFf[d], s.f, s.lt, s.maBull)){ out.dcFake[s.bar]=true; break; } }
+      //   [S1725] 네 줄(pullback real/fake · deadcat real/fake)을 `_sxLegacyPoolCore`(sx_recipe_core) 한 호출로 — 값은 종전과 바이트 동일(배터리) · 시즌2 러너가 같은 함수를 불러 겹침 정의가 하나가 된다(PREREG_S1725).
+      var _lg=_sxLegacyPoolCore(_set, s.f, s.lt, s.maBull);
+      if(_lg.kPb) out.pbReal[s.bar]=_lg.kPb;
+      if(_lg.kPbFake) out.pbFake[s.bar]=true;
+      if(_lg.kDc) out.dcReal[s.bar]=_lg.kDc;
+      if(_lg.kDcFake) out.dcFake[s.bar]=true;
       if(s.cs){ if(s.cs.r) out.cellReal[s.bar]=s.cs.r; if(s.cs.d) out.cellDown[s.bar]=true; if(s.cs.f) out.cellFake[s.bar]=true; if(s.cs.c) out.cellOf[s.bar]=s.cs.c; }   // [S1120] cellOf
     }
     return out;
