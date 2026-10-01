@@ -18,6 +18,8 @@ const IS_COIN=(mk==='coin'||mk==='coin4h');
 const snapPath=process.env.SNAP;
 const outPath=process.env.OUT||('/tmp/sig/sig_'+mk+'.json');
 const _E=(typeof SXE!=='undefined')?SXE:global.SXE;
+_E._workerMarket=mkE;   /* [S1725] ★지표 파라미터를 그 시장 것으로 — 종전엔 미설정이라 `_getCurrentMarketKey()` 가 'kr' 로 떨어져 코인·US 도 KR 파라미터(BB 14·1.9σ)로 돌았다(시즌1 화면은 crypto 9·2.1σ / us 20·2.0σ · MEAS PREREG_S1725 §2) */
+if(typeof _sxLegacyPoolCore!=='function' || typeof _sxVotesLadder!=='function') throw new Error('[S1725] sx_recipe_core.js 가 옛것(_sxLegacyPoolCore·_sxVotesLadder 없음) — 공용 코어를 먼저 배포. 조용히 레거시 0으로 돌지 않는다(규율 9)');   /* [S1725] 배포 순서 가드 — 코어 없이 돌면 try/catch 가 삼켜 레거시가 전부 0이 된다 */
 const _V=(typeof SXVVAL!=='undefined')?SXVVAL:global.SXVVAL;
 const _C=(typeof SXC!=='undefined')?SXC:global.SXC;
 if(!_E||!_E.scrQuickScore||!_V||!_V._assembleScores||!_C||!_C.unifiedVerdictV2){ console.error('엔진/vv/project_c 미로드'); process.exit(1); }
@@ -142,9 +144,15 @@ function latestSignal(rows){
   const mom=_E.scoreMomentum(rows,'day',5);
   const sc=_V._assembleScores(qs);
   const verdict=_C.unifiedVerdictV2(null, sc, mom, null); // 등급(표시·evidence용·행동엔 미사용 S948)
-  // [S948] 레시피 투표 = 진입 결정 근거 (SSOT=_sxRecipeVotesCore). realK/fakeK = 발동 real/fake 겹침수.
-  let votes=0, realK=0, fakeK=0, pure=false;
-  try{ const rsig=_sxRecipeVotesCore(mkE, qs.ind, rows, idx); if(rsig){ votes=rsig.votes||0; realK=rsig.realK||0; fakeK=rsig.fakeK||0; pure=!!rsig.pure; } }catch(e){}
+  // [S948] 레시피 투표 = 진입 결정 근거. realK/fakeK = 발동 real/fake 겹침수.
+  // [S1725] ★레거시 = 시즌1 전략조합 봉맵(`_stratSignalBars`→`_stratBt`)과 같은 식(PREREG_S1725) —
+  //   ①장기축 풀만 센다(정배=pullback 풀 · 역배=deadcat 풀 · 코인 bullrun·sidebear 는 안 센다 · tradable:false 도 센다) ②지표는 시즌1 `_scanStock` 과 같은 250봉 슬라이스 ind ③rows<260 이면 봉맵이 없으니 레거시·칸도 없다(웜업)
+  //   종전 `_sxRecipeVotesCore`(세트 전 풀 합산 · 전 이력 ind)는 코인 역배 겹침을 시즌1보다 크게, squeeze 계열 재료를 다르게 냈다(MEAS §2-A). 사다리(`_sxVotesLadder`)는 같은 함수.
+  const _indS=(rows.length>=260)?_E.calcAllScreener(rows.slice(idx-249, idx+1),'day'):null;
+  let votes=0, realK=0, fakeK=0, pure=false, _ltS=null;
+  try{ if(_indS){ const _f=_extractFeats733(_indS, rows, idx); _ltS=_ltOf(_indS); const _mb=!!(_indS.maAlign && _indS.maAlign.bullish);
+    const Lg=_sxLegacyPoolCore(RECIPES_BY_MKT[mkE]||RECIPES_BY_MKT.kr, _f, _ltS, _mb);
+    realK=(_ltS==='bull')?Lg.kPb:((_ltS==='bear')?Lg.kDc:0); fakeK=Lg.kPbFake+Lg.kDcFake; pure=(realK>0 && fakeK===0); votes=pure?_sxVotesLadder(mkE, realK, _ltS):0; } }catch(e){}
   let bullVol=false, cross=false, atrPct=null; try{ const fullInd=(_E.calcAllScreener)?_E.calcAllScreener(rows,'day'):qs.ind; bullVol=bullVolSignal(fullInd); cross=crossSignal(rows); /* [S1396] */ atrPct=(fullInd&&fullInd.atr&&typeof fullInd.atr.pct==='number')?fullInd.atr.pct:null; }catch(e){}  // [S1041] 강세 거래량급증 · [S1050] ATR%(게이트용)
   let rangeUs=false;   // [S1632] US 전용 — KR·코인은 이 두 줄을 안 탄다(crossSignal 라우팅판 그대로)
   if(mk==='us'){ cross=crossSignalUS(rows); rangeUs=rangeSignalUS(rows); }
@@ -153,8 +161,8 @@ function latestSignal(rows){
   //   strict(강)+soft(일반) 모두 수집(모의 최대관찰·tier 각인) — buy는 strict 우선 → k 내림차 정렬.
   let v2=null, cellK=null, cellL=null;   // [S1209] 칸 각인(현재 칸 — v2 hit 없어도 기록)
   try{
-    if(typeof _sxCellSignalCore==='function'){
-      const cs=_sxCellSignalCore(mkE, qs.ind, rows, idx);
+    if(typeof _sxCellSignalCore==='function' && _indS){   /* [S1725] 250봉 슬라이스 ind(시즌1 `_scanStock` 과 같은 입력) · 웜업이면 칸도 없음 */
+      const cs=_sxCellSignalCore(mkE, _indS, rows, idx);
       if(cs){ cellK=cs.cell||null; cellL=cs.lbl||null; }   // [S1209] cell은 규칙 유무와 무관하게 옴 · lbl은 그 칸에 규칙 있을 때만(없으면 null — 소비측이 9칸 고정맵으로 보완)
       if(cs&&Array.isArray(cs.sig)){
         const hits=cs.sig.filter(s=>s&&s.hit);
@@ -178,7 +186,7 @@ function latestSignal(rows){
   const cross2060=crossPlain(rows,20,60), cross1060=crossPlain(rows,10,60);
   const st510=maState(rows,5,10), st520=maState(rows,5,20), st2060=maState(rows,20,60), st1060=maState(rows,10,60);   /* [S1711] 🔄 재진입용 진입쌍 정배열 상태 4종 — 아직 읽는 곳 없음(워커 S1711) */
   const _ga=gateAtoms(rows);   /* [S1709] 크로스 게이트 원자 3종 */
-  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:(sc&&sc.ltAlign)||'off', bullVol:bullVol, cross:!!cross /* [S1396] 전 종목 상시 각인(알갱이) */, atrPct:atrPct, v2:v2, cell:cellK, cellLbl:cellL, range:rangeUs /* [S1632] us만 참이 될 수 있음 */, cross510, cross520, rg5 /* [S1663] 코인만 값 · 그 외 null */, cross2060, cross1060 /* [S1704] 3시장 공통 */, g60up:_ga.g60up, gMa1060:_ga.gMa1060, gTx1060:_ga.gTx1060 /* [S1709] */, st510, st520, st2060, st1060 /* [S1711] */ };
+  return { grade:verdict.action, rawScore:(qs&&qs.score!=null?qs.score:0), votes, realK, fakeK, pure, dck:realK, dcf:fakeK, lt:_ltS||(sc&&sc.ltAlign)||'off' /* [S1725] 레거시 판정과 같은 축(슬라이스 ind) · 웜업이면 종전 */, bullVol:bullVol, cross:!!cross /* [S1396] 전 종목 상시 각인(알갱이) */, atrPct:atrPct, v2:v2, cell:cellK, cellLbl:cellL, range:rangeUs /* [S1632] us만 참이 될 수 있음 */, cross510, cross520, rg5 /* [S1663] 코인만 값 · 그 외 null */, cross2060, cross1060 /* [S1704] 3시장 공통 */, g60up:_ga.g60up, gMa1060:_ga.gMa1060, gTx1060:_ga.gTx1060 /* [S1709] */, st510, st520, st2060, st1060 /* [S1711] */ };
 }
 
 // ── [S948] 레시피 기반 진입 정책 — votes≥1 → BUY. 엔진 점수축(등급) 미사용(원천 재료감사: ready/entry/trend/upside 다 약/역전).
