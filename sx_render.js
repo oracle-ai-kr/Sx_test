@@ -2685,7 +2685,7 @@ function _stratCfg(market){
     if(+o.slPct>0) sc.slPct=Math.min(90,Math.max(1,+o.slPct));   /* [S1510] */
     if(o.slMult!=null && isFinite(+o.slMult) && +o.slMult>0) sc.slMult=Math.min(20,Math.max(0.1,+o.slMult));
     if(o.trMult!=null && isFinite(+o.trMult) && +o.trMult>0) sc.trMult=Math.min(20,Math.max(0.1,+o.trMult));   /* [S1509] */
-    sc.exNBars=(+o.exNBars>0)?Math.min(60,Math.round(+o.exNBars)):0; if(o.exNBarsLast!=null && isFinite(+o.exNBarsLast) && +o.exNBarsLast>0) sc.exNBarsLast=Math.min(60,Math.max(1,Math.round(+o.exNBarsLast))); if(o.feePct!=null && isFinite(+o.feePct) && +o.feePct>=0) sc.feePct=Math.min(2,+(+o.feePct).toFixed(2)); if(o.tpPct!=null && isFinite(+o.tpPct) && +o.tpPct>0) sc.tpPct=Math.min(500,+(+o.tpPct).toFixed(1)); if(o.tpAtrMult!=null && isFinite(+o.tpAtrMult) && +o.tpAtrMult>0) sc.tpAtrMult=Math.min(20,+(+o.tpAtrMult).toFixed(1)); if(o.psarAf!=null && isFinite(+o.psarAf) && +o.psarAf>0) sc.psarAf=Math.min(0.5,Math.max(0.001,+o.psarAf)); if(o.psarMax!=null && isFinite(+o.psarMax) && +o.psarMax>0) sc.psarMax=Math.min(1,Math.max(0.01,+o.psarMax)); if(o.psarGMask!=null && isFinite(+o.psarGMask)) sc.psarGMask=(Math.round(+o.psarGMask)&1023);   /* [S1746] 격자 10비트 · [S1745] 🔵 PSAR 수치 2 로더 */ ['slAtrUp','slAtrMid','slAtrDn','trAtrUp','trAtrMid','trAtrDn'].forEach(function(k){ sc[k]=(o[k]!=null && isFinite(+o[k]) && +o[k]>0)?Math.min(20,Math.max(0.1,+o[k])):null; });   /* [S1743] 구간별 SL·트레일 3칸 로더(빈 칸 = null = 단일 배수) */ ['tpAtrUp','tpAtrMid','tpAtrDn'].forEach(function(k){ if(o[k]!=null && isFinite(+o[k]) && +o[k]>0) sc[k]=Math.min(20,+(+o[k]).toFixed(1)); });   /* [S1740] 구간별 배수 3칸 로더(숫자 키는 화이트리스트) */ if(o.tpFixPct!=null && isFinite(+o.tpFixPct) && +o.tpFixPct>0) sc.tpFixPct=Math.min(300,Math.max(1,+(+o.tpFixPct).toFixed(1)));   /* [S1599] 🎯 값 로더(S1592 누락 정정 — 없으면 저장해도 10으로 되돌아감) */   /* [S1503] 익절 칩 값 — 없으면 기본 30 / 3(구 저장본 호환·_STRAT_VER 미상승). ⚠이 줄은 한 줄 블록 안이라 // 주석을 쓰면 닫는 }를 삼킨다(S1456 재발·이번에 실제로 터졌다) */ } } }catch(_){}
+    sc.exNBars=(+o.exNBars>0)?Math.min(60,Math.round(+o.exNBars)):0; if(o.exNBarsLast!=null && isFinite(+o.exNBarsLast) && +o.exNBarsLast>0) sc.exNBarsLast=Math.min(60,Math.max(1,Math.round(+o.exNBarsLast))); if(o.feePct!=null && isFinite(+o.feePct) && +o.feePct>=0) sc.feePct=Math.min(2,+(+o.feePct).toFixed(2)); if(o.tpPct!=null && isFinite(+o.tpPct) && +o.tpPct>0) sc.tpPct=Math.min(500,+(+o.tpPct).toFixed(1)); if(o.tpAtrMult!=null && isFinite(+o.tpAtrMult) && +o.tpAtrMult>0) sc.tpAtrMult=Math.min(20,+(+o.tpAtrMult).toFixed(1)); if(o.psarAf!=null && isFinite(+o.psarAf) && +o.psarAf>0) sc.psarAf=Math.min(0.5,Math.max(0.001,+o.psarAf)); if(o.psarMax!=null && isFinite(+o.psarMax) && +o.psarMax>0) sc.psarMax=Math.min(1,Math.max(0.01,+o.psarMax)); if(o.psarGMask!=null && isFinite(+o.psarGMask)) sc.psarGMask=(Math.round(+o.psarGMask)&4095);   /* [S1747] 격자 12비트(TP_ATR 칸 1024·2048) · [S1746] 격자 · [S1745] 🔵 PSAR 수치 2 로더 */ ['slAtrUp','slAtrMid','slAtrDn','trAtrUp','trAtrMid','trAtrDn'].forEach(function(k){ sc[k]=(o[k]!=null && isFinite(+o[k]) && +o[k]>0)?Math.min(20,Math.max(0.1,+o[k])):null; });   /* [S1743] 구간별 SL·트레일 3칸 로더(빈 칸 = null = 단일 배수) */ ['tpAtrUp','tpAtrMid','tpAtrDn'].forEach(function(k){ if(o[k]!=null && isFinite(+o[k]) && +o[k]>0) sc[k]=Math.min(20,+(+o[k]).toFixed(1)); });   /* [S1740] 구간별 배수 3칸 로더(숫자 키는 화이트리스트) */ if(o.tpFixPct!=null && isFinite(+o.tpFixPct) && +o.tpFixPct>0) sc.tpFixPct=Math.min(300,Math.max(1,+(+o.tpFixPct).toFixed(1)));   /* [S1599] 🎯 값 로더(S1592 누락 정정 — 없으면 저장해도 10으로 되돌아감) */   /* [S1503] 익절 칩 값 — 없으면 기본 30 / 3(구 저장본 호환·_STRAT_VER 미상승). ⚠이 줄은 한 줄 블록 안이라 // 주석을 쓰면 닫는 }를 삼킨다(S1456 재발·이번에 실제로 터졌다) */ } } }catch(_){}
   return sc;
 }
 function _stratSave(market,sc){ try{ localStorage.setItem(_sxTfKey('SX_STRAT_',market), JSON.stringify(sc));   /* [S1682] */ }catch(_){} }
@@ -2733,20 +2733,35 @@ function _stratTpFix(v){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=
 function _stratPsarNum(k,v){ const ctx=window._sxTrendCtx; if(!ctx) return; if(k!=='psarAf'&&k!=='psarMax') return; const m=ctx.market; const sc=_stratCfg(m); const n=parseFloat(v);
   if(isFinite(n)&&n>0) sc[k]=(k==='psarAf')?Math.min(0.5,Math.max(0.001,n)):Math.min(1,Math.max(0.01,n)); else sc[k]=(k==='psarAf')?0.02:0.2;   /* 비우면 기본값 */
   _stratSave(m,sc); _trendRerender(); }
-function _stratPsarBit(b){ const ctx=window._sxTrendCtx; if(!ctx) return; b=+b; if([1,2,4,8,16,32,64,128,256,512].indexOf(b)<0) return; const m=ctx.market; const sc=_stratCfg(m);
-  sc.psarGMask=(_stratPsarMask(sc)^b)&1023; _stratSave(m,sc); _trendRerender(); }
-function _stratPsarMask(sc){ return (sc&&sc.psarGMask!=null&&isFinite(+sc.psarGMask))?(+sc.psarGMask&1023):96; }
-const _STRAT_PSAR_ITEMS=[[1,'크로스'],[2,'다른 진입원'],[4,'데드크로스'],[8,'ATR'],[16,'다른 청산원']];   // 격자 5칸(화면·요약·주의문이 같이 읽는다)
-function _stratPsarMaskTxt(M,k){ const a=_STRAT_PSAR_ITEMS.filter(function(x){ return M&(x[0]*k); }).map(function(x){ return x[1].replace('다른 ','다른'); }); return a.length?a.join('·'):'없음'; }
+// [S1747] 격자 12비트 — 종전 10비트(상승 1·2·4·8·16 / 하락 ×32)에 TP_ATR 칸(상승 1024 · 하락 2048)을 더했다
+function _stratPsarBit(b){ const ctx=window._sxTrendCtx; if(!ctx) return; b=+b; if([1,2,4,8,16,32,64,128,256,512,1024,2048].indexOf(b)<0) return; const m=ctx.market; const sc=_stratCfg(m);
+  sc.psarGMask=(_stratPsarMask(sc)^b)&4095; _stratSave(m,sc); _trendRerender(); }
+function _stratPsarMask(sc){ return (sc&&sc.psarGMask!=null&&isFinite(+sc.psarGMask))?(+sc.psarGMask&4095):96; }
+// 격자 6칸 [상승 비트, 하락 비트, 이름, 종류, 설명] — 화면·요약·주의문이 같이 읽는다(앞 2 = 진입 · 뒤 4 = 청산)
+const _STRAT_PSAR_ITEMS=[
+  [1,32,'크로스','en','📈크로스·🔄재진입 진입(🔮kNN 선행 포함)'],
+  [2,64,'다른 진입원','en','크로스 계열 말고 다른 진입원 — 🔻역배real·🟢정배real·🧩칸real·🌀BB회귀·🔊bullVol'],
+  [4,128,'데드','ex','데드크로스 청산'],
+  [8,256,'SL·트레일','ex','🛡️이중ATR 두 다리(🛑SL_ATR·📉트레일ATR) 청산'],
+  [1024,2048,'TP_ATR','ex','🏹TP_ATR 익절'],
+  [16,512,'다른 청산원','ex','데드·SL·트레일·TP_ATR 말고 나머지 청산 — 🚀TP급등·🎯TP고정·🛑SL급락·⏱N봉컷·가짜·🧩칸fake·⛔칸down·⚡단기MA컷·🔮예측 청산·BB회귀의 BB중단·20봉캡']];
+const _STRAT_PSAR_EXALL=[1052,2944];   // 구간별 청산 4칸 전부(상승 4+8+1024+16 · 하락 128+256+2048+512)
+function _stratPsarMaskTxt(M,si){ const a=_STRAT_PSAR_ITEMS.filter(function(x){ return M&x[si]; }).map(function(x){ return x[2].replace('다른 ','다른'); }); return a.length?a.join('·'):'없음'; }
 // 격자 — 구간마다 머리 한 줄 + 진입 줄 + 청산 줄. ⚠칸 글리프는 ⛔/⬜(칩의 ☑ 과 다르다 — 블록 머리의 '켜진 칩 수'는 `>☑` 를 센다)
-function _stratPsarRows(sc){ const M=_stratPsarMask(sc);
-  const TIP={1:'📈크로스·🔄재진입 진입(🔮kNN 선행 포함)',2:'크로스 계열 말고 다른 진입원 — 🔻역배real·🟢정배real·🧩칸real·🌀BB회귀·🔊bullVol',4:'데드크로스 청산',8:'🛡️이중ATR(🛑SL·📉트레일) 청산 — 🏹TP_ATR 은 익절이라 「다른 청산원」',16:'데드·이중ATR 말고 나머지 청산 — 🚀TP급등·🏹TP_ATR·🎯TP고정·🛑SL급락·⏱N봉컷·가짜·🧩칸fake·⛔칸down·⚡단기MA컷·🔮예측 청산·BB회귀의 BB중단·20봉캡'};
-  const ck=function(bit,lab,ph,kind){ const on=!!(M&bit); return `<span onclick="_sxVib(9);window._stratPsarBit&&_stratPsarBit(${bit})" title="PSAR ${ph} 구간에서 ${TIP[bit>=32?bit/32:bit]} — 켜면 ${kind==='en'?'그 구간엔 이 진입을 받지 않는다':'그 구간엔 이 청산이 걸려도 팔지 않는다'}. 끄면 PSAR 과 무관하게 평소대로" style="font-size:9.5px;font-weight:800;padding:4px 7px;border-radius:10px;border:1px solid ${on?'#dc2626':'var(--border)'};cursor:pointer;white-space:nowrap;${on?'background:#dc262614;color:#dc2626':'background:transparent;color:var(--text3)'}">${on?'⛔':'⬜'} ${lab}</span>`; };
-  const line=function(lab,k,ph,items,kind){ return `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:4px"><span style="font-size:9px;font-weight:800;color:var(--text3);min-width:24px">${lab}</span>`+items.map(function(x){ return ck(x[0]*k,x[1],ph,kind); }).join('')+`</div>`; };
-  const blk=function(head,col,k,ph){ return `<div style="margin-top:7px"><div style="font-size:9px;font-weight:800;color:${col}">${head} <span style="font-weight:600;color:var(--text3)">— ⛔ 켠 칸은 이 구간에서 막는다</span></div>`
-    +line('진입',k,ph,_STRAT_PSAR_ITEMS.slice(0,2),'en')+line('청산',k,ph,_STRAT_PSAR_ITEMS.slice(2),'ex')+`</div>`; };
-  return blk('▲ PSAR 상승 중(점이 캔들 아래)','#16a34a',1,'상승')+blk('▼ PSAR 하락 중(점이 캔들 위)','#e8365a',32,'하락')
-    +`<div style="font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:5px">⛔ = 게이트 발동(진입 금지 · 청산 억제) / ⬜ = 무영향 · ATR = 🛡️이중ATR(SL·트레일) · 🏹TP_ATR 등 나머지 청산은 「다른 청산원」</div>`; }
+//   [S1747] 충돌 경고 — 🔵 PSAR 하락청산과 하락 중 칸이 어긋날 때만 뜬다(정상 상태에 소음 0): 청산 칸 = 효과 없음(흐리게) · 진입이 열려 있음 = 사자마자 판다
+function _stratPsarRows(sc){ const M=_stratPsarMask(sc), X=!!sc.psarX;
+  const WARN='font-size:8.5px;font-weight:800;color:#d97706;line-height:1.45;margin-top:3px';
+  const ck=function(x,si,ph,moot){ const bit=x[si], on=!!(M&bit); return `<span onclick="_sxVib(9);window._stratPsarBit&&_stratPsarBit(${bit})" title="PSAR ${ph} 구간에서 ${x[4]} — 켜면 ${x[3]==='en'?'그 구간엔 이 진입을 받지 않는다':'그 구간엔 이 청산이 걸려도 팔지 않는다'}. 끄면 PSAR 과 무관하게 평소대로${(moot&&on)?' · ⚠지금은 🔵 PSAR 하락청산이 켜져 있어 이 칸은 효과가 없다':''}" style="font-size:9px;font-weight:800;padding:4px 5px;border-radius:10px;border:1px ${(moot&&on)?'dashed':'solid'} ${on?'#dc2626':'var(--border)'};cursor:pointer;white-space:nowrap;${on?'background:#dc262614;color:#dc2626':'background:transparent;color:var(--text3)'}${(moot&&on)?';opacity:.5':''}">${on?'⛔':'⬜'} ${x[2]}</span>`; };
+  const line=function(lab,si,ph,kind,moot){ return `<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:4px"><span style="font-size:9px;font-weight:800;color:var(--text3);min-width:21px">${lab}</span>`+_STRAT_PSAR_ITEMS.filter(function(x){ return x[3]===kind; }).map(function(x){ return ck(x,si,ph,moot); }).join('')+`</div>`; };
+  const blk=function(head,col,si,ph){ const dn=(si===1);
+    return `<div style="margin-top:7px"><div style="font-size:9px;font-weight:800;color:${col}">${head} <span style="font-weight:600;color:var(--text3)">— ⛔ 켠 칸은 이 구간에서 막는다</span></div>`
+      +line('진입',si,ph,'en',false)
+      +((dn&&X&&(M&96)!==96)?`<div id="sxPsarWarnEn" style="${WARN}">⚠ 🔵 PSAR 하락청산과 같이 쓰는데 <b>하락 중 진입이 열려 있다</b> — 하락 봉에 산 것을 다음 하락 봉에 바로 판다</div>`:'')
+      +line('청산',si,ph,'ex',dn&&X)
+      +((dn&&X&&(M&_STRAT_PSAR_EXALL[1]))?`<div id="sxPsarWarnEx" style="${WARN}">⚠ 🔵 PSAR 하락청산이 켜져 있어 <b>하락 중 청산 칸은 효과가 없다</b> — 하락 봉이 오면 어차피 그 봉에 판다(막아도 사유 이름만 🔵PSAR 로 바뀐다)</div>`:'')
+      +`</div>`; };
+  return blk('▲ PSAR 상승 중(점이 캔들 아래)','#16a34a',0,'상승')+blk('▼ PSAR 하락 중(점이 캔들 위)','#e8365a',1,'하락')
+    +`<div style="font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:5px">⛔ = 게이트 발동(진입 금지 · 청산 억제) / ⬜ = 무영향 · SL·트레일 = 🛡️이중ATR 두 다리 · TP_ATR = 🏹익절 · 나머지 청산은 「다른 청산원」</div>`; }
 // 지금 이 종목의 PSAR 방향·점 값(증권앱 점과 맞춰 볼 수 있게) — 못 읽으면 빈 문자열
 function _stratPsarNow(sc){ try{ const ctx=window._sxTrendCtx, r=ctx&&ctx.rows; if(!r||r.length<3) return ''; const cl=r.map(x=>+(x.close!=null?x.close:x.c));
     const p=_sxPsarSeries(r, cl, (+sc.psarAf>0)?+sc.psarAf:0.02, (+sc.psarMax>0)?+sc.psarMax:0.2), i=r.length-1, u=p.up[i]; if(u==null) return '';
@@ -2801,7 +2816,7 @@ function _stratXrLbl(x){ return _STRAT_XR_LBL[x]||x||''; }
 function _stratActive(sc,cfg,mk){
   const en=[]; if(sc.cross) en.push('📈크로스'); if(sc.cross&&cfg&&cfg.reentry) en.push('🔄재진입'+_axPair(cfg,'r'));   /* [S1684] ★TRIX 모드면 **TRIX 재진입쌍**을 적는다(`_axPair` SSOT · S1679) — MA 모드 출력은 종전과 한 글자도 같다(`_axPair`의 MA 가지가 같은 식이다). */   /* [S1545] MA쌍까지 적는다 — 이 칩은 A/B 비교용이라 어느 쌍으로 돌았는지가 결과의 일부다 */ if(sc.dc) en.push('🔻역배real'); if(sc.pb) en.push('🟢정배real'); if(sc.cell) en.push('🧩칸real'); if(sc.bb&&(mk==='kr'||mk==='us')) en.push('🌀BB회귀'); if(cfg&&cfg.bullVol) en.push('🔊bullVol'); if(sc.coinSlope&&sc.cross) en.push('📐60MA기울기');   /* [S1695] 시장 조건 철거 — 엔진이 3시장에서 돌게 됐다(S1684 교훈: 라벨만 한 시장에 묶어 두면 켜진 게이트를 화면이 안 말한다) */ if(sc.cross&&(sc.maTrGate||sc.trixTrGate)){ if(sc.maTrGate && !_trGDead(sc,cfg,'ma').all){ const _p=_trGPair(sc,'ma'); en.push('📏MA'+_p[0]+'>'+_p[1]); } if(sc.trixTrGate && !_trGDead(sc,cfg,'tx').all){ const _q=_trGPair(sc,'tx'); en.push('🧬TRIX'+_q[0]+'>'+_q[1]); } }   /* [S1694] 칩별 쌍 — 두 게이트가 다른 주기면 라벨도 각자 적는다 */   /* [S1693] ⚠게이트쌍이 진입 크로스쌍과 같으면 **한 건도 못 자른다** — 켜져 있어도 활성 목록에서 뺀다(S1680 문법). 부분 무동작(재진입만)은 적는다 — 크로스 다리에서는 여전히 일하기 때문이다. 배지가 그 사실을 따로 말한다. */   /* [S1692] 🧭 추세 게이트 2종 — `sc.cross` 종속은 엔진과 같은 술어(크로스가 꺼지면 두 게이트가 걸릴 자리가 없다 · S1680 문법). 쌍은 `_trGPair` 하나에서 읽는다 — 입력칸을 바꾸면 라벨도 같이 움직인다(S1679 라벨 SSOT). */   /* [S1690] 🪙 코인 진입 게이트 — 표에 켜져 있고 실제로 거래를 자르는데(실측: 풀 24종 7→18건) 요약 줄이 말하지 않았다. `sc.cross` 종속은 엔진(`_isCrossPos` · okReg)과 같은 술어 — 크로스가 꺼지면 무동작이라 적지 않는다(S1680 문법). */   /* [S1684] ★시장 조건 철거 — 엔진(`_stratBt` `_bvOnSc`)이 S1616으로 이미 3시장 전부 발동한다. 라벨만 KR에 묶여 있어 코인·US에서 **켜진 진입원을 화면이 말하지 않았다.** */
   if((sc.dc||sc.pb)&&sc.minK>1) en.push('Σ≥'+sc.minK);   // [S1117] real 겹침 임계
-  if(sc.psarG){ const M=_stratPsarMask(sc); en.push('🔵PSAR게이트[상승⛔ '+_stratPsarMaskTxt(M,1)+' / 하락⛔ '+_stratPsarMaskTxt(M,32)+']('+((+sc.psarAf>0)?+sc.psarAf:0.02)+'/'+((+sc.psarMax>0)?+sc.psarMax:0.2)+')'); }   // [S1746]
+  if(sc.psarG){ const M=_stratPsarMask(sc); en.push('🔵PSAR게이트[상승⛔ '+_stratPsarMaskTxt(M,0)+' / 하락⛔ '+_stratPsarMaskTxt(M,1)+']('+((+sc.psarAf>0)?+sc.psarAf:0.02)+'/'+((+sc.psarMax>0)?+sc.psarMax:0.2)+')'); }   // [S1746]
   if(sc.mGate&&sc.cross) en.push('📅월봉게이트');   // [S1599]
   // [S1690] 🪙 코인 청산 부속 — `_isCrossPos`(크로스·재진입 포지션)에만 걸린다. 같은 이유로 `sc.cross` 종속.
   //   ⚠청산 목록(`ex`)은 아래에서 만든다 — 여기서는 만들지 않는다. 아래 `ex.push` 줄에 이어 붙였다.
@@ -2918,15 +2933,17 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx){
       if(mc.length>=20){ let s5=0,s20=0; for(let q=1;q<=20;q++){ const v=mc[mc.length-q]; s20+=v; if(q<=5) s5+=v; } _mgOk[i]=(s5/5>s20/20); } else _mgOk[i]=null; } }
   const _mgPass=(i)=>!_mgOn || _mgOk[i]!==false;
   // [S1746] 🔵 PSAR 게이트(격자) + 하락청산 — 판정 봉 i 의 PSAR 방향(그 봉 종가에 알 수 있다 · 청산·진입 판정과 같은 시점). 판정 불가(null)는 전부 무영향.
-  //   격자 `_psM`(10비트): 봉 i 가 상승이면 낮은 5비트, 하락이면 ×32 자리를 본다 — 켜진 칸의 항목을 그 봉에서 **막는다**(진입 금지 · 청산 억제).
+  //   [S1747] 격자 12비트 — 🏹TP_ATR 전용 칸(상승 1024 · 하락 2048 · `_psTpOk`)을 더했다. 「다른 청산원」(16·512)은 이제 TP_ATR 을 안 누른다.
+  //   격자 `_psM`: 봉 i 가 상승이면 낮은 5비트, 하락이면 ×32 자리를 본다 — 켜진 칸의 항목을 그 봉에서 **막는다**(진입 금지 · 청산 억제).
   //     1 크로스(재진입·kNN 선행 포함) · 2 다른 진입원 · 4 데드크로스 · 8 이중ATR · 16 다른 청산원(데드·이중ATR·psar 를 뺀 전부)
   //   하락청산 `_psX`: 하락 봉이면 그 봉 종가에 판다(사유 psar · 격자와 무관 — 다른 청산이 같은 봉에 걸리면 그 사유가 앞).
   //   ⚠둘 다 OFF 면 `_psUp` 를 만들지 않고 `_psBlk` 는 늘 false — 종전과 글자 그대로. 게이트만 켜고 칸이 전부 꺼져 있어도 같다.
   const _psG=!!sc.psarG, _psX=!!sc.psarX;
-  const _psM=_psG ? ((sc.psarGMask!=null&&isFinite(+sc.psarGMask))?(+sc.psarGMask&1023):96) : 0;
+  const _psM=_psG ? ((sc.psarGMask!=null&&isFinite(+sc.psarGMask))?(+sc.psarGMask&4095):96) : 0;   /* [S1747] 12비트 */
   const _psUp=(_psM||_psX) ? _sxPsarSeries(rows, close, (+sc.psarAf>0)?+sc.psarAf:0.02, (+sc.psarMax>0)?+sc.psarMax:0.2).up : null;
   const _psBlk=(i,b)=>{ if(!_psM) return false; const u=_psUp[i]; if(u==null) return false; return !!(_psM&(u?b:(b*32))); };
   const _psCrossOk=(i)=>!_psBlk(i,1), _psOtherOk=(i)=>!_psBlk(i,2), _psDeadOk=(i)=>!_psBlk(i,4), _psAtrOk=(i)=>!_psBlk(i,8);
+  const _psTpOk=(i)=>{ if(!_psM) return true; const u=_psUp[i]; return (u==null) || !(_psM&(u?1024:2048)); };   /* [S1747] 🏹TP_ATR 칸 */
   // [S1740] 📅 구간별 TP_ATR(PREREG_S1740) — 월봉(진행 중인 달은 그 봉까지의 종가 · 미래 참조 0) MA5·MA10 + 종가 위치:
   //   상승 = MA5>MA10 && 종가>MA5 · 하락 = MA5<MA10 && 종가<MA5 · 그 밖 = 혼조 · 월 10개 미만 = 판정 불가(null → 혼조 배수).
   //   배수는 진입 **신호 봉**의 구간으로 정해 포지션에 고정한다(`pos.tpM`) — 판정 식은 그대로(종가−진입가 ≥ 배수×진입ATR). OFF 면 `_mz` 는 만들지 않는다.
@@ -3188,7 +3205,7 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx){
       // [S1503] 익절 2종 — 스톱(이중ATR)보다 **앞**·N봉컷보다 뒤 = 워커 atExitDecide 우선순위 그대로. 게이트 불개입(시즌2 동일).
       //   ⚠range 레그에도 적용된다 — 이중ATR과 같은 층(포지션 단위 청산)에 뒀다. range 자체 청산(BB중단·20봉캡)이 먼저 잡으면 그쪽이 이긴다.
       if(!xr && !_psOx /* [S1746] 🔵 */ && _tpPctOn && _pctHit(i,pos,_tpFromEntry,_tpPctV,true)) xr='tpS';   // [S1511] 기준 토글 경유(당일봉이면 종전과 동치)
-      if(!xr && !_psOx /* [S1746] 🔵 */ && _tpAtrOn && pos.entryATR>0 && close[i]>0 && (close[i]-pos.entry)>=((pos.tpM>0)?pos.tpM:_tpAtrM)*pos.entryATR) xr='tpA';   /* [S1740] 구간별이면 진입 때 고정한 배수(pos.tpM) · 아니면 종전 배수 */
+      if(!xr && _psTpOk(i) /* [S1747] 🔵 TP_ATR 전용 칸(종전 「다른 청산원」) */ && _tpAtrOn && pos.entryATR>0 && close[i]>0 && (close[i]-pos.entry)>=((pos.tpM>0)?pos.tpM:_tpAtrM)*pos.entryATR) xr='tpA';   /* [S1740] 구간별이면 진입 때 고정한 배수(pos.tpM) · 아니면 종전 배수 */
       if(!xr && !_psOx /* [S1746] 🔵 */ && _tpFixOn && (!_tpFixMg || _mgOk[i]!==true) && _pctHit(i,pos,true,_tpFixV,true)) xr='tpF';   // [S1600] 월봉역배만 ON: 월봉 MA5>MA20(정배)이면 안 잡는다 · 판정 불가(null)=해제=발동   // [S1592] 🎯 TP고정 — TP_ATR 뒤·SL급락 앞(워커 S1591 atExitDecide 동일 자리) · OFF면 이 줄은 아무 것도 안 한다
       if(!xr && !_psOx /* [S1746] 🔵 */ && _slPctOn && _pctHit(i,pos,_slFromEntry,_slPctV,false)) xr='slS';   // [S1510] 🛑 SL급락 — 익절 2종 뒤·이중ATR 앞. ⬛게이트·🚪분할의 영향을 받지 않는다(TP와 같은 층)
       if(!xr && _a2Hit && !(sc.xSplit && _rg5BullUp(i)) && _g3xAtrOk(i) && _psAtrOk(i) /* [S1745] 🔵 선택 */) xr=((_slHit&&_trHit)?(_a2Init>=_a2Trail?'atrI':'atrT'):(_slHit?'atrI':'atrT'));   /* [S1509] 한쪽만 켜졌으면 그쪽이 사유 */   // [S1503] ⬛ 게이트: 장기 정배면 이중ATR 억제(데드가 출구) · [S1251] 🚪 분할: 불·상승(v3)=이중ATR 억제 · [S1391] 지배 스톱으로 초기/트레일 분리(발동 봉·조건 무변경, 사유만)
@@ -5342,7 +5359,7 @@ function _trendRenderInner(){
         : `<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#16a34a;font-size:9.5px">재진입MA</span>${_inp('sxTrendReS',(+cfg.reEntryS||cfg.s))}<span style="color:var(--text3)">×</span>${_inp('sxTrendReL',(+cfg.reEntryL||cfg.l))}</span><span style="font-size:8.5px;color:#16a34a">골든크로스 시 재진입</span>`):'')   /* [S1677] 거울상 */
       /* [S1746] 🔵 PSAR 묶음 — 칩 2(게이트·하락청산) + (켜면) 가속·최대 칸·지금 방향 + (게이트면) 구간 × 항목 격자 */
       +`<div style="flex:1 0 100%;min-width:0"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">`
-      +_sChip(sc.psarG,'🔵 PSAR 게이트','psarG','#4f46e5','[S1746] PSAR 상승 중(점이 캔들 아래)·하락 중(점이 위) 각각, 진입(크로스·다른 진입원)과 청산(데드크로스·ATR·다른 청산원) 가운데 ⛔ 켠 칸을 그 구간에서 막는다. 끈 칸은 무영향. 계산은 재료 「PSAR 상승/하락」과 같은 식. 측정 0(관찰용)')
+      +_sChip(sc.psarG,'🔵 PSAR 게이트','psarG','#4f46e5','[S1746] PSAR 상승 중(점이 캔들 아래)·하락 중(점이 위) 각각, 진입(크로스·다른 진입원)과 청산(데드·SL·트레일·TP_ATR·다른 청산원) 가운데 ⛔ 켠 칸을 그 구간에서 막는다. 끈 칸은 무영향. 계산은 재료 「PSAR 상승/하락」과 같은 식. 측정 0(관찰용)')
       +_sChip(sc.psarX,'🔵 PSAR 하락청산','psarX','#4f46e5','[S1746] 보유 중 PSAR 하락(점이 캔들 위) 봉이 오면 그 봉 종가에 무조건 판다. 게이트의 하락 중 진입 2칸(크로스·다른 진입원)과 같이 켜면 「하락이면 전부 팔고 전부 금지」가 된다. 측정 0(관찰용)')
       +((sc.psarG||sc.psarX)?`<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><span style="font-size:9px;color:var(--text3)">가속</span><input id="sxStratPsarAf" type="number" step="0.01" min="0.001" max="0.5" value="${(+sc.psarAf>0)?sc.psarAf:0.02}" onchange="window._stratPsarNum&&_stratPsarNum('psarAf',this.value)" title="가속 변수 — 시작값이자 증가폭(증권앱 PSAR 의 첫 숫자 · 기본 0.02). 키우면 점이 캔들에 빨리 붙어 전환이 잦아진다. 이 값은 게이트에만 쓰고 재료 PSAR 은 0.02/0.2 그대로다" style="width:52px;padding:4px 6px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:10px;font-weight:700;text-align:center"><span style="font-size:9px;color:var(--text3)">최대</span><input id="sxStratPsarMax" type="number" step="0.05" min="0.01" max="1" value="${(+sc.psarMax>0)?sc.psarMax:0.2}" onchange="window._stratPsarNum&&_stratPsarNum('psarMax',this.value)" title="가속 변수의 최대(증권앱 PSAR 의 둘째 숫자 · 기본 0.2)" style="width:52px;padding:4px 6px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:10px;font-weight:700;text-align:center"></span>`:'')
       +((sc.psarG||sc.psarX)?_stratPsarNow(sc):'')
@@ -5477,11 +5494,12 @@ function _trendRenderInner(){
     if(sc.xGate3 && _ltRdy) _cavParts.push('⬛ 3×3판 게이트=시즌2 실배선분(워커 기본 OFF·측정 미달 · PREREG_S1392 E팔) 이식 — 이 카드는 종가·전체 세트라 시즌2와 근사 · 🚪와 실측 85% 같은 답(결과가 같아도 정상)');   // [S1503]·[S1504] 실측 각인
     if(sc.tpPctOn||sc.tpAtrOn) _cavParts.push('🚀🏹 익절 2종=시즌2 코인 채택값(PREREG_S1500 3창 스윕·2021창 일부 in-sample) — 이 카드는 일봉 종가 근사라 봉 안 실현가와 다르다');   // [S1503]
     if((market==='coin'&&sc.bb)||((market==='us'||market==='coin')&&cfg.bullVol)) _cavParts.push('🧪 실험 진입원(S1616): '+[(market==='coin'&&sc.bb)?'🌀BB회귀(COIN)':'',((market==='us'||market==='coin')&&cfg.bullVol)?'🔊bullVol('+market.toUpperCase()+')':''].filter(Boolean).join('·')+' — 계산은 KR과 같고 시장 적합은 측정 0 · 3창 재고 뒤 채택');   // [S1616]
-    if(sc.psarG){ const _M=_stratPsarMask(sc), _both=_STRAT_PSAR_ITEMS.filter(function(x){ return (_M&x[0])&&(_M&(x[0]*32)); }).map(function(x){ return x[1]; });
+    if(sc.psarG){ const _M=_stratPsarMask(sc), _both=_STRAT_PSAR_ITEMS.filter(function(x){ return (_M&x[0])&&(_M&x[1]); }).map(function(x){ return x[2]; });   /* [S1747] 칸 표 모양 변경 */
       _cavParts.push('🔵 PSAR 게이트=봉마다 PSAR 구간(상승=점이 캔들 아래 / 하락=점이 위)을 보고 ⛔ 켠 칸만 막는다(진입 금지 · 청산 억제 · 끈 칸은 무영향) · 계산은 재료 「PSAR 상승/하락」과 같은 식이라 증권앱 점과 3~5% 봉에서 방향이 다를 수 있다 · 첫 2봉은 판정 불가=무영향 · 측정 0(관찰용 · 시즌2 미연결)'
         +(_M?'':' · ⚠켠 칸이 하나도 없다 — 지금은 아무 것도 안 막는다')
-        +(((_M&28)===28)?' · ⚠상승 중 청산 3칸이 전부 켜짐 — 그 구간엔 안 판다':'')+(((_M&896)===896)?(' · ⚠하락 중 청산 3칸이 전부 켜짐 — 그 구간엔 손절도 안 걸린다'+(sc.psarX?'(🔵 하락청산이 대신 판다)':'(손실 방치 주의)')):'')
+        +(((_M&_STRAT_PSAR_EXALL[0])===_STRAT_PSAR_EXALL[0])?' · ⚠상승 중 청산 4칸이 전부 켜짐 — 그 구간엔 안 판다':'')+(((_M&_STRAT_PSAR_EXALL[1])===_STRAT_PSAR_EXALL[1])?(' · ⚠하락 중 청산 4칸이 전부 켜짐 — 그 구간엔 손절도 안 걸린다'+(sc.psarX?'(🔵 하락청산이 대신 판다)':'(손실 방치 주의)')):'')
         +(_both.length?' · ⚠'+_both.join('·')+' 은 상승·하락 양쪽에서 막혀 아예 안 돈다':'')); }   /* [S1746] */
+    if(sc.psarX&&sc.psarG&&(_stratPsarMask(sc)&_STRAT_PSAR_EXALL[1])&&(_stratPsarMask(sc)&_STRAT_PSAR_EXALL[1])!==_STRAT_PSAR_EXALL[1]) _cavParts.push('⚠🔵 하락청산이 켜져 있어 게이트의 하락 중 청산 칸은 효과가 없다(하락 봉이면 어차피 판다)');   /* [S1747] 4칸 전부일 때는 위 줄이 이미 말한다 */
     if(sc.psarX) _cavParts.push('🔵 PSAR 하락청산=보유 중 PSAR 하락(점이 캔들 위) 봉이 오면 그 봉 종가에 판다(격자의 청산 억제와 무관 · 다른 청산이 같은 봉에 걸리면 그 사유로 적힌다)'+((sc.psarG&&(_stratPsarMask(sc)&96)===96)?'':' · ⚠하락 중 진입을 안 막으면 하락 봉에 산 것을 다음 하락 봉에 바로 판다 — 🔵 PSAR 게이트의 하락 중 진입 2칸과 같이 쓴다')+' · 측정 0(관찰용 · 시즌2 미연결)');   /* [S1746] */
     if(sc.mGate) _cavParts.push('📅 월봉게이트=월봉 MA5>MA20일 때만 크로스·재진입 — 월 20개 미만(창 앞 ~19개월)은 판정 불가=허용이라 창의 뒷부분에만 걸린다 · 측정 0(테스트)'+(sc.cross?'':' · ⚠크로스가 꺼져 있어 지금은 아무 것도 안 막는다'));   // [S1599]
     if(cfg.atr2&&((sc.slAtrMz&&sc.slOn!==false)||(sc.trAtrMz&&sc.trOn!==false))) _cavParts.push('📅 구간별 SL·트레일=진입 신호 봉의 월봉 구간(MA5×MA10+종가 위치)으로 배수 고정 — 빈 칸은 단일 배수 · 월 10개 미만(창 앞 ~9개월)은 혼조 칸 · 측정 0(관찰용 · 시즌2 미연결)');   /* [S1743] */
@@ -16877,7 +16895,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1746';   // [S1746] 🔵 PSAR 게이트를 구간(상승 중·하락 중) × 항목(진입: 크로스·다른 진입원 / 청산: 데드·ATR·다른 청산원) 격자 하나로 + 🔵 PSAR 하락청산 칩 — S1745 의 전체·선택을 대체.
+  window.SX_BUILD='S1747';   // [S1747] 🔵 PSAR 격자 — 🏹TP_ATR 칸 분리(청산 4칸: 데드크로스·SL·트레일·TP_ATR·다른 청산원) + 충돌 경고(하락청산과 하락 중 칸이 어긋날 때만).
+  // [S1746] 🔵 PSAR 게이트를 구간(상승 중·하락 중) × 항목(진입: 크로스·다른 진입원 / 청산: 데드·ATR·다른 청산원) 격자 하나로 + 🔵 PSAR 하락청산 칩 — S1745 의 전체·선택을 대체.
   // [S1745] 🧪 전략 조합 — 🔵 PSAR 게이트 2종(전체 = 하락이면 전부 팔고 전 진입원 금지 / 선택 = 데드·ATR·다른 진입원을 구간별 체크) · 가속·최대 직접 입력 · 기본 OFF · 관찰용(측정 0).
   // [S1744] ATR 다리 레이아웃 정렬 — 두 탭 공용 틀(`_sxAtrLine`): 다리마다 한 줄 · 구간별이면 둘째 줄에 3칸. 화면만(엔진·저장 무변경).
   // [S1743] 📅 월봉 구간별 배수를 🛑SL_ATR·📉트레일ATR 에도(🧪 전략 조합) · 📈 MA 크로스 탭의 SL·트레일·TP_ATR 에도 — 전부 기본 OFF · 빈 칸 = 단일 배수(켜기만 하면 종전과 같다) · 관찰용(측정 0).
