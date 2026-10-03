@@ -2745,7 +2745,7 @@ function _stratBbRows(sc){ const e=_stratBbEnt(sc);
   const lab=function(t){ return `<span style="font-size:9px;color:var(--text3)">${t}</span>`; };
   const md=function(m,t,tip){ const on=(e===m); return `<span onclick="_sxVib(9);window._stratBbMode&&_stratBbMode(${m})" title="${tip}" style="font-size:9px;font-weight:800;padding:4px 6px;border-radius:10px;border:1px solid ${on?'#0891b2':'var(--border)'};cursor:pointer;white-space:nowrap;${on?'background:#0891b218;color:#0891b2':'background:transparent;color:var(--text3)'}">${on?'◉':'○'} ${t}</span>`; };
   const L=`display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:4px`, H=`font-size:9px;font-weight:800;color:var(--text3);min-width:21px`;
-  return `<div style="flex:1 0 100%;min-width:0;margin-top:2px;padding:6px 7px;border:1px dashed #0891b255;border-radius:10px"><div style="font-size:9px;font-weight:800;color:#0891b2">🌀 BB회귀 — 자체 규칙 <span style="font-weight:600;color:var(--text3)">· 🔵 PSAR 게이트·하락청산과 무관</span></div>`
+  return `<div style="flex:1 0 100%;min-width:0;margin-top:2px;padding:6px 7px;border:1px dashed #0891b255;border-radius:10px"><div style="font-size:9px;font-weight:800;color:#0891b2">🌀 BB회귀 — 자체 규칙 <span style="font-weight:600;color:var(--text3)">· 🔵 PSAR · ⛩️ 레짐게이트 · ⛔ 칸 down 과 무관</span></div>`
     +`<div style="${L}"><span style="${H}">진입</span>`
       +md(0,'바로','횡보장 + 하단(%B≤0.2) + 20MA 이격 −8% 가 맞은 그 봉에 진입(종전 규칙). 떨어지는 봉에서 사게 된다')
       +md(1,'첫 반등 봉','하단 조건이 뜬 뒤 대기 봉 수 안에서, 종가가 전봉보다 오른 첫 봉에 진입. 탐색(MEAS_S1748): 반등분을 조금 놓치고 밴드워크가 준다. 측정 0(관찰용)')
@@ -3176,8 +3176,9 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx){
     if(pos!=null && gc) _heldSkipGc++;
     if(pos==null){
       let enter=null, _pl=0;
-      if(!_downNow){
+      /* [S1750] 🌀 BB회귀는 ⛔칸 down 진입 차단 밖 — 차단 절(`!_downNow`) 앞에서 먼저 본다(우선순위는 종전대로 맨 앞) */
         if((_cc?(!!(_bk&&_bk.en.bb)&&(_mk==='kr'||_mk==='us')):_rangeOn) && _bbSig(i) /* [S1749] 진입 방식(기본 = 종전 식 `_bbCond`) */) enter='range';   // [S1064] 횡보장 BB하단 평균회귀
+      if(!_downNow){   /* [S1750] 여기부터가 칸 down 이 막는 진입원 */
         if(!enter && (_cc?!!(_bk&&_bk.en.cross):sc.cross)){
           // [S1678] 60MA기울기를 3×3 절 **밖으로** 뺐다 — 칩이 꺼지면 `(!_g3 || bullSide)`만 남아 3×3 단독 판정과 동치다.
       const okReg=(!_g3 || bullSide) && (!_csOn || _coinSlopeUp(i)) && _mgPass(i) && _trGateOk(i) && _psCrossOk(i);   /* [S1746] 🔵 PSAR 격자 — 그 구간의 「크로스」 칸이 켜져 있으면 금지([S1745] 자리 그대로) */   /* [S1695] 📐 `!_isCoin` 빗장 해제 — 3시장 공통(사용자 요청). 기본 OFF라 켜지 않으면 종전과 동치다. */           // 3×3 ON: 상승장만 · 📐칩 ON: COIN 60MA 기울기 AND · [S1599] 📅 월봉게이트 AND   /* [S1692] 🧭 추세 게이트 2종 AND — 꺼져 있으면 `_trGateOk`가 true라 종전 판정과 동치 */
@@ -3201,7 +3202,7 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx){
         if(!enter && (_cc?!!(_bk&&_bk.en.cell):sc.cell) && cR[i]) enter='cell';                                                // 칸 real=자체 칸 게이트(3×3 무관)
         if(!enter && (_cc?!!(_bk&&_bk.en.bv):_bvOnSc) && _bvOk && _bvOk[i]) enter='bullvol';                                   // 상호배타 최하순위(S1073)
         if(enter && enter!=='trend' && enter!=='reentry' && enter!=='range' /* [S1749] 🌀 BB회귀는 🔵 게이트 밖 */ && !_psOtherOk(i)) enter=null;   /* [S1746] 🔵 PSAR 격자 — 「다른 진입원」 칸(BB회귀·역배·정배·칸·bullVol · [S1745] 자리 그대로) */
-        if(enter && sc.rgGate && !_rg5BullUp(i)) enter=null;   // [S1251] ⛩️ 레짐게이트 — 불·상승(v3) 외 진입 차단(전 진입원·바구니 모드 포함 전역)
+        if(enter && enter!=='range' /* [S1750] 🌀 BB회귀 제외 */ && sc.rgGate && !_rg5BullUp(i)) enter=null;   // [S1251] ⛩️ 레짐게이트 — 불·상승(v3) 외 진입 차단(전 진입원·바구니 모드 포함 전역)
       }
       if(enter){
         if(_nextOpen){ const j=i+1; if(j<n && _opens[j]>0){ pos={entry:_opens[j], entryIdx:j, src:enter, bk:(_cc?_bk:undefined), cellKey:(_cc&&_cc.cellOf[i])||'', entryATR:(_a2Infra&&_atr14&&_atr14[j]>0)?_atr14[j]:0, peak:_opens[j]}; if(_mz){ pos.tz=_mz[i]||'na'; if(_tpAtrMz) pos.tpM=_tpMOf(i); if(_slMzOn) pos.slM=_slMOf(i); if(_trMzOn) pos.trM=_trMOf(i); }   /* [S1743] SL·트레일도 신호 봉 구간으로 */   /* [S1740] 신호 봉 i 의 구간 */ if(_pl>0){ pos.pred=true; pos.sigIdx=i; pos.predLead=_pl; } } }
@@ -5396,7 +5397,7 @@ function _trendRenderInner(){
       +(_tgPartial.length?`<span style="font-size:8.5px;font-weight:800;padding:3px 7px;border-radius:8px;background:#f59e0b1a;color:#b45309;border:1px solid #f59e0b66;white-space:nowrap" title="게이트쌍이 🔄재진입쌍과 같습니다 — 재진입 골든크로스가 난 봉은 그 상태를 정의상 이미 만족하므로 재진입은 못 자릅니다. 📈크로스 다리에는 정상 작동합니다.">⚠ ${_tgPartial.join('·')} 게이트는 🔄재진입엔 무동작</span>`:'')
       +_sChip(sc.pure,'⚖️ 혼재 차단','pure','#d97706','같은 봉에 fake 동시 발동 시 레시피 진입 스킵 — 시즌2 votes 방식(L-14 A/B용 · OFF와 비교)',_deadReal)   /* [S1680] */
       +_sChip(sc.mGate,'📅 월봉게이트','mGate','#0e7490','[S1599] 월봉(일봉을 달로 묶음) MA5>MA20일 때만 📈크로스·🔄재진입 진입 허용. 진행 중인 달은 그 봉까지의 종가(형성 중 월봉과 같음). 월 20개 미만(창 앞 ~19개월)은 판정 불가=허용. 🔲3×3(일봉 장기축)과 별개 축·AND. 다른 진입원엔 무관. 측정 0 — 테스트용')
-      +_sChip(sc.rgGate,'⛩️ 레짐게이트','rgGate','#ea580c','[S1251] 진입 봉 레짐이 불장·상승장일 때만 진입(전 진입원 공통) — 단일검증 ⛩️와 동일 판정(레짐 v3·SXExecCore.regime5At·20×200 골격). 🔲3×3 라우팅과 별개 축(라우팅=장기 정배/역배). 미검증·정찰용')
+      +_sChip(sc.rgGate,'⛩️ 레짐게이트','rgGate','#ea580c','[S1251] 진입 봉 레짐이 불장·상승장일 때만 진입(전 진입원 공통 — 🌀BB회귀만 제외 · 자체 규칙) — 단일검증 ⛩️와 동일 판정(레짐 v3·SXExecCore.regime5At·20×200 골격). 🔲3×3 라우팅과 별개 축(라우팅=장기 정배/역배). 미검증·정찰용')
       +_cChip(!!cfg.predict,'🔮 kNN 예측','_trendTogglePredict','#7c3aed','크로스 임박 1~2봉 선행 진입/조기청산 · 실패 시 손절 · 📈크로스 블록 ON일 때만 작동')
       +_cChip(!!cfg.nextOpen,'⏭️ 다음봉 시가','_trendToggleNextOpen','#0891b2','ON: 신호 다음봉 시가 진입(마지막봉 신호=내일 매수 예정) · OFF: 신호봉 종가')
       +_cChip(!!cfg.reentry,'🔄 정배열 재진입','_trendToggleReentry','#16a34a','[S1545] MA 크로스 탭과 같은 규칙 — 청산 후 진입MA 정배열(＞)이 유지되는 중 재진입MA 골든크로스가 나면 다시 진입(청산 다음 봉은 제외). 📈 크로스 블록이 켜져 있을 때만 작동하고, 🔲 3×3 라우팅을 켜면 크로스와 같은 국면 제한을 받는다. 값은 MA 크로스 탭과 공유한다.')
@@ -5430,7 +5431,7 @@ function _trendRenderInner(){
       +(sc.exDead?_sChip(sc.deadGrace>0,'유예'+((sc.deadGrace>0)?sc.deadGrace:((+sc.deadGraceLast>0)?sc.deadGraceLast:10))+'봉','deadGrace','#d97706','[S1685] 진입 후 N봉은 데드크로스 청산을 보류한다 — 값은 오른쪽 칸에서 직접 입력(1~20봉 · 시즌2 워커 `maGraceDays` clamp와 같은 범위). 끄면 값을 기억했다가 다시 켜면 그대로 돌아온다(⏱N봉컷과 같은 규약). ⚠유예가 막는 것은 **데드크로스 한 다리뿐**이다 — 🛡️ATR·가짜·🧩칸·⏱N봉컷·익절은 상시 돈다. ★[S1689] 셈: 카드는 `held >= N`(진입봉=0)이라 유예 10이면 **10번째 봉**부터 열린다 — 시즌2 워커 4시간(`heldBars >= N`)과 **같은 봉**이다(N봉컷과도 같은 문법). ⚠**일봉 원장만 아직 달력일**을 센다(실측 10봉 ≈ 14달력일 ⇒ 원장 유예 10일 ≈ 카드 7봉) — 그 정합은 시즌2 별 시리얼 · PREREG_S1689_grace_align.md'):'')
       +((sc.exDead&&sc.deadGrace>0)?`<input id="sxStratGrace" type="number" step="1" min="1" max="20" value="${sc.deadGrace}" onchange="window._stratGrace&&_stratGrace(this.value)" style="width:48px;padding:4px 6px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:10px;font-weight:700;text-align:center"><span style="font-size:9px;color:var(--text3)">봉</span>`:'')   /* [S1685] ⏱N봉컷 입력칸과 같은 모양 */
       +_sChip(sc.exFake,'가짜반등','exFake','#dc2626','pb∪dc fake 발동 청산(구 하이브리드=역배만·구 레시피=정배만 → 합집합)')
-      +_sChip(sc.exDown,'⛔ 칸 down','exDown','#dc2626','칸 down 규칙 히트=청산+그 봉 신규진입 차단(회피 트랙·매수투표 아님·in-sample)')
+      +_sChip(sc.exDown,'⛔ 칸 down','exDown','#dc2626','칸 down 규칙 히트=청산+그 봉 신규진입 차단(회피 트랙·매수투표 아님·in-sample) · 🌀BB회귀는 진입 차단에서 제외(자체 규칙)')
       +_sChip(sc.exCellFake,'🧩 칸 fake','exCellFake','#b45309','칸 fake 규칙 히트=청산(경보 배선·S1116 미사용분) · 진입차단 아님·매수투표 금지 계승 · in-sample')
       +_sChip(sc.exMa5,'⚡ '+_exMa5P(cfg)+'MA컷','exMa5','#dc2626','[S1695] 종가가 **진입쌍 단기MA**(지금 '+_exMa5P(cfg)+') 아래로 내려가면 📈크로스   /* [S1695] market 조건 철거 + 라벨이 실제 숫자 */ 계열 포지션을 즉시 청산 — 코인 전용. S1063이 🔲3×3 COIN 부속으로 숨겨 두었던 것을 칩으로 뺐다(청산 행에서 찾을 수 없던 그 자리). ⚠시즌2 워커에는 이 청산이 없다 — 시즌2와 맞추려면 꺼 둔다. ⚠S1546 실측: 3×3 ON 코인에서 청산 10건 중 8건이 이것이었다. ⚠가격 비교라 🧬TRIX 모드에서도 실제 MA를 본다. ⚠[S1695] **3시장 공통**이 됐다(종전 코인 전용) — 실측상 종전 KR·US는 이 청산이 0건이었다. ⚠이름의 5가 아니라 **MA쌍 앞 숫자**를 쓴다 — 쌍을 바꾸면 칩 이름도 같이 바뀐다.',_deadCross)   /* [S1680] */   /* [S1695] 코인 괄호 닫기 제거 */
       +_sChip(sc.xSplit,'🚪 출구 분할','xSplit','#7c3aed','[S1251] 불장·상승장=데드크로스만(이중ATR 억제) · 나머지 레짐=ATR만(데드 무시) — 단일검증 🚪(S1216)와 동일 의미론·현재봉 레짐(v3) 기준. 데드/이중ATR 외 청산(가짜·칸·N봉컷·range)엔 불개입. ⚠불·상승에서 급락 하드브레이크 부재 — 미검증·정찰용')
@@ -5546,7 +5547,7 @@ function _trendRenderInner(){
         +(((_M&_STRAT_PSAR_EXALL[0])===_STRAT_PSAR_EXALL[0])?' · ⚠상승 중 청산 4칸이 전부 켜짐 — 그 구간엔 안 판다':'')+(((_M&_STRAT_PSAR_EXALL[1])===_STRAT_PSAR_EXALL[1])?(' · ⚠하락 중 청산 4칸이 전부 켜짐 — 그 구간엔 손절도 안 걸린다'+(sc.psarX?'(🔵 하락청산이 대신 판다)':'(손실 방치 주의)')):'')
         +(_both.length?' · ⚠'+_both.join('·')+' 은 상승·하락 양쪽에서 막혀 아예 안 돈다':'')); }   /* [S1746] */
     if(sc.psarX&&sc.psarG&&(_stratPsarMask(sc)&_STRAT_PSAR_EXALL[1])&&(_stratPsarMask(sc)&_STRAT_PSAR_EXALL[1])!==_STRAT_PSAR_EXALL[1]) _cavParts.push('⚠🔵 하락청산이 켜져 있어 게이트의 하락 중 청산 칸은 효과가 없다(하락 봉이면 어차피 판다)');   /* [S1747] 4칸 전부일 때는 위 줄이 이미 말한다 */
-    if((sc.psarG||sc.psarX)&&sc.bb) _cavParts.push('🌀 BB회귀는 🔵 PSAR 게이트·하락청산 밖이다 — 진입도 청산도 자체 규칙으로만 돈다');   /* [S1749] */
+    if((sc.psarG||sc.psarX||sc.rgGate||sc.exDown)&&sc.bb) _cavParts.push('🌀 BB회귀는 '+[(sc.psarG||sc.psarX)?'🔵 PSAR 게이트·하락청산':'', sc.rgGate?'⛩️ 레짐게이트':'', sc.exDown?'⛔ 칸 down 진입 차단':''].filter(Boolean).join(' · ')+' 밖이다 — 진입도 청산도 자체 규칙으로만 돈다');   /* [S1750] ⛩️·⛔ 편입 · [S1749] */
     if(sc.psarX) _cavParts.push('🔵 PSAR 하락청산=보유 중 PSAR 하락(점이 캔들 위) 봉이 오면 그 봉 종가에 판다(격자의 청산 억제와 무관 · 다른 청산이 같은 봉에 걸리면 그 사유로 적힌다)'+((sc.psarG&&(_stratPsarMask(sc)&96)===96)?'':' · ⚠하락 중 진입을 안 막으면 하락 봉에 산 것을 다음 하락 봉에 바로 판다 — 🔵 PSAR 게이트의 하락 중 진입 2칸과 같이 쓴다')+' · 측정 0(관찰용 · 시즌2 미연결)');   /* [S1746] */
     if(sc.bb && (_stratBbEnt(sc) || _stratBbVal(sc,'bbExPb')!==0.5 || _stratBbVal(sc,'bbExCap')!==20 || sc.bbSolo)) _cavParts.push('🌀 BB회귀 모듈을 종전 규칙에서 바꿨다'+_stratBbTxt(sc)+' — 측정 0(관찰용 · 사후 탐색 MEAS_S1748 뿐) · 시즌2 워커는 바로 진입 · %B 0.5 · 20봉 고정 + 다른 청산 공통이라 이 설정을 못 옮긴다'
         +((_stratBbEnt(sc) && _stratBbVal(sc,'bbExPb')<=0.5)?' · ⚠반등을 확인하고 들어가면 이미 중심선 근처라, 청산을 %B 0.5 에 두면 남는 폭이 거의 없다':''));   /* [S1749] */
@@ -16944,7 +16945,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1749';   // [S1749] 🌀 BB회귀 = 자체 규칙 모듈 — 🔵 PSAR 게이트에서 독립 · 진입 방식 3종(바로/첫 반등 봉/PSAR 상승 전환 · 전용 가속·최대) · 청산 기준 입력(%B·캡) · 🌀 자체 청산만 칩. 기본값 = 종전.
+  window.SX_BUILD='S1750';   // [S1750] 🌀 BB회귀를 ⛩️ 레짐게이트·⛔ 칸 down 진입 차단에서도 뺐다 — 진입·청산 모두 자체 규칙(남는 연결 = 종목당 1포지션·공통 환경).
+  // [S1749] 🌀 BB회귀 = 자체 규칙 모듈 — 🔵 PSAR 게이트에서 독립 · 진입 방식 3종(바로/첫 반등 봉/PSAR 상승 전환 · 전용 가속·최대) · 청산 기준 입력(%B·캡) · 🌀 자체 청산만 칩. 기본값 = 종전.
   // [S1747] 🔵 PSAR 격자 — 🏹TP_ATR 칸 분리(청산 4칸: 데드크로스·SL·트레일·TP_ATR·다른 청산원) + 충돌 경고(하락청산과 하락 중 칸이 어긋날 때만).
   // [S1746] 🔵 PSAR 게이트를 구간(상승 중·하락 중) × 항목(진입: 크로스·다른 진입원 / 청산: 데드·ATR·다른 청산원) 격자 하나로 + 🔵 PSAR 하락청산 칩 — S1745 의 전체·선택을 대체.
   // [S1745] 🧪 전략 조합 — 🔵 PSAR 게이트 2종(전체 = 하락이면 전부 팔고 전 진입원 금지 / 선택 = 데드·ATR·다른 진입원을 구간별 체크) · 가속·최대 직접 입력 · 기본 OFF · 관찰용(측정 0).
