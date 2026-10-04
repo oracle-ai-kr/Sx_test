@@ -39,9 +39,9 @@ expected_asof() {   # $1=봉 길이(초) · SX_NOW_EPOCH(시험용) 없으면 �
 worker_spec() {   # $1=mkt → 스펙 JSON 한 줄({"ok":true,...}) 또는 빈 문자열
   curl -sS --max-time 15 -H "x-at-key: $AT_KEY" "$WORKER_BASE/sx/autotrade/spec?mkt=$1" 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const o=JSON.parse(s);if(o&&o.ok===true)process.stdout.write(JSON.stringify(o));}catch(e){}})' 2>/dev/null || true
 }
-spec_field() {   # $1=스펙 JSON · $2=필드(key|ledKey) → 값(없으면 빈 문자열)
+spec_field() {   # $1=스펙 JSON · $2..=필드 이름(앞에서부터 응답에 **있는** 첫 필드 · [S1758] sig 가 없으면 key 로) → 값(없으면 빈 문자열)
   [ -n "$1" ] || { echo -n ""; return 0; }
-  node -e 'try{const o=JSON.parse(process.argv[1]);const v=o[process.argv[2]];process.stdout.write(v==null?"":String(v));}catch(e){}' "$1" "$2" 2>/dev/null || true
+  node -e 'try{const o=JSON.parse(process.argv[1]);let v=null;for(const f of process.argv.slice(2)){if(Object.prototype.hasOwnProperty.call(o,f)){v=o[f];break;}}process.stdout.write(v==null?"":String(v));}catch(e){}' "$@" 2>/dev/null || true
 }
 worker_asof() {   # $1=mkt → 워커 원장 asof(없으면 빈 문자열)
   curl -sS --max-time 15 -H "x-at-key: $AT_KEY" "$WORKER_BASE/sx/autotrade/signals/asof?mkt=$1" 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const o=JSON.parse(s);process.stdout.write(String(o.asof||""));}catch(e){}})' 2>/dev/null || true
@@ -50,13 +50,14 @@ for pair in "kr:snap_kr.json" "us:snap_us.json" "coin:snap_coin.json" "coin4h:sn
   mkt="${pair%%:*}"; snap="${pair##*:}"
   case ",$MARKETS," in *",$mkt,"*) ;; *) echo "  - $mkt skip (MARKETS)"; continue;; esac
   if [ ! -f "$SRC/$snap" ]; then echo "  - $mkt skip (no $snap)"; continue; fi
-  spec=$(worker_spec "$mkt"); skey=$(spec_field "$spec" key); lkey=$(spec_field "$spec" ledKey)   # [S1757] 축 스펙 · 지금 설정 키 · 원장 원자 키
-  if [ -n "$spec" ]; then echo "  - $mkt 스펙: 축 ${skey:-없음(MA 진입쌍 경로)} · 원장 원자 ${lkey:-없음}"; else echo "  - $mkt 스펙 못 받음(옛 워커·네트워크) → 축 원자 없이 진행"; fi
+  spec=$(worker_spec "$mkt"); skey=$(spec_field "$spec" sig key); lkey=$(spec_field "$spec" ledSig ledKey)   # [S1757] 축 스펙 · [S1758] 스펙 서명(축 키|PSAR 키 · 옛 워커면 축 키) · 원장의 서명
+  akey=$(spec_field "$spec" key); pkey=$(spec_field "$spec" psKey)
+  if [ -n "$spec" ]; then echo "  - $mkt 스펙: 축 ${akey:-없음(MA 진입쌍 경로)} · PSAR ${pkey:-없음} · 원장 서명 ${lkey:-없음}"; else echo "  - $mkt 스펙 못 받음(옛 워커·네트워크) → 축·PSAR 원자 없이 진행"; fi
   if [ "$FORCE" != "1" ] && { [ "$mkt" = "coin" ] || [ "$mkt" = "coin4h" ] || [ "$mkt" = "kr" ]; }; then   # [S1672] 코인 두 트랙 · [S1673] KR도(기대 = 오늘 KST 날짜 · 휴장일이면 불일치라 그냥 진행) · US는 KR과 같은 run이라 별도 확인 없음
     if [ "$mkt" = "coin4h" ]; then want=$(expected_asof 14400); elif [ "$mkt" = "coin" ]; then want=$(expected_asof 86400); else want=$(date -u -d "@$(( ${SX_NOW_EPOCH:-$(date -u +%s)} + 32400 ))" +%Y-%m-%d); fi
     have=$(worker_asof "$mkt"); [ "$mkt" = "kr" ] && have="${have:0:10}"
     if [ -n "$have" ] && [ "$have" = "$want" ] && [ "$skey" = "$lkey" ]; then echo "  - $mkt skip (워커 asof $have = 기대 $want · 이미 도착 · S1672)"; continue; fi   # [S1757] 스펙 키가 원장 원자 키와 다르면 같은 봉이어도 다시 만든다
-    if [ -n "$have" ] && [ "$have" = "$want" ]; then echo "  - $mkt 같은 봉이지만 축 스펙이 바뀌었다(${lkey:-없음} → ${skey:-없음}) → 다시 만든다 (S1757)"; fi
+    if [ -n "$have" ] && [ "$have" = "$want" ]; then echo "  - $mkt 같은 봉이지만 스펙이 바뀌었다(${lkey:-없음} → ${skey:-없음}) → 다시 만든다 (S1757·S1758)"; fi
     echo "  - $mkt 진행 (워커 asof ${have:-없음} · 기대 $want)"
   fi
   out="/tmp/sig_$mkt.json"
@@ -101,7 +102,7 @@ fs.writeFileSync("/tmp/candle_pack_us.json",JSON.stringify(out));console.error("
       if [ "$pcode" = "200" ]; then echo "  - us 캔들팩 PUT ✓"; else echo "  - us 캔들팩 PUT ✗ HTTP $pcode"; cat /tmp/pack_resp_us.json || true; fi
     fi
   fi
-  SX_SPEC="$spec" SNAP="$usesnap" OUT="$out" node "$BUILD" "$mkt"   # [S1757] SX_SPEC = 워커 스펙(빈 값이면 축 원자 0)
+  SX_SPEC="$spec" SNAP="$usesnap" OUT="$out" node "$BUILD" "$mkt"   # [S1757] SX_SPEC = 워커 스펙(빈 값이면 축 원자 0) · [S1758] 러너가 ps·psKey·sig 도 여기서 읽는다
   code=$(curl -sS -o /tmp/put_resp.json -w "%{http_code}" -X PUT \
     "$WORKER_BASE/sx/autotrade/signals?mkt=$mkt" \
     -H "Content-Type: application/json" -H "x-at-key: $AT_KEY" \
