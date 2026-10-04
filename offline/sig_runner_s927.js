@@ -8,6 +8,7 @@
 //  최신봉 = V.run(h=0, warmup=n-4, target=5) 후 e최대 레코드. dck/dcf는 cv2rec 훅(§3 동일).
 //  정책레이어 = 등급→{action,score} 시장별. 근거 §1(시장분기)·②(US 회피특례)·S926(dck는 진입전용·물타기X).
 //  ★정책값 provisional — 미래 OOS(0723~24·oos_gates_s924.txt 축2) 통과가 채택 최종조건.
+//  [S1758] 🔵 PSAR 방향 원자(PREREG_S1758) — 스펙에 ps{af,mx}·psKey 가 있으면 행에 ps{k,u}·원장에 ps·sig 를 싣는다. 없으면 키 추가 0.
 //  [S1757] 📈 크로스 축 원자(PREREG_S1757) — env SX_SPEC(워커 /sx/autotrade/spec 응답)이 축(🧬TRIX·🎚️SMI·임의 MA쌍)을 주면 행에 xa{k,g,d,s,r}·원장에 ax 를 싣는다. 없으면 키 추가 0(바이트 동일).
 'use strict';
 const fs=require('fs');
@@ -137,6 +138,22 @@ function axAtoms(rows, A){
       r:(ok(R)&&R.line[i]>R.sig[i]&&R.line[i-1]<=R.sig[i-1])?1:0 };
   }catch(e){ return null; }   // 계산 실패 = 원자 없음(워커가 대기로 읽는다 — 0 으로 지어내지 않는다)
 }
+// ═══ [S1758] 🔵 PSAR 방향 원자(PREREG_S1758) ═══
+//   시즌1 sx_render.js `_sxPsarSeries` **원문 복사**(글자 그대로 · 배터리가 대조) — 재료 「PSAR 상승/하락」·전략 조합 🔵 게이트가 읽는 바로 그 식(가속 = 시작값이자 증가폭).
+function _sxPsarSeries(rows, close, step, mx){ const n=rows.length, up=new Array(n).fill(null), sr=new Array(n).fill(null); if(n<3) return {up:up, sar:sr};
+  const hi=rows.map((r,i)=>+(r.high!=null?r.high:(r.h!=null?r.h:close[i]))), lo=rows.map((r,i)=>+(r.low!=null?r.low:(r.l!=null?r.l:close[i])));
+  const s0=Math.min(step,mx); let isUp=close[1]>close[0], sar=isUp?lo[0]:hi[0], ep=isUp?hi[1]:lo[1], af=s0;
+  for(let i=2;i<n;i++){ sar=sar+af*(ep-sar);
+    if(isUp){ if(lo[i]<sar){ isUp=false; sar=ep; ep=lo[i]; af=s0; } else { if(hi[i]>ep){ ep=hi[i]; af=Math.min(af+step,mx); } } }
+    else { if(hi[i]>sar){ isUp=true; sar=ep; ep=hi[i]; af=s0; } else { if(lo[i]<ep){ ep=lo[i]; af=Math.min(af+step,mx); } } }
+    up[i]=isUp; sr[i]=sar; }
+  return {up:up, sar:sr}; }
+//   스펙의 ps{af,mx}·psKey(워커가 만든 문자열 그대로) — 없음·깨짐 = null(원자 0). sig = 축 키와 PSAR 키를 묶은 서명(원장에 그대로 싣는다).
+const _SPEC_O=(function(){ try{ const raw=process.env.SX_SPEC; if(!raw) return null; const o=JSON.parse(raw); return (o&&typeof o==='object')?o:null; }catch(e){ return null; } })();
+const PS=(function(){ const p=_SPEC_O&&_SPEC_O.ps, k=_SPEC_O&&_SPEC_O.psKey; if(!p||typeof p!=='object'||typeof k!=='string'||!k) return null; const af=+p.af, mx=+p.mx; if(!(af>0)||!(mx>0)||!isFinite(af)||!isFinite(mx)) return null; return { af:af, mx:mx, key:k }; })();
+const SPEC_SIG=(_SPEC_O&&typeof _SPEC_O.sig==='string'&&_SPEC_O.sig&&(AX||PS))?_SPEC_O.sig:null;
+// 마지막 봉의 방향 — up[n-1] 이 null(봉 3개 미만)이면 원자 없음(지어내지 않는다)
+function psAtom(rows, P){ try{ const close=rows.map(r=>+(r.close!=null?r.close:r.c)); const u=_sxPsarSeries(rows, close, P.af, P.mx).up[rows.length-1]; return (u==null)?null:{ k:P.key, u:(u?1:0) }; }catch(e){ return null; } }
 function bullVolSignal(ind){ try{
   if(!ind||!ind.maAlign||!ind.maAlign.bullish) return false;         // 강세(단기 5/20/60 정배열)
   if(!_ltBear(ind)) return false;                                    // 하락장(장기 60/120/200 역배열)
@@ -285,6 +302,7 @@ codes.forEach((c,i)=>{
   { const _sg=signals[signals.length-1]; _sg.cross510=!!cross510; _sg.cross520=!!cross520; _sg.cross2060=!!cross2060; _sg.cross1060=!!cross1060; _sg.g60up=!!g60up; _sg.gMa1060=!!gMa1060; _sg.gTx1060=!!gTx1060;
     _sg.st510=!!st510; _sg.st520=!!st520; _sg.st2060=!!st2060; _sg.st1060=!!st1060; _sg.pbar=(rows.length>=2&&rows[rows.length-2]&&rows[rows.length-2].date)||null; }   /* [S1711] 🔄 재진입 원자 — 진입쌍 정배열 상태 4종 + 앞 봉 날짜(청산 봉 < i-1 판정용) · 아직 읽는 곳 없음(워커 S1711) */   /* [S1709] 게이트 원자 — 아직 읽는 곳 없음(워커 S1709가 읽는다) */   /* [S1707] 네 원자 전부 3시장 공통 */   /* [S1704] 3시장 공통 — 아직 **읽는 곳이 없다**(S1705가 읽는다) */
   if(AX){ const _xa=axAtoms(rows,AX); if(_xa) signals[signals.length-1].xa=_xa; }   /* [S1757] 📈 크로스 축 원자 — 스펙이 있을 때만(없으면 키 추가 0) */
+  if(PS){ const _pa=psAtom(rows,PS); if(_pa) signals[signals.length-1].ps=_pa; }   /* [S1758] 🔵 PSAR 방향 원자 */
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
@@ -299,8 +317,11 @@ const ledger={ schema:'sx_signal_ledger_v1', mkt:mk, asof:asofFinal, generated:n
 if(mk==='us'){ ledger.summary.rangeBUY=cnt(s=>s.src==='range'); ledger.summary.crossBUY=cnt(s=>s.src==='cross'); }   // [S1632] US만(KR·코인 요약 키 불변)
 if(IS_COIN){ ledger.univ=snap.univ||null; ledger.summary.extN=cnt(s=>s.univ==='ext'); ledger.summary.extBUY=cnt(s=>s.univ==='ext'&&s.action==='BUY'); ledger.summary.crossBUY=cnt(s=>s.src==='cross'); ledger.tf=(mk==='coin4h')?'240m':'day'; ledger.barMs=COIN_BAR_MS; }   // [S1651] 코인만 — 유니버스 메타(빌더 동적 스냅 · 폴백이면 null) · [S1663] 봉 주기·크로스 BUY 수
 if(AX){ ledger.ax={ k:AX.key, t:AX.t, e:AX.e, x:AX.x, r:AX.r, sm:AX.sm }; ledger.summary.axN=cnt(s=>!!s.xa); ledger.summary.axG=cnt(s=>s.xa&&s.xa.g===1); ledger.summary.axD=cnt(s=>s.xa&&s.xa.d===1); }   /* [S1757] 이 원장의 원자를 만든 스펙 · 원자 재고 */
+if(PS){ ledger.ps={ k:PS.key, af:PS.af, mx:PS.mx }; ledger.summary.psN=cnt(s=>!!s.ps); ledger.summary.psUp=cnt(s=>s.ps&&s.ps.u===1); }   /* [S1758] */
+if(SPEC_SIG) ledger.sig=SPEC_SIG;   /* [S1758] 이 원장을 만든 스펙 서명(축·PSAR) */
 fs.writeFileSync(outPath, JSON.stringify(ledger,null,1));
 console.error('DONE sig '+mk+' asof='+asofFinal+(COIN_COMPLETED_ONLY?'(확정봉·S1497)':'')+': 평가 '+signals.length+'/'+codes.length+' | BUY '+ledger.summary.BUY+'(bullVol '+ledger.summary.bullVolBUY+'·v2 '+ledger.summary.v2BUY+'·겹침 '+ledger.summary.v2Overlap+') atrGated '+ledger.summary.atrGated+' HOLD '+ledger.summary.HOLD+' SELL '+ledger.summary.SELL+' (prov '+ledger.summary.provisional+') err='+errs.length+' '+((Date.now()-t0)/1000|0)+'s → '+outPath);
 console.error('  [S1757] 크로스 축 '+(AX?(AX.key+' · 원자 '+ledger.summary.axN+'행 · 골든 '+ledger.summary.axG+' · 데드 '+ledger.summary.axD):(process.env.SX_SPEC?'스펙에 축 없음(MA 진입쌍 경로 그대로)':'스펙 없음(SX_SPEC 미전달 — 종전 원장)')));
+if(PS) console.error('  [S1758] PSAR '+PS.key+' · 원자 '+ledger.summary.psN+'행 · 상승 '+ledger.summary.psUp+' · 하락 '+(ledger.summary.psN-ledger.summary.psUp));
 if(mk==='us') console.error('  [S1632] US BB회귀 BUY '+ledger.summary.rangeBUY+' · 크로스 BUY '+ledger.summary.crossBUY+' (카드 사진1 세트 · DECL §14)');
 if(IS_COIN) console.error('  [S1651] 코인 유니버스 '+(ledger.univ?(ledger.univ.mode+' · 풀 '+ledger.univ.poolIn+' · 확장 '+ledger.univ.ext):'메타 없음(폴백 스냅)')+' · 확장 평가 '+ledger.summary.extN+' · 확장 BUY '+ledger.summary.extBUY);
