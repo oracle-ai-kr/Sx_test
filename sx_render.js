@@ -2387,16 +2387,23 @@ const _SX_MKT_STRAT_PRESET = {
 //   ⚠수수료(`fee`/`feePct`)도 표에 들어 있다 — 🏄 스윙 프리셋과 같은 규약(누르면 표 값으로 간다). 3시장 다 `true·0.2`라 지금은 종전과 같은 값이다.
 //   ⚠**측정 지위: 이것은 사용자가 맞춰 둔 출발점이지 채택 판정이 아니다**(4시간 3창 재현은 냉동 스냅이 일봉이라 불가 · DECL §20-3과 같은 규약).
 //     감사(`offline/bat/audit_s1683.js`) 실측: 3시장 전부 **손절 수단 0**(🛡️이중ATR OFF·🛑SL급락 OFF) · 코인 SL 2×ATR은 마스터가 꺼져 **무동작**.
+// [S1756] ★★🧬 **[TRIX모드] 단일 프리셋**(사용자 지시 2026-10-04 23:30: *'기존 kr,us 의 TRIX단타·TRIX스윙은 제거하고 3시장(4H 포함) 모두 [TRIX모드] 단일 프리셋'*).
+//   ★**옮겨 적지 않았다** — 내보내기 `sxsettings_20261004_trix.json`(build S1754 · tf day · 2026-10-04T14:26:44.245Z)에서 `offline/bat/gen_s1756_trixmode.js` 가 기계로 뽑았다.
+//   ★키가 늘었다(strat 53→75 · trend 22→30) — 이 세트가 🔵PSAR 격자(`psarGMask`)·🌀BB회귀 묶음(`bbEnt`·`bbWait`…)·🔊bullVol 묶음(`bvReg`·`bvBase`…)·📅구간별 배수(`tpAtrUp`…)를 쓴다.
+//     표가 그 값을 안 담으면 프리셋을 눌러도 기본값으로 돌아간다(S1565) — 생성기 감사가 '내보내기에 있고 기본값과 다른데 표가 안 담는 키 0'을 확인했다.
+//   ★코인은 **봉 공용 한 벌**이다(4시간 오버레이 철거) · 코인 행은 크로스 축이 MA 20×60 이고 TRIX 는 🧬게이트(9>12)로 들어 있다(`trixOn:false` — 사용자 저장값 그대로).
+//   ⚠📈MA크로스 탭 전용 ATR 값(x*)·🧪재료 조건·🧺칸 바구니는 프리셋 범위 밖이다(종전 규약 — 그 탭 설정은 안 건드린다).
+//   ⚠**측정 지위: 사용자가 맞춰 둔 출발점이지 채택 판정이 아니다**(S1683 과 같은 규약).
 const _SX_MKT_TRIX_PRESET = {
-  kr: { cross:true, pb:true, dc:true, cell:true, bb:true, grid3:true, pure:true, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:true, deadGrace:10, minK:1, exNBars:60, exNBarsLast:60, fee:true, feePct:0.2, xGate3:false, slOn:false, slMult:4, trOn:false, trMult:3, trArm:2, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:20, tpAtrOn:false, tpAtrMult:5, tpFixOn:false, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:10, txTrGateL:60, exDeadX:false, tpAtrMz:false, slAtrMz:false, trAtrMz:false, psarG:false, psarX:false, bbSolo:false, bbNoSelf:false },
-  us: { cross:true, pb:true, dc:true, cell:true, bb:true, grid3:true, pure:true, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:false, deadGrace:10, minK:1, exNBars:60, exNBarsLast:60, fee:true, feePct:0.2, xGate3:false, slOn:false, slMult:8, trOn:false, trMult:3, trArm:1, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:20, tpAtrOn:false, tpAtrMult:12, tpFixOn:false, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:10, txTrGateL:60, exDeadX:false, tpAtrMz:false, slAtrMz:false, trAtrMz:false, psarG:false, psarX:false, bbSolo:false, bbNoSelf:false },
-  coin: { cross:true, pb:false, dc:true, cell:false, bb:false, grid3:true, pure:true, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:false, deadGrace:10, minK:1, exNBars:10, exNBarsLast:10, fee:true, feePct:0.2, xGate3:false, slOn:false, slMult:2, trOn:false, trMult:3, trArm:1, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:true, tpPct:10, tpAtrOn:true, tpAtrMult:1, tpFixOn:true, tpFixPct:5, mGate:false, tpFixMg:false, exMa5:false, coinSlope:true, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:10, txTrGateL:60, exDeadX:false, tpAtrMz:false, slAtrMz:false, trAtrMz:false, psarG:false, psarX:false, bbSolo:false, bbNoSelf:false },   /* [S1687] 🪙 코인 **일봉** 세트 교체(사용자 결정 2026-09-27: *'코인 일봉은 이 파일 설정으로 · 기존 것은 건수가 너무 적어서 교체'*) — 내보내기 export_S1685_coinday2.json(build S1685 · 2026-09-27T00:40:55.895Z)에서 기계로 뽑았다 */
+  kr: { cross:true, pb:true, dc:true, cell:true, bb:true, grid3:false, pure:true, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:true, deadGrace:0, minK:1, exNBars:60, exNBarsLast:60, fee:true, feePct:0.2, xGate3:false, slOn:false, slMult:8, trOn:false, trMult:3, trArm:1, slPctOn:true, slPct:20, tpFromEntry:false, slFromEntry:false, tpPctOn:true, tpPct:20, tpAtrOn:true, tpAtrMult:6, tpFixOn:true, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:9, txTrGateL:12, exDeadX:false, tpAtrMz:true, slAtrMz:false, trAtrMz:false, psarG:true, psarX:false, bbSolo:false, bbNoSelf:true, tpAtrUp:1, tpAtrMid:2, tpAtrDn:2, slAtrUp:6, slAtrMid:6, slAtrDn:6, trAtrUp:2, trAtrMid:6, trAtrDn:4, psarAf:0.02, psarMax:0.2, psarGMask:736, bbEnt:2, bbWait:30, bbPsAf:0.02, bbPsMax:0.2, bbExPb:0.5, bbExCap:20, bvReg:4, bvBase:1, bvOsc:73.31, bvVr:389.41 },
+  us: { cross:true, pb:true, dc:true, cell:true, bb:true, grid3:false, pure:false, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:true, deadGrace:0, minK:1, exNBars:60, exNBarsLast:60, fee:true, feePct:0.2, xGate3:false, slOn:false, slMult:8, trOn:false, trMult:2, trArm:1, slPctOn:false, slPct:20, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:20, tpAtrOn:true, tpAtrMult:6, tpFixOn:true, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:10, txTrGateL:60, exDeadX:false, tpAtrMz:true, slAtrMz:true, trAtrMz:false, psarG:true, psarX:false, bbSolo:false, bbNoSelf:true, tpAtrUp:6, tpAtrMid:2, tpAtrDn:4, slAtrUp:6, slAtrMid:8, slAtrDn:8, trAtrUp:null, trAtrMid:null, trAtrDn:null, psarAf:0.02, psarMax:0.2, psarGMask:672, bbEnt:2, bbWait:5, bbPsAf:0.02, bbPsMax:0.2, bbExPb:0.5, bbExCap:20, bvReg:4, bvBase:1, bvOsc:73.31, bvVr:389.41 },
+  coin: { cross:true, pb:false, dc:true, cell:false, bb:false, grid3:false, pure:true, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:true, deadGrace:0, minK:3, exNBars:20, exNBarsLast:20, fee:true, feePct:0.2, xGate3:false, slOn:true, slMult:2, trOn:false, trMult:1, trArm:0, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:10, tpAtrOn:true, tpAtrMult:1, tpFixOn:true, tpFixPct:5, mGate:false, tpFixMg:false, exMa5:false, coinSlope:true, maTrGate:false, trixTrGate:true, maTrGateS:20, maTrGateL:60, txTrGateS:9, txTrGateL:12, exDeadX:false, tpAtrMz:true, slAtrMz:true, trAtrMz:false, psarG:false, psarX:false, bbSolo:false, bbNoSelf:true, tpAtrUp:1, tpAtrMid:3, tpAtrDn:1, slAtrUp:3, slAtrMid:4, slAtrDn:1, trAtrUp:null, trAtrMid:null, trAtrDn:null, psarAf:0.02, psarMax:0.2, psarGMask:0, bbEnt:2, bbWait:5, bbPsAf:0.02, bbPsMax:0.2, bbExPb:0.5, bbExCap:20, bvReg:4, bvBase:1, bvOsc:73.31, bvVr:389.41 },
 };
 // [S1683] 같은 프리셋의 trend cfg 몫 — 🧬 TRIX 3쌍·MA쌍·청산분리·다음봉시가·bullVol·이중ATR 마스터까지 한 표에.
 const _SX_MKT_TRIX_PRESET_CFG = {
-  kr: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:true, trixP:10, trixSP:20, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
-  us: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:true, trixP:10, trixSP:60, trixXP:10, trixXSP:20, trixReP:10, trixReSP:20, xCross:true, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
-  coin: { s:5, l:10, smiOn:false /* [S1754] */, trixOn:true, trixP:10, trixSP:60, trixXP:5, trixXSP:20, trixReP:5, trixReSP:20, xCross:true, xs:5, xl:10, reEntryS:5, reEntryL:10, reentry:true, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },   /* [S1687] 🪙 코인 **일봉** 세트 교체(사용자 결정 2026-09-27: *'코인 일봉은 이 파일 설정으로 · 기존 것은 건수가 너무 적어서 교체'*) — 내보내기 export_S1685_coinday2.json(build S1685 · 2026-09-27T00:40:55.895Z)에서 기계로 뽑았다 */
+  kr: { s:5, l:20, smiOn:false, trixOn:true, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:true, atr2:false, atrInit:2, atrTrail:3, predict:false, smiK:10, smiS:3, smiDS:3, smiD:10, smiXK:10, smiXD:10, smiReK:10, smiReD:10 },
+  us: { s:5, l:20, smiOn:false, trixOn:true, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false, smiK:10, smiS:3, smiDS:3, smiD:10, smiXK:10, smiXD:10, smiReK:10, smiReD:10 },
+  coin: { s:20, l:60, smiOn:false, trixOn:false, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:10, reEntryS:5, reEntryL:10, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false, smiK:10, smiS:3, smiDS:3, smiD:10, smiXK:10, smiXD:10, smiReK:10, smiReD:10 },
 };
 // [S1684] ★★**🧬 TRIX모드의 봉별 표**(사용자 내보내기 2벌: 일봉 2026-09-26T18:25:58.652Z · 4시간 2026-09-26T16:36:59.787Z).
 //   ★S1661 `_SX_MKT_STRAT_PRESET_TF`와 **같은 문법**이다 — 기본은 일봉 표, 여기 있는 봉만 키 단위로 덮는다.
@@ -2405,10 +2412,10 @@ const _SX_MKT_TRIX_PRESET_CFG = {
 //   ★두 세트의 성격 차이(실측): **일봉** = TRIX 10×60(웜업 87봉)·🔲3×3·📐60MA기울기로 아주 좁게 걸러 20봉컷 ·
 //     **4시간** = TRIX 5×20·🟢정배real·⚖️혼재차단으로 넓게 열고 데드크로스(유예10)·60봉컷.
 const _SX_MKT_TRIX_PRESET_TF = {
-  coin:{ '240m':{ pb:true, dc:false, grid3:false, exNBars:60, exNBarsLast:60, slOn:true, trMult:2, tpPctOn:false, tpPct:30, tpFixOn:false, tpFixPct:10, coinSlope:false } },   /* [S1687] ★**재계산했다** — 오버레이는 *기본행과 다른 키만* 담는 표라 일봉을 갈면 여기도 같이 갈아야 `base+overlay == 4시간 내보내기`가 유지된다(생성기가 병합 자가검산까지 돌렸다). 4시간 세트 자체는 그대로다. */
+  // [S1756] 🪙 코인 4시간 오버레이 철거 — [TRIX모드]는 일봉·4시간 **봉 공용 한 벌**이다(사용자 지시 2026-10-04 · [MA모드] S1699 · [일반모드] S1733 과 같은 술어)
 };
 const _SX_MKT_TRIX_PRESET_CFG_TF = {
-  coin:{ '240m':{ trixP:5, trixSP:20, xCross:false, reentry:false, bullVol:true } },   /* [S1687] ★**재계산했다** — 오버레이는 *기본행과 다른 키만* 담는 표라 일봉을 갈면 여기도 같이 갈아야 `base+overlay == 4시간 내보내기`가 유지된다(생성기가 병합 자가검산까지 돌렸다). 4시간 세트 자체는 그대로다. */
+  // [S1756] 🪙 코인 4시간 오버레이 철거(trend 몫) — 봉 공용 한 벌
 };
 // [S1684] 오버레이 조회 — 봉 기준은 `_sxTfNow()`(저장소 `_sxTfKey`와 **같은 축** · S1682).
 function _sxPresetTrixTfRaw(TBL, mk){ try{ const t=TBL[mk]; return (t && t[_sxTfNow()]) || null; }catch(_){ return null; } }
@@ -2427,18 +2434,10 @@ function _sxPresetTrixCfg(mk){ const B=_SX_MKT_TRIX_PRESET_CFG[mk]||null, O=_sxP
 //   ⚠단타는 봉별 오버레이 표가 **없다** — 내보내기가 일봉 한 벌이라 없는 설정을 지어내지 않는다(`_sxPresetMaMode`과 같은 규약)   /* [S1698] 이름 갱신 */.
 //   ⚠`deadGraceLast`는 표에 없다 — UI 기억칸이지 전략 값이 아니고(S1685), 로더가 `deadGrace`에서 알아서 맞춘다(규칙22).
 const _SX_MKT_TRIXDT_PRESET = {
-  kr: { cross:true, pb:true, dc:true, cell:true, bb:true, grid3:true, pure:true, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:true, deadGrace:10, minK:1, exNBars:20, exNBarsLast:20, fee:true, feePct:0.2, xGate3:false, slOn:false, slMult:4, trOn:false, trMult:3, trArm:2, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:20, tpAtrOn:true, tpAtrMult:1, tpFixOn:false, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:10, txTrGateL:60, exDeadX:false, tpAtrMz:false, slAtrMz:false, trAtrMz:false, psarG:false, psarX:false, bbSolo:false, bbNoSelf:false },
-  us: { cross:true, pb:true, dc:true, cell:true, bb:true, grid3:true, pure:true, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:false, deadGrace:10, minK:1, exNBars:20, exNBarsLast:20, fee:true, feePct:0.2, xGate3:false, slOn:false, slMult:8, trOn:false, trMult:3, trArm:1, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:20, tpAtrOn:true, tpAtrMult:1, tpFixOn:false, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:10, txTrGateL:60, exDeadX:false, tpAtrMz:false, slAtrMz:false, trAtrMz:false, psarG:false, psarX:false, bbSolo:false, bbNoSelf:false },
-  // [S1688] 🪙 **코인은 여기(strat) 없다** — 사용자 정정 2026-09-27: *'kr,us만 스윙/단타 2벌이고 코인은 4h/일봉 각각 TRIX모드 1벌'*.
-  //   표에 없으면 `_sxPresetTrixDt('coin')`이 null이고 **버튼도 안 그려진다**(`_sxPresetMaMode`과 같은 규약 · 없는 설정을 지어내지 않는다)   /* [S1698] 이름 갱신 */.
-  //   ⚠코인의 한 벌은 🧬 스윙 표 쪽에 산다 — 기본행=**일봉**(S1687 교체분) · `_TF['240m']`=**4시간**(S1684). 둘은 봉으로 갈리지 프리셋으로 갈리지 않는다.
+  // [S1756] ★KR·US 행 철거 — 사용자 지시 2026-10-04: TRIX단타·TRIX스윙을 없애고 3시장 모두 [TRIX모드] 한 벌. 표가 비면 `_sxPresetTrixDt` 가 null 이라 버튼이 안 그려지고, 옛 캐시의 버튼이 눌려도 `_stratPreset` 이 그냥 돌아간다(저장 0).
 };
 const _SX_MKT_TRIXDT_PRESET_CFG = {
-  kr: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:true, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:true, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:true, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
-  us: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:true, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:true, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:true, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
-  // [S1688] 🪙 **코인은 여기(trend cfg) 없다** — 사용자 정정 2026-09-27: *'kr,us만 스윙/단타 2벌이고 코인은 4h/일봉 각각 TRIX모드 1벌'*.
-  //   표에 없으면 `_sxPresetTrixDtCfg('coin')`이 null이고 **버튼도 안 그려진다**(`_sxPresetMaMode`과 같은 규약 · 없는 설정을 지어내지 않는다)   /* [S1698] 이름 갱신 */.
-  //   ⚠코인의 한 벌은 🧬 스윙 표 쪽에 산다 — 기본행=**일봉**(S1687 교체분) · `_TF['240m']`=**4시간**(S1684). 둘은 봉으로 갈리지 프리셋으로 갈리지 않는다.
+  // [S1756] ★KR·US 행 철거(trend 몫) — 위 표와 같이 비운다
 };
 const _SX_MKT_TRIXDT_PRESET_TF_NONE = {};   // [S1686] 단타는 봉별 오버레이가 없다 — 빈 표를 명시해 `_trixSetLbl`이 늘 '일봉'이라 답하게 한다(인자 생략 시 스윙 표를 보게 되는 사고 방지)
 // [S1696] ★★📊 **[MA단타] — MA 축 단타 프리셋**(사용자 요청 2026-09-28).
@@ -2628,7 +2627,10 @@ function _trixSameAsSwing(mk){ try{
 function _trixSetLbl(mk, TS, TC){ try{
   const _ts=TS||_SX_MKT_TRIX_PRESET_TF, _tc=TC||_SX_MKT_TRIX_PRESET_CFG_TF;
   const own=_sxPresetTrixTfRaw(_ts,mk)||_sxPresetTrixTfRaw(_tc,mk);
-  return own ? _poolTfLbl(_sxTfNow()) : '일봉'; }catch(_){ return '일봉'; } }
+  return own ? _poolTfLbl(_sxTfNow()) : ((!TS && _SX_TF_SPLIT[mk]) ? '봉 공용' /* [S1756] 🧬 표에 오버레이가 없고 봉으로 갈리는 시장(코인)이면 한 벌을 모든 봉에 같이 쓴다는 뜻이다 — MA 표를 넘겨 부른 자리(TS 있음)는 종전 그대로 */ : '일봉'); }catch(_){ return '일봉'; } }
+// [S1756] 프리셋 줄 캡션 조각 — 🧬 TRIX모드가 몇 벌인지·봉으로 갈리는지(S1688 규약 · `_normCap` 과 같은 술어)
+function _trixCap(mk){ try{ const own=_sxPresetTrixTfRaw(_SX_MKT_TRIX_PRESET_TF,mk)||_sxPresetTrixTfRaw(_SX_MKT_TRIX_PRESET_CFG_TF,mk);
+  return '🧬TRIX모드'+(own?('('+_trixSetLbl(mk)+')'):'')+' = 1벌'+(own?'·봉별':(_SX_TF_SPLIT[mk]?'·봉 공용':'')); }catch(_){ return '🧬TRIX모드 = 1벌'; } }
 // [S1684] 손절 수단이 하나라도 있는가 — 감사(`audit_s1683.js`)·배터리·툴팁이 **같은 술어**를 본다(한 화면 두 말 금지).
 //   ⚠사용자 설계(2026-09-27): *'TRIX랑 이중ATR은 조금 안 맞는 것 같아 일부러 끄고 TRIX 데드크로스랑 N봉컷에 의존 —
 //     최종적으로 어쨌든 N봉에서는 무조건 청산'*. ⇒ 손절이 없는 것은 **사고가 아니라 설계**이고, 만기청산은 N봉컷이 맡는다.
@@ -2637,8 +2639,9 @@ function _trixSetLbl(mk, TS, TC){ try{
 function _trixTipOf(mk, S, G, lbl){
   if(!S || !G) return '';
   const a=_stratActive(S,G,mk);
-  return '🧬 '+lbl+' 세트 · 진입 '+(a.en.join(' ')||'—')+' / 청산 '+(a.ex.join(' ')||'⚠없음')
-    +' · TRIX '+G.trixP+'×'+G.trixSP+(G.xCross?(' 진입 · 청산분리 '+G.trixXP+'×'+G.trixXSP):' (청산도 같은 쌍)')
+  return '🧬 TRIX모드 세트('+lbl+') · 진입 '+(a.en.join(' ')||'—')+' / 청산 '+(a.ex.join(' ')||'⚠없음')   /* [S1756] 이름·봉 표기를 📊 MA 툴팁과 같은 꼴로 */
+    +(_trixOn(G) ? (' · TRIX '+G.trixP+'×'+G.trixSP+(G.xCross?(' 진입 · 청산분리 '+G.trixXP+'×'+G.trixXSP):' (청산도 같은 쌍)'))
+                 : (' · 축 '+_axPair(G,'e',true)+(G.xCross?(' 진입 · 청산분리 '+_axPair(G,'x',true)):' (청산도 같은 쌍)')+(S.trixTrGate?' · 🧬TRIX는 게이트로만':'')))   /* [S1756] 크로스 축이 TRIX 가 아닌 행(코인)은 실제 축을 적는다 — TRIX 쌍을 적으면 거짓말이 된다 */
     +(_presetHasStop(S,G)?'':' · ⚠손절 수단 없음(이중ATR·SL급락 OFF) — '+((+S.exNBars>0)?(S.exNBars+'봉컷이 만기청산을 맡습니다'):'⚠N봉컷도 꺼져 있어 만기청산이 없습니다'))
     +'.';
 }
@@ -5436,7 +5439,7 @@ function _trendRenderInner(){
     // [S1398] engRowS 철거 — 공통 탭바(_trendTabBar)가 대신한다. 참조 0.
     // [S1683] `tip`은 **선택 인자**다 — 안 주면 종전과 **한 글자도 다르지 않은** HTML이 나온다(🏄 버튼 무변경).
     const _pBtn=(lab,p,col,tip)=>`<span onclick="_sxVib(9);window._stratPreset&&_stratPreset('${p}')"${tip?` title="${tip}"`:''} style="font-size:9px;font-weight:800;padding:4px 9px;border-radius:10px;cursor:pointer;background:${col}18;color:${col};border:1px solid ${col}55">${lab}</span>`;
-    const presetRow=`<div style="margin-bottom:8px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:var(--text3)">프리셋</span>${_sxPresetMaMode(market)?_pBtn('\u{1F4CA} MA모드','mamode','#0891b2',_maMoTipOf(market)):''}${_sxPresetTrix(market)?_pBtn(_trixSwingLab(market),'trix','#7c3aed',_trixTipOf(market,_sxPresetTrix(market),_sxPresetTrixCfg(market),_trixSetLbl(market))):''}${_sxPresetTrixDt(market)?_pBtn('🧬 TRIX단타','trixdt','#ea580c',(_trixSameAsSwing(market)?'⚠ 지금 이 봉에서는 🧬스윙과 **값이 같습니다**(누르면 같은 결과) · ':'')+_trixTipOf(market,_sxPresetTrixDt(market),_sxPresetTrixDtCfg(market),_trixSetLbl(market,_SX_MKT_TRIXDT_PRESET_TF_NONE,_SX_MKT_TRIXDT_PRESET_TF_NONE))):''}${_sxPresetMaSw(market)?_pBtn('\u{1F4CA} MA스윙','masw','#be185d',_maSwTipOf(market)):''}${_sxPresetMaDt(market)?_pBtn('\u{1F4CA} MA단타','madt','#16a34a',_maDtTipOf(market)):''}${_sxPresetNormal(market)?_pBtn('\u{1F9F0} 일반모드','normal','#475569',_normTipOf(market)):''}<span style="font-size:9px;color:var(--text3)">${_sxPresetTrix(market)?(_sxPresetTrixDt(market)?'🧬스윙·🧬단타 = TRIX 축 2벌':('🧬TRIX모드('+_trixSetLbl(market)+') = TRIX 축 1벌·봉별')):''}${_maFamCap(market)}${_normCap(market)} · 리셋=시즌2 자동매매 세트</span></div>`;   /* [S1696] 캡션도 몇 벌인지 말한다(S1688 규약) · **봉 이름은 오버레이가 있는 시장에만**(S1686 F4·S1688 E4) */   /* [S1688] ★캡션이 **몇 벌인지**를 말한다 — KR·US는 프리셋 2벌, 코인은 1벌이 봉으로 갈린다. 코인만 봉 이름을 늘 적는다(그게 코인에서 갈리는 축이라서). */   /* [S1686] ★봉 표기는 **일봉이 아닐 때만** 붙인다 — 두 버튼의 세트 봉이 다를 수 있다(코인 4시간: 스윙=4시간봉·단타=일봉). */   /* [S1656] 구 5종 철거 — 두 자리(스윙·시즌2)만 남긴다 */
+    const presetRow=`<div style="margin-bottom:8px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:var(--text3)">프리셋</span>${_sxPresetMaMode(market)?_pBtn('\u{1F4CA} MA모드','mamode','#0891b2',_maMoTipOf(market)):''}${_sxPresetTrix(market)?_pBtn(_trixSwingLab(market),'trix','#7c3aed',_trixTipOf(market,_sxPresetTrix(market),_sxPresetTrixCfg(market),_trixSetLbl(market))):''}${_sxPresetTrixDt(market)?_pBtn('🧬 TRIX단타','trixdt','#ea580c',(_trixSameAsSwing(market)?'⚠ 지금 이 봉에서는 🧬스윙과 **값이 같습니다**(누르면 같은 결과) · ':'')+_trixTipOf(market,_sxPresetTrixDt(market),_sxPresetTrixDtCfg(market),_trixSetLbl(market,_SX_MKT_TRIXDT_PRESET_TF_NONE,_SX_MKT_TRIXDT_PRESET_TF_NONE))):''}${_sxPresetMaSw(market)?_pBtn('\u{1F4CA} MA스윙','masw','#be185d',_maSwTipOf(market)):''}${_sxPresetMaDt(market)?_pBtn('\u{1F4CA} MA단타','madt','#16a34a',_maDtTipOf(market)):''}${_sxPresetNormal(market)?_pBtn('\u{1F9F0} 일반모드','normal','#475569',_normTipOf(market)):''}<span style="font-size:9px;color:var(--text3)">${_sxPresetTrix(market)?(_sxPresetTrixDt(market)?'🧬스윙·🧬단타 = TRIX 축 2벌':_trixCap(market) /* [S1756] */):''}${_maFamCap(market)}${_normCap(market)} · 리셋=시즌2 자동매매 세트</span></div>`;   /* [S1696] 캡션도 몇 벌인지 말한다(S1688 규약) · **봉 이름은 오버레이가 있는 시장에만**(S1686 F4·S1688 E4) */   /* [S1688] ★캡션이 **몇 벌인지**를 말한다 — KR·US는 프리셋 2벌, 코인은 1벌이 봉으로 갈린다. 코인만 봉 이름을 늘 적는다(그게 코인에서 갈리는 축이라서). */   /* [S1686] ★봉 표기는 **일봉이 아닐 때만** 붙인다 — 두 버튼의 세트 봉이 다를 수 있다(코인 4시간: 스윙=4시간봉·단타=일봉). */   /* [S1656] 구 5종 철거 — 두 자리(스윙·시즌2)만 남긴다 */
     const entryRowS=`<div style="margin-bottom:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:#16a34a;min-width:28px">진입</span>`
       +_sChip(sc.cross,'📈 크로스','cross','#0ea5e9',(_smiOn(cfg)?'SMI 골든크로스 진입(위 SMI쌍 — 🎚️ 스토캐스틱 모멘텀 ON)':_trixOn(cfg)?'TRIX 골든크로스 진입(위 TRIX쌍 — 🧬 TRIX 크로스 ON)':'MA 골든크로스 진입(위 MA쌍)')+' · 3×3 ON이면 상승장만')
       +_sChip(sc.dc,'🔻 역배 real','dc','#dc2626','레거시 deadcat-real 발동 진입(역배열봉 자동) · ⚠OOS풀 붕괴 관측(L-01·대장)')
@@ -17051,7 +17054,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1754';   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
+  window.SX_BUILD='S1756';   // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
   // [S1750] 🌀 BB회귀를 ⛩️ 레짐게이트·⛔ 칸 down 진입 차단에서도 뺐다 — 진입·청산 모두 자체 규칙(남는 연결 = 종목당 1포지션·공통 환경).
