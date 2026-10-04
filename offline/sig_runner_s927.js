@@ -8,6 +8,7 @@
 //  최신봉 = V.run(h=0, warmup=n-4, target=5) 후 e최대 레코드. dck/dcf는 cv2rec 훅(§3 동일).
 //  정책레이어 = 등급→{action,score} 시장별. 근거 §1(시장분기)·②(US 회피특례)·S926(dck는 진입전용·물타기X).
 //  ★정책값 provisional — 미래 OOS(0723~24·oos_gates_s924.txt 축2) 통과가 채택 최종조건.
+//  [S1759] 📅 월봉 구간 원자(PREREG_S1759) — 모든 행에 mz('up'·'dn'·'mid'·'na' = 마지막 확정 봉의 월봉 MA5×MA10+종가 위치). 설정에 안 매여 스펙 없이 늘 싣는다 · 다른 바이트는 S1758 그대로.
 //  [S1758] 🔵 PSAR 방향 원자(PREREG_S1758) — 스펙에 ps{af,mx}·psKey 가 있으면 행에 ps{k,u}·원장에 ps·sig 를 싣는다. 없으면 키 추가 0.
 //  [S1757] 📈 크로스 축 원자(PREREG_S1757) — env SX_SPEC(워커 /sx/autotrade/spec 응답)이 축(🧬TRIX·🎚️SMI·임의 MA쌍)을 주면 행에 xa{k,g,d,s,r}·원장에 ax 를 싣는다. 없으면 키 추가 0(바이트 동일).
 'use strict';
@@ -154,6 +155,15 @@ const PS=(function(){ const p=_SPEC_O&&_SPEC_O.ps, k=_SPEC_O&&_SPEC_O.psKey; if(
 const SPEC_SIG=(_SPEC_O&&typeof _SPEC_O.sig==='string'&&_SPEC_O.sig&&(AX||PS))?_SPEC_O.sig:null;
 // 마지막 봉의 방향 — up[n-1] 이 null(봉 3개 미만)이면 원자 없음(지어내지 않는다)
 function psAtom(rows, P){ try{ const close=rows.map(r=>+(r.close!=null?r.close:r.c)); const u=_sxPsarSeries(rows, close, P.af, P.mx).up[rows.length-1]; return (u==null)?null:{ k:P.key, u:(u?1:0) }; }catch(e){ return null; } }
+// ═══ [S1759] 📅 월봉 구간 원자(PREREG_S1759) ═══
+//   시즌1 sx_render.js `_sxYmKey`·`_sxMonthZones` **원문 복사**(글자 그대로 · 배터리가 대조) — 전략 조합 📅 구간별 배수가 읽는 바로 그 식(월봉 = 일봉을 연-월로 묶음 · 진행 중인 달은 그 봉까지 · 월 10개 미만 null).
+function _sxYmKey(r){ const d=(r&&(r.date!=null?r.date:r.t)); if(typeof d==='string'){ return /^\d{8}/.test(d)?(d.slice(0,4)+'-'+d.slice(4,6)):d.slice(0,7); } if(typeof d==='number'&&isFinite(d)){ if(d>=19000101&&d<=21001231){ const t=String(Math.round(d)); return t.slice(0,4)+'-'+t.slice(4,6); } return new Date(d>1e12?d:d*1000).toISOString().slice(0,7); } return ''; }
+function _sxMonthZones(rows, close){ const n=rows.length, out=new Array(n), mc=[]; let mk=null;
+  for(let i=0;i<n;i++){ const k=_sxYmKey(rows[i]); if(k!==mk){ mc.push(close[i]); mk=k; } else mc[mc.length-1]=close[i];
+    if(mc.length>=10){ let s5=0,s10=0; for(let q=1;q<=10;q++){ const v=mc[mc.length-q]; s10+=v; if(q<=5) s5+=v; } s5/=5; s10/=10; const c=close[i]; out[i]=(s5>s10&&c>s5)?'up':((s5<s10&&c<s5)?'dn':'mid'); } else out[i]=null; }
+  return out; }
+//   마지막 봉의 구간 — 설정에 안 매이는 값이라 스펙·키가 없다. null(월 10개 미만 · 4H 는 늘)은 'na' 로 적어 「원자 없음」과 가른다(워커: 'na' = 혼조 칸 · 없음 = 단일 배수).
+function mzAtom(rows){ try{ const close=rows.map(r=>+(r.close!=null?r.close:r.c)); const z=_sxMonthZones(rows, close)[rows.length-1]; return (z==='up'||z==='dn'||z==='mid')?z:'na'; }catch(e){ return null; } }
 function bullVolSignal(ind){ try{
   if(!ind||!ind.maAlign||!ind.maAlign.bullish) return false;         // 강세(단기 5/20/60 정배열)
   if(!_ltBear(ind)) return false;                                    // 하락장(장기 60/120/200 역배열)
@@ -303,6 +313,7 @@ codes.forEach((c,i)=>{
     _sg.st510=!!st510; _sg.st520=!!st520; _sg.st2060=!!st2060; _sg.st1060=!!st1060; _sg.pbar=(rows.length>=2&&rows[rows.length-2]&&rows[rows.length-2].date)||null; }   /* [S1711] 🔄 재진입 원자 — 진입쌍 정배열 상태 4종 + 앞 봉 날짜(청산 봉 < i-1 판정용) · 아직 읽는 곳 없음(워커 S1711) */   /* [S1709] 게이트 원자 — 아직 읽는 곳 없음(워커 S1709가 읽는다) */   /* [S1707] 네 원자 전부 3시장 공통 */   /* [S1704] 3시장 공통 — 아직 **읽는 곳이 없다**(S1705가 읽는다) */
   if(AX){ const _xa=axAtoms(rows,AX); if(_xa) signals[signals.length-1].xa=_xa; }   /* [S1757] 📈 크로스 축 원자 — 스펙이 있을 때만(없으면 키 추가 0) */
   if(PS){ const _pa=psAtom(rows,PS); if(_pa) signals[signals.length-1].ps=_pa; }   /* [S1758] 🔵 PSAR 방향 원자 */
+  { const _mz=mzAtom(rows); if(_mz) signals[signals.length-1].mz=_mz; }   /* [S1759] 📅 월봉 구간 원자 — 늘(스펙 무관) */
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
@@ -319,9 +330,11 @@ if(IS_COIN){ ledger.univ=snap.univ||null; ledger.summary.extN=cnt(s=>s.univ==='e
 if(AX){ ledger.ax={ k:AX.key, t:AX.t, e:AX.e, x:AX.x, r:AX.r, sm:AX.sm }; ledger.summary.axN=cnt(s=>!!s.xa); ledger.summary.axG=cnt(s=>s.xa&&s.xa.g===1); ledger.summary.axD=cnt(s=>s.xa&&s.xa.d===1); }   /* [S1757] 이 원장의 원자를 만든 스펙 · 원자 재고 */
 if(PS){ ledger.ps={ k:PS.key, af:PS.af, mx:PS.mx }; ledger.summary.psN=cnt(s=>!!s.ps); ledger.summary.psUp=cnt(s=>s.ps&&s.ps.u===1); }   /* [S1758] */
 if(SPEC_SIG) ledger.sig=SPEC_SIG;   /* [S1758] 이 원장을 만든 스펙 서명(축·PSAR) */
+ledger.summary.mz={ up:cnt(s=>s.mz==='up'), mid:cnt(s=>s.mz==='mid'), dn:cnt(s=>s.mz==='dn'), na:cnt(s=>s.mz==='na') };   /* [S1759] 📅 구간 재고 */
 fs.writeFileSync(outPath, JSON.stringify(ledger,null,1));
 console.error('DONE sig '+mk+' asof='+asofFinal+(COIN_COMPLETED_ONLY?'(확정봉·S1497)':'')+': 평가 '+signals.length+'/'+codes.length+' | BUY '+ledger.summary.BUY+'(bullVol '+ledger.summary.bullVolBUY+'·v2 '+ledger.summary.v2BUY+'·겹침 '+ledger.summary.v2Overlap+') atrGated '+ledger.summary.atrGated+' HOLD '+ledger.summary.HOLD+' SELL '+ledger.summary.SELL+' (prov '+ledger.summary.provisional+') err='+errs.length+' '+((Date.now()-t0)/1000|0)+'s → '+outPath);
 console.error('  [S1757] 크로스 축 '+(AX?(AX.key+' · 원자 '+ledger.summary.axN+'행 · 골든 '+ledger.summary.axG+' · 데드 '+ledger.summary.axD):(process.env.SX_SPEC?'스펙에 축 없음(MA 진입쌍 경로 그대로)':'스펙 없음(SX_SPEC 미전달 — 종전 원장)')));
 if(PS) console.error('  [S1758] PSAR '+PS.key+' · 원자 '+ledger.summary.psN+'행 · 상승 '+ledger.summary.psUp+' · 하락 '+(ledger.summary.psN-ledger.summary.psUp));
+console.error('  [S1759] 월봉 구간 상승 '+ledger.summary.mz.up+' · 혼조 '+ledger.summary.mz.mid+' · 하락 '+ledger.summary.mz.dn+' · 판정 불가 '+ledger.summary.mz.na);
 if(mk==='us') console.error('  [S1632] US BB회귀 BUY '+ledger.summary.rangeBUY+' · 크로스 BUY '+ledger.summary.crossBUY+' (카드 사진1 세트 · DECL §14)');
 if(IS_COIN) console.error('  [S1651] 코인 유니버스 '+(ledger.univ?(ledger.univ.mode+' · 풀 '+ledger.univ.poolIn+' · 확장 '+ledger.univ.ext):'메타 없음(폴백 스냅)')+' · 확장 평가 '+ledger.summary.extN+' · 확장 BUY '+ledger.summary.extBUY);
