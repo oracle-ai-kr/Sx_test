@@ -2110,6 +2110,8 @@ function _trendDefaults(market){
     // [S1677] 🔄 재진입도 **켜진 축을 따른다** — TRIX면 TRIX 재진입 쌍, OFF면 종전 MA 쌍.
     //   ⚠MA 규약 그대로 기본값이 진입 쌍과 같다 ⇒ 같은 쌍이면 진입이 먼저 잡아 재진입이 0건으로 집계된다(S1407 경고가 그대로 뜬다).
     trixOn:false, trixP:3, trixSP:200, trixXP:3, trixXSP:5, trixReP:3, trixReSP:200,
+    // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 기본 OFF. %K 10 · 평활 3 · 이중평활 3 · %D(시그널) 10 · 청산·재진입 쌍도 기본은 진입 쌍과 같다(평활 두 칸은 세 쌍이 공유).
+    smiOn:false, smiK:10, smiS:3, smiDS:3, smiD:10, smiXK:10, smiXD:10, smiReK:10, smiReD:10,
     xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20,   // [S1059] 청산분리 OFF(=진입과 동일 5×20 데드크로스)·값은 5×20 통일
     nextOpen:false,  // [S581] 진입방식: false=신호봉 종가(기본) / true=다음봉 시가
     bullVol:false,                       // [S1073] 시즌2 이식 — 강세 거래량급증 진입(하이브리드 엔진·KR 전용). 기본 OFF: 시즌2 검증은 시즌2 실행 프레임 기준이라 카드 BT 편입 효과는 미측정.
@@ -2156,6 +2158,8 @@ function _trendCfg(market){
   try { const raw=_sxTfGetRaw('SX_TREND_',market);   /* [S1682] 봉별 저장(일봉 폴백) */ if(raw){ const o=JSON.parse(raw); if(o && o._ver===_TREND_CFG_VER){ cfg.s=+o.s||d[0]; cfg.l=+o.l||d[1]; cfg.n=+o.n||3; cfg.aux=(o.aux&&typeof o.aux==='object')?o.aux:{}; cfg.sell=(o.sell&&typeof o.sell==='object')?o.sell:{}; cfg.reentry=!!o.reentry; cfg.nextOpen=!!o.nextOpen; cfg.predict=!!o.predict; cfg.predLead=(o.predLead==='auto')?'auto':((+o.predLead===2)?2:1); cfg.earlyMa5=!!o.earlyMa5; cfg.earlySlope=!!o.earlySlope; cfg.disSl=!!o.disSl; cfg.slAtr=(+o.slAtr>0)?+o.slAtr:3; cfg.entrySlope=!!o.entrySlope; cfg.entryConfirm=(o.entryConfirm!==false); cfg.entryRsi=!!o.entryRsi; cfg.xCross=!!o.xCross; cfg.xs=+o.xs||cfg.s; cfg.xl=+o.xl||cfg.l; cfg.reEntryS=+o.reEntryS||cfg.s; cfg.reEntryL=+o.reEntryL||cfg.l; cfg.bullVol=!!o.bullVol; cfg.atr2=!!o.atr2;
     // [S1676] 🧬 TRIX 크로스 축 — 저장 키 5종(없으면 기본값 = 구 저장본과 호환 · _TREND_CFG_VER 미상승).
     cfg.trixOn=!!o.trixOn; ['trixP','trixSP','trixXP','trixXSP','trixReP','trixReSP'].forEach(function(k){ if(+o[k]>0) cfg[k]=Math.min(400,Math.max(1,Math.round(+o[k]))); });
+    // [S1754] 🎚️ SMI 축 — 저장 키 9종(없으면 기본값 = 구 저장본과 호환 · _TREND_CFG_VER 미상승). 둘 다 켜진 저장본은 SMI 로 읽는다(화면이 한 축만 말하게).
+    cfg.smiOn=!!o.smiOn; ['smiK','smiD','smiXK','smiXD','smiReK','smiReD'].forEach(function(k){ if(+o[k]>0) cfg[k]=Math.min(400,Math.max(k.slice(-1)==='K'?2:1,Math.round(+o[k]))); }); ['smiS','smiDS'].forEach(function(k){ if(+o[k]>0) cfg[k]=Math.min(100,Math.max(1,Math.round(+o[k]))); }); if(cfg.smiOn) cfg.trixOn=false;
     // [S1564] 크로스 전용 ATR — 불리언 4 + 배수 3(범위는 전략 조합 입력칸과 같은 0.1~20).
     cfg.xAtr2=!!o.xAtr2; cfg.xSlOn=!!o.xSlOn; cfg.xTrOn=!!o.xTrOn; cfg.xTpOn=!!o.xTpOn;
     cfg.xSlMz=!!o.xSlMz; cfg.xTrMz=!!o.xTrMz; cfg.xTpMz=!!o.xTpMz;   /* [S1743] 구간별 3종(없으면 false = 구 저장본 호환) */
@@ -2212,7 +2216,39 @@ function _trTrix(close,p,sp){
   return {line:line, sig:sig, p:_p, sp:_sp, first:first};
 }
 // [S1676] 크로스 축이 TRIX인가 — 엔진·UI·라벨이 같은 술어를 본다(한 화면이 두 말을 하지 않게).
-function _trixOn(cfg){ return !!(cfg && cfg.trixOn); }
+function _trixOn(cfg){ return !!(cfg && cfg.trixOn && !cfg.smiOn /* [S1754] 둘 다면 SMI */); }
+// [S1754] ★🎚️ 스토캐스틱 모멘텀(SMI · William Blau) 크로스 축 — TRIX 와 같은 규약으로 선·시그널을 **봉 정렬 배열**로 돌려준다.
+//   중심 = (K봉 고가 최고 + K봉 저가 최저) ÷ 2 · 거리 M = 종가 − 중심 · 폭 R = 최고 − 최저
+//   SMI = 100 × EMA(EMA(M, s), ds) ÷ (EMA(EMA(R, s), ds) ÷ 2)   (−100 ~ +100) · 시그널 = SMI 의 d봉 지수평균
+//   ⚠EMA 는 `_trEma`(null 을 건너뛰고 첫 p개 실값 평균으로 시드) — 증권앱과 시드 방식이 달라도 수십 봉 뒤에는 같은 값으로 모인다.
+//   ⚠시그널을 단순평균으로 그리는 앱도 있다 — 여기는 지수평균(Blau 원식). 화면의 '지금 SMI·시그널' 값으로 앱과 맞춰 볼 수 있다.
+//   웜업: k + s + ds + d − 3 봉쯤(기본 10·3·3·10 이면 23봉째부터). 폭이 0 인 봉(거래정지 등)은 값이 없다.
+function _trSmi(rows,k,s,ds,d){
+  const n=rows.length, line=new Array(n).fill(null); let sig=new Array(n).fill(null);
+  const _k=Math.max(2,Math.min(400,Math.round(+k||10))), _s=Math.max(1,Math.min(100,Math.round(+s||3))), _ds=Math.max(1,Math.min(100,Math.round(+ds||3))), _d=Math.max(1,Math.min(400,Math.round(+d||10)));
+  if(!n) return {line:line, sig:sig, k:_k, s:_s, ds:_ds, d:_d, first:-1};
+  const hi=rows.map(r=>+(r.high!=null?r.high:r.h)), lo=rows.map(r=>+(r.low!=null?r.low:r.l)), cl=rows.map(r=>+(r.close!=null?r.close:r.c));
+  const M=new Array(n).fill(null), R=new Array(n).fill(null);
+  for(let i=_k-1;i<n;i++){ let hh=-Infinity, ll=Infinity; for(let q=i-_k+1;q<=i;q++){ if(hi[q]>hh) hh=hi[q]; if(lo[q]<ll) ll=lo[q]; } if(!isFinite(hh)||!isFinite(ll)||!isFinite(cl[i])) continue; M[i]=cl[i]-(hh+ll)/2; R[i]=hh-ll; }
+  const e=_trEma(_trEma(M,_s),_ds), f=_trEma(_trEma(R,_s),_ds);
+  for(let i=0;i<n;i++){ if(e[i]!=null && f[i]!=null && f[i]>0) line[i]=100*e[i]/(f[i]/2); }
+  sig=_trEma(line,_d);
+  let first=-1; for(let i=0;i<n;i++){ if(line[i]!=null&&sig[i]!=null){ first=i; break; } }
+  return {line:line, sig:sig, k:_k, s:_s, ds:_ds, d:_d, first:first};
+}
+function _smiOn(cfg){ return !!(cfg && cfg.smiOn); }
+// 쌍 = [%K 기간, %D(시그널) 기간] — 청산·재진입 쌍이 비어 있으면 진입 쌍을 따른다. 평활 두 칸(%K Smooth · %K Double Smooth)은 세 쌍이 공유한다.
+function _smiPair(cfg,which){ const K=(+cfg.smiK>0)?+cfg.smiK:10, D=(+cfg.smiD>0)?+cfg.smiD:10;
+  if(which==='r') return [ (+cfg.smiReK>0)?+cfg.smiReK:K, (+cfg.smiReD>0)?+cfg.smiReD:D ];
+  if(which==='x') return [ (+cfg.smiXK>0)?+cfg.smiXK:K, (+cfg.smiXD>0)?+cfg.smiXD:D ];
+  return [K,D]; }
+function _smiSm(cfg){ return [ (+cfg.smiS>0)?+cfg.smiS:3, (+cfg.smiDS>0)?+cfg.smiDS:3 ]; }
+// [S1754] ★오실레이터 축(TRIX 또는 SMI)인가 · 그 축의 선·시그널 — 엔진 세 곳(`_stratBt`·`_trendBt`·`_trendLastCross`)이 이 둘만 부른다(축이 늘어도 엔진 식은 그대로).
+function _axOsc(cfg){ return _smiOn(cfg) || _trixOn(cfg); }
+function _axSer(rows,close,cfg,which){ if(_smiOn(cfg)){ const p=_smiPair(cfg,which), m=_smiSm(cfg); return _trSmi(rows,p[0],m[0],m[1],p[1]); } const p=_trixPair(cfg,which); return _trTrix(close,p[0],p[1]); }
+// 화면용 — 지금 SMI·시그널 값(증권앱과 맞춰 보라고 적는다)
+function _smiNow(cfg){ try{ const ctx=window._sxTrendCtx, r=ctx&&ctx.rows; if(!r||r.length<5) return ''; const p=_smiPair(cfg,'e'), m=_smiSm(cfg), x=_trSmi(r,p[0],m[0],m[1],p[1]), i=r.length-1; if(x.line[i]==null||x.sig[i]==null) return ''; const up=x.line[i]>x.sig[i];
+    return `<b id="sxSmiNow" style="color:${up?'#16a34a':'#e8365a'}">지금 SMI ${x.line[i].toFixed(2)} · 시그널 ${x.sig[i].toFixed(2)} · ${up?'▲ 선이 시그널 위':'▼ 선이 시그널 아래'}</b> · `; }catch(_){ return ''; } }
 // [S1679] ★★크로스 축 **라벨 SSOT** — 화면이 엔진과 같은 축을 말하게 한다.
 //   ⚠S1676이 판정을 갈아 놓고 **문구는 `cfg.s`·`cfg.l`을 직접 읽는 자리를 여럿 남겼다** —
 //     TRIX로 매매하는데 화면은 `5MA×20MA 골든크로스`라고 적었다(사용자가 재진입 설명문에서 발견).
@@ -2221,6 +2257,7 @@ function _trixOn(cfg){ return !!(cfg && cfg.trixOn); }
 //     보므로(S1676 `pxS`) 그 문구는 `cfg.s`를 그대로 읽는 것이 옳다. 축 라벨과 가격 라벨을 섞지 말 것.
 //   which: 'e' 진입 · 'x' 청산 · 'r' 재진입 / ma:true면 `5MA×20MA` 꼴, false면 `5×20` 꼴.
 function _axPair(cfg, which, ma){
+  if(_smiOn(cfg)){ const p=_smiPair(cfg, which||'e'); return 'SMI '+p[0]+'×시그널 '+p[1]; }   /* [S1754] */
   if(_trixOn(cfg)){ const p=_trixPair(cfg, which||'e'); return 'TRIX '+p[0]+'×시그널 '+p[1]; }
   const s=+cfg.s, l=+cfg.l;
   let a=s, b=l;
@@ -2229,10 +2266,10 @@ function _axPair(cfg, which, ma){
   return ma ? (a+'MA×'+b+'MA') : (a+'×'+b);
 }
 // [S1679] '정배열 유지' 상태 문구 — TRIX 모드에서는 선이 시그널 위에 있는 상태다(같은 뜻·다른 축).
-function _axHold(cfg){ return _trixOn(cfg) ? 'TRIX선&gt;시그널선' : ((+cfg.s)+'MA&gt;'+(+cfg.l)+'MA'); }
+function _axHold(cfg){ return _smiOn(cfg) ? 'SMI선&gt;시그널선' /* [S1754] */ : _trixOn(cfg) ? 'TRIX선&gt;시그널선' : ((+cfg.s)+'MA&gt;'+(+cfg.l)+'MA'); }
 // [S1679] 축 이름 한 낱말 · 단기선 이름(기울기 칩용 — 기울기는 TRIX에서도 뜻이 산다).
-function _axNm(cfg){ return _trixOn(cfg) ? 'TRIX' : 'MA'; }
-function _axShort(cfg){ return _trixOn(cfg) ? 'TRIX선' : ((+cfg.s)+'MA'); }
+function _axNm(cfg){ return _smiOn(cfg) ? 'SMI' /* [S1754] */ : _trixOn(cfg) ? 'TRIX' : 'MA'; }
+function _axShort(cfg){ return _smiOn(cfg) ? 'SMI선' /* [S1754] */ : _trixOn(cfg) ? 'TRIX선' : ((+cfg.s)+'MA'); }
 // [S1676] 진입/청산 쌍 조회 — 값이 없으면 기본(진입 3×200 · 청산 3×5 · 사용자 결정 2026-09-24).
 function _trixPair(cfg,which){
   // [S1677] 재진입 쌍 — 비어 있으면 진입 쌍을 따른다(MA 규약 `+cfg.reEntryS||cfg.s` 상속).
@@ -2357,9 +2394,9 @@ const _SX_MKT_TRIX_PRESET = {
 };
 // [S1683] 같은 프리셋의 trend cfg 몫 — 🧬 TRIX 3쌍·MA쌍·청산분리·다음봉시가·bullVol·이중ATR 마스터까지 한 표에.
 const _SX_MKT_TRIX_PRESET_CFG = {
-  kr: { s:5, l:20, trixOn:true, trixP:10, trixSP:20, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
-  us: { s:5, l:20, trixOn:true, trixP:10, trixSP:60, trixXP:10, trixXSP:20, trixReP:10, trixReSP:20, xCross:true, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
-  coin: { s:5, l:10, trixOn:true, trixP:10, trixSP:60, trixXP:5, trixXSP:20, trixReP:5, trixReSP:20, xCross:true, xs:5, xl:10, reEntryS:5, reEntryL:10, reentry:true, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },   /* [S1687] 🪙 코인 **일봉** 세트 교체(사용자 결정 2026-09-27: *'코인 일봉은 이 파일 설정으로 · 기존 것은 건수가 너무 적어서 교체'*) — 내보내기 export_S1685_coinday2.json(build S1685 · 2026-09-27T00:40:55.895Z)에서 기계로 뽑았다 */
+  kr: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:true, trixP:10, trixSP:20, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
+  us: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:true, trixP:10, trixSP:60, trixXP:10, trixXSP:20, trixReP:10, trixReSP:20, xCross:true, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
+  coin: { s:5, l:10, smiOn:false /* [S1754] */, trixOn:true, trixP:10, trixSP:60, trixXP:5, trixXSP:20, trixReP:5, trixReSP:20, xCross:true, xs:5, xl:10, reEntryS:5, reEntryL:10, reentry:true, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },   /* [S1687] 🪙 코인 **일봉** 세트 교체(사용자 결정 2026-09-27: *'코인 일봉은 이 파일 설정으로 · 기존 것은 건수가 너무 적어서 교체'*) — 내보내기 export_S1685_coinday2.json(build S1685 · 2026-09-27T00:40:55.895Z)에서 기계로 뽑았다 */
 };
 // [S1684] ★★**🧬 TRIX모드의 봉별 표**(사용자 내보내기 2벌: 일봉 2026-09-26T18:25:58.652Z · 4시간 2026-09-26T16:36:59.787Z).
 //   ★S1661 `_SX_MKT_STRAT_PRESET_TF`와 **같은 문법**이다 — 기본은 일봉 표, 여기 있는 봉만 키 단위로 덮는다.
@@ -2397,8 +2434,8 @@ const _SX_MKT_TRIXDT_PRESET = {
   //   ⚠코인의 한 벌은 🧬 스윙 표 쪽에 산다 — 기본행=**일봉**(S1687 교체분) · `_TF['240m']`=**4시간**(S1684). 둘은 봉으로 갈리지 프리셋으로 갈리지 않는다.
 };
 const _SX_MKT_TRIXDT_PRESET_CFG = {
-  kr: { s:5, l:20, trixOn:true, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:true, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:true, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
-  us: { s:5, l:20, trixOn:true, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:true, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:true, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
+  kr: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:true, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:true, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:true, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
+  us: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:true, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:true, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:true, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
   // [S1688] 🪙 **코인은 여기(trend cfg) 없다** — 사용자 정정 2026-09-27: *'kr,us만 스윙/단타 2벌이고 코인은 4h/일봉 각각 TRIX모드 1벌'*.
   //   표에 없으면 `_sxPresetTrixDtCfg('coin')`이 null이고 **버튼도 안 그려진다**(`_sxPresetMaMode`과 같은 규약 · 없는 설정을 지어내지 않는다)   /* [S1698] 이름 갱신 */.
   //   ⚠코인의 한 벌은 🧬 스윙 표 쪽에 산다 — 기본행=**일봉**(S1687 교체분) · `_TF['240m']`=**4시간**(S1684). 둘은 봉으로 갈리지 프리셋으로 갈리지 않는다.
@@ -2428,8 +2465,8 @@ const _SX_MKT_MADT_PRESET = {
   //   표에 없으면 `_sxPresetMaDt('coin')`이 null이고 **버튼도 안 그려진다**(없는 설정을 지어내지 않는다).
 };
 const _SX_MKT_MADT_PRESET_CFG = {
-  kr: { s:5, l:20, trixOn:false, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
-  us: { s:10, l:60, trixOn:false, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
+  kr: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:false, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
+  us: { s:10, l:60, smiOn:false /* [S1754] */, trixOn:false, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
   // [S1698] 🪙 코인 없음 — 위 strat 표와 같은 이유(한 쌍으로 움직인다).
 };
 // [S1698] 🪙 코인 행이 사라지며 **오버레이도 같이 비웠다** — 얹을 기본행이 없으면 오버레이는 죽은 표다.
@@ -2459,8 +2496,8 @@ const _SX_MKT_MASW_PRESET = {
   //   KR·US 값은 S1697 그대로다(이 시리얼은 코인만 뺀다).
 };
 const _SX_MKT_MASW_PRESET_CFG = {
-  kr: { s:5, l:20, trixOn:false, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false },
-  us: { s:10, l:60, trixOn:false, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false },
+  kr: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:false, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false },
+  us: { s:10, l:60, smiOn:false /* [S1754] */, trixOn:false, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false },
   // [S1698] 🪙 코인 없음 — 위 strat 표와 같은 이유.
 };
 const _SX_MKT_MASW_PRESET_TF = {
@@ -2483,7 +2520,7 @@ const _SX_MKT_MAMODE_PRESET = {
   coin: { cross:true, pb:false, dc:true, cell:false, bb:false, grid3:false, pure:true, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:false, deadGrace:0, minK:3, exNBars:20, exNBarsLast:20, fee:true, feePct:0.2, xGate3:false, slOn:false, slMult:4, trOn:false, trMult:1, trArm:0, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:10, tpAtrOn:true, tpAtrMult:1, tpFixOn:true, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:true, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:9, txTrGateL:12, exDeadX:true, tpAtrMz:false, slAtrMz:false, trAtrMz:false, psarG:false, psarX:false, bbSolo:false, bbNoSelf:false },
 };
 const _SX_MKT_MAMODE_PRESET_CFG = {
-  coin: { s:20, l:60, trixOn:false, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:10, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
+  coin: { s:20, l:60, smiOn:false /* [S1754] */, trixOn:false, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:10, reentry:false, nextOpen:true, bullVol:false, atr2:false, atrInit:2, atrTrail:3, predict:false },
 };
 const _SX_MKT_MAMODE_PRESET_TF_NONE = {};   // [S1698] 봉별 오버레이 없음을 **명시** — 라벨 함수가 늘 '일봉'이라 답하게(S1686 `_TF_NONE` 선례)
 // [S1733] ★★🧰 **[일반모드] — 📈크로스 없이 레거시·칸으로 사는 한 벌**(사용자 요청 2026-10-02: *'전략조합탭에 프리셋 [일반모드] 추가 · Kr,us,코인,4h · 코인은 일봉이랑 4h를 같게'*).
@@ -2499,9 +2536,9 @@ const _SX_MKT_NORMAL_PRESET = {
   coin: { cross:false, pb:false, dc:true, cell:true, bb:false, grid3:false, pure:true, rgGate:false, xSplit:false, exDead:false, exFake:false, exDown:false, exCellFake:true, deadGrace:0, minK:3, exNBars:20, exNBarsLast:20, fee:true, feePct:0.2, xGate3:false, slOn:true, slMult:2, trOn:false, trMult:1, trArm:0, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:true, tpPctOn:false, tpPct:10, tpAtrOn:false, tpAtrMult:1, tpFixOn:true, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:true, maTrGate:true, trixTrGate:true, maTrGateS:10, maTrGateL:60, txTrGateS:10, txTrGateL:60, exDeadX:false, tpAtrMz:false, slAtrMz:false, trAtrMz:false, psarG:false, psarX:false, bbSolo:false, bbNoSelf:false },
 };
 const _SX_MKT_NORMAL_PRESET_CFG = {
-  kr: { s:5, l:20, trixOn:false, trixP:3, trixSP:200, trixXP:3, trixXSP:5, trixReP:3, trixReSP:200, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false },
-  us: { s:10, l:60, trixOn:false, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false },
-  coin: { s:5, l:10, trixOn:false, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:10, reEntryS:5, reEntryL:10, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false },
+  kr: { s:5, l:20, smiOn:false /* [S1754] */, trixOn:false, trixP:3, trixSP:200, trixXP:3, trixXSP:5, trixReP:3, trixReSP:200, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false },
+  us: { s:10, l:60, smiOn:false /* [S1754] */, trixOn:false, trixP:10, trixSP:60, trixXP:2, trixXSP:3, trixReP:2, trixReSP:3, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:20, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false },
+  coin: { s:5, l:10, smiOn:false /* [S1754] */, trixOn:false, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:10, reEntryS:5, reEntryL:10, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false },
 };
 const _SX_MKT_NORMAL_PRESET_TF_NONE = {};   // [S1733] 봉별 오버레이 없음을 명시(S1686·S1698 `_TF_NONE` 선례)
 function _sxPresetNormal(mk){ return _SX_MKT_NORMAL_PRESET[mk]||null; }        // [S1733] 없는 시장은 null — 버튼도 안 그린다
@@ -2652,6 +2689,7 @@ function _trGDead(sc, cfg, which){
   if(!sc || !cfg) return r;
   if(!(which==='tx' ? sc.trixTrGate : sc.maTrGate)) return r;
   if(!sc.cross) return r;                       // 크로스가 꺼져 있으면 `_deadCross`가 따로 말한다(두 번 말하지 않는다)
+  if(_smiOn(cfg)) return r;                     /* [S1754] 크로스 축이 SMI 면 📏MA·🧬TRIX 게이트 어느 쪽과도 축이 다르다 ⇒ 겹침 없음 */
   const tx = _trixOn(cfg);
   if((which==='tx') !== !!tx) return r;         // 게이트 축 ≠ 크로스 축 ⇒ 겹침 없음
   const g = _trGPair(sc, which), eq = (a,b)=>(+a===g[0] && +b===g[1]);   /* [S1694] 칩별 쌍 */
@@ -2790,7 +2828,7 @@ function _stratBbRows(sc){ const e=_stratBbEnt(sc);
       +md(1,'첫 반등 봉','하단 조건이 뜬 뒤 대기 봉 수 안에서, 종가가 전봉보다 오른 첫 봉에 진입. 탐색(MEAS_S1748): 반등분을 조금 놓치고 밴드워크가 준다. 측정 0(관찰용)')
       +md(2,'PSAR 상승 전환','하단 조건이 뜬 뒤 대기 봉 수 안에서, PSAR 이 하락→상승으로 바뀐 봉에 진입. 가속·최대는 이 줄 전용(🔵 게이트 값과 별개). 탐색(MEAS_S1748): 밴드워크는 거의 없어지나 반등 앞부분을 내준다 — 청산을 상단 쪽으로 같이 옮겨야 뜻이 있다. 측정 0(관찰용)')
     +`</div>`
-    +(e?`<div style="${L}"><span style="${H}"></span>`+lab('하단 조건 뒤')+num('bbWait',1)+lab('봉 안')+(e===2?lab('· 가속')+num('bbPsAf',0.01)+lab('최대')+num('bbPsMax',0.05):'')+`</div>`:'')
+    +(e?`<div style="${L}"><span style="${H}"></span>`+lab('하단 조건 뒤')+num('bbWait',1)+lab('봉 안')+`</div>`+(e===2?`<div style="${L}"><span style="${H}"></span>`+lab('PSAR 가속')+num('bbPsAf',0.01)+lab('· 최대')+num('bbPsMax',0.05)+`</div>`:''):'')   /* [S1754] 가속·최대는 따로 한 줄 — 실기기에서 '최대' 글자와 칸이 줄이 갈렸다 */
     /* [S1751] 청산 방식 3종(한 줄 선택) — 종전의 「자체 청산만」 체크를 대신한다 · 「청산 줄만」이면 %B·캡 칸을 감춘다(안 쓰는 칸 = 조용한 무동작) */
     +(function(){ const x=_stratBbExOf(sc); const xm=function(m,t,tip){ const on=(x===m); return `<span onclick="_sxVib(9);window._stratBbExMode&&_stratBbExMode(${m})" title="${tip}" style="font-size:9px;font-weight:800;padding:4px 6px;border-radius:10px;border:1px solid ${on?'#0891b2':'var(--border)'};cursor:pointer;white-space:nowrap;${on?'background:#0891b218;color:#0891b2':'background:transparent;color:var(--text3)'}">${on?'◉':'○'} ${t}</span>`; };
       return `<div style="${L}"><span style="${H}">청산</span>`
@@ -2938,12 +2976,12 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx){
   const close=rows.map(r=>+(r.close!=null?r.close:r.c));
   // [S1676] ★크로스 축 교체 — 📈크로스 진입원과 데드크로스 청산이 TRIX를 타게 한다(MA 크로스 탭과 같은 규약).
   //   ⚠3×3 라우팅축(MA60/120/200)·칸real·BB회귀는 **다른 축**이라 건드리지 않는다.
-  const _txOn=_trixOn(cfg);
-  const _txE=_txOn?_trTrix(close,_trixPair(cfg,'e')[0],_trixPair(cfg,'e')[1]):null;
+  const _txOn=_axOsc(cfg);   /* [S1754] 오실레이터 축 = 🧬TRIX 또는 🎚️SMI(`_axSer` 가 가른다 · TRIX 면 종전 `_trTrix` 그대로) */
+  const _txE=_txOn?_axSer(rows,close,cfg,'e'):null;
   let maS=_txOn?_txE.line:_trSma(close,_s), maL=_txOn?_txE.sig:_trSma(close,_l);
   const maR60=_trSma(close,60), maR120=_trSma(close,120), maR200=_trSma(close,200);
   const _xOn=!!cfg.xCross, _xs=_xOn?(+cfg.xs||_s):_s, _xl=_xOn?(+cfg.xl||_l):_l;
-  const _txX=(_txOn&&_xOn)?_trTrix(close,_trixPair(cfg,'x')[0],_trixPair(cfg,'x')[1]):null;
+  const _txX=(_txOn&&_xOn)?_axSer(rows,close,cfg,'x') /* [S1754] */:null;
   let maXS, maXL;
   if(_txOn){ maXS=_xOn?_txX.line:maS; maXL=_xOn?_txX.sig:maL; }
   else { maXS=_xOn?_trSma(close,_xs):maS; maXL=_xOn?_trSma(close,_xl):maL; }
@@ -3026,7 +3064,7 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx){
   const _tpMOf=(i)=>{ const z=_mz[i]; return z==='up'?_tpMzUp:(z==='dn'?_tpMzDn:_tpMzMid); };
   const _reS=(+cfg.reEntryS||_s), _reL=(+cfg.reEntryL||_l);
   // [S1677] ★재진입도 켜진 축을 따른다(거울상 · 규칙17) — MA 크로스 탭과 같은 술어.
-  const _txR=(_txOn&&_reOn)?_trTrix(close,_trixPair(cfg,'r')[0],_trixPair(cfg,'r')[1]):null;
+  const _txR=(_txOn&&_reOn)?_axSer(rows,close,cfg,'r') /* [S1754] */:null;
   const maReS=_reOn?(_txOn?_txR.line:_trSma(close,_reS)):null, maReL=_reOn?(_txOn?_txR.sig:_trSma(close,_reL)):null;
   // [S1545] 재진입 포지션도 **크로스 계열**이다 — 청산 경로를 갈라 두면 같은 다리인데 출구가 달라진다.
   //   재진입 OFF면 `pos.src==='trend'`와 완전히 같은 술어라 무회귀가 구조로 보장된다.
@@ -3398,7 +3436,8 @@ function _stratComboSig(sc,cfg){
     ps:[(sc.psarG||sc.psarX)?[(+sc.psarAf>0)?+sc.psarAf:0.02,(+sc.psarMax>0)?+sc.psarMax:0.2]:0, sc.psarG?_stratPsarMask(sc):0, sc.psarX?1:0],   /* [S1746] 🔵 수치·격자·하락청산도 조합의 일부(꺼져 있으면 안 든다) */
     g:sc.deadGrace||0, k:sc.minK||1, nb:sc.exNBars||0, fe:(sc.fee?+sc.feePct:0),
     ma:[cfg.s,cfg.l,cfg.xCross?cfg.xs:0,cfg.xCross?cfg.xl:0], o:[cfg.nextOpen,cfg.predict,cfg.bullVol,cfg.atr2,cfg.reentry].map(x=>x?1:0),
-    tx:(cfg.trixOn?[1,+cfg.trixP||3,+cfg.trixSP||200,cfg.xCross?(+cfg.trixXP||3):0,cfg.xCross?(+cfg.trixXSP||5):0,cfg.reentry?_trixPair(cfg,'r')[0]:0,cfg.reentry?_trixPair(cfg,'r')[1]:0]:0),   /* [S1676] 크로스 축도 조합의 일부 · [S1677] 재진입 쌍 편입 */
+    sm:(_smiOn(cfg)?[_smiPair(cfg,'e')[0],_smiSm(cfg)[0],_smiSm(cfg)[1],_smiPair(cfg,'e')[1],cfg.xCross?_smiPair(cfg,'x')[0]:0,cfg.xCross?_smiPair(cfg,'x')[1]:0,cfg.reentry?_smiPair(cfg,'r')[0]:0,cfg.reentry?_smiPair(cfg,'r')[1]:0]:0),   /* [S1754] 🎚️ SMI 축 */
+    tx:(_trixOn(cfg)?[1,+cfg.trixP||3,+cfg.trixSP||200,cfg.xCross?(+cfg.trixXP||3):0,cfg.xCross?(+cfg.trixXSP||5):0,cfg.reentry?_trixPair(cfg,'r')[0]:0,cfg.reentry?_trixPair(cfg,'r')[1]:0]:0),   /* [S1676] 크로스 축도 조합의 일부 · [S1677] 재진입 쌍 편입 */
     re:cfg.reentry?[+cfg.reEntryS||cfg.s,+cfg.reEntryL||cfg.l]:0,   /* [S1545] 재진입 ON/OFF와 MA쌍이 조합의 일부 — 번갈아 돌려 비교하려면 두 판이 서로 다른 시그를 가져야 한다 */
     a:[+cfg.atrInit||2,+cfg.atrTrail||3], pl:cfg.predLead||1, tf:_poolTfOf(),   /* [S1658] 봉 주기도 조합의 일부 */
     cb:((typeof window!=='undefined'&&window._cbModeV&&window._cbModeV!=='off')?{m:window._cbModeV,s:(window._cbModeV==='one'?(window._cbSelV||''):''),c:(function(){ try{ const ctx=window._sxTrendCtx; return ctx?_cbStore(ctx.market).cells:{}; }catch(_){ return {}; } })()}:0) });   // [S1120] 바구니 상태=조합 시그 일부
@@ -3800,15 +3839,15 @@ const _XMAT_VER=1;
 //   ⚠`_XMAT_VER`·`_TREND_CFG_VER`를 **올리지 않는다**(S1412·S1420 규약) — 올리면 사용자가 켜둔 설정이 날아간다.
 //     ⇒ **기존 저장값이 이긴다.** 이 값이 보이는 것은 ㉠저장값 없는 새 기기 ㉡리셋 버튼을 눌렀을 때다.
 const _SX_MKT_PRESET={
-  kr:{ trend:{ atr2:true, atrInit:2, atrTrail:3, bullVol:false, disSl:false, earlyMa5:false, earlySlope:false, entryConfirm:true, entryRsi:false, entrySlope:false, l:20, n:1 /* [S1607] 신호창 1봉 */, nextOpen:true /* [S1605] 다음봉 시가=시즌2 D+1 체결 */, predLead:1, predict:false, reEntryL:20, reEntryS:5, reentry:false, s:5, slAtr:3, xCross:false, xl:20, xs:5, trixOn:false, trixP:3, trixSP:200, trixXP:3, trixXSP:5, trixReP:3, trixReSP:200 },
+  kr:{ trend:{ atr2:true, atrInit:2, atrTrail:3, bullVol:false, disSl:false, earlyMa5:false, earlySlope:false, entryConfirm:true, entryRsi:false, entrySlope:false, l:20, n:1 /* [S1607] 신호창 1봉 */, nextOpen:true /* [S1605] 다음봉 시가=시즌2 D+1 체결 */, predLead:1, predict:false, reEntryL:20, reEntryS:5, reentry:false, s:5, slAtr:3, xCross:false, xl:20, xs:5, smiOn:false /* [S1754] */, trixOn:false, trixP:3, trixSP:200, trixXP:3, trixXSP:5, trixReP:3, trixReSP:200 },
     dial:{ needBuy:1, needSell:1, modeBuy:'and', modeSell:'and', winBuy:1, winSell:1 },
     buy:{'swingLL':{on:1}},
     sell:{'dev60':{on:1},'dev120':{on:1},'dev200':{on:1}} },
-  us:{ trend:{ atr2:true, atrInit:2, atrTrail:3, bullVol:false, disSl:false, earlyMa5:false, earlySlope:false, entryConfirm:true, entryRsi:false, entrySlope:false, l:20, n:1 /* [S1606] 신호창 1봉 */, nextOpen:true /* [S1606] */, predLead:1, predict:false, reEntryL:20, reEntryS:5, reentry:false, s:5, slAtr:3, xCross:false, xl:20, xs:5, trixOn:false, trixP:3, trixSP:200, trixXP:3, trixXSP:5, trixReP:3, trixReSP:200 },
+  us:{ trend:{ atr2:true, atrInit:2, atrTrail:3, bullVol:false, disSl:false, earlyMa5:false, earlySlope:false, entryConfirm:true, entryRsi:false, entrySlope:false, l:20, n:1 /* [S1606] 신호창 1봉 */, nextOpen:true /* [S1606] */, predLead:1, predict:false, reEntryL:20, reEntryS:5, reentry:false, s:5, slAtr:3, xCross:false, xl:20, xs:5, smiOn:false /* [S1754] */, trixOn:false, trixP:3, trixSP:200, trixXP:3, trixXSP:5, trixReP:3, trixReSP:200 },
     dial:{ needBuy:1, needSell:1, modeBuy:'and', modeSell:'and', winBuy:1, winSell:1 },
     buy:{'candleBear':{on:1}},
     sell:{'dev60':{on:1}} },
-  coin:{ trend:{ atr2:true, atrInit:2, atrTrail:3, bullVol:false, disSl:false, earlyMa5:false, earlySlope:false, entryConfirm:true, entryRsi:false, entrySlope:false, l:10, n:1 /* [S1607] 신호창 1봉 */, nextOpen:true /* [S1605] */, predLead:1, predict:false, reEntryL:10, reEntryS:5, reentry:false, s:5, slAtr:3, xCross:false, xl:10, xs:5, trixOn:false, trixP:3, trixSP:200, trixXP:3, trixXSP:5, trixReP:3, trixReSP:200 },
+  coin:{ trend:{ atr2:true, atrInit:2, atrTrail:3, bullVol:false, disSl:false, earlyMa5:false, earlySlope:false, entryConfirm:true, entryRsi:false, entrySlope:false, l:10, n:1 /* [S1607] 신호창 1봉 */, nextOpen:true /* [S1605] */, predLead:1, predict:false, reEntryL:10, reEntryS:5, reentry:false, s:5, slAtr:3, xCross:false, xl:10, xs:5, smiOn:false /* [S1754] */, trixOn:false, trixP:3, trixSP:200, trixXP:3, trixXSP:5, trixReP:3, trixReSP:200 },
     dial:{ needBuy:1, needSell:1, modeBuy:'and', modeSell:'and', winBuy:1, winSell:1 },
     buy:{},
     sell:{} },
@@ -4659,13 +4698,13 @@ function _trendBt(rows,cfg,bbP,xmFire){   /* [S1406] xmFire=재료 조건 봉맵
   //   두 배열(`maS`·`maL`)의 대소 비교가 곧 골든/데드이므로, 그 슬롯에 TRIX선·시그널을 넣으면
   //   골든/데드·청산 크로스 분리·재진입·크로스 임박(D-day)·라벨·차트 마커가 **판정식 변경 0으로** 따라온다.
   //   ⚠MA 모드에서는 구본과 완전히 같은 식이다(기본 OFF라 무회귀).
-  const _txOn = _trixOn(cfg);
-  const _txE = _txOn ? _trTrix(close, _trixPair(cfg,'e')[0], _trixPair(cfg,'e')[1]) : null;
+  const _txOn = _axOsc(cfg);   /* [S1754] 오실레이터 축 = 🧬TRIX 또는 🎚️SMI */
+  const _txE = _txOn ? _axSer(rows, close, cfg, 'e') : null;
   let maS = _txOn ? _txE.line : _trSma(close,cfg.s), maL = _txOn ? _txE.sig : _trSma(close,cfg.l);
   // [S820] 청산 크로스 분리 — 진입(s×l 골든) ≠ 청산(xs×xl 데드). OFF면 청산도 진입 MA 재사용.
   const _xOn = !!cfg.xCross;
   const _xs = _xOn ? (+cfg.xs||cfg.s) : cfg.s, _xl = _xOn ? (+cfg.xl||cfg.l) : cfg.l;
-  const _txX = (_txOn && _xOn) ? _trTrix(close, _trixPair(cfg,'x')[0], _trixPair(cfg,'x')[1]) : null;
+  const _txX = (_txOn && _xOn) ? _axSer(rows, close, cfg, 'x') /* [S1754] */ : null;
   let maXS, maXL;
   if(_txOn){ maXS = _xOn ? _txX.line : maS; maXL = _xOn ? _txX.sig : maL; }
   else { maXS = _xOn ? _trSma(close,_xs) : maS; maXL = _xOn ? _trSma(close,_xl) : maL; }
@@ -4678,7 +4717,7 @@ function _trendBt(rows,cfg,bbP,xmFire){   /* [S1406] xmFire=재료 조건 봉맵
   const _reS=(+cfg.reEntryS||cfg.s), _reL=(+cfg.reEntryL||cfg.l);
   // [S1677] ★재진입도 켜진 축을 따른다 — 안 그러면 조건이 `TRIX>시그널 유지 + MA 골든크로스`로 **축이 섞인다**.
   //   ⚠S1676이 남긴 구멍이고 재진입은 3시장 프리셋 전부 OFF라 그때는 숫자가 안 움직였다.
-  const _txR = (_txOn && cfg.reentry) ? _trTrix(close, _trixPair(cfg,'r')[0], _trixPair(cfg,'r')[1]) : null;
+  const _txR = (_txOn && cfg.reentry) ? _axSer(rows, close, cfg, 'r') /* [S1754] */ : null;
   const maReS=cfg.reentry?(_txOn?_txR.line:_trSma(close,_reS)):null, maReL=cfg.reentry?(_txOn?_txR.sig:_trSma(close,_reL)):null;
   // [S675] ATR(14) 인라인 — 재앙 손절(disSl)용. 단기추세엔 ATR 헬퍼 없음 → TR 직접 계산. disSl ON일 때만 계산(성능).
   // [S1561] ★★**MA크로스 탭 ATR 청산 3종 — 새 저장 필드를 만들지 않았다.**
@@ -5005,11 +5044,11 @@ function _trendLastCross(rows,cfg){
   if(!rows||!rows.length||!cfg) return null;
   const n=rows.length; const close=rows.map(r=>+(r.close!=null?r.close:r.c));
   // [S1676] ★엔진과 같은 축을 본다 — 여기만 MA로 남으면 카드는 TRIX로 매매하는데 상태줄은 MA 크로스를 말한다(S1560 계열).
-  const _txOn=_trixOn(cfg);
-  const _txE=_txOn?_trTrix(close,_trixPair(cfg,'e')[0],_trixPair(cfg,'e')[1]):null;
+  const _txOn=_axOsc(cfg);   /* [S1754] 오실레이터 축 = 🧬TRIX 또는 🎚️SMI(`_axSer` 가 가른다 · TRIX 면 종전 `_trTrix` 그대로) */
+  const _txE=_txOn?_axSer(rows,close,cfg,'e'):null;
   const maS=_txOn?_txE.line:_trSma(close,cfg.s), maL=_txOn?_txE.sig:_trSma(close,cfg.l);
   const _xOn=!!cfg.xCross;
-  const _txX=(_txOn&&_xOn)?_trTrix(close,_trixPair(cfg,'x')[0],_trixPair(cfg,'x')[1]):null;
+  const _txX=(_txOn&&_xOn)?_axSer(rows,close,cfg,'x') /* [S1754] */:null;
   const maXS=_txOn?(_xOn?_txX.line:maS):(_xOn?_trSma(close,(+cfg.xs||cfg.s)):maS),
         maXL=_txOn?(_xOn?_txX.sig:maL):(_xOn?_trSma(close,(+cfg.xl||cfg.l)):maL);
   let lastGc=-1,lastDc=-1;
@@ -5153,9 +5192,13 @@ function _trendRenderInner(){
   </div>
   <div style=\"display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:9px;font-size:11px;color:var(--text2)\">
     <span onclick=\"_sxVib(10);window._trendToggleTrix&&_trendToggleTrix()\" title=\"크로스 판정 축을 이동평균에서 TRIX로 바꿉니다. 방식은 그대로 — TRIX선이 시그널선을 위로 뚫으면 골든, 아래로 뚫으면 데드. 청산 크로스 분리·재진입·크로스 임박도 같은 축을 따릅니다. 시즌2 워커에는 TRIX가 없어 시즌1 실험 축입니다.\" style=\"font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${cfg.trixOn?'background:#0891b2;color:#fff':'background:var(--surface2);color:#0891b2;border:1px solid #0891b266'}\">${cfg.trixOn?'☑':'☐'} 🧬 TRIX 크로스</span>
+    <span onclick="_sxVib(10);window._trendToggleSmi&&_trendToggleSmi()" title="[S1754] 크로스 판정 축을 스토캐스틱 모멘텀(SMI)으로 바꿉니다. 방식은 그대로 — SMI선이 시그널선을 위로 뚫으면 골든, 아래로 뚫으면 데드. 청산 크로스 분리·재진입·크로스 임박도 같은 축을 따릅니다. 🧬 TRIX 와는 동시에 못 켭니다(하나를 켜면 다른 하나가 꺼집니다). 시즌2 워커에는 없어 시즌1 실험 축입니다." style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${_smiOn(cfg)?'background:#db2777;color:#fff':'background:var(--surface2);color:#db2777;border:1px solid #db277766'}">${_smiOn(cfg)?'☑':'☐'} 🎚️ 스토캐스틱 모멘텀</span>
     ${cfg.trixOn?`<span style=\"display:inline-flex;align-items:center;gap:6px;white-space:nowrap\"><span style=\"font-weight:700;color:#0891b2\">진입 TRIX</span>${_inp('sxTrixP',cfg.trixP)}<span style=\"color:var(--text3)\">×시그널</span>${_inp('sxTrixSP',cfg.trixSP)}</span>`:''}
     ${(cfg.trixOn&&cfg.xCross)?`<span style=\"display:inline-flex;align-items:center;gap:6px;white-space:nowrap\"><span style=\"font-weight:700;color:#7c3aed\">청산 TRIX</span>${_inp('sxTrixXP',cfg.trixXP)}<span style=\"color:var(--text3)\">×시그널</span>${_inp('sxTrixXSP',cfg.trixXSP)}</span>`:''}
     ${cfg.trixOn?`<span style=\"flex:1 0 100%;min-width:0;font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:2px\">크로스는 <b>TRIX선 × 시그널선</b>으로 판정합니다 — 위 MA 값은 확인봉·⚡종가&lt;단기MA 조기청산 같은 <b>가격 비교</b>에만 쓰입니다(TRIX는 %오실레이터라 종가와 같은 축이 아닙니다). 앞 숫자는 삼중 EMA 평활 기간, 뒤는 시그널 평균 기간이라 MA 기간과 뜻이 다릅니다. 시그널 ${cfg.trixSP}이면 앞 약 ${(+cfg.trixSP||200)+(+cfg.trixP||3)*3}봉은 판정 불가라 진입이 안 납니다. ⚠시즌2 워커에는 TRIX가 없습니다 — 시즌1 실험 축이고 측정은 아직 0입니다. 🔄 정배열 재진입을 켜면 <b>재진입 크로스도 TRIX</b>로 판정합니다(끄면 종전 MA).</span>`:''}
+    ${_smiOn(cfg)?`<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#db2777">진입 SMI</span>${_inp('sxSmiK',_smiPair(cfg,'e')[0])}<span style="color:var(--text3)">×시그널</span>${_inp('sxSmiD',_smiPair(cfg,'e')[1])}</span><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="color:var(--text3)">평활</span>${_inp('sxSmiS',_smiSm(cfg)[0])}<span style="color:var(--text3)">·</span>${_inp('sxSmiDS',_smiSm(cfg)[1])}</span>`:''}
+    ${(_smiOn(cfg)&&cfg.xCross)?`<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#7c3aed">청산 SMI</span>${_inp('sxSmiXK',_smiPair(cfg,'x')[0])}<span style="color:var(--text3)">×시그널</span>${_inp('sxSmiXD',_smiPair(cfg,'x')[1])}</span>`:''}
+    ${_smiOn(cfg)?`<span style="flex:1 0 100%;min-width:0;font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:2px">${_smiNow(cfg)}크로스는 <b>SMI선 × 시그널선</b>으로 판정합니다(스토캐스틱 모멘텀). 앞 숫자 = %K 기간(고가·저가를 보는 봉 수) · 시그널 = %D(SMI 의 지수평균 기간) · 평활 = %K Smooth · %K Double Smooth — 증권앱 설정 칸과 같은 순서입니다. 숫자를 바꾼 뒤 <b>적용</b>을 누르세요. 위 MA 값은 확인봉·⚡종가&lt;단기MA 조기청산 같은 <b>가격 비교</b>에만 쓰입니다. 과매수·과매도 선은 쓰지 않습니다 — 크로스만 봅니다. 시그널을 단순평균으로 그리는 앱이면 값이 조금 다를 수 있습니다. ⚠시즌2 워커에는 없습니다 — 시즌1 실험 축이고 측정은 아직 0입니다. 🔄 정배열 재진입을 켜면 <b>재진입 크로스도 SMI</b>로 판정합니다.</span>`:''}
   </div>${(function(){ /* [S1682] 지금 어느 저장소를 쓰는지 — 폴백 중이면 그 사실을 말한다(조용한 공유 금지 · S1680 문법) */
     if(!_sxTfSplitOn(market)) return '';
     const _own=_sxTfHasOwn('SX_TREND_',market)||_sxTfHasOwn('SX_STRAT_',market);
@@ -5175,10 +5218,10 @@ function _trendRenderInner(){
   // [S570] 정배열 재진입 토글 — 청산 후 정배열 유지 중 악조건 해제 + 매수조건 재충족 시 재매수
   const reChip=`<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">`
     +`<span onclick="window._trendToggleReentry&&_trendToggleReentry()" style="font-size:9.5px;font-weight:800;padding:4px 9px;border-radius:12px;border:1px solid;cursor:pointer;${cfg.reentry?'background:#16a34a;color:#fff;border-color:#16a34a':'background:var(--surface2);color:var(--text3);border-color:var(--border)'}">🔄 정배열 재진입 ${cfg.reentry?'ON':'OFF'}</span>`
-    +(cfg.reentry?(cfg.trixOn
+    +(cfg.reentry?(_smiOn(cfg) ? `<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#db2777;font-size:9.5px">재진입 SMI</span>${_inp('sxSmiReK',_smiPair(cfg,'r')[0])}<span style="color:var(--text3)">×시그널</span>${_inp('sxSmiReD',_smiPair(cfg,'r')[1])}</span><span style="font-size:8.5px;color:#db2777">SMI 골든크로스 시 재진입</span>` /* [S1754] */ : cfg.trixOn
       ? `<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#0891b2;font-size:9.5px">재진입 TRIX</span>${_inp('sxTrixReP',cfg.trixReP)}<span style="color:var(--text3)">×시그널</span>${_inp('sxTrixReSP',cfg.trixReSP)}</span><span style="font-size:8.5px;color:#0891b2">TRIX 골든크로스 시 재진입</span>`
       : `<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#16a34a;font-size:9.5px">재진입MA</span>${_inp('sxTrendReS',cfg.reEntryS)}<span style="color:var(--text3)">×</span>${_inp('sxTrendReL',cfg.reEntryL)}</span><span style="font-size:8.5px;color:#16a34a">골든크로스 발생 시 재진입</span>`):'')   /* [S1677] 재진입 쌍도 켜진 축을 따른다 */
-    +((cfg.reentry && (cfg.trixOn ? (_trixPair(cfg,'r')[0]===_trixPair(cfg,'e')[0] && _trixPair(cfg,'r')[1]===_trixPair(cfg,'e')[1]) : ((+cfg.reEntryS||cfg.s)===+cfg.s && (+cfg.reEntryL||cfg.l)===+cfg.l)))?   /* [S1677] TRIX 모드면 TRIX 쌍으로 판정 */`<span style="font-size:8.5px;font-weight:800;color:#d97706;flex:1 0 100%;min-width:0;line-height:1.45;margin-top:2px">⚠ ${cfg.trixOn?'진입 TRIX':'진입MA'}와 <b>같은 크로스</b>(${cfg.trixOn?(_trixPair(cfg,'e')[0]+'×'+_trixPair(cfg,'e')[1]):(cfg.s+'×'+cfg.l)}) — 재진입 봉이 곧 진입 골든크로스 봉이라 진입 판정이 먼저 잡는다. 재진입은 <b>0건으로 집계</b>된다(설정은 살아 있고 매매는 정상). 따로 세려면 다른 쌍을 넣으세요.</span>`:'')   /* [S1407] 실기기 관측 — 재진입 ON인데 진입원별에 재진입이 안 나온 원인 */   /* [S1400] MA쌍을 nowrap 한 덩어리로 — ⚙️ 게이트 블록이 좌측 라벨(26px)+gap(7px)+패딩(20px)만큼 폭을 먹어 '재진입MA 5 ×' 다음에서 갈라졌다(실기기). id는 그대로라 _trendApply 배선 무영향. */
+    +((cfg.reentry && (_smiOn(cfg) ? (_smiPair(cfg,'r')[0]===_smiPair(cfg,'e')[0] && _smiPair(cfg,'r')[1]===_smiPair(cfg,'e')[1]) /* [S1754] */ : cfg.trixOn ? (_trixPair(cfg,'r')[0]===_trixPair(cfg,'e')[0] && _trixPair(cfg,'r')[1]===_trixPair(cfg,'e')[1]) : ((+cfg.reEntryS||cfg.s)===+cfg.s && (+cfg.reEntryL||cfg.l)===+cfg.l)))?   /* [S1677] TRIX 모드면 TRIX 쌍으로 판정 */`<span style="font-size:8.5px;font-weight:800;color:#d97706;flex:1 0 100%;min-width:0;line-height:1.45;margin-top:2px">⚠ ${_smiOn(cfg)?'진입 SMI':(cfg.trixOn?'진입 TRIX':'진입MA')}와 <b>같은 크로스</b>(${_smiOn(cfg)?(_smiPair(cfg,'e')[0]+'×'+_smiPair(cfg,'e')[1]):(cfg.trixOn?(_trixPair(cfg,'e')[0]+'×'+_trixPair(cfg,'e')[1]):(cfg.s+'×'+cfg.l))}) — 재진입 봉이 곧 진입 골든크로스 봉이라 진입 판정이 먼저 잡는다. 재진입은 <b>0건으로 집계</b>된다(설정은 살아 있고 매매는 정상). 따로 세려면 다른 쌍을 넣으세요.</span>`:'')   /* [S1407] 실기기 관측 — 재진입 ON인데 진입원별에 재진입이 안 나온 원인 */   /* [S1400] MA쌍을 nowrap 한 덩어리로 — ⚙️ 게이트 블록이 좌측 라벨(26px)+gap(7px)+패딩(20px)만큼 폭을 먹어 '재진입MA 5 ×' 다음에서 갈라졌다(실기기). id는 그대로라 _trendApply 배선 무영향. */
     +`<span style="font-size:8.5px;color:var(--text3);line-height:1.45;flex:1 0 100%;min-width:0;margin-top:2px">청산 후 정배열(${_axHold(cfg)}) 유지 중 + <b style="color:#16a34a">${_axPair(cfg,'r')} 골든크로스</b> + 매도조건 해제 + 매수조건 재충족 시 재매수 (조건 0건이어도 골든크로스 떠야 재진입)</span></div>`;
   // [S623] 🔮 크로스 예측 진입 토글 + 선행봉(1~2)
   const _predLeadLbl=cfg.predLead==='auto'?'자동':((cfg.predLead===2)?'2봉':'1봉');
@@ -5395,7 +5438,7 @@ function _trendRenderInner(){
     const _pBtn=(lab,p,col,tip)=>`<span onclick="_sxVib(9);window._stratPreset&&_stratPreset('${p}')"${tip?` title="${tip}"`:''} style="font-size:9px;font-weight:800;padding:4px 9px;border-radius:10px;cursor:pointer;background:${col}18;color:${col};border:1px solid ${col}55">${lab}</span>`;
     const presetRow=`<div style="margin-bottom:8px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:var(--text3)">프리셋</span>${_sxPresetMaMode(market)?_pBtn('\u{1F4CA} MA모드','mamode','#0891b2',_maMoTipOf(market)):''}${_sxPresetTrix(market)?_pBtn(_trixSwingLab(market),'trix','#7c3aed',_trixTipOf(market,_sxPresetTrix(market),_sxPresetTrixCfg(market),_trixSetLbl(market))):''}${_sxPresetTrixDt(market)?_pBtn('🧬 TRIX단타','trixdt','#ea580c',(_trixSameAsSwing(market)?'⚠ 지금 이 봉에서는 🧬스윙과 **값이 같습니다**(누르면 같은 결과) · ':'')+_trixTipOf(market,_sxPresetTrixDt(market),_sxPresetTrixDtCfg(market),_trixSetLbl(market,_SX_MKT_TRIXDT_PRESET_TF_NONE,_SX_MKT_TRIXDT_PRESET_TF_NONE))):''}${_sxPresetMaSw(market)?_pBtn('\u{1F4CA} MA스윙','masw','#be185d',_maSwTipOf(market)):''}${_sxPresetMaDt(market)?_pBtn('\u{1F4CA} MA단타','madt','#16a34a',_maDtTipOf(market)):''}${_sxPresetNormal(market)?_pBtn('\u{1F9F0} 일반모드','normal','#475569',_normTipOf(market)):''}<span style="font-size:9px;color:var(--text3)">${_sxPresetTrix(market)?(_sxPresetTrixDt(market)?'🧬스윙·🧬단타 = TRIX 축 2벌':('🧬TRIX모드('+_trixSetLbl(market)+') = TRIX 축 1벌·봉별')):''}${_maFamCap(market)}${_normCap(market)} · 리셋=시즌2 자동매매 세트</span></div>`;   /* [S1696] 캡션도 몇 벌인지 말한다(S1688 규약) · **봉 이름은 오버레이가 있는 시장에만**(S1686 F4·S1688 E4) */   /* [S1688] ★캡션이 **몇 벌인지**를 말한다 — KR·US는 프리셋 2벌, 코인은 1벌이 봉으로 갈린다. 코인만 봉 이름을 늘 적는다(그게 코인에서 갈리는 축이라서). */   /* [S1686] ★봉 표기는 **일봉이 아닐 때만** 붙인다 — 두 버튼의 세트 봉이 다를 수 있다(코인 4시간: 스윙=4시간봉·단타=일봉). */   /* [S1656] 구 5종 철거 — 두 자리(스윙·시즌2)만 남긴다 */
     const entryRowS=`<div style="margin-bottom:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:#16a34a;min-width:28px">진입</span>`
-      +_sChip(sc.cross,'📈 크로스','cross','#0ea5e9',(_trixOn(cfg)?'TRIX 골든크로스 진입(위 TRIX쌍 — 🧬 TRIX 크로스 ON)':'MA 골든크로스 진입(위 MA쌍)')+' · 3×3 ON이면 상승장만')
+      +_sChip(sc.cross,'📈 크로스','cross','#0ea5e9',(_smiOn(cfg)?'SMI 골든크로스 진입(위 SMI쌍 — 🎚️ 스토캐스틱 모멘텀 ON)':_trixOn(cfg)?'TRIX 골든크로스 진입(위 TRIX쌍 — 🧬 TRIX 크로스 ON)':'MA 골든크로스 진입(위 MA쌍)')+' · 3×3 ON이면 상승장만')
       +_sChip(sc.dc,'🔻 역배 real','dc','#dc2626','레거시 deadcat-real 발동 진입(역배열봉 자동) · ⚠OOS풀 붕괴 관측(L-01·대장)')
       +_sChip(sc.pb,'🟢 정배 real','pb','#16a34a','레거시 pullback-real 발동 진입(정배열봉 자동)')
       +_sChip(sc.cell,'🧩 칸 real','cell','#7c3aed','칸 사다리(전수·S1114) real 규칙 k≥k* 진입 — in-sample 적합·시간축 OOS 미검증')
@@ -5454,7 +5497,7 @@ function _trendRenderInner(){
       +_cChip(!!cfg.predict,'🔮 kNN 예측','_trendTogglePredict','#7c3aed','크로스 임박 1~2봉 선행 진입/조기청산 · 실패 시 손절 · 📈크로스 블록 ON일 때만 작동')
       +_cChip(!!cfg.nextOpen,'⏭️ 다음봉 시가','_trendToggleNextOpen','#0891b2','ON: 신호 다음봉 시가 진입(마지막봉 신호=내일 매수 예정) · OFF: 신호봉 종가')
       +_cChip(!!cfg.reentry,'🔄 정배열 재진입','_trendToggleReentry','#16a34a','[S1545] MA 크로스 탭과 같은 규칙 — 청산 후 진입MA 정배열(＞)이 유지되는 중 재진입MA 골든크로스가 나면 다시 진입(청산 다음 봉은 제외). 📈 크로스 블록이 켜져 있을 때만 작동하고, 🔲 3×3 라우팅을 켜면 크로스와 같은 국면 제한을 받는다. 값은 MA 크로스 탭과 공유한다.')
-      +(cfg.reentry?(cfg.trixOn
+      +(cfg.reentry?(_smiOn(cfg) ? `<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#db2777;font-size:9.5px">재진입 SMI</span>${_inp('sxSmiReK',_smiPair(cfg,'r')[0])}<span style="color:var(--text3)">×시그널</span>${_inp('sxSmiReD',_smiPair(cfg,'r')[1])}</span><span style="font-size:8.5px;color:#db2777">SMI 골든크로스 시 재진입</span>` /* [S1754] */ : cfg.trixOn
         ? `<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#0891b2;font-size:9.5px">재진입 TRIX</span>${_inp('sxTrixReP',_trixPair(cfg,'r')[0])}<span style="color:var(--text3)">×시그널</span>${_inp('sxTrixReSP',_trixPair(cfg,'r')[1])}</span><span style="font-size:8.5px;color:#0891b2">TRIX 골든크로스 시 재진입</span>`
         : `<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#16a34a;font-size:9.5px">재진입MA</span>${_inp('sxTrendReS',(+cfg.reEntryS||cfg.s))}<span style="color:var(--text3)">×</span>${_inp('sxTrendReL',(+cfg.reEntryL||cfg.l))}</span><span style="font-size:8.5px;color:#16a34a">골든크로스 시 재진입</span>`):'')   /* [S1677] 거울상 */
       /* [S1746] 🔵 PSAR 묶음 — 칩 2(게이트·하락청산) + (켜면) 가속·최대 칸·지금 방향 + (게이트면) 구간 × 항목 격자 */
@@ -5466,7 +5509,7 @@ function _trendRenderInner(){
       +`</div>`+(sc.psarG?_stratPsarRows(sc):'')+`</div>`
       /* [S1545] ⚠경고 2종 — 어긋날 때만 뜬다(정상 상태에 소음 0 · S1304 규약) */
       +((cfg.reentry && !sc.cross)?`<span style="font-size:8.5px;font-weight:800;color:#d97706;flex:1 0 100%;min-width:0;line-height:1.45;margin-top:2px">⚠ 🔄 재진입이 켜져 있지만 <b>📈 크로스가 꺼져</b> 있어 작동하지 않는다 — 재진입은 크로스 다리의 재입장이다.</span>`:'')
-      +((cfg.reentry && sc.cross && (cfg.trixOn ? (_trixPair(cfg,'r')[0]===_trixPair(cfg,'e')[0] && _trixPair(cfg,'r')[1]===_trixPair(cfg,'e')[1]) : ((+cfg.reEntryS||cfg.s)===+cfg.s && (+cfg.reEntryL||cfg.l)===+cfg.l)))?   /* [S1677] 거울상 */`<span style="font-size:8.5px;font-weight:800;color:#d97706;flex:1 0 100%;min-width:0;line-height:1.45;margin-top:2px">⚠ ${cfg.trixOn?'진입 TRIX':'진입MA'}와 <b>같은 크로스</b>(${cfg.trixOn?(_trixPair(cfg,'e')[0]+'×'+_trixPair(cfg,'e')[1]):(cfg.s+'×'+cfg.l)}) — 재진입 봉이 곧 진입 골든크로스 봉이라 진입원별 분해에서 <b>재진입이 0건</b>으로 집계된다(설정은 살아 있고 매매는 정상). 따로 세려면 다른 쌍을 넣으세요.</span>`:'')   /* [S1407] MA 크로스 탭에서 같은 함정을 이미 겪었다 — 거울상(규칙17) */
+      +((cfg.reentry && sc.cross && (_smiOn(cfg) ? (_smiPair(cfg,'r')[0]===_smiPair(cfg,'e')[0] && _smiPair(cfg,'r')[1]===_smiPair(cfg,'e')[1]) /* [S1754] */ : cfg.trixOn ? (_trixPair(cfg,'r')[0]===_trixPair(cfg,'e')[0] && _trixPair(cfg,'r')[1]===_trixPair(cfg,'e')[1]) : ((+cfg.reEntryS||cfg.s)===+cfg.s && (+cfg.reEntryL||cfg.l)===+cfg.l)))?   /* [S1677] 거울상 */`<span style="font-size:8.5px;font-weight:800;color:#d97706;flex:1 0 100%;min-width:0;line-height:1.45;margin-top:2px">⚠ ${_smiOn(cfg)?'진입 SMI':(cfg.trixOn?'진입 TRIX':'진입MA')}와 <b>같은 크로스</b>(${_smiOn(cfg)?(_smiPair(cfg,'e')[0]+'×'+_smiPair(cfg,'e')[1]):(cfg.trixOn?(_trixPair(cfg,'e')[0]+'×'+_trixPair(cfg,'e')[1]):(cfg.s+'×'+cfg.l))}) — 재진입 봉이 곧 진입 골든크로스 봉이라 진입원별 분해에서 <b>재진입이 0건</b>으로 집계된다(설정은 살아 있고 매매는 정상). 따로 세려면 다른 쌍을 넣으세요.</span>`:'')   /* [S1407] MA 크로스 탭에서 같은 함정을 이미 겪었다 — 거울상(규칙17) */
       +((cfg.reentry && sc.exDead && !cfg.xCross)?`<span style="font-size:8.5px;font-weight:800;color:#d97706;flex:1 0 100%;min-width:0;line-height:1.45;margin-top:2px">⚠ 재진입은 <b>정배열을 유지한 채 나간 자리</b>에만 들어간다 — 지금은 청산이 진입${_axNm(cfg)}(${_axPair(cfg,'e')}) 데드크로스라 <b>나가는 순간 정배열이 깨진다</b>. ☑ 청산 크로스 분리를 켜거나 ATR·N봉컷·익절 같은 다른 청산을 함께 쓰세요.</span>`:'')   /* [S1545] 실측에서 나온 자리 — 이 조합만 켜고 돌리면 재진입이 구조적으로 0건이다(배터리 B10) */
       /* [S1546] ⚠라우팅 밖 진입원 — 켜져 있을 때만 뜬다(정상 상태에 소음 0 · S1304 규약) */
       +((sc.grid3 && _g3Free.length)?`<span style="font-size:8.5px;font-weight:800;color:#7c3aed;flex:1 0 100%;min-width:0;line-height:1.45;margin-top:2px">🔲 3×3은 <b>📈크로스·🟢정배·🔻역배</b>에만 걸린다 — 지금 켜둔 <b>${_g3Free.join('·')}</b> — 라우팅 밖이라 국면과 무관하게 진입한다.</span>`:'')
@@ -5750,6 +5793,10 @@ function _trendApply(){
     if(cfg.xCross){ const xp=gv('sxTrixXP'), xsp=gv('sxTrixXSP'); if(xp>0) cfg.trixXP=Math.min(400,xp); if(xsp>0) cfg.trixXSP=Math.min(400,xsp); }
     // [S1677] 재진입 쌍 — 재진입 칩이 켜져 있을 때만 읽는다(화면에 없는 칸은 안 읽는다).
     if(cfg.reentry){ const rp=gv('sxTrixReP'), rsp=gv('sxTrixReSP'); if(rp>0) cfg.trixReP=Math.min(400,rp); if(rsp>0) cfg.trixReSP=Math.min(400,rsp); } }
+  // [S1754] 🎚️ SMI 기간 — 켜져 있을 때만 읽는다(화면에 없는 칸은 안 읽는다 · TRIX 와 같은 규약).
+  if(cfg.smiOn){ const k=gv('sxSmiK'), d=gv('sxSmiD'), s1=gv('sxSmiS'), s2=gv('sxSmiDS'); if(k>0) cfg.smiK=Math.min(400,Math.max(2,k)); if(d>0) cfg.smiD=Math.min(400,d); if(s1>0) cfg.smiS=Math.min(100,s1); if(s2>0) cfg.smiDS=Math.min(100,s2);
+    if(cfg.xCross){ const xk=gv('sxSmiXK'), xd=gv('sxSmiXD'); if(xk>0) cfg.smiXK=Math.min(400,Math.max(2,xk)); if(xd>0) cfg.smiXD=Math.min(400,xd); }
+    if(cfg.reentry){ const rk=gv('sxSmiReK'), rd=gv('sxSmiReD'); if(rk>0) cfg.smiReK=Math.min(400,Math.max(2,rk)); if(rd>0) cfg.smiReD=Math.min(400,rd); } }
   _trendSave(m,cfg); _trendRerender(); _trendRedrawChart();
 }
 // [S1398] _trendToggleAux/_trendToggleSell 철거 — 조건칩 UI가 없어져 호출처 0(S1249 계열).
@@ -5775,7 +5822,10 @@ function _trendGuardOv(){ const ctx=window._sxTrendCtx; if(!ctx) return; const k
 function _trendTogglePredictLegacyS630(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); const g=window._trendGuardState, key=ctx.name||''; if(cfg.predict && g && g.stock===key && g.hurt){ window._trendGuardOverride=window._trendGuardOverride||{}; window._trendGuardOverride[key]=!window._trendGuardOverride[key]; _trendRerender(); return; } cfg.predict=!cfg.predict; _trendSave(m,cfg); _trendRerender(); } // [S623/S630] 🔮 토글 — 손해 종목은 전역 대신 종목별 강제 오버라이드
 // [S1676] 🧬 TRIX 크로스 축 토글 — 켜면 두 탭의 📈크로스 판정이 TRIX×시그널로 갈린다(기본 OFF).
 function _trendToggleTrix(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m);
-  cfg.trixOn=!cfg.trixOn; _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
+  cfg.trixOn=!cfg.trixOn; if(cfg.trixOn) cfg.smiOn=false;   /* [S1754] 축은 하나만 */ _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
+// [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 토글 — 켜면 두 탭의 📈크로스 판정이 SMI×시그널로 갈린다(기본 OFF · 켜면 🧬 TRIX 는 꺼진다).
+function _trendToggleSmi(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m);
+  cfg.smiOn=!cfg.smiOn; if(cfg.smiOn) cfg.trixOn=false; _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
 function _trendToggleXCross(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.xCross=!cfg.xCross; if(cfg.xCross){ if(!(cfg.xs>0))cfg.xs=cfg.s; if(!(cfg.xl>0))cfg.xl=cfg.l; } _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }   // [S820] 청산 크로스 분리 토글
 function _trendToggleEarlyMa5(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.earlyMa5=!cfg.earlyMa5; _trendSave(m,cfg); _trendRerender(); } // [S675] ⚡ 종가<단기MA 조기청산 토글
 function _trendToggleDisasterSl(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.disSl=!cfg.disSl; _trendSave(m,cfg); _trendRerender(); } // [S675] 🛡️ 넓은 ATR 재앙손절 토글
@@ -5914,7 +5964,8 @@ function _poolTfLbl(tf){ return ({'30m':'30분봉','60m':'60분봉','240m':'4시
 // 조합 시그 — 결과가 어느 설정으로 나왔는지 붙잡는다(바뀌면 '⚠ 설정이 바뀜'). 🧪 전략 조합 _stratComboSig와 같은 역할.
 function _trendCrossSig(cfg, xsig){
   return JSON.stringify({ ma:[cfg.s,cfg.l,cfg.xCross?cfg.xs:0,cfg.xCross?cfg.xl:0], n:cfg.n||3,
-    tx:(cfg.trixOn?[1,+cfg.trixP||3,+cfg.trixSP||200,cfg.xCross?(+cfg.trixXP||3):0,cfg.xCross?(+cfg.trixXSP||5):0,cfg.reentry?_trixPair(cfg,'r')[0]:0,cfg.reentry?_trixPair(cfg,'r')[1]:0]:0),   /* [S1676] 크로스 축을 바꾸면 저장된 풀 결과가 '설정이 바뀜'으로 뜬다 · [S1677] 재진입 쌍 편입 */
+    sm:(_smiOn(cfg)?[_smiPair(cfg,'e')[0],_smiSm(cfg)[0],_smiSm(cfg)[1],_smiPair(cfg,'e')[1],cfg.xCross?_smiPair(cfg,'x')[0]:0,cfg.xCross?_smiPair(cfg,'x')[1]:0,cfg.reentry?_smiPair(cfg,'r')[0]:0,cfg.reentry?_smiPair(cfg,'r')[1]:0]:0),   /* [S1754] 🎚️ SMI 축 */
+    tx:(_trixOn(cfg)?[1,+cfg.trixP||3,+cfg.trixSP||200,cfg.xCross?(+cfg.trixXP||3):0,cfg.xCross?(+cfg.trixXSP||5):0,cfg.reentry?_trixPair(cfg,'r')[0]:0,cfg.reentry?_trixPair(cfg,'r')[1]:0]:0),   /* [S1676] 크로스 축을 바꾸면 저장된 풀 결과가 '설정이 바뀜'으로 뜬다 · [S1677] 재진입 쌍 편입 */
     g:[cfg.nextOpen,cfg.reentry,cfg.entrySlope,cfg.entryConfirm,cfg.entryRsi,cfg.earlyMa5,cfg.earlySlope,cfg.disSl,cfg.predict].map(x=>x?1:0),
     re:[cfg.reEntryS||0,cfg.reEntryL||0], sl:+cfg.slAtr||3, pl:cfg.predLead||1, x:xsig||'', tf:_poolTfOf(),
     a:[cfg.xAtr2?1:0, cfg.xSlOn?1:0, +cfg.xSlMult||0, cfg.xTrOn?1:0, +cfg.xTrMult||0, cfg.xTpOn?1:0, +cfg.xTpMult||0, +cfg.atrInit||0, +cfg.atrTrail||0], az:[(cfg.xSlMz&&cfg.xSlOn)?[+cfg.xSlDn||0,+cfg.xSlMid||0,+cfg.xSlUp||0]:0, (cfg.xTrMz&&cfg.xTrOn)?[+cfg.xTrDn||0,+cfg.xTrMid||0,+cfg.xTrUp||0]:0, (cfg.xTpMz&&cfg.xTpOn)?[+cfg.xTpDn||0,+cfg.xTpMid||0,+cfg.xTpUp||0]:0],   /* [S1743] 구간별 3칸도 조합의 일부 */   /* [S1659] ATR 청산 설정도 조합의 일부 — 종전엔 빠져 있어 SL·TP 배수를 바꿔도 옛 결과가 '현 설정'으로 보였다 */   /* [S1658] 봉을 바꾸면 '설정이 바뀜'이 뜬다 — 일봉 결과를 4시간 카드 밑에 그대로 두지 않는다 */
@@ -6153,7 +6204,7 @@ function _trendCycleLead(){ const ctx=window._sxTrendCtx; if(!ctx) return; const
 //   ⚠`n`(신호창)은 탭 위 공통 헤더라 양쪽에 넣는다.
 const _TREND_RESET_SCOPE = {
   // [S1676] 🧬 TRIX 5종은 **두 탭이 함께 보는 행**에 있으므로 common(S1561 규칙: 그 탭 화면에 보이는 것만).
-  common: ['s','l','n','xCross','xs','xl','nextOpen','reentry','reEntryS','reEntryL','predict','predLead','trixOn','trixP','trixSP','trixXP','trixXSP','trixReP','trixReSP'],
+  common: ['s','l','n','xCross','xs','xl','nextOpen','reentry','reEntryS','reEntryL','predict','predLead','trixOn','trixP','trixSP','trixXP','trixXSP','trixReP','trixReSP','smiOn','smiK','smiS','smiDS','smiD','smiXK','smiXD','smiReK','smiReD' /* [S1754] 🎚️ SMI 9종 — TRIX 와 같은 행 */],
   // [S1564] 크로스 목록에서 `atr2/atrInit/atrTrail`을 뺐다 — 그건 이제 **전략 조합 탭에만** 보인다.
   //   ⚠`atrInit`/`atrTrail`은 크로스 배수의 **폴백**이라 값 자체는 공유하나, 입력칸이 전략 조합 탭에만 있으므로
   //     그 탭 목록에 남긴다(화면에 없는 것을 되돌리지 않는다 · S1561 규칙).
@@ -6198,7 +6249,7 @@ function _trendReset(){
   }catch(_){}
   _trendRerender(); _trendRedrawChart();
 }   // [S572→S1561→S1562] 리셋 = 그 탭이 보여주는 필드만 기본 프리셋으로(trend cfg + strat cfg 양쪽)
-if(typeof window!=='undefined'){ window._trendApply=_trendApply; window._trendGateFold=_trendGateFold; window._trendSetEngine=_trendSetEngine; window._TREND_TAB_COL=_TREND_TAB_COL; window._trendEngineSaved=_trendEngineSaved; window._trendToggleReentry=_trendToggleReentry; window._trendToggleNextOpen=_trendToggleNextOpen; window._trendTogglePredict=_trendTogglePredict; window._trendGuardOv=_trendGuardOv; window._trendCycleLead=_trendCycleLead; window._trendToggleEarlyMa5=_trendToggleEarlyMa5; window._trendToggleEarlySlope=_trendToggleEarlySlope; window._trendToggleEntrySlope=_trendToggleEntrySlope; window._trendToggleBullVol=_trendToggleBullVol; window._trendToggleAtr2=_trendToggleAtr2; window._trendXAtr=_trendXAtr; window._trendXAtrNum=_trendXAtrNum; window._trendToggleEntryConfirm=_trendToggleEntryConfirm; window._trendToggleEntryRsi=_trendToggleEntryRsi; window._trendToggleDisasterSl=_trendToggleDisasterSl; window._trendCycleSlAtr=_trendCycleSlAtr; window._xmatNeedSet=_xmatNeedSet; window._xmatKindTg=_xmatKindTg; window._xmatResetTh=_xmatResetTh; window._xmatResetDial=_xmatResetDial; window._xmatResetAll=_xmatResetAll; window._xmatModeSet=_xmatModeSet; window._xmatWinSet=_xmatWinSet; window._trendBatchSetSource=_trendBatchSetSource; window._trendSnapCycle=_trendSnapCycle; window._trendSnapLoad=_trendSnapLoad; window._trendSnapOff=_trendSnapOff; window._trendSnapState=_trendSnapState; window._trendBatchUI=_trendBatchUI; window._trendToggleXCross=_trendToggleXCross; window._trendToggleTrix=_trendToggleTrix; window._trendReset=_trendReset; }
+if(typeof window!=='undefined'){ window._trendApply=_trendApply; window._trendGateFold=_trendGateFold; window._trendSetEngine=_trendSetEngine; window._TREND_TAB_COL=_TREND_TAB_COL; window._trendEngineSaved=_trendEngineSaved; window._trendToggleReentry=_trendToggleReentry; window._trendToggleNextOpen=_trendToggleNextOpen; window._trendTogglePredict=_trendTogglePredict; window._trendGuardOv=_trendGuardOv; window._trendCycleLead=_trendCycleLead; window._trendToggleEarlyMa5=_trendToggleEarlyMa5; window._trendToggleEarlySlope=_trendToggleEarlySlope; window._trendToggleEntrySlope=_trendToggleEntrySlope; window._trendToggleBullVol=_trendToggleBullVol; window._trendToggleAtr2=_trendToggleAtr2; window._trendXAtr=_trendXAtr; window._trendXAtrNum=_trendXAtrNum; window._trendToggleEntryConfirm=_trendToggleEntryConfirm; window._trendToggleEntryRsi=_trendToggleEntryRsi; window._trendToggleDisasterSl=_trendToggleDisasterSl; window._trendCycleSlAtr=_trendCycleSlAtr; window._xmatNeedSet=_xmatNeedSet; window._xmatKindTg=_xmatKindTg; window._xmatResetTh=_xmatResetTh; window._xmatResetDial=_xmatResetDial; window._xmatResetAll=_xmatResetAll; window._xmatModeSet=_xmatModeSet; window._xmatWinSet=_xmatWinSet; window._trendBatchSetSource=_trendBatchSetSource; window._trendSnapCycle=_trendSnapCycle; window._trendSnapLoad=_trendSnapLoad; window._trendSnapOff=_trendSnapOff; window._trendSnapState=_trendSnapState; window._trendBatchUI=_trendBatchUI; window._trendToggleXCross=_trendToggleXCross; window._trendToggleTrix=_trendToggleTrix; window._trendToggleSmi=_trendToggleSmi;   /* [S1754] */ window._trendReset=_trendReset; }
 // ── [S550] 거래내역 모달 (캔들전이 검증 모달 패턴) ──
 function _trendCloseDetail(){ try{ var el=document.getElementById('sxTrendBTOverlay'); if(el&&el.parentNode) el.parentNode.removeChild(el); }catch(_){} }
 function _trendDetailClose(){ try{ history.back(); }catch(e){ _trendCloseDetail(); } }
@@ -17000,7 +17051,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1753';   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
+  window.SX_BUILD='S1754';   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
+  // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
   // [S1750] 🌀 BB회귀를 ⛩️ 레짐게이트·⛔ 칸 down 진입 차단에서도 뺐다 — 진입·청산 모두 자체 규칙(남는 연결 = 종목당 1포지션·공통 환경).
   // [S1749] 🌀 BB회귀 = 자체 규칙 모듈 — 🔵 PSAR 게이트에서 독립 · 진입 방식 3종(바로/첫 반등 봉/PSAR 상승 전환 · 전용 가속·최대) · 청산 기준 입력(%B·캡) · 🌀 자체 청산만 칩. 기본값 = 종전.
