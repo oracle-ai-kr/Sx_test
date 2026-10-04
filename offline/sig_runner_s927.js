@@ -8,6 +8,7 @@
 //  최신봉 = V.run(h=0, warmup=n-4, target=5) 후 e최대 레코드. dck/dcf는 cv2rec 훅(§3 동일).
 //  정책레이어 = 등급→{action,score} 시장별. 근거 §1(시장분기)·②(US 회피특례)·S926(dck는 진입전용·물타기X).
 //  ★정책값 provisional — 미래 OOS(0723~24·oos_gates_s924.txt 축2) 통과가 채택 최종조건.
+//  [S1757] 📈 크로스 축 원자(PREREG_S1757) — env SX_SPEC(워커 /sx/autotrade/spec 응답)이 축(🧬TRIX·🎚️SMI·임의 MA쌍)을 주면 행에 xa{k,g,d,s,r}·원장에 ax 를 싣는다. 없으면 키 추가 0(바이트 동일).
 'use strict';
 const fs=require('fs');
 const mk=process.argv[2], LIMIT=process.argv[3]?parseInt(process.argv[3],10):0;
@@ -97,6 +98,44 @@ function gateAtoms(rows){
       gTx1060: !!(tx.line[i]!=null && tx.sig[i]!=null && tx.line[i]>tx.sig[i])
     };
   }catch(e){ return { g60up:false, gMa1060:false, gTx1060:false }; }
+}
+// ═══ [S1757] 📈 크로스 축 원자(스펙 왕복 · PREREG_S1757) ═══
+//   시즌1 sx_render.js `_trSmi` **원문 복사**(글자 그대로 · 배터리가 대조). `_trTrix`·`_trSma`·`_trEma` 는 위 S1709 복사본을 그대로 쓴다.
+function _trSmi(rows,k,s,ds,d){
+  const n=rows.length, line=new Array(n).fill(null); let sig=new Array(n).fill(null);
+  const _k=Math.max(2,Math.min(400,Math.round(+k||10))), _s=Math.max(1,Math.min(100,Math.round(+s||3))), _ds=Math.max(1,Math.min(100,Math.round(+ds||3))), _d=Math.max(1,Math.min(400,Math.round(+d||10)));
+  if(!n) return {line:line, sig:sig, k:_k, s:_s, ds:_ds, d:_d, first:-1};
+  const hi=rows.map(r=>+(r.high!=null?r.high:r.h)), lo=rows.map(r=>+(r.low!=null?r.low:r.l)), cl=rows.map(r=>+(r.close!=null?r.close:r.c));
+  const M=new Array(n).fill(null), R=new Array(n).fill(null);
+  for(let i=_k-1;i<n;i++){ let hh=-Infinity, ll=Infinity; for(let q=i-_k+1;q<=i;q++){ if(hi[q]>hh) hh=hi[q]; if(lo[q]<ll) ll=lo[q]; } if(!isFinite(hh)||!isFinite(ll)||!isFinite(cl[i])) continue; M[i]=cl[i]-(hh+ll)/2; R[i]=hh-ll; }
+  const e=_trEma(_trEma(M,_s),_ds), f=_trEma(_trEma(R,_s),_ds);
+  for(let i=0;i<n;i++){ if(e[i]!=null && f[i]!=null && f[i]>0) line[i]=100*e[i]/(f[i]/2); }
+  sig=_trEma(line,_d);
+  let first=-1; for(let i=0;i<n;i++){ if(line[i]!=null&&sig[i]!=null){ first=i; break; } }
+  return {line:line, sig:sig, k:_k, s:_s, ds:_ds, d:_d, first:first};
+}
+//   스펙 = 워커 GET /sx/autotrade/spec 응답 { ok, mkt, ax:{t,e,x,r,sm}, key } — 푸시 스크립트가 env SX_SPEC 로 넘긴다. 없음·깨짐·축 없음 = null(원자 0 = 종전 원장과 같은 바이트).
+//   key 는 워커가 만든 문자열을 **그대로** 싣는다(러너가 다시 만들지 않는다 — 두 벌이면 어긋난다). 워커는 행의 xa.k 가 지금 설정의 키와 같을 때만 그 원자를 읽는다.
+const _axPairOk=(p)=>Array.isArray(p)&&p.length===2&&isFinite(+p[0])&&isFinite(+p[1])&&+p[0]>=1&&+p[1]>=1;
+const AX=(function(){ try{ const raw=process.env.SX_SPEC; if(!raw) return null; const o=JSON.parse(raw), a=o&&o.ax, k=o&&o.key; if(!a||typeof a!=='object'||typeof k!=='string'||!k) return null;
+    if(['trix','smi','ma'].indexOf(a.t)<0||!_axPairOk(a.e)||!_axPairOk(a.x)||!_axPairOk(a.r)) return null;
+    if(a.t==='smi'&&!_axPairOk(a.sm)) return null;
+    const P=(p)=>[Math.round(+p[0]),Math.round(+p[1])];
+    return { t:a.t, e:P(a.e), x:P(a.x), r:P(a.r), sm:(a.t==='smi')?P(a.sm):null, key:k }; }catch(e){ return null; } })();
+// 쌍 p 의 선·시그널 — 시즌1 `_stratBt` 가 축마다 부르는 함수와 같다(🧬 `_trTrix(close,p,sp)` · 🎚️ `_trSmi(rows,k,s,ds,d)` · MA `_trSma(close,s)`·`_trSma(close,l)`)
+function axSeries(rows, close, A, p){ if(A.t==='smi') return _trSmi(rows,p[0],A.sm[0],A.sm[1],p[1]); if(A.t==='trix') return _trTrix(close,p[0],p[1]); return { line:_trSma(close,p[0]), sig:_trSma(close,p[1]) }; }
+// 마지막 봉(i=n-1)의 원자 — 시즌1 식 그대로: g = 진입쌍 gc · d = 청산쌍 dx · s = 진입쌍 선>시그널(재진입 조건의 상태) · r = 재진입쌍 gc. 값이 없으면(웜업) 0.
+function axAtoms(rows, A){
+  try{
+    const close=rows.map(r=>+(r.close!=null?r.close:r.c)), i=rows.length-1, same=(a,b)=>a[0]===b[0]&&a[1]===b[1];
+    const E=axSeries(rows,close,A,A.e), X=same(A.x,A.e)?E:axSeries(rows,close,A,A.x), R=same(A.r,A.e)?E:axSeries(rows,close,A,A.r);
+    const ok=(S)=>(i>0&&S.line[i]!=null&&S.sig[i]!=null&&S.line[i-1]!=null&&S.sig[i-1]!=null);
+    return { k:A.key,
+      g:(ok(E)&&E.line[i]>E.sig[i]&&E.line[i-1]<=E.sig[i-1])?1:0,
+      d:(ok(X)&&X.line[i]<X.sig[i]&&X.line[i-1]>=X.sig[i-1])?1:0,
+      s:(E.line[i]!=null&&E.sig[i]!=null&&E.line[i]>E.sig[i])?1:0,
+      r:(ok(R)&&R.line[i]>R.sig[i]&&R.line[i-1]<=R.sig[i-1])?1:0 };
+  }catch(e){ return null; }   // 계산 실패 = 원자 없음(워커가 대기로 읽는다 — 0 으로 지어내지 않는다)
 }
 function bullVolSignal(ind){ try{
   if(!ind||!ind.maAlign||!ind.maAlign.bullish) return false;         // 강세(단기 5/20/60 정배열)
@@ -245,6 +284,7 @@ codes.forEach((c,i)=>{
   if(IS_COIN){ const _st=snap.stocks[c]||{}, _sg=signals[signals.length-1]; _sg.univ=(_st.univ==='ext')?'ext':'pool'; _sg.tv30=(typeof _st.tv30==='number'&&isFinite(_st.tv30))?Math.round(_st.tv30):null; _sg.rg5=rg5||null; }   // [S1651] 코인만 — 확장 표시·거래대금(워커 후보 정렬 SSOT _coinCandCmp가 읽는다) · [S1663] 크로스 원자 2종·레짐 v3(coin·coin4h)
   { const _sg=signals[signals.length-1]; _sg.cross510=!!cross510; _sg.cross520=!!cross520; _sg.cross2060=!!cross2060; _sg.cross1060=!!cross1060; _sg.g60up=!!g60up; _sg.gMa1060=!!gMa1060; _sg.gTx1060=!!gTx1060;
     _sg.st510=!!st510; _sg.st520=!!st520; _sg.st2060=!!st2060; _sg.st1060=!!st1060; _sg.pbar=(rows.length>=2&&rows[rows.length-2]&&rows[rows.length-2].date)||null; }   /* [S1711] 🔄 재진입 원자 — 진입쌍 정배열 상태 4종 + 앞 봉 날짜(청산 봉 < i-1 판정용) · 아직 읽는 곳 없음(워커 S1711) */   /* [S1709] 게이트 원자 — 아직 읽는 곳 없음(워커 S1709가 읽는다) */   /* [S1707] 네 원자 전부 3시장 공통 */   /* [S1704] 3시장 공통 — 아직 **읽는 곳이 없다**(S1705가 읽는다) */
+  if(AX){ const _xa=axAtoms(rows,AX); if(_xa) signals[signals.length-1].xa=_xa; }   /* [S1757] 📈 크로스 축 원자 — 스펙이 있을 때만(없으면 키 추가 0) */
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
@@ -258,7 +298,9 @@ const ledger={ schema:'sx_signal_ledger_v1', mkt:mk, asof:asofFinal, generated:n
   signals };
 if(mk==='us'){ ledger.summary.rangeBUY=cnt(s=>s.src==='range'); ledger.summary.crossBUY=cnt(s=>s.src==='cross'); }   // [S1632] US만(KR·코인 요약 키 불변)
 if(IS_COIN){ ledger.univ=snap.univ||null; ledger.summary.extN=cnt(s=>s.univ==='ext'); ledger.summary.extBUY=cnt(s=>s.univ==='ext'&&s.action==='BUY'); ledger.summary.crossBUY=cnt(s=>s.src==='cross'); ledger.tf=(mk==='coin4h')?'240m':'day'; ledger.barMs=COIN_BAR_MS; }   // [S1651] 코인만 — 유니버스 메타(빌더 동적 스냅 · 폴백이면 null) · [S1663] 봉 주기·크로스 BUY 수
+if(AX){ ledger.ax={ k:AX.key, t:AX.t, e:AX.e, x:AX.x, r:AX.r, sm:AX.sm }; ledger.summary.axN=cnt(s=>!!s.xa); ledger.summary.axG=cnt(s=>s.xa&&s.xa.g===1); ledger.summary.axD=cnt(s=>s.xa&&s.xa.d===1); }   /* [S1757] 이 원장의 원자를 만든 스펙 · 원자 재고 */
 fs.writeFileSync(outPath, JSON.stringify(ledger,null,1));
 console.error('DONE sig '+mk+' asof='+asofFinal+(COIN_COMPLETED_ONLY?'(확정봉·S1497)':'')+': 평가 '+signals.length+'/'+codes.length+' | BUY '+ledger.summary.BUY+'(bullVol '+ledger.summary.bullVolBUY+'·v2 '+ledger.summary.v2BUY+'·겹침 '+ledger.summary.v2Overlap+') atrGated '+ledger.summary.atrGated+' HOLD '+ledger.summary.HOLD+' SELL '+ledger.summary.SELL+' (prov '+ledger.summary.provisional+') err='+errs.length+' '+((Date.now()-t0)/1000|0)+'s → '+outPath);
+console.error('  [S1757] 크로스 축 '+(AX?(AX.key+' · 원자 '+ledger.summary.axN+'행 · 골든 '+ledger.summary.axG+' · 데드 '+ledger.summary.axD):(process.env.SX_SPEC?'스펙에 축 없음(MA 진입쌍 경로 그대로)':'스펙 없음(SX_SPEC 미전달 — 종전 원장)')));
 if(mk==='us') console.error('  [S1632] US BB회귀 BUY '+ledger.summary.rangeBUY+' · 크로스 BUY '+ledger.summary.crossBUY+' (카드 사진1 세트 · DECL §14)');
 if(IS_COIN) console.error('  [S1651] 코인 유니버스 '+(ledger.univ?(ledger.univ.mode+' · 풀 '+ledger.univ.poolIn+' · 확장 '+ledger.univ.ext):'메타 없음(폴백 스냅)')+' · 확장 평가 '+ledger.summary.extN+' · 확장 BUY '+ledger.summary.extBUY);
