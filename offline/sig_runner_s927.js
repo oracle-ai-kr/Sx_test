@@ -8,6 +8,7 @@
 //  최신봉 = V.run(h=0, warmup=n-4, target=5) 후 e최대 레코드. dck/dcf는 cv2rec 훅(§3 동일).
 //  정책레이어 = 등급→{action,score} 시장별. 근거 §1(시장분기)·②(US 회피특례)·S926(dck는 진입전용·물타기X).
 //  ★정책값 provisional — 미래 OOS(0723~24·oos_gates_s924.txt 축2) 통과가 채택 최종조건.
+//  [S1761] 🌀 BB회귀 원자(PREREG_S1761) — 모든 행에 rgL(마지막 하단 조건 봉까지 봉 수 · ≤30)·rgRb(그 뒤 첫 반등 봉) · 스펙 bp{af,mx}·bpKey 가 있으면 bp{k,f}(전용 PSAR 하락→상승) · 서명 세 토막. 없으면 키 추가 0.
 //  [S1759] 📅 월봉 구간 원자(PREREG_S1759) — 모든 행에 mz('up'·'dn'·'mid'·'na' = 마지막 확정 봉의 월봉 MA5×MA10+종가 위치). 설정에 안 매여 스펙 없이 늘 싣는다 · 다른 바이트는 S1758 그대로.
 //  [S1758] 🔵 PSAR 방향 원자(PREREG_S1758) — 스펙에 ps{af,mx}·psKey 가 있으면 행에 ps{k,u}·원장에 ps·sig 를 싣는다. 없으면 키 추가 0.
 //  [S1757] 📈 크로스 축 원자(PREREG_S1757) — env SX_SPEC(워커 /sx/autotrade/spec 응답)이 축(🧬TRIX·🎚️SMI·임의 MA쌍)을 주면 행에 xa{k,g,d,s,r}·원장에 ax 를 싣는다. 없으면 키 추가 0(바이트 동일).
@@ -152,7 +153,7 @@ function _sxPsarSeries(rows, close, step, mx){ const n=rows.length, up=new Array
 //   스펙의 ps{af,mx}·psKey(워커가 만든 문자열 그대로) — 없음·깨짐 = null(원자 0). sig = 축 키와 PSAR 키를 묶은 서명(원장에 그대로 싣는다).
 const _SPEC_O=(function(){ try{ const raw=process.env.SX_SPEC; if(!raw) return null; const o=JSON.parse(raw); return (o&&typeof o==='object')?o:null; }catch(e){ return null; } })();
 const PS=(function(){ const p=_SPEC_O&&_SPEC_O.ps, k=_SPEC_O&&_SPEC_O.psKey; if(!p||typeof p!=='object'||typeof k!=='string'||!k) return null; const af=+p.af, mx=+p.mx; if(!(af>0)||!(mx>0)||!isFinite(af)||!isFinite(mx)) return null; return { af:af, mx:mx, key:k }; })();
-const SPEC_SIG=(_SPEC_O&&typeof _SPEC_O.sig==='string'&&_SPEC_O.sig&&(AX||PS))?_SPEC_O.sig:null;
+const SPEC_SIG=(_SPEC_O&&typeof _SPEC_O.sig==='string'&&_SPEC_O.sig&&(AX||PS||(_SPEC_O.bp&&_SPEC_O.bpKey)))?_SPEC_O.sig:null;   /* [S1761] bp 만 있는 스펙도 서명을 싣는다 */
 // 마지막 봉의 방향 — up[n-1] 이 null(봉 3개 미만)이면 원자 없음(지어내지 않는다)
 function psAtom(rows, P){ try{ const close=rows.map(r=>+(r.close!=null?r.close:r.c)); const u=_sxPsarSeries(rows, close, P.af, P.mx).up[rows.length-1]; return (u==null)?null:{ k:P.key, u:(u?1:0) }; }catch(e){ return null; } }
 // ═══ [S1759] 📅 월봉 구간 원자(PREREG_S1759) ═══
@@ -164,6 +165,27 @@ function _sxMonthZones(rows, close){ const n=rows.length, out=new Array(n), mc=[
   return out; }
 //   마지막 봉의 구간 — 설정에 안 매이는 값이라 스펙·키가 없다. null(월 10개 미만 · 4H 는 늘)은 'na' 로 적어 「원자 없음」과 가른다(워커: 'na' = 혼조 칸 · 없음 = 단일 배수).
 function mzAtom(rows){ try{ const close=rows.map(r=>+(r.close!=null?r.close:r.c)); const z=_sxMonthZones(rows, close)[rows.length-1]; return (z==='up'||z==='dn'||z==='mid')?z:'na'; }catch(e){ return null; } }
+// ═══ [S1761] 🌀 BB회귀 원자(PREREG_S1761) ═══
+//   하단 조건 열 = `rangeSignalUS` 와 같은 줄(시즌1 `_bbCond` · 횡보 && %B≤0.2 && 이격<−8%) · 시즌1 `_bbSigA` 루프(S1749)의 lc·seen 을 마지막 봉까지 돌린다:
+//     rgL = i−lc(lc = 마지막 조건 봉 · 이 봉 포함 · 30 넘으면 없음 = 어떤 대기(≤30)에도 못 든다) · rgRb = 조건 봉이 아닌 이 봉이 lc 뒤 **첫** 반등 봉(close[i]>close[i−1])인가(늘 싣는다 — 워커·카드가 「러너가 이 원자를 내는가」를 이것으로 본다).
+//   방식 1(첫 반등 봉) 신호 = rgRb && rgL<대기 · 방식 2(PSAR 전환) 신호 = bp.f && rgL<대기 — 대기 값은 워커가 넣는다(설정을 바꿔도 러너를 다시 안 돌린다).
+function rangeAtoms(rows){ try{
+    const n=rows.length; if(n<2) return null;
+    const close=rows.map(r=>+(r.close!=null?r.close:r.c));
+    const maR60=_usTrSma(close,60), maR120=_usTrSma(close,120), maR200=_usTrSma(close,200);
+    const maBB20=_usTrSma(close,20), stdBB=_usTrStd(close,maBB20,20);
+    const _isFlat=(i)=>{ const a=maR60[i],b=maR120[i],c=maR200[i]; return (a!=null&&b!=null&&c!=null&&!(a>b&&b>c)&&!(a<b&&b<c)); };
+    const _pctB=(i)=>{ const m=maBB20[i],s=stdBB[i]; if(m==null||s==null||s<=0) return 0.5; return (close[i]-(m-2*s))/(4*s); };
+    const _dev20=(i)=>{ const m=maBB20[i]; return (m!=null&&m>0)?(close[i]/m-1)*100:0; };
+    let lc=-1, seen=false, rb=false;
+    for(let i=0;i<n;i++){ rb=false; const c=!!(_isFlat(i) && _pctB(i)<=0.2 && _dev20(i)<-8);
+      if(c){ lc=i; seen=false; }
+      else if(lc>=0 && i>=1 && close[i]>close[i-1]){ if(!seen) rb=true; seen=true; } }
+    const i=n-1; return { rgL:(lc>=0 && i-lc<=30) ? (i-lc) : null, rgRb:rb };   // rgL 은 30봉 안일 때만 값 · rgRb 는 늘(불리언 = 러너가 이 원자를 내는가의 표지)
+  }catch(e){ return null; } }
+//   전용 PSAR 전환 — 스펙 bp{af,mx}·bpKey(워커가 만든 문자열 그대로) · f 1 = 이 봉에서 하락→상승(시즌1 `_bu[i]===true && _bu[i-1]===false`) · 첫 2봉(null)은 원자 없음
+const BP=(function(){ const p=_SPEC_O&&_SPEC_O.bp, k=_SPEC_O&&_SPEC_O.bpKey; if(!p||typeof p!=='object'||typeof k!=='string'||!k) return null; const af=+p.af, mx=+p.mx; if(!(af>0)||!(mx>0)||!isFinite(af)||!isFinite(mx)) return null; return { af:af, mx:mx, key:k }; })();
+function bpAtom(rows, P){ try{ const close=rows.map(r=>+(r.close!=null?r.close:r.c)); const up=_sxPsarSeries(rows, close, P.af, P.mx).up, i=rows.length-1; if(i<1||up[i]==null||up[i-1]==null) return null; return { k:P.key, f:(up[i]===true&&up[i-1]===false)?1:0 }; }catch(e){ return null; } }
 function bullVolSignal(ind){ try{
   if(!ind||!ind.maAlign||!ind.maAlign.bullish) return false;         // 강세(단기 5/20/60 정배열)
   if(!_ltBear(ind)) return false;                                    // 하락장(장기 60/120/200 역배열)
@@ -314,6 +336,8 @@ codes.forEach((c,i)=>{
   if(AX){ const _xa=axAtoms(rows,AX); if(_xa) signals[signals.length-1].xa=_xa; }   /* [S1757] 📈 크로스 축 원자 — 스펙이 있을 때만(없으면 키 추가 0) */
   if(PS){ const _pa=psAtom(rows,PS); if(_pa) signals[signals.length-1].ps=_pa; }   /* [S1758] 🔵 PSAR 방향 원자 */
   { const _mz=mzAtom(rows); if(_mz) signals[signals.length-1].mz=_mz; }   /* [S1759] 📅 월봉 구간 원자 — 늘(스펙 무관) */
+  { const _rg=rangeAtoms(rows); if(_rg){ if(_rg.rgL!=null) signals[signals.length-1].rgL=_rg.rgL; signals[signals.length-1].rgRb=_rg.rgRb; } }   /* [S1761] 🌀 BB회귀 원자 — 늘(스펙 무관) · rgL 은 조건 봉이 30봉 안에 있을 때만 */
+  if(BP){ const _bp=bpAtom(rows,BP); if(_bp) signals[signals.length-1].bp=_bp; }   /* [S1761] 🌀 전용 PSAR 전환 원자 — 스펙이 있을 때만 */
   if((i+1)%40===0) console.error('  '+(i+1)+'/'+codes.length+' ('+((Date.now()-t0)/1000|0)+'s)');
 });
 // 요약
@@ -331,10 +355,13 @@ if(AX){ ledger.ax={ k:AX.key, t:AX.t, e:AX.e, x:AX.x, r:AX.r, sm:AX.sm }; ledger
 if(PS){ ledger.ps={ k:PS.key, af:PS.af, mx:PS.mx }; ledger.summary.psN=cnt(s=>!!s.ps); ledger.summary.psUp=cnt(s=>s.ps&&s.ps.u===1); }   /* [S1758] */
 if(SPEC_SIG) ledger.sig=SPEC_SIG;   /* [S1758] 이 원장을 만든 스펙 서명(축·PSAR) */
 ledger.summary.mz={ up:cnt(s=>s.mz==='up'), mid:cnt(s=>s.mz==='mid'), dn:cnt(s=>s.mz==='dn'), na:cnt(s=>s.mz==='na') };   /* [S1759] 📅 구간 재고 */
+ledger.summary.rg={ n:cnt(s=>s.rgL!=null), c:cnt(s=>s.rgL===0), rb:cnt(s=>s.rgRb===true) };   /* [S1761] 🌀 조건 봉 30봉 안 · 이 봉이 조건 봉 · 첫 반등 봉 */
+if(BP){ ledger.bp={ k:BP.key, af:BP.af, mx:BP.mx }; ledger.summary.bpN=cnt(s=>!!s.bp); ledger.summary.bpF=cnt(s=>s.bp&&s.bp.f===1); }   /* [S1761] */
 fs.writeFileSync(outPath, JSON.stringify(ledger,null,1));
 console.error('DONE sig '+mk+' asof='+asofFinal+(COIN_COMPLETED_ONLY?'(확정봉·S1497)':'')+': 평가 '+signals.length+'/'+codes.length+' | BUY '+ledger.summary.BUY+'(bullVol '+ledger.summary.bullVolBUY+'·v2 '+ledger.summary.v2BUY+'·겹침 '+ledger.summary.v2Overlap+') atrGated '+ledger.summary.atrGated+' HOLD '+ledger.summary.HOLD+' SELL '+ledger.summary.SELL+' (prov '+ledger.summary.provisional+') err='+errs.length+' '+((Date.now()-t0)/1000|0)+'s → '+outPath);
 console.error('  [S1757] 크로스 축 '+(AX?(AX.key+' · 원자 '+ledger.summary.axN+'행 · 골든 '+ledger.summary.axG+' · 데드 '+ledger.summary.axD):(process.env.SX_SPEC?'스펙에 축 없음(MA 진입쌍 경로 그대로)':'스펙 없음(SX_SPEC 미전달 — 종전 원장)')));
 if(PS) console.error('  [S1758] PSAR '+PS.key+' · 원자 '+ledger.summary.psN+'행 · 상승 '+ledger.summary.psUp+' · 하락 '+(ledger.summary.psN-ledger.summary.psUp));
+console.error('  [S1761] BB회귀 조건 봉 30봉 안 '+ledger.summary.rg.n+'행 · 이 봉이 조건 봉 '+ledger.summary.rg.c+' · 첫 반등 봉 '+ledger.summary.rg.rb+(BP?(' · 전용 PSAR '+BP.key+' 원자 '+ledger.summary.bpN+'행 · 전환 '+ledger.summary.bpF):' · 전용 PSAR 스펙 없음'));
 console.error('  [S1759] 월봉 구간 상승 '+ledger.summary.mz.up+' · 혼조 '+ledger.summary.mz.mid+' · 하락 '+ledger.summary.mz.dn+' · 판정 불가 '+ledger.summary.mz.na);
 if(mk==='us') console.error('  [S1632] US BB회귀 BUY '+ledger.summary.rangeBUY+' · 크로스 BUY '+ledger.summary.crossBUY+' (카드 사진1 세트 · DECL §14)');
 if(IS_COIN) console.error('  [S1651] 코인 유니버스 '+(ledger.univ?(ledger.univ.mode+' · 풀 '+ledger.univ.poolIn+' · 확장 '+ledger.univ.ext):'메타 없음(폴백 스냅)')+' · 확장 평가 '+ledger.summary.extN+' · 확장 BUY '+ledger.summary.extBUY);
