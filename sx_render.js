@@ -2565,6 +2565,34 @@ function _normTipOf(mk){
     +'.';
 }
 function _normCap(mk){ try{ return _sxPresetNormal(mk) ? (' · \u{1F9F0}일반모드 = 크로스 없는 1벌'+(_SX_TF_SPLIT[mk]?'·봉 공용':'')) : ''; }catch(_){ return ''; } }   // [S1733] 프리셋 줄 캡션 조각(S1688 규약: 몇 벌인지·봉으로 갈리는지)
+// [S1768] ★★🎚️ **[Stoch모드] — SMI(스토캐스틱 모멘텀) 축 한 벌 · KR·US 만**(사용자 요청 2026-10-08: *'Stoch모드 — 시즌1,2에 kr, us에만 적용해줘 · 코인은 잘 안맞는거 같아'*).
+//   ★**옮겨 적지 않았다**(S1556) — `offline/bat/gen_s1768_stoch.js`가 `sxsettings_20261008_Stoch.json`(build S1767 · tf day · 2026-10-08T07:37:35.242Z)에서 기계로 뽑았다(키 집합·순서는 🧬 TRIX 표).
+//   ★성격(생성기 보고 · 가장 가까운 📊MA단타 표 대비): 축 🎚️SMI 10×10(평활 3·3 · KR 재진입쌍 5×5) · KR — 🔲3×3 OFF · 🧩칸fake OFF · 유예 5 · ⏱60봉 · 🛡️SL OFF(이중ATR 켜져 있되 다리 둘 다 OFF) · 🏹TP_ATR 1× · 📅TP OFF / US — 🛡️SL OFF · 🔄재진입 OFF. 그 밖은 MA단타와 같다.
+//   ⚠**손절 수단이 없다**(KR·US 둘 다 SL_ATR·트레일·SL급락 OFF) — 툴팁이 그렇게 말하고 N봉컷(60·20)이 만기청산을 맡는다. 표의 사실이지 지어낸 값이 아니다.
+//   ⚠**코인 행이 없다**(사용자: 코인은 안 맞는다) — `_sxPresetStoch('coin')` 이 null 이라 버튼도 안 그려진다(S1698 규약). 봉별 오버레이도 없다(KR·US 는 봉으로 안 갈린다).
+//   ⚠내보내기에 있으나 표가 안 담는 키: `deadGraceLast`(UI 기억칸 · S1685) · 📈크로스 탭 전용 11키(KR `xTpOn` 등 — 전략조합 프리셋 밖). 🧺 칸 바구니·✖️ 매트릭스 저장소는 프리셋 밖(기존 규약).
+const _SX_MKT_STOCH_PRESET = {
+  kr: { cross:true, pb:true, dc:true, cell:true, bb:true, grid3:false, pure:true, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:false, deadGrace:5, minK:1, exNBars:60, exNBarsLast:60, fee:true, feePct:0.2, xGate3:false, slOn:false, slMult:4, trOn:false, trMult:2, trArm:1, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:true, tpPctOn:false, tpPct:10, tpAtrOn:true, tpAtrMult:1, tpFixOn:true, tpFixPct:5, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:true, maTrGateS:20, maTrGateL:60, txTrGateS:9, txTrGateL:12, exDeadX:true, tpAtrMz:false, slAtrMz:true, trAtrMz:false, psarG:false, psarX:false, bbSolo:true, bbNoSelf:false, tpAtrUp:1, tpAtrMid:1, tpAtrDn:1, slAtrUp:3, slAtrMid:3, slAtrDn:2, trAtrUp:null, trAtrMid:null, trAtrDn:null, psarAf:0.02, psarMax:0.2, psarGMask:129, bbEnt:2, bbWait:4, bbPsAf:0.03, bbPsMax:0.3, bbExPb:0.4, bbExCap:20, bvReg:4, bvBase:1, bvOsc:70, bvVr:300 },
+  us: { cross:true, pb:true, dc:true, cell:true, bb:true, grid3:false, pure:true, rgGate:false, xSplit:false, exDead:true, exFake:false, exDown:false, exCellFake:false, deadGrace:5, minK:1, exNBars:20, exNBarsLast:20, fee:true, feePct:0.2, xGate3:false, slOn:false, slMult:4, trOn:false, trMult:2, trArm:1, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:10, tpAtrOn:true, tpAtrMult:2, tpFixOn:false, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:true, maTrGateS:10, maTrGateL:60, txTrGateS:9, txTrGateL:12, exDeadX:true, tpAtrMz:true, slAtrMz:true, trAtrMz:false, psarG:true, psarX:false, bbSolo:false, bbNoSelf:true, tpAtrUp:1, tpAtrMid:1, tpAtrDn:4, slAtrUp:3, slAtrMid:4, slAtrDn:2, trAtrUp:null, trAtrMid:null, trAtrDn:null, psarAf:0.02, psarMax:0.2, psarGMask:768, bbEnt:2, bbWait:4, bbPsAf:0.02, bbPsMax:0.2, bbExPb:0.5, bbExCap:20, bvReg:4, bvBase:1, bvOsc:70, bvVr:300 },
+};
+const _SX_MKT_STOCH_PRESET_CFG = {
+  kr: { s:5, l:10, smiOn:true, trixOn:false, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:10, reentry:false, nextOpen:true, bullVol:true, atr2:true, atrInit:2, atrTrail:3, predict:false, smiK:10, smiS:3, smiDS:3, smiD:10, smiXK:10, smiXD:10, smiReK:5, smiReD:5 },
+  us: { s:5, l:20, smiOn:true, trixOn:false, trixP:9, trixSP:12, trixXP:9, trixXSP:12, trixReP:9, trixReSP:12, xCross:false, xs:5, xl:20, reEntryS:5, reEntryL:10, reentry:false, nextOpen:true, bullVol:false, atr2:true, atrInit:2, atrTrail:3, predict:false, smiK:10, smiS:3, smiDS:3, smiD:10, smiXK:10, smiXD:10, smiReK:10, smiReD:10 },
+};
+const _SX_MKT_STOCH_PRESET_TF_NONE = {};   // [S1768] 봉별 오버레이 없음을 명시(S1686·S1698·S1733 `_TF_NONE` 선례)
+function _sxPresetStoch(mk){ return _SX_MKT_STOCH_PRESET[mk]||null; }        // [S1768] 없는 시장(코인)은 null — 버튼도 안 그린다
+function _sxPresetStochCfg(mk){ return _SX_MKT_STOCH_PRESET_CFG[mk]||null; } // [S1768]
+// [S1768] 🎚️ 버튼 툴팁 — `_maTipOf` 와 같은 문장(값은 전부 표에서 · `_stratActive`·`_axPair` SSOT — `_axPair` 가 SMI 축을 'SMI K×시그널 D' 로 적는다 · S1754) · 머리 아이콘만 🎚️.
+function _stochTipOf(mk){
+  const Sx=_sxPresetStoch(mk), Gx=_sxPresetStochCfg(mk); if(!Sx || !Gx) return '';
+  const a=_stratActive(Sx,Gx,mk);
+  return '\u{1F39A}\uFE0F Stoch모드 세트(일봉) · 진입 '+(a.en.join(' ')||'—')
+    +' / 청산 '+(a.ex.join(' ')||'⚠없음')
+    +' · 축 '+_axPair(Gx,'e',true)+(Gx.xCross?(' 진입 · 청산분리 '+_axPair(Gx,'x',true)):' (청산도 같은 쌍)')
+    +(_presetHasStop(Sx,Gx)?'':' · ⚠손절 수단 없음(이중ATR·SL급락 OFF) — '+((+Sx.exNBars>0)?(Sx.exNBars+'봉컷이 만기청산을 맡습니다'):'⚠N봉컷도 꺼져 있어 만기청산이 없습니다'))
+    +'.';
+}
+function _stochCap(mk){ try{ return _sxPresetStoch(mk) ? ' · \u{1F39A}\uFE0FStoch모드 = SMI 축 1벌' : ''; }catch(_){ return ''; } }   // [S1768] 프리셋 줄 캡션 조각(S1688 규약: 몇 벌인지) — 코인은 빈 문자열
 function _sxPresetMaMode(mk){ return _SX_MKT_MAMODE_PRESET[mk]||null; }        // [S1698] 없는 시장은 null — 버튼도 안 그린다
 function _sxPresetMaModeCfg(mk){ return _SX_MKT_MAMODE_PRESET_CFG[mk]||null; } // [S1698]
 function _sxPresetMaSw(mk){ const B=_SX_MKT_MASW_PRESET[mk]||null, O=_sxPresetTrixTfRaw(_SX_MKT_MASW_PRESET_TF,mk);
@@ -2918,9 +2946,9 @@ function _stratPreset(p){
   // [S1686] ⚡ TRIX단타 — 🧬 스윙과 **같은 규약**, 표만 다르다(가지를 복사하지 않고 표를 고른다).
   // [S1696] 📊 MA단타를 **같은 가지에** 얹는다 — 표만 고르면 되게(가지 복사 0 · S1686 규약 그대로).
   // [S1697] 📊 MA스윙을 **같은 가지에** 얹는다 — 표만 고르면 되게(가지 복사 0 · S1686·S1696 규약 그대로).
-  if(p==='trix' || p==='trixdt' || p==='madt' || p==='masw' || p==='mamode' || p==='normal'){   /* [S1698] 📊 MA모드 추가 */   /* [S1733] 🧰 일반모드 추가 */
-    const _T=(p==='normal')?_sxPresetNormal(m):(p==='mamode')?_sxPresetMaMode(m):(p==='masw')?_sxPresetMaSw(m):(p==='madt')?_sxPresetMaDt(m):(p==='trixdt')?_sxPresetTrixDt(m):_sxPresetTrix(m);
-    const _G=(p==='normal')?_sxPresetNormalCfg(m):(p==='mamode')?_sxPresetMaModeCfg(m):(p==='masw')?_sxPresetMaSwCfg(m):(p==='madt')?_sxPresetMaDtCfg(m):(p==='trixdt')?_sxPresetTrixDtCfg(m):_sxPresetTrixCfg(m);
+  if(p==='trix' || p==='trixdt' || p==='madt' || p==='masw' || p==='mamode' || p==='normal' || p==='stoch'){   /* [S1698] 📊 MA모드 추가 */   /* [S1733] 🧰 일반모드 추가 */   /* [S1768] 🎚️ Stoch모드 추가 */
+    const _T=(p==='stoch')?_sxPresetStoch(m):(p==='normal')?_sxPresetNormal(m):(p==='mamode')?_sxPresetMaMode(m):(p==='masw')?_sxPresetMaSw(m):(p==='madt')?_sxPresetMaDt(m):(p==='trixdt')?_sxPresetTrixDt(m):_sxPresetTrix(m);
+    const _G=(p==='stoch')?_sxPresetStochCfg(m):(p==='normal')?_sxPresetNormalCfg(m):(p==='mamode')?_sxPresetMaModeCfg(m):(p==='masw')?_sxPresetMaSwCfg(m):(p==='madt')?_sxPresetMaDtCfg(m):(p==='trixdt')?_sxPresetTrixDtCfg(m):_sxPresetTrixCfg(m);
     if(!_T || !_G) return;   // 표가 없는 시장은 아무 것도 안 한다(버튼도 안 그린다)
     Object.keys(_T).forEach(function(k){ sc[k]=_T[k]; });
     Object.keys(_G).forEach(function(k){ cfg[k]=_G[k]; });
@@ -5450,7 +5478,7 @@ function _trendRenderInner(){
     // [S1398] engRowS 철거 — 공통 탭바(_trendTabBar)가 대신한다. 참조 0.
     // [S1683] `tip`은 **선택 인자**다 — 안 주면 종전과 **한 글자도 다르지 않은** HTML이 나온다(🏄 버튼 무변경).
     const _pBtn=(lab,p,col,tip)=>`<span onclick="_sxVib(9);window._stratPreset&&_stratPreset('${p}')"${tip?` title="${tip}"`:''} style="font-size:9px;font-weight:800;padding:4px 9px;border-radius:10px;cursor:pointer;background:${col}18;color:${col};border:1px solid ${col}55">${lab}</span>`;
-    const presetRow=`<div style="margin-bottom:8px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:var(--text3)">프리셋</span>${_sxPresetMaMode(market)?_pBtn('\u{1F4CA} MA모드','mamode','#0891b2',_maMoTipOf(market)):''}${_sxPresetTrix(market)?_pBtn(_trixSwingLab(market),'trix','#7c3aed',_trixTipOf(market,_sxPresetTrix(market),_sxPresetTrixCfg(market),_trixSetLbl(market))):''}${_sxPresetTrixDt(market)?_pBtn('🧬 TRIX단타','trixdt','#ea580c',(_trixSameAsSwing(market)?'⚠ 지금 이 봉에서는 🧬스윙과 **값이 같습니다**(누르면 같은 결과) · ':'')+_trixTipOf(market,_sxPresetTrixDt(market),_sxPresetTrixDtCfg(market),_trixSetLbl(market,_SX_MKT_TRIXDT_PRESET_TF_NONE,_SX_MKT_TRIXDT_PRESET_TF_NONE))):''}${_sxPresetMaSw(market)?_pBtn('\u{1F4CA} MA스윙','masw','#be185d',_maSwTipOf(market)):''}${_sxPresetMaDt(market)?_pBtn('\u{1F4CA} MA단타','madt','#16a34a',_maDtTipOf(market)):''}${_sxPresetNormal(market)?_pBtn('\u{1F9F0} 일반모드','normal','#475569',_normTipOf(market)):''}<span style="font-size:9px;color:var(--text3)">${_sxPresetTrix(market)?(_sxPresetTrixDt(market)?'🧬스윙·🧬단타 = TRIX 축 2벌':_trixCap(market) /* [S1756] */):''}${_maFamCap(market)}${_normCap(market)} · 리셋=시즌2 자동매매 세트</span></div>`;   /* [S1696] 캡션도 몇 벌인지 말한다(S1688 규약) · **봉 이름은 오버레이가 있는 시장에만**(S1686 F4·S1688 E4) */   /* [S1688] ★캡션이 **몇 벌인지**를 말한다 — KR·US는 프리셋 2벌, 코인은 1벌이 봉으로 갈린다. 코인만 봉 이름을 늘 적는다(그게 코인에서 갈리는 축이라서). */   /* [S1686] ★봉 표기는 **일봉이 아닐 때만** 붙인다 — 두 버튼의 세트 봉이 다를 수 있다(코인 4시간: 스윙=4시간봉·단타=일봉). */   /* [S1656] 구 5종 철거 — 두 자리(스윙·시즌2)만 남긴다 */
+    const presetRow=`<div style="margin-bottom:8px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:var(--text3)">프리셋</span>${_sxPresetMaMode(market)?_pBtn('\u{1F4CA} MA모드','mamode','#0891b2',_maMoTipOf(market)):''}${_sxPresetTrix(market)?_pBtn(_trixSwingLab(market),'trix','#7c3aed',_trixTipOf(market,_sxPresetTrix(market),_sxPresetTrixCfg(market),_trixSetLbl(market))):''}${_sxPresetTrixDt(market)?_pBtn('🧬 TRIX단타','trixdt','#ea580c',(_trixSameAsSwing(market)?'⚠ 지금 이 봉에서는 🧬스윙과 **값이 같습니다**(누르면 같은 결과) · ':'')+_trixTipOf(market,_sxPresetTrixDt(market),_sxPresetTrixDtCfg(market),_trixSetLbl(market,_SX_MKT_TRIXDT_PRESET_TF_NONE,_SX_MKT_TRIXDT_PRESET_TF_NONE))):''}${_sxPresetStoch(market)?_pBtn('\u{1F39A}\uFE0F Stoch모드','stoch','#0d9488',_stochTipOf(market)):''}${_sxPresetMaSw(market)?_pBtn('\u{1F4CA} MA스윙','masw','#be185d',_maSwTipOf(market)):''}${_sxPresetMaDt(market)?_pBtn('\u{1F4CA} MA단타','madt','#16a34a',_maDtTipOf(market)):''}${_sxPresetNormal(market)?_pBtn('\u{1F9F0} 일반모드','normal','#475569',_normTipOf(market)):''}<span style="font-size:9px;color:var(--text3)">${_sxPresetTrix(market)?(_sxPresetTrixDt(market)?'🧬스윙·🧬단타 = TRIX 축 2벌':_trixCap(market) /* [S1756] */):''}${_maFamCap(market)}${_normCap(market)}${_stochCap(market)} · 리셋=시즌2 자동매매 세트</span></div>`;   /* [S1696] 캡션도 몇 벌인지 말한다(S1688 규약) · **봉 이름은 오버레이가 있는 시장에만**(S1686 F4·S1688 E4) */   /* [S1688] ★캡션이 **몇 벌인지**를 말한다 — KR·US는 프리셋 2벌, 코인은 1벌이 봉으로 갈린다. 코인만 봉 이름을 늘 적는다(그게 코인에서 갈리는 축이라서). */   /* [S1686] ★봉 표기는 **일봉이 아닐 때만** 붙인다 — 두 버튼의 세트 봉이 다를 수 있다(코인 4시간: 스윙=4시간봉·단타=일봉). */   /* [S1656] 구 5종 철거 — 두 자리(스윙·시즌2)만 남긴다 */
     const entryRowS=`<div style="margin-bottom:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:#16a34a;min-width:28px">진입</span>`
       +_sChip(sc.cross,'📈 크로스','cross','#0ea5e9',(_smiOn(cfg)?'SMI 골든크로스 진입(위 SMI쌍 — 🎚️ 스토캐스틱 모멘텀 ON)':_trixOn(cfg)?'TRIX 골든크로스 진입(위 TRIX쌍 — 🧬 TRIX 크로스 ON)':'MA 골든크로스 진입(위 MA쌍)')+' · 3×3 ON이면 상승장만')
       +_sChip(sc.dc,'🔻 역배 real','dc','#dc2626','레거시 deadcat-real 발동 진입(역배열봉 자동) · ⚠OOS풀 붕괴 관측(L-01·대장)')
@@ -17065,7 +17093,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1767';   // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  window.SX_BUILD='S1768';   // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
