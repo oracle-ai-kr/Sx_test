@@ -3596,6 +3596,7 @@ async function _stratPoolRun(){
     window._stratPoolLast={ mk, sig:_stratComboSig(sc,cfg), ts:Date.now(), agg, trades:allTrades, perStock, openList, slXr:['atrI','slS'], xrLbl:(typeof _STRAT_XR_LBL!=='undefined'?_STRAT_XR_LBL:null),   /* [S1529] 청산사유 어휘를 결과에 각인 — 엔진마다 키가 달라 공용 건강도 함수가 추측하면 안 된다 */ skipped, skippedNoSnap, snapOn, truncated, origN, srcSel, poolFrom:_pl.from, vin:((typeof _snapVinOn==='function'&&_snapVinOn())||null),   /* [S1519] 창 글자(A/B)를 실행 시점에 각인 */
       // [S1430] 라벨이 곧 사실 — 스냅 모드면 모집단이 스냅이라 소스 칩 이름을 적으면 거짓말이 된다(S1406 계열).
       srcLbl:(_pl.from==='snap')?('📂 스냅'+((typeof _snapVinOn==='function'&&_snapVinOn())?('·창'+_snapVinOn()):'')):(srcSel==='rep'?'대표풀':(srcSel==='disc'?'🔬 발굴풀':'⭐관심목록')), nStocks:list.length, desc, feeTag:(sc.fee?('💸왕복 '+sc.feePct+'%p 반영'):'무마찰'), tf:_tfP };   /* [S1658] 어떤 봉으로 돈 결과인지 */
+    try{ _kellyRec(window._stratPoolLast, (typeof _trendSnapState==='function')?_trendSnapState().meta:null); }catch(_e){}   /* [S1774] 🎯 켈리 진단 — 창별 결과 기억(📂최신·🕰창A·🕰창B · 같은 설정 시그) · 표시 전용 */
     out=document.getElementById('sxStratPoolOut');
     if(out) out.innerHTML=_stratPoolHtml(window._stratPoolLast);
   } finally { window._stratPoolBusy=false; }
@@ -3769,6 +3770,130 @@ function _poolGridHtml(r){
     +`<div style="font-size:8px;color:var(--text3);margin:3px 0 0;line-height:1.5">색 규약 — <b style="color:#22c55e">초록</b>=믿을 만함 · <b style="color:#d97706">주황</b>=경계 · <b style="color:#e8365a">빨강</b>=확정 통계 쓰지 말 것. <b>괴리·미청산율은 0에 가까울수록 좋다</b>(괴리는 부호가 아니라 크기). ⚠<b>Δ만 반대</b> — 0 근처가 '칩 무동작' 경고다</div>`
     +(_warn.length?`<div style="font-size:9px;font-weight:800;color:#e8365a;background:#e8365a14;border:1px solid #e8365a55;border-radius:8px;padding:5px 8px;margin:4px 0 2px;line-height:1.5">⚠ 검열 신호 — ${_warn.join(' · ')} · 확정 통계를 읽지 말고 <b>평가포함</b>으로 판단하세요</div>`:'')
 }
+// [S1774] ★★🎯 **켈리 진단 패널(앱)** — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(사용자 결정 2026-10-09: *'켈리진단기를 앱에도 — UI로도 살펴볼 수 있나 해서'* → 추천 1번 *'그렇게하자'* · PREREG_S1774_kelly_app.md).
+//   ★식·판정 = 오프라인 진단기(`offline/bat/meas_s1770_kelly.js` · PREREG_S1770 §2·§3) 그대로 — r = 수수료 뒤 pnl/100 · p·W·L(r≤0 = 손실) · b = W/L · f* = p − q/b(손실 0 → +∞ · 이익 0 → −∞) ·
+//     90% 구간 = 부트스트랩 2000회 정렬 뒤 s[100]·s[1899](mulberry32) · 판정: n<30 표본 부족 · 구간 위끝<0 그리고 창(n≥10) 2개 이상에서 f*<0 → 음수 확정 · 대칭 → 양수 확정 · 그 밖 보류.
+//   ★창 — 앱 풀 BT 는 한 번에 한 창이다. 📂스냅(창 OFF) = 최신 · 🕰창A · 🕰창B(snap_manifest vintageSets — 오프라인과 같은 파일). **같은 설정**(시장 + `_stratComboSig` — 칩·값·봉·수수료가 다 들어 있다)으로 돈
+//     창별 결과를 기억했다가(메모리 + localStorage 최근 3세트) 셋이 모이면 **창 3개 합**으로 판정한다. 그 전엔 지금 결과만으로 f*·구간 · 배지 '구간 참고'. 🔴라이브 결과는 창으로 세지 않는다.
+//   ⚠표시 전용 — 매매·발동 조건·풀 BT 합산은 하나도 안 바꾼다(`_stratPoolRun` 은 기록 한 줄 · `_stratPoolHtml` 은 패널 한 덩이). 펼칠 때만 계산한다(부트스트랩이 무겁다).
+//   ⚠오프라인과 다를 수밖에 없는 것: 모집단(260봉 이상 · 앞 130종 컷) · 난수 줄기(오프라인은 64줄이 한 줄기를 이어 쓰고, 앱은 **줄마다 새 줄기** 시드 1770 — 줄끼리 독립). 식·판정 규칙은 같다(배터리가 오프라인 줄기를 물려 S1773 산출 64줄을 글자 그대로 재현).
+//   ⚠f* 는 비중 추천이 아니다 — 진입원의 엣지가 0보다 큰지를 보는 진단(사이징은 PREREG_S1770 2단계 · 보류).
+const _KELLY_B=2000, _KELLY_SEED=1770, _KELLY_LS='sxKellyWin_v1', _KELLY_KEEP=3;
+const _KELLY_WINS=[['L','\u{1F4C2}최신'],['A','\u{1F570}창A'],['B','\u{1F570}창B']];
+const _KELLY_ORDER=['trend','reentry','deadcat','pullback','cell','range','bullvol'];   // `_stratBreakdownHtml` 진입원별 칩과 같은 순서
+function _kellyRng(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function _kellyStat(rs){
+  const n=rs.length; if(!n) return { n:0 };
+  let nw=0,sw=0,sl=0,s=0,s2=0; for(const r of rs){ s+=r; s2+=r*r; if(r>0){ nw++; sw+=r; } else sl+=-r; }
+  const p=nw/n, q=1-p, W=nw?sw/nw:0, L=(n-nw)?sl/(n-nw):0, mu=s/n, v=s2/n-mu*mu;
+  let f,b; if(n-nw===0){ f=Infinity; b=Infinity; } else if(nw===0){ f=-Infinity; b=0; } else { b=W/L; f=p-q/b; }
+  return { n, p, W, L, b, f, mu, fc:(v>0?mu/v:null) };
+}
+// 부트스트랩 — 뽑는 순서·누적 순서가 오프라인 `bootCI`(뽑은 배열을 `kelly` 에 넘김)와 같아 결과가 비트 단위로 같다(배열을 안 만들 뿐).
+function _kellyBoot(rs, rnd){
+  const n=rs.length, B=_KELLY_B, fs=new Array(B);
+  for(let k=0;k<B;k++){ let nw=0,sw=0,sl=0; for(let i=0;i<n;i++){ const r=rs[Math.floor(rnd()*n)]; if(r>0){ nw++; sw+=r; } else sl+=-r; }
+    let f; if(n-nw===0) f=Infinity; else if(nw===0) f=-Infinity; else { const p=nw/n, q=1-p, W=sw/nw, L=sl/(n-nw), b=W/L; f=p-q/b; } fs[k]=f; }
+  fs.sort((a,b)=>a-b); return [fs[Math.floor(0.05*B)], fs[Math.ceil(0.95*B)-1]];
+}
+function _kellyVerdict(nAll, ci, perWin){
+  if(nAll<30) return '표본 부족';
+  const ws=perWin.filter(w=>w.n>=10);
+  if(ci[1]<0 && ws.filter(w=>w.f<0).length>=2) return '음수 확정';
+  if(ci[0]>0 && ws.filter(w=>w.f>0).length>=2) return '양수 확정';
+  return '보류';
+}
+// 창 기억 — { v:1, sets:{ '시장|시그': { mk, ts, w:{ L|A|B: { ts, n, file, fe, k:[진입원…], s:'진입원 번호 글자열', p:[pnl…], os, op } } } } }
+let _kellyMem=null; const _kellyCache={}, _kellyRefs={}; let _kellySeq=0;
+function _kellyLoad(){ if(_kellyMem) return _kellyMem; let o=null; try{ o=JSON.parse(localStorage.getItem(_KELLY_LS)||'null'); }catch(_e){ o=null; } _kellyMem=(o&&typeof o==='object'&&o.v===1&&o.sets&&typeof o.sets==='object')?o:{ v:1, sets:{} }; return _kellyMem; }
+function _kellySave(){ const m=_kellyLoad(); Object.keys(m.sets).sort((a,b)=>(m.sets[b].ts||0)-(m.sets[a].ts||0)).slice(_KELLY_KEEP).forEach(k=>{ delete m.sets[k]; }); try{ localStorage.setItem(_KELLY_LS, JSON.stringify(m)); }catch(_e){} }
+function _kellyWinOf(r){ if(!r||!r.snapOn||r.poolFrom!=='snap') return null; if(!r.vin) return 'L'; return (r.vin==='A'||r.vin==='B')?r.vin:null; }
+function _kellyFeOf(r){ try{ return +(JSON.parse(r.sig).fe)||0; }catch(_e){ return 0; } }
+function _kellyRec(r, meta){
+  const w=_kellyWinOf(r); if(!w||!r.sig||!(r.trades&&r.trades.length)) return false;
+  if(w!=='L' && !(meta&&meta.vintage)) return false;   // 창이 켜졌는데 주입된 스냅이 빈티지가 아니면 안 센다(창 오라벨 차단)
+  if(w==='L' && meta && meta.vintage) return false;     // 창 OFF 인데 빈티지가 주입돼 있으면 안 센다
+  const keys=[], idx={}, code=s=>{ s=s||'?'; if(!(s in idx)){ idx[s]=keys.length; keys.push(s); } return String.fromCharCode(48+idx[s]); };
+  let ts='', os=''; const tp=[], op=[];
+  r.trades.forEach(t=>{ ts+=code(t.src); tp.push(+t.pnl); }); (r.openList||[]).forEach(o=>{ os+=code(o.src); op.push(+o.pnl); });
+  const m=_kellyLoad(), k=r.mk+'|'+r.sig, S=m.sets[k]||(m.sets[k]={ mk:r.mk, ts:0, w:{} }), t0=r.ts||Date.now();
+  S.ts=t0; S.w[w]={ ts:t0, n:r.nStocks||0, file:(meta&&meta.file)||'', fe:_kellyFeOf(r), k:keys, s:ts, p:tp, os, op };
+  _kellySave(); return true;
+}
+function _kellyUnpack(e, open){ const s=open?e.os:e.s, p=open?e.op:e.p, out=[]; for(let i=0;i<p.length;i++) out.push([e.k[s.charCodeAt(i)-48], p[i]]); return out; }
+function _kellyPrep(r){
+  const m=_kellyLoad(), key=r.mk+'|'+r.sig, S=m.sets[key]||null, cur=_kellyWinOf(r);
+  const have=_KELLY_WINS.map(x=>x[0]).filter(w=>!!(S&&S.w[w]));
+  const mode=(cur===null)?'live':((have.length===3)?'3w':'1w');
+  const all=[], opn=[];
+  if(mode==='3w'){ _KELLY_WINS.forEach(([w])=>{ const e=S.w[w]; _kellyUnpack(e,false).forEach(t=>all.push([t[0], t[1], w])); _kellyUnpack(e,true).forEach(t=>opn.push([t[0], +(t[1]-e.fe).toFixed(2)])); }); }
+  else { const fe=_kellyFeOf(r); (r.trades||[]).forEach(t=>all.push([t.src||'?', +t.pnl, cur||'-'])); (r.openList||[]).forEach(o=>opn.push([o.src||'?', +(o.pnl-fe).toFixed(2)])); }
+  const seen=[]; all.forEach(t=>{ if(seen.indexOf(t[0])<0) seen.push(t[0]); });
+  const srcs=_KELLY_ORDER.filter(s=>seen.indexOf(s)>=0).concat(seen.filter(s=>_KELLY_ORDER.indexOf(s)<0).sort()).concat(['ALL']);
+  const ck=key+'|'+mode+'|'+((mode==='3w')?_KELLY_WINS.map(([w])=>S.w[w].ts).join(','):(r.ts||0));
+  return { r, key, S, cur, have, mode, all, opn, srcs, ck };
+}
+function _kellyRow(P, src){
+  const sel=P.all.filter(t=>src==='ALL'||t[0]===src), rs=sel.map(t=>t[1]/100), K=_kellyStat(rs);
+  const perWin=(P.mode==='3w')?_KELLY_WINS.map(([w])=>{ const x=_kellyStat(sel.filter(t=>t[2]===w).map(t=>t[1]/100)); return { win:w, n:x.n, f:x.n?x.f:null }; }):null;
+  const ci=(K.n>=30)?_kellyBoot(rs, _kellyRng(_KELLY_SEED)):null;   // 줄마다 새 줄기(시드 1770) — 줄끼리 독립
+  const op=P.opn.filter(t=>src==='ALL'||t[0]===src), KM=_kellyStat(rs.concat(op.map(t=>t[1]/100)));   // 열린 포지션 포함(판정에 안 씀)
+  const verdict=(src==='ALL')?null:((P.mode==='3w')?_kellyVerdict(K.n, ci||[NaN,NaN], perWin):((K.n<30)?'표본 부족':'구간 참고'));
+  return { src, n:K.n, p:K.p, W:K.W, L:K.L, b:K.b, f:K.f, mu:K.mu, ci, perWin, verdict, nOpen:op.length, fMtm:KM.f };
+}
+function _kellyCalc(r){ const P=_kellyPrep(r); P.rows=P.srcs.map(s=>_kellyRow(P,s)); return P; }
+const _kellyPc=x=>(x==null||(typeof x==='number'&&isNaN(x)))?'—':(x===Infinity?'∞':(x===-Infinity?'−∞':((x*100).toFixed(1))));
+function _kellyWinLbl(w){ const e=_KELLY_WINS.find(x=>x[0]===w); return e?e[1]:''; }
+function _kellySumTxt(P, rows){
+  let t='▸ \u{1F3AF} 켈리 진단 · '+((P.mode==='3w')?'3창 판정':((P.mode==='1w')?('창 '+P.have.length+'/3 · 구간 참고'):'🔴라이브 · 구간 참고'));
+  if(rows&&P.mode==='3w'){ const c=v=>rows.filter(x=>x.verdict===v).length; t+=' · '+(c('음수 확정')?'⛔':'')+'음수 확정 '+c('음수 확정')+' · 보류 '+c('보류')+' · 양수 확정 '+c('양수 확정')+(c('표본 부족')?(' · 표본 부족 '+c('표본 부족')):''); }
+  return t;
+}
+function _kellyRowsHtml(P, rows){
+  const BAD={ '음수 확정':'#dc2626', '양수 확정':'#16a34a', '보류':'#d97706', '표본 부족':'#94a3b8', '구간 참고':'#64748b' };
+  const pos=x=>((Math.max(-1,Math.min(1,x))+1)*50);   // f* −100% ~ +100% → 막대 0 ~ 100
+  const b2=x=>(x===Infinity?'∞':(x==null?'—':(+x).toFixed(2)));
+  const h=rows.map(R=>{
+    const lbl=(R.src==='ALL')?'전체':_stratSrcLbl(R.src), fc=(R.f>0)?'#16a34a':((R.f<0)?'#dc2626':'var(--text2)'), bc=R.verdict?BAD[R.verdict]:null;
+    const badge=R.verdict?`<span style="font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:9px;color:${bc};background:${bc}1f;border:1px solid ${bc}55;white-space:nowrap">${R.verdict}</span>`:'';
+    const seg=R.ci?((R.ci[0]>0)?'#16a34a99':((R.ci[1]<0)?'#dc262699':'#94a3b899')):null;
+    const bar=R.ci?`<div style="position:relative;height:8px;border-radius:4px;background:var(--surface2);margin:4px 0 1px"><div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--text3)"></div><div style="position:absolute;left:${pos(R.ci[0]).toFixed(1)}%;width:${Math.max(0.8,pos(R.ci[1])-pos(R.ci[0])).toFixed(1)}%;top:1px;bottom:1px;border-radius:3px;background:${seg}"></div><div style="position:absolute;left:calc(${pos(R.f).toFixed(1)}% - 2px);top:-1px;width:4px;height:10px;border-radius:2px;background:${fc}"></div></div>`:'';
+    const sub=[];
+    if(R.ci) sub.push('90% ['+_kellyPc(R.ci[0])+', '+_kellyPc(R.ci[1])+']'); else if(R.n<30) sub.push('n<30 — 구간 안 그림');
+    if(R.perWin) sub.push('창별 '+R.perWin.map(w=>_kellyWinLbl(w.win).replace(/^\S*?(최신|창A|창B)$/,'$1')+' '+((w.n>=10)?_kellyPc(w.f):('('+w.n+')'))).join(' · '));
+    if(R.nOpen) sub.push('열림 '+R.nOpen+' 포함 f* '+_kellyPc(R.fMtm)+'%');
+    return `<div style="padding:5px 2px;border-bottom:1px solid var(--border)${R.src==='ALL'?';opacity:.85':''}"><div style="display:flex;align-items:center;gap:5px;font-size:9.5px"><b style="color:var(--text)">${lbl}</b><span style="color:var(--text3)">${R.n}건 · 승 ${_kellyPc(R.p)}% · b ${b2(R.b)}</span><b style="color:${fc};margin-left:auto">f* ${_kellyPc(R.f)}%</b>${badge}</div>${bar}<div style="font-size:8.5px;color:var(--text3)">${sub.join(' · ')}</div></div>`; }).join('');
+  return h+`<div style="font-size:8px;color:var(--text3);margin-top:4px">막대 = f* −100% ~ +100% · 가운데 선 0 · 색 막대 = 90% 구간 · 작은 막대 = f*</div>`;
+}
+function _kellyPanelHtml(r){
+  try{
+    if(!r||!r.trades||!r.trades.length||!r.sig) return '';
+    const P=_kellyPrep(r), id='sxKelly'+(++_kellySeq); _kellyRefs[id]=r; Object.keys(_kellyRefs).slice(0,-10).forEach(k=>{ delete _kellyRefs[k]; });
+    const rows=_kellyCache[P.ck]||null;
+    const chips=_KELLY_WINS.map(([w,l])=>{ const e=P.S&&P.S.w[w]; return `<span style="font-size:8.5px;font-weight:700;padding:2px 7px;border-radius:9px;background:var(--surface2);color:${e?'var(--text2)':'var(--text3)'};border:1px solid ${(w===P.cur)?'#7c3aed':'var(--border)'}">${l} ${e?('✓ '+e.p.length+'건'):'—'}</span>`; }).join('');
+    const miss=_KELLY_WINS.filter(([w])=>!(P.S&&P.S.w[w])).map(x=>x[1]);
+    const modeTxt=(P.mode==='3w')?'<b>3창이 모였다</b> — 창 3개 합 · 오프라인 진단기와 같은 규칙으로 판정'
+      :((P.mode==='1w')?('<b>창 '+P.have.length+'/3</b> — 지금 결과('+_kellyWinLbl(P.cur)+')만 · 구간 참고 · 같은 설정으로 '+miss.join('·')+' 를 돌리면 판정(📂 스냅 제어에서 🕰 창을 바꿔 로드 → ▶ 실행)')
+      :'<b>🔴 라이브 결과</b> — 창으로 세지 않는다 · 이 판만 · 구간 참고(📂 스냅으로 돌리면 창으로 센다)');
+    const foot=`<div style="font-size:8px;color:var(--text3);margin-top:5px;line-height:1.5">f* = p − q/b(r = 수수료 뒤 손익 · 손실 0이면 ∞) · 90% 구간 = 부트스트랩 2000회(줄마다 시드 1770) · 판정은 3창일 때만: 구간 위끝&lt;0 그리고 창 2개 이상(n≥10)에서 f*&lt;0 → 음수 확정 · 대칭 → 양수 확정 · n&lt;30 표본 부족 · 그 밖 보류 · 열린 포지션은 판정에서 뺀다(작은 글씨 = 넣은 값) · <b>비중 추천 아님</b> — 진입원의 엣지가 0보다 큰지를 본다 · 모집단이 260봉 이상·앞 130종이라 오프라인 진단기와 숫자가 조금 다를 수 있다</div>`;
+    return `<details id="${id}" ontoggle="if(this.open&&window._kellyFill)_kellyFill('${id}')" style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #7c3aed55;background:#7c3aed18;color:#7c3aed;cursor:pointer;list-style:none">${_kellySumTxt(P, rows)}</summary>`
+      +`<div style="margin-top:5px;padding:7px 8px;border:1px solid var(--border);border-radius:10px"><div style="font-size:9.5px;font-weight:800;color:var(--text2);margin-bottom:4px">\u{1F3AF} 켈리 진단 — 진입원별 엣지 f* <span style="font-weight:500;color:var(--text3)">(비중 추천 아님)</span></div>`
+      +`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">${chips}</div><div style="font-size:8.5px;color:var(--text2);margin-bottom:4px;line-height:1.5">${modeTxt}</div>`
+      +`<div data-kbody="1">${rows?_kellyRowsHtml(P, rows):'<div style="font-size:9px;color:var(--text3);padding:3px 0">펼치면 계산합니다(진입원마다 부트스트랩 2000회)…</div>'}</div>${foot}</div></details>`;
+  }catch(_e){ return ''; }
+}
+async function _kellyFill(id){
+  const el=(typeof document!=='undefined')?document.getElementById(id):null, r=_kellyRefs[id]; if(!el||!r) return;
+  if(el.getAttribute('data-kdone')==='1'||el.getAttribute('data-kbusy')==='1') return;
+  el.setAttribute('data-kbusy','1'); const body=el.querySelector('[data-kbody]');
+  try{ const P=_kellyPrep(r); let rows=_kellyCache[P.ck];
+    if(!rows){ rows=[]; for(let i=0;i<P.srcs.length;i++){ if(body) body.innerHTML='<div style="font-size:9px;color:var(--text3);padding:3px 0">⏳ '+(i+1)+'/'+P.srcs.length+' '+((P.srcs[i]==='ALL')?'전체':_stratSrcLbl(P.srcs[i]))+' 계산 중…</div>'; await new Promise(res=>setTimeout(res,0)); rows.push(_kellyRow(P, P.srcs[i])); }
+      _kellyCache[P.ck]=rows; Object.keys(_kellyCache).slice(0,-20).forEach(k=>{ delete _kellyCache[k]; }); }
+    if(body) body.innerHTML=_kellyRowsHtml(P, rows); const sm=el.querySelector('summary'); if(sm) sm.innerHTML=_kellySumTxt(P, rows); el.setAttribute('data-kdone','1');
+  }catch(e){ if(body) body.innerHTML='<div style="font-size:9px;color:#dc2626">켈리 진단 실패: '+String(e&&e.message||e).replace(/</g,'&lt;')+'</div>'; }
+  finally{ el.removeAttribute('data-kbusy'); }
+}
+if(typeof window!=='undefined'){ window._kellyFill=_kellyFill; }
 function _stratPoolHtml(r){
   const a=r.agg||{n:0};
   if(!a.n) return '<div style="font-size:9.5px;color:var(--text3);padding:4px 0">'+r.srcLbl+' '+r.nStocks+'종목 · 거래 0건 (스킵 '+r.skipped+') — 조합·풀을 바꿔보세요.</div>';
@@ -3795,7 +3920,7 @@ function _stratPoolHtml(r){
   const rowsH=ps.map(s=>`<div style="display:flex;justify-content:space-between;font-size:9.5px;padding:3px 2px;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">${s.name} <span style="color:var(--text3)">${s.n}건·승${s.wr}%</span></span><b style="color:${s.tp>=0?'#22c55e':'#e8365a'}">${s.tp>=0?'+':''}${s.tp}%</b></div>`).join('');
   const det=ps.length?`<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #0ea5e955;background:#0ea5e918;color:#0ea5e9;cursor:pointer;list-style:none">▸ 종목별 복리 (${ps.length}) 펼치기</summary><div style="max-height:230px;overflow-y:auto;margin-top:4px">${rowsH}</div></details>`:'';
   const nt=`<div style="font-size:8.5px;color:#d97706;margin-top:6px;line-height:1.5">합산=거래 단위 · in-sample·${r.snapOn?'냉동':'라이브'} 캔들 [${r.tf?(_poolTfLbl(r.tf)+' '):''}600봉] · 풀=선택된 목록(선택·생존 편향) · ${r.feeTag} · MDD는 종목별 개념이라 합산 생략</div>`;
-  return head+btns+desc+grid+incl+bd+op+det+disc+nt;   // [S1391] incl=평가포함 줄 · disc=발굴풀 각주 · [S1520] btns=복사 버튼 행
+  return head+btns+desc+grid+incl+bd+_kellyPanelHtml(r)+op+det+disc+nt;   /* [S1774] 🎯 켈리 진단 패널(접힘 · 펼칠 때 계산) — 진입원별 줄 바로 아래 */   // [S1391] incl=평가포함 줄 · disc=발굴풀 각주 · [S1520] btns=복사 버튼 행
 }
 function _stratPoolJson(){
   const r=window._stratPoolLast; if(!r){ return; }
@@ -17102,7 +17227,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1773';   // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  window.SX_BUILD='S1774';   // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
