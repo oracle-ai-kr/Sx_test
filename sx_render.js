@@ -3831,7 +3831,7 @@ function _kellyPrep(r){
   const seen=[]; all.forEach(t=>{ if(seen.indexOf(t[0])<0) seen.push(t[0]); });
   const srcs=_KELLY_ORDER.filter(s=>seen.indexOf(s)>=0).concat(seen.filter(s=>_KELLY_ORDER.indexOf(s)<0).sort()).concat(['ALL']);
   const ck=key+'|'+mode+'|'+((mode==='3w')?_KELLY_WINS.map(([w])=>S.w[w].ts).join(','):(r.ts||0));
-  return { r, key, S, cur, have, mode, all, opn, srcs, ck };
+  return { r, key, S, cur, have, mode, all, opn, srcs, ck, frozen:!!r.snapOn };   /* [S1775] frozen — 창으로 안 세는 판이 냉동(소스 칩 풀)인지 라이브인지 가른다 */
 }
 function _kellyRow(P, src){
   const sel=P.all.filter(t=>src==='ALL'||t[0]===src), rs=sel.map(t=>t[1]/100), K=_kellyStat(rs);
@@ -3845,7 +3845,7 @@ function _kellyCalc(r){ const P=_kellyPrep(r); P.rows=P.srcs.map(s=>_kellyRow(P,
 const _kellyPc=x=>(x==null||(typeof x==='number'&&isNaN(x)))?'—':(x===Infinity?'∞':(x===-Infinity?'−∞':((x*100).toFixed(1))));
 function _kellyWinLbl(w){ const e=_KELLY_WINS.find(x=>x[0]===w); return e?e[1]:''; }
 function _kellySumTxt(P, rows){
-  let t='▸ \u{1F3AF} 켈리 진단 · '+((P.mode==='3w')?'3창 판정':((P.mode==='1w')?('창 '+P.have.length+'/3 · 구간 참고'):'🔴라이브 · 구간 참고'));
+  let t='▸ \u{1F3AF} 켈리 진단 · '+((P.mode==='3w')?'3창 판정':((P.mode==='1w')?('창 '+P.have.length+'/3 · 구간 참고'):(P.frozen?'📂냉동·소스 풀 · 구간 참고':'🔴라이브 · 구간 참고')));
   if(rows&&P.mode==='3w'){ const c=v=>rows.filter(x=>x.verdict===v).length; t+=' · '+(c('음수 확정')?'⛔':'')+'음수 확정 '+c('음수 확정')+' · 보류 '+c('보류')+' · 양수 확정 '+c('양수 확정')+(c('표본 부족')?(' · 표본 부족 '+c('표본 부족')):''); }
   return t;
 }
@@ -3874,7 +3874,7 @@ function _kellyPanelHtml(r){
     const miss=_KELLY_WINS.filter(([w])=>!(P.S&&P.S.w[w])).map(x=>x[1]);
     const modeTxt=(P.mode==='3w')?'<b>3창이 모였다</b> — 창 3개 합 · 오프라인 진단기와 같은 규칙으로 판정'
       :((P.mode==='1w')?('<b>창 '+P.have.length+'/3</b> — 지금 결과('+_kellyWinLbl(P.cur)+')만 · 구간 참고 · 같은 설정으로 '+miss.join('·')+' 를 돌리면 판정(📂 스냅 제어에서 🕰 창을 바꿔 로드 → ▶ 실행)')
-      :'<b>🔴 라이브 결과</b> — 창으로 세지 않는다 · 이 판만 · 구간 참고(📂 스냅으로 돌리면 창으로 센다)');
+      :(P.frozen?'<b>📂 냉동 · 소스 칩 풀</b> — 캔들은 스냅인데 모집단이 스냅 종목이 아니다(스냅 모집단을 못 얻어 소스 칩 풀로 돌았다) · 창으로 세지 않는다 · 이 판만 · 구간 참고':'<b>🔴 라이브 결과</b> — 창으로 세지 않는다 · 이 판만 · 구간 참고(📂 스냅으로 돌리면 창으로 센다)'));
     const foot=`<div style="font-size:8px;color:var(--text3);margin-top:5px;line-height:1.5">f* = p − q/b(r = 수수료 뒤 손익 · 손실 0이면 ∞) · 90% 구간 = 부트스트랩 2000회(줄마다 시드 1770) · 판정은 3창일 때만: 구간 위끝&lt;0 그리고 창 2개 이상(n≥10)에서 f*&lt;0 → 음수 확정 · 대칭 → 양수 확정 · n&lt;30 표본 부족 · 그 밖 보류 · 열린 포지션은 판정에서 뺀다(작은 글씨 = 넣은 값) · <b>비중 추천 아님</b> — 진입원의 엣지가 0보다 큰지를 본다 · 모집단이 260봉 이상·앞 130종이라 오프라인 진단기와 숫자가 조금 다를 수 있다</div>`;
     return `<details id="${id}" ontoggle="if(this.open&&window._kellyFill)_kellyFill('${id}')" style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #7c3aed55;background:#7c3aed18;color:#7c3aed;cursor:pointer;list-style:none">${_kellySumTxt(P, rows)}</summary>`
       +`<div style="margin-top:5px;padding:7px 8px;border:1px solid var(--border);border-radius:10px"><div style="font-size:9.5px;font-weight:800;color:var(--text2);margin-bottom:4px">\u{1F3AF} 켈리 진단 — 진입원별 엣지 f* <span style="font-weight:500;color:var(--text3)">(비중 추천 아님)</span></div>`
@@ -5855,6 +5855,7 @@ function _trendRenderInner(){
     // [S1430] ★스냅 모드에서는 소스 칩이 무시된다 — 켜 보이면 거짓말이다(S1406 · S1427과 같은 처리).
     const _pso=(function(){ try{ return !!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode()); }catch(_e){ return false; } })();
     const _psN=(function(){ try{ return (_stratPoolList(market).list||[]).length; }catch(_e){ return 0; } })();
+    const _psSnap=(function(){ try{ return _stratPoolList(market).from==='snap'; }catch(_e){ return false; } })();   /* [S1775] '(스냅)' 은 실제로 스냅 모집단일 때만 — 못 얻으면 소스 칩 풀로 폴백한 수다(라벨이 곧 사실 · S1430) */
     const _psSet=(_pso&&typeof _snapVinOn==='function')?(_snapVinOn()||''):'';
     const _plq=window._stratPoolLast;
     const _plMine=!!(_plq && _plq.mk===market);
@@ -5867,7 +5868,7 @@ function _trendRenderInner(){
       +`<span onclick="_sxVib(10);window._stratPoolRun&&_stratPoolRun()" style="font-size:9.5px;font-weight:800;padding:4px 12px;border-radius:10px;cursor:pointer;background:#7c3aed;color:#fff">▶ 실행</span>`
       /* [S1520] 거래 JSON·결과 한 줄 버튼은 결과 머리(_stratPoolHtml)로 이동 — 툴바는 실행 후 재렌더되지 않아 버튼이 안 보였다 */
       +`</div>`
-      +`<div style="font-size:8.5px;font-weight:700;color:${_pso?'#7c3aed':'var(--text3)'};line-height:1.5;margin:4px 0 0">● 진단 · snapMode()=${_pso?'true':'false'}${_psSet?(' · 창'+_psSet):''} · 모집단 ${_psN}종${_pso?'(스냅)':''}${_pso?' · 위 소스 칩은 무시됩니다':' · 스냅은 \uD83D\uDCC8 MA 크로스 탭에서 로드'}</div>`
+      +`<div style="font-size:8.5px;font-weight:700;color:${_pso?'#7c3aed':'var(--text3)'};line-height:1.5;margin:4px 0 0">● 진단 · snapMode()=${_pso?'true':'false'}${_psSet?(' · 창'+_psSet):''} · 모집단 ${_psN}종${_pso?(_psSnap?'(스냅)':'(⚠스냅 모집단 못 얻음 — 소스 칩 풀)'):''}${_pso?(_psSnap?' · 위 소스 칩은 무시됩니다':' · 아래 결과는 소스 칩 풀 + 냉동 캔들'):' · 스냅은 \uD83D\uDCC8 MA 크로스 탭에서 로드'}</div>`
       +`<div id="sxStratPoolOut">${_plMine?((_plStale?`<div style="font-size:9px;color:#d97706;margin-top:5px">⚠ 조합이 바뀜 — 아래는 이전 설정(${_plq.desc}) 결과 · ▶ 재실행</div>`:'')+_stratPoolHtml(_plq)):`<div style="font-size:9px;color:var(--text3);margin-top:5px">현 조합을 풀 전체에 돌려 합산 — n=1 일화 탈출 · 첫 실행만 무겁고(종목당 봉별 스캔) 재실행·조합 변경 후 재실행은 스캔 캐시로 빠름</div>`}</div>`
       +`</div>`;
     const cbSec=(typeof _cbSectionHtml==='function')?_cbSectionHtml(market):'';   // [S1120] 🧺 칸 바구니
@@ -13285,6 +13286,7 @@ async function _snapLoad(mk){
   if(!snap||snap.kind!=='sx_candle_snapshot'||!snap.stocks) return { ok:false, reason:file+' 로드 실패(미커밋? 형식?)' };
   if(snap.mkt!==mk) return { ok:false, reason:file+' 시장 불일치('+snap.mkt+')' };
   if(_SNAP_VIN && !snap.vintage) return { ok:false, reason:file+' 에 vintage 필드 없음 — 빈티지 스냅이 아님(라이브 스냅을 vintage 슬롯에 잘못 등록?)' };   // [S1076] 자기서술 대조
+  try{ var _pkS=(snap.poolKind==='oos')?'oos':'disc'; Object.keys(snap.stocks).forEach(function(c){ var _st=snap.stocks[c]; if(_st&&!_st.src) _st.src=_pkS; }); }catch(_e){}   /* [S1775] ★최신 스냅(snap_kr·snap_us)은 종목 src 가 없어 `snapSrc` 에 소속이 안 적혔다 → `_trendSnapPool` null → 소스 칩 풀로 조용히 폴백(사용자 실기기: '🔬 발굴풀 130/200 · 스냅 미수록 7'). src 없는 종목에 poolKind(기본 disc — 아래 메타와 같은 기본값)를 채운다 · src 가 있는 파일(창A·창B·코인)은 그대로 */
   var n=SXCandleBT.snapPreload(mk, snap.tf||'day', snap.stocks, { date:snap.baseDate||'', file:file, vintage:snap.vintage||'', poolKind:snap.poolKind||'disc' });
   if(!n) return { ok:false, reason:file+' 수록 종목 0' };
   // [S1078] 스냅이 합집합이면 측정 풀도 합집합으로 교체(브래킷 28곳 자동 추종) · 아니면 원본 복원
@@ -17227,7 +17229,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1774';   // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  window.SX_BUILD='S1775';   // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
