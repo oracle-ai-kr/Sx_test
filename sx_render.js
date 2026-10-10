@@ -3927,10 +3927,54 @@ function _stratPoolHtml(r){
   const op=(r.openList&&r.openList.length)?`<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #0d948855;background:#0d948818;color:#0d9488;cursor:pointer;list-style:none">▸ 보유중 ${r.openList.length}종 펼치기</summary><div style="font-size:9px;color:var(--text2);margin-top:3px;max-height:180px;overflow-y:auto">${r.openList.map(o=>o.name+'('+(_stratSrcLbl(o.src)||o.src)+' '+(o.pnl>=0?'+':'')+o.pnl+'%·'+o.bars+'봉)').join(' · ')}</div></details>`:'';
   const ps=(r.perStock||[]).filter(s=>s.n>0).sort((x,y)=>y.tp-x.tp);
   const rowsH=ps.map(s=>`<div style="display:flex;justify-content:space-between;font-size:9.5px;padding:3px 2px;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">${s.name} <span style="color:var(--text3)">${s.n}건·승${s.wr}%</span></span><b style="color:${s.tp>=0?'#22c55e':'#e8365a'}">${s.tp>=0?'+':''}${s.tp}%</b></div>`).join('');
-  const det=ps.length?`<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #0ea5e955;background:#0ea5e918;color:#0ea5e9;cursor:pointer;list-style:none">▸ 종목별 복리 (${ps.length}) 펼치기</summary><div style="max-height:230px;overflow-y:auto;margin-top:4px">${rowsH}</div></details>`:'';
+  const det=ps.length?`<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #0ea5e955;background:#0ea5e918;color:#0ea5e9;cursor:pointer;list-style:none">▸ 종목별 복리 (${ps.length}) 펼치기</summary>${_stratExclBoxHtml(r) /* [S1777] 🚫 시즌2 열외 후보 상자 */}<div style="max-height:230px;overflow-y:auto;margin-top:4px">${rowsH}</div></details>`:'';
   const nt=`<div style="font-size:8.5px;color:#d97706;margin-top:6px;line-height:1.5">합산=거래 단위 · in-sample·${r.snapOn?'냉동':'라이브'} 캔들 [${r.tf?(_poolTfLbl(r.tf)+' '):''}600봉] · 풀=선택된 목록(선택·생존 편향) · ${r.feeTag} · MDD는 종목별 개념이라 합산 생략</div>`;
   return head+btns+desc+grid+incl+bd+_kellyPanelHtml(r)+op+det+disc+nt;   /* [S1774] 🎯 켈리 진단 패널(접힘 · 펼칠 때 계산) — 진입원별 줄 바로 아래 */   // [S1391] incl=평가포함 줄 · disc=발굴풀 각주 · [S1520] btns=복사 버튼 행
 }
+// [S1777] ★🚫 **시즌2 열외 후보 내려받기** — 📦 풀 BT '종목별 복리' 펼침 안 상자(사용자 지시 2026-10-10: *'시즌1 종목별복리에서 열외조건에 맞춰 열외종목을 json 으로 내려받아 시즌2 수동 목록에 불러오기'* · PREREG_S1777).
+//   ★식 = 시즌2 워커 `_atExclAuto` 와 같다: n ≥ N ∧ 승률 < W ∧ 복리 ≤ R — 확정 거래 · 수수료 뒤(`_stratBt` totalTrades·winRate·totalPnl = 워커 `_atExclStats` 의 n·winRate·ret 와 같은 정의).
+//   ★입력 정규화도 워커 `_atExclNorm` 과 같다(n 반올림 1~200 · 승률 0~100(0·빈 값 = 기본) · 복리 −100~100) · 기본값 = 워커 `AT_EXCL_RULE_DEF`(10·50·−10) · 고친 값은 기기에 기억.
+//   ⚠시즌1 BT 표본(그 판의 풀·설정·창)이지 시즌2 매매기록이 아니다 — 상자에 적는다. 파일은 시즌2 🚫 진입 열외 카드 '📂 파일 불러오기'가 **코드**를 수동 목록에 더한다(저장은 💾 저장).
+const _SX_EXCL_DEF={ minN:10, maxWin:50, maxRet:-10 }, _SX_EXCL_LS='sxExclRule_v1';
+function _stratExclNorm(o){ const r=Object.assign({}, _SX_EXCL_DEF, (o&&typeof o==='object')?o:{});
+  return { minN:Math.max(1, Math.min(200, Math.round(+r.minN || _SX_EXCL_DEF.minN))), maxWin:Math.max(0, Math.min(100, +r.maxWin || _SX_EXCL_DEF.maxWin)), maxRet:Math.max(-100, Math.min(100, (r.maxRet === 0 || r.maxRet) ? +r.maxRet : _SX_EXCL_DEF.maxRet)) }; }
+function _stratExclRule(){ let o=null; try{ o=JSON.parse(localStorage.getItem(_SX_EXCL_LS)||'null'); }catch(_e){ o=null; } return _stratExclNorm(o); }
+function _stratExclPick(perStock, rule){ const out=[];
+  (perStock||[]).forEach(s=>{ if(!s||!s.code) return; const n=+s.n||0, wr=+s.wr, tp=+s.tp; if(n>=rule.minN && wr<rule.maxWin && tp<=rule.maxRet) out.push({ code:String(s.code), name:String(s.name||s.code), n, wr, tp }); });
+  return out.sort((a,b)=>(a.tp-b.tp)||(a.code<b.code?-1:(a.code>b.code?1:0))); }
+const _stratExclEsc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+function _stratExclCntTxt(it){ return '→ <b>'+it.length+'종</b>'; }
+function _stratExclListTxt(it){ if(!it.length) return '조건에 맞는 종목 없음';
+  return it.slice(0,30).map(x=>_stratExclEsc(x.name)+' <span style="opacity:.7">'+_stratExclEsc(x.code)+'</span> '+x.n+'건·승'+x.wr+'%·<b style="color:#dc2626">'+(x.tp>0?'+':'')+x.tp+'%</b>').join(' · ')+(it.length>30?(' · 외 '+(it.length-30)+'종'):''); }
+function _stratExclBoxHtml(r){ try{
+  if(!r||!Array.isArray(r.perStock)) return '';
+  const R=_stratExclRule(), it=_stratExclPick(r.perStock, R);
+  const inp=(id,v,w,st)=>`<input id="${id}" type="number" value="${v}" step="${st}" oninput="window._stratExclUpd&&_stratExclUpd()" style="width:${w}px;padding:2px 4px;font-size:10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text)">`;
+  return `<div id="sxExclBox" style="margin:5px 0 4px;padding:6px 8px;border:1px dashed #b91c1c66;border-radius:8px;font-size:9.5px;color:var(--text2)">`
+    +`<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><b style="color:#b91c1c">🚫 시즌2 열외 후보</b> n≥${inp('sxExclN',R.minN,40,1)} 승률&lt;${inp('sxExclW',R.maxWin,44,0.1)}% 복리≤${inp('sxExclR',R.maxRet,50,0.1)}% <span id="sxExclCnt">${_stratExclCntTxt(it)}</span>`
+    +`<span onclick="_sxVib(9);window._stratExclDl&&_stratExclDl()" style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:10px;cursor:pointer;background:#b91c1c;color:#fff;margin-left:auto">📥 JSON</span></div>`
+    +`<div id="sxExclList" style="font-size:9px;color:var(--text3);margin-top:3px;line-height:1.5">${_stratExclListTxt(it)}</div>`
+    +`<div style="font-size:8.5px;color:var(--text3);margin-top:3px;line-height:1.45">시즌2 🚫 진입 열외 자동 규칙과 같은 식(n≥N ∧ 승률&lt;W ∧ 복리≤R · 확정 거래 · 수수료 뒤) · ⚠ 이 판의 시즌1 BT 표본(${_stratExclEsc(r.srcLbl||'')} ${r.nStocks||0}종)이라 시즌2 매매기록과 다르다 · 내려받은 파일은 시즌2 🚫 진입 열외 카드 '📂 파일 불러오기'로 수동 목록에 더한 뒤 💾 저장</div></div>`;
+ }catch(_e){ return ''; } }
+function _stratExclUpd(){ try{
+  const g=id=>{ const e=document.getElementById(id); return e?e.value:''; };
+  try{ localStorage.setItem(_SX_EXCL_LS, JSON.stringify({ minN:g('sxExclN'), maxWin:g('sxExclW'), maxRet:g('sxExclR') })); }catch(_e){}
+  const R=_stratExclRule(), r=window._stratPoolLast, it=(r&&r.perStock)?_stratExclPick(r.perStock, R):[];
+  const c=document.getElementById('sxExclCnt'); if(c) c.innerHTML=_stratExclCntTxt(it); const l=document.getElementById('sxExclList'); if(l) l.innerHTML=_stratExclListTxt(it);
+ }catch(_e){} }
+function _stratExclPayload(r, R, it){ return { kind:'sx_entry_exclude', ver:1, mk:r.mk, build:((typeof window!=='undefined'&&window.SX_BUILD)||''), ts:new Date().toISOString(),
+  rule:{ minN:R.minN, maxWin:R.maxWin, maxRet:R.maxRet, expr:'n≥minN ∧ 승률<maxWin ∧ 복리≤maxRet (확정 거래 · 수수료 뒤)' },
+  source:{ tab:'🧪 전략 조합 📦 풀 BT', pool:r.srcLbl||'', nStocks:r.nStocks||0, vin:r.vin||null, snapKind:r.snapKind||null, tf:r.tf||'', desc:r.desc||'', fee:r.feeTag||'', sig:r.sig||'', runAt:(r.ts?new Date(r.ts).toISOString():null) },
+  items:it }; }
+function _stratExclFname(mk){ const d=new Date(), p=x=>String(x).padStart(2,'0'); return 'sx_exclude_'+mk+'_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'.json'; }
+function _stratExclDl(){ try{
+  const r=window._stratPoolLast; if(!r) return; const R=_stratExclRule(), it=_stratExclPick(r.perStock, R), c=document.getElementById('sxExclCnt');
+  if(!it.length){ if(c) c.innerHTML='→ <b>0종</b> — 내려받을 것 없음'; return; }
+  const blob=new Blob([JSON.stringify(_stratExclPayload(r, R, it),null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=_stratExclFname(r.mk);
+  document.body.appendChild(a); a.click(); setTimeout(function(){ try{ URL.revokeObjectURL(a.href); a.remove(); }catch(_){} },600);
+  if(c) c.innerHTML=_stratExclCntTxt(it)+' · 📥 내려받음';
+ }catch(_e){} }
+if(typeof window!=='undefined'){ window._stratExclUpd=_stratExclUpd; window._stratExclDl=_stratExclDl; }
 function _stratPoolJson(){
   const r=window._stratPoolLast; if(!r){ return; }
   try{
@@ -17238,7 +17282,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1776';   // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  window.SX_BUILD='S1777';   // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
