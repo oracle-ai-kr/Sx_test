@@ -11988,6 +11988,20 @@ function _sxExpCard(outerId, bodyId, titleHtml, rightHtml, bodyHtml){
     + '<div id="' + bodyId + '" style="display:' + (open ? 'block' : 'none') + ';margin-top:10px" data-loaded="1">' + bodyHtml + '</div>'
     + '</div>';
 }
+// [S1783] 🔮 예측 실험도구 — 흩어진 예측 카드를 한 카드로 묶는 프레임(항상 펼침 · 사용자 2026-10-11 '어디까지 실험도구로 명명').
+//   주제: '복합예측이 방향을 맞히는가' — 참고용 예측 점(표본이 작고 공식 데이터가 아님) · BT·판정·시즌2 미반영.
+//   ⚠카드 HTML 은 글자 그대로 안에 넣는다 — 각 카드의 접기·버튼·재렌더(ID 기준 outerHTML 교체)는 위치와 무관(S748·S1202 원칙).
+function _buildPredictLab(inner){
+  return '<div id="sxPredLab" style="margin:14px 0 10px;padding:10px 8px 0;border-radius:14px;border:1px solid #7c3aed55;background:#7c3aed0a">'
+    + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 4px">'
+    + '<span style="font-size:13px;font-weight:800;color:#7c3aed">🔮 예측 실험도구</span>'
+    + '<span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:#7c3aed1a;color:#7c3aed;border:1px solid #7c3aed55">실험도구</span>'
+    + '</div>'
+    + '<div style="font-size:9.5px;font-weight:700;color:var(--text2);margin:4px 4px 0">주제 — 복합예측이 방향을 맞히는가</div>'
+    + '<div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin:2px 4px 8px">참고용 예측 점 · 표본이 작고 공식 데이터가 아니다 · BT·판정·시즌2 미반영 · 정확도 보장 없음<br>모은 것: 🎚️ 이평선 기울기 · 🔮 차트예측 · 🧪 캔들 전이 · 🧪 MA크로스 전이 · 다음: 캔들 패턴 · 추세선(자동) · 🔮 크로스 예측</div>'
+    + inner
+    + '</div>';
+}
 function _cvRunValidation(cid){
   var body=document.getElementById(cid); if(!body) return;
   var ctx=window._sxCVCtx;
@@ -17316,7 +17330,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1782';   // [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  window.SX_BUILD='S1783';   // [S1783] 🔮 예측 실험도구 1단계 — 학습검증 예측 카드 셋 + 교차검증 MA크로스 전이를 한 카드로(계산 무변경) · [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
@@ -22882,7 +22896,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
   } catch (_eMix) {}
 
   // [S748] 깊이카드 3종(MA크로스전이·신호판단검증·C판정검증)을 교차검증 탭(cvDeepCardsHost)으로 이동 — 분석탭 body엔 미포함. cvDeepCardsHost는 analPage2의 정적 컨테이너(항상 DOM 존재·analBody와 형제)라 여기서 주입. 카드 핸들러는 전역+ID기반이라 위치 무관.
-  try { var _cvDeepH = document.getElementById('cvDeepCardsHost'); if(_cvDeepH) _cvDeepH.innerHTML = _buildMaCrossCard(stock, indicators) + _buildValidatorCard(stock, indicators) + _buildVerdictValCard(stock, indicators); } catch(_eCvDeep){}
+  try { var _cvDeepH = document.getElementById('cvDeepCardsHost'); if(_cvDeepH) _cvDeepH.innerHTML = _buildValidatorCard(stock, indicators) + _buildVerdictValCard(stock, indicators); } catch(_eCvDeep){}   /* [S1783] MA크로스 전이 → 학습검증 🔮 예측 실험도구로 이사 */
 
   // ══ [S1202] 실험 카드 탭 이사 — 분석탭(0)은 종목분석 고유만 남긴다 ══
   //   근거: analPage1/2/3은 analBody의 **형제**라 종목분석 렌더가 덮지 않는다(S748 선례와 동일 구조).
@@ -22906,9 +22920,11 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
                           + _buildBadgeInventoryCard(stock, indicators)
                           + _buildRejectArchiveCard(stock, indicators);
     var _h3 = document.getElementById('sxExpHost3');
-    if(_h3) _h3.innerHTML = _buildMaSlopeCard(stock, indicators)   // [S1250] 이사 — kNN 예측 형제 묶음
+    if(_h3) _h3.innerHTML = _buildPredictLab(   // [S1783] 🔮 예측 실험도구 — 예측 카드 넷을 한 카드로(계산 무변경 · 순수 이동)
+                            _buildMaSlopeCard(stock, indicators)   // [S1250] 이사 — kNN 예측 형제 묶음
                           + _buildChartPredictCard(stock, indicators)
-                          + _buildTransitionCard(stock, indicators);
+                          + _buildTransitionCard(stock, indicators)
+                          + (function(){ try{ return _buildMaCrossCard(stock, indicators); }catch(_eMx1783){ console.warn('[S1783] MA크로스 전이 카드 실패', _eMx1783); return ''; } })());   // [S1783] 교차검증에서 이사 · 이 카드가 실패해도 묶음은 그린다
   } catch(_eExpMove){ console.warn('[S1202] 실험카드 주입 실패', _eExpMove); }
 
   body.innerHTML = `
