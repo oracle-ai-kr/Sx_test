@@ -2161,7 +2161,7 @@ function _trendCfg(market){
     // [S1754] 🎚️ SMI 축 — 저장 키 9종(없으면 기본값 = 구 저장본과 호환 · _TREND_CFG_VER 미상승). 둘 다 켜진 저장본은 SMI 로 읽는다(화면이 한 축만 말하게).
     cfg.smiOn=!!o.smiOn; ['smiK','smiD','smiXK','smiXD','smiReK','smiReD'].forEach(function(k){ if(+o[k]>0) cfg[k]=Math.min(400,Math.max(k.slice(-1)==='K'?2:1,Math.round(+o[k]))); }); ['smiS','smiDS'].forEach(function(k){ if(+o[k]>0) cfg[k]=Math.min(100,Math.max(1,Math.round(+o[k]))); }); if(cfg.smiOn) cfg.trixOn=false;
     // [S1564] 크로스 전용 ATR — 불리언 4 + 배수 3(범위는 전략 조합 입력칸과 같은 0.1~20).
-    cfg.xAtr2=!!o.xAtr2; cfg.xSlOn=!!o.xSlOn; cfg.xTrOn=!!o.xTrOn; cfg.xTpOn=!!o.xTpOn; cfg.noCross=!!o.noCross;   /* [S1781] 🚫 크로스 제외(재료만) — 없으면 false(구 저장본 호환 · _TREND_CFG_VER 미상승) */
+    cfg.xAtr2=!!o.xAtr2; cfg.xSlOn=!!o.xSlOn; cfg.xTrOn=!!o.xTrOn; cfg.xTpOn=!!o.xTpOn; cfg.noCrossB=('noCrossB' in o)?!!o.noCrossB:!!o.noCross; cfg.noCrossS=('noCrossS' in o)?!!o.noCrossS:!!o.noCross;   /* [S1782] 쪽별 크로스 제외 — B=진입 · S=청산 · 없으면 S1781 noCross 를 양쪽에 이어받는다 */   /* [S1781] 🚫 크로스 제외(재료만) — 없으면 false(구 저장본 호환 · _TREND_CFG_VER 미상승) */
     cfg.xSlMz=!!o.xSlMz; cfg.xTrMz=!!o.xTrMz; cfg.xTpMz=!!o.xTpMz;   /* [S1743] 구간별 3종(없으면 false = 구 저장본 호환) */
     ['xSlMult','xTrMult','xTpMult','xSlUp','xSlMid','xSlDn','xTrUp','xTrMid','xTrDn','xTpUp','xTpMid','xTpDn'].forEach(function(k){
       cfg[k]=(o[k]!=null && isFinite(+o[k]) && +o[k]>0) ? Math.min(20,Math.max(0.1,+o[k])) : null; }); cfg.atrInit=(+o.atrInit>0)?+o.atrInit:2; cfg.atrTrail=(+o.atrTrail>0)?+o.atrTrail:3; } } } catch(_){}
@@ -4609,14 +4609,15 @@ function _xmatSectionHtml(market){
     // [S1412] 「N개 이상」 입력칸 — 제목행은 접기 토글이라 입력칸은 그 밖에 둔다(누르면 접히면 못 쓴다).
     const _need=_xmatNeed(st, sd, conds.length);
     const _mode=_xmatMode(st, sd), _win=_xmatWin(st, sd);
-    const _noX=!!(typeof _trendCfg==='function' && _trendCfg(market).noCross);   // [S1781] 🚫 크로스 제외 — 결합 버튼 잠김 · 문구 '재료만'
+    const _noX=!!(typeof _trendCfg==='function' && _trendCfg(market)[sd==='buy'?'noCrossB':'noCrossS']);   /* [S1782] 쪽별 */   // [S1781] 🚫 크로스 제외 — 결합 버튼 잠김 · 문구 '재료만'
     const _cross=(sd==='buy')?'골든크로스':'데드크로스';
+    const _xcChip=(on)=>`<span onclick="_sxVib(9);window._trendToggleNoCrossSide&&_trendToggleNoCrossSide('${sd}')" title="[S1782] ${sd==='buy'?'진입':'청산'}에서 ${_cross}를 뺀다 — ${sd==='buy'?'매수 재료 N개 이상이면 진입(골든·🔮예측 진입·재진입·기울기 선진입 끔)':'매도 재료 N개 이상이면 청산(데드·🔮예측 청산 끔 · ⚙️ 게이트 청산은 켠 대로)'} · 다른 쪽은 그대로" style="font-size:10px;font-weight:800;padding:4px 11px;border-radius:12px;cursor:pointer;border:1px ${on?'solid':'dashed'} ${on?col:'var(--border)'};background:${on?(col+'1f'):'var(--surface2)'};color:${on?col:'var(--text3)'}">${on?'☑ 🚫 크로스 제외 — 재료만':'☐ 🚫 크로스 제외'}</span>`;   /* [S1782] 쪽별 칩 — 켜면 그 쪽 결합 버튼은 숨긴다(안 쓰니까) */
     const _modeTxt=_noX ? ((sd==='buy') ? '<b>재료만</b> — 🚫 크로스 제외(재료 N개 이상이면 진입)' : '<b>재료만</b> — 🚫 크로스 제외(재료 N개 이상이면 청산 · ⚙️ 게이트 청산은 켠 대로)') : (sd==='buy')   /* [S1781] */
       ? (_mode==='and' ? '골든크로스 <b>그리고</b> 재료' : '골든크로스 <b>또는</b> 재료 — 재료만으로도 진입')
       : (_mode==='and' ? '데드크로스 <b>그리고</b> 재료 — 재료가 <b>청산 필터</b>(재앙손절은 예외로 항상 발동)' : '데드크로스 <b>또는</b> 재료 — 재료만으로도 청산');
     const _needRow=conds.length?(`<div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap"><span style="font-size:9px;font-weight:800;color:${col}">${conds.length}개 중</span><input type="number" min="1" max="${conds.length}" value="${_need}" inputmode="numeric" onchange="window._xmatNeedSet&&_xmatNeedSet('${sd}',this.value)" style="width:56px;padding:3px;border:1px solid ${col}66;border-radius:6px;font-size:11px;font-weight:800;text-align:center;background:var(--surface);color:var(--text)"><span style="font-size:9px;font-weight:800;color:${col}">개 이상</span><span style="font-size:8.5px;color:var(--text3)">${_need>=conds.length?'(=모두·AND)':(_need<=1?'(=하나라도·OR)':'')}</span>`
       + `<span style="font-size:9px;font-weight:800;color:${col}">· 최근</span><input type="number" min="1" max="20" value="${_win}" inputmode="numeric" onchange="window._xmatWinSet&&_xmatWinSet('${sd}',this.value)" style="width:48px;padding:3px;border:1px solid ${col}66;border-radius:6px;font-size:11px;font-weight:800;text-align:center;background:var(--surface);color:var(--text)"><span style="font-size:9px;font-weight:800;color:${col}">봉 창</span><span style="font-size:8.5px;color:var(--text3)">${_win<=1?'(진입봉 단일)':''}</span></div>`
-      + `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">${_noX?`<span title="[S1781] 🚫 크로스 제외 중 — 결합 방식은 쓰지 않는다(재료가 단독 방아쇠)" style="font-size:10px;font-weight:800;padding:4px 11px;border-radius:12px;border:1px dashed ${col};background:var(--surface2);color:${col}">🚫 크로스 제외 — 재료만</span>`:`<span onclick="_sxVib(9);window._xmatModeSet&&_xmatModeSet('${sd}')" style="font-size:10px;font-weight:800;padding:4px 11px;border-radius:12px;border:1px solid ${col};cursor:pointer;background:${col};color:#fff">${_cross} <b>${_mode==='and'?'AND':'OR'}</b> 재료</span>`}<span onclick=\"_sxVib(9);window._xmatResetAll&&_xmatResetAll(\'${sd}\')\" style=\"font-size:9px;font-weight:800;padding:4px 10px;border-radius:8px;cursor:pointer;background:var(--surface2);color:var(--text);border:1px solid var(--border)\">↺ 기본값</span><span style="font-size:8.5px;color:var(--text3);flex:1 1 100%;line-height:1.4">${_modeTxt}</span></div>`):'';
+      + `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">${_noX?_xcChip(true):(`<span onclick="_sxVib(9);window._xmatModeSet&&_xmatModeSet('${sd}')" style="font-size:10px;font-weight:800;padding:4px 11px;border-radius:12px;border:1px solid ${col};cursor:pointer;background:${col};color:#fff">${_cross} <b>${_mode==='and'?'AND':'OR'}</b> 재료</span>`+_xcChip(false))}<span onclick=\"_sxVib(9);window._xmatResetAll&&_xmatResetAll(\'${sd}\')\" style=\"font-size:9px;font-weight:800;padding:4px 10px;border-radius:8px;cursor:pointer;background:var(--surface2);color:var(--text);border:1px solid var(--border)\">↺ 기본값</span><span style="font-size:8.5px;color:var(--text3);flex:1 1 100%;line-height:1.4">${_modeTxt}</span></div>`):(_noX?`<div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">${_xcChip(true)}<span style="font-size:8.5px;font-weight:800;color:#dc2626;flex:1 1 100%;line-height:1.4">⚠ ${sd==='buy'?'매수 재료 0개 — 거래 0':'매도 재료 0개 — 재료 청산 없음'}</span></div>`:'');   /* [S1782] 0개여도 켜져 있으면 칩 줄(끌 수 있게) */
     // [S1418] ★접었을 때도 **켜진 계열**이 보이게 요약을 제목행에 붙인다.
     //   목적: 스크린샷 한 장으로 설정이 전달된다(사용자 요청 — "무엇이 적용됐는지 알려줄 수 있게").
     //   ⚠계산은 _xmatKindState 그대로다(버튼과 같은 값을 본다 — 한 화면이 두 말을 하지 않게).
@@ -4643,8 +4644,8 @@ function _xmatSectionHtml(market){
     +(openSec?(`<details><summary style="font-size:8.5px;font-weight:700;color:var(--text3);cursor:pointer;list-style:none;margin-top:2px">규약·범위 펼치기</summary>`
     +`<div style="font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:2px">이 카드 BT·상세 모달·<b>📦 풀 전체 BT</b>에 적용 — <b>물타기 진단 미반영</b> · 재료는 250봉 웜업 후 평가(초반 진입 제외) · 임계 기본값=교과서 시작값(측정치 아님) · <b>[S1412] 매수·매도 모두 「N개 이상 충족」</b>(N=전체면 AND · N=1이면 OR) · <b>[S1413] 크로스와의 결합(AND/OR)·최근 N봉 창 선택</b> — <b>[S1422] 기본값</b> — 매수 <b>${_xmatDialDefLabel('buy')}</b> · 매도 <b>${_xmatDialDefLabel('sell')}</b>(종전 S1418까지: 매수 AND·전체·창1 / 매도 OR·1개·창1) · ⚠저장값이 있으면 그대로 이기므로 <b>[↺ 다이얼]</b>을 눌러야 신값이 보인다 · 불리언=방향 정합 재료만 표시 · ⚖ 중립·양의성은 아래 따로 모음 — 전체 어휘 실험은 자유 조합 빌더</div></details>`
     +(pending?`<div style="font-size:9px;color:#7c3aed;margin-top:4px">🧪 재료 스캔 중… (봉별 판정 · 첫 회만 무겁고 임계 수정은 즉시)</div>`:'')
-    +side('buy',openB,bc,'🟢 매수 재료','#16a34a')
-    +side('sell',openS,scc,(typeof _trendCfg==='function' && _trendCfg(market).noCross)?'🔴 매도 재료 — 단독 청산(🚫크로스 제외)':'🔴 매도 재료 — 데드크로스에 추가','#e8365a')   /* [S1781] 크로스 제외면 데드크로스가 없다 */
+    +side('buy',openB,bc,(typeof _trendCfg==='function' && _trendCfg(market).noCrossB)?'🟢 매수 재료 — 단독 진입(🚫크로스 제외)':'🟢 매수 재료','#16a34a')   /* [S1782] */
+    +side('sell',openS,scc,(typeof _trendCfg==='function' && _trendCfg(market).noCrossS)?'🔴 매도 재료 — 단독 청산(🚫크로스 제외)':'🔴 매도 재료 — 데드크로스에 추가','#e8365a')   /* [S1781] 크로스 제외면 데드크로스가 없다 */
     // [S1414] 적용 문구가 재료 98개에서 화면 절반을 먹었다 ⇒ <details>로 접는다. **기본 접힘**(open 속성 없음).
     //   ⚠<details>는 브라우저 기본 동작이라 상태 저장·리렌더 배선이 필요 없다(칩 토글과 달리 _trendRerender를 안 탄다).
     +((bc.length||scc.length)?`<details style="margin-top:5px"><summary style="font-size:8.5px;font-weight:700;color:var(--text3);cursor:pointer;list-style:none">적용 문구 펼치기 <span style="font-weight:500">(매수 ${bc.length} · 매도 ${scc.length})</span></summary><div style="font-size:8.5px;color:var(--text2);margin-top:4px;line-height:1.4">${bc.length?('매수['+bc.map(lbl).join('·')+']'):''}${(bc.length&&scc.length)?' · ':''}${scc.length?('매도['+scc.map(lbl).join('·')+']'):''}</div></details>`:'')):'')
@@ -5040,7 +5041,7 @@ function _trendBt(rows,cfg,bbP,xmFire){   /* [S1406] xmFire=재료 조건 봉맵
       _xmNb=_xnb; _xmNs=_xns; _xmMb=_xmb; _xmMs=_xms;   // [S1412] 요구 개수 · [S1413] 결합 방식(기본 and/or = 구본과 동일)
     }
   }
-  const _noX = !!cfg.noCross;   // [S1781] 🚫 크로스 제외(재료만) — 진입 = 🟢 매수 재료 N개 이상 · 청산 = 🔴 매도 재료 N개 이상(방아쇠 · AND 모드여도 필터 아님) · 골든/데드·🔮예측·재진입·기울기 선진입 끔 · ⚙️ 게이트 청산(ATR·재앙손절·조기청산)은 켠 대로 · 꺼져 있으면 무변경
+  const _noXB = !!cfg.noCrossB, _noXS = !!cfg.noCrossS;   /* [S1782] 쪽별 — B=진입 크로스 제외(골든·🔮예측 진입·재진입·기울기 선진입 끔 · 재료가 유일한 진입원) · S=청산 크로스 제외(데드·🔮예측 청산 끔 · 재료가 방아쇠) · 둘 다 = S1781 크로스 제외와 같은 식 */   // [S1781] 🚫 크로스 제외(재료만) — 진입 = 🟢 매수 재료 N개 이상 · 청산 = 🔴 매도 재료 N개 이상(방아쇠 · AND 모드여도 필터 아님) · 골든/데드·🔮예측·재진입·기울기 선진입 끔 · ⚙️ 게이트 청산(ATR·재앙손절·조기청산)은 켠 대로 · 꺼져 있으면 무변경
   const auxOk=(i)=>{
     if(_xmB && _xmMb==='and' && (_xmB[i]||0) < _xmNb) return false;   // [S1119→S1412→S1413] 🧪 재료 매수 **N개 이상** · **AND 모드에서만 게이트** (OR 모드면 아래 제5 진입원으로 뺀다) — 진입 전 경로(gc·예측·재진입·기울기) 일괄 게이트 · 웜업 전 봉=차단. N=전체면 종전 AND와 동일.
     if(!need.length) return true;
@@ -5060,7 +5061,7 @@ function _trendBt(rows,cfg,bbP,xmFire){   /* [S1406] xmFire=재료 조건 봉맵
   };
   // 매도(조기청산): 선택 조건 중 하나라도 현재봉에서 참이면 청산 (OR). 미선택 시 false → 데드크로스만.
   const sellHit=(i)=>{
-    if(_xmS && (_xmMs==='or' || _noX /* [S1781] 크로스 제외면 재료가 방아쇠 */) && (_xmS[i]||0) >= _xmNs) return true;   // [S1119→S1412→S1413] 🧪 재료 매도 **N개 이상** · **OR 모드에서만 독립 트리거** (AND 모드면 아래 청산 필터로 쓴다) — 데드크로스에 추가 · 재진입 해제조건(!sellHit)에도 동일 적용. N=1이면 종전 OR와 동일.
+    if(_xmS && (_xmMs==='or' || _noXS /* [S1781] 크로스 제외면 재료가 방아쇠 · [S1782] 청산 쪽 */) && (_xmS[i]||0) >= _xmNs) return true;   // [S1119→S1412→S1413] 🧪 재료 매도 **N개 이상** · **OR 모드에서만 독립 트리거** (AND 모드면 아래 청산 필터로 쓴다) — 데드크로스에 추가 · 재진입 해제조건(!sellHit)에도 동일 적용. N=1이면 종전 OR와 동일.
     if(!sneed.length) return false;
     if(SEL.rsiDc && rsi[i]!=null&&rsiSig[i]!=null&&rsi[i]<rsiSig[i]) return true;
     if(SEL.macdDc && mac.macd[i]!=null&&mac.sig[i]!=null&&mac.macd[i]<mac.sig[i]) return true;
@@ -5166,23 +5167,23 @@ function _trendBt(rows,cfg,bbP,xmFire){   /* [S1406] xmFire=재료 조건 봉맵
   for(let i=1;i<n;i++){
     if(maS[i]==null||maL[i]==null||maS[i-1]==null||maL[i-1]==null) continue;
     const gc = maS[i]>maL[i] && maS[i-1]<=maL[i-1];
-    const dc = !_noX /* [S1781] 크로스 제외면 데드크로스 청산 없음 */ && (maXS[i]!=null&&maXL[i]!=null&&maXS[i-1]!=null&&maXL[i-1]!=null) && maXS[i]<maXL[i] && maXS[i-1]>=maXL[i-1];   // [S820] 청산 = 청산 MA 데드크로스(진입 후 새로 발생한 것만 — 직전봉 비교라 자동)
+    const dc = !_noXS /* [S1781] 크로스 제외면 데드크로스 청산 없음 · [S1782] 청산 쪽 */ && (maXS[i]!=null&&maXL[i]!=null&&maXS[i-1]!=null&&maXL[i-1]!=null) && maXS[i]<maXL[i] && maXS[i-1]>=maXL[i-1];   // [S820] 청산 = 청산 MA 데드크로스(진입 후 새로 발생한 것만 — 직전봉 비교라 자동)
     // [S1554] ★1포지션 구조 — 보유 중이면 아래 진입 분기를 **아예 안 돈다**. 막힌 게 아니라 평가조차 안 된다.
     //   사용자 실기기에서 그 침묵이 드러났다: 6/8부터 보유 중이라 9/3 골든크로스가 화면 어디에도 안 남았다.
     //   ⚠**세기만 한다** — `pos` 게이트도 진입 조건도 한 글자 안 바꿨다(거래·집계 무변경).
     //   ⚠어휘를 정확히 둔다: *'놓친 진입'*이 아니라 **'평가되지 않은 신호'**다 — 보유 중이 아니었어도
     //     `auxOk`·재료 게이트에서 막혔을 수 있고, 이 수는 그것을 구별하지 못한다(지어내지 않는다).
-    if(pos!=null && gc && !_noX /* [S1781] 크로스 제외면 골든크로스는 진입원이 아니다 */) _heldSkipGc++;
+    if(pos!=null && gc && !_noXB /* [S1781] 크로스 제외면 골든크로스는 진입원이 아니다 · [S1782] 진입 쪽 */) _heldSkipGc++;
     if(pos==null){
-      const _pl = (_predOn && !_noX /* [S1781] */) ? _predGc(i) : 0;   // [S624] 0=안함 / 1·2=유효 선행봉
+      const _pl = (_predOn && !_noXB /* [S1781] · [S1782] 진입 쪽 */) ? _predGc(i) : 0;   // [S624] 0=안함 / 1·2=유효 선행봉
       if(_pl>0 && auxOk(i)){ const p=_mkPos(i,false); if(p){ p.pred=true; p.sigIdx=i; p.predLead=_pl; pos=p; } } // [S623/S624] 예측 선행 진입
-      else if(gc && !_noX /* [S1781] */ && auxOk(i)){ const p=_mkPos(i,false); if(p) pos=p; } // [S581] 진입가/진입idx는 _mkPos가 결정
+      else if(gc && !_noXB /* [S1781] · [S1782] 진입 쪽 */ && auxOk(i)){ const p=_mkPos(i,false); if(p) pos=p; } // [S581] 진입가/진입idx는 _mkPos가 결정
       // [S570] 재진입 — 실제 청산 이력(_lastExitIdx>=0) + 정배열 유지(maS>maL) + 청산 후 1봉 대기 + 매도조건 해제 + 매수조건 재충족
-      else if(!_noX /* [S1781] 재진입=재진입 골든크로스 */ && _reOn && _lastExitIdx>=0 && maS[i]>maL[i] && (maReS&&maReL&&maReS[i]!=null&&maReL[i]!=null&&maReS[i-1]!=null&&maReL[i-1]!=null&&maReS[i]>maReL[i]&&maReS[i-1]<=maReL[i-1]) && (i-_lastExitIdx>1) && !sellHit(i) && auxOk(i)){ const p=_mkPos(i,true); if(p) pos=p; }   // [S822] 재진입 = 정배열 유지 + 재진입 골든크로스 발생 + 매도해제 + 매수조건
+      else if(!_noXB /* [S1781] 재진입=재진입 골든크로스 · [S1782] 진입 쪽 */ && _reOn && _lastExitIdx>=0 && maS[i]>maL[i] && (maReS&&maReL&&maReS[i]!=null&&maReL[i]!=null&&maReS[i-1]!=null&&maReL[i-1]!=null&&maReS[i]>maReL[i]&&maReS[i-1]<=maReL[i-1]) && (i-_lastExitIdx>1) && !sellHit(i) && auxOk(i)){ const p=_mkPos(i,true); if(p) pos=p; }   // [S822] 재진입 = 정배열 유지 + 재진입 골든크로스 발생 + 매도해제 + 매수조건
       // [S687] 기울기 조기진입 — 단기MA 상향전환(꺾임→상승) 시 골든크로스(maS>maL) 전에 미리 진입(OR). 확인봉(종가>maS)·쿨다운(1봉)·auxOk. 검증된 기울기 청산의 거울.
       //   pre-cross(maS≤maL)에서만 발화 → "조기". 헛바운스(미확정 중 기울기 재하향)는 청산부에서 컷. 진짜 반등이면 곧 골든크로스 도래 → 확정 후 일반 청산.
       //   [S703] entryRsi ON이면 rsiGc(RSI>시그널)로도 선진입(OR) — 토너먼트 재현 부스트. 같은 게이트(pre-cross·쿨다운·확인봉·auxOk) 공유, 헛바운스 컷도 공유(진입 효과만 분리).
-      else if(!_noX /* [S1781] 크로스 전 선진입 */ && (cfg.entrySlope||cfg.entryRsi) && i>=2 && maS[i-2]!=null && (i-_lastExitIdx>1) && !(maS[i]>maL[i]) && (!cfg.entryConfirm || (pxS[i]!=null && close[i]>pxS[i]))   /* [S1676] 확인봉도 가격 비교 — 실제 MA */ && auxOk(i) && ((cfg.entrySlope && maS[i]>maS[i-1] && maS[i-1]<=maS[i-2]) || (cfg.entryRsi && rsi && rsiSig && rsi[i]!=null && rsiSig[i]!=null && rsi[i]>rsiSig[i]))){ const p=_mkPos(i,false); if(p){ p.slopeEntry=true;
+      else if(!_noXB /* [S1781] 크로스 전 선진입 · [S1782] 진입 쪽 */ && (cfg.entrySlope||cfg.entryRsi) && i>=2 && maS[i-2]!=null && (i-_lastExitIdx>1) && !(maS[i]>maL[i]) && (!cfg.entryConfirm || (pxS[i]!=null && close[i]>pxS[i]))   /* [S1676] 확인봉도 가격 비교 — 실제 MA */ && auxOk(i) && ((cfg.entrySlope && maS[i]>maS[i-1] && maS[i-1]<=maS[i-2]) || (cfg.entryRsi && rsi && rsiSig && rsi[i]!=null && rsiSig[i]!=null && rsi[i]>rsiSig[i]))){ const p=_mkPos(i,false); if(p){ p.slopeEntry=true;
         /* [S1407] ★어느 방아쇠가 당겼는지 갈라 적는다 — 위 조건식은 한 글자도 안 바꿨다(발동·진입 봉 변경 0).
            두 방아쇠는 같은 게이트(pre-cross·쿨다운·확인봉·auxOk)를 공유하지만 **전혀 다른 진입원**이라
            `slopeEntry` 하나로 뭉개면 실기기에서 「조기진입 OFF인데 기울기진입 1129건」이 뜬다(S1406 실측).
@@ -5193,13 +5194,13 @@ function _trendBt(rows,cfg,bbP,xmFire){   /* [S1406] xmFire=재료 조건 봉맵
       // [S1413] 🧪 재료 **OR 모드** — 재료 N개 이상이면 크로스 없이도 진입한다(제5 진입원).
       //   ⚠기존 네 분기는 한 글자도 안 바꿨다. 이 분기는 modeBuy='or'일 때만 열린다(기본은 'and'라 닫혀 있다).
       //   ⚠쿨다운(i-_lastExitIdx>1)과 구 조건칩(auxOk)은 다른 진입원과 동일하게 요구한다.
-      else if(_xmB && (_xmMb==='or' || _noX /* [S1781] 크로스 제외면 재료가 유일한 진입원 */) && (_xmB[i]||0) >= _xmNb && (i-_lastExitIdx>1) && auxOk(i)){
+      else if(_xmB && (_xmMb==='or' || _noXB /* [S1781] 크로스 제외면 재료가 유일한 진입원 · [S1782] 진입 쪽 */) && (_xmB[i]||0) >= _xmNb && (i-_lastExitIdx>1) && auxOk(i)){
         const p=_mkPos(i,false); if(p){ p.xmatEntry=true; pos=p; } }
     }
     else {
       // [S623] 예측 진입 실패 손절 — 유효 선행봉(predLead) 지나도 실제 골든크로스 미확정(maS≤maL) → 청산(헛신호 컷)
       const _predFail = pos.pred && (i-pos.sigIdx>=_LBL) && !(maS[i]>maL[i]);
-      const _predExit = _predOn && !_noX /* [S1781] */ && _predDc(i)>0;   // [S631] 예측 청산 — 데드크로스 임박 시 조기 매도
+      const _predExit = _predOn && !_noXS /* [S1781] · [S1782] 청산 쪽 */ && _predDc(i)>0;   // [S631] 예측 청산 — 데드크로스 임박 시 조기 매도
       // [S675] 종가<MA5(단기MA) 조기청산 — 데드크로스보다 빠른 비대칭 익절. opt-in. 정배열 재진입과 짝.
       const _earlyMa5 = cfg.earlyMa5 && pxS[i]!=null && close[i]<pxS[i]   /* [S1676] 가격 비교라 TRIX 모드에서도 실제 MA를 본다 */;
       // [S678] MA5 기울기 하향 조기청산 — 단기MA가 꺾일 때만(종가<MA5보다 부드러움 · 잠깐 눌림엔 무발화 → 빅위너 덜 죽임)
@@ -5219,7 +5220,7 @@ function _trendBt(rows,cfg,bbP,xmFire){   /* [S1406] xmFire=재료 조건 봉맵
       const _slAtrHit = _a2On1561 && !!cfg.xSlOn && pos.atrEntry>0 && close[i] <= pos.entry - ((pos.slM>0)?pos.slM:_slM1561)*pos.atrEntry;   /* [S1743] */
       const _trAtrHit = _a2On1561 && !!cfg.xTrOn && pos.atrEntry>0 && pos.peak!=null && close[i] <= pos.peak - ((pos.trM>0)?pos.trM:_trM1561)*pos.atrEntry;   /* [S1743] */
       const _tpAtrHit = _a2On1561 && !!cfg.xTpOn && pos.atrEntry>0 && close[i] >= pos.entry + ((pos.tpM>0)?pos.tpM:_tpM1561)*pos.atrEntry;   /* [S1743] */
-      const _xmHold = !!(_xmS && _xmMs==='and' && !_noX /* [S1781] 크로스 제외면 재료는 필터가 아니라 방아쇠 */ && (_xmS[i]||0) < _xmNs && !_disSl);
+      const _xmHold = !!(_xmS && _xmMs==='and' && !_noXS /* [S1781] 크로스 제외면 재료는 필터가 아니라 방아쇠 · [S1782] 청산 쪽 */ && (_xmS[i]||0) < _xmNs && !_disSl);
       if(!_xmHold && (dc || sellHit(i) || _predFail || _predExit || _earlyMa5 || _earlySlope || _disSl || _slopeFail || _slAtrHit || _trAtrHit || _tpAtrHit)){ const _xs1406=(!dc)&&sellHit(i);   /* [S1406] 사유 기록용 — 조건식은 위 그대로(단락평가 보존) · dc가 참이면 재평가하지 않는다(원본과 동일 호출 수 이하) */
         const pnl=((close[i]/pos.entry-1)*100)-_feeP; trades.push({dc:!!dc,xsell:!!_xs1406,xmatEntry:!!pos.xmatEntry,preSlope:!!pos.preSlope,preRsi:!!pos.preRsi,entry:pos.entry,exit:close[i],pnl:+pnl.toFixed(2),bars:i-pos.entryIdx,entryIdx:pos.entryIdx,exitIdx:i,re:!!pos.re,pred:!!pos.pred,predLead:pos.predLead||0,fail:!!_predFail,predExit:!!_predExit,early:!!_earlyMa5,slope:!!_earlySlope,disSl:!!_disSl,slAtr:!!_slAtrHit,trAtr:!!_trAtrHit,tpAtr:!!_tpAtrHit,slopeEntry:!!pos.slopeEntry,slopeFail:!!_slopeFail,entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'',exitDate:(rows[i]&&(rows[i].date||rows[i].t))||''}); if(_mzX){ const _t=trades[trades.length-1]; _t.tz=pos.tz; if(_xSlMz) _t.slM=pos.slM; if(_xTrMz) _t.trM=pos.trM; if(_xTpMz) _t.tpM=pos.tpM; }   /* [S1743] 구간·배수를 거래에(구간별일 때만) */ pos=null; _lastExitIdx=i; }
     }
@@ -5316,7 +5317,7 @@ function _trendState(rows,cfg,bt){
   }
   // [S631] 오늘 예측 청산(데드크로스 임박 조기매도)
   if(bt.predExitNow){ return { label:`🔮 예측 청산 · 오늘 조기 매도 · 데드크로스 미확정 (임박 감지)`, color:'#e8365a' }; }
-  if(cfg.noCross) return { label:'🚫 크로스 제외 · 🧪 재료만 — 보유 없음(매수 재료 N개 이상이면 진입)', color:'var(--text3)' };   // [S1781] 크로스 사실을 진입 신호처럼 읽지 않게
+  if(cfg.noCrossB) return { label:(cfg.noCrossS?'🚫 크로스 제외 · 🧪 재료만':'🚫 진입 크로스 제외 · 🧪 매수 재료만')+' — 보유 없음(매수 재료 N개 이상이면 진입)', color:'var(--text3)' };   /* [S1782] 진입 쪽 */   // [S1781] 크로스 사실을 진입 신호처럼 읽지 않게
   // 마지막 크로스 판정
   const _lc=_trendLastCross(rows,cfg); if(!_lc) return { label:'데이터 부족', color:'var(--text3)' };
   const n=_lc.n, lastGc=_lc.lastGc, lastDc=_lc.lastDc;
@@ -5363,7 +5364,7 @@ function _trendRenderInner(){
   if(_trendEngine==='cross' && _btOn._xmatPending){ _trendXmatEnsure(function(){ _trendRerender(); }); }   // [S1119] 재료 조건 봉맵 async 확보 후 재렌더
   // [S628~S630] 선행 가드 — ON이 OFF보다 손해면 손해 표시 + 종목 진입 시 임시 OFF(🔮 탭으로 강제 ON 가능)
   let _guardBadge='', _guardHurt=false, _btOff=null;
-  if(cfg.predict && _trendEngine==='cross' && !cfg.noCross /* [S1781] 크로스 제외면 예측이 안 돈다 — 두 판이 같아 가드 무의미 */){
+  if(cfg.predict && _trendEngine==='cross' && !(cfg.noCrossB && cfg.noCrossS) /* [S1782] 둘 다일 때만 생략 — 한쪽만이면 다른 쪽 예측이 돈다 */ /* [S1781] 크로스 제외면 예측이 안 돈다 — 두 판이 같아 가드 무의미 */){
     try{ window._xmatApply=true; try{ _btOff=_trendBt(rows,Object.assign({},cfg,{predict:false}),_bbp); } finally { window._xmatApply=false; } }catch(_g){ _btOff=null; }   // [S1119]
     if(_btOff){
       const dE=+(_btOn.expectancy-_btOff.expectancy).toFixed(2);
@@ -5436,11 +5437,11 @@ function _trendRenderInner(){
     ${cfg.xCross?`<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:var(--text)">청산MA</span>${_inp('sxTrendXS',cfg.xs)}<span style="color:var(--text3)">×</span>${_inp('sxTrendXL',cfg.xl)}</span><span style="color:#7c3aed;font-size:9px">데드크로스 청산</span>`:`<span style="color:var(--text3);font-size:9px">켜면 청산 데드크로스를 다른 ${_axNm(cfg)}로 (진입 ${_axPair(cfg,'e')} → 청산 따로)</span>`}
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;color:var(--text2)">
-    <span onclick="_sxVib(8);window._trendToggleNoCross&&_trendToggleNoCross()" title="[S1781] 크로스 없이 🧪 재료만으로 진입·청산합니다 — 진입 = 매수 재료 N개 이상 · 청산 = 매도 재료 N개 이상. 골든/데드크로스·크로스 예측·재진입·기울기 선진입은 꺼지고, ⚙️ 게이트에서 켠 청산(ATR·재앙손절·조기청산)은 그대로 돕니다." style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${cfg.noCross?'background:#dc2626;color:#fff':'background:var(--surface2);color:var(--text3);border:1px solid var(--border)'}">${cfg.noCross?'☑':'☐'} 🚫 크로스 제외(재료만)</span>
-    ${cfg.noCross?(()=>{ let _nb=0,_ns=0; try{ const _st=_xmatStore(market); _nb=_xmatConds(_st,'buy').length; _ns=_xmatConds(_st,'sell').length; }catch(_){} const _oth=!!(cfg.disSl||(cfg.xAtr2&&(cfg.xSlOn||cfg.xTrOn||cfg.xTpOn))||cfg.earlyMa5||cfg.earlySlope);
-      return `<span style="flex:1 0 100%;min-width:0;font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:2px">진입 = 🟢 매수 재료 N개 이상 · 청산 = 🔴 매도 재료 N개 이상(결합 AND/OR 안 씀) — 골든/데드크로스·🔮예측·재진입·기울기 선진입 <b>꺼짐</b> · ⚙️ 게이트 청산(ATR·🛡️재앙손절·⚡조기청산)은 켠 대로${_oth?' (지금 켜짐)':''}</span>`
-        +(!_nb?`<span style="flex:1 0 100%;min-width:0;font-size:8.5px;font-weight:800;color:#dc2626">⚠ 매수 재료 0개 — 거래 0 · 아래 🧪 재료 조건에서 매수 재료를 켜세요</span>`:'')
-        +((!_ns&&!_oth)?`<span style="flex:1 0 100%;min-width:0;font-size:8.5px;font-weight:800;color:#d97706">⚠ 매도 재료 0개 · 다른 청산도 꺼짐 — 사면 팔지 않는다(미청산으로 남음)</span>`:''); })():`<span style="color:var(--text3);font-size:9px">켜면 크로스 없이 🧪 재료만으로 진입·청산</span>`}
+    <span onclick="_sxVib(8);window._trendToggleNoCross&&_trendToggleNoCross()" title="[S1781] 크로스 없이 🧪 재료만으로 진입·청산합니다 — 진입 = 매수 재료 N개 이상 · 청산 = 매도 재료 N개 이상. 골든/데드크로스·크로스 예측·재진입·기울기 선진입은 꺼지고, ⚙️ 게이트에서 켠 청산(ATR·재앙손절·조기청산)은 그대로 돕니다. [S1782] 이 칩은 양쪽 단축 — 한쪽만은 아래 🧪 재료 조건의 매수/매도 칩." style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${(cfg.noCrossB&&cfg.noCrossS)?'background:#dc2626;color:#fff':((cfg.noCrossB||cfg.noCrossS)?'background:#dc26261a;color:#dc2626;border:1px solid #dc2626':'background:var(--surface2);color:var(--text3);border:1px solid var(--border)')}">${(cfg.noCrossB&&cfg.noCrossS)?'☑':((cfg.noCrossB||cfg.noCrossS)?'◐':'☐')} 🚫 크로스 제외(재료만)</span>
+    ${(cfg.noCrossB||cfg.noCrossS)?(()=>{ const _bB=!!cfg.noCrossB, _bS=!!cfg.noCrossS; let _nb=0,_ns=0;   /* [S1782] 쪽별 */ try{ const _st=_xmatStore(market); _nb=_xmatConds(_st,'buy').length; _ns=_xmatConds(_st,'sell').length; }catch(_){} const _oth=!!(cfg.disSl||(cfg.xAtr2&&(cfg.xSlOn||cfg.xTrOn||cfg.xTpOn))||cfg.earlyMa5||cfg.earlySlope);
+      return ((_bB&&_bS)?`<span style="flex:1 0 100%;min-width:0;font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:2px">진입 = 🟢 매수 재료 N개 이상 · 청산 = 🔴 매도 재료 N개 이상(결합 AND/OR 안 씀) — 골든/데드크로스·🔮예측·재진입·기울기 선진입 <b>꺼짐</b> · ⚙️ 게이트 청산(ATR·🛡️재앙손절·⚡조기청산)은 켠 대로${_oth?' (지금 켜짐)':''}</span>`:_bB?`<span style="flex:1 0 100%;min-width:0;font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:2px">◐ <b>매수만</b> 크로스 제외 — 진입 = 🟢 매수 재료 N개 이상(결합 안 씀) · 골든크로스·🔮예측 진입·재진입·기울기 선진입 <b>꺼짐</b> · 청산은 데드크로스 그대로(🔴 매도 재료는 결합 방식대로) · 누르면 청산도 크로스 제외</span>`:`<span style="flex:1 0 100%;min-width:0;font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:2px">◐ <b>매도만</b> 크로스 제외 — 청산 = 🔴 매도 재료 N개 이상(결합 안 씀) · 데드크로스·🔮예측 청산 <b>꺼짐</b> · ⚙️ 게이트 청산은 켠 대로${_oth?' (지금 켜짐)':''} · 진입은 골든크로스 그대로(🟢 매수 재료는 결합 방식대로) · 누르면 진입도 크로스 제외</span>`)   /* [S1782] */
+        +((_bB&&!_nb)?`<span style="flex:1 0 100%;min-width:0;font-size:8.5px;font-weight:800;color:#dc2626">⚠ 매수 재료 0개 — 거래 0 · 아래 🧪 재료 조건에서 매수 재료를 켜세요</span>`:'')
+        +((_bS&&!_ns&&!_oth)?`<span style="flex:1 0 100%;min-width:0;font-size:8.5px;font-weight:800;color:#d97706">⚠ 매도 재료 0개 · 다른 청산도 꺼짐 — 사면 팔지 않는다(미청산으로 남음)</span>`:''); })():`<span style="color:var(--text3);font-size:9px">켜면 크로스 없이 🧪 재료만으로 진입·청산 · 한쪽만은 아래 🧪 재료 조건의 매수/매도 칩</span>`}
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:9px;font-size:11px;color:var(--text2)">
     <span title="골든크로스가 이 봉수 안에 있으면 아래 상태줄이 '진입 신호'로 뜹니다 · 지나면 '신호창 지남'">신호창 최근</span>${_inp('sxTrendN',cfg.n)}<span>봉</span>
@@ -6084,7 +6085,8 @@ function _trendToggleTrix(){ const ctx=window._sxTrendCtx; if(!ctx) return; cons
 function _trendToggleSmi(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m);
   cfg.smiOn=!cfg.smiOn; if(cfg.smiOn) cfg.trixOn=false; _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
 function _trendToggleXCross(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.xCross=!cfg.xCross; if(cfg.xCross){ if(!(cfg.xs>0))cfg.xs=cfg.s; if(!(cfg.xl>0))cfg.xl=cfg.l; } _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }   // [S820] 청산 크로스 분리 토글
-function _trendToggleNoCross(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.noCross=!cfg.noCross; _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }   // [S1781] 🚫 크로스 제외(재료만) 토글 — 진입·청산을 🧪 재료만으로(사용자 요청 2026-10-11 '순수 재료만의 진입과 청산')
+function _trendToggleNoCross(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); const _on=!(cfg.noCrossB&&cfg.noCrossS); cfg.noCrossB=_on; cfg.noCrossS=_on; /* [S1782] 양쪽 단축 */ _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }   // [S1781] 🚫 크로스 제외(재료만) 토글 — 진입·청산을 🧪 재료만으로(사용자 요청 2026-10-11 '순수 재료만의 진입과 청산')
+function _trendToggleNoCrossSide(sd){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); const k=(sd==='buy')?'noCrossB':'noCrossS'; cfg[k]=!cfg[k]; _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }   // [S1782] 🧪 재료 조건 블록별 🚫 크로스 제외 — 매수=진입 쪽 · 매도=청산 쪽(사용자 요청 2026-10-11 '매수랑 매도에 각각 크로스 제외')
 function _trendToggleEarlyMa5(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.earlyMa5=!cfg.earlyMa5; _trendSave(m,cfg); _trendRerender(); } // [S675] ⚡ 종가<단기MA 조기청산 토글
 function _trendToggleDisasterSl(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.disSl=!cfg.disSl; _trendSave(m,cfg); _trendRerender(); } // [S675] 🛡️ 넓은 ATR 재앙손절 토글
 function _trendToggleEarlySlope(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.earlySlope=!cfg.earlySlope; _trendSave(m,cfg); _trendRerender(); } // [S678] 📉 MA5 기울기 하향 조기청산 토글
@@ -6227,7 +6229,7 @@ function _trendCrossSig(cfg, xsig){
     g:[cfg.nextOpen,cfg.reentry,cfg.entrySlope,cfg.entryConfirm,cfg.entryRsi,cfg.earlyMa5,cfg.earlySlope,cfg.disSl,cfg.predict].map(x=>x?1:0),
     re:[cfg.reEntryS||0,cfg.reEntryL||0], sl:+cfg.slAtr||3, pl:cfg.predLead||1, x:xsig||'', tf:_poolTfOf(),
     a:[cfg.xAtr2?1:0, cfg.xSlOn?1:0, +cfg.xSlMult||0, cfg.xTrOn?1:0, +cfg.xTrMult||0, cfg.xTpOn?1:0, +cfg.xTpMult||0, +cfg.atrInit||0, +cfg.atrTrail||0], az:[(cfg.xSlMz&&cfg.xSlOn)?[+cfg.xSlDn||0,+cfg.xSlMid||0,+cfg.xSlUp||0]:0, (cfg.xTrMz&&cfg.xTrOn)?[+cfg.xTrDn||0,+cfg.xTrMid||0,+cfg.xTrUp||0]:0, (cfg.xTpMz&&cfg.xTpOn)?[+cfg.xTpDn||0,+cfg.xTpMid||0,+cfg.xTpUp||0]:0],   /* [S1743] 구간별 3칸도 조합의 일부 */   /* [S1659] ATR 청산 설정도 조합의 일부 — 종전엔 빠져 있어 SL·TP 배수를 바꿔도 옛 결과가 '현 설정'으로 보였다 */   /* [S1658] 봉을 바꾸면 '설정이 바뀜'이 뜬다 — 일봉 결과를 4시간 카드 밑에 그대로 두지 않는다 */
-    fee:_trendFeeOf(cfg._market) }, cfg.noCross ? { nx:1 } : {}));   /* [S1781] 크로스 제외는 켰을 때만 시그에 든다(꺼짐 = 종전 시그 글자 그대로) */   // [S1409] 마찰을 바꾸면 풀 결과가 '설정이 바뀜'으로 뜬다
+    fee:_trendFeeOf(cfg._market) }, (cfg.noCrossB&&cfg.noCrossS) ? { nx:1 } : cfg.noCrossB ? { nxB:1 } : cfg.noCrossS ? { nxS:1 } : {} /* [S1782] 둘 다 = S1781 과 같은 nx:1 · 한쪽 = nxB/nxS */));   /* [S1781] 크로스 제외는 켰을 때만 시그에 든다(꺼짐 = 종전 시그 글자 그대로) */   // [S1409] 마찰을 바꾸면 풀 결과가 '설정이 바뀜'으로 뜬다
 }
 // [S1409] 마찰 조회 — 조합 시그·문구·각주가 같은 값을 본다(한 화면이 두 말을 하지 않게).
 function _trendFeeOf(mk){ try{ if(typeof _stratCfg!=='function') return 0; const sc=_stratCfg(mk); return (sc.fee && +sc.feePct>0)?+sc.feePct:0; }catch(_){ return 0; } }
@@ -6245,7 +6247,10 @@ function _trendCrossDesc(cfg, mk){
   let xm='';
   try{ if(_trendXmatSigOf(mk)){ const st=_xmatStore(mk); const b=_xmatConds(st,'buy').length, s=_xmatConds(st,'sell').length; xm=' · 🧪재료'+(b?(' 매수 '+b):'')+(s?(' 매도 '+s):''); } }catch(_){}
   const _fe=_trendFeeOf(mk);
-  if(cfg.noCross) return (_fe>0?('💸왕복 '+_fe+'%p · '):'무마찰 · ')+'진입[🚫크로스 제외 · 🧪재료만'+(cfg.nextOpen?' +다음봉 시가':'')+']'+xm+' → 청산[🚫데드크로스 제외 · 🧪재료'+(x.length?(' +'+x.join(' +')):'')+']';   // [S1781] 꺼진 진입원(재진입·기울기·🔮)은 적지 않는다
+  if(cfg.noCrossB||cfg.noCrossS){   /* [S1782] 쪽별 — 둘 다면 S1781 문구와 글자 같다 · 크로스가 남은 쪽은 종전 어휘 */
+    const _eP=cfg.noCrossB ? ('진입[🚫크로스 제외 · 🧪재료만'+(cfg.nextOpen?' +다음봉 시가':'')+']') : ('진입[📈'+_axPair(cfg,'e')+' 골든'+(g.length?(' +'+g.join(' +')):'')+(cfg.predict?(' +🔮예측'+((window._trendGuardState&&window._trendGuardState.hurt)?'(⚠종목별 가드는 풀에 미적용)':'')):'')+']');
+    const _xP=cfg.noCrossS ? ('청산[🚫데드크로스 제외 · 🧪재료'+(x.length?(' +'+x.join(' +')):'')+']') : ('청산['+(cfg.xCross?(cfg.xs+'×'+cfg.xl+' '):'')+'데드크로스'+(x.length?(' +'+x.join(' +')):'')+(cfg.predict?' +🔮예측 청산':'')+']');
+    return (_fe>0?('💸왕복 '+_fe+'%p · '):'무마찰 · ')+_eP+xm+' → '+_xP; }   // [S1781] 꺼진 진입원(재진입·기울기·🔮)은 적지 않는다
   return (_fe>0?('💸왕복 '+_fe+'%p · '):'무마찰 · ')+'진입[📈'+_axPair(cfg,'e')+' 골든'+(g.length?(' +'+g.join(' +')):'')+(cfg.predict?(' +🔮예측'+((window._trendGuardState&&window._trendGuardState.hurt)?'(⚠종목별 가드는 풀에 미적용)':'')):'')+']'+xm
     +' → 청산['+(cfg.xCross?(cfg.xs+'×'+cfg.xl+' '):'')+'데드크로스'+(x.length?(' +'+x.join(' +')):'')+']';
 }
@@ -6467,7 +6472,7 @@ const _TREND_RESET_SCOPE = {
   // [S1564] 크로스 목록에서 `atr2/atrInit/atrTrail`을 뺐다 — 그건 이제 **전략 조합 탭에만** 보인다.
   //   ⚠`atrInit`/`atrTrail`은 크로스 배수의 **폴백**이라 값 자체는 공유하나, 입력칸이 전략 조합 탭에만 있으므로
   //     그 탭 목록에 남긴다(화면에 없는 것을 되돌리지 않는다 · S1561 규칙).
-  cross:  ['noCross' /* [S1781] 크로스 탭 화면의 칩 — ↺ 리셋이 끈다 */, 'entrySlope','entryRsi','entryConfirm','earlyMa5','earlySlope','disSl','slAtr','xAtr2','xSlOn','xTrOn','xTpOn','xSlMult','xTrMult','xTpMult','xSlMz','xTrMz','xTpMz','xSlUp','xSlMid','xSlDn','xTrUp','xTrMid','xTrDn','xTpUp','xTpMid','xTpDn' /* [S1743] */],
+  cross:  ['noCrossB','noCrossS' /* [S1782] 쪽별 두 칩(S1781 noCross 를 이어받음) — ↺ 리셋이 끈다 */, 'entrySlope','entryRsi','entryConfirm','earlyMa5','earlySlope','disSl','slAtr','xAtr2','xSlOn','xTrOn','xTpOn','xSlMult','xTrMult','xTpMult','xSlMz','xTrMz','xTpMz','xSlUp','xSlMid','xSlDn','xTrUp','xTrMid','xTrDn','xTpUp','xTpMid','xTpDn' /* [S1743] */],
   strat:  ['atr2','atrInit','atrTrail','bullVol']
 };
 // [S1562] ★★**리셋이 절반만 돌고 있었다 — strat cfg를 안 건드렸다.**
@@ -6508,7 +6513,7 @@ function _trendReset(){
   }catch(_){}
   _trendRerender(); _trendRedrawChart();
 }   // [S572→S1561→S1562] 리셋 = 그 탭이 보여주는 필드만 기본 프리셋으로(trend cfg + strat cfg 양쪽)
-if(typeof window!=='undefined'){ window._trendApply=_trendApply; window._trendGateFold=_trendGateFold; window._trendSetEngine=_trendSetEngine; window._TREND_TAB_COL=_TREND_TAB_COL; window._trendEngineSaved=_trendEngineSaved; window._trendToggleReentry=_trendToggleReentry; window._trendToggleNextOpen=_trendToggleNextOpen; window._trendTogglePredict=_trendTogglePredict; window._trendGuardOv=_trendGuardOv; window._trendCycleLead=_trendCycleLead; window._trendToggleEarlyMa5=_trendToggleEarlyMa5; window._trendToggleEarlySlope=_trendToggleEarlySlope; window._trendToggleEntrySlope=_trendToggleEntrySlope; window._trendToggleBullVol=_trendToggleBullVol; window._trendToggleAtr2=_trendToggleAtr2; window._trendXAtr=_trendXAtr; window._trendXAtrNum=_trendXAtrNum; window._trendToggleEntryConfirm=_trendToggleEntryConfirm; window._trendToggleEntryRsi=_trendToggleEntryRsi; window._trendToggleDisasterSl=_trendToggleDisasterSl; window._trendCycleSlAtr=_trendCycleSlAtr; window._xmatNeedSet=_xmatNeedSet; window._xmatKindTg=_xmatKindTg; window._xmatResetTh=_xmatResetTh; window._xmatResetDial=_xmatResetDial; window._xmatResetAll=_xmatResetAll; window._xmatModeSet=_xmatModeSet; window._xmatWinSet=_xmatWinSet; window._trendBatchSetSource=_trendBatchSetSource; window._trendSnapCycle=_trendSnapCycle; window._trendSnapLoad=_trendSnapLoad; window._trendSnapOff=_trendSnapOff; window._trendSnapState=_trendSnapState; window._trendBatchUI=_trendBatchUI; window._trendToggleXCross=_trendToggleXCross; window._trendToggleNoCross=_trendToggleNoCross; /* [S1781] */ window._trendToggleTrix=_trendToggleTrix; window._trendToggleSmi=_trendToggleSmi;   /* [S1754] */ window._trendReset=_trendReset; }
+if(typeof window!=='undefined'){ window._trendApply=_trendApply; window._trendGateFold=_trendGateFold; window._trendSetEngine=_trendSetEngine; window._TREND_TAB_COL=_TREND_TAB_COL; window._trendEngineSaved=_trendEngineSaved; window._trendToggleReentry=_trendToggleReentry; window._trendToggleNextOpen=_trendToggleNextOpen; window._trendTogglePredict=_trendTogglePredict; window._trendGuardOv=_trendGuardOv; window._trendCycleLead=_trendCycleLead; window._trendToggleEarlyMa5=_trendToggleEarlyMa5; window._trendToggleEarlySlope=_trendToggleEarlySlope; window._trendToggleEntrySlope=_trendToggleEntrySlope; window._trendToggleBullVol=_trendToggleBullVol; window._trendToggleAtr2=_trendToggleAtr2; window._trendXAtr=_trendXAtr; window._trendXAtrNum=_trendXAtrNum; window._trendToggleEntryConfirm=_trendToggleEntryConfirm; window._trendToggleEntryRsi=_trendToggleEntryRsi; window._trendToggleDisasterSl=_trendToggleDisasterSl; window._trendCycleSlAtr=_trendCycleSlAtr; window._xmatNeedSet=_xmatNeedSet; window._xmatKindTg=_xmatKindTg; window._xmatResetTh=_xmatResetTh; window._xmatResetDial=_xmatResetDial; window._xmatResetAll=_xmatResetAll; window._xmatModeSet=_xmatModeSet; window._xmatWinSet=_xmatWinSet; window._trendBatchSetSource=_trendBatchSetSource; window._trendSnapCycle=_trendSnapCycle; window._trendSnapLoad=_trendSnapLoad; window._trendSnapOff=_trendSnapOff; window._trendSnapState=_trendSnapState; window._trendBatchUI=_trendBatchUI; window._trendToggleXCross=_trendToggleXCross; window._trendToggleNoCross=_trendToggleNoCross; window._trendToggleNoCrossSide=_trendToggleNoCrossSide; /* [S1782] */ /* [S1781] */ window._trendToggleTrix=_trendToggleTrix; window._trendToggleSmi=_trendToggleSmi;   /* [S1754] */ window._trendReset=_trendReset; }
 // ── [S550] 거래내역 모달 (캔들전이 검증 모달 패턴) ──
 function _trendCloseDetail(){ try{ var el=document.getElementById('sxTrendBTOverlay'); if(el&&el.parentNode) el.parentNode.removeChild(el); }catch(_){} }
 function _trendDetailClose(){ try{ history.back(); }catch(e){ _trendCloseDetail(); } }
@@ -8435,7 +8440,7 @@ function _buildXmatCountCard(stock, indicators){
         + '</div>';
     }
 
-    var _noX8=!!(typeof _trendCfg==='function' && _trendCfg(mkt).noCross); var _modeTxt=function(m,isB){ return _noX8 ? '재료만(🚫크로스 제외)' : ((isB?'골든크로스 ':'데드크로스 ')+(m==='or'?'OR':'AND')+' 재료'); };   /* [S1781] */
+    var _c8=(typeof _trendCfg==='function')?_trendCfg(mkt):{}; var _modeTxt=function(m,isB){ return (isB?_c8.noCrossB:_c8.noCrossS) /* [S1782] 쪽별 */ ? '재료만(🚫크로스 제외)' : ((isB?'골든크로스 ':'데드크로스 ')+(m==='or'?'OR':'AND')+' 재료'); };   /* [S1781] */
     var inner = '<div style="font-size:10px;color:var(--text3);line-height:1.55;margin:0 0 8px">'
               + '단일검증 탭 <b>🧪 재료 조건</b>에 켜둔 재료가 <b>지금 마지막 봉 기준</b>으로 몇 개나 떠 있는지 셉니다.</div>'
               // [S1558] ★진입MA 표시(사용자 요청) — 각주가 `골든크로스 AND 재료`라 말하면서
@@ -17311,7 +17316,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1781';   // [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  window.SX_BUILD='S1782';   // [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
