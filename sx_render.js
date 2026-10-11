@@ -4946,7 +4946,7 @@ function _ensureSeason2Trades(stock, rows, sym){
   }catch(_){}
 }
 function _trendBt(rows,cfg,bbP,xmFire){   /* [S1406] xmFire=재료 조건 봉맵 주입(풀 전체 BT용). 미전달 시 종전대로 _trendRcpKey 캐시 조회 — 기존 호출처 6곳 무영향. */
-  if(_trendEngine==='turtle'){ const _mk1784=(cfg&&cfg._market)||((typeof window!=='undefined'&&window._sxTrendCtx&&window._sxTrendCtx.market)||'kr'); return _turtleBt(rows, _turtleCfg(_mk1784), _trendFeeOf(_mk1784)); }   // [S1784] 🐢 터틀 — 자기 저장값·엔진(크로스 cfg 는 시장만 본다)
+  if(_trendEngine==='turtle'){ const _mk1784=(cfg&&cfg._market)||((typeof window!=='undefined'&&window._sxTrendCtx&&window._sxTrendCtx.market)||'kr'); return _turtleBtFor(rows, _mk1784, xmFire); /* [S1787] 🧪 재료 맵 */ }   // [S1784] 🐢 터틀 — 자기 저장값·엔진(크로스 cfg 는 시장만 본다)
   if(_trendEngine==='strat'){   // [S1116] 전략 조합(기본) — 신호맵 미확보 시 pending 형식(하이브리드 패턴)
     const key=_trendRcpKey(), sig=(window._trendStratFireCache||{})[key];
     if(!sig || sig==='pending'){
@@ -5384,7 +5384,7 @@ function _trendState(rows,cfg,bt){
 //   ⚠크로스·전략조합과 **저장값·엔진을 나눴다** — 이 블록은 그 둘의 설정을 읽지 않는다(수수료 SSOT `_trendFeeOf` 만 공유).
 //   ⚠피라미딩(½N 추가)·1% 위험 수량은 아직 없다(사용자 2026-10-11 '괜찮아' — 다음 단계 칩).
 const _TURTLE_VER = 1;
-function _turtleDefaults(){ return { _ver:_TURTLE_VER, entryN:20, exitN:10, atrN:20, stopMult:2, skip:true, failN:55, nextOpen:false }; }
+function _turtleDefaults(){ return { _ver:_TURTLE_VER, entryN:20, exitN:10, atrN:20, stopMult:2, skip:true, failN:55, nextOpen:false, gMa:false, gMaS:20, gMaL:60, gTx:false, gTxP:9, gTxSP:12, xm:false /* [S1787] 필터 1차 — 없으면 끔(_TURTLE_VER 그대로) */ }; }
 // 정규화 — 범위 밖은 자르고(빈 칸·숫자 아님 = 기본값) · 실패방지 봉수는 진입 봉수보다 커야 뜻이 있다.
 function _turtleNorm(o){
   const d=_turtleDefaults(), x=o||{}, c={ _ver:_TURTLE_VER };
@@ -5395,6 +5395,9 @@ function _turtleNorm(o){
   c.skip=('skip' in x)?!!x.skip:d.skip;
   c.failN=I(x.failN,3,400,d.failN); if(c.failN<=c.entryN) c.failN=Math.min(400,c.entryN+1);
   c.nextOpen=!!x.nextOpen;
+  c.gMa=!!x.gMa; c.gMaS=I(x.gMaS,1,400,d.gMaS); c.gMaL=I(x.gMaL,1,400,d.gMaL); if(c.gMaL<=c.gMaS) c.gMaL=Math.min(400,c.gMaS+1);   /* [S1787] 🧭 MA 국면 */
+  c.gTx=!!x.gTx; c.gTxP=I(x.gTxP,1,400,d.gTxP); c.gTxSP=I(x.gTxSP,1,400,d.gTxSP);   /* [S1787] 🧭 TRIX 국면 */
+  c.xm=!!x.xm;   /* [S1787] 🧪 재료 조건 */
   return c;
 }
 // 저장 — 봉별 저장 규약(S1682)을 그대로 쓴다(코인만 봉별 · 일봉 폴백). 버전이 다르면 기본값.
@@ -5407,7 +5410,7 @@ function _turtleSave(mk,c){ try{ localStorage.setItem(_sxTfKey('SX_TURTLE_',mk),
 //   봉 처리 순서: ① 실제 청산(손절 → 청산선) ② 가상 청산(직전 돌파 결과 갱신) ③ 신호(실제 진입 판단 → 가상 시작).
 //   ★건너뛰기의 '직전 돌파' = **가상 거래**다 — 실제로 샀든 건너뛰었든 돌파마다 같은 규칙으로 끝까지 따라간다(원조 규칙).
 //     가상 보유 중에 나온 신고가는 새 돌파가 아니다(그 거래는 아직 안 끝났다) ⇒ 그때 실제 무보유면 실패방지 돌파만 산다.
-function _turtleBt(rows, tc, feeP){
+function _turtleBt(rows, tc, feeP, xm){   /* [S1787] xm = 🧪 재료 개수 맵 {buy,sell,needB,needS}(켰을 때만 씀) */
   const P=_turtleNorm(tc), n=(rows&&rows.length)||0, fee=(+feeP>0)?+feeP:0, a=P.atrN;
   const start=Math.max(P.entryN,P.exitN,a);
   if(n<start+2) return null;
@@ -5423,23 +5426,30 @@ function _turtleBt(rows, tc, feeP){
   const hiK=(k)=>{ const o=new Array(n).fill(null); for(let i=k;i<n;i++){ let m=-Infinity; for(let j=i-k;j<i;j++) if(H[j]>m) m=H[j]; o[i]=m; } return o; };
   const loK=(k)=>{ const o=new Array(n).fill(null); for(let i=k;i<n;i++){ let m=Infinity; for(let j=i-k;j<i;j++) if(L[j]<m) m=L[j]; o[i]=m; } return o; };
   const up=hiK(P.entryN), dn=loK(P.exitN), up2=P.skip?hiK(P.failN):null;
+  // [S1787] 필터 — 실제 진입에만 AND(🧭 MA·TRIX = 상태 · 웜업이면 막는다 / 🧪 매수 재료 N개 이상). 🧪 매도 재료 = 실제 포지션 추가 청산(종가).
+  const gMs=P.gMa?_trSma(C,P.gMaS):null, gMl=P.gMa?_trSma(C,P.gMaL):null, gT=P.gTx?_trTrix(C,P.gTxP,P.gTxSP):null;
+  const xmB=(P.xm&&xm&&xm.buy)?xm.buy:null, xmS=(P.xm&&xm&&xm.sell)?xm.sell:null, xNb=(xm&&xm.needB)||1, xNs=(xm&&xm.needS)||1;
+  const fOn=!!(gMs||gT||xmB), fltOn=!!(fOn||xmS); let blocked=0;
+  const fOk=(i)=>{ if(gMs){ const a=gMs[i], b=gMl[i]; if(a==null||b==null||!(a>b)) return false; } if(gT){ const a=gT.line[i], b=gT.sig[i]; if(a==null||b==null||!(a>b)) return false; } if(xmB && !((xmB[i]||0)>=xNb)) return false; return true; };
   // 신호 봉 i → 포지션(진입가·손절가·확인 시작 봉). 다음봉 시가인데 다음 봉이 없으면 null(진입 보류).
   const mkPos=(i,fail)=>{ let e, ei;
     if(P.nextOpen){ ei=i+1; if(ei>=n) return null; e=O[ei]; if(!(e>0)) return null; } else { ei=i; e=C[i]; }
     return { entry:e, entryIdx:ei, sigIdx:i, chk:P.nextOpen?ei:ei+1, stop:(P.stopMult>0 && N[i]!=null)?(e-P.stopMult*N[i]):null, N:N[i], fail55:!!fail }; };
   // 청산 판정 — ① 저가 ≤ 손절가 → 손절가(시가가 이미 아래면 시가) ② 종가 < 청산선 → 종가
-  const exitAt=(p,i)=>{ if(!p || i<p.chk) return null;
+  const exitAt=(p,i,real)=>{ if(!p || i<p.chk) return null;
     if(p.stop!=null && L[i]<=p.stop) return { why:'stop', px:(O[i]>0 && O[i]<p.stop)?O[i]:p.stop };
     if(dn[i]!=null && C[i]<dn[i]) return { why:'ch', px:C[i] };
+    if(real && xmS && (xmS[i]||0)>=xNs) return { why:'xm', px:C[i] };   /* [S1787] 🧪 매도 재료 — 실제 포지션만(가상 거래는 원래 규칙) */
     return null; };
   const trades=[]; let pos=null, vpos=null, lastWin=null, skipped=0, failTk=0, pend=null;
-  const take=(i,fail)=>{ pos=mkPos(i,fail); if(pos){ if(fail) failTk++; } else if(P.nextOpen && i===n-1) pend={ sigIdx:i, fail55:!!fail }; };
+  const take=(i,fail)=>{ if(fOn && !fOk(i)){ blocked++; return; }   /* [S1787] 필터 AND — 막히면 진입 안 함(예정도 없음) */ pos=mkPos(i,fail); if(pos){ if(fail) failTk++; } else if(P.nextOpen && i===n-1) pend={ sigIdx:i, fail55:!!fail }; };
   for(let i=start;i<n;i++){
-    const xr=exitAt(pos,i);
+    const xr=exitAt(pos,i,true);
     if(xr){ const pnl=((xr.px/pos.entry-1)*100)-fee;
       trades.push({ entry:pos.entry, exit:xr.px, pnl:+pnl.toFixed(2), bars:i-pos.entryIdx, entryIdx:pos.entryIdx, exitIdx:i, sigIdx:pos.sigIdx, stopPx:pos.stop, N:pos.N, stop:xr.why==='stop', ch:xr.why==='ch', fail55:pos.fail55, entryDate:dt(pos.entryIdx), exitDate:dt(i) });
+      if(xmS) trades[trades.length-1].xm=(xr.why==='xm');   /* [S1787] 재료 청산 표시(재료 매도가 있을 때만 키를 단다 — 끄면 글자 그대로) */
       pos=null; }
-    const vr=exitAt(vpos,i);
+    const vr=exitAt(vpos,i,false);
     if(vr){ lastWin=(vr.px>vpos.entry); vpos=null; }
     if(up[i]==null || N[i]==null || !(C[i]>0)) continue;
     const brk=C[i]>up[i], fs=!!(up2 && up2[i]!=null && C[i]>up2[i]), fresh=brk && !vpos;
@@ -5469,14 +5479,27 @@ function _turtleBt(rows, tc, feeP){
   return { winRate, pf, totalPnl, totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, feePct:fee, lastClose:C[li],
     predHit:null, predFires:0, predDcHit:null, predDcFires:0, predDday:null, predDdayProb:null, predDdayType:null, predExitNow:false, heldSkipGc:0, _turtle:true,
     turtle:{ cfg:P, skipped, failTk, stopN:trades.filter(t=>t.stop).length, chN:trades.filter(t=>t.ch).length, lastWin, vOpen:!!vpos, pend,
-      nNow:N[li], nextUp:mx(P.entryN), nextDn:mn(P.exitN), nextUp2:P.skip?mx(P.failN):null, exitToday:(lastT && lastT.exitIdx===li)?lastT:null } };
+      nNow:N[li], nextUp:mx(P.entryN), nextDn:mn(P.exitN), nextUp2:P.skip?mx(P.failN):null, exitToday:(lastT && lastT.exitIdx===li)?lastT:null,
+      ...(fltOn ? { blocked, xmN:trades.filter(t=>t.xm).length } : {}) } };   /* [S1787] 필터 집계(켰을 때만) */
+}
+// [S1787] 카드·모달 경로 — 🧪 재료 개수 맵을 크로스 탭과 같은 캐시에서 꺼낸다(주입 우선 · 없으면 대기 형식 → 카드가 _trendXmatEnsure 로 스캔 뒤 다시 그림).
+function _turtleBtFor(rows, mk, xmFire){
+  const c=_turtleCfg(mk), fee=_trendFeeOf(mk); let xm=null;
+  if(c.xm && typeof _xmatStore==='function'){ const st=_xmatStore(mk), bc=_xmatConds(st,'buy'), scc=_xmatConds(st,'sell');
+    if(bc.length||scc.length){ const nb=_xmatNeed(st,'buy',bc.length), ns=_xmatNeed(st,'sell',scc.length);
+      const sig=_xmatSig(bc,scc,nb,ns,_xmatMode(st,'buy'),_xmatMode(st,'sell'),_xmatWin(st,'buy'),_xmatWin(st,'sell'));
+      const xc=xmFire||(window._trendXmatFireCache||{})[_trendRcpKey()];
+      if(!xc || xc==='pending' || xc.sig!==sig){ const lr=rows&&rows.length?rows[rows.length-1]:null;
+        return { winRate:0,pf:0,totalPnl:0,totalTrades:0,avgWin:0,avgLoss:0,mdd:0,expectancy:0,trades:[],open:null,feePct:fee,lastClose:lr?+(lr.close!=null?lr.close:lr.c):0,predHit:null,predFires:0,predDcHit:null,predDcFires:0,predDday:null,predDdayProb:null,predDdayType:null,predExitNow:false,heldSkipGc:0,_turtle:true,_xmatPending:true,turtle:null }; }
+      xm={ buy:bc.length?(xc.buy||{}):null, sell:scc.length?(xc.sell||{}):null, needB:nb, needS:ns }; } }
+  return _turtleBt(rows, c, fee, xm);
 }
 // ── 화면 ──
 function _turtleFmt(v){ if(v==null||!isFinite(v)) return '—'; const a=Math.abs(v); return a>=1000 ? Math.round(v).toLocaleString() : (a>=1 ? (+v.toFixed(2)).toLocaleString(undefined,{maximumFractionDigits:2}) : (+v.toPrecision(4)).toString()); }
 function _turtleTag(t){   // 🧾 검증 모달 거래 태그 — 진입원 → 청산 사유
   try{ const ctx=window._sxTrendCtx, c=_turtleCfg((ctx&&ctx.market)||'kr');
     const s=t.fail55 ? ('🐢'+c.failN+'봉 실패방지') : ('🐢'+c.entryN+'봉 돌파');
-    const x=t.stop ? ('🛑'+c.stopMult+'N 손절') : (t.ch ? ('🐢'+c.exitN+'봉 최저 이탈') : '');
+    const x=t.stop ? ('🛑'+c.stopMult+'N 손절') : (t.ch ? ('🐢'+c.exitN+'봉 최저 이탈') : (t.xm ? '🧪재료 매도' : ''));   /* [S1787] */
     return ' · '+s+(x?('→'+x):''); }catch(_){ return ''; } }
 function _turtlePanelHtml(mk, rows, bt){
   const c=_turtleCfg(mk), T=(bt&&bt.turtle)||null, col=(typeof _TREND_TAB_COL!=='undefined'&&_TREND_TAB_COL.turtle)||'#059669', fee=_trendFeeOf(mk);
@@ -5492,12 +5515,22 @@ function _turtlePanelHtml(mk, rows, bt){
   h+=row(chip(c.skip,'건너뛰기','skip','직전 돌파가 이익이었으면 다음 진입 돌파를 건너뜁니다(원조 System 1). 건너뛴 돌파도 가상으로 끝까지 따라가 다음 판정에 씁니다.')
     +(c.skip ? (lab('실패방지 — 직전')+inp('sxTtFail',c.failN)+lab('봉 최고가 돌파는 매수')) : note('끄면 모든 진입 돌파를 삽니다')));
   h+=row(chip(c.nextOpen,'다음봉 시가 진입','nextOpen','끄면 신호 봉 종가에 진입(원조) · 켜면 다음 봉 시가에 진입')+note(c.nextOpen?'신호 다음 봉 시가에 진입 · 손절가 = 그 시가 − '+c.stopMult+'N':'신호 봉 종가에 진입(원조) · 손절가 = 그 종가 − '+c.stopMult+'N'));
+  { // [S1787] 필터 — 실제 진입에 AND(건너뛰기 판정은 원래 돌파로)
+    const xs=(typeof _xmatStore==='function')?_xmatStore(mk):null, xb=xs?_xmatConds(xs,'buy').length:0, xsN=xs?_xmatConds(xs,'sell').length:0, nb=xs?_xmatNeed(xs,'buy',xb):0, ns=xs?_xmatNeed(xs,'sell',xsN):0;
+    h+=`<div style="font-size:10px;font-weight:800;color:var(--text2);margin:2px 0 5px">필터 <span style="font-weight:500;font-size:9px;color:var(--text3)">— 실제 진입에 AND · 건너뛰기 판정은 원래 돌파로</span></div>`;
+    h+=row(chip(c.gMa,'🧭 MA 국면','gMa','단기MA > 장기MA(상태)일 때만 진입 — 전략 조합 🧭 와 같은 상태 게이트 · 웜업 구간은 막는다')+(c.gMa?(inp('sxTtGmaS',c.gMaS)+lab('×')+inp('sxTtGmaL',c.gMaL)+note('단기MA > 장기MA일 때만')):note('끄면 무관')));
+    h+=row(chip(c.gTx,'🧭 TRIX 국면','gTx','TRIX선 > 시그널선(상태)일 때만 진입 — 전략 조합 🧭 TRIX 와 같은 계산기')+(c.gTx?(inp('sxTtGtxP',c.gTxP)+lab('×시그널')+inp('sxTtGtxSP',c.gTxSP)+note('TRIX > 시그널일 때만')):note('끄면 무관')));
+    h+=row(chip(c.xm,'🧪 재료 조건','xm','크로스 탭 🧪 재료 조건 그대로 — 매수 재료 N개 이상일 때만 진입 · 매도 재료 N개 이상이면 그 봉 종가에 청산')
+      +note(c.xm?('매수 '+(xb?(xb+'개 중 '+nb+'개↑일 때만 진입'):'0개(조건 없음)')+' · 매도 '+(xsN?(xsN+'개 중 '+ns+'개↑면 청산'):'0개(청산 없음)')+' — 재료는 📈 크로스 탭에서 고름'):'끄면 무관')
+      +((c.xm&&!xb&&!xsN)?'<span style="flex:1 0 100%;font-size:8.5px;font-weight:800;color:#d97706">⚠ 📈 크로스 탭 🧪 재료 조건이 비어 있어 이 칩은 아무것도 안 합니다</span>':''), 9);
+  }
   h+=row(note((fee>0?('💸 왕복 '+fee+'%p 차감'):'무마찰')+' · 다른 탭과 같은 값')
     +`<span style="margin-left:auto;display:flex;gap:6px"><span onclick="_sxVib(9);window._turtleReset&&_turtleReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span><span onclick="_sxVib(15);window._turtleApply&&_turtleApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:${col};color:#fff;cursor:pointer">적용</span></span>`, 9);
   // 상태줄 — 보유 중 / 오늘 신호·청산 / 대기(+건너뛰기 대기)
   const last=bt?bt.lastClose:null, rel=(x)=>(x>0&&last>0)?(((x/last)-1)*100):null, sg=(v)=>v==null?'—':((v>0?'+':'')+v.toFixed(1)+'%');
   let st='', sc='var(--text2)';
-  if(!bt || !T){ st='🐢 데이터 부족 — 봉이 '+Math.max(c.entryN,c.exitN,c.atrN)+'개보다 많아야 합니다'; sc='var(--text3)'; }
+  if(bt && bt._xmatPending){ st='🧪 재료 조건 봉 스캔 중… (첫 회만 무겁고 다음부터 즉시)'; sc='var(--text3)'; }   /* [S1787] */
+  else if(!bt || !T){ st='🐢 데이터 부족 — 봉이 '+Math.max(c.entryN,c.exitN,c.atrN)+'개보다 많아야 합니다'; sc='var(--text3)'; }
   else if(bt.open){ const o=bt.open;
     st='🐢 보유 중 · '+(o.bars===0?'오늘':o.bars+'봉 전')+' 진입 '+_turtleFmt(o.entry)+(o.fail55?(' ('+c.failN+'봉 실패방지)'):'')+' · 평가 '+sg(o.pnl)
       +' · 🛑 손절 '+(o.stopPx!=null?(_turtleFmt(o.stopPx)+' ('+sg(rel(o.stopPx))+')'):'끔')+' · 청산선 '+_turtleFmt(T.nextDn)+' ('+sg(rel(T.nextDn))+')';
@@ -5510,7 +5543,7 @@ function _turtlePanelHtml(mk, rows, bt){
     else if(c.skip && T.lastWin===true) st+='<br>⏭ 직전 돌파가 이익 → 다음 진입 돌파는 건너뜀 · '+c.failN+'봉 실패방지선 '+_turtleFmt(T.nextUp2)+' ('+sg(rel(T.nextUp2))+')';
     sc=T.exitToday?'#e8365a':'var(--text2)'; }
   h+=`<div style="font-size:12px;font-weight:700;color:${sc};margin-bottom:6px;padding:7px 10px;background:var(--surface2);border-radius:8px;line-height:1.5">${st}</div>`;
-  if(T) h+=`<div style="font-size:9.5px;color:var(--text3);margin-bottom:7px">확정 ${bt.totalTrades}건 · 🛑 손절 ${T.stopN} · 청산선 ${T.chN}${c.skip?(' · ⏭ 건너뛴 돌파 '+T.skipped+' · 실패방지 진입 '+T.failTk):''}</div>`;
+  if(T) h+=`<div style="font-size:9.5px;color:var(--text3);margin-bottom:7px">확정 ${bt.totalTrades}건 · 🛑 손절 ${T.stopN} · 청산선 ${T.chN}${c.skip?(' · ⏭ 건너뛴 돌파 '+T.skipped+' · 실패방지 진입 '+T.failTk):''}${(T.blocked!=null)?(' · 🚫 필터로 막힌 진입 '+T.blocked+' · 🧪 재료 청산 '+T.xmN):''}</div>`;   /* [S1787] */
   return h;
 }
 function _turtleNoteHtml(mk){
@@ -5519,12 +5552,147 @@ function _turtleNoteHtml(mk){
 function _turtleApply(){
   const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market, c=_turtleCfg(m);
   const gv=(id)=>{ const e=document.getElementById(id); return e?e.value:null; };
-  [['sxTtEntry','entryN'],['sxTtExit','exitN'],['sxTtAtr','atrN'],['sxTtStop','stopMult'],['sxTtFail','failN']].forEach(function(p){ const v=gv(p[0]); if(v!=null && v!=='') c[p[1]]=+v; });   // 화면에 없는 칸(건너뛰기 끔 → 실패방지)은 안 읽는다
+  [['sxTtEntry','entryN'],['sxTtExit','exitN'],['sxTtAtr','atrN'],['sxTtStop','stopMult'],['sxTtFail','failN'],['sxTtGmaS','gMaS'],['sxTtGmaL','gMaL'],['sxTtGtxP','gTxP'],['sxTtGtxSP','gTxSP'] /* [S1787] */].forEach(function(p){ const v=gv(p[0]); if(v!=null && v!=='') c[p[1]]=+v; });   // 화면에 없는 칸(건너뛰기 끔 → 실패방지)은 안 읽는다
   _turtleSave(m,c); _trendRerender(); if(window._trendRedrawChart) _trendRedrawChart();
 }
-function _turtleToggle(k){ const ctx=window._sxTrendCtx; if(!ctx || (k!=='skip' && k!=='nextOpen')) return; const m=ctx.market, c=_turtleCfg(m); c[k]=!c[k]; _turtleSave(m,c); _trendRerender(); if(window._trendRedrawChart) _trendRedrawChart(); }
+function _turtleToggle(k){ const ctx=window._sxTrendCtx; if(!ctx || ['skip','nextOpen','gMa','gTx','xm'].indexOf(k)<0) return;   /* [S1787] 필터 칩 */ const m=ctx.market, c=_turtleCfg(m); c[k]=!c[k]; _turtleSave(m,c); _trendRerender(); if(window._trendRedrawChart) _trendRedrawChart(); }
 function _turtleReset(){ const ctx=window._sxTrendCtx; if(!ctx) return; _turtleSave(ctx.market,_turtleDefaults()); _trendRerender(); if(window._trendRedrawChart) _trendRedrawChart(); }
 if(typeof window!=='undefined'){ window._turtleApply=_turtleApply; window._turtleToggle=_turtleToggle; window._turtleReset=_turtleReset; window._turtleBt=_turtleBt; window._turtleCfg=_turtleCfg; }
+// ═══════════ [S1786] 🐢 터틀 📦 풀 전체 BT(스냅별) — 카드와 같은 엔진(_turtleBt)을 풀 전체에 돌려 합산 ═══════════
+//   사용자 지시 2026-10-12: "다른탭처럼 스냅별 풀bt도 추가해야 할거 같아". 정의 = PREREG_S1786_turtle_pool.md §1.
+//   ★새 자(尺) 0 — 모집단(_trendSnapPool·관심/대표/발굴) · 집계(_stratPoolAgg·_poolAggExtras·_poolStockExtras) · 그리드(_poolGridHtml) ·
+//     CSV(_poolCsvDownload) · 스냅 창 버튼(_trendSnapCycle/Load/Off) 전부 크로스·전략조합이 쓰는 그 함수다.
+//   ⚠소스 상태는 따로 — 크로스(_trendBatchSource·_trendBatchLast)·전략조합(_stratPoolSrc·_stratPoolLast)을 건드리지 않는다.
+let _turtlePoolSrc = 'rep';
+const _TURTLE_SRC_LBL = { brk:'🐢돌파', fail:'🐢실패방지' }, _TURTLE_XR_LBL = { stop:'🛑손절', ch:'🐢청산선', xm:'🧪재료매도' /* [S1787] */ };
+function _turtlePoolSetSrc(s){ _turtlePoolSrc=(s==='watch'||s==='disc')?s:'rep'; _trendRerender(); }
+function _turtlePoolList(mk){
+  const sp=(typeof _trendSnapPool==='function')?_trendSnapPool(mk):null; if(sp && sp.length) return { list:sp, from:'snap' };   // 스냅 = 모집단(소스 칩 무시)
+  let list=[];
+  if(_turtlePoolSrc==='watch'){ try{ list=(typeof _getWatchlist==='function'?(_getWatchlist(mk)||[]):[]).filter(s=>s&&s.code).map(s=>({code:s.code,name:s.name||s.code})); }catch(_){ list=[]; } }
+  else if(_turtlePoolSrc==='disc'){ try{ list=(typeof _DISCOVERY_POOL!=='undefined'?(_DISCOVERY_POOL[mk]||[]):[]).map(x=>Array.isArray(x)?{code:x[0],name:x[1]||x[0]}:{code:String(x),name:String(x)}); }catch(_){ list=[]; } }
+  else { try{ list=((window.SXCandleBT&&SXCandleBT.getRepPool)?(SXCandleBT.getRepPool(mk)||[]):[]).map(x=>({code:x[0],name:x[1]})); }catch(_){ list=[]; } }
+  return { list, from:'src' };
+}
+// 결과 지문 — 터틀 칸·칩 + 수수료 + 봉. 바뀌면 '⚠ 설정이 바뀜'.
+function _turtleSig(mk){ const c=_turtleCfg(mk); return JSON.stringify(Object.assign({ t:[c.entryN,c.exitN,c.atrN,c.stopMult,c.skip?1:0,c.failN,c.nextOpen?1:0], fee:_trendFeeOf(mk), tf:_poolTfOf() },
+  (c.gMa||c.gTx||c.xm) ? { g:[c.gMa?1:0,c.gMa?c.gMaS:0,c.gMa?c.gMaL:0,c.gTx?1:0,c.gTx?c.gTxP:0,c.gTx?c.gTxSP:0,c.xm?1:0], x:c.xm?_trendXmatSigOf(mk):'' } : {})); }   /* [S1787] 필터는 켰을 때만 지문에 든다 */
+function _turtleDesc(mk){ const c=_turtleCfg(mk), fe=_trendFeeOf(mk);
+  return (fe>0?('💸왕복 '+fe+'%p · '):'무마찰 · ')+'진입[🐢'+c.entryN+'봉 돌파'+(c.skip?(' · ⏭건너뛰기 · '+c.failN+'봉 실패방지'):'')+(c.nextOpen?' · 다음봉 시가':' · 신호 봉 종가')+'] → 청산['+c.exitN+'봉 최저 이탈'+(c.stopMult>0?(' · 🛑'+c.stopMult+'N 손절'):' · 손절 끔')+'] · N=TR '+c.atrN+'봉'+((c.gMa||c.gTx||c.xm)?(' · 필터['+[c.gMa?('🧭MA '+c.gMaS+'×'+c.gMaL):'', c.gTx?('🧭TRIX '+c.gTxP+'×'+c.gTxSP):'', c.xm?'🧪재료':''].filter(Boolean).join(' · ')+']'):''); }   /* [S1787] */
+async function _turtlePoolRun(mk, tf, onProgress){
+  if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, market:mk, reason:'캔들 fetch 미연결(SXCandleBT 미로드)' };
+  let _srcMeta=null;
+  try{ const _sOn=!!(SXCandleBT.snapMode&&SXCandleBT.snapMode()); const _sM=(_sOn&&SXCandleBT.snapMeta)?(SXCandleBT.snapMeta()[mk]||null):null;
+    _srcMeta={ on:_sOn, file:(_sM&&_sM.file)||'', date:(_sM&&_sM.date)||'', vintage:(_sM&&_sM.vintage)||'', poolKind:(_sM&&_sM.poolKind)||'', set:((typeof _snapVinOn==='function')?(_snapVinOn()||''):'') }; }catch(_){ _srcMeta=null; }
+  const pl=_turtlePoolList(mk), list=pl.list;
+  if(!list.length) return { ok:false, market:mk, reason:(_turtlePoolSrc==='watch'?'관심목록('+mk+')이 비어있음 — 종목 추가':(_turtlePoolSrc==='disc'?'발굴풀 없음('+mk+')':'대표목록 없음('+mk+')')) };
+  const _snapCodes=(function(){ try{ return (_srcMeta&&_srcMeta.on&&SXCandleBT.snapSrc)?(SXCandleBT.snapSrc(mk)||{}):null; }catch(_e){ return null; } })();
+  const CAP=_TREND_BATCH_CAP, capped=list.length>CAP, use=list.slice(0,CAP);
+  const tc=_turtleCfg(mk), fee=_trendFeeOf(mk);
+  // [S1787] 🧪 재료 필터 — 종목마다 개수 맵(크로스 풀과 같은 _xmatCountBars) · 못 태우면 스킵(조건 없이 돈 결과를 섞지 않는다)
+  let _xb=[], _xs=[], _xnb=1, _xns=1, _xwb=1, _xws=1; if(tc.xm && typeof _xmatStore==='function'){ try{ const st=_xmatStore(mk); _xb=_xmatConds(st,'buy'); _xs=_xmatConds(st,'sell'); _xnb=_xmatNeed(st,'buy',_xb.length); _xns=_xmatNeed(st,'sell',_xs.length); _xwb=_xmatWin(st,'buy'); _xws=_xmatWin(st,'sell'); }catch(_){ _xb=[]; _xs=[]; } }
+  const _xOn=!!(tc.xm && (_xb.length||_xs.length)); let xmFail=0;
+  const _tgtBars=(typeof _btTargetBars==='function')?_btTargetBars(mk, tf):600, _floor=Math.floor(_tgtBars*0.95);
+  const allTrades=[], perStock=[], openList=[], barsList=[]; let skipped=0, skippedShort=0, skippedNoSnap=0;
+  for(let i=0;i<use.length;i++){ const s=use[i];
+    if(onProgress) onProgress(i+1, use.length, s.name);
+    await _trendBatchSleep(0);
+    let rows=null; try{ rows=await SXCandleBT.fetchRows600(mk, tf, s.code); }catch(e){ rows=null; }
+    if(!Array.isArray(rows) || rows.length<40){ skipped++; if(_snapCodes && !_snapCodes[s.code]) skippedNoSnap++; continue; }
+    if(rows.length<_floor){ skippedShort++; continue; }
+    let xm=null; if(_xOn){ let r=null; try{ r=await _xmatCountBars(s.code+'|'+mk, rows, mk, _xb, _xs, _xwb, _xws); }catch(e){ r=null; } if(!r){ xmFail++; skipped++; continue; } xm={ buy:_xb.length?(r.buy||{}):null, sell:_xs.length?(r.sell||{}):null, needB:_xnb, needS:_xns }; }   /* [S1787] */
+    let bt=null; try{ bt=_turtleBt(rows, tc, fee, xm); }catch(e){ bt=null; }
+    if(!bt){ skipped++; continue; }
+    barsList.push(rows.length);
+    (bt.trades||[]).forEach(t=>{ allTrades.push({ code:s.code, name:s.name, src:t.fail55?'fail':'brk', xr:t.stop?'stop':(t.ch?'ch':(t.xm?'xm':'')) /* [S1787] */, pnl:t.pnl, bars:t.bars, ed:t.entryDate||'', xd:t.exitDate||'' }); });
+    if(bt.open) openList.push({ name:s.name, src:bt.open.fail55?'fail':'brk', pnl:bt.open.pnl, bars:bt.open.bars });
+    const _ex=_poolStockExtras(bt, rows);
+    perStock.push({ code:s.code, name:s.name, nb:rows.length, n:bt.totalTrades, tp:bt.totalPnl, wr:bt.winRate, op:(bt.open?bt.open.pnl:null),
+      tpi:(bt.open?+(((1+bt.totalPnl/100)*(1+(bt.open.pnl-(bt.feePct||0))/100)-1)*100).toFixed(2):bt.totalPnl), bh:_ex.bh, mdd:_ex.mdd, bar:_ex.bar, exp:_ex.exp });
+  }
+  if(perStock.length<3) return { ok:false, market:mk, reason:'유효 종목 3개 미만 — 네트워크·봉수 확인('+mk+')' };
+  const med=(a)=>{ if(!a.length) return null; const b=a.slice().sort((x,y)=>x-y), m=Math.floor(b.length/2); return b.length%2?b[m]:(b[m-1]+b[m])/2; };
+  const agg=_poolAggExtras(_stratPoolAgg(allTrades, perStock), perStock);
+  return { ok:true, market:mk, source:_turtlePoolSrc, ts:Date.now(), sig:_turtleSig(mk), cfgDesc:_turtleDesc(mk), feePct:fee,
+    n:perStock.length, used:use.length, capped, cap:CAP, total:list.length, skipped, skippedShort, skippedNoSnap, poolFrom:pl.from,
+    medBars:barsList.length?Math.round(med(barsList)):null, minBars:barsList.length?Math.min.apply(null,barsList):null, tgtBars:_tgtBars, srcMeta:_srcMeta,
+    slXr:['stop'], xrLbl:_TURTLE_XR_LBL, nStocks:use.length, agg, trades:allTrades, perStock, openList, tf, ...(_xOn ? { xmFail, xmOn:true } : {}) };   /* [S1787] 재료를 태웠을 때만 */
+}
+function _turtlePoolBreakdown(trades){
+  if(!Array.isArray(trades)||!trades.length) return '';
+  const by={}, xr={};
+  trades.forEach(t=>{ const k=t.src||'?'; const o=by[k]||(by[k]={n:0,w:0,sum:0}); o.n++; if(t.pnl>0)o.w++; o.sum+=t.pnl; if(t.xr) xr[t.xr]=(xr[t.xr]||0)+1; });
+  const chips=['brk','fail'].filter(k=>by[k]).map(k=>{ const o=by[k], wr=Math.round(o.w/o.n*100), avg=+(o.sum/o.n).toFixed(2), c=avg>=0?'#22c55e':'#e8365a';
+    return '<span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text2)">'+_TURTLE_SRC_LBL[k]+' <b>'+o.n+'건</b> · 승'+wr+'% · <b style="color:'+c+'">'+(avg>=0?'+':'')+avg+'%</b></span>'; }).join('');
+  const xrTxt=['stop','ch','xm' /* [S1787] */].filter(k=>xr[k]).map(k=>_TURTLE_XR_LBL[k]+' '+xr[k]).join(' · ');
+  return '<div style="font-size:9px;font-weight:800;color:var(--text2);margin:6px 0 4px">진입원별 <span style="font-weight:500;color:var(--text3)">(평균=건당)</span></div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:4px">'+chips+'</div>'+(xrTxt?('<div style="font-size:9px;color:var(--text3);margin-top:5px">청산 사유: '+xrTxt+'</div>'):'');
+}
+function _turtlePoolRender(res){
+  if(!res) return '';
+  if(!res.ok) return '<div style="font-size:11px;color:#dc2626;padding:8px 2px">풀 전체 BT 불가 — '+((res&&res.reason)||'')+'</div>';
+  const a=res.agg||{n:0}, sm=res.srcMeta;
+  const srcLbl=(res.poolFrom==='snap')?('📂 스냅'+((sm&&sm.set)?('·창'+sm.set):'')):({watch:'⭐ 관심목록',disc:'🔬 발굴풀'}[res.source]||'대표풀');
+  const pc=v=>(+v>=0?'+':'')+v, cOf=v=>+v>=0?'#22c55e':'#e8365a';
+  const head='<div style="font-size:9.5px;font-weight:700;color:var(--text2);margin:4px 0 6px">'+srcLbl+' '+String(res.market).toUpperCase()+' · '+res.n+'/'+(res.total||res.n)+'종목'+(res.capped?(' · 앞 '+res.used+' 컷(상한'+res.cap+')'):'')+' · 거래발생 '+(a.stocksTraded||0)+' · 스킵 '+res.skipped+(res.skippedNoSnap?(' · 그중 스냅 미수록 '+res.skippedNoSnap):'')+((res.openList&&res.openList.length)?(' · 보유중 '+res.openList.length):'')+'</div>';
+  const srcRow=(!sm)?'<div style="font-size:9px;font-weight:700;color:#d97706;margin-bottom:4px">⏱ 봉 출처 미상</div>'
+    :(!sm.on)?('<div style="font-size:9px;font-weight:700;color:var(--text3);margin-bottom:4px">🔴 라이브 봉'+(res.tf?('('+_poolTfLbl(res.tf)+')'):'')+' — 지금 시점 데이터</div>')
+    :('<div style="font-size:9px;font-weight:800;color:#7c3aed;margin-bottom:4px">📂 스냅샷 봉(일봉 냉동)'+(sm.set?(' · 창'+sm.set):'')+(sm.vintage?(' · 빈티지 '+sm.vintage):'')+(sm.file?(' · '+sm.file):'')+(sm.poolKind==='union'?' · 🔗합집합 풀':'')+'</div>');
+  const bars='<div style="font-size:9px;font-weight:700;color:'+((res.medBars&&res.medBars>=(res.tgtBars||600)*0.99)?'var(--text3)':'#d97706')+';margin-bottom:6px">📊 봉수 중앙 '+(res.medBars||'?')+'/'+(res.tgtBars||600)+'봉'+(res.minBars!=null?(' · 최소 '+res.minBars):'')+(res.skippedShort?(' · 짧은종목 '+res.skippedShort+'개 제외'):'')+(res.xmFail?(' · 재료 조건 산출 실패 '+res.xmFail+'종 제외'):'') /* [S1787] */+'</div>';
+  const desc='<div style="font-size:8.5px;color:var(--text3);margin-bottom:6px">'+(res.cfgDesc||'')+'</div>';
+  const wrap=inner=>'<div style="padding:9px 10px;background:var(--surface);border-radius:9px;border:1px solid #05966955">'+inner+'</div>';
+  if(!a.n) return wrap(head+srcRow+bars+desc+'<div style="font-size:9.5px;color:var(--text3);padding:4px 0">거래 0건 — 칸 값을 바꾸거나 풀을 바꿔보세요.</div>');
+  const csvB='<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 6px"><span onclick="_sxVib(9);window._turtlePoolCsv&&_turtlePoolCsv(this)" title="종목별 이력 CSV — 판 정보(시장·창·탭·설정)가 행마다 박혀 있어 여러 판을 이어붙여도 섞이지 않습니다 · 거래 0건 종목 포함" style="font-size:9px;font-weight:800;padding:5px 9px;border-radius:10px;cursor:pointer;background:var(--surface2);color:#15803d;border:1px dashed #15803d88">📄 종목별 CSV</span></div>';
+  const grid=_poolGridHtml({ agg:a, nStocks:(res.nStocks||res.used||res.n), openList:res.openList, trades:res.trades, slXr:['stop'], xrLbl:_TURTLE_XR_LBL })
+    +_trendGapHtml(a)+'<div style="font-size:8.5px;color:var(--text3);margin-bottom:2px">종목 복리 범위 '+pc(a.stMin)+'% ~ '+pc(a.stMax)+'%</div>';
+  const incl=((res.openList&&res.openList.length&&a.stMedI!=null)?'<div style="font-size:8.5px;color:var(--text2);margin-bottom:2px">평가 포함(보유 '+res.openList.length+'종 기말 강제청산 가정·수수료 동일 감산): 종목복리 중앙 <b style="color:'+cOf(a.stMedI)+'">'+pc(a.stMedI)+'%</b> · 범위 '+pc(a.stMinI)+'% ~ '+pc(a.stMaxI)+'% — 확정매매 통계는 미청산 손익을 세지 않음(검열)</div>':'');
+  const op=((res.openList&&res.openList.length)?'<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #0d948855;background:#0d948818;color:#0d9488;cursor:pointer;list-style:none">▸ 보유중 '+res.openList.length+'종 펼치기</summary><div style="font-size:9px;color:var(--text2);margin-top:3px;max-height:180px;overflow-y:auto">'+res.openList.map(o=>o.name+'('+(_TURTLE_SRC_LBL[o.src]||o.src)+' '+(o.pnl>=0?'+':'')+o.pnl+'%·'+o.bars+'봉)').join(' · ')+'</div></details>':'');
+  const ps=(res.perStock||[]).filter(s=>s.n>0).sort((x,y)=>y.tp-x.tp);
+  const det=ps.length?('<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #05966955;background:#05966918;color:#059669;cursor:pointer;list-style:none">▸ 종목별 복리 ('+ps.length+') 펼치기</summary><div style="max-height:230px;overflow-y:auto;margin-top:4px">'
+    +ps.map(s=>'<div style="display:flex;justify-content:space-between;font-size:9.5px;padding:3px 2px;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">'+s.name+' <span style="color:var(--text3)">'+s.n+'건·승'+s.wr+'%</span></span><b style="color:'+(s.tp>=0?'#22c55e':'#e8365a')+'">'+(s.tp>=0?'+':'')+s.tp+'%</b></div>').join('')+'</div></details>'):'';
+  const disc=(res.poolFrom==='snap')?_poolSnapNote(sm&&sm.poolKind, ''):(res.source==='disc'?'<div style="font-size:8.5px;color:#b45309;margin-top:5px;line-height:1.5">⚠ 발굴풀(S846)=레시피 발굴 표본 — 터틀은 그 발굴에 안 쓰였지만 종목 선정 편향은 그대로다 · 판정은 사전등록+OOS에서</div>':'');
+  const nt='<div style="font-size:8.5px;color:#d97706;margin-top:6px;line-height:1.5">실험 지표 · 정식 판정과 무관 · 합산=거래 단위 · in-sample · 풀=선택된 목록(선택·생존 편향) · '+(res.feePct>0?('💸왕복 '+res.feePct+'%p 반영'):'무마찰')+' · 1포지션(피라미딩 없음) · 매수만 · MDD는 종목별 개념이라 합산 생략</div>';
+  return wrap(head+srcRow+bars+desc+csvB+grid+incl+_turtlePoolBreakdown(res.trades)+op+det+disc+nt);
+}
+async function _turtlePoolUI(){
+  const el=document.getElementById('sxTurtlePoolOut'); if(!el) return;
+  if(window._turtlePoolBusy) return;
+  const mk=(window._sxTrendCtx&&window._sxTrendCtx.market)||(typeof currentMarket!=='undefined'?currentMarket:'kr');
+  const tf=_poolTfOf();
+  el.innerHTML='<div style="text-align:center;padding:12px 2px;font-size:11px;color:var(--text3)">🐢 풀 전체 BT 준비 — 캔들 수집 중…</div>';
+  window._turtlePoolBusy=true; let res;
+  try{ res=await _turtlePoolRun(mk, tf, function(i,total,name){ const e=document.getElementById('sxTurtlePoolOut'); if(e) e.innerHTML='<div style="text-align:center;padding:12px 2px;font-size:11px;color:var(--text3)">🐢 종목 '+i+'/'+total+' · '+(name||'')+'<br><span style="font-size:9px">현 칸 설정 1벌 — 첫 실행만 무겁고(종목당 봉 수집) 재실행은 캐시로 빠름</span></div>'; }); }
+  catch(e){ res={ ok:false, market:mk, reason:String((e&&e.message)||e) }; }
+  finally{ window._turtlePoolBusy=false; }
+  window._turtlePoolLast=res;
+  const e2=document.getElementById('sxTurtlePoolOut'); if(e2) e2.innerHTML=_turtlePoolRender(res);
+}
+function _turtlePoolCsv(el){
+  const res=window._turtlePoolLast; if(!res||!res.ok) return; const sm=res.srcMeta;
+  _poolCsvDownload({ mk:res.market, win:((sm&&sm.on)?('창'+(sm.set||'?')):(sm?'본':'미상')), tab:'turtle',
+    pool:((res.poolFrom==='snap')?'📂 스냅':({watch:'⭐ 관심목록',disc:'🔬 발굴풀'}[res.source]||'대표풀')),
+    fee:(res.feePct||0), tsKst:_poolKst(res.ts), desc:res.cfgDesc, sig:res.sig, perStock:res.perStock }, el);
+}
+function _turtlePoolSectionHtml(mk){
+  const src=_turtlePoolSrc, so=(function(){ try{ return !!(window.SXCandleBT&&SXCandleBT.snapMode&&SXCandleBT.snapMode()); }catch(_e){ return false; } })();
+  const ss=_trendSnapState(), pl=_turtlePoolList(mk), n=pl.list.length;
+  const lbl=so?('📂 스냅'+(ss.set?('·창'+ss.set):'')):({rep:'대표풀',watch:'⭐ 관심목록',disc:'🔬 발굴풀'}[src]);
+  const chip=(on,lab,s)=>'<span onclick="_sxVib(9);window._turtlePoolSetSrc&&_turtlePoolSetSrc(\''+s+'\')" style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:10px;cursor:pointer;'+(on?'background:#059669;color:#fff':'background:var(--surface2);color:#059669;border:1px solid #05966966')+'">'+lab+'</span>';
+  const btn=(h,t,c)=>'<span onclick="_sxVib(9);'+h+'" style="font-size:9px;font-weight:800;padding:4px 9px;border-radius:8px;cursor:pointer;border:1px solid '+c+';color:'+c+';background:var(--surface2)">'+t+'</span>';
+  const stTxt=!ss.set ? (ss.on?('📂 현재 스냅 로드됨'+(ss.meta&&ss.meta.date?(' · '+ss.meta.date):'')):'🔴 라이브 봉')
+    : (ss.has?('📂 창'+ss.set+' 로드됨'+(ss.meta&&ss.meta.vintage?(' · 빈티지 '+ss.meta.vintage):'')):('⚠ 창'+ss.set+' 선택됨 — <b>📂 로드를 눌러야</b> 적용됩니다'));
+  const q=window._turtlePoolLast, mine=!!(q && q.market===mk), stale=mine && q.ok && q.sig!==_turtleSig(mk);
+  return '<div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:9px">'
+    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:10px;font-weight:800;color:var(--text2)">📦 풀 전체 BT</span>'+chip(!so&&src==='watch','⭐ 관심목록','watch')+chip(!so&&src==='rep','대표풀','rep')+chip(!so&&src==='disc','🔬 발굴풀','disc')+'</div>'
+    +'<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:6px">'+btn('window._trendSnapCycle&&_trendSnapCycle()','🕰 '+(ss.set?('창'+ss.set):'OFF(현재)'),'#7c3aed')+btn('window._trendSnapLoad&&_trendSnapLoad()','📂 로드','#0284c7')+btn('window._trendSnapOff&&_trendSnapOff()','🔴 라이브','#64748b')
+    +'<span style="font-size:8.5px;font-weight:700;color:var(--text3);flex:1 1 100%;line-height:1.45">'+stTxt+(window._trendSnapMsg?(' · '+window._trendSnapMsg):'')+'</span></div>'
+    +'<div style="font-size:8.5px;font-weight:700;color:'+(so?'#7c3aed':'var(--text3)')+';line-height:1.5;margin-bottom:6px">● 진단 · snapMode()='+(so?'true':'false')+(ss.set?(' · 창'+ss.set):'')+' · 모집단 '+n+'종('+(so?'스냅':lbl)+')'+(so?' · 위 소스 칩은 무시됩니다':'')+'</div>'
+    +'<div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-bottom:7px">위 칸 설정을 그대로 풀 전체에 돌려 합산 · '+_turtleDesc(mk)+'</div>'
+    +'<button onclick="window._turtlePoolUI&&_turtlePoolUI()" style="width:100%;font-size:11px;font-weight:700;padding:8px 0;border-radius:8px;cursor:pointer;color:#059669;background:var(--surface);border:1px solid #05966966">▶ '+lbl+' '+(n?(Math.min(n,_TREND_BATCH_CAP)+'/'+n+'종목 '):'')+'· 현 설정 자동 BT</button>'
+    +'<div id="sxTurtlePoolOut" style="margin-top:8px">'+(mine?((stale?'<div style="font-size:9px;color:#d97706;margin-top:5px">⚠ 설정이 바뀜 — 아래는 이전 설정 결과 · ▶ 재실행</div>':'')+_turtlePoolRender(q)):'<div style="font-size:9px;color:var(--text3);margin-top:5px">현 설정을 풀 전체에 돌려 합산 — n=1 일화 탈출 · 첫 실행만 무겁고(종목당 봉 수집) 재실행은 캐시로 빠름</div>')+'</div>'
+    +'</div>';
+}
+if(typeof window!=='undefined'){ window._turtlePoolSetSrc=_turtlePoolSetSrc; window._turtlePoolUI=_turtlePoolUI; window._turtlePoolCsv=_turtlePoolCsv; window._turtlePoolRun=_turtlePoolRun; }
 function _trendGridCell(num,label,color){ return `<div style="flex:1;min-width:0;background:var(--surface2);border-radius:8px;padding:8px 4px;text-align:center"><div style="font-size:15px;font-weight:800;color:${color};line-height:1.2">${num}</div><div style="font-size:9px;color:var(--text3);margin-top:2px">${label}</div></div>`; }
 function _trendRenderInner(){
   const ctx = (typeof window!=='undefined' && window._sxTrendCtx) ? window._sxTrendCtx : null;
@@ -5544,7 +5712,7 @@ function _trendRenderInner(){
   if(_trendEngine==='recipe' && _btOn._rcpPending){ _trendRcpEnsure(function(){ _trendRerender(); }); }   // [S816] 레시피 발동맵 async 확보 후 재렌더
   if(_trendEngine==='hybrid' && _btOn._hybPending){ _trendHybEnsure(function(){ _trendRerender(); }); }   // [S1058] 하이브리드 발동맵 async 확보 후 재렌더
   if(_trendEngine==='strat' && _btOn._stratPending){ _trendStratEnsure(function(){ _trendRerender(); }); }   // [S1116] 전략 조합 신호맵(레거시4+칸3) async 확보 후 재렌더
-  if(_trendEngine==='cross' && _btOn._xmatPending){ _trendXmatEnsure(function(){ _trendRerender(); }); }   // [S1119] 재료 조건 봉맵 async 확보 후 재렌더
+  if((_trendEngine==='cross' && _btOn._xmatPending) || (_trendEngine==='turtle' && _btOn && _btOn._xmatPending) /* [S1787] 🐢 재료 필터도 같은 스캔 */){ _trendXmatEnsure(function(){ _trendRerender(); }); }   // [S1119] 재료 조건 봉맵 async 확보 후 재렌더
   // [S628~S630] 선행 가드 — ON이 OFF보다 손해면 손해 표시 + 종목 진입 시 임시 OFF(🔮 탭으로 강제 ON 가능)
   let _guardBadge='', _guardHurt=false, _btOff=null;
   if(cfg.predict && _trendEngine==='cross' && !(cfg.noCrossB && cfg.noCrossS) /* [S1782] 둘 다일 때만 생략 — 한쪽만이면 다른 쪽 예측이 돈다 */ /* [S1781] 크로스 제외면 예측이 안 돈다 — 두 판이 같아 가드 무의미 */){
@@ -5841,7 +6009,7 @@ function _trendRenderInner(){
   const _engCol=_engHyb?'#7c3aed':(_engRecipe?'#16a34a':'#0ea5e9');
   const engRow=`<div style="margin-bottom:9px;display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span onclick="_sxVib(10);window._trendToggleEngine&&_trendToggleEngine()" title="엔진 전환(탭): 🧪 전략 조합 ↔ 📈 MA 크로스 상세. 구 하이브리드/레시피는 전략 조합의 프리셋으로 재현." style="font-size:10px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid;cursor:pointer;background:${_engCol};color:#fff;border-color:${_engCol}">${_engLbl} ⟳</span><span style="font-size:8.5px;color:var(--text3);flex:1;min-width:130px">${_engDesc}</span></div>`;
   if(_trendEngine==='turtle'){   // [S1784] 🐢 터틀 — 자기 칸·칩·상태줄 + 공통 성과 그리드
-    return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+_trendTabBar('turtle')+_turtlePanelHtml(market, rows, bt)+grid+_turtleNoteHtml(market)+`</div>`;
+    return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+_trendTabBar('turtle')+_turtlePanelHtml(market, rows, bt)+grid+_turtlePoolSectionHtml(market) /* [S1786] 📦 풀 전체 BT */+_turtleNoteHtml(market)+`</div>`;
   }
   if(_trendEngine==='strat'){   // ═══ [S1116] 🧪 전략 조합 UI — 진입/게이트/청산 블록 토글 + 프리셋 + 진입원별 분해 ═══
     const sc=_stratCfg(market);
@@ -17514,7 +17682,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1785';   // [S1785] 코인 4시간봉 — 세 탭(📈 크로스 · 🧪 전략 조합 · 🐢 터틀)에 📥 일봉 설정 불러오기(그 탭 범위 = 리셋 범위) · [S1784] 🐢 터틀 탭 1단계 — 기본 터틀 엔진(20봉 돌파·10봉 이탈·N=TR 20봉·2N 손절·건너뛰기/55봉 실패방지 · 입력값 수동 · 매수만) · [S1783] 🔮 예측 실험도구 1단계 — 학습검증 예측 카드 셋 + 교차검증 MA크로스 전이를 한 카드로(계산 무변경) · [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  window.SX_BUILD='S1787';   // [S1787] 🐢 터틀 필터 칩 1차 — 🧭 MA 국면 · 🧭 TRIX 국면 · 🧪 재료 조건(진입 AND · 매도 재료 청산 · 가상 거래는 필터 무관 · 끄면 무변경) · [S1786] 🐢 터틀 📦 풀 전체 BT(스냅별 · 카드 엔진 그대로 · 공용 집계·그리드·CSV) · [S1785] 코인 4시간봉 — 세 탭(📈 크로스 · 🧪 전략 조합 · 🐢 터틀)에 📥 일봉 설정 불러오기(그 탭 범위 = 리셋 범위) · [S1784] 🐢 터틀 탭 1단계 — 기본 터틀 엔진(20봉 돌파·10봉 이탈·N=TR 20봉·2N 손절·건너뛰기/55봉 실패방지 · 입력값 수동 · 매수만) · [S1783] 🔮 예측 실험도구 1단계 — 학습검증 예측 카드 셋 + 교차검증 MA크로스 전이를 한 카드로(계산 무변경) · [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
