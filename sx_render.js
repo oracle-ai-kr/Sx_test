@@ -2087,6 +2087,39 @@ function _sxTfGetRaw(prefix, mk){
 }
 // [S1682] 그 봉 전용 저장값이 실제로 있는가 — 화면이 '아직 일봉 값을 보고 있다'를 말할 때 쓴다(폴백을 조용히 두지 않는다).
 function _sxTfHasOwn(prefix, mk){ try{ return _sxTfSplitOn(mk) && localStorage.getItem(prefix+mk+'@'+_sxTfNow())!=null; }catch(_){ return false; } }
+// [S1785] 📥 일봉 설정 불러오기 — 봉별 저장이 갈리는 때(코인 · 일봉 아닌 봉)만. 사용자 2026-10-12 '코인 4시간에는 일봉 셋팅 불러오기 버튼 … 3탭다'.
+//   ★범위 = ↺ 리셋과 같다(S1561·S1562 '그 탭이 보여주는 것만') — 값의 출처만 '기본값' 대신 '일봉 화면 값'이다.
+//   ★일봉 화면 값 = 로더를 일봉으로 한 번 돌린 값(일봉 저장이 없으면 일봉 기본값·프리셋) — 원문 문자열을 베끼면 기본값 보정·검증을 건너뛴다.
+//   ⚠일봉 저장소·범위 밖 키·다른 저장소는 쓰지 않는다. MA 줄(common)은 크로스·전략조합이 같이 쓴다(리셋과 같은 사실).
+function _sxTfAsDay(fn){ let t0; try{ t0=_analTF; }catch(_){ return fn(); } try{ _analTF='day'; return fn(); } finally { _analTF=t0; } }
+function _tfStoreLine(lb, own, tab){   // 💾 저장소 안내 + 📥 버튼 — 세 탭이 같은 문구를 쓴다(S1682 문구 그대로)
+  const btn=`<span onclick="_sxVib(9);window._tfImportDay&&_tfImportDay('${tab}')" title="일봉에서 이 탭 값을 불러와 ${lb} 전용 저장소에 씁니다(일봉 값과 다른 탭은 그대로)" style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:12px;cursor:pointer;background:var(--surface);color:#0891b2;border:1px solid #0891b2;white-space:nowrap">📥 일봉 설정 불러오기</span>`;
+  return own
+    ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span style="font-size:9px;font-weight:800;color:#0891b2">💾 ${lb} 전용 저장 — 일봉과 따로 보관됩니다</span>${btn}</div>`
+    : `<div style="margin-bottom:8px;padding:6px 9px;background:#d9770618;border:1px solid #d9770655;border-radius:8px;font-size:9px;font-weight:800;color:#d97706;line-height:1.5">💾 ${lb} 전용 저장소가 아직 비어 있어 <b>일봉 값을 보고 있습니다</b> — 이 봉에서 적용·리셋을 한 번 하면 갈라집니다(그 뒤로 일봉에 안 섞입니다)<div style="margin-top:5px">${btn}</div></div>`;
+}
+function _tfImportDay(tab){
+  const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market;
+  if(!_sxTfSplitOn(m)) return;
+  const T={cross:'📈 MA 크로스',strat:'🧪 전략 조합',turtle:'🐢 터틀'}[tab]; if(!T) return;
+  const W={cross:'MA 줄(단기MA·신호창·TRIX·SMI) · ⚙️ 게이트·청산 칩 · 🧪 재료 조건 · 💸 수수료', strat:'MA 줄(단기MA·신호창·TRIX·SMI) · 진입/게이트/청산 블록 · 칸 바구니 · 💸 수수료', turtle:'터틀 칸·칩 전부(💸 수수료는 다른 탭 값 그대로)'}[tab];
+  const lb=_poolTfLbl(_sxTfNow());
+  if(!confirm('일봉 설정을 '+lb+' '+T+' 탭에 불러올까요?\n\n덮어쓰는 것: '+W+(tab!=='turtle'?'\n· MA 줄은 크로스·전략 조합이 같이 쓰는 값이라 두 탭 다 바뀝니다':'')+'\n\n일봉 값과 다른 탭 값은 그대로입니다.')) return;
+  const D=_sxTfAsDay(function(){ return { trend:_trendCfg(m), strat:_stratCfg(m), xmat:_xmatStore(m), cb:_cbStore(m), turtle:_turtleCfg(m) }; });
+  if(tab==='turtle'){ _turtleSave(m, D.turtle); }
+  else {
+    const cur=_trendCfg(m), next=Object.assign({}, cur);
+    _TREND_RESET_SCOPE.common.concat(_TREND_RESET_SCOPE[tab]||[]).forEach(function(k){ if(k in D.trend) next[k]=D.trend[k]; else delete next[k]; });
+    _trendSave(m, next);
+    const scNext=Object.assign({}, _stratCfg(m)), list=_STRAT_RESET_SCOPE[tab];
+    (list||Object.keys(D.strat)).forEach(function(k){ if(k in D.strat) scNext[k]=D.strat[k]; else delete scNext[k]; });
+    _stratSave(m, scNext);
+    if(tab==='cross') _xmatSave(m, D.xmat);
+    if(tab==='strat') _cbSave(m, D.cb);
+  }
+  _trendRerender(); _trendRedrawChart();
+}
+if(typeof window!=='undefined'){ window._tfImportDay=_tfImportDay; }
 // [S573] 단기추세 기본 프리셋 — 순수 MA 골든/데드크로스만. 매수·매도 보조칩 전부 OFF, 정배열 재진입 OFF (사진 기준 0건 적용 상태).
 //   매번 새 객체 반환(aux/sell 참조 공유 방지). MA쌍은 시장별 _TREND_MKT_DEFAULT 사용.
 function _trendDefaults(market){
@@ -5452,7 +5485,7 @@ function _turtlePanelHtml(mk, rows, bt){
   const row=(h,mb)=>`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:${mb||7}px">${h}</div>`;
   const chip=(on,lbl,key,tip)=>`<span onclick="_sxVib(9);window._turtleToggle&&_turtleToggle('${key}')" title="${tip}" style="font-size:10px;font-weight:800;padding:5px 10px;border-radius:14px;cursor:pointer;${on?`background:${col};color:#fff;border:1px solid ${col}`:'background:var(--surface2);color:var(--text3);border:1px solid var(--border)'}">${on?'☑':'☐'} ${lbl}</span>`;
   const note=(t)=>`<span style="font-size:9px;color:var(--text3)">${t}</span>`;
-  let h='';
+  let h=_sxTfSplitOn(mk) ? _tfStoreLine(_poolTfLbl(_sxTfNow()), _sxTfHasOwn('SX_TURTLE_',mk), 'turtle') : '';   /* [S1785] 💾 터틀 저장소 안내 + 📥 일봉 설정 불러오기 */
   h+=row(lab(B('🐢 진입')+' 종가가 직전')+inp('sxTtEntry',c.entryN)+lab('봉 최고가 돌파'));
   h+=row(lab(B('청산')+' 종가가 직전')+inp('sxTtExit',c.exitN)+lab('봉 최저가 이탈'));
   h+=row(lab(B('N')+' = TR')+inp('sxTtAtr',c.atrN)+lab('봉 평균 · '+B('손절')+' 진입가 −')+inp('sxTtStop',c.stopMult,'0.1')+lab('×N')+note('(0 = 손절 끔)'));
@@ -5610,9 +5643,7 @@ function _trendRenderInner(){
     if(!_sxTfSplitOn(market)) return '';
     const _own=_sxTfHasOwn('SX_TREND_',market)||_sxTfHasOwn('SX_STRAT_',market);
     const _lb=_poolTfLbl(_sxTfNow());
-    return _own
-      ? `<div style=\"margin-bottom:8px;font-size:9px;font-weight:800;color:#0891b2\">💾 ${_lb} 전용 저장 — 일봉과 따로 보관됩니다</div>`
-      : `<div style=\"margin-bottom:8px;padding:6px 9px;background:#d9770618;border:1px solid #d9770655;border-radius:8px;font-size:9px;font-weight:800;color:#d97706;line-height:1.5\">💾 ${_lb} 전용 저장소가 아직 비어 있어 <b>일봉 값을 보고 있습니다</b> — 이 봉에서 적용·리셋을 한 번 하면 갈라집니다(그 뒤로 일봉에 안 섞입니다)</div>`;
+    return _tfStoreLine(_lb, _own, (_trendEngine==='strat')?'strat':'cross');   /* [S1785] 📥 일봉 설정 불러오기 — 문구는 그대로(_tfStoreLine 한 곳) */
   })()}`;
   // [S1398] 조건칩(_TREND_AUX 9종 AND / _TREND_SELL 8종 OR) 렌더 철거 — 🧪 재료 조건(빔서치 어휘)과 **모양도 적용 범위도 같아** 중복이었다(사용자 판단).
   //   범위 실측: 조건칩 저장값이 닿는 곳 = 카드 BT + 상세 모달뿐. 재료 조건이 선언한 범위와 정확히 동일.
@@ -17483,7 +17514,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1784';   // [S1784] 🐢 터틀 탭 1단계 — 기본 터틀 엔진(20봉 돌파·10봉 이탈·N=TR 20봉·2N 손절·건너뛰기/55봉 실패방지 · 입력값 수동 · 매수만) · [S1783] 🔮 예측 실험도구 1단계 — 학습검증 예측 카드 셋 + 교차검증 MA크로스 전이를 한 카드로(계산 무변경) · [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  window.SX_BUILD='S1785';   // [S1785] 코인 4시간봉 — 세 탭(📈 크로스 · 🧪 전략 조합 · 🐢 터틀)에 📥 일봉 설정 불러오기(그 탭 범위 = 리셋 범위) · [S1784] 🐢 터틀 탭 1단계 — 기본 터틀 엔진(20봉 돌파·10봉 이탈·N=TR 20봉·2N 손절·건너뛰기/55봉 실패방지 · 입력값 수동 · 매수만) · [S1783] 🔮 예측 실험도구 1단계 — 학습검증 예측 카드 셋 + 교차검증 MA크로스 전이를 한 카드로(계산 무변경) · [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
