@@ -2755,10 +2755,11 @@ function _trGPair(sc, which){
   // [S1694] ★칩별 쌍 — `which` = 'ma' | 'tx'. 빠뜨리면(구 호출자) 📏MA 쌍을 준다.
   //   ⚠S1692는 **한 쌍을 공유**했다. 사용자가 두 게이트를 다른 주기로 쓰려면 갈라야 한다(요청 2026-09-27).
   //   ⚠레거시 `trGateS`/`trGateL`로 **물러선다** — 로더가 못 옮긴 옛 저장본도 값이 안 날아가게(S1412).
-  const _k = (which==='tx') ? ['txTrGateS','txTrGateL'] : ['maTrGateS','maTrGateL'];
+  const _k = (which==='tx') ? ['txTrGateS','txTrGateL'] : ((which==='em') ? ['emTrGateS','emTrGateL'] /* [S1796] 〽️ — 레거시 공유쌍 없음 · 기본 9×26 */ : ['maTrGateS','maTrGateL']);
   const _g = (k, lg, d) => { const v=+((sc&&sc[k])||0); if(v>0) return v; const w=+((sc&&sc[lg])||0); return w>0?w:d; };
-  const s=Math.max(1,Math.min(400,Math.round(_g(_k[0],'trGateS',10))));
-  let l=Math.max(1,Math.min(400,Math.round(_g(_k[1],'trGateL',60))));
+  const _em=(which==='em');   /* [S1796] */
+  const s=Math.max(1,Math.min(400,Math.round(_g(_k[0],_em?'_noLegacy':'trGateS',_em?9:10))));
+  let l=Math.max(1,Math.min(400,Math.round(_g(_k[1],_em?'_noLegacy':'trGateL',_em?26:60))));
   if(l<=s) l=Math.min(400,s+1);
   return [s,l];
 }
@@ -2784,7 +2785,7 @@ function _trGDead(sc, cfg, which){
   if(reOn && eq(Rp[0],Rp[1])) r.legs.push('\u{1F504}재진입');
   return r;
 }
-function _stratDefaults(){ return { _ver:_STRAT_VER, cross:true, pb:false, dc:true, cell:false, bb:true, grid3:true, pure:false, rgGate:false, xSplit:false, exDead:true, exFake:true, exDown:false, exCellFake:false, deadGrace:0, deadGraceLast:10, minK:1, exNBars:0, exNBarsLast:10,   /* [S1685] 유예 기억칸 — 칩을 껐다 켜면 마지막 값으로 돌아온다(`exNBarsLast`와 같은 규약). ⚠`_STRAT_RESET_SCOPE.strat=null`(전건)이라 리셋 사정거리에 **자동으로** 든다 — 손 목록 신설 없음(S1272). */ fee:false, feePct:0.2, xGate3:false, slOn:true, slMult:null, trOn:true, trMult:null, trArm:0, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:30, tpAtrOn:false, tpAtrMult:3, tpFixOn:false, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:10, txTrGateL:60, exDeadX:false, tpAtrMz:false, tpAtrUp:6, tpAtrMid:4, tpAtrDn:2, slAtrMz:false, slAtrUp:null, slAtrMid:null, slAtrDn:null, trAtrMz:false, trAtrUp:null, trAtrMid:null, trAtrDn:null, psarG:false, psarX:false, psarAf:0.02, psarMax:0.2, psarGMask:96, bbEnt:0, bbWait:5, bbPsAf:0.02, bbPsMax:0.2, bbExPb:0.5, bbExCap:20, bvReg:1, bvBase:0, bvOsc:73.31, bvVr:389.41 /* [S1753] 🔊 bullVol 묶음 — 국면 비트(1 하락 · 2 혼조 · 4 정배열/상승 · 기본 1 = 하락장만) · 기준 0 = 60·120·200 / 1 = 60·120 · 급증 73.31 · VR 389.41 (전부 종전 동작) */, bbSolo:false, bbNoSelf:false /* [S1751] 자체 청산 끔(= 청산 줄만) — 기본 false */ /* [S1749] 🌀 BB회귀 모듈 — 진입 방식 0 바로·1 첫 반등 봉·2 PSAR 상승 전환 · 대기 5봉 · 전용 PSAR 0.02/0.2 · 청산 %B 0.5·캡 20봉 · 자체 청산만 OFF (전부 종전 동작) */ /* [S1746] 🔵 PSAR 게이트(격자)·하락청산 — 기본 OFF · 가속 0.02·최대 0.2 · 격자 96 = 하락 중 진입 2칸(크로스·다른 진입원) 금지 · S1745 의 psarA/psarB/psarBMask 는 없앴다(저장본에 남아 있어도 안 읽는다) */ /* [S1743] 📅 구간별 SL·트레일 — 기본 OFF · 3칸 null = 단일 배수를 따른다 */ /* [S1740] 📅 구간별 TP_ATR — 기본 OFF · 배수 3칸(상승·혼조·하락) */ }; }   /* [S1700] 🔗 데드=크로스만 기본 OFF — 켜지 않으면 종전과 동치 */   /* [S1694] ★쌍을 칩별로 갈랐다(S1692는 `trGateS`/`trGateL` 한 쌍 공유) — 사용자가 두 게이트를 다른 주기로 쓰려고. 구 키는 defaults에서 뺐지만 **로더가 옛 저장본을 옮겨 심고** `_trGPair`도 폴백으로 읽는다(S1412 저장값 보존). */   /* [S1692] 🧭 추세 게이트 2종 기본 OFF · 공유쌍 10×60. ⚠`_stratPreset`은 bool만 일괄 OFF하고 숫자는 `_stratDefaults()` 값이 그대로 남는다 — 10×60이 곧 프리셋 중립값이라 `deadGrace`/`exNBars`처럼 손으로 되돌릴 줄이 필요 없다. */   /* [S1678] 🪙 COIN 부속 2종 기본 OFF — 시즌2 워커에 둘 다 없다(확인함) */   // [S1600] · [S1599] 📅 월봉게이트 OFF · [S1592] 🎯TP고정 OFF·10 · 기본=하이브리드 재현 · [S1117] minK=real 겹침 임계·exNBars=보유 N봉 컷·exCellFake=칸 fake 청산·fee=왕복 마찰
+function _stratDefaults(){ return { _ver:_STRAT_VER, cross:true, pb:false, dc:true, cell:false, bb:true, grid3:true, pure:false, rgGate:false, xSplit:false, exDead:true, exFake:true, exDown:false, exCellFake:false, deadGrace:0, deadGraceLast:10, minK:1, exNBars:0, exNBarsLast:10,   /* [S1685] 유예 기억칸 — 칩을 껐다 켜면 마지막 값으로 돌아온다(`exNBarsLast`와 같은 규약). ⚠`_STRAT_RESET_SCOPE.strat=null`(전건)이라 리셋 사정거리에 **자동으로** 든다 — 손 목록 신설 없음(S1272). */ fee:false, feePct:0.2, xGate3:false, slOn:true, slMult:null, trOn:true, trMult:null, trArm:0, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:30, tpAtrOn:false, tpAtrMult:3, tpFixOn:false, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:10, txTrGateL:60, emTrGate:false, emTrGateS:9, emTrGateL:26 /* [S1796] 〽️ EMA 게이트(끔 · 사용자 16:12) */, exDeadX:false, tpAtrMz:false, tpAtrUp:6, tpAtrMid:4, tpAtrDn:2, slAtrMz:false, slAtrUp:null, slAtrMid:null, slAtrDn:null, trAtrMz:false, trAtrUp:null, trAtrMid:null, trAtrDn:null, psarG:false, psarX:false, psarAf:0.02, psarMax:0.2, psarGMask:96, bbEnt:0, bbWait:5, bbPsAf:0.02, bbPsMax:0.2, bbExPb:0.5, bbExCap:20, bvReg:1, bvBase:0, bvOsc:73.31, bvVr:389.41 /* [S1753] 🔊 bullVol 묶음 — 국면 비트(1 하락 · 2 혼조 · 4 정배열/상승 · 기본 1 = 하락장만) · 기준 0 = 60·120·200 / 1 = 60·120 · 급증 73.31 · VR 389.41 (전부 종전 동작) */, bbSolo:false, bbNoSelf:false /* [S1751] 자체 청산 끔(= 청산 줄만) — 기본 false */ /* [S1749] 🌀 BB회귀 모듈 — 진입 방식 0 바로·1 첫 반등 봉·2 PSAR 상승 전환 · 대기 5봉 · 전용 PSAR 0.02/0.2 · 청산 %B 0.5·캡 20봉 · 자체 청산만 OFF (전부 종전 동작) */ /* [S1746] 🔵 PSAR 게이트(격자)·하락청산 — 기본 OFF · 가속 0.02·최대 0.2 · 격자 96 = 하락 중 진입 2칸(크로스·다른 진입원) 금지 · S1745 의 psarA/psarB/psarBMask 는 없앴다(저장본에 남아 있어도 안 읽는다) */ /* [S1743] 📅 구간별 SL·트레일 — 기본 OFF · 3칸 null = 단일 배수를 따른다 */ /* [S1740] 📅 구간별 TP_ATR — 기본 OFF · 배수 3칸(상승·혼조·하락) */ }; }   /* [S1700] 🔗 데드=크로스만 기본 OFF — 켜지 않으면 종전과 동치 */   /* [S1694] ★쌍을 칩별로 갈랐다(S1692는 `trGateS`/`trGateL` 한 쌍 공유) — 사용자가 두 게이트를 다른 주기로 쓰려고. 구 키는 defaults에서 뺐지만 **로더가 옛 저장본을 옮겨 심고** `_trGPair`도 폴백으로 읽는다(S1412 저장값 보존). */   /* [S1692] 🧭 추세 게이트 2종 기본 OFF · 공유쌍 10×60. ⚠`_stratPreset`은 bool만 일괄 OFF하고 숫자는 `_stratDefaults()` 값이 그대로 남는다 — 10×60이 곧 프리셋 중립값이라 `deadGrace`/`exNBars`처럼 손으로 되돌릴 줄이 필요 없다. */   /* [S1678] 🪙 COIN 부속 2종 기본 OFF — 시즌2 워커에 둘 다 없다(확인함) */   // [S1600] · [S1599] 📅 월봉게이트 OFF · [S1592] 🎯TP고정 OFF·10 · 기본=하이브리드 재현 · [S1117] minK=real 겹침 임계·exNBars=보유 N봉 컷·exCellFake=칸 fake 청산·fee=왕복 마찰
 function _stratCfg(market){
   let sc=_stratDefaults();
   sc.feePct=(market==='kr')?0.2:0.1;   // [S1117] 왕복 마찰 기본: KR 0.2%(수수료 왕복+거래세 근사)·US/COIN 0.1% — 근사치·입력으로 조정
@@ -2803,7 +2804,8 @@ function _stratCfg(market){
       const _v=_lg(o.maTrGateS); if(_v) sc.maTrGateS=_v;
       const _w=_lg(o.maTrGateL); if(_w) sc.maTrGateL=_w;
       const _x=_lg(o.txTrGateS); if(_x) sc.txTrGateS=_x;
-      const _y=_lg(o.txTrGateL); if(_y) sc.txTrGateL=_y; }   /* [S1692] 🧭 공유쌍 저장값 — 이 로더는 숫자 키를 **화이트리스트**로 받는다(bool과 달리 목록을 안 돈다). 여기 안 적으면 새로고침 때 조용히 10×60으로 돌아간다(S1412 저장값 보존). 뒤집힘 교정은 `_trGPair`가 읽을 때 한다. */ if(o.deadGraceLast!=null && isFinite(+o.deadGraceLast) && +o.deadGraceLast>0) sc.deadGraceLast=Math.min(20,Math.max(1,Math.round(+o.deadGraceLast))); if(sc.deadGrace>0) sc.deadGraceLast=Math.min(20,Math.max(1,sc.deadGrace));   /* [S1685] ★기억칸 정규화를 **로더 한 곳**에 둔다 — 프리셋(`_stratPreset`)이 표에서 `deadGrace`를 직접 얹어도 다음 로드에서 기억칸이 따라온다(프리셋 경로마다 따로 적지 않는다 · 규칙22). */ sc.minK=(+o.minK>=2)?Math.min(3,Math.round(+o.minK)):1; if(o.trArm!=null && isFinite(+o.trArm) && +o.trArm>=0) sc.trArm=Math.min(20,Math.max(0,+o.trArm));
+      const _y=_lg(o.txTrGateL); if(_y) sc.txTrGateL=_y;
+      if('emTrGate' in o) sc.emTrGate=!!o.emTrGate; const _e1=_lg(o.emTrGateS), _e2=_lg(o.emTrGateL); if(_e1) sc.emTrGateS=_e1; if(_e2) sc.emTrGateL=_e2;   /* [S1796] 〽️ — _STRAT_BOOL_KEYS 밖(넣으면 칩을 끈 사람의 조합 지문까지 바뀐다) */ }   /* [S1692] 🧭 공유쌍 저장값 — 이 로더는 숫자 키를 **화이트리스트**로 받는다(bool과 달리 목록을 안 돈다). 여기 안 적으면 새로고침 때 조용히 10×60으로 돌아간다(S1412 저장값 보존). 뒤집힘 교정은 `_trGPair`가 읽을 때 한다. */ if(o.deadGraceLast!=null && isFinite(+o.deadGraceLast) && +o.deadGraceLast>0) sc.deadGraceLast=Math.min(20,Math.max(1,Math.round(+o.deadGraceLast))); if(sc.deadGrace>0) sc.deadGraceLast=Math.min(20,Math.max(1,sc.deadGrace));   /* [S1685] ★기억칸 정규화를 **로더 한 곳**에 둔다 — 프리셋(`_stratPreset`)이 표에서 `deadGrace`를 직접 얹어도 다음 로드에서 기억칸이 따라온다(프리셋 경로마다 따로 적지 않는다 · 규칙22). */ sc.minK=(+o.minK>=2)?Math.min(3,Math.round(+o.minK)):1; if(o.trArm!=null && isFinite(+o.trArm) && +o.trArm>=0) sc.trArm=Math.min(20,Math.max(0,+o.trArm));
     if(+o.slPct>0) sc.slPct=Math.min(90,Math.max(1,+o.slPct));   /* [S1510] */
     if(o.slMult!=null && isFinite(+o.slMult) && +o.slMult>0) sc.slMult=Math.min(20,Math.max(0.1,+o.slMult));
     if(o.trMult!=null && isFinite(+o.trMult) && +o.trMult>0) sc.trMult=Math.min(20,Math.max(0.1,+o.trMult));   /* [S1509] */
@@ -2843,7 +2845,7 @@ function _stratGrace(v){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=
 function _stratTrGate(k,v){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const sc=_stratCfg(m); const n=+v;
   // [S1694] ★`k` = 'mas'|'mal'|'txs'|'txl' — 칩별 쌍이라 **어느 칩의 어느 칸인지**까지 받는다.
   //   ⚠S1692는 's'|'l' 두 가지였다. 구 인자가 들어오면 📏MA 쌍으로 물러선다(캐시에 남은 옛 화면이 값을 날리지 않게).
-  const _K={ mas:'maTrGateS', mal:'maTrGateL', txs:'txTrGateS', txl:'txTrGateL', s:'maTrGateS', l:'maTrGateL' };
+  const _K={ mas:'maTrGateS', mal:'maTrGateL', txs:'txTrGateS', txl:'txTrGateL', ems:'emTrGateS', eml:'emTrGateL' /* [S1796] 〽️ */, s:'maTrGateS', l:'maTrGateL' };
   const key=_K[k]; if(!key) return;
   if(isFinite(n)&&n>0) sc[key]=Math.min(400,Math.max(1,Math.round(n)));
   _stratSave(m,sc); _trendRerender(); }
@@ -3055,7 +3057,7 @@ function _sxMonthZones(rows, close){ const n=rows.length, out=new Array(n), mc=[
   for(let i=0;i<n;i++){ const k=_sxYmKey(rows[i]); if(k!==mk){ mc.push(close[i]); mk=k; } else mc[mc.length-1]=close[i];
     if(mc.length>=10){ let s5=0,s10=0; for(let q=1;q<=10;q++){ const v=mc[mc.length-q]; s10+=v; if(q<=5) s5+=v; } s5/=5; s10/=10; const c=close[i]; out[i]=(s5>s10&&c>s5)?'up':((s5<s10&&c<s5)?'dn':'mid'); } else out[i]=null; }
   return out; }
-function _stratBt(rows, sig, cfg, sc, bbP, cellCtx){
+function _stratBt(rows, sig, cfg, sc, bbP, cellCtx, noDday){   /* [S1796] noDday = 풀 BT(D-day 예보 kNN 건너뜀 · 거래 무관) */
   const n=rows.length; const _s=cfg.s||5, _l=cfg.l||20; if(!n || n<Math.max(30,_l+5)) return null;
   const close=rows.map(r=>+(r.close!=null?r.close:r.c));
   // [S1676] ★크로스 축 교체 — 📈크로스 진입원과 데드크로스 청산이 TRIX를 타게 한다(MA 크로스 탭과 같은 규약).
@@ -3166,15 +3168,17 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx){
   //   ⚠웜업(값이 null)은 **막는다**(보수) — `_coinSlopeUp`이 `i>=10`으로 막는 것과 같은 규약.
   //     ⇒ 긴 주기를 크게 잡으면 앞 구간이 통째로 평가에서 빠진다(3×3의 MA200과 같은 성질 · COINDAY_SWEEP_S1690 참조).
   //   ⚠둘 다 OFF면 `true`를 돌려준다 — 그래서 기존 판정식에 AND로 얹어도 **한 건도 안 바뀐다**(배터리 B군이 구본과 전건 대조).
-  const _trGma=!!sc.maTrGate, _trGtx=!!sc.trixTrGate, _trGOn=_trGma||_trGtx;
+  const _trGma=!!sc.maTrGate, _trGtx=!!sc.trixTrGate, _trGem=!!sc.emTrGate /* [S1796] 〽️ */, _trGOn=_trGma||_trGtx||_trGem;
   // [S1694] ★칩마다 **자기 쌍**으로 잰다(S1692는 한 쌍을 공유했다 — 사용자가 다른 주기로 쓰려고 갈랐다).
   const _trGPma=_trGma?_trGPair(sc,'ma'):null, _trGPtx=_trGtx?_trGPair(sc,'tx'):null;
   const _trGmaS=_trGma?_trSma(close,_trGPma[0]):null, _trGmaL=_trGma?_trSma(close,_trGPma[1]):null;
   const _trGtxR=_trGtx?_trTrix(close,_trGPtx[0],_trGPtx[1]):null;
+  const _trGPem=_trGem?_trGPair(sc,'em'):null, _trGemS=_trGem?_trEma(close,_trGPem[0]):null, _trGemL=_trGem?_trEma(close,_trGPem[1]):null;   /* [S1796] 〽️ EMA 상태 — 계산기 = 🐢 터틀 🧭 EMA 와 같은 _trEma */
   const _trGateOk=(i)=>{
     if(!_trGOn) return true;
     if(_trGma){ const a=_trGmaS[i], b=_trGmaL[i]; if(a==null||b==null||!(a>b)) return false; }
     if(_trGtx){ const a=_trGtxR.line[i], b=_trGtxR.sig[i]; if(a==null||b==null||!(a>b)) return false; }
+    if(_trGem){ const a=_trGemS[i], b=_trGemL[i]; if(a==null||b==null||!(a>b)) return false; }   /* [S1796] 〽️ 웜업 = 막음(MA·TRIX 게이트와 같음) */
     return true; };
   const _regCache={};
   const _regGet=(i)=>{ let r=_regCache[i]; if(r===undefined){
@@ -3291,7 +3295,7 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx){
   const _MINB=(_KN&&_KN.MIN_BANK)||40, _KK=(_KN&&_KN.K)||10, _PTHR=0.5;
   let _pPre=null,_pW=null;
   let _ddayGate=false;
-  if(n>=2 && maS[n-1]!=null&&maL[n-1]!=null&&maS[n-2]!=null&&maL[n-2]!=null){ const _g=maS[n-1]-maL[n-1], _c=_g-(maS[n-2]-maL[n-2]); _ddayGate=(_g<0&&_c>0&&(-_g/_c)<=3.5); }
+  if(!noDday /* [S1796] */ && n>=2 && maS[n-1]!=null&&maL[n-1]!=null&&maS[n-2]!=null&&maL[n-2]!=null){ const _g=maS[n-1]-maL[n-1], _c=_g-(maS[n-2]-maL[n-2]); _ddayGate=(_g<0&&_c>0&&(-_g/_c)<=3.5); }
   if((_predOn||_ddayGate) && _KN && _KN.buildVecs && n>=16+_MINB){ try{ _pPre=_KN.buildVecs(rows,16); _pW=_pPre.W; }catch(_eP){ _pPre=null; } }
   const _gcLabelAt=(e)=>{ for(let j=e+1;j<=e+_LBL;j++){ if(j<1||j>=n) break; if(maS[j]!=null&&maL[j]!=null&&maS[j-1]!=null&&maL[j-1]!=null&&maS[j]>maL[j]&&maS[j-1]<=maL[j-1]) return true; } return false; };
   const _dcLabelAt=(e)=>{ for(let j=e+1;j<=e+_LBL;j++){ if(j<1||j>=n) break; if(maXS[j]!=null&&maXL[j]!=null&&maXS[j-1]!=null&&maXL[j-1]!=null&&maXS[j]<maXL[j]&&maXS[j-1]>=maXL[j-1]) return true; } return false; };
@@ -3513,7 +3517,7 @@ function _stratBreakdownHtml(bt){
 //   합산=거래 단위 통계(승률·PF·건당 평균/중앙=복권구조 감지) + 종목 복리 분포 + 진입원별/청산사유 합산 + 거래 원자료 JSON(알갱이).
 //   ★정직: in-sample·풀=선택된 목록(선택·생존 편향)·MDD는 종목별 개념이라 합산 생략.
 function _stratComboSig(sc,cfg){
-  return JSON.stringify({ b:_STRAT_BOOL_KEYS.map(k=>sc[k]?1:0),   // [S1503] SSOT — 칩을 늘리면 시그가 자동으로 따라온다 · [S1251] ⛩️🚪 편입
+  return JSON.stringify({ ...((sc&&sc.emTrGate)?{ em:_trGPair(sc,'em') }:{}) /* [S1796] 〽️ 켰을 때만 — 끈 사람의 지문은 그대로 */, b:_STRAT_BOOL_KEYS.map(k=>sc[k]?1:0),   // [S1503] SSOT — 칩을 늘리면 시그가 자동으로 따라온다 · [S1251] ⛩️🚪 편입
     tp:[sc.tpPctOn?+sc.tpPct:0, sc.tpAtrOn?(sc.tpAtrMz?('z'+(+sc.tpAtrDn||2)+'/'+(+sc.tpAtrMid||4)+'/'+(+sc.tpAtrUp||6)):+sc.tpAtrMult):0 /* [S1740] 구간별이면 세 배수가 조합의 일부 */, sc.tpFixOn?+sc.tpFixPct:0],   /* [S1592] 🎯 값도 조합의 일부 */ mz:[(sc.slAtrMz&&sc.slOn!==false)?[+sc.slAtrDn||0,+sc.slAtrMid||0,+sc.slAtrUp||0]:0, (sc.trAtrMz&&sc.trOn!==false)?[+sc.trAtrDn||0,+sc.trAtrMid||0,+sc.trAtrUp||0]:0],   /* [S1743] 구간별 SL·트레일 3칸도 조합의 일부 */ sl2:[(sc.slOn!==false)?(+sc.slMult||0):-1, (sc.trOn!==false)?(+sc.trMult||0):-1, +sc.trArm||0, sc.slPctOn?(+sc.slPct||10):0],   /* [S1509] SL·트레일 값도 조합의 일부 */   // [S1503] 익절 값도 조합의 일부 — 값만 바꿔도 '⚠ 설정이 바뀜'이 뜬다
     bvm:((cfg&&cfg.bullVol)?[_stratBvReg(sc), _stratBvBase(sc), _stratBvVal(sc,'bvOsc'), _stratBvVal(sc,'bvVr')]:0),   /* [S1753] 🔊 bullVol 묶음 값도 조합의 일부(bullVol 이 꺼져 있으면 안 든다) */
     bbm:(sc.bb?[_stratBbEnt(sc), _stratBbEnt(sc)?_stratBbVal(sc,'bbWait'):0, (_stratBbEnt(sc)===2)?[_stratBbVal(sc,'bbPsAf'),_stratBbVal(sc,'bbPsMax')]:0, _stratBbVal(sc,'bbExPb'), _stratBbVal(sc,'bbExCap')]:0),   /* [S1749] 🌀 BB회귀 모듈 값도 조합의 일부(BB회귀가 꺼져 있으면 안 든다) */
@@ -3583,6 +3587,48 @@ function _stratPoolList(mk){
   else { try{ list=(typeof _getWatchlist==='function'?(_getWatchlist(mk)||[]):[]).filter(s=>s&&s.code).map(s=>({code:s.code,name:s.name||s.code})); }catch(_){ list=[]; } }
   return { list:list, from:'src', srcSel:srcSel };
 }
+/* [S1796] 💾 저장소 시작 — 🧪 전략 신호(stratSignalBars 결과)를 스냅일 때만 기기에 둔다.
+   ⚠열쇠 = 시장|파일|종목|봉 지문|엔진 지문 — 봉(날짜·OHLCV 전체)이나 레시피·칸 표·신호 함수가 바뀌면 옛 기록을 안 쓴다.
+   ⚠검산 — 세션마다 (시장·파일)별로 기록이 있는 첫 종목은 새로 계산해 맞대 본다. 다르면 그 (시장·파일) 기록을 다 지운다(지문이 못 잡은 엔진 변경 대비).
+   ⚠못 열면(IndexedDB 없음·실패) 종전대로 계산만 한다 — 결과는 같다. 라이브 봉은 저장하지 않는다(매일 바뀜). */
+const _SIG_DB='sx_sigcache_v1', _SIG_ST='sig';
+let _sigDbP=null; const _sigCanary={}, _sigFpMemo={};
+function _sigDb(){ if(_sigDbP) return _sigDbP;
+  _sigDbP=new Promise(function(res){ try{ const I=(typeof indexedDB!=='undefined')?indexedDB:null; if(!I) return res(null); const rq=I.open(_SIG_DB,1);
+    rq.onupgradeneeded=function(){ try{ rq.result.createObjectStore(_SIG_ST,{ keyPath:'k' }); }catch(_){} }; rq.onsuccess=function(){ res(rq.result); }; rq.onerror=function(){ res(null); }; rq.onblocked=function(){ res(null); }; }catch(_){ res(null); } });
+  return _sigDbP; }
+const _sigIdbStore={
+  ok: async function(){ return !!(await _sigDb()); },
+  get: async function(k){ const db=await _sigDb(); if(!db) return null; return new Promise(function(res){ try{ const rq=db.transaction(_SIG_ST,'readonly').objectStore(_SIG_ST).get(k); rq.onsuccess=function(){ res(rq.result||null); }; rq.onerror=function(){ res(null); }; }catch(_){ res(null); } }); },
+  put: async function(rec){ const db=await _sigDb(); if(!db) return false; return new Promise(function(res){ try{ const tx=db.transaction(_SIG_ST,'readwrite'); tx.objectStore(_SIG_ST).put(rec); tx.oncomplete=function(){ res(true); }; tx.onerror=function(){ res(false); }; tx.onabort=function(){ res(false); }; }catch(_){ res(false); } }); },
+  clear: async function(prefix){ const db=await _sigDb(); if(!db) return -1; return new Promise(function(res){ try{ const tx=db.transaction(_SIG_ST,'readwrite'), os=tx.objectStore(_SIG_ST); let n=0;
+    const rq=prefix?os.openCursor(IDBKeyRange.bound(prefix, prefix+'￿')):os.openCursor(); rq.onsuccess=function(){ const c=rq.result; if(c){ c.delete(); n++; c.continue(); } };
+    tx.oncomplete=function(){ res(n); }; tx.onerror=function(){ res(n); }; tx.onabort=function(){ res(n); }; }catch(_){ res(-1); } }); }
+};
+function _sigHash(str){ let h=0x811c9dc5; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; } return ('0000000'+h.toString(16)).slice(-8); }
+function _sigRowsHash(rows){ const p=[]; for(let i=0;i<rows.length;i++){ const r=rows[i]||{}; p.push((r.date||r.t||'')+','+r.open+','+r.high+','+r.low+','+r.close+','+r.volume); } return rows.length+':'+_sigHash(p.join(';')); }
+function _sigFp(mk){ if(_sigFpMemo[mk]) return _sigFpMemo[mk]; let t='';
+  try{ t+=JSON.stringify((typeof SXRecipeSignal!=='undefined'&&SXRecipeSignal.recipesFor)?SXRecipeSignal.recipesFor(mk):null); }catch(_){ t+='?'; }
+  try{ t+='|'+JSON.stringify((typeof SX_CELL_DATA!=='undefined')?SX_CELL_DATA:null); }catch(_){ t+='|?'; }
+  try{ t+='|'+String(SXRecipeSignal.stratSignalBars); }catch(_){ t+='|?'; }
+  return (_sigFpMemo[mk]=_sigHash(t)); }
+async function _stratSigFor(code, mk, rows, file, stat, store){
+  const calc=function(){ return SXRecipeSignal.stratSignalBars(code+'|'+mk, rows, mk); };
+  const S=store||_sigIdbStore;
+  if(!file || !(await S.ok())){ if(stat) stat.calc++; return calc(); }
+  const base=mk+'|'+file+'|', fp=_sigFp(mk), k=base+code+'|'+_sigRowsHash(rows)+'|'+fp, ck=base+fp;
+  let rec=null; try{ rec=await S.get(k); }catch(_){ rec=null; }
+  if(rec && rec.sig && _sigCanary[ck]===true){ if(stat) stat.hit++; return rec.sig; }
+  const fresh=await calc();
+  if(rec && rec.sig && _sigCanary[ck]===undefined){   // 이번 세션 이 (시장·파일)의 첫 기록 — 검산
+    if(JSON.stringify(rec.sig)!==JSON.stringify(fresh)){ try{ await S.clear(base); }catch(_){} if(stat) stat.bad++; }
+    _sigCanary[ck]=true; }
+  if(fresh && typeof fresh==='object'){ try{ await S.put({ k:k, sig:fresh, ts:Date.now() }); }catch(_){} }
+  if(stat) stat.calc++; return fresh; }
+async function _stratSigClear(){ let n=-1; try{ n=await _sigIdbStore.clear(''); }catch(_){ n=-1; } Object.keys(_sigCanary).forEach(function(k){ delete _sigCanary[k]; });
+  window._stratSigMsg=(n<0)?'⚠ 신호 저장소를 열 수 없음':('🗑 저장된 신호 '+n+'건 지움'); try{ _trendRerender(); }catch(_){} return n; }
+if(typeof window!=='undefined'){ window._stratSigClear=_stratSigClear; }
+/* [S1796] 💾 저장소 끝 */
 async function _stratPoolRun(){
   const ctx=window._sxTrendCtx; if(!ctx) return;
   if(window._stratPoolBusy) return;
@@ -3601,19 +3647,20 @@ async function _stratPoolRun(){
     const _tfP=_poolTfOf();   // [S1658] 카드와 같은 봉(냉동 스냅이면 일봉)
     const _aRun=_stratActive(sc,cfg,mk);
     const desc='진입['+(_aRun.en.join('·')||'없음')+(sc.grid3?' +🔲3×3':'')+(sc.pure?' +⚖️혼재':'')+((cfg.predict&&sc.cross)?' +🔮kNN':'')+'] → 청산['+(_aRun.ex.join('·')||'없음')+'] · 진입 '+(cfg.nextOpen?'다음봉 시가':'종가')+((window._cbModeV&&window._cbModeV!=='off')?(' · 🧺'+(window._cbModeV==='one'?('칸['+_cbCellShort(window._cbSelV||'bull|bull')+']'):'9칸 라우팅')+' — 바구니 모드(위 진입/청산 표기 대신 칸별 바구니 적용)'):'');
-    const allTrades=[], perStock=[], openList=[]; let skipped=0, skippedNoSnap=0; const _spAcc={};   /* [S1779] 기간(잰 종목 첫·끝 봉) */
+    const allTrades=[], perStock=[], openList=[]; let skipped=0, skippedNoSnap=0; const _spAcc={};
+    const _sigFile=snapOn?((((SXCandleBT.snapMeta&&SXCandleBT.snapMeta())||{})[mk]||{}).file||''):'', _sigStat=_sigFile?{ hit:0, calc:0, bad:0 }:null;   /* [S1796] 💾 스냅일 때만 저장소 */   /* [S1779] 기간(잰 종목 첫·끝 봉) */
     // [S1430] 스냅 미수록과 봉 부족·실패를 가른다 — ★모집단 배선이 맞으면 이 수는 **0이어야 정상**이라 감지기가 된다.
     const _snapCodes=(function(){ try{ return (snapOn&&SXCandleBT.snapSrc)?(SXCandleBT.snapSrc(mk)||{}):null; }catch(_e){ return null; } })();
     for(let i=0;i<list.length;i++){
       out=document.getElementById('sxStratPoolOut'); if(!out){ return; }   // 탭 이동 등으로 소실 시 중단
       const st=list[i];
-      out.innerHTML='<div style="font-size:10px;color:var(--text2);padding:4px 0">📦 '+(i+1)+'/'+list.length+' <b>'+st.name+'</b> 스캔 중… <span style="color:var(--text3)">(봉별 레시피+칸 판정 · 첫 실행만 무겁고 재실행은 캐시)</span></div>';
+      out.innerHTML='<div style="font-size:10px;color:var(--text2);padding:4px 0">📦 '+(i+1)+'/'+list.length+' <b>'+st.name+'</b> 스캔 중… <span style="color:var(--text3)">(봉별 레시피+칸 판정 · 첫 실행만 무겁고 재실행은 캐시'+(_sigStat?(' · 💾 저장된 신호 '+_sigStat.hit+'종 사용'):'')+')</span></div>';   /* [S1796] */
       await new Promise(r=>setTimeout(r,0));
       let rows=null; try{ rows=await SXCandleBT.fetchRows600(mk,_tfP,st.code); }catch(e){ rows=null; }
       if(!Array.isArray(rows)||rows.length<260){ skipped++; if(_snapCodes && !_snapCodes[st.code]) skippedNoSnap++;   /* [S1430] */ continue; }
-      let sig=null; try{ sig=await SXRecipeSignal.stratSignalBars(st.code+'|'+mk, rows, mk); }catch(e){ sig=null; }
+      let sig=null; try{ sig=await _stratSigFor(st.code, mk, rows, _sigFile, _sigStat); }catch(e){ sig=null; }   /* [S1796] 💾 스냅이면 저장된 신호(라이브·저장소 없음 = 종전 계산) */
       if(!sig){ skipped++; continue; }
-      let bt=null; try{ const _ccP=(typeof _cbCtxBuild==='function')?_cbCtxBuild(mk, sig):undefined; bt=_stratBt(rows, sig, cfg, sc, null, _ccP); }catch(e){ bt=null; }   // [S1120] 바구니 모드 반영(칸=종목별 cellOf)
+      let bt=null; try{ const _ccP=(typeof _cbCtxBuild==='function')?_cbCtxBuild(mk, sig):undefined; bt=_stratBt(rows, sig, cfg, sc, null, _ccP, true /* [S1796] D-day 건너뜀 */); }catch(e){ bt=null; }   // [S1120] 바구니 모드 반영(칸=종목별 cellOf)
       if(!bt){ skipped++; continue; }
       (bt.trades||[]).forEach(t=>{ allTrades.push({code:st.code,name:st.name,src:t.src||'',xr:t.xr||'',pnl:t.pnl,bars:t.bars,ed:t.entryDate||'',xd:t.exitDate||''}); });
       if(bt.open) openList.push({name:st.name,src:bt.open.src||'',pnl:bt.open.pnl,bars:bt.open.bars});
@@ -3629,7 +3676,7 @@ async function _stratPoolRun(){
     const agg=_poolAggExtras(_stratPoolAgg(allTrades, perStock), perStock);   // [S1529] 중앙값 4종은 공용 SSOT(값 동일)
     window._stratPoolLast={ mk, sig:_stratComboSig(sc,cfg), ts:Date.now(), agg, trades:allTrades, perStock, openList, slXr:['atrI','slS'], xrLbl:(typeof _STRAT_XR_LBL!=='undefined'?_STRAT_XR_LBL:null),   /* [S1529] 청산사유 어휘를 결과에 각인 — 엔진마다 키가 달라 공용 건강도 함수가 추측하면 안 된다 */ skipped, skippedNoSnap, snapOn, truncated, origN, srcSel, poolFrom:_pl.from, snapKind:((_pl.from==='snap')?((((window.SXCandleBT&&SXCandleBT.snapMeta)?(SXCandleBT.snapMeta()[mk]||{}):{}).poolKind)||'disc'):null) /* [S1776] 표본 주석용 — 다시 그려도 그때 스냅으로 */, vin:((typeof _snapVinOn==='function'&&_snapVinOn())||null),   /* [S1519] 창 글자(A/B)를 실행 시점에 각인 */
       // [S1430] 라벨이 곧 사실 — 스냅 모드면 모집단이 스냅이라 소스 칩 이름을 적으면 거짓말이 된다(S1406 계열).
-      srcLbl:(_pl.from==='snap')?('📂 스냅'+((typeof _snapVinOn==='function'&&_snapVinOn())?('·창'+_snapVinOn()):'')):(srcSel==='rep'?'대표풀':(srcSel==='disc'?'🔬 발굴풀':'⭐관심목록')), nStocks:list.length, desc, feeTag:(sc.fee?('💸왕복 '+sc.feePct+'%p 반영'):'무마찰'), tf:_tfP, span:_stratSpanOut(_spAcc) /* [S1779] 기간 {from,to,bars} — 열외 후보 JSON 에 실린다 */ };   /* [S1658] 어떤 봉으로 돈 결과인지 */
+      srcLbl:(_pl.from==='snap')?('📂 스냅'+((typeof _snapVinOn==='function'&&_snapVinOn())?('·창'+_snapVinOn()):'')):(srcSel==='rep'?'대표풀':(srcSel==='disc'?'🔬 발굴풀':'⭐관심목록')), nStocks:list.length, desc, feeTag:(sc.fee?('💸왕복 '+sc.feePct+'%p 반영'):'무마찰'), tf:_tfP, span:_stratSpanOut(_spAcc) /* [S1779] 기간 {from,to,bars} — 열외 후보 JSON 에 실린다 */, ...(_sigStat?{ sigStat:_sigStat }:{}) /* [S1796] 💾 스냅일 때만 */ };   /* [S1658] 어떤 봉으로 돈 결과인지 */
     try{ _kellyRec(window._stratPoolLast, (typeof _trendSnapState==='function')?_trendSnapState().meta:null); }catch(_e){}   /* [S1774] 🎯 켈리 진단 — 창별 결과 기억(📂최신·🕰창A·🕰창B · 같은 설정 시그) · 표시 전용 */
     out=document.getElementById('sxStratPoolOut');
     if(out) out.innerHTML=_stratPoolHtml(window._stratPoolLast);
@@ -3943,7 +3990,7 @@ function _stratPoolHtml(r){
   const pc=v=>((+v>=0?'+':'')+v);
   const cOf=v=>(+v>=0?'#22c55e':'#e8365a');   // [S1529] box·wrC는 `_poolGridHtml`로 이사 — 여기 남은 둘은 incl 줄이 쓴다
   const head=`<div style="font-size:9.5px;font-weight:700;color:var(--text2);margin:4px 0 6px">${r.srcLbl} ${r.nStocks}종목${r.truncated?('/'+(r.origN||'')+' · 앞130 컷'):''} · 거래발생 ${a.stocksTraded} · 스킵 ${r.skipped}${r.skippedNoSnap?(' · 그중 스냅 미수록 '+r.skippedNoSnap):''}${r.snapOn?' · 📂냉동':''}${r.openList&&r.openList.length?(' · 보유중 '+r.openList.length):''}</div>`;
-  const desc=`<div style="font-size:8.5px;color:var(--text3);margin-bottom:6px">${r.desc||''}</div>`;
+  const desc=`<div style="font-size:8.5px;color:var(--text3);margin-bottom:6px">${r.desc||''}</div>`+(r.sigStat?`<div style="font-size:8.5px;font-weight:700;color:#0e7490;margin-bottom:6px">💾 저장된 신호 ${r.sigStat.hit}/${(r.sigStat.hit+r.sigStat.calc)}종 사용 · 새로 계산 ${r.sigStat.calc}${r.sigStat.bad?(' · ⚠ 검산 불일치로 저장분 다시 씀'):''} — 스냅(냉동 봉)이라 창마다 첫 실행만 무겁다</div>`:'');   /* [S1796] */
   // [S1520] 결과와 함께 그려지는 버튼 행 — 실행 직후에도 보인다(툴바는 재렌더 안 됨). 한 줄 복사는 스샷 대신 기록(HANDOFF §6 + 조합 시그 값).
   const btns=`<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 6px">`
     +`<span onclick="_sxVib(9);window._stratPoolCopyLine&&_stratPoolCopyLine(this)" title="HANDOFF §6 규약 한 줄 + 조합 시그 값 · 스샷 대신 이 줄을 붙여넣으세요" style="font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:10px;cursor:pointer;background:#7c3aed;color:#fff">📋 결과 한 줄 복사</span>`
@@ -4949,7 +4996,7 @@ function _ensureSeason2Trades(stock, rows, sym){
     }).catch(function(){ stock._season2Pending=false; });
   }catch(_){}
 }
-function _trendBt(rows,cfg,bbP,xmFire){   /* [S1406] xmFire=재료 조건 봉맵 주입(풀 전체 BT용). 미전달 시 종전대로 _trendRcpKey 캐시 조회 — 기존 호출처 6곳 무영향. */
+function _trendBt(rows,cfg,bbP,xmFire,noDday){   /* [S1796] noDday = 풀 BT(D-day 예보 kNN 건너뜀 · 예보는 카드 화면 전용 · 거래 무관) */   /* [S1406] xmFire=재료 조건 봉맵 주입(풀 전체 BT용). 미전달 시 종전대로 _trendRcpKey 캐시 조회 — 기존 호출처 6곳 무영향. */
   if(_trendEngine==='turtle'){ const _mk1784=(cfg&&cfg._market)||((typeof window!=='undefined'&&window._sxTrendCtx&&window._sxTrendCtx.market)||'kr'); return _turtleBtFor(rows, _mk1784, xmFire); /* [S1787] 🧪 재료 맵 */ }   // [S1784] 🐢 터틀 — 자기 저장값·엔진(크로스 cfg 는 시장만 본다)
   if(_trendEngine==='strat'){   // [S1116] 전략 조합(기본) — 신호맵 미확보 시 pending 형식(하이브리드 패턴)
     const key=_trendRcpKey(), sig=(window._trendStratFireCache||{})[key];
@@ -5153,7 +5200,7 @@ function _trendBt(rows,cfg,bbP,xmFire){   /* [S1406] xmFire=재료 조건 봉맵
   let _pPre=null, _pW=null;
   // [S630] D-day는 예측 스위치와 무관 — 최신봉 골든크로스 임박(해석적)이면 OFF여도 kNN 벡터 구축
   let _ddayGate=false;
-  if(n>=2 && maS[n-1]!=null && maL[n-1]!=null && maS[n-2]!=null && maL[n-2]!=null){ const _g=maS[n-1]-maL[n-1], _c=_g-(maS[n-2]-maL[n-2]); _ddayGate=(_g<0 && _c>0 && (-_g/_c)<=3.5); }
+  if(!noDday /* [S1796] */ && n>=2 && maS[n-1]!=null && maL[n-1]!=null && maS[n-2]!=null && maL[n-2]!=null){ const _g=maS[n-1]-maL[n-1], _c=_g-(maS[n-2]-maL[n-2]); _ddayGate=(_g<0 && _c>0 && (-_g/_c)<=3.5); }
   if((_predOn||_ddayGate) && _KN && _KN.buildVecs && n>=16+_MINB){ try { _pPre=_KN.buildVecs(rows,16); _pW=_pPre.W; } catch(_eP){ _pPre=null; } }
   const _gcLabelAt=(e)=>{ for(let j=e+1;j<=e+_LBL;j++){ if(j<1||j>=n) break; if(maS[j]!=null&&maL[j]!=null&&maS[j-1]!=null&&maL[j-1]!=null&&maS[j]>maL[j]&&maS[j-1]<=maL[j-1]) return true; } return false; };
   const _dcLabelAt=(e)=>{ for(let j=e+1;j<=e+_LBL;j++){ if(j<1||j>=n) break; if(maXS[j]!=null&&maXL[j]!=null&&maXS[j-1]!=null&&maXL[j-1]!=null&&maXS[j]<maXL[j]&&maXS[j-1]>=maXL[j-1]) return true; } return false; }; // [S631] 데드크로스 라벨(청산 예측용) · [S820] 청산 MA
@@ -6218,10 +6265,15 @@ function _trendRenderInner(){
         +'TRIX(짧은 주기)와 그 시그널(긴 주기) — 진입 TRIX쌍과 **별개 축**이라 값이 달라도 된다. '
         +'\u26A0 웜업이 MA보다 훨씬 길다(삼중 EMA + 시그널 SMA) — 앞 구간 손실을 감안할 것.',
         _deadCross || _tgWhy(_tgDeadTx, '\u{1F9EC}TRIX'))   /* [S1693] */
+      +_sChip(sc.emTrGate,'〽️ EMA'+_trGPair(sc,'em')[0]+'>'+_trGPair(sc,'em')[1],'emTrGate','#0e7490',   /* [S1796] 〽️ EMA 게이트 — 크로스 축(SMA·TRIX·SMI)과 겹칠 수 없어 크로스가 꺼졌을 때만 흐리다 */
+        '[S1796] 단기 EMA가 장기 EMA보다 **위에 있을 때만** \u{1F4C8}크로스·\u{1F504}재진입 진입 허용(교차 이벤트가 아니라 상태 · 계산기 = 🐢 터틀 🧭 EMA 와 같은 _trEma). '
+        +'다른 진입원(칸real·정배/역배·BB회귀·bullVol)에는 안 걸린다. \u26A0 웜업(긴 EMA가 아직 없는 앞부분)은 **막는다**. '
+        +'\u26A0 시즌2 워커에는 아직 없다 — 켜면 이 카드가 시즌2 신호와 달라진다.', _deadCross)
       /* [S1694] ★입력쌍을 **칩별로** 갈랐다 — 각 칩 **바로 뒤**에 자기 쌍이 붙는다(어느 칩 것인지 눈으로 알 수 있게).
          ⚠켜진 칩의 쌍만 그린다 — 하나만 켜면 줄 수가 S1692와 같고, 둘 다 켜야 한 줄 늘어난다. */
       +(sc.maTrGate?`<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#0891b2;font-size:9.5px">\u{1F4CF}쌍</span><input id="sxMaTrGateS" type="number" inputmode="numeric" step="1" min="1" max="400" value="${_trGPair(sc,'ma')[0]}" onchange="window._stratTrGate&&_stratTrGate('mas',this.value)" style="width:46px;padding:4px;border:1px solid var(--border);border-radius:6px;font-size:12px;text-align:center;font-weight:700;background:var(--surface);color:var(--text)"><span style="color:var(--text3)">&gt;</span><input id="sxMaTrGateL" type="number" inputmode="numeric" step="1" min="1" max="400" value="${_trGPair(sc,'ma')[1]}" onchange="window._stratTrGate&&_stratTrGate('mal',this.value)" style="width:46px;padding:4px;border:1px solid var(--border);border-radius:6px;font-size:12px;text-align:center;font-weight:700;background:var(--surface);color:var(--text)"></span>`:'')
       +(sc.trixTrGate?`<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#7c3aed;font-size:9.5px">\u{1F9EC}쌍</span><input id="sxTxTrGateS" type="number" inputmode="numeric" step="1" min="1" max="400" value="${_trGPair(sc,'tx')[0]}" onchange="window._stratTrGate&&_stratTrGate('txs',this.value)" style="width:46px;padding:4px;border:1px solid var(--border);border-radius:6px;font-size:12px;text-align:center;font-weight:700;background:var(--surface);color:var(--text)"><span style="color:var(--text3)">&gt;</span><input id="sxTxTrGateL" type="number" inputmode="numeric" step="1" min="1" max="400" value="${_trGPair(sc,'tx')[1]}" onchange="window._stratTrGate&&_stratTrGate('txl',this.value)" style="width:46px;padding:4px;border:1px solid var(--border);border-radius:6px;font-size:12px;text-align:center;font-weight:700;background:var(--surface);color:var(--text)"></span>`:'')
+      +(sc.emTrGate?`<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#0e7490;font-size:9.5px">〽️쌍</span><input id="sxEmTrGateS" type="number" inputmode="numeric" step="1" min="1" max="400" value="${_trGPair(sc,'em')[0]}" onchange="window._stratTrGate&&_stratTrGate('ems',this.value)" style="width:46px;padding:4px;border:1px solid var(--border);border-radius:6px;font-size:12px;text-align:center;font-weight:700;background:var(--surface);color:var(--text)"><span style="color:var(--text3)">&gt;</span><input id="sxEmTrGateL" type="number" inputmode="numeric" step="1" min="1" max="400" value="${_trGPair(sc,'em')[1]}" onchange="window._stratTrGate&&_stratTrGate('eml',this.value)" style="width:46px;padding:4px;border:1px solid var(--border);border-radius:6px;font-size:12px;text-align:center;font-weight:700;background:var(--surface);color:var(--text)"></span>`:'')   /* [S1796] 〽️ 쌍(켰을 때만) */
       /* [S1693] ⚠ **부분** 무동작 배지 — 게이트쌍이 재진입쌍과만 같을 때(크로스 다리는 여전히 산다).
          완전 무동작은 칩 자체가 흐려지므로 여기에 안 뜼다 — 한 사실을 두 번 말하지 않는다(S1304 규약). */
       +(_tgPartial.length?`<span style="font-size:8.5px;font-weight:800;padding:3px 7px;border-radius:8px;background:#f59e0b1a;color:#b45309;border:1px solid #f59e0b66;white-space:nowrap" title="게이트쌍이 🔄재진입쌍과 같습니다 — 재진입 골든크로스가 난 봉은 그 상태를 정의상 이미 만족하므로 재진입은 못 자릅니다. 📈크로스 다리에는 정상 작동합니다.">⚠ ${_tgPartial.join('·')} 게이트는 🔄재진입엔 무동작</span>`:'')
@@ -6419,15 +6471,24 @@ function _trendRenderInner(){
     const _plMine=!!(_plq && _plq.mk===market);
     const _plStale=_plMine && _plq.sig!==_stratComboSig(sc,cfg);
     const _plChip=(on,lab,s)=>`<span onclick="_sxVib(9);window._stratPoolSetSrc&&_stratPoolSetSrc('${s}')" style="font-size:9px;font-weight:800;padding:4px 9px;border-radius:10px;cursor:pointer;${on?'background:#0ea5e9;color:#fff':'background:var(--surface2);color:#0ea5e9;border:1px solid #0ea5e955'}">${lab}</span>`;
+    // [S1796] 🧪 풀 단 — 🐢 터틀 단과 같은 배치(소스 칩 · 🕰창·📂로드·🔴라이브 · 상태 · 진단 · 큰 실행 단추). 스냅 동작은 같은 함수(_trendSnapCycle·_trendSnapLoad·_trendSnapOff) — 새 로직 0.
+    //   ⚠종전엔 이 단에 스냅 칩이 없어 '스냅은 📈 MA 크로스 탭에서 로드'로 탭을 오가야 했다(사용자 2026-10-13 16:12).
+    const _pss=_trendSnapState();
+    const _psLbl=_psSnap?('📂 스냅'+(_psSet?('·창'+_psSet):'')):({rep:'대표풀',watch:'⭐ 관심목록',disc:'🔬 발굴풀'}[_plSrc]||'⭐ 관심목록');
+    const _psBtn=(h,t,c)=>'<span onclick="_sxVib(9);'+h+'" style="font-size:9px;font-weight:800;padding:4px 9px;border-radius:8px;cursor:pointer;border:1px solid '+c+';color:'+c+';background:var(--surface2)">'+t+'</span>';
+    const _psSt=!_pss.set ? (_pss.on?('📂 현재 스냅 로드됨'+(_pss.meta&&_pss.meta.date?(' · '+_pss.meta.date):'')):'🔴 라이브 봉')
+      : (_pss.has?('📂 창'+_pss.set+' 로드됨'+(_pss.meta&&_pss.meta.vintage?(' · 빈티지 '+_pss.meta.vintage):'')):('⚠ 창'+_pss.set+' 선택됨 — <b>📂 로드를 눌러야</b> 적용됩니다'));
     const poolRowS=`<div style="margin-top:9px;border-top:1px dashed var(--border);padding-top:8px">`
-      +`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">`
+      +`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:6px">`
       +`<span style="font-size:9.5px;font-weight:800;color:var(--text2)">📦 풀 전체 BT</span>`
       +_plChip(!_pso&&_plSrc==='watch','⭐ 관심목록','watch')+_plChip(!_pso&&_plSrc==='rep','대표풀','rep')+_plChip(!_pso&&_plSrc==='disc','🔬 발굴풀','disc')
-      +`<span onclick="_sxVib(10);window._stratPoolRun&&_stratPoolRun()" style="font-size:9.5px;font-weight:800;padding:4px 12px;border-radius:10px;cursor:pointer;background:#7c3aed;color:#fff">▶ 실행</span>`
-      /* [S1520] 거래 JSON·결과 한 줄 버튼은 결과 머리(_stratPoolHtml)로 이동 — 툴바는 실행 후 재렌더되지 않아 버튼이 안 보였다 */
       +`</div>`
-      +`<div style="font-size:8.5px;font-weight:700;color:${_pso?'#7c3aed':'var(--text3)'};line-height:1.5;margin:4px 0 0">● 진단 · snapMode()=${_pso?'true':'false'}${_psSet?(' · 창'+_psSet):''} · 모집단 ${_psN}종${_pso?(_psSnap?'(스냅)':'(⚠스냅 모집단 못 얻음 — 소스 칩 풀)'):''}${_pso?(_psSnap?' · 위 소스 칩은 무시됩니다':' · 아래 결과는 소스 칩 풀 + 냉동 캔들'):' · 스냅은 \uD83D\uDCC8 MA 크로스 탭에서 로드'}</div>`
-      +`<div id="sxStratPoolOut">${_plMine?((_plStale?`<div style="font-size:9px;color:#d97706;margin-top:5px">⚠ 조합이 바뀜 — 아래는 이전 설정(${_plq.desc}) 결과 · ▶ 재실행</div>`:'')+_stratPoolHtml(_plq)):`<div style="font-size:9px;color:var(--text3);margin-top:5px">현 조합을 풀 전체에 돌려 합산 — n=1 일화 탈출 · 첫 실행만 무겁고(종목당 봉별 스캔) 재실행·조합 변경 후 재실행은 스캔 캐시로 빠름</div>`}</div>`
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:6px">'+_psBtn('window._trendSnapCycle&&_trendSnapCycle()','🕰 '+(_pss.set?('창'+_pss.set):'OFF(현재)'),'#7c3aed')+_psBtn('window._trendSnapLoad&&_trendSnapLoad()','📂 로드','#0284c7')+_psBtn('window._trendSnapOff&&_trendSnapOff()','🔴 라이브','#64748b')
+      +(_pso?_psBtn('window._stratSigClear&&_stratSigClear()','🗑 신호 저장 비우기','#b45309'):'')
+      +'<span style="font-size:8.5px;font-weight:700;color:var(--text3);flex:1 1 100%;line-height:1.45">'+_psSt+(window._trendSnapMsg?(' · '+window._trendSnapMsg):'')+(window._stratSigMsg?(' · '+window._stratSigMsg):'')+'</span></div>'
+      +`<div style="font-size:8.5px;font-weight:700;color:${_pso?'#7c3aed':'var(--text3)'};line-height:1.5;margin:0 0 6px">● 진단 · snapMode()=${_pso?'true':'false'}${_psSet?(' · 창'+_psSet):''} · 모집단 ${_psN}종${_pso?(_psSnap?'(스냅)':'(⚠스냅 모집단 못 얻음 — 소스 칩 풀)'):''}${_pso?(_psSnap?' · 위 소스 칩은 무시됩니다':' · 아래 결과는 소스 칩 풀 + 냉동 캔들'):''}</div>`
+      +`<button onclick="_sxVib(10);window._stratPoolRun&&_stratPoolRun()" style="width:100%;font-size:11px;font-weight:700;padding:8px 0;border-radius:8px;cursor:pointer;color:#7c3aed;background:var(--surface);border:1px solid #7c3aed66">▶ ${_psLbl} ${_psN?(Math.min(_psN,130)+'/'+_psN+'종목 '):''}· 현 조합 자동 BT</button>`
+      +`<div id="sxStratPoolOut">${_plMine?((_plStale?`<div style="font-size:9px;color:#d97706;margin-top:5px">⚠ 조합이 바뀜 — 아래는 이전 설정(${_plq.desc}) 결과 · ▶ 재실행</div>`:'')+_stratPoolHtml(_plq)):`<div style="font-size:9px;color:var(--text3);margin-top:5px">현 조합을 풀 전체에 돌려 합산 — n=1 일화 탈출 · 첫 실행만 무겁고(종목당 봉별 스캔) 재실행·조합 변경 후 재실행은 스캔 캐시로 빠름 · 💾 스냅이면 신호를 기기에 저장해 창마다 첫 실행만 무겁다(앱을 다시 열어도)</div>`}</div>`
       +`</div>`;
     const cbSec=(typeof _cbSectionHtml==='function')?_cbSectionHtml(market):'';   // [S1120] 🧺 칸 바구니
     return head+`<div id="sxTrendBody" style="display:${_trOpen?'block':'none'}" data-loaded="1">`+_trendTabBar('strat')+presetRow+maRow+blocksS+cbSec+stateS+grid+bdS+poolRowS+noteS+`</div>`;   // [S1398] engRowS → 공통 탭바
@@ -6830,7 +6891,7 @@ async function _trendBatchRun(mk, tf, onProgress){
     try {
       const _pe=_trendEngine, _pa=window._xmatApply;
       _trendEngine='cross'; window._xmatApply=true;   // [S1116] 배치=크로스 엔진 고정 · [S1406] 재료 조건 게이트 개방(봉맵은 주입)
-      try{ bt=_trendBt(rows, cfg, bbP, xmFire); } finally { _trendEngine=_pe; window._xmatApply=_pa; }
+      try{ bt=_trendBt(rows, cfg, bbP, xmFire, true /* [S1796] D-day 건너뜀 */); } finally { _trendEngine=_pe; window._xmatApply=_pa; }
     } catch(e2){}
     if(!bt || bt._xmatPending){ skipped++; await _trendBatchSleep(8); continue; }
     (bt.trades||[]).forEach(function(t){ allTrades.push({ code:s.code, name:s.name, src:_trendTradeSrc(t), xr:_trendTradeXr(t), pnl:t.pnl, bars:t.bars, ed:t.entryDate||'', xd:t.exitDate||'' }); });
@@ -6850,7 +6911,7 @@ async function _trendBatchRun(mk, tf, onProgress){
       //   ⚠이 수정은 마찰이 **켜져 있을 때만** 값을 움직인다(💸 OFF면 feePct=0 ⇒ 변화 0).
       tpi:(bt.open?+(((1+bt.totalPnl/100)*(1+(bt.open.pnl-(bt.feePct||0))/100)-1)*100).toFixed(2):bt.totalPnl),
       bh:_ex.bh, mdd:_ex.mdd, bar:_ex.bar, exp:_ex.exp });
-    await _trendBatchSleep(12);
+    await _trendBatchSleep(_snapCodes?0:12);   /* [S1796] 스냅이면 쉼 0(터틀과 같음) · 라이브는 조회 간격 12ms 그대로 */
   }
   // ⚠구 사다리는 '기준선 설정에서 거래가 난 종목'을 셌다. 지금은 거래 0건도 사실이므로(전략 조합과 같은 문법) BT 성공 종목으로 센다.
   if(perStock.length<3) return { ok:false, market:mk, reason:'유효 종목 3개 미만 — 네트워크 확인('+mk+')'+(xmFail?(' · 재료 조건 산출 실패 '+xmFail+'종'):'') };
@@ -17809,7 +17870,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1795';   // [S1795] 괴리 방향(부호) · 🐢 🧪 재료 250봉 안내·측정 시작일 · 🐢 🏹 구간별 판정 불가 칩 · [S1794] 🐢 터틀 🧭 EMA 국면(9×26 · 사이 구간 · 국면 분할에도) · [S1793] 🐢 터틀 익절 칩 3종 — 🚀 TP급등 · 🏹 TP_ATR(📅 구간별 · ATR = 터틀 N) · 🎯 TP고정(전략조합과 같은 식 · 끄면 무변경) · [S1792] 🐢 터틀 📦 풀 BT 🧭 국면 분할 — 같은 거래를 신호 봉 국면(구간·상태)으로 나눔 · 엔진 무변경 · [S1791] 🐢 터틀 청산 칩 — 🛡️ 트레일링(최고 종가 − 배수×N · 종가) · ⏱ N봉컷(끄면 무변경) · [S1790] 🐢 터틀 국면 칩 2차 — 🎚️ SMI · 📊 MACD · 🔵 PSAR(구간 안에서만 매수 · 끝나는 봉 종가 청산 · 값 손입력 · 끄면 무변경) · [S1789] 3탭 기본값 — 📈크로스·🧪전략조합 공용 쌍(사용자 원문 기계 생성) · ☑ 청산 크로스 분리 기본 ON · 🧪 재료 기본 비움 · 기본 힌트 SSOT · [S1788] 🐢 터틀 🧭 국면 — 진입/청산 쌍 · "사이" 구간(진입 골든 ~ 청산 데드) · 구간 끝 = 종가 청산 · 시장별 기본 쌍(사용자 원문 기계 생성) · [S1787] 🐢 터틀 필터 칩 1차 — 🧭 MA 국면 · 🧭 TRIX 국면 · 🧪 재료 조건(진입 AND · 매도 재료 청산 · 가상 거래는 필터 무관 · 끄면 무변경) · [S1786] 🐢 터틀 📦 풀 전체 BT(스냅별 · 카드 엔진 그대로 · 공용 집계·그리드·CSV) · [S1785] 코인 4시간봉 — 세 탭(📈 크로스 · 🧪 전략 조합 · 🐢 터틀)에 📥 일봉 설정 불러오기(그 탭 범위 = 리셋 범위) · [S1784] 🐢 터틀 탭 1단계 — 기본 터틀 엔진(20봉 돌파·10봉 이탈·N=TR 20봉·2N 손절·건너뛰기/55봉 실패방지 · 입력값 수동 · 매수만) · [S1783] 🔮 예측 실험도구 1단계 — 학습검증 예측 카드 셋 + 교차검증 MA크로스 전이를 한 카드로(계산 무변경) · [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  window.SX_BUILD='S1796';   // [S1796] 풀 BT 속도(D-day 건너뜀 · 💾 전략 신호 저장소) · 🧪 풀 단 스냅 칩 · 🧪 〽️ EMA 게이트 · [S1795] 괴리 방향(부호) · 🐢 🧪 재료 250봉 안내·측정 시작일 · 🐢 🏹 구간별 판정 불가 칩 · [S1794] 🐢 터틀 🧭 EMA 국면(9×26 · 사이 구간 · 국면 분할에도) · [S1793] 🐢 터틀 익절 칩 3종 — 🚀 TP급등 · 🏹 TP_ATR(📅 구간별 · ATR = 터틀 N) · 🎯 TP고정(전략조합과 같은 식 · 끄면 무변경) · [S1792] 🐢 터틀 📦 풀 BT 🧭 국면 분할 — 같은 거래를 신호 봉 국면(구간·상태)으로 나눔 · 엔진 무변경 · [S1791] 🐢 터틀 청산 칩 — 🛡️ 트레일링(최고 종가 − 배수×N · 종가) · ⏱ N봉컷(끄면 무변경) · [S1790] 🐢 터틀 국면 칩 2차 — 🎚️ SMI · 📊 MACD · 🔵 PSAR(구간 안에서만 매수 · 끝나는 봉 종가 청산 · 값 손입력 · 끄면 무변경) · [S1789] 3탭 기본값 — 📈크로스·🧪전략조합 공용 쌍(사용자 원문 기계 생성) · ☑ 청산 크로스 분리 기본 ON · 🧪 재료 기본 비움 · 기본 힌트 SSOT · [S1788] 🐢 터틀 🧭 국면 — 진입/청산 쌍 · "사이" 구간(진입 골든 ~ 청산 데드) · 구간 끝 = 종가 청산 · 시장별 기본 쌍(사용자 원문 기계 생성) · [S1787] 🐢 터틀 필터 칩 1차 — 🧭 MA 국면 · 🧭 TRIX 국면 · 🧪 재료 조건(진입 AND · 매도 재료 청산 · 가상 거래는 필터 무관 · 끄면 무변경) · [S1786] 🐢 터틀 📦 풀 전체 BT(스냅별 · 카드 엔진 그대로 · 공용 집계·그리드·CSV) · [S1785] 코인 4시간봉 — 세 탭(📈 크로스 · 🧪 전략 조합 · 🐢 터틀)에 📥 일봉 설정 불러오기(그 탭 범위 = 리셋 범위) · [S1784] 🐢 터틀 탭 1단계 — 기본 터틀 엔진(20봉 돌파·10봉 이탈·N=TR 20봉·2N 손절·건너뛰기/55봉 실패방지 · 입력값 수동 · 매수만) · [S1783] 🔮 예측 실험도구 1단계 — 학습검증 예측 카드 셋 + 교차검증 MA크로스 전이를 한 카드로(계산 무변경) · [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
