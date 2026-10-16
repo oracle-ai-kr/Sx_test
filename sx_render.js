@@ -12838,6 +12838,159 @@ function _buildTtmCard(stock, indicators){ try{
   return _sxExpCard('sxTtmCardWrap', 'sxTtmCardWrap_b', title, right, now+fig+hist+pool+foot);
 }catch(_e){ return ''; } }
 if(typeof window!=='undefined'){ window._ttmPoolUI=_ttmPoolUI; }
+// ═══ [S1808] 🌀 피보나치 · 엘리어트 — 종목분석 카드(보여주기) + 학습검증 🔮 "🌀 피보나치 반응"(측정) · PREREG_S1808_fib_elliott.md ═══
+//   사용자 2026-10-16 09:07 "레시피해석 카드위에 피보나치와 엘리어트 파동대해 살펴볼수 있는 카드" · 09:21 "엘리어트 = 자동 후보 + 규칙 체크 · 📦 풀 측정도 같이 · 종목분석탭은 보여주기만".
+//   스윙 = ATR(14 와일더) × k 지그재그(확정 봉을 남김 · 봉 i 판단은 봉 i 까지만) · 카드·이력·📦 풀·오프라인 측정이 같은 함수(_fibZigzag · _fibEw · _fibStats · _fibAgg)를 쓴다.
+var _FIB_R = [0.236, 0.382, 0.5, 0.618, 0.786], _FIB_X = [1.272, 1.618, 2.618, 4.236], _FIB_NEAR = [0.236, 0.382, 0.5, 0.618, 0.786, 1, 1.272, 1.618, 2.618];
+var _FIB_TXT = { up:{ 0.236:'얕은 조정, 강한 상승세', 0.382:'첫 번째 관심 구간', 0.5:'중간 조정, 심리적 중심 구간', 0.618:'깊은 조정, 추세 유지의 한계 구간', 0.786:'깊은 조정, 추세 이탈 경계 구간' }, dn:{ 0.236:'약한 반등', 0.382:'초기 반등 시험 구간', 0.5:'중간 반등 시험 구간', 0.618:'주요 반등 시험 구간', 0.786:'강한 반등 시험 구간' } };   /* 사용자가 보낸 표 그대로 */
+var _FIB_K = { s:2, m:3, l:5 };
+var _FIB_VERDICT = '9판 측정(3시장 × 세 구간 · 일봉 · PREREG_S1808 §4): 피보 선 튕김 = 무작위 선과 구분 안 됨(피보 − 무작위 −1.3~+1.5%p · +3%p 넘은 판 0/9) · 61.8% 만도 1/9 · 규칙 통과 5파 끝 반대 방향 6/9(문턱 7/9) → 아니다';   /* 오프라인 9판 판정 요약(카드 주석) */
+function _fibKey(){ try{ const v=localStorage.getItem('SX_FIB_K'); return (v==='s'||v==='l')?v:'m'; }catch(_){ return 'm'; } }
+function _fibHash(s){ let h=2166136261>>>0; s=String(s); for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return h; }
+function _fibNum(v){ v=+v; return isFinite(v)?v:NaN; }
+function _fibAtr(rows){ const n=rows.length, a=new Array(n).fill(null), P=14; if(n<=P) return a; const H=rows.map(r=>_fibNum(r.high!=null?r.high:r.h)), L=rows.map(r=>_fibNum(r.low!=null?r.low:r.l)), C=rows.map(r=>_fibNum(r.close!=null?r.close:r.c));
+  let s=0; for(let i=1;i<=P;i++) s+=Math.max(H[i]-L[i], Math.abs(H[i]-C[i-1]), Math.abs(L[i]-C[i-1])); let v=s/P; a[P]=v;
+  for(let i=P+1;i<n;i++){ v=(v*(P-1)+Math.max(H[i]-L[i], Math.abs(H[i]-C[i-1]), Math.abs(L[i]-C[i-1])))/P; a[i]=v; }
+  return a; }
+// 지그재그 — piv = 확정 스윙점 [{ i(극값 봉), p(가격), t('H'|'L'), c(확정 봉) }] · last = 진행 중 극값(미확정)
+function _fibZigzag(rows, k){ const n=(rows&&rows.length)||0, A=_fibAtr(rows||[]), piv=[]; if(n<20) return { piv, last:null, atr:A };
+  const H=rows.map(r=>_fibNum(r.high!=null?r.high:r.h)), L=rows.map(r=>_fibNum(r.low!=null?r.low:r.l));
+  let s=-1; for(let i=0;i<n;i++){ if(A[i]!=null){ s=i; break; } } if(s<0) return { piv, last:null, atr:A };
+  let dir=0, hiI=s, loI=s;
+  for(let i=s+1;i<n;i++){ const th=k*A[i]; if(!(th>0) || !isFinite(H[i]) || !isFinite(L[i])) continue;
+    if(dir>=0 && H[i]>=H[hiI]) hiI=i;
+    if(dir<=0 && L[i]<=L[loI]) loI=i;
+    if(dir===0){ if(hiI<i && H[hiI]-L[i]>=th){ piv.push({ i:hiI, p:H[hiI], t:'H', c:i }); dir=-1; loI=i; } else if(loI<i && H[i]-L[loI]>=th){ piv.push({ i:loI, p:L[loI], t:'L', c:i }); dir=1; hiI=i; } }
+    else if(dir===1){ if(hiI<i && H[hiI]-L[i]>=th){ piv.push({ i:hiI, p:H[hiI], t:'H', c:i }); dir=-1; loI=i; } }
+    else { if(loI<i && H[i]-L[loI]>=th){ piv.push({ i:loI, p:L[loI], t:'L', c:i }); dir=1; hiI=i; } } }
+  const last=dir===1?{ i:hiI, p:H[hiI], t:'H' }:(dir===-1?{ i:loI, p:L[loI], t:'L' }:null);
+  return { piv, last, atr:A }; }
+// 되돌림 틀 — A·B = 마지막 두 확정 스윙점
+function _fibFrame(rows, z){ const P=z.piv; if(!P || P.length<2) return null; const A=P[P.length-2], B=P[P.length-1], n=rows.length, c=_fibNum(rows[n-1].close!=null?rows[n-1].close:rows[n-1].c), D=Math.abs(B.p-A.p); if(!(D>0) || !(c>0)) return null;
+  const up=(A.t==='L'), lv=[0].concat(_FIB_R,[1]).map(r=>({ r, p:up?(B.p-D*r):(B.p+D*r) })), ext=_FIB_X.map(r=>({ r, p:up?(A.p+D*r):(A.p-D*r) })).filter(o=>o.p>0), ret=(up?(B.p-c):(c-B.p))/D;
+  let mx=null; if(z.last && z.last.i>B.i) mx=(up?(B.p-z.last.p):(z.last.p-B.p))/D;   /* 이번 되돌림 가장 깊은 곳(진행 중 극값) */
+  return { A, B, up, D, c, lv, ext, ret, mx }; }
+function _fibNear(x){ if(x==null || !isFinite(x)) return null; let b=null, d=1e9; _FIB_NEAR.forEach(r=>{ const e=Math.abs(x-r); if(e<d){ d=e; b=r; } }); return d<=0.05?b:null; }
+// 엘리어트 — 6점 5파 충격(규칙 R1·R2·R3) · 4점 ABC
+function _fibEw(pts){ if(!pts || pts.length!==6) return null; const up=(pts[0].t==='L'), p=pts.map(x=>x.p), l1=Math.abs(p[1]-p[0]), l2=Math.abs(p[2]-p[1]), l3=Math.abs(p[3]-p[2]), l4=Math.abs(p[4]-p[3]), l5=Math.abs(p[5]-p[4]);
+  const r1=up?(p[2]>p[0]):(p[2]<p[0]), r2=!(l3<l1 && l3<l5), r3=up?(p[4]>p[1]):(p[4]<p[1]);
+  return { up, rules:[r1, r2, r3], pass:(r1&&r2&&r3), ratio:{ w2:l1?l2/l1:null, w3:l1?l3/l1:null, w4:l3?l4/l3:null, w5:l1?l5/l1:null } }; }
+function _fibAbc(pts){ if(!pts || pts.length!==4) return null; const dn=(pts[0].t==='H'), p=pts.map(x=>x.p), a=Math.abs(p[1]-p[0]), b=Math.abs(p[2]-p[1]), c=Math.abs(p[3]-p[2]);
+  const q1=dn?(p[2]<p[0]):(p[2]>p[0]), q2=dn?(p[3]<p[1]):(p[3]>p[1]);
+  return { dn, rules:[q1, q2], pass:(q1&&q2), ratio:{ b:a?b/a:null, c:a?c/a:null } }; }
+// ── 측정 — 이 종목 누적(_fibStats) → 합산(_fibAgg) · 이력·📦 풀·오프라인 측정 공용 ──
+function _fibStats(rows, k, h){ k=k||3; h=h||20; const n=(rows&&rows.length)||0, z0=()=>({ b:0, x:0, u:0 }), a={ k, h, nFr:0, F:z0(), L382:z0(), L50:z0(), L618:z0(), R:[0,1,2,3,4,5,6,7,8].map(z0), Ep:{ n:0, e:0 }, Ef:{ n:0, e:0 } };
+  if(n<60) return a;
+  const z=_fibZigzag(rows,k), P=z.piv, A=z.atr, H=rows.map(r=>_fibNum(r.high!=null?r.high:r.h)), L=rows.map(r=>_fibNum(r.low!=null?r.low:r.l)), C=rows.map(r=>_fibNum(r.close!=null?r.close:r.c));
+  let sb=0, nb=0; for(let i=0;i+h<n;i++){ if(C[i]>0 && C[i+h]>0){ sb+=C[i+h]/C[i]-1; nb++; } } const base=nb?sb/nb:0;
+  for(let j=1;j<P.length;j++){ const Ap=P[j-1], Bp=P[j], s0=Bp.c+1, s1=(j+1<P.length)?P[j+1].c:n; if(s0>=s1) continue; const up=(Bp.t==='H'), D=Math.abs(Bp.p-Ap.p), c0=C[Bp.c]; if(!(D>0) || !(c0>0)) continue; a.nFr++;
+    const ev=(r, accs)=>{ const Lv=up?(Bp.p-D*r):(Bp.p+D*r); if(up?!(c0>Lv):!(c0<Lv)) return;
+      for(let t=s0;t<s1;t++){ if(!(up?(L[t]<=Lv):(H[t]>=Lv))) continue; const m=A[t]; if(!(m>0)) return; const bL=up?(Lv+m):(Lv-m), xL=up?(Lv-m):(Lv+m);
+        if(up?(L[t]<=xL):(H[t]>=xL)){ accs.forEach(o=>o.x++); return; }
+        for(let u=t+1;u<=t+h;u++){ if(u>=n){ accs.forEach(o=>o.u++); return; } if(up?(L[u]<=xL):(H[u]>=xL)){ accs.forEach(o=>o.x++); return; } if(up?(H[u]>=bL):(L[u]<=bL)){ accs.forEach(o=>o.b++); return; } }
+        accs.forEach(o=>o.u++); return; } };
+    ev(0.382, [a.F, a.L382]); ev(0.5, [a.F, a.L50]); ev(0.618, [a.F, a.L618]);
+    for(let q=0;q<9;q++) for(let sl=0;sl<3;sl++) ev(0.25+0.5*((_fibHash(Bp.i+'|'+q+'|'+sl)%10000)/10000), [a.R[q]]); }
+  for(let j=5;j<P.length;j++){ const c=P[j].c; if(c+h>=n || !(C[c]>0) || !(C[c+h]>0)) continue; const w=_fibEw(P.slice(j-5,j+1)), r=C[c+h]/C[c]-1, e=-(w.up?1:-1)*(r-base), o=w.pass?a.Ep:a.Ef; o.n++; o.e+=e; }
+  return a; }
+function _fibAgg(list){ const z0=()=>({ b:0, x:0, u:0 }), S={ nS:0, nFr:0, F:z0(), L382:z0(), L50:z0(), L618:z0(), R:[0,1,2,3,4,5,6,7,8].map(z0), Ep:{ n:0, e:0 }, Ef:{ n:0, e:0 } }; let k=null, h=null;
+  (list||[]).forEach(a=>{ if(!a || !a.nFr) return; S.nS++; if(k==null){ k=a.k; h=a.h; } S.nFr+=a.nFr; ['F','L382','L50','L618'].forEach(key=>{ ['b','x','u'].forEach(f=>{ S[key][f]+=a[key][f]; }); }); a.R.forEach((o,q)=>{ ['b','x','u'].forEach(f=>{ S.R[q][f]+=o[f]; }); }); ['Ep','Ef'].forEach(key=>{ S[key].n+=a[key].n; S[key].e+=a[key].e; }); });
+  const rt=o=>(o.b+o.x)?100*o.b/(o.b+o.x):null, R1=v=>(v==null||!isFinite(v))?null:+v.toFixed(1), rr=S.R.map(rt).filter(v=>v!=null), rm=rr.length?rr.reduce((s,v)=>s+v,0)/rr.length:null, f=rt(S.F);
+  return { k, h, nS:S.nS, nFr:S.nFr, nF:S.F.b+S.F.x, uF:S.F.u, fib:R1(f), l382:R1(rt(S.L382)), l50:R1(rt(S.L50)), l618:R1(rt(S.L618)), n382:S.L382.b+S.L382.x, n50:S.L50.b+S.L50.x, n618:S.L618.b+S.L618.x,
+    rnd:R1(rm), rndMax:rr.length?R1(Math.max.apply(null,rr)):null, rndMin:rr.length?R1(Math.min.apply(null,rr)):null, nR:S.R[0].b+S.R[0].x, d:(f!=null&&rm!=null)?R1(f-rm):null, d618:(rt(S.L618)!=null&&rm!=null)?R1(rt(S.L618)-rm):null,
+    eP:S.Ep.n?+(100*S.Ep.e/S.Ep.n).toFixed(2):null, eF:S.Ef.n?+(100*S.Ef.e/S.Ef.n).toFixed(2):null, nEP:S.Ep.n, nEF:S.Ef.n }; }
+// ── 화면 ──
+function _fibFmt(v){ if(v==null || !isFinite(v)) return '—'; const a=Math.abs(v); return a>=1000?Math.round(v).toLocaleString():(a>=1?(+v.toFixed(2)).toLocaleString(undefined,{ maximumFractionDigits:2 }):(+v.toPrecision(4)).toString()); }
+function _fibPct(r){ return (+(r*100).toFixed(1))+'%'; }
+function _fibDate(rows, i){ const d=String((rows[i]&&(rows[i].date||rows[i].t))||''); return /^\d{8}/.test(d)?(d.slice(2,4)+'.'+d.slice(4,6)+'.'+d.slice(6,8)):(/^\d{4}-\d{2}-\d{2}/.test(d)?(d.slice(2,4)+'.'+d.slice(5,7)+'.'+d.slice(8,10)):d); }
+function _fibSvg(rows, z, fr, ew){ const n=rows.length, li=n-1; let s=Math.max(0,n-160); if(fr) s=Math.min(s, Math.max(0, fr.A.i-3)); if(ew && ew.pts) s=Math.min(s, Math.max(0, ew.pts[0].i-3)); s=Math.max(s, n-320);
+  const C=rows.map(r=>_fibNum(r.close!=null?r.close:r.c)), H=rows.map(r=>_fibNum(r.high!=null?r.high:r.h)), L=rows.map(r=>_fibNum(r.low!=null?r.low:r.l)); let lo=Infinity, hi=-Infinity;
+  for(let i=s;i<=li;i++){ if(L[i]<lo) lo=L[i]; if(H[i]>hi) hi=H[i]; } if(fr) fr.lv.forEach(o=>{ if(o.p<lo) lo=o.p; if(o.p>hi) hi=o.p; }); if(!(hi>lo)) return '';
+  const W=400, Hh=180, pl=4, pr=44, pt=14, pb=14, X=i=>pl+(i-s)/Math.max(1,li-s)*(W-pl-pr), Y=v=>pt+(hi-v)/(hi-lo)*(Hh-pt-pb); let g='';
+  if(fr){ const lb=fr.lv.map(o=>({ o, y:Y(o.p) })).sort((u,v)=>u.y-v.y), GAP=9; for(let j=0;j<lb.length;j++) lb[j].ly=j?Math.max(lb[j].y, lb[j-1].ly+GAP):Math.max(lb[j].y, pt); for(let j=lb.length-1;j>=0;j--) lb[j].ly=Math.min(lb[j].ly, j<lb.length-1?lb[j+1].ly-GAP:Hh-3);   /* 선이 붙어 있으면 글자만 9px 간격으로 벌림(선 자리는 그대로) */
+    lb.forEach(q=>{ const o=q.o, y=q.y.toFixed(1), col=(o.r===0||o.r===1)?'#6b7280':(o.r===0.618?'#d97706':'#7c3aed'); g+='<line x1="'+X(Math.max(s,fr.A.i)).toFixed(1)+'" y1="'+y+'" x2="'+(W-pr).toFixed(1)+'" y2="'+y+'" stroke="'+col+'" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.8"/><text x="'+(W-pr+3)+'" y="'+(q.ly+3).toFixed(1)+'" font-size="9" fill="'+col+'">'+(+(o.r*100).toFixed(1))+'%</text>'; }); }
+  let d=''; for(let i=s;i<=li;i++) if(C[i]>0) d+=(d?'L':'M')+X(i).toFixed(1)+' '+Y(C[i]).toFixed(1); g+='<path d="'+d+'" fill="none" stroke="#9ca3af" stroke-width="1"/>';
+  const pts=z.piv.filter(p=>p.i>=s).concat(z.last&&z.last.i>=s?[z.last]:[]); if(pts.length>1){ let zz=''; pts.forEach((p,j)=>{ zz+=(j?'L':'M')+X(p.i).toFixed(1)+' '+Y(p.p).toFixed(1); }); g+='<path d="'+zz+'" fill="none" stroke="#7c3aed" stroke-width="1.4"/>'; }
+  pts.forEach(p=>{ g+='<circle cx="'+X(p.i).toFixed(1)+'" cy="'+Y(p.p).toFixed(1)+'" r="2.3" fill="'+(p.t==='H'?'#dc2626':'#2563eb')+'"/>'; });
+  if(ew && ew.pts) ew.pts.forEach((p,j)=>{ if(p.i<s) return; const y=Y(p.p)+(p.t==='H'?-6:13); g+='<text x="'+X(p.i).toFixed(1)+'" y="'+y.toFixed(1)+'" font-size="10" font-weight="800" text-anchor="middle" fill="'+(ew.e.pass?'#059669':'#9ca3af')+'">'+j+'</text>'; });
+  g+='<circle cx="'+X(li).toFixed(1)+'" cy="'+Y(C[li]).toFixed(1)+'" r="3" fill="#111"/>';
+  return '<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:auto;display:block;margin:6px 0 2px;background:var(--surface2);border-radius:8px">'+g+'</svg>'; }
+function _fibCardHtml(cx){ try{ const rows=cx.rows, n=(rows&&rows.length)||0, kk=_fibKey(), k=_FIB_K[kk], T3='var(--text3)', T2='var(--text2)', G='#059669', Rd='#dc2626', Pp='#7c3aed';
+  const chip=(key,lbl)=>'<span onclick="_sxVib(8);window._fibSetK&&_fibSetK(\''+key+'\')" style="font-size:10px;font-weight:800;padding:4px 9px;border-radius:12px;cursor:pointer;'+(kk===key?('background:'+Pp+';color:#fff;border:1px solid '+Pp):'background:var(--surface2);color:var(--text3);border:1px solid var(--border)')+'">'+lbl+'</span>';
+  const head=(badge)=>'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:13px;font-weight:800;color:var(--text)">🌀 피보나치 · 엘리어트</span>'+(badge||'')+'</div>'
+    +'<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px"><span style="font-size:10px;color:'+T3+'">스윙 크기</span>'+chip('s','작게 2×ATR')+chip('m','보통 3×ATR')+chip('l','크게 5×ATR')+'<span style="font-size:9px;color:'+T3+'">· 봉 = 지금 분석 TF('+(cx.tfLbl||'')+')</span></div>';
+  const wrap=b=>'<div class="anal-header-card" id="sxFibCard" style="margin-top:10px">'+b+'</div>';
+  if(n<60) return wrap(head('')+'<div style="font-size:10.5px;color:'+T3+'">봉이 부족해요(60봉 이상 필요 · 지금 '+n+'봉)</div>');
+  const z=_fibZigzag(rows,k), fr=_fibFrame(rows,z);
+  if(!fr) return wrap(head('')+'<div style="font-size:10.5px;color:'+T3+'">확정된 스윙이 두 개 안 돼요 — 스윙 크기를 작게 해 보세요</div>');
+  const R=fr.ret, side=fr.up?'up':'dn', TX=_FIB_TXT[side], lvls=_FIB_R;
+  let zone=''; if(R<0) zone='스윙 끝점 너머'; else if(R>1) zone='100% 넘음 — 스윙 시작점 너머(이 스윙의 되돌림 끝)'; else { let lo=0, hiR=1; lvls.forEach(r=>{ if(r<=R) lo=r; }); for(let q=lvls.length-1;q>=0;q--) if(lvls[q]>R) hiR=lvls[q]; zone=_fibPct(lo)+(lo>0?('('+TX[lo]+')'):'')+' ~ '+_fibPct(hiR)+(hiR<1?('('+TX[hiR]+')'):'')+' 사이'; }
+  const badge='<span style="font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:9px;background:'+Pp+'14;color:'+Pp+'">'+(fr.up?'상승 후 조정':'하락 후 반등')+' '+(+(R*100).toFixed(1))+'%</span>';
+  const dir=fr.up?('📈 '+_fibDate(rows,fr.A.i)+' 저점 '+_fibFmt(fr.A.p)+' → '+_fibDate(rows,fr.B.i)+' 고점 '+_fibFmt(fr.B.p)):('📉 '+_fibDate(rows,fr.A.i)+' 고점 '+_fibFmt(fr.A.p)+' → '+_fibDate(rows,fr.B.i)+' 저점 '+_fibFmt(fr.B.p));
+  let h=head(badge)+'<div style="font-size:10.5px;color:'+T2+';line-height:1.6">'+dir+' · 마지막 확정 스윙</div>'
+    +'<div style="font-size:11.5px;font-weight:800;color:var(--text);margin:4px 0 6px;line-height:1.55">지금 '+_fibFmt(fr.c)+' · '+(fr.up?'되돌림':'반등')+' '+(+(R*100).toFixed(1))+'% — '+zone+(fr.mx!=null?('<span style="font-weight:600;font-size:10px;color:'+T3+'"> · 이번 '+(fr.up?'조정':'반등')+' 최대 '+(+(fr.mx*100).toFixed(1))+'%</span>'):'')+'</div>';
+  const row=(lbl,price,txt,cur)=>'<div style="display:flex;align-items:center;gap:6px;font-size:10.5px;padding:3px 6px;border-radius:6px;'+(cur?('background:'+Pp+'12;'):'')+'"><b style="width:44px;color:'+(lbl==='61.8%'?'#d97706':Pp)+'">'+lbl+'</b><span style="width:76px;font-weight:700;color:var(--text)">'+_fibFmt(price)+'</span><span style="flex:1;color:'+T3+';font-size:9.5px">'+txt+'</span><span style="font-size:9.5px;font-weight:700;color:'+(price>=fr.c?Rd:'#2563eb')+'">'+((price/fr.c-1)*100>=0?'+':'')+((price/fr.c-1)*100).toFixed(1)+'%</span></div>';
+  h+='<div style="font-size:10px;font-weight:800;color:'+T2+';margin:6px 0 3px">📐 되돌림 선 <span style="font-weight:500;color:'+T3+'">— '+(fr.up?'상승 후 조정 해석':'하락 후 반등 해석')+' · 오른쪽 = 지금 가격 대비</span></div>';
+  fr.lv.forEach(o=>{ const cur=(R>=0&&R<=1)&&((o.r<=R&&lvls.concat([1]).filter(r=>r>o.r)[0]>R)||false); h+=row(_fibPct(o.r), o.p, o.r===0?'스윙 끝점(B)':(o.r===1?'스윙 시작점(A)':TX[o.r]), cur); });
+  h+='<div style="font-size:10px;font-weight:800;color:'+T2+';margin:8px 0 3px">🎯 확장 목표 <span style="font-weight:500;color:'+T3+'">— A→B 스윙을 B 너머로 늘인 값(A 에서 잰 비율) · 확정 목표가 아니라 반응할 수 있는 구간</span></div>';
+  h+='<div style="display:flex;gap:5px;flex-wrap:wrap">'+fr.ext.map(o=>'<span style="font-size:10px;padding:3px 7px;border-radius:7px;border:1px solid var(--border);background:var(--surface2)"><b style="color:'+Pp+'">'+(+(o.r*100).toFixed(1))+'%</b> '+_fibFmt(o.p)+' <span style="color:'+(o.p>=fr.c?Rd:'#2563eb')+'">'+((o.p/fr.c-1)*100>=0?'+':'')+((o.p/fr.c-1)*100).toFixed(1)+'%</span></span>').join('')+'</div>';
+  // 엘리어트
+  const PT=z.piv.concat(z.last?[Object.assign({ tent:true }, z.last)]:[]), ew=PT.length>=6?{ pts:PT.slice(-6), e:_fibEw(PT.slice(-6)) }:null, ab=PT.length>=4?{ pts:PT.slice(-4), e:_fibAbc(PT.slice(-4)) }:null;
+  const ok=b=>b?'✅':'❌', nr=x=>{ if(x==null) return '—'; const f=_fibNear(x); return (+(x*100).toFixed(1))+'%'+(f!=null?('<span style="color:'+G+'">(≈'+(+(f*100).toFixed(1))+')</span>'):''); };
+  h+='<div style="font-size:10px;font-weight:800;color:'+T2+';margin:9px 0 3px">🌊 엘리어트 파동 후보 <span style="font-weight:500;color:'+T3+'">— 자동으로 센 후보 · 확정 아님 · 진행 = 아직 확정 안 된 마지막 극값</span></div>';
+  if(ew){ const e=ew.e, dl=ew.pts.map((p,j)=>j+' '+_fibDate(rows,p.i)+(p.tent?'(진행)':'')).join(' · ');
+    h+='<div style="font-size:10.5px;padding:6px 8px;border-radius:8px;border:1px solid '+(e.pass?G+'66':'var(--border)')+';background:'+(e.pass?G+'0d':'transparent')+';margin-bottom:5px"><b style="color:'+(e.pass?G:T2)+'">5파 충격('+(e.up?'상승':'하락')+') '+(e.pass?'후보 성립':'규칙 위반 — 5파로 보기 어려움')+'</b><div style="font-size:9.5px;color:'+T3+';margin:2px 0">'+dl+'</div>'
+      +'<div style="font-size:10px;line-height:1.6">'+ok(e.rules[0])+' 2파가 1파 시작점을 안 깸 · '+ok(e.rules[1])+' 3파가 가장 짧지 않음 · '+ok(e.rules[2])+' 4파가 1파 구간과 안 겹침</div>'
+      +'<div style="font-size:9.5px;color:'+T2+';line-height:1.6">2파 = 1파의 '+nr(e.ratio.w2)+' · 3파 = 1파의 '+nr(e.ratio.w3)+' · 4파 = 3파의 '+nr(e.ratio.w4)+' · 5파 = 1파의 '+nr(e.ratio.w5)+'</div></div>'; }
+  else h+='<div style="font-size:10px;color:'+T3+'">스윙점이 6개 안 돼 5파를 셀 수 없어요</div>';
+  if(ab){ const e=ab.e, dl=['시작','A','B','C'].map((t,j)=>t+' '+_fibDate(rows,ab.pts[j].i)+(ab.pts[j].tent?'(진행)':'')).join(' · ');
+    h+='<div style="font-size:10.5px;padding:6px 8px;border-radius:8px;border:1px solid var(--border)"><b style="color:'+(e.pass?G:T2)+'">ABC 조정('+(e.dn?'내림':'오름')+') '+(e.pass?'후보 성립':'규칙 위반')+'</b><div style="font-size:9.5px;color:'+T3+';margin:2px 0">'+dl+'</div>'
+      +'<div style="font-size:10px;line-height:1.6">'+ok(e.rules[0])+' B가 A 시작점을 안 넘음 · '+ok(e.rules[1])+' C가 A 끝점을 넘음</div><div style="font-size:9.5px;color:'+T2+'">B = A의 '+nr(e.ratio.b)+' · C = A의 '+nr(e.ratio.c)+'</div></div>'; }
+  h+=_fibSvg(rows, z, fr, ew);
+  h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-top:5px">보여주기용 · 판정·매매와 무관 · 스윙 = ATR(14)×'+k+' 지그재그(되돌림이 그만큼 나와야 고점·저점 확정) · 보라 선 = 지그재그 · 점선 = A→B 되돌림 선 · 피보 선이 정말 잘 튕기는지는 학습검증 🔮 「🌀 피보나치 반응」에서 잰다</div>';
+  return wrap(h); }catch(_e){ return ''; } }
+function _buildFibCard(stock, indicators){ try{ const rows=(indicators&&indicators._advanced&&Array.isArray(indicators._advanced.rows))?indicators._advanced.rows:((stock&&Array.isArray(stock._lastAnalCandles))?stock._lastAnalCandles:null); if(!rows || !rows.length) return '';
+  const tf=(typeof _analTF!=='undefined'&&_analTF)?_analTF:'day', mk=(stock&&(stock._mkt||stock.market))||(typeof currentMarket!=='undefined'?currentMarket:'kr'), cx={ rows, mk, tf, tfLbl:(typeof _poolTfLbl==='function'?_poolTfLbl(tf):tf) };
+  try{ window._sxFibCtx=cx; }catch(_){} return _fibCardHtml(cx); }catch(_e){ return ''; } }
+function _fibSetK(key){ if(!_FIB_K[key]) return; try{ localStorage.setItem('SX_FIB_K', key); }catch(_){} try{ const el=document.getElementById('sxFibCard'), cx=window._sxFibCtx; if(el && cx) el.outerHTML=_fibCardHtml(cx); }catch(_){} }
+// ── 학습검증 🔮 「🌀 피보나치 반응」 — 이 종목 이력 · 📦 풀 측정(같은 _fibStats · _fibAgg) ──
+function _fibTableHtml(a){ if(!a || !a.nS || !a.nF) return '<div style="font-size:9.5px;color:var(--text3)">표본 없음 — 확정 스윙이 생기고 선에 닿은 일이 있어야 합니다</div>';
+  const pc=v=>v==null?'—':(v+'%'), sg=v=>v==null?'—':((v>0?'+':'')+v+'%p'), cl=v=>v==null?'var(--text3)':(v>0?'#059669':(v<0?'#dc2626':'var(--text2)')), tr=(l,v,x)=>'<tr><td style="padding:2px 4px;color:var(--text2)">'+l+'</td><td style="padding:2px 4px;text-align:right;font-weight:700">'+v+'</td><td style="padding:2px 4px;text-align:right;color:var(--text3);font-size:9px">'+(x||'')+'</td></tr>';
+  return '<table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:4px">'
+    +tr('피보 선(38.2·50·61.8) 튕김', pc(a.fib), a.nF+'번 닿음'+(a.uF?(' · 미결 '+a.uF):''))
+    +tr('　38.2% · 50% · 61.8%', pc(a.l382)+' · '+pc(a.l50)+' · '+pc(a.l618), a.n382+' · '+a.n50+' · '+a.n618)
+    +tr('무작위 선(25~75%) 튕김', pc(a.rnd), '씨앗 9개 평균 · 범위 '+pc(a.rndMin)+'~'+pc(a.rndMax))
+    +'<tr><td style="padding:2px 4px;color:var(--text2)">피보 − 무작위</td><td style="padding:2px 4px;text-align:right;font-weight:800;color:'+cl(a.d)+'">'+sg(a.d)+'</td><td style="padding:2px 4px;text-align:right;color:var(--text3);font-size:9px">61.8% 만 '+sg(a.d618)+'</td></tr>'
+    +tr('5파(규칙 통과) 끝 → 반대 방향', (a.eP==null?'—':((a.eP>0?'+':'')+a.eP+'%p')), a.nEP+'번 · 20봉 · 평소 대비')
+    +tr('5파(규칙 위반) 끝 → 반대 방향', (a.eF==null?'—':((a.eF>0?'+':'')+a.eF+'%p')), a.nEF+'번')
+    +'</table><div style="font-size:8.5px;color:var(--text3);margin-top:3px;line-height:1.5">튕김 = 선에 닿은 뒤 20봉 안에 1×ATR 되튀어 오름(뚫림 = 1×ATR 더 감 · 같은 봉이면 뚫림) · 반대 방향 = 상승 5파면 평소보다 덜 오름/더 내림 · 스윙 3×ATR · 판정 아님</div>'; }
+function _fibPoolHtml(res){ if(!res) return ''; const lbl=(res.from==='snap'?'📂 스냅':'대표풀')+' '+String(res.mk).toUpperCase()+' · '+res.used+'/'+res.n+'종목'+(res.skip?(' · 스킵 '+res.skip):'');
+  return '<div style="margin-top:7px;padding:8px 9px;border-radius:9px;border:1px solid #7c3aed44;background:#7c3aed08"><div style="font-size:10px;font-weight:800;color:#7c3aed">📦 풀 측정 — '+lbl+'</div>'+_fibTableHtml(res.a)
+    +'<div style="font-size:8.5px;color:#d97706;margin-top:5px;line-height:1.5">실험 지표 · in-sample · 선택된 목록(선택·생존 편향) · 판정과 무관 · 9판 판정선은 PREREG_S1808 §3</div></div>'; }
+async function _fibPoolUI(){ const el=document.getElementById('sxFibPoolOut'); if(!el || window._fibPoolBusy) return;
+  const CB=window.SXCandleBT; if(!(CB&&CB.fetchRows600)){ el.innerHTML='<div style="font-size:10px;color:#dc2626">캔들 fetch 미연결(SXCandleBT 미로드)</div>'; return; }
+  const cx=window._sxFibLabCtx||{}, mk=cx.mk||(typeof currentMarket!=='undefined'?currentMarket:'kr'), tf=cx.tf||'day';
+  const sp=(typeof _trendSnapPool==='function')?_trendSnapPool(mk):null, from=(sp&&sp.length)?'snap':'rep';
+  let list=(from==='snap')?sp:(((CB.getRepPool&&CB.getRepPool(mk))||[]).map(x=>({ code:x[0], name:x[1] }))); list=list.slice(0,_TREND_BATCH_CAP);
+  if(!list.length){ el.innerHTML='<div style="font-size:10px;color:#dc2626">대표목록 없음('+mk+')</div>'; return; }
+  window._fibPoolBusy=true; const L=[]; let used=0, skip=0;
+  try{ for(let i=0;i<list.length;i++){ const s=list[i]; const e=document.getElementById('sxFibPoolOut'); if(e) e.innerHTML='<div style="text-align:center;padding:10px 2px;font-size:10.5px;color:var(--text3)">🌀 종목 '+(i+1)+'/'+list.length+' · '+(s.name||s.code)+'</div>';
+      await _trendBatchSleep(0); let rows=null; try{ rows=await CB.fetchRows600(mk, tf, s.code); }catch(_e){ rows=null; }
+      if(!Array.isArray(rows) || rows.length<150){ skip++; continue; } L.push(_fibStats(rows,3,20)); used++; } }
+  finally{ window._fibPoolBusy=false; }
+  const res={ mk, tf, from, n:list.length, used, skip, a:_fibAgg(L), ts:Date.now() };
+  window._fibPoolLast=window._fibPoolLast||{}; window._fibPoolLast[mk]=res;
+  const e2=document.getElementById('sxFibPoolOut'); if(e2) e2.innerHTML=_fibPoolHtml(res); }
+function _buildFibLabCard(stock, indicators){ try{ const rows=(indicators&&indicators._advanced&&Array.isArray(indicators._advanced.rows))?indicators._advanced.rows:((stock&&Array.isArray(stock._lastAnalCandles))?stock._lastAnalCandles:null); if(!rows || rows.length<60) return '';
+  const mk=(stock&&(stock._mkt||stock.market))||(typeof currentMarket!=='undefined'?currentMarket:'kr'), tf=(typeof _analTF!=='undefined'&&_analTF)?_analTF:'day'; try{ window._sxFibLabCtx={ mk, tf }; }catch(_){}
+  const a=_fibAgg([_fibStats(rows,3,20)]), title='<span style="font-size:13px;font-weight:800;color:var(--text)">🌀 피보나치 반응</span><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text3);border:1px solid var(--border)">실험</span>';
+  const right=(a.d==null)?'':('<span style="font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:9px;white-space:nowrap;background:'+(a.d>0?'#05966914':'#dc262614')+';color:'+(a.d>0?'#059669':'#dc2626')+'">피보−무작위 '+(a.d>0?'+':'')+a.d+'%p</span>');
+  const cache=(window._fibPoolLast||{})[mk];
+  const body='<div style="font-size:10.5px;font-weight:700;color:var(--text)">이 종목 이력 — 피보 선이 무작위 선보다 잘 튕기나 · 규칙 통과 5파 끝에 반대로 가나</div>'+_fibTableHtml(a)
+    +'<div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)"><button onclick="_sxVib(9);window._fibPoolUI&&_fibPoolUI()" style="width:100%;font-size:11px;font-weight:700;padding:8px 0;border-radius:8px;cursor:pointer;color:#7c3aed;background:#7c3aed10;border:1px solid #7c3aed55">📦 풀 측정 — 이 시장 풀 전체('+(String(mk).toUpperCase())+' · 스냅이 켜져 있으면 스냅 풀)</button><div id="sxFibPoolOut">'+(cache?_fibPoolHtml(cache):'')+'</div></div>'
+    +'<div style="font-size:8px;color:var(--text3);line-height:1.55;margin-top:6px;border-top:1px solid var(--border);padding-top:6px">실험 지표 · 정식 판정과 무관 · 정의 = PREREG_S1808 §1 · 스윙 = ATR(14)×3 지그재그(확정 봉 뒤만 씀) · 선 = 확정 두 스윙점 A→B · 무작위 = 25~75% 균등 3선 × 씨앗 9 · '+_FIB_VERDICT+'</div>';
+  return _sxExpCard('sxFibLabWrap', 'sxFibLabWrap_b', title, right, body); }catch(_e){ return ''; } }
+if(typeof window!=='undefined'){ window._fibSetK=_fibSetK; window._fibPoolUI=_fibPoolUI; }
 function _buildPredictLab(inner){
   return '<div id="sxPredLab" style="margin:14px 0 10px;padding:10px 8px 0;border-radius:14px;border:1px solid #7c3aed55;background:#7c3aed0a">'
     + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 4px">'
@@ -18177,7 +18330,7 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1807';   // [S1807] 🐢 터틀 일봉 국면 칩 = 주·월 묶음과 같은 꼴(칩 한 줄 · 켠 칩 칸 · 엔진 무변경) · [S1806] 🐢 터틀 🚧 주·월 국면 밖 = 🔀 도 원천 차단(기본 켬 · 일봉만 밖 = 🔀 허용) · [S1805] 🐢 터틀 📆 주봉 · 🗓️ 월봉 국면 칩 12종(일봉 칩과 같은 계산기 · 지난 주·달 = 캔들 · 이번 주·달 = 그 봉 종가까지) · [S1804] 🐢 터틀 리셋 N 정정(KR·코인 N 10봉 · US 그대로) · [S1803] 🐢 터틀 3시장 기본 리셋 세트(KR MA · US EMA · 코인 MACD + 🔀 + 🔊 + ⏱) · [S1802] 🔮 예측 실험도구 🗜️ TTM 스퀴즈 카드(지금 상태 · 이력 · 📦 풀 측정) · [S1801] 🐢 진입·청산 방식(돌파 ⇄ 이탈) · 🔀 국면 밖 교차 · [S1800] 🐢 터틀 필터 칩 3차(%K>%D·%K≥값 · ADX · 장기선 · 돌파 거래량 · 변동성 수축 · 국면 분할 '필터 조건') · [S1796] 풀 BT 속도(D-day 건너뜀 · 💾 전략 신호 저장소) · 🧪 풀 단 스냅 칩 · 🧪 〽️ EMA 게이트 · [S1795] 괴리 방향(부호) · 🐢 🧪 재료 250봉 안내·측정 시작일 · 🐢 🏹 구간별 판정 불가 칩 · [S1794] 🐢 터틀 🧭 EMA 국면(9×26 · 사이 구간 · 국면 분할에도) · [S1793] 🐢 터틀 익절 칩 3종 — 🚀 TP급등 · 🏹 TP_ATR(📅 구간별 · ATR = 터틀 N) · 🎯 TP고정(전략조합과 같은 식 · 끄면 무변경) · [S1792] 🐢 터틀 📦 풀 BT 🧭 국면 분할 — 같은 거래를 신호 봉 국면(구간·상태)으로 나눔 · 엔진 무변경 · [S1791] 🐢 터틀 청산 칩 — 🛡️ 트레일링(최고 종가 − 배수×N · 종가) · ⏱ N봉컷(끄면 무변경) · [S1790] 🐢 터틀 국면 칩 2차 — 🎚️ SMI · 📊 MACD · 🔵 PSAR(구간 안에서만 매수 · 끝나는 봉 종가 청산 · 값 손입력 · 끄면 무변경) · [S1789] 3탭 기본값 — 📈크로스·🧪전략조합 공용 쌍(사용자 원문 기계 생성) · ☑ 청산 크로스 분리 기본 ON · 🧪 재료 기본 비움 · 기본 힌트 SSOT · [S1788] 🐢 터틀 🧭 국면 — 진입/청산 쌍 · "사이" 구간(진입 골든 ~ 청산 데드) · 구간 끝 = 종가 청산 · 시장별 기본 쌍(사용자 원문 기계 생성) · [S1787] 🐢 터틀 필터 칩 1차 — 🧭 MA 국면 · 🧭 TRIX 국면 · 🧪 재료 조건(진입 AND · 매도 재료 청산 · 가상 거래는 필터 무관 · 끄면 무변경) · [S1786] 🐢 터틀 📦 풀 전체 BT(스냅별 · 카드 엔진 그대로 · 공용 집계·그리드·CSV) · [S1785] 코인 4시간봉 — 세 탭(📈 크로스 · 🧪 전략 조합 · 🐢 터틀)에 📥 일봉 설정 불러오기(그 탭 범위 = 리셋 범위) · [S1784] 🐢 터틀 탭 1단계 — 기본 터틀 엔진(20봉 돌파·10봉 이탈·N=TR 20봉·2N 손절·건너뛰기/55봉 실패방지 · 입력값 수동 · 매수만) · [S1783] 🔮 예측 실험도구 1단계 — 학습검증 예측 카드 셋 + 교차검증 MA크로스 전이를 한 카드로(계산 무변경) · [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
+  window.SX_BUILD='S1808';   // [S1808] 🌀 피보나치 · 엘리어트 카드(종목분석 · 레시피 해석 위) + 🌀 피보나치 반응(학습검증 🔮 · 📦 풀 측정) · [S1807] 🐢 터틀 일봉 국면 칩 = 주·월 묶음과 같은 꼴(칩 한 줄 · 켠 칩 칸 · 엔진 무변경) · [S1806] 🐢 터틀 🚧 주·월 국면 밖 = 🔀 도 원천 차단(기본 켬 · 일봉만 밖 = 🔀 허용) · [S1805] 🐢 터틀 📆 주봉 · 🗓️ 월봉 국면 칩 12종(일봉 칩과 같은 계산기 · 지난 주·달 = 캔들 · 이번 주·달 = 그 봉 종가까지) · [S1804] 🐢 터틀 리셋 N 정정(KR·코인 N 10봉 · US 그대로) · [S1803] 🐢 터틀 3시장 기본 리셋 세트(KR MA · US EMA · 코인 MACD + 🔀 + 🔊 + ⏱) · [S1802] 🔮 예측 실험도구 🗜️ TTM 스퀴즈 카드(지금 상태 · 이력 · 📦 풀 측정) · [S1801] 🐢 진입·청산 방식(돌파 ⇄ 이탈) · 🔀 국면 밖 교차 · [S1800] 🐢 터틀 필터 칩 3차(%K>%D·%K≥값 · ADX · 장기선 · 돌파 거래량 · 변동성 수축 · 국면 분할 '필터 조건') · [S1796] 풀 BT 속도(D-day 건너뜀 · 💾 전략 신호 저장소) · 🧪 풀 단 스냅 칩 · 🧪 〽️ EMA 게이트 · [S1795] 괴리 방향(부호) · 🐢 🧪 재료 250봉 안내·측정 시작일 · 🐢 🏹 구간별 판정 불가 칩 · [S1794] 🐢 터틀 🧭 EMA 국면(9×26 · 사이 구간 · 국면 분할에도) · [S1793] 🐢 터틀 익절 칩 3종 — 🚀 TP급등 · 🏹 TP_ATR(📅 구간별 · ATR = 터틀 N) · 🎯 TP고정(전략조합과 같은 식 · 끄면 무변경) · [S1792] 🐢 터틀 📦 풀 BT 🧭 국면 분할 — 같은 거래를 신호 봉 국면(구간·상태)으로 나눔 · 엔진 무변경 · [S1791] 🐢 터틀 청산 칩 — 🛡️ 트레일링(최고 종가 − 배수×N · 종가) · ⏱ N봉컷(끄면 무변경) · [S1790] 🐢 터틀 국면 칩 2차 — 🎚️ SMI · 📊 MACD · 🔵 PSAR(구간 안에서만 매수 · 끝나는 봉 종가 청산 · 값 손입력 · 끄면 무변경) · [S1789] 3탭 기본값 — 📈크로스·🧪전략조합 공용 쌍(사용자 원문 기계 생성) · ☑ 청산 크로스 분리 기본 ON · 🧪 재료 기본 비움 · 기본 힌트 SSOT · [S1788] 🐢 터틀 🧭 국면 — 진입/청산 쌍 · "사이" 구간(진입 골든 ~ 청산 데드) · 구간 끝 = 종가 청산 · 시장별 기본 쌍(사용자 원문 기계 생성) · [S1787] 🐢 터틀 필터 칩 1차 — 🧭 MA 국면 · 🧭 TRIX 국면 · 🧪 재료 조건(진입 AND · 매도 재료 청산 · 가상 거래는 필터 무관 · 끄면 무변경) · [S1786] 🐢 터틀 📦 풀 전체 BT(스냅별 · 카드 엔진 그대로 · 공용 집계·그리드·CSV) · [S1785] 코인 4시간봉 — 세 탭(📈 크로스 · 🧪 전략 조합 · 🐢 터틀)에 📥 일봉 설정 불러오기(그 탭 범위 = 리셋 범위) · [S1784] 🐢 터틀 탭 1단계 — 기본 터틀 엔진(20봉 돌파·10봉 이탈·N=TR 20봉·2N 손절·건너뛰기/55봉 실패방지 · 입력값 수동 · 매수만) · [S1783] 🔮 예측 실험도구 1단계 — 학습검증 예측 카드 셋 + 교차검증 MA크로스 전이를 한 카드로(계산 무변경) · [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
   // [S1753] 🔊 bullVol 진입 조건 묶음 — 장기 국면 기준(60·120·200 / 60·120) · 진입할 국면 선택 · 거래량 문턱(급증·VR) 입력. 기본값 = 종전.
   // [S1751] 🌀 BB회귀 청산 방식 3종 — 자체+청산 줄(기본) / 자체만 / 청산 줄만(자체 청산을 끄고 다른 진입원처럼 판다 = 진입원으로만 쓰기).
@@ -23772,7 +23925,8 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
                           + _buildChartPredictCard(stock, indicators)
                           + _buildTransitionCard(stock, indicators)
                           + (function(){ try{ return _buildMaCrossCard(stock, indicators); }catch(_eMx1783){ console.warn('[S1783] MA크로스 전이 카드 실패', _eMx1783); return ''; } })()
-                          + (function(){ try{ return _buildTtmCard(stock, indicators); }catch(_eTtm1802){ console.warn('[S1802] TTM 스퀴즈 카드 실패', _eTtm1802); return ''; } })());   // [S1783] 교차검증에서 이사 · 이 카드가 실패해도 묶음은 그린다 · [S1802] 🗜️ TTM 스퀴즈 카드(실패해도 묶음은 그린다)
+                          + (function(){ try{ return _buildTtmCard(stock, indicators); }catch(_eTtm1802){ console.warn('[S1802] TTM 스퀴즈 카드 실패', _eTtm1802); return ''; } })()
+                          + (function(){ try{ return _buildFibLabCard(stock, indicators); }catch(_eFib1808){ console.warn('[S1808] 피보나치 반응 카드 실패', _eFib1808); return ''; } })());   /* [S1808] 🌀 피보나치 반응(측정) — TTM 다음 */   // [S1783] 교차검증에서 이사 · 이 카드가 실패해도 묶음은 그린다 · [S1802] 🗜️ TTM 스퀴즈 카드(실패해도 묶음은 그린다)
   } catch(_eExpMove){ console.warn('[S1202] 실험카드 주입 실패', _eExpMove); }
 
   body.innerHTML = `
@@ -24028,6 +24182,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       }catch(_eRisk){ return ''; }
     })()}
 
+    ${(()=>{ try{ return _buildFibCard(stock, indicators); }catch(_eFib1808){ console.warn('[S1808] 피보나치 카드 실패', _eFib1808); return ''; } })()}<!-- [S1808] 🌀 피보나치 · 엘리어트 카드(보여주기) — 레시피 해석 위 -->
     <div class="anal-header-card" style="margin-top:10px">
       <!-- [S969→S970] 레시피 해석 카드 — 구 점수축 카드2(threeStageReport 판정) + S69 실전가이드(_pgShared) 대체.
            설계: SIGNALX_시즌1_해석전환_설계.md. 시즌1 = "레시피의 구도적 해석기"(판정 아님).
