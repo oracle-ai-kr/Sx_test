@@ -10987,7 +10987,7 @@ function _renderChartMarkerSeg(){
       el.style.fontWeight = on ? '800'     : '600';
       // [S1437] 켜진 S에만 지금 따라가는 탭을 적는다 — 버튼이 곧 사실이 된다(라벨 거짓말 방지 · S1406 계열).
       if(el.getAttribute('data-v')==='S'){
-        var _hint = (on && _eng) ? (_eng==='cross' ? ' \uD83D\uDCC8' : (_eng==='turtle' ? ' \uD83D\uDC22' : (_eng==='ict' ? ' \uD83C\uDFAF' : ' \uD83E\uDDEA'))) : '';   // [S1784] 🐢 터틀 탭 · [S1824] 🎯 ICT 탭
+        var _hint = (on && _eng) ? (_eng==='cross' ? ' \uD83D\uDCC8' : (_eng==='turtle' ? ' \uD83D\uDC22' : (_eng==='ict' ? ' \uD83C\uDFAF' : (_eng==='st' ? ' \uD83D\uDEA6' : (_eng==='sr' ? ' \u2693' : ' \uD83E\uDDEA'))))) : '';   // [S1784] 🐢 터틀 탭 · [S1824] 🎯 ICT 탭 · [S1827] 🚦 슈퍼트렌드 탭 · [S1828] ⚓ 지지/저항 탭
         el.textContent = '\uB2E8\uAE30\uB9E4\uB9E4 S' + _hint;
       }
     });
