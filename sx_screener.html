@@ -18,7 +18,7 @@
 <script src="sx_exec_core.js?v=10"></script><!-- [S1210~19] regime5=v3(기울기 분화·합집합 불변) --><!-- [S1201] 진입 3원화(recipe>bullVol>v2) --><!-- [S1017] 실행 SSOT — 레시피 진입+이중ATR+MA청산 · 시즌1 BT/분석탭 · 시즌2 자동매매 공유(b 일원화) -->
 <script src="sx_interpret.js?v=47"></script>
 <script src="sx_chart.js?v=20"></script>
-<script src="sx_conditions.js?v=24"></script>
+<script src="sx_conditions.js?v=25"></script><!-- [S1841] 6개월 강세 항목 -->
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
 <script src="sx_storage.js?v=9"></script>
@@ -4537,6 +4537,7 @@ function _buildScanConfig(){
       analParamsStore: (function(){ try { return JSON.parse(localStorage.getItem('SX_SCR_ANAL_PARAMS_V3')||'{}'); } catch(_){ return {}; } })(), // [S1092] 레짐 축 제거
     oracleKospi, oracleKosdaq, oracleEtf, oracleCoin, oracleUsKeys, oracleUniv,
     xmatCfg,   // [S1442] 재료 충족 조건용 — 단일검증 탭 저장값 스냅샷
+    xsPool: (currentMarket==='kr' && typeof _DISCOVERY_POOL!=='undefined') ? (_DISCOVERY_POOL.kr||[]).map(x=>Array.isArray(x)?x[0]:String(x)) : [],   // [S1841] 📈 6개월 강세 — 발굴풀 KR 코드(워커 스캔 앞 순위)
     stockMasterCache, marketEnvData,
     scanRange: {from: range.from, to: range.to},
     cacheBuster: Date.now().toString(36),
@@ -4656,7 +4657,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=27');   // [S1201] exec_core·cell_data [S1204] _srcBreak [S1206] BT필터=정밀모드600
+    _scanWorker = new Worker('sx_scan_worker.js?v=28');   /* [S1841] 6개월 강세 스캔 앞 순위 */   // [S1201] exec_core·cell_data [S1204] _srcBreak [S1206] BT필터=정밀모드600
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -4794,6 +4795,37 @@ async function startScan(){
 // ═══════════════════════════════════════════════════════════════
 //  S74: 레거시 startScan (Worker 미지원 환경용)
 // ═══════════════════════════════════════════════════════════════
+// [S1841] 📈 6개월 강세 상위 20%(발굴풀) — 스캔 앞 순위 · PREREG_S1841_xsmom_cond.md §1B·C
+//   ★sx_scan_worker.js ↔ sx_screener.html **글자 같은 거울**(받기 함수 · 시장 · 봉 · 명단은 인자) — 한쪽만 고치면 두 길이 다른 풀을 돈다(배터리가 대조).
+//   규칙 = offline/xsmom/xs_criteria.md 를 지금 봉 한 번으로: 유효 종가 127개 이상 · r = 종가[끝] ÷ 종가[끝−126] · r 큰 순(같으면 코드 순) · 위 ceil(0.2N).
+async function _xsMomTopSet(codes, fetchRows, nPar, onProg){
+  var list = (codes || []).slice(), got = new Array(list.length), done = 0, par = Math.max(1, nPar || 1);
+  for(var i = 0; i < list.length; i += par){
+    await Promise.all(list.slice(i, i + par).map(async function(code, j){
+      var r = null;
+      try{ var rows = await fetchRows(code); var c = (rows || []).map(function(x){ return x ? +x.close : NaN; }).filter(function(v){ return v > 0 && isFinite(v); });
+        if(c.length >= 127) r = c[c.length - 1] / c[c.length - 127]; }catch(_e){ r = null; }
+      got[i + j] = (r != null && isFinite(r) && r > 0) ? { code: String(code), r: r } : null; done++;
+      if(onProg) try{ onProg(done, list.length); }catch(_p){}
+    }));
+  }
+  var el = got.filter(function(x){ return !!x; });
+  el.sort(function(a, b){ return (b.r - a.r) || (a.code < b.code ? -1 : (a.code > b.code ? 1 : 0)); });
+  var K = Math.ceil(0.2 * el.length), set = new Set(), rank = new Map();
+  for(var k = 0; k < el.length; k++){ rank.set(el[k].code, { rank: k + 1, r: el[k].r }); if(k < K) set.add(el[k].code); }
+  return { set: set, rank: rank, n: el.length, k: K, asked: list.length };
+}
+async function _xsMomGate(pool, opt){
+  if(!opt || !opt.on) return { pool: pool, err: null, info: null };
+  if(opt.market !== 'kr') return { pool: pool, err: '6개월 강세는 국내(KR)만 됩니다', info: null };
+  if(opt.tf !== 'day') return { pool: pool, err: '6개월 강세는 일봉에서만 계산합니다', info: null };
+  if(!opt.codes || !opt.codes.length) return { pool: pool, err: '발굴풀 명단을 불러오지 못했습니다', info: null };
+  var t = await _xsMomTopSet(opt.codes, opt.fetchRows, opt.nPar, opt.onProg);
+  if(t.n < 20) return { pool: pool, err: '6개월 강세 순위를 계산하지 못했습니다(받은 종목 ' + t.n + '개)', info: null };
+  var kept = pool.filter(function(s){ return s && t.set.has(String(s.code)); });
+  kept.forEach(function(s){ var q = t.rank.get(String(s.code)); s._xsMom = { rank: q.rank, of: t.n, r: q.r }; });
+  return { pool: kept, err: null, info: { n: t.n, k: t.k, asked: t.asked, removed: pool.length - kept.length } };
+}
 async function _startScanLegacy(){
   // (이하 기존 startScan 로직 — Worker fallback)
 
@@ -4925,6 +4957,19 @@ async function _startScanLegacy(){
     updateScanRangeMax(fullTotal);
     const range = getScanRange(fullTotal);
     pool = _watchlistScanMode ? pool : pool.slice(range.from, range.to);
+
+    // [S1841] 📈 6개월 강세(발굴풀) — 워커 startScan 과 같은 자리 · 같은 거울 함수 · 받기만 메인 fetchCandles(일봉 200)
+    {
+      const _xf = activeFilters.find(f=>f && f.id==='xs_mom_top');
+      const _xp = (typeof _DISCOVERY_POOL!=='undefined' && currentMarket==='kr') ? (_DISCOVERY_POOL.kr||[]).map(x=>Array.isArray(x)?x[0]:String(x)) : [];
+      const _xg = await _xsMomGate(pool, { on: !!(_xf && _xf.value==='상위 20%'), market: currentMarket, tf: currentTF, codes: _xp, nPar: getParallelCount(pool.length), fetchRows: code=>fetchCandles(code, 200, 'day'),
+        onProg: (n, N)=>updateScanProgress(n, N, '6개월 강세 순위 계산 ('+n+'/'+N+')') });
+      if(_xg.err){
+        document.getElementById('resultArea').innerHTML = `<div class="result-empty">${_xg.err}<br><span style="font-size:10px;color:var(--text3)">📈 6개월 강세 상위 20% (발굴풀) 조건 · 끄면 종전대로 검색</span></div>`;
+        scanState = 'idle'; updateScanUI(); return;
+      }
+      pool = _xg.pool;
+    }
 
     const total = pool.length;
     let newFound = 0;
@@ -9836,7 +9881,8 @@ function _dbgActiveFilters(){
   let html = '<b>🎯 활성 필터: '+activeFilters.length+'개</b>\n\n';
   activeFilters.forEach(f => {
     let where = '?';
-    if(passIds.includes(f.id)) where = 'passFilters';
+    if(f.id === 'xs_mom_top') where = '스캔 앞 순위(발굴풀 6개월 강세)';   // [S1841]
+    else if(passIds.includes(f.id)) where = 'passFilters';
     else if(FINANCIAL_FILTER_IDS.includes(f.id)) where = 'checkFinancialFilters';
     else if(INVESTOR_FILTER_IDS.includes(f.id)) where = 'checkInvestorFilters';
     else if(RANK_FILTER_IDS.includes(f.id)) where = 'applyRankFilters';
