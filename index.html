@@ -1794,7 +1794,7 @@ function termKR(text){if(!text)return'';let t=text;_TERM_MAP.forEach(([rx,rep])=
 /* ═══ [S1838] 🔗 BTC 사이클 — 2년 이동평균 배수 · Pi Cycle Top · Hash Ribbons · Puell Multiple + 코인베이스 프리미엄(₿ 코인 창) · 읽기 도움 · 판정 아님 · 정의 = PREREG_S1838_btc_cycle.md §1 ═══
    자료는 폰에서 바로 부른다(업비트 · mempool.space · blockchain.com · 코인베이스 · 바이낸스 공개 미러 — 모두 CORS 열림 · 워커 무변경).
    계산 함수는 DOM 을 안 만진다(배터리가 고정 자료로 따로 짠 파이썬과 대조 · offline/btccycle/calc_ref.py). */
-window.SX_INDEX_BUILD='S1839';   // [S1839] 🔗 SSR 칸 더함 · 앞 각인 S1838(🔗 BTC 사이클 카드)
+window.SX_INDEX_BUILD='S1840';   // [S1840] 🔗 NVT Signal 칸 더함 · 앞 각인 S1839(🔗 SSR 칸)
 const _SX_CYC_HIST = {"ma2y":{"from":"2019-09-24","yearMax":{"2019":[1.2,"2019-10-27"],"2020":[2.97,"2020-12-31"],"2021":[4.81,"2021-02-21"],"2022":[1.66,"2022-01-01"],"2023":[1.61,"2023-12-06"],"2024":[2.65,"2024-03-13"],"2025":[2.28,"2025-01-21"],"2026":[1.17,"2026-01-14"]}},"pi":{"from":"2018-09-09","cross":["2021-04-12"],"yearMax":{"2018":[0.38,"2018-09-10"],"2019":[0.8,"2019-09-13"],"2020":[0.68,"2020-12-31"],"2021":[1.01,"2021-04-20"],"2022":[0.58,"2022-01-01"],"2023":[0.61,"2023-07-07"],"2024":[0.76,"2024-06-01"],"2025":[0.67,"2025-03-01"],"2026":[0.51,"2026-01-01"]},"top2021":["2021-04-13","2021-11-08"]},"hash":{"from":"2011-01-01","to":"2026-10-28","nCap7":26},"puell":{"n":725,"meanAbsDiff":0.02,"from":"2024-10-27","to":"2026-10-27"}};   // [S1838] offline/btccycle/hist.py → hist.json 그대로(과거 한 줄 숫자 · 읽기 도움)
 function _sxCycSmaLast(a, n, end){ end = (end == null) ? a.length : end; if(end < n) return null; let s = 0; for(let i = end - n; i < end; i++) s += a[i]; return s / n; }
 function _sxCycUtcDay(ms){ return new Date(ms).toISOString().slice(0, 10); }
@@ -1843,22 +1843,40 @@ function _sxCycSsr(cbT, cbDay, stc, hr, tip, nowMs){
   else { o.min = null; o.max = null; o.pct = null; o.from = null; o.to = null; }
   return o;
 }
+// [S1840] 📦 NVT Signal — BTC 시총 ÷ 온체인 거래량(blockchain.com 추정 · 달러) 90일 평균(창 안 80개 이상) · 높이 보간은 SSR 과 같은 식 · PREREG_S1840_nvt.md §1B
+function _sxCycHgt(hr, tipH, nowMs){ const A = ((hr && hr.difficulty) || []).map(d => [+d.time, +d.height]).filter(a => a[0] > 0 && a[1] > 0).concat([[nowMs / 1000, tipH]]).sort((a, b) => a[0] - b[0]);
+  return t => { if(t < A[0][0] || t > A[A.length - 1][0]) return null; for(let i = 1; i < A.length; i++) if(t <= A[i][0]){ const t0 = A[i - 1][0], h0 = A[i - 1][1], t1 = A[i][0], h1 = A[i][1]; return Math.floor(h0 + (h1 - h0) * (t - t0) / (t1 - t0)); } return null; }; }
+function _sxCycNvt(cbT, cbDay, tx, hr, tip, nowMs){
+  const px = +(cbT && cbT.price), tipH = +tip; if(!(px > 0) || !(tipH > 0) || !tx || !Array.isArray(tx.values)) return null;
+  const today = _sxCycUtcDay(nowMs), V = {}; tx.values.forEach(x => { const d = _sxCycUtcDay(+x.x * 1000), y = +x.y; if(d < today && y > 0) V[d] = y; });
+  const days = Object.keys(V).sort(); if(!days.length) return null;
+  const M = d => { const e = Date.parse(d + 'T00:00:00Z'); let s = 0, n = 0; for(let j = 0; j < 90; j++){ const k = _sxCycUtcDay(e - j * 86400000); if(k in V){ s += V[k]; n++; } } return n >= 80 ? s / n : null; };
+  const last = days[days.length - 1], mL = M(last); if(mL == null) return null;
+  const H = _sxCycHgt(hr, tipH, nowMs), sup = _sxCycSupply(tipH), now = px * sup / mL, today0 = Date.parse(today + 'T00:00:00Z') / 1000, hist = [];
+  (Array.isArray(cbDay) ? cbDay : []).forEach(x => { const t = +x[0]; if(!(t < today0)) return; const h = H(t + 86400), m = M(_sxCycUtcDay(t * 1000)); if(h == null || m == null) return; hist.push([t, (+x[4]) * _sxCycSupply(h) / m]); });
+  hist.sort((a, b) => a[0] - b[0]); const vs = hist.map(x => x[1]), o = { now, n: vs.length, px, supply: sup, ma90: mL, txDate: last, tip: tipH };
+  if(vs.length >= 30){ o.min = Math.min(...vs); o.max = Math.max(...vs); o.pct = vs.filter(v => v <= now).length / vs.length * 100; o.from = _sxCycUtcDay(hist[0][0] * 1000); o.to = _sxCycUtcDay(hist[hist.length - 1][0] * 1000); }
+  else { o.min = null; o.max = null; o.pct = null; o.from = null; o.to = null; }
+  return o;
+}
 const _SX_CYC_URL = { up: 'https://api.upbit.com/v1/candles/days?market=KRW-BTC&count=200', hash: 'https://mempool.space/api/v1/mining/hashrate/1y',
   rev: 'https://api.blockchain.info/charts/miners-revenue?timespan=2years&format=json&sampled=false&cors=true', fee: 'https://api.blockchain.info/charts/transaction-fees-usd?timespan=2years&format=json&sampled=false&cors=true',
   cbT: 'https://api.exchange.coinbase.com/products/BTC-USD/ticker', bnT: 'https://data-api.binance.vision/api/v3/ticker/price?symbol=BTCUSDT',
   cbDay: 'https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=86400', bnDay: 'https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=3',
-  stc: 'https://stablecoins.llama.fi/stablecoincharts/all', tip: 'https://mempool.space/api/blocks/tip/height' };   // [S1839] SSR — DefiLlama 스테이블 일별 총 발행 · 지금 블록 높이
+  stc: 'https://stablecoins.llama.fi/stablecoincharts/all', tip: 'https://mempool.space/api/blocks/tip/height',   // [S1839] SSR — DefiLlama 스테이블 일별 총 발행 · 지금 블록 높이
+  tx: 'https://api.blockchain.info/charts/estimated-transaction-volume-usd?timespan=2years&format=json&sampled=false&cors=true' };   // [S1840] NVT — blockchain.com 하루 온체인 거래량(달러 추정)
 async function _sxCycFetch(fetchFn, nowMs){
   const U = _SX_CYC_URL, fj = async u => { const r = await fetchFn(u); if(!r || !r.ok) throw new Error('HTTP ' + (r && r.status)); return r.json(); };
   const up = (async () => { const pages = []; let to = null; for(let k = 0; k < 6; k++){ const j = await fj(U.up + (to ? '&to=' + encodeURIComponent(to) : '')); if(!Array.isArray(j) || !j.length) break; pages.push(j); to = String(j[j.length - 1].candle_date_time_utc).replace('T', ' '); if(j.length < 200) break; } return pages; })();
-  const K = ['upbit', 'hash', 'rev', 'fee', 'cbT', 'bnT', 'cbDay', 'bnDay', 'stc', 'tip'], R = await Promise.allSettled([up, fj(U.hash), fj(U.rev), fj(U.fee), fj(U.cbT), fj(U.bnT), fj(U.cbDay), fj(U.bnDay), fj(U.stc), fj(U.tip)]);   // [S1839] +스테이블 · 높이
-  const v = i => R[i].status === 'fulfilled' ? R[i].value : null, out = { ts: nowMs, ma2y: null, pi: null, hash: null, puell: null, cb: null, ssr: null, err: [] };
+  const K = ['upbit', 'hash', 'rev', 'fee', 'cbT', 'bnT', 'cbDay', 'bnDay', 'stc', 'tip', 'tx'], R = await Promise.allSettled([up, fj(U.hash), fj(U.rev), fj(U.fee), fj(U.cbT), fj(U.bnT), fj(U.cbDay), fj(U.bnDay), fj(U.stc), fj(U.tip), fj(U.tx)]);   // [S1839] +스테이블 · 높이 · [S1840] +거래량
+  const v = i => R[i].status === 'fulfilled' ? R[i].value : null, out = { ts: nowMs, ma2y: null, pi: null, hash: null, puell: null, cb: null, ssr: null, nvt: null, err: [] };
   R.forEach((r, i) => { if(r.status !== 'fulfilled') out.err.push(K[i]); });
   try{ const u = v(0) ? _sxCycUpbit(v(0)) : null; if(u){ out.ma2y = _sxCycMa2y(u.D, u.C); out.pi = _sxCycPi(u.D, u.C); } }catch(e){ out.err.push('calc:upbit'); }
   try{ out.hash = v(1) ? _sxCycHash(v(1), nowMs) : null; }catch(e){ out.err.push('calc:hash'); }
   try{ out.puell = (v(2) && v(3)) ? _sxCycPuell(v(2), v(3)) : null; }catch(e){ out.err.push('calc:puell'); }
   try{ out.cb = (v(4) && v(5)) ? _sxCycCb(v(4), v(5), v(6), v(7), nowMs) : null; }catch(e){ out.err.push('calc:cb'); }
   try{ out.ssr = (v(4) && v(8) && v(9) != null) ? _sxCycSsr(v(4), v(6), v(8), v(1), v(9), nowMs) : null; }catch(e){ out.err.push('calc:ssr'); }   // [S1839] 해시 응답의 난이도 조정 기준점 · 코인베이스 일봉을 다시 씀
+  try{ out.nvt = (v(4) && v(10) && v(9) != null) ? _sxCycNvt(v(4), v(6), v(10), v(1), v(9), nowMs) : null; }catch(e){ out.err.push('calc:nvt'); }   // [S1840] SSR 과 같은 시세 · 유통량 · 높이 보간
   return out;
 }
 // ── 글자 ──
@@ -1871,7 +1889,7 @@ function _sxCycDays(o){ return o.ge ? (o.days + '일 이상') : (o.days + '일�
 function _sxCycCardHtml(st){
   if(!st) return '<span class="mut">불러오는 중…</span>';
   const b = (k, o, txt) => o ? `<b style="color:${_sxCycZ(k, o.zone)[1]}">${txt}</b>` : '<span class="mut">—</span>';
-  return `<div>2년 MA ${b('ma2y', st.ma2y, st.ma2y && st.ma2y.m.toFixed(2))} · Pi ${b('pi', st.pi, st.pi && st.pi.r.toFixed(2))}</div>` +
+  return `<div>2년 MA ${b('ma2y', st.ma2y, st.ma2y && st.ma2y.m.toFixed(2))} · Pi ${b('pi', st.pi, st.pi && st.pi.r.toFixed(2))} · NVT ${st.nvt ? `<b>${Math.round(st.nvt.now)}</b>` : '<span class="mut">—</span>'}</div>` +   // [S1840]
          `<div>해시 ${b('hash', st.hash, st.hash && _sxCycZ('hash', st.hash.zone)[0])} · Puell ${b('puell', st.puell, st.puell && st.puell.p.toFixed(2))} · SSR ${st.ssr ? `<b>${st.ssr.now.toFixed(2)}</b>` : '<span class="mut">—</span>'}</div>`;   // [S1839]
 }
 function _sxCycModalHtml(st){
@@ -1896,15 +1914,24 @@ function _sxCycModalHtml(st){
     `<div class="fj-sub" style="margin-top:3px">낮을수록 BTC 시총에 비해 스테이블코인(살 돈)이 많음 · 스테이블코인이 늘며 길게는 내려가는 값이라 범위 안 자리로 봄 · 유통량 = 블록 ${sr.tip.toLocaleString('en-US')} 까지 발행 합 ${Math.round(sr.supply).toLocaleString('en-US')} BTC</div></div>`
     : `<div class="fj-item"><div class="fj-top"><span class="fj-name">${sN}</span></div>${na}</div>`;
   const ssrChip = sr ? `<span class="fmd-chip">SSR ${sr.pct != null ? (sr.n + '일 중 ' + Math.round(sr.pct) + '%') : sr.now.toFixed(2)}</span>` : '<span class="fmd-chip">SSR —</span>';
+  // [S1840] 📦 NVT 칸 — 띠 없음(출처마다 다름) · 범위 안 자리(아래부터 %)
+  const nv = s.nvt, nN = 'BTC 시총 ÷ 온체인 거래량 90일 평균 · 코인베이스 · blockchain.com';
+  const g = nv ? `<div class="fj-item"><div class="fj-top"><span class="fj-name">${nN}</span>${nv.pct != null ? `<span class="fj-score" style="color:var(--text2);font-size:13px">${nv.n}일 중 ${Math.round(nv.pct)}%</span>` : ''}</div>` +
+    `<div class="fj-sub"><b style="font-size:16px;color:var(--text)">${Math.round(nv.now)}</b> · BTC 시총 ${fB(nv.px * nv.supply)} · 거래량 90일 평균 $${(nv.ma90 / 1e9).toFixed(1)}B(${nv.txDate})</div>` +
+    (nv.pct != null ? `<div class="fj-bar"><div class="fj-bar-fill" style="width:${Math.round(nv.pct)}%"></div></div><div class="fj-sub" style="margin-top:3px">최근 ${nv.n}일 ${Math.round(nv.min)} ~ ${Math.round(nv.max)} · 아래부터 ${Math.round(nv.pct)}%</div>` : '<div class="fj-sub" style="margin-top:3px">범위 자료 부족(과거 30일 미만)</div>') +
+    `<div class="fj-sub" style="margin-top:3px">높을수록 온체인 거래량에 비해 시총이 큼 · 하루 값이 크게 출렁여 90일 평균을 씀 · 거래량은 blockchain.com 추정(거래소 안 거래는 안 잡힘) · 띠가 출처마다 달라 범위 안 자리로 봄</div></div>`
+    : `<div class="fj-item"><div class="fj-top"><span class="fj-name">${nN}</span></div>${na}</div>`;
+  const nvtChip = nv ? `<span class="fmd-chip">NVT ${nv.pct != null ? (nv.n + '일 중 ' + Math.round(nv.pct) + '%') : Math.round(nv.now)}</span>` : '<span class="fmd-chip">NVT —</span>';
   return `
       <div class="fmd-row"><div class="fmd-label">💡 지금</div>
-        <div class="fmd-text">${chip('ma2y', '2년 MA', m2)}${chip('pi', 'Pi', pi)}${chip('hash', '해시', hs)}${chip('puell', 'Puell', pu)}${ssrChip}</div>
+        <div class="fmd-text">${chip('ma2y', '2년 MA', m2)}${chip('pi', 'Pi', pi)}${chip('hash', '해시', hs)}${chip('puell', 'Puell', pu)}${ssrChip}${nvtChip}</div>
       </div>
       <div class="fmd-row"><div class="fmd-label">📏 2년 이동평균 배수 (2-Year MA Multiplier)</div><div class="fmd-judge">${a}</div></div>
       <div class="fmd-row"><div class="fmd-label">π Pi Cycle Top</div><div class="fmd-judge">${b}</div></div>
       <div class="fmd-row"><div class="fmd-label">⛏️ Hash Ribbons</div><div class="fmd-judge">${c}</div></div>
       <div class="fmd-row"><div class="fmd-label">💸 Puell Multiple</div><div class="fmd-judge">${d}</div></div>
       <div class="fmd-row"><div class="fmd-label">🪙 SSR (Stablecoin Supply Ratio)</div><div class="fmd-judge">${e}</div></div>
+      <div class="fmd-row"><div class="fmd-label">📦 NVT Signal (Network Value to Transactions)</div><div class="fmd-judge">${g}</div></div>
       <div class="fmd-row"><div class="fmd-label">📏 해석 기준</div>
         <div class="fmd-text" style="font-size:11px;color:var(--text2);margin-bottom:4px">2년 MA 배수</div>
         <div class="fmd-text"><span class="fmd-chip fg-fear">1 미만 초록 선 아래</span><span class="fmd-chip fg-neutral">1~5 두 선 사이</span><span class="fmd-chip fg-extreme-greed">5 이상 빨간 선 위</span></div>
@@ -1915,8 +1942,9 @@ function _sxCycModalHtml(st){
         <div class="fmd-text" style="font-size:11px;color:var(--text2);margin:8px 0 4px">Puell Multiple (Bitcoin Magazine Pro 띠 · 출처마다 4를 쓰기도)</div>
         <div class="fmd-text"><span class="fmd-chip fg-fear">0.5 미만 초록</span><span class="fmd-chip fg-neutral">0.5~3.4 보통</span><span class="fmd-chip fg-extreme-greed">3.4 초과 빨강</span></div>
         <div class="fmd-text" style="font-size:11px;color:var(--text2);margin:8px 0 4px">SSR — 띠 없음 · 낮은 쪽 = BTC 시총에 비해 스테이블코인(살 돈) 많음 · 높은 쪽 = 적음 · 최근 범위 안 자리로 읽음</div>
+        <div class="fmd-text" style="font-size:11px;color:var(--text2);margin:8px 0 4px">NVT Signal — 띠 없음 · 높은 쪽 = 온체인 거래량에 비해 시총 큼 · 낮은 쪽 = 작음 · 최근 범위 안 자리로 읽음</div>
       </div>
-      <div class="fmd-note" data-cyc-note="1">💡 다섯 지표 모두 사이클 단위라 독립 사례가 사이클마다 1~2번뿐 — 측정으로 가를 수 없어 읽기 도움으로만 둠 · 판정 아님 · 출처: 업비트 · mempool.space · blockchain.com · 코인베이스 · DefiLlama</div>
+      <div class="fmd-note" data-cyc-note="1">💡 여섯 지표 모두 사이클 단위라 독립 사례가 사이클마다 1~2번뿐 — 측정으로 가를 수 없어 읽기 도움으로만 둠 · 판정 아님 · 출처: 업비트 · mempool.space · blockchain.com · 코인베이스 · DefiLlama</div>
     `;
 }
 function _sxCycCbLine(cb){
@@ -4611,7 +4639,7 @@ const SX={
     try{
       const st = await _sxCycFetch(u => fetch(u, { signal: AbortSignal.timeout(10000) }), Date.now());
       const old = this._btcCycle || {};
-      ['ma2y', 'pi', 'hash', 'puell', 'cb', 'ssr'].forEach(k => { if(st[k] == null && old[k] != null){ st[k] = old[k]; (st.stale = st.stale || []).push(k); } });
+      ['ma2y', 'pi', 'hash', 'puell', 'cb', 'ssr', 'nvt'].forEach(k => { if(st[k] == null && old[k] != null){ st[k] = old[k]; (st.stale = st.stale || []).push(k); } });
       this._btcCycle = st;
       try{ localStorage.setItem(this._CYC_KEY, JSON.stringify(st)); }catch(_){ }
     }catch(e){ console.warn('[S1838] BTC 사이클 fetch 실패', e && e.message); }
