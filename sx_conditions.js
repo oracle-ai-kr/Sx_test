@@ -92,6 +92,7 @@ const SX_CONDITIONS = [
       {id:'rank_volume',name:'거래량 상위',type:'range',unit:'위',min:1,max:500,default:{min:null,max:null},source:'krx_market_cap',desc:'거래량 기준 상위 종목 - 거래 활발한 종목 추출',recommend:'1~30위 (매우 활발) / 1~100위 (활발)'},
       {id:'rank_trade_amount',name:'거래대금 상위',type:'range',unit:'위',min:1,max:500,default:{min:null,max:null},source:'krx_market_cap',desc:'거래대금 기준 상위 종목 - 시장 관심 집중 종목',recommend:'1~30위 (시장 주도주) / 1~100위 (관심 종목)'},
       {id:'rank_market_cap',name:'시가총액 상위',type:'range',unit:'위',min:1,max:2000,default:{min:null,max:null},source:'krx_market_cap',desc:'시가총액 기준 상위 종목 - 대형주/중형주 분리',recommend:'1~50위 (대형주) / 1~200위 (중대형주)'},
+      {id:'xs_mom_top',name:'6개월 강세 상위 20% (발굴풀)',type:'select',options:['설정안함','상위 20%'],default:'설정안함',source:'xs_pool',desc:'발굴풀(KRX 1년 거래대금 상위 200 · 2026-07-02) 안에서 126봉(약 6개월) 수익률 위 20% · 측정: 21봉마다 다시 골라 들면 풀 그냥 두기보다 +8.4 · +7.4 · +23.3(3판) · 무작위 20%보다 나음 · ⚠ 풀이 지금 대형주 목록이라 치우침이 있음 · 일봉에서만 · 읽기 도움 · 판정 아님',recommend:'다른 조건과 같이(AND) · 결과는 발굴풀 종목만 나옴'},   // [S1841] 횡단면 모멘텀(KR 측정 통과 · offline/xsmom) — US · 코인은 측정 미통과라 없음
     ]},
   ]},
   // ── Phase 2: 엔진 기반 ──
