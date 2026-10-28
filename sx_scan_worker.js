@@ -2296,6 +2296,37 @@ function _isKosdaqWorker(s){
   return m === 'KOSDAQ' || m === '코스닥';
 }
 
+// [S1841] 📈 6개월 강세 상위 20%(발굴풀) — 스캔 앞 순위 · PREREG_S1841_xsmom_cond.md §1B·C
+//   ★sx_scan_worker.js ↔ sx_screener.html **글자 같은 거울**(받기 함수 · 시장 · 봉 · 명단은 인자) — 한쪽만 고치면 두 길이 다른 풀을 돈다(배터리가 대조).
+//   규칙 = offline/xsmom/xs_criteria.md 를 지금 봉 한 번으로: 유효 종가 127개 이상 · r = 종가[끝] ÷ 종가[끝−126] · r 큰 순(같으면 코드 순) · 위 ceil(0.2N).
+async function _xsMomTopSet(codes, fetchRows, nPar, onProg){
+  var list = (codes || []).slice(), got = new Array(list.length), done = 0, par = Math.max(1, nPar || 1);
+  for(var i = 0; i < list.length; i += par){
+    await Promise.all(list.slice(i, i + par).map(async function(code, j){
+      var r = null;
+      try{ var rows = await fetchRows(code); var c = (rows || []).map(function(x){ return x ? +x.close : NaN; }).filter(function(v){ return v > 0 && isFinite(v); });
+        if(c.length >= 127) r = c[c.length - 1] / c[c.length - 127]; }catch(_e){ r = null; }
+      got[i + j] = (r != null && isFinite(r) && r > 0) ? { code: String(code), r: r } : null; done++;
+      if(onProg) try{ onProg(done, list.length); }catch(_p){}
+    }));
+  }
+  var el = got.filter(function(x){ return !!x; });
+  el.sort(function(a, b){ return (b.r - a.r) || (a.code < b.code ? -1 : (a.code > b.code ? 1 : 0)); });
+  var K = Math.ceil(0.2 * el.length), set = new Set(), rank = new Map();
+  for(var k = 0; k < el.length; k++){ rank.set(el[k].code, { rank: k + 1, r: el[k].r }); if(k < K) set.add(el[k].code); }
+  return { set: set, rank: rank, n: el.length, k: K, asked: list.length };
+}
+async function _xsMomGate(pool, opt){
+  if(!opt || !opt.on) return { pool: pool, err: null, info: null };
+  if(opt.market !== 'kr') return { pool: pool, err: '6개월 강세는 국내(KR)만 됩니다', info: null };
+  if(opt.tf !== 'day') return { pool: pool, err: '6개월 강세는 일봉에서만 계산합니다', info: null };
+  if(!opt.codes || !opt.codes.length) return { pool: pool, err: '발굴풀 명단을 불러오지 못했습니다', info: null };
+  var t = await _xsMomTopSet(opt.codes, opt.fetchRows, opt.nPar, opt.onProg);
+  if(t.n < 20) return { pool: pool, err: '6개월 강세 순위를 계산하지 못했습니다(받은 종목 ' + t.n + '개)', info: null };
+  var kept = pool.filter(function(s){ return s && t.set.has(String(s.code)); });
+  kept.forEach(function(s){ var q = t.rank.get(String(s.code)); s._xsMom = { rank: q.rank, of: t.n, r: q.r }; });
+  return { pool: kept, err: null, info: { n: t.n, k: t.k, asked: t.asked, removed: pool.length - kept.length } };
+}
 async function startScan(config) {
   // [S877] 킬스위치 전파 — 메인(🍳 pill) 상태를 스캔 config로 수신. 미전달=코어 기본 ON.
   try{ if(config && typeof config.recipeOn!=='undefined') self.SX_RECIPE_REBOUND = !!config.recipeOn; }catch(_eRcp){}
@@ -2451,6 +2482,18 @@ async function startScan(config) {
       } else {
         _trace('풀 추가', '✓', '대상 풀에 이미 있음', _traced.name);
       }
+    }
+    // [S1841] 📈 6개월 강세(발굴풀) — 풀이 다 정해진 뒤(추적 종목 더하기 포함) 스캔 앞 순위로 거른다 · 꺼져 있으면 그대로 · 메인 _startScanLegacy 와 같은 자리
+    {
+      const _xf = activeFilters.find(f => f && f.id === 'xs_mom_top');
+      const _xg = await _xsMomGate(pool, { on: !!(_xf && _xf.value === '상위 20%'), market: currentMarket, tf: currentTF, codes: config.xsPool || [], nPar: getParallelCount(pool.length), fetchRows: code => fetchCandles(code, 200),
+        onProg: (n, N) => self.postMessage({ type: 'progress', current: n, total: N, name: '6개월 강세 순위 계산 (' + n + '/' + N + ')' }) });
+      if (_xg.err) { self.postMessage({ type: 'error', message: _xg.err }); return; }
+      if (_xg.info) {
+        _passFilterStats['xs_mom_top'] = _xg.info.removed;
+        if (_traceCode) _trace('6개월 강세', _xg.pool.some(s => s.code === _traceCode) ? '✅ 통과' : '❌ 탈락', '발굴풀 ' + _xg.info.n + '종 중 위 ' + _xg.info.k + '종', '');
+      }
+      pool = _xg.pool;
     }
     const total = pool.length;
     let newFound = 0;
