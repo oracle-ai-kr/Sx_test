@@ -13948,6 +13948,47 @@ function _fibLegHtml(lg, kk){ if(!lg) return ''; const NM=({ s:'작게', m:'보�
 function _fibBigger(rows, kk){ const ord=['s','m','l'], LB={ s:'작게 2×ATR', m:'보통 3×ATR', l:'크게 5×ATR' }; const q0=ord.indexOf(kk); if(q0<0) return null;
   for(let q=q0+1;q<ord.length;q++){ const key=ord[q], f=_fibFrame(rows, _fibZigzag(rows, _FIB_K[key])); if(f && f.ret>=0 && f.ret<=1) return { key, lbl:LB[key], up:f.up, ret:f.ret }; }
   return null; }
+// [S1843] 📐 그랜빌(MA200) 배지 — 🌀 카드의 스윙 구조 옆에 '지금 봉이 그랜빌 8법칙 중 어디에 걸리는지'를 보이기만 한다 · PREREG_S1843_granville_badge.md §1
+//   M = 종가 SMA200(봉마다 C[t−199]~C[t] 를 왼쪽부터 더해 200 으로 나눔 · 창 안 종가가 하나라도 양의 유한수가 아니면 없음) · dev = 종가 ÷ M − 1.
+//   오름 = M[t] > M[t−5] · 내림 = M[t] < M[t−5]. 위에서부터 처음 맞는 규칙 하나: ①돌파 ②눌림 지지 ③잠깐 깸 뒤 회복 ④아래로 크게 벌어짐 ⑤이탈 ⑥되돌림 저항 ⑦잠깐 넘음 뒤 다시 아래 ⑧위로 크게 벌어짐.
+//   ④ · ⑧ 의 하위 · 상위 10% = 0~t 봉 가운데 M 이 있는 봉의 dev(가장 가까운 순위 · 60개 미만이면 안 봄). 봉 t 의 값은 0~t 봉만 쓴다(뒤 자료 안 씀). 210봉 전은 null.
+//   ②③ = 측정(offline/stockind · si_criteria.md §G) 정의 그대로 — 9판 모두 그냥 두기보다 못했다. 나머지 여섯은 안 쟀다. 판정 · 매매와 무관.
+function _granvilleSeq(rows){
+  const n=(rows&&rows.length)||0, C=new Array(n).fill(null), M=new Array(n).fill(null), g=new Array(n).fill(null);
+  for(let i=0;i<n;i++){ const c=rows[i]?+rows[i].close:NaN; if(isFinite(c)&&c>0) C[i]=c; }
+  for(let i=199;i<n;i++){ let sm=0, ok=true; for(let j=i-199;j<=i;j++){ if(C[j]==null){ ok=false; break; } sm+=C[j]; } if(ok) M[i]=sm/200; }
+  const srt=[];
+  for(let t=0;t<n;t++){
+    if(M[t]!=null){ const v=C[t]/M[t]-1; let lo=0, hi=srt.length; while(lo<hi){ const md=(lo+hi)>>1; if(srt[md]<v) lo=md+1; else hi=md; } srt.splice(lo,0,v); }
+    if(t<209 || M[t]==null || M[t-10]==null) continue;   // M[t] · M[t−10] 이 있으면 그 사이 M 도 모두 있다(창이 이어짐)
+    const c=C[t], m=M[t], pc=C[t-1], pm=M[t-1], m5=M[t-5], m10=M[t-10], lw=+rows[t].low, hg=+rows[t].high, up=m>m5, dn=m<m5, dv=c/m-1, N=srt.length;
+    const p10=N>=60?srt[Math.ceil(N*10/100)-1]:null, p90=N>=60?srt[Math.ceil(N*90/100)-1]:null;
+    let r=0;
+    if(pc<=pm && c>m && m>=m5 && m5<=m10) r=1;
+    else if(up && pc>pm && lw<=m*1.01 && c>m) r=2;
+    else if(up && c>m && (C[t-1]<M[t-1] || C[t-2]<M[t-2] || C[t-3]<M[t-3])) r=3;
+    else if(dn && p10!=null && dv<=p10) r=4;
+    else if(pc>=pm && c<m && m<=m5 && m5>=m10) r=5;
+    else if(dn && pc<pm && hg>=m*0.99 && c<m) r=6;
+    else if(dn && c<m && (C[t-1]>M[t-1] || C[t-2]>M[t-2] || C[t-3]>M[t-3])) r=7;
+    else if(up && p90!=null && dv>=p90) r=8;
+    g[t]=r;
+  }
+  return { g:g, M:M };
+}
+function _granvilleHtml(rows){ try{
+  const n=(rows&&rows.length)||0, T3='var(--text3)', G='#059669', Rd='#dc2626';
+  const NO=['','①','②','③','④','⑤','⑥','⑦','⑧'], NM=['','돌파','눌림 지지','잠깐 깸 뒤 회복','아래로 크게 벌어짐','이탈','되돌림 저항','잠깐 넘음 뒤 다시 아래','위로 크게 벌어짐'];
+  const box=b=>'<div data-granville="1" style="font-size:10.5px;color:var(--text2);line-height:1.6;margin:1px 0 4px"><b>📐 그랜빌(MA200)</b> '+b+'</div>';
+  if(n<210) return box('<span style="color:'+T3+'">봉 부족(MA200 · 210봉 필요 · 지금 '+n+'봉)</span>');
+  const S=_granvilleSeq(rows), t=n-1, r=S.g[t];
+  if(r==null) return box('<span style="color:'+T3+'">MA200 을 셀 수 없어요(최근 210봉에 종가 빈 봉)</span>');
+  const m=S.M[t], m5=S.M[t-5], c=+rows[t].close, dv=(c/m-1)*100, col=r?(r<=4?G:Rd):T3;
+  const chip='<span data-granville-r="'+r+'" style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:9px;white-space:nowrap;'+(r?('background:'+col+'14;color:'+col):('background:var(--surface2);color:'+T3+';border:1px solid var(--border)'))+'">'+(r?(NO[r]+' '+NM[r]):'해당 없음')+'</span>';
+  const sub='<span style="font-size:9.5px;color:'+T3+'"> MA200 '+(m>m5?'오름':(m<m5?'내림':'평평'))+' · <span style="white-space:nowrap">종가가 MA '+(c>=m?'위':'아래')+' '+(dv>=0?'+':'')+dv.toFixed(1)+'%</span></span>';
+  let rec=''; if(!r){ for(let k=1;k<=19;k++){ const q=S.g[t-k]; if(q){ rec='<span data-granville-rec="1" style="font-size:9.5px;white-space:nowrap;color:'+(q<=4?G:Rd)+'"> · 최근 '+NO[q]+' '+k+'봉 전</span>'; break; } } }
+  const foot='<div data-granville-note="1" style="font-size:8.5px;color:'+T3+';line-height:1.5">그랜빌 8법칙을 MA200 하나로 센 표시 · ②③만 쟀어요(9판: 그냥 두기보다 못함) · 나머지는 안 쟀어요 · 읽기 도움 · 판정 아님</div>';
+  return box(chip+sub+rec+foot); }catch(_e){ return ''; } }
 function _fibCardHtml(cx){ try{ const rows=cx.rows, n=(rows&&rows.length)||0, kk=_fibKey(), k=_FIB_K[kk], T3='var(--text3)', T2='var(--text2)', G='#059669', Rd='#dc2626', Pp='#7c3aed';
   const LG=(n>=60)?{ s:_fibLegs(rows,_FIB_K.s), m:_fibLegs(rows,_FIB_K.m), l:_fibLegs(rows,_FIB_K.l) }:{};   /* [S1810] 칩 봉 수 */
   const chip=(key,lbl)=>'<span onclick="_sxVib(8);window._fibSetK&&_fibSetK(\''+key+'\')" style="font-size:10px;font-weight:800;padding:4px 9px;border-radius:12px;cursor:pointer;'+(kk===key?('background:'+Pp+';color:#fff;border:1px solid '+Pp):'background:var(--surface2);color:var(--text3);border:1px solid var(--border)')+'">'+lbl+(LG[key]?('<span data-fib-lc="1" style="font-size:9px;font-weight:700;opacity:.85"> · '+LG[key].L+'봉</span>'):'')+'</span>';
@@ -13963,6 +14004,7 @@ function _fibCardHtml(cx){ try{ const rows=cx.rows, n=(rows&&rows.length)||0, kk
   const badge='<span style="font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:9px;background:'+Pp+'14;color:'+Pp+'">'+(fr.up?'상승 후 조정':'하락 후 반등')+' '+(+(R*100).toFixed(1))+'%</span>';
   const dir=fr.up?('📈 '+_fibDate(rows,fr.A.i)+' 저점 '+_fibFmt(fr.A.p)+' → '+_fibDate(rows,fr.B.i)+' 고점 '+_fibFmt(fr.B.p)):('📉 '+_fibDate(rows,fr.A.i)+' 고점 '+_fibFmt(fr.A.p)+' → '+_fibDate(rows,fr.B.i)+' 저점 '+_fibFmt(fr.B.p));
   let h=head(badge)+'<div style="font-size:10.5px;color:'+T2+';line-height:1.6">'+dir+' · 마지막 확정 스윙</div>'+_fibLegHtml(LG[kk], kk)   /* [S1810] ⏱ 다리 길이 */
+    +_granvilleHtml(rows)   /* [S1843] 📐 그랜빌(MA200) 배지 */
     +'<div style="font-size:11.5px;font-weight:800;color:var(--text);margin:4px 0 6px;line-height:1.55">지금 '+_fibFmt(fr.c)+' · '+(fr.up?'되돌림':'반등')+' '+(+(R*100).toFixed(1))+'% — '+zone+(fr.mx!=null?('<span style="font-weight:600;font-size:10px;color:'+T3+'"> · 이번 '+(fr.up?'조정':'반등')+' 최대 '+(+(fr.mx*100).toFixed(1))+'%</span>'):'')+'</div>';
   if(R>1){ const bg=_fibBigger(rows,kk), Am='#d97706';   /* [S1809] 스윙 깨짐 안내 — 더 큰 스윙 칩 제안(누르면 그 칩) · 없으면 새 틀 안내 */
     h+='<div data-fib-broken="1" style="font-size:10px;line-height:1.65;padding:6px 8px;border-radius:8px;border:1px solid '+Am+'55;background:'+Am+'0f;color:var(--text2);margin:0 0 6px">⚠️ <b style="color:'+Am+'">이 스윙은 깨졌어요</b> — 가격이 스윙 시작점(A) 너머로 가서 아래 되돌림 선은 지금 가격엔 안 맞아요. '
@@ -19478,7 +19520,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1842';   // [S1842] 🧪전략조합 · 📈MA크로스 크로스 축에 🌊 WaveTrend · 📶 TSI 실험 칩(기본 OFF · 성적 주장 없음) — 크로스 = MA / TRIX / SMI / WT / TSI
+  window.SX_BUILD='S1843';   // [S1843] 종목분석 🌀 피보나치 · 엘리어트 카드에 📐 그랜빌(MA200) 배지 — 스윙 구조 표시용(보이기만 · ②③만 잼 · 읽기 도움 · 판정 아님)
+  // [S1842] 🧪전략조합 · 📈MA크로스 크로스 축에 🌊 WaveTrend · 📶 TSI 실험 칩(기본 OFF · 성적 주장 없음) — 크로스 = MA / TRIX / SMI / WT / TSI
   // [S1837] 단기 매매 카드 🎯 ICT 3시장 리셋 세 번째 = 사용자 설정 · 손절 끔이면 본전 · 트레일도 꺼짐 안내(엔진 무변경)
   // [S1836] 단기 매매 카드 🎯 ICT 진입 SSL 스윕 · 익절 BSL(위쪽 전고점) · 익절 · 손절 · N봉 켬/끔(기본 켬 · 리셋 세트 그대로) · [S1835] 단기 매매 카드 🚦 슈퍼트렌드 KR 리셋 14 × 1 · 📌 · 📈 자리 줄 1차 · 1R 절반 익절 반영(여섯 탭 공통 · 절반 없는 결과는 그대로) · 🎯 ICT 1R 절반 + 트레일 칩(기본 끔) · [S1834] 단기 매매 카드 🐢 터틀 🔄 3시장 기본 리셋 세 번째 = 사용자 화면 설정(KR · US 🪢 이중 진입 켬 · 코인 🧭 EMA + 🎚️ SMI · 결정 파일 → 생성기 · 안내 줄 방식 글자 · 🗜️) · [S1833] 📦 풀 전체 BT 📌 그냥 들고 있기와 맞대기(첫 봉 종가 매수 → 끝 봉 · 이 설정 · 그냥 들고 있기 · 같은 비율만 들고 있기 · 여섯 탭 공통 · 읽기 도움 · 판정 아님) · [S1832] 단기 매매 카드 🐢 터틀 🪢 이중 진입 · 🪢 이중 청산 칩(진입선 · 청산선 하나씩 더 · 양방향 · 끄면 그대로 · 진입원 🪢진입2 · 사유 🪢청산2) · [S1831] 단기 매매 카드 🐢 터틀 🔄 3시장 기본 리셋 두 번째 = 사용자 화면 설정(결정 파일 → 생성기 · 주·월 칩 · 🚧 가 살게 표 다시 덮기 · 안내 줄) · [S1830] 단기 매매 카드 🎯 ICT · 🚦 슈퍼트렌드 · ⚓ 지지/저항 🔄 3시장 기본 리셋 = 사용자 화면 설정(결정 파일 → 생성기 · 처음 값 · 리셋 · 저장값 그대로) · [S1829] 📦 풀 전체 BT 📈 전략 선(보조창 — 초과 수익 · 승률 · 거래 수 · 낙폭 · 여섯 탭 공통 · 카드 지금 설정 · 라이브 기록 · 읽기 도움 · 판정 아님) · [S1828] 단기매매 카드 ⚓ 지지/저항 탭(거래량 존 · 피벗 · 라운드 넘버 · 지정가 카드 BT + 📦 풀 전체 BT) · [S1827] 단기매매 카드 🚦 슈퍼트렌드 탭(눌림목 · 뒤집힘 · VWAP · 카드 BT + 📦 풀 전체 BT) · [S1826] 🎯 ICT 탭 주석 🧲 FVG 측정 한 줄(일봉 · 주봉 · 탑다운 모두 못 가름 · 읽기 도움 · 판정 아님) · [S1825] 🎯 ICT 📦 풀 전체 BT(스냅별 · 카드 엔진 그대로 · 공용 집계 · 그리드 · CSV · R 합침) · [S1824] 단기매매 카드 🎯 ICT 탭 1단계(셋업 넷 · 지정가 매수 BT · 탭바 윗줄) · [S1823] 🧭 추세 읽기 📈 장기 줄 SMI 위치 칩 · 띠 SMI 0선 줄 · [S1822] 🧪 지그재그 탭 🧱 구조 · 🔺 패턴 지금 상태(읽기 도움 · 판정 아님) · [S1821] 🧭 추세 읽기 🔋 피로도 줄(TD 셋업 카운트 · 이 종목 지난 줄과 비교) · [S1820] 🧪 지그재그 탭 🎯 띠 배수 입력칸 따로 · 주석에 띠 측정 · [S1819] 🧪 지그재그 탭 🎯 익절 · 손절 띠(채널 밖 ATR × 배수) · [S1818] 🧭 추세 읽기 단기 칩 네 칸 · 단기 · 국면 줄 칸 비율(생성기 표) · [S1817] 🧭 추세 읽기 💪 강도 줄(칩 = RSI 신호 3봉 기울기 · 높이 = CCI 14 네 칸 · 띠 = 높이) · [S1816] 🧭 추세 읽기 💪 RSI 시그널 강도 줄 · 🧪 지그재그 탭 채널 줄 자리 · [S1815] 🌀 피보 카드 🧪 지그재그 지표 탭(스윙 평균선 · 평균 스윙 크기 · 스윙 채널 · ATR 배수 · N 직접 입력 · 실험) · [S1814] 🌀 엘리어트 📍 지금 위치(규칙 기준) 배지 — 다음 파동은 앞 같은 방향 파동 끝을 넘어야 인정 · 무효화 · 설명을 위치에 맞춤 · [S1813] 🌀 피보나치 · 엘리어트 카드 읽기 도움 여섯 가지(무효화 가격 · 거래량 · 흔히 말하는 비율 · 지금 파동 설명 · 프랙탈 안내 · 겹치는 구간) · [S1812] 🧭 추세 읽기 📏 밴드 폭 줄(볼밴 120봉 위치 · 측정 통과값) · 🌀 피보 그림 끝 파동 번호 가림 고침 · [S1811] 🧭 추세 읽기 카드(단기 SMI · 장기 MACD · 국면 EMA 9×26 · 9×12 · 힘 TTM · 기울기 전이 · 지금 상태 설명) · [S1810] 🌀 피보나치 카드 스윙 칩 봉 수 · ⏱ 다리 길이(이 종목 보통과 몇 배 · 끝점 뒤 봉 수) · [S1809] 🌀 피보나치 카드 왼쪽 정렬 · 스윙 깨짐 안내(더 큰 스윙 칩 제안) · [S1808] 🌀 피보나치 · 엘리어트 카드(종목분석 · 레시피 해석 위) + 🌀 피보나치 반응(학습검증 🔮 · 📦 풀 측정) · [S1807] 🐢 터틀 일봉 국면 칩 = 주·월 묶음과 같은 꼴(칩 한 줄 · 켠 칩 칸 · 엔진 무변경) · [S1806] 🐢 터틀 🚧 주·월 국면 밖 = 🔀 도 원천 차단(기본 켬 · 일봉만 밖 = 🔀 허용) · [S1805] 🐢 터틀 📆 주봉 · 🗓️ 월봉 국면 칩 12종(일봉 칩과 같은 계산기 · 지난 주·달 = 캔들 · 이번 주·달 = 그 봉 종가까지) · [S1804] 🐢 터틀 리셋 N 정정(KR·코인 N 10봉 · US 그대로) · [S1803] 🐢 터틀 3시장 기본 리셋 세트(KR MA · US EMA · 코인 MACD + 🔀 + 🔊 + ⏱) · [S1802] 🔮 예측 실험도구 🗜️ TTM 스퀴즈 카드(지금 상태 · 이력 · 📦 풀 측정) · [S1801] 🐢 진입·청산 방식(돌파 ⇄ 이탈) · 🔀 국면 밖 교차 · [S1800] 🐢 터틀 필터 칩 3차(%K>%D·%K≥값 · ADX · 장기선 · 돌파 거래량 · 변동성 수축 · 국면 분할 '필터 조건') · [S1796] 풀 BT 속도(D-day 건너뜀 · 💾 전략 신호 저장소) · 🧪 풀 단 스냅 칩 · 🧪 〽️ EMA 게이트 · [S1795] 괴리 방향(부호) · 🐢 🧪 재료 250봉 안내·측정 시작일 · 🐢 🏹 구간별 판정 불가 칩 · [S1794] 🐢 터틀 🧭 EMA 국면(9×26 · 사이 구간 · 국면 분할에도) · [S1793] 🐢 터틀 익절 칩 3종 — 🚀 TP급등 · 🏹 TP_ATR(📅 구간별 · ATR = 터틀 N) · 🎯 TP고정(전략조합과 같은 식 · 끄면 무변경) · [S1792] 🐢 터틀 📦 풀 BT 🧭 국면 분할 — 같은 거래를 신호 봉 국면(구간·상태)으로 나눔 · 엔진 무변경 · [S1791] 🐢 터틀 청산 칩 — 🛡️ 트레일링(최고 종가 − 배수×N · 종가) · ⏱ N봉컷(끄면 무변경) · [S1790] 🐢 터틀 국면 칩 2차 — 🎚️ SMI · 📊 MACD · 🔵 PSAR(구간 안에서만 매수 · 끝나는 봉 종가 청산 · 값 손입력 · 끄면 무변경) · [S1789] 3탭 기본값 — 📈크로스·🧪전략조합 공용 쌍(사용자 원문 기계 생성) · ☑ 청산 크로스 분리 기본 ON · 🧪 재료 기본 비움 · 기본 힌트 SSOT · [S1788] 🐢 터틀 🧭 국면 — 진입/청산 쌍 · "사이" 구간(진입 골든 ~ 청산 데드) · 구간 끝 = 종가 청산 · 시장별 기본 쌍(사용자 원문 기계 생성) · [S1787] 🐢 터틀 필터 칩 1차 — 🧭 MA 국면 · 🧭 TRIX 국면 · 🧪 재료 조건(진입 AND · 매도 재료 청산 · 가상 거래는 필터 무관 · 끄면 무변경) · [S1786] 🐢 터틀 📦 풀 전체 BT(스냅별 · 카드 엔진 그대로 · 공용 집계·그리드·CSV) · [S1785] 코인 4시간봉 — 세 탭(📈 크로스 · 🧪 전략 조합 · 🐢 터틀)에 📥 일봉 설정 불러오기(그 탭 범위 = 리셋 범위) · [S1784] 🐢 터틀 탭 1단계 — 기본 터틀 엔진(20봉 돌파·10봉 이탈·N=TR 20봉·2N 손절·건너뛰기/55봉 실패방지 · 입력값 수동 · 매수만) · [S1783] 🔮 예측 실험도구 1단계 — 학습검증 예측 카드 셋 + 교차검증 MA크로스 전이를 한 카드로(계산 무변경) · [S1782] 🧪 재료 조건 매수·매도 블록별 🚫 크로스 제외 칩(noCrossB·noCrossS) — 위 칩은 양쪽 단축(☑/◐/☐) · S1781 저장본은 양쪽으로 이어받음 · [S1781] 📈 MA 크로스 탭 🚫 크로스 제외(재료만) 칩 — 진입=매수 재료 N개 이상 · 청산=매도 재료 N개 이상 · 크로스 진입원/청산 끔(꺼짐 = 무변경). // [S1779] 📦 풀 BT 기간(잰 종목 첫·끝 봉) — 열외 후보 JSON source.span · 상자 주석 '기간'(시즌2 📂 여러 파일이 창 겹침·🔬 라이브 '언제부터'를 계산). // [S1777] 🚫 시즌2 열외 후보 내려받기 — 📦 풀 BT '종목별 복리' 펼침 안(n≥N ∧ 승률<W ∧ 복리≤R · 시즌2 자동 규칙과 같은 식 · JSON → 시즌2 진입 열외 '📂 파일 불러오기'). // [S1776] 풀 BT 표본 주석을 실제 모집단대로(📂 스냅이면 스냅 poolKind — KR·US 발굴풀 · 코인 합집합) · 🧪 하단 '실험 지표' 접기 · (스크리너 오류 배너는 sx_screener.html). // [S1775] 📂 최신 스냅이 모집단으로 안 잡히던 배선 고침(src 없는 종목에 소속 기본값 → 스냅 = 모집단) · 진단 줄 '(스냅)' 은 실제 스냅 모집단일 때만 · 켈리 패널 '📂냉동·소스 풀' 라벨. // [S1774] 🎯 켈리 진단 패널(앱) — 📦 풀 전체 BT 결과에 진입원별 f*·90% 구간·판정(오프라인 진단기와 같은 식 · 📂최신·🕰창A·🕰창B 를 같은 설정으로 돌리면 3창 판정 · 그 전엔 구간 참고) · 표시 전용. // [S1773] 🎚️ [Stoch모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261009_stoch.json 을 gen_s1773_stoch.js 로 기계 반영(KR 🌀 청산 줄만 · US ⏱N봉컷 60 · 이중ATR 칩 OFF(다리 둘 다 OFF라 무동작) · 시즌2 카드 표 재생성). // [S1769] 🧰 [일반모드](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261008_st.json 을 gen_s1769_normal.js 로 기계 반영(코인 행은 종전 그대로 · 시즌2 카드 표 재생성). // [S1768] 🎚️ 전략조합 프리셋 [Stoch모드] 추가(사용자 요청 2026-10-08 · KR·US 만 — 코인 없음) — 내보내기 sxsettings_20261008_Stoch.json 에서 기계로 뽑은 표(gen_s1768_stoch.js) · 기존 프리셋·리셋·로더 무변경 · 시즌2 카드 표도 같은 표에서 재생성. // [S1767] 📊 [MA단타](KR·US) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_dan.json 을 gen_s1767_madt.js 로 기계 반영(코인 행은 [MA모드]와 같아 안 읽음 · 시즌2 카드 표 재생성). // [S1766] 📊 [MA스윙](KR·US)·[MA모드](코인 봉 공용) 표 값 갱신 — 내보내기 sxsettings_20261007_ma_sw.json 을 gen_s1766_maupd.js 로 기계 반영(시즌2 카드 표도 같은 표에서 재생성). // [S1756] 🧬 [TRIX모드] 단일 프리셋 — 3시장(코인은 일봉·4시간 봉 공용) 표를 내보내기 sxsettings_20261004_trix.json 으로 교체 · 🧬TRIX스윙·TRIX단타 철거.
   // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 — 크로스 = MA / TRIX / SMI(기본 OFF · %K 10 · 평활 3·3 · %D 10) · 🌀 BB회귀 묶음 가속·최대 줄바꿈.
