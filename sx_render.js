@@ -5056,7 +5056,7 @@ function _ensureSeason2Trades(stock, rows, sym){
     }).catch(function(){ stock._season2Pending=false; });
   }catch(_){}
 }
-function _trendBt(rows,cfg,bbP,xmFire,noDday){   /* [S1796] noDday = 풀 BT(D-day 예보 kNN 건너뜀 · 예보는 카드 화면 전용 · 거래 무관) */   /* [S1406] xmFire=재료 조건 봉맵 주입(풀 전체 BT용). 미전달 시 종전대로 _trendRcpKey 캐시 조회 — 기존 호출처 6곳 무영향. */
+function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-day 예보 kNN 건너뜀 · 예보는 카드 화면 전용 · 거래 무관) */   /* [S1406] xmFire=재료 조건 봉맵 주입(풀 전체 BT용). 미전달 시 종전대로 _trendRcpKey 캐시 조회 — 기존 호출처 6곳 무영향. */
   if(_trendEngine==='sr'){ return _srBtFor(rows, (cfg&&cfg._market)||((typeof window!=='undefined'&&window._sxTrendCtx&&window._sxTrendCtx.market)||'kr')); }   // [S1828] ⚓ 지지/저항 — 자기 저장값 · 엔진
   if(_trendEngine==='st'){ return _stBtFor(rows, (cfg&&cfg._market)||((typeof window!=='undefined'&&window._sxTrendCtx&&window._sxTrendCtx.market)||'kr')); }   // [S1827] 🚦 슈퍼트렌드 — 자기 저장값 · 엔진
   if(_trendEngine==='ict'){ return _ictBtFor(rows, (cfg&&cfg._market)||((typeof window!=='undefined'&&window._sxTrendCtx&&window._sxTrendCtx.market)||'kr')); }   // [S1824] 🎯 ICT — 자기 저장값 · 엔진
@@ -5322,6 +5322,7 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday){   /* [S1796] noDday = 풀 BT(D-da
     //   ⚠어휘를 정확히 둔다: *'놓친 진입'*이 아니라 **'평가되지 않은 신호'**다 — 보유 중이 아니었어도
     //     `auxOk`·재료 게이트에서 막혔을 수 있고, 이 수는 그것을 구별하지 못한다(지어내지 않는다).
     if(pos!=null && gc && !_noXB /* [S1781] 크로스 제외면 골든크로스는 진입원이 아니다 · [S1782] 진입 쪽 */) _heldSkipGc++;
+    if(X){ if(pos==null){ X.nF=(X.nF||0)+1; if(X.eH){ if(X.eH(i)){ const p=_mkPos(i,false); if(p) pos=p; } continue; } } }   /* [S1851] 🎲 진입 판단 봉 세기 · X.eH = 진입 판단 전부를 무작위 하나로(청산은 아래 그대로) — X 없으면 무영향 */
     if(pos==null){
       const _pl = (_predOn && !_noXB /* [S1781] · [S1782] 진입 쪽 */) ? _predGc(i) : 0;   // [S624] 0=안함 / 1·2=유효 선행봉
       if(_pl>0 && auxOk(i)){ const p=_mkPos(i,false); if(p){ p.pred=true; p.sigIdx=i; p.predLead=_pl; pos=p; } } // [S623/S624] 예측 선행 진입
@@ -5760,7 +5761,7 @@ function _turtleF3(rows, P, keys){ const o={}, want=k=>keys.indexOf(k)>=0, num=v
 //   봉 처리 순서: ① 실제 청산(손절 → 청산선) ② 가상 청산(직전 돌파 결과 갱신) ③ 신호(실제 진입 판단 → 가상 시작).
 //   ★건너뛰기의 '직전 돌파' = **가상 거래**다 — 실제로 샀든 건너뛰었든 돌파마다 같은 규칙으로 끝까지 따라간다(원조 규칙).
 //     가상 보유 중에 나온 신고가는 새 돌파가 아니다(그 거래는 아직 안 끝났다) ⇒ 그때 실제 무보유면 실패방지 돌파만 산다.
-function _turtleBt(rows, tc, feeP, xm, htf){   /* [S1805] htf = { w, m } 주봉·월봉 캔들(없으면 그 탭 봉을 묶음 · 주·월 칩을 켰을 때만 씀) */   /* [S1787] xm = 🧪 재료 개수 맵 {buy,sell,needB,needS}(켰을 때만 씀) */
+function _turtleBt(rows, tc, feeP, xm, htf, X){   /* [S1805] htf = { w, m } 주봉·월봉 캔들(없으면 그 탭 봉을 묶음 · 주·월 칩을 켰을 때만 씀) */   /* [S1787] xm = 🧪 재료 개수 맵 {buy,sell,needB,needS}(켰을 때만 씀) */
   const P=_turtleNorm(tc), n=(rows&&rows.length)||0, fee=(+feeP>0)?+feeP:0, a=P.atrN;
   const start=Math.max(P.entryN,P.exitN,a);
   if(n<start+2) return null;
@@ -5829,6 +5830,7 @@ function _turtleBt(rows, tc, feeP, xm, htf){   /* [S1805] htf = { w, m } 주봉�
     if(vr){ lastWin=(vr.px>vpos.entry); vpos=null; }
     if(up[i]==null || N[i]==null || !(C[i]>0)) continue;
     const brk=P.enDip?(C[i]<up[i]):(C[i]>up[i]), fs=!!(up2 && up2[i]!=null && (P.enDip?(C[i]<up2[i]):(C[i]>up2[i]))), fresh=brk && !vpos;   /* [S1801] 이탈 진입 = 방향만 반대(건너뛰기·실패방지·가상 거래 같은 규칙) */
+    if(X && !pos){ X.nF=(X.nF||0)+1; if(X.eH){ if(X.eH(i)) pos=mkPos(i,false); continue; } }   /* [S1851] 🎲 진입 판단 봉 세기 · X.eH = 진입 판단 전부를 무작위 하나로(거름 · 국면 · 건너뛰기 · 진입2 · 🔀 안 씀 · 청산은 exitAt 그대로) — X 없으면 무영향 */
     if(!pos){
       if(!P.skip){ if(brk) take(i,false); }
       else if(fresh && lastWin!==true) take(i,false);
@@ -6034,6 +6036,7 @@ async function _turtlePoolRun(mk, tf, onProgress){
   const _snapCodes=(function(){ try{ return (_srcMeta&&_srcMeta.on&&SXCandleBT.snapSrc)?(SXCandleBT.snapSrc(mk)||{}):null; }catch(_e){ return null; } })();
   const CAP=_TREND_BATCH_CAP, capped=list.length>CAP, use=list.slice(0,CAP);
   const tc=_turtleCfg(mk), fee=_trendFeeOf(mk);
+  const _vc=_vdCtlNew('turtle', mk, tf, _srcMeta, pl.from);   /* [S1851] 🎲 무작위 진입 대조 — 창 판일 때만 */
   // [S1787] 🧪 재료 필터 — 종목마다 개수 맵(크로스 풀과 같은 _xmatCountBars) · 못 태우면 스킵(조건 없이 돈 결과를 섞지 않는다)
   let _xb=[], _xs=[], _xnb=1, _xns=1, _xwb=1, _xws=1; if(tc.xm && typeof _xmatStore==='function'){ try{ const st=_xmatStore(mk); _xb=_xmatConds(st,'buy'); _xs=_xmatConds(st,'sell'); _xnb=_xmatNeed(st,'buy',_xb.length); _xns=_xmatNeed(st,'sell',_xs.length); _xwb=_xmatWin(st,'buy'); _xws=_xmatWin(st,'sell'); }catch(_){ _xb=[]; _xs=[]; } }
   const _xOn=!!(tc.xm && (_xb.length||_xs.length)); let xmFail=0; const _xmD=[];   /* [S1795] 🧪 종목마다 웜업 끝 봉(250번째) 날짜 */
@@ -6050,9 +6053,10 @@ async function _turtlePoolRun(mk, tf, onProgress){
     if(rows.length<_floor){ skippedShort++; continue; }
     let xm=null; if(_xOn){ let r=null; try{ r=await _xmatCountBars(s.code+'|'+mk, rows, mk, _xb, _xs, _xwb, _xws); }catch(e){ r=null; } if(!r){ xmFail++; skipped++; continue; } xm={ buy:_xb.length?(r.buy||{}):null, sell:_xs.length?(r.sell||{}):null, needB:_xnb, needS:_xns }; }   /* [S1787] */
     let htf=null; if(_hOn){ try{ htf=await _ttHtfFetch(mk, s.code, tc); }catch(e){ htf=null; } _ttHtfCount(_hSt, tc, htf); }   /* [S1805] */
-    let bt=null; try{ bt=_turtleBt(rows, tc, fee, xm, htf||undefined); }catch(e){ bt=null; }
+    let bt=null; const _vx=_vc?{}:null; try{ bt=_turtleBt(rows, tc, fee, xm, htf||undefined, _vx /* [S1851] */); }catch(e){ bt=null; }
     if(!bt){ skipped++; continue; }
     barsList.push(rows.length);
+    if(_vc) _vdCtlAdd(_vc, rows, bt, _vx, s.code, X=>_turtleBt(rows, tc, fee, xm, htf||undefined, X));   /* [S1851] 🎲 무작위 진입 9벌 */
     if(xm && rows[_TURTLE_XM_WARM]) _xmD.push(String(rows[_TURTLE_XM_WARM].date||rows[_TURTLE_XM_WARM].t||''));   /* [S1795] */
     (bt.trades||[]).forEach(t=>{ allTrades.push({ code:s.code, name:s.name, src:(t.xo?('xo_'+(t.em||'brk')):(t.e2?'de':(t.fail55?'fail':(t.em==='dip'?'dip':'brk')))) /* [S1801] · [S1832] 🪢 */, xr:t.stop?'stop':(t.ch?'ch':(t.ch2?'ch2':(t.xm?'xm':(t.rg?'rg':(t.trl?'trl':(t.nb?'nb':(t.tpS?'tpS':(t.tpA?'tpA':(t.tpF?'tpF':''))))))))) /* [S1787] · [S1788] · [S1791] · [S1793] · [S1832] 🪢 */, pnl:t.pnl, bars:t.bars, ed:t.entryDate||'', xd:t.exitDate||'' }); });
     if(bt.open) openList.push({ name:s.name, src:(bt.open.xo?('xo_'+(bt.open.em||'brk')):(bt.open.fail55?'fail':(bt.open.em==='dip'?'dip':'brk'))) /* [S1801] */, pnl:bt.open.pnl, bars:bt.open.bars });
@@ -6066,6 +6070,7 @@ async function _turtlePoolRun(mk, tf, onProgress){
   if(perStock.length<3) return { ok:false, market:mk, reason:'유효 종목 3개 미만 — 네트워크·봉수 확인('+mk+')' };
   const med=(a)=>{ if(!a.length) return null; const b=a.slice().sort((x,y)=>x-y), m=Math.floor(b.length/2); return b.length%2?b[m]:(b[m-1]+b[m])/2; };
   const agg=_poolAggExtras(_stratPoolAgg(allTrades, perStock), perStock);
+  _plA.C=_vc?_vdCtlFin(_vc):null;   /* [S1851] */
   return _plAttach({ ok:true, market:mk, source:_turtlePoolSrc, ts:Date.now(), sig:_turtleSig(mk), cfgDesc:_turtleDesc(mk), feePct:fee,
     n:perStock.length, used:use.length, capped, cap:CAP, total:list.length, skipped, skippedShort, skippedNoSnap, poolFrom:pl.from,
     medBars:barsList.length?Math.round(med(barsList)):null, minBars:barsList.length?Math.min.apply(null,barsList):null, tgtBars:_tgtBars, srcMeta:_srcMeta,
@@ -6155,7 +6160,7 @@ function _trendGridCell(num,label,color){ return `<div style="flex:1;min-width:0
 //   사용자 지시 2026-10-18 15:14 · 17:37("ict가 잘돼면 다른 파생전략의 게이트" · "측정이 먼저 · bt도 구현 · 6개탭은 풀bt방식"). 정의 = PREREG_S1824_ict_tab.md §1.
 //   셋업 = offline/ict/ict_criteria.md(측정 meas_ict.js 와 같은 식) · 측정 결과 offline/ict/ict_result.md = 일봉 9판 모두 못 가름 → 실험 도구 · 판정 아님.
 const _ICT_VER = 1, _ICT_SETUPS = ['fvg', 'ob', 'rev', 'cont', 'ssl'], _ICT_TAG = { fvg:'FVG', ob:'오더블록', rev:'반전', cont:'이어감', ssl:'SSL 스윕' };   // [S1836] 🎯 SSL 스윕 진입
-const _ICT_XSETUPS = ['ts', 'uc', 'jdw']; Object.assign(_ICT_TAG, { ts:'터틀 수프', uc:'유니콘', jdw:'주다스' });   // [S1847] 🧪 실험 셋업 셋(엔진 sx_ict_flux.js · MPL 2.0) — 셋업 칸에 저장 · 원본 청산 고정
+const _ICT_XSETUPS = ['ts', 'uc', 'jdw', 'po3' /* [S1850] */]; Object.assign(_ICT_TAG, { ts:'터틀 수프', uc:'유니콘', jdw:'주다스', po3:'PO3' /* [S1850] */ });   // [S1847] 🧪 실험 셋업 셋(엔진 sx_ict_flux.js · MPL 2.0) — 셋업 칸에 저장 · 원본 청산 고정
 // [S1830] 🔄 3시장 기본 리셋 세트(🎯 ICT · 🚦 슈퍼트렌드 · ⚓ 지지/저항) — 사용자 결정(2026-10-20 19:37 화면 PDF · 20:00 "리셋을 내가 올려준 설정되로")을 offline/bat/decision_s1830_short_reset.txt 에 판독해 두고
 //   gen_s1830_reset.py 가 아래 한 줄을 생성했다(옮겨 적기 0). 화면에 칸이 없는 값(ICT disc · 지지/저항 pl · volM)은 종전 기본 · 코인은 봉 구분 없이 같은 값.
 //   쓰는 자리 = _xxDefaults(mk)(처음 값 · 🔄 리셋) 뿐 — mk 없는 _xxDefaults()(엔진 빈 칸 채움 · 직접 호출)는 종전 그대로.
@@ -6224,17 +6229,20 @@ function _ictBt(rows, cfg, feeP, tf, mk){   /* [S1847] tf · mk = 🧪 실험 �
 }
 // ═══════════ [S1847] 🎯 ICT 🧪 실험 셋업 셋(Turtle Soup · Unicorn · Judas 옮긴 판) — 엔진 = sx_ict_flux.js(MPL 2.0 · Flux Charts © fluxchart 원본에서 옮김 · 이 파일엔 옮긴 코드 없음) ═══════════
 //   사용자 지시 2026-10-30 11:35("실험칩으로 넣어보자 한번 살펴볼게") · 정의 = PREREG_S1847_ict_flux.md §1 · 측정 offline/ictx2(자리 제안 규칙 통과 0) → 원본 청산 고정 · 성적 주장 없음 · 매수만
-const _ICT_XSN = { ts:'🧪 터틀 수프', uc:'🧪 유니콘', jdw:'🧪 주다스' };
+const _ICT_XSN = { ts:'🧪 터틀 수프', uc:'🧪 유니콘', jdw:'🧪 주다스', po3:'🧪 PO3' /* [S1850] */ };
 const _ICT_XINFO = {
   ts:{ desc:'위 묶음(일봉 7봉 · 4시간 6봉 · 1시간 4봉) 최저가를 장중에 깨면(가짜 하락 · 터틀 수프) 그 뒤 고가가 앞 봉까지 10봉 최고가를 넘는 순간 매수(체결 = max(시가, 그 값)) · 원본은 위로 깨면 매도 쪽 셋업도 기계를 잡음', ex:'손절 = 앞 봉까지 10봉 최저 − 3.5 × ATR5(앞 봉) · 목표 = 진입 + 0.9 × 위험' },
   uc:{ desc:'깨진 하락 오더블록(브레이커)과 상승 FVG 가 겹치는 봉이 생기면(유니콘) 다음 봉 종가에 매수 · FVG(세 봉 같은 쪽 · ATR10 거름) · 오더블록(10봉 스윙 깸)은 원본 장치 그대로', ex:'손절 = 100봉 최저 − 4.75 × ATR50 · 목표 = 진입 + 0.57 × 위험' },
-  jdw:{ desc:'세션(일봉 = 주 · 4시간 · 1시간 = 한국 09:00 시작 하루) 첫 2봉(1시간은 6봉) 안에 종가가 유동성 저점(스윙 3 · 3) 아래로 내려가면(가짜 하락 · 주다스) 그 뒤 처음 생긴 상승 FVG 봉 종가에 매수 · 원본 시계(뉴욕 개장 뒤 15분)를 달력으로 옮긴 판', ex:'손절 = 진입 − 6.5 × ATR50 · 목표 = 진입 + 0.47 × 위험' } };
-function _ictXTf(tf, mk){ if(!tf || tf==='day') return 'd'; if(mk==='coin' && tf==='240m') return 'h4'; if(mk==='coin' && tf==='60m') return 'h1'; return null; }   /* 지원 = 일봉(3시장) · 코인 4시간 · 1시간(잰 곳) */
+  jdw:{ desc:'세션(일봉 = 주 · 4시간 · 1시간 = 한국 09:00 시작 하루) 첫 2봉(1시간은 6봉) 안에 종가가 유동성 저점(스윙 3 · 3) 아래로 내려가면(가짜 하락 · 주다스) 그 뒤 처음 생긴 상승 FVG 봉 종가에 매수 · 원본 시계(뉴욕 개장 뒤 15분)를 달력으로 옮긴 판', ex:'손절 = 진입 − 6.5 × ATR50 · 목표 = 진입 + 0.47 × 위험' },
+  po3:{ desc:'40봉 고저 폭이 ATR50 × 5 안이면 매집 박스(위아래 0.5 × ATR50 여유) · 그 뒤 저가가 박스 아래 − 0.6 × ATR50 까지 깨면(조작 · 가짜 하락) 그 봉 종가에 매수 · 되돌림 확인 없음 · 원본은 위로 깨면 매도 쪽 셋업도 기계를 잡음 · 기본값(Small Manipulation)만 · ICT Power Of Three', ex:'손절 = 진입 − 5 × ATR50 · 목표 = 진입 + 0.86 × 위험' } /* [S1850] */ };
+function _ictXTf(tf, mk, k){ if(k==='po3') return ((!tf || tf==='day') && (mk==='kr' || mk==='us'))?'d':null;   /* [S1850] PO3 = KR · US 일봉만(측정에서 넘은 곳) */
+  if(!tf || tf==='day') return 'd'; if(mk==='coin' && tf==='240m') return 'h4'; if(mk==='coin' && tf==='60m') return 'h1'; return null; }   /* 지원 = 일봉(3시장) · 코인 4시간 · 1시간(잰 곳) */
 function _ictXBt(rows, P0, fee, tf, mk){
   const n=rows.length, num=v=>{ v=+v; return isFinite(v)?v:NaN; }, C=rows.map(r=>num(r&&(r.close!=null?r.close:r.c))), dt=i=>(rows[i]&&(rows[i].date||rows[i].t))||'';
-  const k=P0.setup, xt=_ictXTf(tf, mk), F=(typeof window!=='undefined' && window.SXIctFlux) ? window.SXIctFlux : null;
+  const k=P0.setup, xt=_ictXTf(tf, mk, k /* [S1850] */), F=(typeof window!=='undefined' && window.SXIctFlux) ? window.SXIctFlux : null;
   const X={ kind:k, tf:xt, xShort:false, nShort:0, unsup:xt?null:String(tf||''), missing:!F }; let R=null;
-  if(xt && F){ try{ R=F.run(k, rows, xt); }catch(e){ R=null; } }
+  if(k==='po3' && F && !(F.ver>=2)) X.old=true;   /* [S1850] 캐시에 남은 옛 엔진(PO3 없음) */
+  if(xt && F && !X.old){ try{ R=F.run(k, rows, xt); }catch(e){ R=null; } }
   const trades=[]; let open=null;
   if(R){ X.xShort=!!R.xShort; X.nShort=R.nShort||0;
     R.trades.forEach(t=>{ const d=t.e-t.sl, pnl=(t.x/t.e-1)*100-fee; trades.push({ entry:t.e, exit:t.x, pnl:+pnl.toFixed(2), bars:t.xi-t.i, entryIdx:t.i, exitIdx:t.xi, sigIdx:t.i, stopPx:t.sl, tpPx:t.tp, R:(d>0)?+((t.x-t.e)/d).toFixed(3):0, why:(t.why==='sl0'?'sl':(t.why==='tp0'?'tp':t.why)), kind:k, entryDate:dt(t.i), exitDate:dt(t.xi) }); });
@@ -6252,21 +6260,24 @@ function _ictXPanelRows(mk, c, bt, fee, row, lab, B, note, col){
   const info=_ICT_XINFO[c.setup], X=(bt&&bt.ict&&bt.ict.x)||null, I=(bt&&bt.ict)||null;
   let h=`<div style="font-size:9px;color:var(--text3);margin:-2px 0 7px;line-height:1.5">${info.desc}</div>`;
   h+=row(lab(B('청산')+' = 원본 고정')+note(info.ex+' · 장중 저가 · 고가로 닿음 · 같은 봉에 둘 다면 손절 먼저 · 갭이면 시가'));
-  h+=row(note('탭의 진입 · 손절 · 익절 · 최대 보유 · 1R 절반 칸은 이 셋업에 안 씀 · 지원 = 일봉 · 코인 4시간 · 1시간 · 매수만(원본 기계는 양쪽)'));
+  h+=row(note('탭의 진입 · 손절 · 익절 · 최대 보유 · 1R 절반 칸은 이 셋업에 안 씀 · 지원 = '+(c.setup==='po3'?'KR · US 일봉(측정에서 넘은 곳)':'일봉 · 코인 4시간 · 1시간') /* [S1850] */+' · 매수만(원본 기계는 양쪽)'));
   h+=row(note((fee>0?('💸 왕복 '+fee+'%p 차감'):'무마찰')+' · 다른 탭과 같은 값')
     +`<span style="margin-left:auto;display:flex;gap:6px"><span onclick="_sxVib(9);window._ictReset&&_ictReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span></span>`, 9);
   const last=bt?bt.lastClose:null, rel=x=>(x>0&&last>0)?(((x/last)-1)*100):null, sg=v=>v==null?'—':((v>0?'+':'')+v.toFixed(1)+'%');
   let st='', sc='var(--text2)';
   if(!bt || !I){ st='🎯 데이터 부족 — 봉이 60개 이상이어야 합니다'; sc='var(--text3)'; }
   else if(X && X.missing){ st='🧪 실험 엔진 파일(sx_ict_flux.js)을 못 불러옴 — 새로고침 · 배포 확인'; sc='var(--text3)'; }
+  else if(X && X.old){ st='🧪 실험 엔진 파일(sx_ict_flux.js)이 옛 판이라 PO3 가 없음 — 새로고침 · 배포 확인'; sc='var(--text3)'; }   /* [S1850] */
+  else if(X && X.unsup!=null && c.setup==='po3'){ st='🧪 PO3 는 KR · US 일봉에서만 돎(지금 '+((typeof _poolTfLbl==='function')?_poolTfLbl(X.unsup):X.unsup)+' · '+(mk==='coin'?'코인':String(mk).toUpperCase())+') — 코인 · 시간봉은 측정에서 기각'; sc='var(--text3)'; }   /* [S1850] */
   else if(X && X.unsup!=null){ st='🧪 이 셋업은 일봉 · 코인 4시간 · 1시간에서만 돎(지금 '+((typeof _poolTfLbl==='function')?_poolTfLbl(X.unsup):X.unsup)+(mk!=='coin'?(' · '+String(mk).toUpperCase()):'')+')'; sc='var(--text3)'; }
   else if(bt.open){ const o=bt.open; st='🎯 보유 중 · '+(o.bars===0?'오늘':o.bars+'봉 전')+' 진입 '+_turtleFmt(o.entry)+'('+_ICT_TAG[o.kind]+') · 평가 '+sg(o.pnl)+' · 🛑 손절 '+_turtleFmt(o.stopPx)+' ('+sg(rel(o.stopPx))+') · 🏁 목표 '+_turtleFmt(o.tpPx)+' ('+sg(rel(o.tpPx))+')'; sc=o.pnl>=0?'#22c55e':'#e8365a'; }
-  else { const x=I.exitToday; st=(x?('🔴 오늘 청산 — '+(x.why==='sl'?'🛑 손절':'🏁 익절')+' '+_turtleFmt(x.exit)+' ('+sg(x.pnl)+') · '):'')+'🎯 대기 — 보유 없음'+(X && X.xShort?' · 원본 기계가 지금 매도 쪽 셋업을 잡고 있음(그게 끝나야 새 매수)':(' · 셋업이 나오면 '+(c.setup==='ts'?'10봉 최고가를 넘는 순간':(c.setup==='uc'?'겹친 다음 봉 종가':'FVG 봉 종가'))+'에 매수')); sc=x?'#e8365a':'var(--text2)'; }
+  else { const x=I.exitToday; st=(x?('🔴 오늘 청산 — '+(x.why==='sl'?'🛑 손절':'🏁 익절')+' '+_turtleFmt(x.exit)+' ('+sg(x.pnl)+') · '):'')+'🎯 대기 — 보유 없음'+(X && X.xShort?' · 원본 기계가 지금 매도 쪽 셋업을 잡고 있음(그게 끝나야 새 매수)':(' · 셋업이 나오면 '+(c.setup==='ts'?'10봉 최고가를 넘는 순간':(c.setup==='uc'?'겹친 다음 봉 종가':(c.setup==='po3'?'조작 봉 종가' /* [S1850] */:'FVG 봉 종가')))+'에 매수')); sc=x?'#e8365a':'var(--text2)'; }
   h+=`<div data-ict-st="1" style="font-size:12px;font-weight:700;color:${sc};margin-bottom:6px;padding:7px 10px;background:var(--surface2);border-radius:8px;line-height:1.5">${st}</div>`;
-  if(I && X && !X.missing && X.unsup==null) h+=`<div data-ict-sum="1" style="font-size:9.5px;color:var(--text3);margin-bottom:7px">확정 ${bt.totalTrades}건 · 🏁 익절 ${I.tpN} · 🛑 손절 ${I.slN} · 평균 ${I.avgR==null?'—':((I.avgR>=0?'+':'')+I.avgR+'R')} · 매수 진입 ${I.setups} · 매도 쪽 가상 셋업 ${X.nShort} · 🧪 실험 · 성적 주장 없음</div>`;
+  if(I && X && !X.missing && !X.old /* [S1850] */ && X.unsup==null) h+=`<div data-ict-sum="1" style="font-size:9.5px;color:var(--text3);margin-bottom:7px">확정 ${bt.totalTrades}건 · 🏁 익절 ${I.tpN} · 🛑 손절 ${I.slN} · 평균 ${I.avgR==null?'—':((I.avgR>=0?'+':'')+I.avgR+'R')} · 매수 진입 ${I.setups} · 매도 쪽 가상 셋업 ${X.nShort} · 🧪 실험 · 성적 주장 없음</div>`;
   return h; }
-function _ictXDesc(c, fe){ return (fe>0?('💸왕복 '+fe+'%p · '):'무마찰 · ')+'🧪 실험 셋업['+_ICT_TAG[c.setup]+'] → 원본 청산 고정('+_ICT_XINFO[c.setup].ex+') · 지원 일봉 · 코인 4시간 · 1시간 · 성적 주장 없음'; }
-function _ictXNoteHtml(){ return '<br><span data-ict-xnote="1">🧪 실험 셋업 셋(offline/ictx2 · 2026-10-29 · 일봉 9판 + 코인 4시간 · 1시간 · 원본 청산 · 매수만 · 같은 청산으로 아무 데서나 산 무작위 · 같은 비율 그냥 두기와 비교): 터틀 수프 = 코인 1시간만 무작위보다 나음(그냥 두기는 판마다 갈림) · 일봉 · 4시간 못 가름 / 유니콘 = 다섯 묶음 모두 못 가름(KR 최신 판은 102건 모두 익절이지만 판정은 못 가름) / 주다스 = KR · US 일봉 그냥 두기보다 나음(무작위와는 갈림) · 코인 못 가름 — 자리 제안 규칙(둘 다 넘음) 통과 0 · <b>성적 주장 없음</b> · 원본 = Flux Charts(© fluxchart) Pine Script · MPL 2.0 · 옮긴 코드 = sx_ict_flux.js(MPL 2.0)</span>'; }
+function _ictXDesc(c, fe){ return (fe>0?('💸왕복 '+fe+'%p · '):'무마찰 · ')+'🧪 실험 셋업['+_ICT_TAG[c.setup]+'] → 원본 청산 고정('+_ICT_XINFO[c.setup].ex+') · 지원 '+(c.setup==='po3'?'KR · US 일봉':'일봉 · 코인 4시간 · 1시간') /* [S1850] */+' · 성적 주장 없음'; }
+function _ictXNoteHtml(){ return '<br><span data-ict-xnote="1">🧪 실험 셋업 셋(offline/ictx2 · 2026-10-29 · 일봉 9판 + 코인 4시간 · 1시간 · 원본 청산 · 매수만 · 같은 청산으로 아무 데서나 산 무작위 · 같은 비율 그냥 두기와 비교): 터틀 수프 = 코인 1시간만 무작위보다 나음(그냥 두기는 판마다 갈림) · 일봉 · 4시간 못 가름 / 유니콘 = 다섯 묶음 모두 못 가름(KR 최신 판은 102건 모두 익절이지만 판정은 못 가름) / 주다스 = KR · US 일봉 그냥 두기보다 나음(무작위와는 갈림) · 코인 못 가름 — 자리 제안 규칙(둘 다 넘음) 통과 0 · <b>성적 주장 없음</b> · 원본 = Flux Charts(© fluxchart) Pine Script · MPL 2.0 · 옮긴 코드 = sx_ict_flux.js(MPL 2.0)</span>'
+  +'<br><span data-ict-po3note="1">🧪 PO3(offline/fluxpv · 2026-10-31 · 같은 잣대 · 원본 청산 · 매수만): KR · US 일봉에서 무작위 진입(같은 청산) · 같은 비율 그냥 두기 둘 다 3판 모두 넘음(자리 제안 규칙 통과) — 그냥 두기 대비 KR +2.1 · +3.2 · +0.8 · US +9.4 · +1.8 · +0.3(차이 작음) · 들고 있기와는 못 가름(오른 장에선 크게 뒤짐 · 든 봉 11 ~ 23%) · 다른 두 모드는 못 넘음 · 코인 일봉 · 1시간은 그냥 두기보다 못함 → KR · US 일봉에서만 켜짐 · <b>성적 주장 없음</b> · 원본 = ICT Power Of Three | Flux Charts(© fluxchart) · MPL 2.0 · 옮긴 코드 = sx_ict_flux.js</span>'; }   /* [S1850] */
 function _ictBtFor(rows, mk){ return _ictBt(rows, _ictCfg(mk), _trendFeeOf(mk), _sxTfNow(), mk /* [S1847] */); }
 function _ictTag(t){ try{ const ctx=window._sxTrendCtx, c=_ictCfg((ctx&&ctx.market)||'kr'), x=(t.why==='sl')?'🛑손절':((t.why==='tp')?'🏁익절':((t.why==='tm')?('⏱'+c.hold+'봉'):((t.why==='be')?'↩본전':((t.why==='trl')?'📈트레일':'')))) /* [S1835] */; return ' · 🎯'+(_ICT_TAG[t.kind]||'ICT')+(t.tp1?' · 🏁1R절반':'')+(x?('→'+x):''); }catch(_){ return ''; } }
 function _ictPanelHtml(mk, rows, bt){
@@ -6455,7 +6466,7 @@ function _stLine(H, L, C, P, M){ const n=C.length, atr=new Array(n).fill(null), 
     const d1=dir[i-1]; dir[i]=(d1===-1 && C[i]>dn1)?1:((d1===1 && C[i]<up1)?-1:d1); }
   return { atr, dir, UP, DN, st:P-1 }; }
 // 엔진 — 봉 t 마다 ① 보유 중이면 1차 익절(켰으면) · 빨간색 전환 청산 ② 보유 없으면 진입 신호(눌림목: 초록 + 눌림 표시 뒤 종가 > VWAP · 뒤집힘: 위로 뒤집힌 봉)
-function _stBt(rows, cfg, feeP){
+function _stBt(rows, cfg, feeP, X){
   const P0=_stNorm(cfg), n=(rows&&rows.length)||0, fee=(+feeP>0)?+feeP:0; if(n<60) return null;
   const num=v=>{ v=+v; return isFinite(v)?v:NaN; }, O=new Array(n), H=new Array(n), L=new Array(n), C=new Array(n), V=new Array(n);
   for(let i=0;i<n;i++){ const r=rows[i]||{}; C[i]=num(r.close!=null?r.close:r.c); H[i]=num(r.high!=null?r.high:r.h); L[i]=num(r.low!=null?r.low:r.l); O[i]=num(r.open!=null?r.open:r.o); const v=num(r.volume!=null?r.volume:r.v); V[i]=(v>0)?v:0; }
@@ -6468,6 +6479,7 @@ function _stBt(rows, cfg, feeP){
     if(pos){ if(P0.tp1 && pos.half==null && VW[t-1]!=null){ const band=VW[t-1]+SD[t-1]; if(band>pos.entry && H[t]>=band) { pos.half=Math.max(O[t],band); pos.hIdx=t; /* [S1835] 절반 판 봉 */ } }
       if(S.dir[t]===-1){ shut(t); below=false; }
       continue; }
+    if(X){ X.nF=(X.nF||0)+1; if(X.eH){ if(X.eH(t) && S.atr[t]>0) pos={ entry:C[t], entryIdx:t, a:S.atr[t], line0:S.UP[t], half:null, kind:'rnd' }; continue; } }   /* [S1851] 🎲 진입 판단 봉 세기 · X.eH = 그 봉 종가 무작위 진입(청산 = 빨강 전환 · 1차 익절 그대로) — X 없으면 무영향 */
     if(P0.ent==='flip'){ if(S.dir[t-1]===-1 && S.dir[t]===1 && S.atr[t]>0) pos={ entry:C[t], entryIdx:t, a:S.atr[t], line0:S.UP[t], half:null, kind:'flip' }; continue; }
     if(S.dir[t]!==1 || VW[t]==null){ below=false; continue; }
     if(C[t]<VW[t]){ below=true; continue; }
@@ -6549,6 +6561,7 @@ async function _stPoolRun(mk, tf, onProgress){
   const _snapCodes=(function(){ try{ return (_srcMeta&&_srcMeta.on&&SXCandleBT.snapSrc)?(SXCandleBT.snapSrc(mk)||{}):null; }catch(_e){ return null; } })();
   const CAP=_TREND_BATCH_CAP, capped=list.length>CAP, use=list.slice(0,CAP);
   const ic=_stCfg(mk), fee=_trendFeeOf(mk);
+  const _vc=_vdCtlNew('st', mk, tf, _srcMeta, pl.from);   /* [S1851] 🎲 무작위 진입 대조 — 창 판일 때만 */
   const _tgtBars=(typeof _btTargetBars==='function')?_btTargetBars(mk, tf):600, _floor=Math.floor(_tgtBars*0.95);
   const allTrades=[], perStock=[], openList=[], barsList=[], cnt={ tp1:0 }; let skipped=0, skippedShort=0, skippedNoSnap=0;
   const _plA=_plNew();   /* [S1829] 📈 전략 선 */
@@ -6558,9 +6571,10 @@ async function _stPoolRun(mk, tf, onProgress){
     let rows=null; try{ rows=await SXCandleBT.fetchRows600(mk, tf, s.code); }catch(e){ rows=null; }
     if(!Array.isArray(rows) || rows.length<40){ skipped++; if(_snapCodes && !_snapCodes[s.code]) skippedNoSnap++; continue; }
     if(rows.length<_floor){ skippedShort++; continue; }
-    let bt=null; try{ bt=_stBt(rows, ic, fee); }catch(e){ bt=null; }
+    let bt=null; const _vx=_vc?{}:null; try{ bt=_stBt(rows, ic, fee, _vx /* [S1851] */); }catch(e){ bt=null; }
     if(!bt){ skipped++; continue; }
     barsList.push(rows.length);
+    if(_vc) _vdCtlAdd(_vc, rows, bt, _vx, s.code, X=>_stBt(rows, ic, fee, X));   /* [S1851] 🎲 무작위 진입 9벌 */
     cnt.tp1+=bt.st.tp1N;
     (bt.trades||[]).forEach(t=>{ allTrades.push({ code:s.code, name:s.name, src:t.kind, xr:t.why, pnl:t.pnl, bars:t.bars, ed:t.entryDate||'', xd:t.exitDate||'', R:t.R, tp1:!!t.tp1 }); });
     if(bt.open) openList.push({ name:s.name, src:bt.open.kind, pnl:bt.open.pnl, bars:bt.open.bars });
@@ -6573,6 +6587,7 @@ async function _stPoolRun(mk, tf, onProgress){
   const med=(a)=>{ if(!a.length) return null; const b=a.slice().sort((x,y)=>x-y), m=Math.floor(b.length/2); return b.length%2?b[m]:(b[m-1]+b[m])/2; };
   const agg=_poolAggExtras(_stratPoolAgg(allTrades, perStock), perStock), Rs=allTrades.map(t=>t.R), nR=Rs.length, pct=k=>nR?Math.round(allTrades.filter(t=>t.xr===k).length/nR*1000)/10:null;
   const rs={ n:nR, avg:nR?+(Rs.reduce((x,v)=>x+v,0)/nR).toFixed(2):null, med:nR?+(+med(Rs)).toFixed(2):null, win:nR?Math.round(Rs.filter(v=>v>0).length/nR*1000)/10:null, tp1:nR?Math.round(allTrades.filter(t=>t.tp1).length/nR*1000)/10:null };   /* R(ATR) 합침 — 측정(같은 길이 · 초록 중 아무 자리 대조)과 견주는 자 */
+  _plA.C=_vc?_vdCtlFin(_vc):null;   /* [S1851] */
   return _plAttach({ ok:true, market:mk, source:_stPoolSrc, ts:Date.now(), sig:_stSig(mk), cfgDesc:_stDesc(mk), feePct:fee,
     n:perStock.length, used:use.length, capped, cap:CAP, total:list.length, skipped, skippedShort, skippedNoSnap, poolFrom:pl.from,
     medBars:barsList.length?Math.round(med(barsList)):null, minBars:barsList.length?Math.min.apply(null,barsList):null, tgtBars:_tgtBars, srcMeta:_srcMeta,
@@ -7036,7 +7051,7 @@ function _plLog(res){ try{
   localStorage.setItem(_PL_LOG_KEY, JSON.stringify(A)); return add;
  }catch(_e){ return 0; } }
 function _plAttach(res, a, tab){ try{
-  if(res && typeof res==='object' && a){ Object.defineProperty(res, 'pl', { value:{ tab, S:a.S, H:(a.H||[]) /* [S1833] */, tf:(res.tf||((typeof _poolTfOf==='function')?_poolTfOf():'day')) }, enumerable:false, configurable:true, writable:true }); _plLog(res); _vdRec(res, tab) /* [S1849] ⚖️ 판 각인 · 세 판 기억 */; }
+  if(res && typeof res==='object' && a){ Object.defineProperty(res, 'pl', { value:{ tab, S:a.S, H:(a.H||[]) /* [S1833] */, c:(a.C||null) /* [S1851] 🎲 무작위 진입 대조 */, tf:(res.tf||((typeof _poolTfOf==='function')?_poolTfOf():'day')) }, enumerable:false, configurable:true, writable:true }); _plLog(res); _vdRec(res, tab) /* [S1849] ⚖️ 판 각인 · 세 판 기억 */; }
  }catch(_e){} return res; }
 function _plLogCsvText(A){ const r6=v=>(v==null || !isFinite(v))?'':String(Math.round(v*1e6)/1e6), q=s=>'"'+String(s==null?'':s).replace(/"/g, '""')+'"';
   return '날짜,탭,시장,봉,창,종목수,초과수익(로그%p),승률(%),거래수,낙폭(%),설정지문,기록시각(KST)\n'+A.map(x=>[_plDate(x.d, x.tf), x.tab, x.mk, x.tf, x.W, x.n, r6(x.ex==null?null:x.ex*100), r6(x.wr==null?null:x.wr*100), (x.nt==null?'':x.nt), r6(x.dd==null?null:x.dd*100), q(x.sig), _poolKst(x.ts)].join(',')).join('\n')+'\n'; }
@@ -7083,7 +7098,7 @@ if(typeof window!=='undefined'){ window._bhCmpHtml=_bhCmpHtml; }
 //   사용자 지시 2026-10-30 22:02("너의 기각 판정이 옳으니까 [기각]/[통과] 배지를 눈에띄게 달아주고 아래에 사유를") · 22:05("제안대로") · 정의 = PREREG_S1849_verdict_badge.md §1
 //   값은 📌 맞대기(S1833)와 같은 종목 줄(res.pl.H)에서만 낸다 — 새 BT 0 · 결과 JSON · CSV 글자 그대로(열거 안 되는 `vd` 하나만 붙임).
 //   세 판 = 🕰 창A · 창B · 현재 스냅(같은 탭 · 시장 · 봉 · 수수료 · 설정 지문) — 돌린 그때 판을 결과에 각인하고 브라우저 저장소에 기억한다(🎯 켈리 창 기억 S1774 와 같은 꼴).
-//   ⚠무작위 대조는 앱에 없다(넣으면 풀 BT 시간이 약 10배) — [통과]여도 측정으로 확인. 앱은 첫 봉부터 · KR 130종목까지라 오프라인 측정과 숫자가 조금 다를 수 있다.
+//   [S1851] ③ = 🎲 무작위 진입 대조(📈 · 🐢 · 🚦 · 창 판에서만 · 9벌 · 같은 엔진 무작위 진입 BT 를 더 돌림) — 그냥 들고 있기는 참고만 · 🎯 · ⚓ · 🧪 는 2단계(①② 로만 기각 · 통과 없음). 앱은 첫 봉부터 · KR 130종목까지라 오프라인 측정과 숫자가 조금 다를 수 있다.
 const _VD_LS='SX_VD_MEM', _VD_KEEP=60, _VD_MINTR=30, _VD_WINS=[['A','창A'],['B','창B'],['L','현재 스냅']];
 let _vdMem=null;
 function _vdLoad(){ if(_vdMem) return _vdMem; let o=null; try{ o=JSON.parse(localStorage.getItem(_VD_LS)||'null'); }catch(_e){ o=null; } _vdMem=(o&&typeof o==='object'&&o.v===1&&o.sets&&typeof o.sets==='object')?o:{ v:1, sets:{} }; return _vdMem; }
@@ -7092,13 +7107,14 @@ function _vdMed(a){ const v=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y), 
 // 한 판 값 — 종목마다 ln(1+이 설정) − ln(1+같은 비율) · ln(1+이 설정) − ln(1+그냥 들고 있기)의 중앙 · 나은 종목 수(📌 줄과 같은 셈) · 닫힌 거래 수
 function _vdStat(res){ try{
   const H=res&&res.pl&&res.pl.H; if(!H||!H.length) return null;
-  const L=v=>Math.log(Math.max(1e-9, 1+v));
-  return { N:H.length, nT:((res.trades&&res.trades.length)||0), dR:_vdMed(H.map(x=>L(x.s)-L(x.r))), dB:_vdMed(H.map(x=>L(x.s)-L(x.b))), wR:H.filter(x=>x.s>x.r).length, wB:H.filter(x=>x.s>x.b).length };
+  const L=v=>Math.log(Math.max(1e-9, 1+v)), c=(res.pl&&res.pl.c)||null;   /* [S1851] 🎲 무작위 진입 대조 값(없으면 null) */
+  return { N:H.length, nT:((res.trades&&res.trades.length)||0), dR:_vdMed(H.map(x=>L(x.s)-L(x.r))), dB:_vdMed(H.map(x=>L(x.s)-L(x.b))), wR:H.filter(x=>x.s>x.r).length, wB:H.filter(x=>x.s>x.b).length, c };
  }catch(_e){ return null; } }
 // 한 판 판정 — ① 같은 비율보다(중앙 > 0) · ② 나은 종목 절반 이상 · ③ 그냥 들고 있기보다(중앙 > 0) · ④ 닫힌 거래 30건 이상(아니면 그 판은 안 셈)
 function _vdJudge(t){ if(!t) return null;
-  const sg=v=>(v==null||!isFinite(v))?0:(v>0?1:(v<0?-1:0)), r1=sg(t.dR), r2=(t.N>0&&2*t.wR>=t.N)?1:-1, r3=sg(t.dB), few=!(t.nT>=_VD_MINTR);
-  return { r1, r2, r3, few, st:few?'few':((r1<0||r2<0||r3<0)?'rej':((r1>0&&r2>0&&r3>0)?'ok':'mid')) }; }
+  const sg=v=>(v==null||!isFinite(v))?0:(v>0?1:(v<0?-1:0)), r1=sg(t.dR), r2=(t.N>0&&2*t.wR>=t.N)?1:-1, few=!(t.nT>=_VD_MINTR), c=t.c;
+  const has=!!(c && c.med!=null && isFinite(c.med) && t.dR!=null && isFinite(t.dR)), r3=has?sg(t.dR-c.med):null, up=!!(has && c.max!=null && isFinite(c.max) && t.dR>c.max), rb=sg(t.dB);   /* [S1851] ③ = 무작위 진입 9벌 중앙과 견줌 · up = 최대도 넘음 · rb = 그냥 들고 있기(참고만) */
+  return { r1, r2, r3, up, rb, few, st:few?'few':((r1<0||r2<0||(r3!=null&&r3<0))?'rej':((r3!=null&&r1>0&&r2>0&&r3>0)?'ok':((r3==null)?'nc':'mid'))) }; }
 // 돌린 그때의 판 — 'A' · 'B' · 'L'(현재 스냅) · null(라이브 봉 · 소스 칩 풀 · 창 글자와 주입된 스냅이 어긋남) · ⚠🧪 는 결과가 만들어진 직후(_plAttach)에만 부른다(스냅 메타를 그때 읽는다)
 function _vdWin(res){ try{
   if(!res) return null;
@@ -7107,6 +7123,18 @@ function _vdWin(res){ try{
     if(v==='A'||v==='B') return vt?v:null; return (v||vt)?null:'L'; }
  }catch(_e){} return null; }
 function _vdKey(res, tab){ const p=res&&res.pl, sig=String((res&&res.sig)||''); if(!sig) return null; return [tab||(p&&p.tab)||'', res.market||res.mk||'', (p&&p.tf)||'', (res.feePct!=null)?String(res.feePct):'', sig].join('|'); }
+// [S1851] 🎲 무작위 진입 대조 — 풀 전체 BT 가 창 판(창A · 창B · 현재 스냅)으로 돌 때만 · 종목마다 p_e = 포지션 수 ÷ 진입 판단 봉 수 · 9벌 · 진입 판단은 무작위 하나 · 청산은 그 엔진 그대로 · 정의 = PREREG_S1851_vd_random.md §1
+const _VD_NR=9, _VD_CTL=['cross','turtle','st'];
+function _vdRng(key){ let h=2166136261>>>0; const s=String(key); for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } let a=h; return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }   // FNV-1a → mulberry32(오프라인 측정과 같은 꼴)
+function _vdCtlNew(tab, mk, tf, srcMeta, poolFrom){ try{ if(_VD_CTL.indexOf(tab)<0 || !_vdWin({ srcMeta, poolFrom })) return null; const A=[]; for(let q=0;q<_VD_NR;q++) A.push({ S:{ push(){} } /* 선(S)은 안 모음 */, H:[] }); return { key:[tab, mk||'', tf||''].join('|'), A, pe:[] }; }catch(_e){ return null; } }
+function _vdCtlAdd(c, rows, bt, vx, code, run){ try{
+  if(!c || !bt) return; const np=((bt.trades&&bt.trades.length)||0)+(bt.open?1:0), nf=(vx&&vx.nF>0)?vx.nF:0, pe=nf?np/nf:0; if(!(pe>0)) return; c.pe.push(pe);
+  for(let q=0;q<_VD_NR;q++){ const rg=_vdRng(c.key+'|'+code+'|'+q); let r=null; try{ r=run({ eH:function(){ return rg()<pe; } }); }catch(_e){ r=null; } if(r && !r._xmatPending) _plFeed(c.A[q], rows, r); }   // 📌 맞대기와 같은 함수로 종목 줄(s · r)
+ }catch(_e){} }
+function _vdCtlFin(c){ try{
+  if(!c) return null; const L=v=>Math.log(Math.max(1e-9, 1+v)), Dq=c.A.map(a=>a.H.length?_vdMed(a.H.map(x=>L(x.s)-L(x.r))):null), k=Dq.filter(x=>x!=null&&isFinite(x));
+  return k.length?{ Dq, med:_vdMed(k), min:Math.min.apply(null,k), max:Math.max.apply(null,k), n:k.length, pe:_vdMed(c.pe), nS:c.pe.length }:null;
+ }catch(_e){ return null; } }
 // 각인 — _plAttach 가 결과를 만들 때 한 번 부른다(그리기 때가 아니다 · 실행 뒤 창을 바꿔도 지난 결과에 새 판이 안 붙게)
 function _vdRec(res, tab){ try{
   if(!res || typeof res!=='object') return false;
@@ -7119,14 +7147,14 @@ function _vdRec(res, tab){ try{
  }catch(_e){ return false; } }
 function _vdAgg(res){
   const vd=res&&res.vd, t=(vd&&vd.t)||_vdStat(res); if(!t) return null;
-  const cur=vd?vd.w:null, j=_vdJudge(t);
-  if(!cur) return { mode:'live', st:(j.st==='rej')?'rej':((j.st==='few')?'few':'hold'), cur:null, t, j, W:null, J:null, have:[], k:0 };
+  const cur=vd?vd.w:null, j=_vdJudge(t), tab=(res&&res.pl&&res.pl.tab)||'', ctl=_VD_CTL.indexOf(tab)>=0;   /* [S1851] 대조가 있는 탭인가 */
+  if(!cur) return { mode:'live', st:(j.st==='rej')?'rej':((j.st==='few')?'few':'hold'), cur:null, t, j, W:null, J:null, have:[], k:0, tab, ctl };
   let S=null; try{ S=_vdLoad().sets[vd.key]||null; }catch(_e){ S=null; }
   const W={}; _VD_WINS.forEach(([w])=>{ const e=S&&S.w&&S.w[w]; if(e) W[w]=e; }); W[cur]=t;   // 지금 판은 지금 결과 값(저장소가 막혀도 센다)
   const J={}; Object.keys(W).forEach(w=>{ J[w]=_vdJudge(W[w]); });
-  const have=_VD_WINS.map(x=>x[0]).filter(w=>W[w]), meas=have.filter(w=>J[w].st!=='few');
-  let st='hold'; if(meas.some(w=>J[w].st==='rej')) st='rej'; else if(have.length===3) st=(meas.length>=2 && meas.every(w=>J[w].st==='ok'))?'ok':'few3';
-  return { mode:'3w', st, cur, t, j, W, J, have, k:have.length, nMeas:meas.length };
+  const have=_VD_WINS.map(x=>x[0]).filter(w=>W[w]), meas=have.filter(w=>J[w].st!=='few'), m=meas.length, nUp=meas.filter(w=>J[w].up).length, nNc=meas.filter(w=>J[w].st==='nc').length, need=Math.ceil(2*m/3);
+  let st='hold'; if(meas.some(w=>J[w].st==='rej')) st='rej'; else if(have.length===3) st=(m>=2 && meas.every(w=>J[w].st==='ok') && nUp>=need)?'ok':'few3';   /* [S1851] 통과 = 모두 ✓ + 무작위 최대를 넘은 판 ⌈2m/3⌉ 이상(오프라인 QRe 와 같은 꼴) */
+  return { mode:'3w', st, cur, t, j, W, J, have, k:have.length, nMeas:m, nUp, nNc, need, tab, ctl };
 }
 function _vdHtml(res){ try{
   const A=_vdAgg(res); if(!A) return '';
@@ -7134,23 +7162,27 @@ function _vdHtml(res){ try{
   const wn=w=>{ const e=_VD_WINS.find(x=>x[0]===w); return e?e[1]:'세 판 밖'; };
   const pp=v=>(v==null||!isFinite(v))?'—':((v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+'%p');
   const ck=c=>(c>0)?'<b style="color:#16a34a">✓</b>':((c<0)?'<b style="color:#dc2626">✗</b>':'<b style="color:var(--text3)">·</b>');
-  const t=A.t, j=A.j, pct=Math.round(100*t.wR/t.N);
-  const bad=q=>[(q.r1<0)?'① 같은 비율보다 못함':'', (q.r2<0)?'② 나은 종목 절반 미만':'', (q.r3<0)?'③ 그냥 들고 있기보다 못함':''].filter(Boolean).join(' · ');
+  const t=A.t, j=A.j, pct=Math.round(100*t.wR/t.N), c=t.c, upM='<b style="color:#16a34a">↑</b>';
+  const bad=q=>[(q.r1<0)?'① 같은 비율보다 못함':'', (q.r2<0)?'② 나은 종목 절반 미만':'', (q.r3!=null&&q.r3<0)?'③ 무작위 진입보다 못함':''].filter(Boolean).join(' · ');
+  const ncWhy=A.ctl?'무작위 대조가 없는 판이 있음(대조를 넣기 전에 저장된 판 등) — 같은 설정으로 그 판을 다시 돌리면 셈':'이 탭은 무작위 대조가 아직 없음(🎯 · ⚓ · 🧪 는 2단계) — ①② 로만 기각하고 통과는 내지 않음';
   let why;
   if(A.st==='rej'){ if(A.mode==='live') why='이 판에서 '+bad(j); else { const g={}; A.have.filter(w=>A.J[w].st==='rej').forEach(w=>{ const k=bad(A.J[w]); (g[k]=g[k]||[]).push(wn(w)); }); why=Object.keys(g).map(k=>g[k].join(' · ')+'에서 '+k).join(' / '); } }   // 같은 기준으로 진 판은 한데 묶어 적는다
-  else if(A.st==='ok') why='세 판 중 셀 수 있는 '+A.nMeas+'판 모두 ①②③ ✓ — 채택 후보(무작위 대조는 측정으로 확인)';
+  else if(A.st==='ok') why='세 판 중 셀 수 있는 '+A.nMeas+'판 모두 ①②③ ✓ · 무작위 진입 최대를 넘은 판 '+A.nUp+'/'+A.nMeas+' — 채택 후보(오프라인 측정 기준과 같은 꼴)';
   else if(A.st==='hold') why=(A.mode==='live')?'이 결과는 🕰 창A · 창B · 현재 스냅 판이 아니라 세 판에 안 셈(라이브 봉 · 소스 칩 풀 등) — 스냅 판으로 같은 설정을 돌리면 셈':('남은 판('+_VD_WINS.filter(x=>!A.W[x[0]]).map(x=>x[1]).join(' · ')+')을 같은 설정으로 돌려 보세요');
   else if(A.st==='few') why='닫힌 거래 30건 미만 — 이 판은 세지 않음';
-  else why='셀 수 있는 판(닫힌 거래 30건 이상 · 차이 0 아님)이 모자람';
+  else why=(A.nNc>0)?ncWhy:((A.nMeas>=2 && A.nUp<A.need)?('①②③ 는 모두 ✓ 이지만 무작위 진입 최대를 넘은 판이 '+A.nUp+'/'+A.nMeas+' — 3분의 2 이상이어야 통과'):'셀 수 있는 판(닫힌 거래 30건 이상 · 차이 0 아님)이 모자람');
+  const r3t=(j.r3!=null)?('③ 무작위 진입보다 — ① 값 '+pp(t.dR)+' vs 무작위 진입 '+c.n+'벌 중앙 '+pp(c.med)+' · 최대 '+pp(c.max)+' '+ck(j.r3)+(j.up?(' '+upM+' 최대도 넘음'):''))
+    :('③ 무작위 진입 대조 — <span style="color:var(--text3)">'+(!A.ctl?'아직 없음(🎯 · ⚓ · 🧪 는 2단계)':((A.mode==='live')?'라이브 판은 안 돌림(🕰 창A · 창B · 현재 스냅 판에서만 돎)':'결과 없음(무작위 진입 거래가 안 남)'))+'</span>');
   const top='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span data-vd-badge="'+A.st+'" style="font-size:16px;font-weight:900;letter-spacing:0.5px;padding:3px 12px;border-radius:8px;background:'+LB[1]+';color:#fff">['+LB[0]+((A.st==='hold'&&A.mode==='3w')?(' · '+A.k+'/3판'):'')+']</span><span style="font-size:9.5px;font-weight:800;color:var(--text2);min-width:0">⚖️ 측정 기준 판정</span></div>';
   const sum='<div style="font-size:10px;font-weight:800;color:'+LB[1]+';margin-top:6px;line-height:1.5">'+LB[0]+' — '+why+'</div>';
   const rules='<div style="font-size:9.5px;color:var(--text2);margin-top:5px;line-height:1.65">이 판('+wn(A.cur)+' · '+t.N+'종목)'
     +'<br>① 같은 비율만 들고 있기보다 — 종목별 차이 중앙 '+pp(t.dR)+' '+ck(j.r1)
     +'<br>② 같은 비율보다 나은 종목 — '+t.wR+'/'+t.N+' ('+pct+'%) '+ck(j.r2)+((j.r2<0)?' 절반 미만':'')
-    +'<br>③ 그냥 들고 있기보다 — 종목별 차이 중앙 '+pp(t.dB)+' '+ck(j.r3)
-    +'<br>④ 닫힌 거래 '+t.nT+'건 '+ck(j.few?-1:1)+(j.few?' 30건 미만 — 이 판은 세지 않음':'')+'</div>';
-  const wins=(A.mode==='3w')?('<div data-vd-wins="1" style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.6">세 판 — '+_VD_WINS.map(([w,n])=>{ const q=A.J[w]; const s=q?(q.few?'거래 부족':(ck(q.r1)+ck(q.r2)+ck(q.r3))):'<span style="color:var(--text3)">아직 안 돌림</span>'; return (w===A.cur?'<b>':'')+n+(w===A.cur?'</b>':'')+' '+s; }).join(' · ')+'</div>'):'';
-  const note='<div style="font-size:8.5px;color:var(--text3);margin-top:4px;line-height:1.5">기각 = ①②③ 중 ✗ 가 하나라도 있는 판이 있으면 · 통과 = 같은 설정으로 🕰 창A · 창B · 현재 스냅 세 판을 돌려 셀 수 있는 판(닫힌 거래 30건 이상)이 2판 이상이고 모두 ✓ · ⚠무작위 대조는 앱에 없음(통과여도 측정으로 확인) · 앱은 첫 봉부터 · KR 130종목까지 세어 오프라인 측정(200번째 봉부터 · 전 종목)과 숫자가 조금 다를 수 있음 · 설정을 바꾸면 처음부터 다시 셈 · 라이브 봉 결과는 세 판에 안 셈</div>';
+    +'<br><span data-vd-r3="1">'+r3t+'</span>'
+    +'<br>④ 닫힌 거래 '+t.nT+'건 '+ck(j.few?-1:1)+(j.few?' 30건 미만 — 이 판은 세지 않음':'')
+    +'<br><span data-vd-ref="1" style="color:var(--text3)">참고 — 그냥 들고 있기보다: 종목별 차이 중앙 '+pp(t.dB)+' (노출이 달라 판정에 안 씀)</span></div>';
+  const wins=(A.mode==='3w')?('<div data-vd-wins="1" style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.6">세 판 — '+_VD_WINS.map(([w,n])=>{ const q=A.J[w]; const s=q?(q.few?'거래 부족':(ck(q.r1)+ck(q.r2)+((q.r3!=null)?ck(q.r3):'<span style="color:var(--text3)">·</span>')+(q.up?upM:''))):'<span style="color:var(--text3)">아직 안 돌림</span>'; return (w===A.cur?'<b>':'')+n+(w===A.cur?'</b>':'')+' '+s; }).join(' · ')+'</div>'):'';
+  const note='<div style="font-size:8.5px;color:var(--text3);margin-top:4px;line-height:1.5">기각 = ①②③ 중 ✗ 가 하나라도 있는 판이 있으면 · 통과 = 같은 설정으로 🕰 창A · 창B · 현재 스냅 세 판을 돌려 셀 수 있는 판(닫힌 거래 30건 이상)이 2판 이상이고 모두 ✓ 이며 무작위 진입 최대를 넘은(↑) 판이 3분의 2 이상 · ③ 무작위 진입 = 종목마다 이 설정이 산 비율(포지션 수 ÷ 진입 판단 봉 수)로 아무 봉에서나 사고 청산은 이 설정 그대로 · 9벌 · 씨앗 고정 · 창 판에서만 돌아 풀 BT 가 더 걸림 · 📈 MA 크로스 · 🐢 터틀 · 🚦 슈퍼트렌드만 있음(🎯 · ⚓ · 🧪 는 2단계) · 그냥 들고 있기는 참고만 · 앱은 첫 봉부터 · KR 130종목까지 세어 오프라인 측정(200번째 봉부터 · 전 종목)과 숫자가 조금 다를 수 있음 · 설정을 바꾸면 처음부터 다시 셈 · 라이브 봉 결과는 세 판에 안 셈</div>';
   return '<div data-vd="1" style="margin:4px 0 8px;padding:8px 9px;border:2px solid '+LB[1]+';border-radius:10px;background:'+LB[1]+'14">'+top+sum+rules+wins+note+'</div>';
  }catch(_e){ return ''; } }
 if(typeof window!=='undefined'){ window._vdHtml=_vdHtml; }
@@ -8195,6 +8227,7 @@ async function _trendBatchRun(mk, tf, onProgress){
   if(!list.length) return { ok:false, market:mk, reason:(_trendBatchSource==='watch'?'관심목록('+mk+')이 비어있음 — 종목 추가':(_trendBatchSource==='disc'?'발굴풀 없음('+mk+')':'대표목록 없음('+mk+')')) };
   const CAP=_TREND_BATCH_CAP; const capped=list.length>CAP; const use=list.slice(0,CAP);   // [S1403] 상수 참조
   const cfg=_trendCfg(mk);                                     // [S1406] ★현 카드 설정 — 하드코딩 프리셋 폐기
+  const _vc=_vdCtlNew('cross', mk, tf, _srcMeta, _poolFrom);   /* [S1851] 🎲 무작위 진입 대조 — 창A · 창B · 현재 스냅 판일 때만(아니면 null) */
   const bbP=(typeof _trendBbParams==='function')?_trendBbParams(mk):null;
   // 🧪 재료 조건 — 켜져 있을 때만 종목별 봉맵을 만든다. 전역 캐시(_trendXmatFireCache)는 현재 종목 키라 쓸 수 없다.
   let _xbC=[], _xsC=[], _xsig='';
@@ -8223,13 +8256,14 @@ async function _trendBatchRun(mk, tf, onProgress){
       xmFire={ sig:_xsig, buy:(r.buy||null), sell:(r.sell||null), needB:_xnb, needS:_xns };
     }
     barsList.push(rows.length);
-    let bt=null;
+    let bt=null; const _vx=_vc?{}:null;   /* [S1851] 진입 판단 봉 세기(판단 무변경) */
     try {
       const _pe=_trendEngine, _pa=window._xmatApply;
       _trendEngine='cross'; window._xmatApply=true;   // [S1116] 배치=크로스 엔진 고정 · [S1406] 재료 조건 게이트 개방(봉맵은 주입)
-      try{ bt=_trendBt(rows, cfg, bbP, xmFire, true /* [S1796] D-day 건너뜀 */); } finally { _trendEngine=_pe; window._xmatApply=_pa; }
+      try{ bt=_trendBt(rows, cfg, bbP, xmFire, true /* [S1796] D-day 건너뜀 */, _vx /* [S1851] */); } finally { _trendEngine=_pe; window._xmatApply=_pa; }
     } catch(e2){}
     if(!bt || bt._xmatPending){ skipped++; await _trendBatchSleep(8); continue; }
+    if(_vc) _vdCtlAdd(_vc, rows, bt, _vx, s.code, function(X){ const _pe=_trendEngine, _pa=window._xmatApply; _trendEngine='cross'; window._xmatApply=true; try{ return _trendBt(rows, cfg, bbP, xmFire, true, X); } finally { _trendEngine=_pe; window._xmatApply=_pa; } });   /* [S1851] 🎲 같은 엔진 · 같은 설정 · 같은 재료 맵 · 무작위 진입 9벌 */
     (bt.trades||[]).forEach(function(t){ allTrades.push({ code:s.code, name:s.name, src:_trendTradeSrc(t), xr:_trendTradeXr(t), pnl:t.pnl, bars:t.bars, ed:t.entryDate||'', xd:t.exitDate||'' }); });
     if(bt.open) openList.push({ name:s.name, src:_trendTradeSrc(bt.open), pnl:bt.open.pnl, bars:bt.open.bars });
     // [S1529] 기저·MDD·보유봉·노출률 — 🧪 전략 조합과 **같은 함수**(`_poolStockExtras`). 새 산식 0.
@@ -8254,6 +8288,7 @@ async function _trendBatchRun(mk, tf, onProgress){
   if(perStock.length<3) return { ok:false, market:mk, reason:'유효 종목 3개 미만 — 네트워크 확인('+mk+')'+(xmFail?(' · 재료 조건 산출 실패 '+xmFail+'종'):'') };
   const med=function(a){ if(!a.length) return null; const b=a.slice().sort(function(x,y){return x-y;}); const m=Math.floor(b.length/2); return b.length%2?b[m]:(b[m-1]+b[m])/2; };
   const agg=_poolAggExtras(_stratPoolAgg(allTrades, perStock), perStock);   // [S1406] 집계는 🧪 전략 조합과 같은 함수 — 두 탭이 같은 자를 쓴다 · [S1529] 중앙값 4종도 같은 함수
+  _plA.C=_vc?_vdCtlFin(_vc):null;   /* [S1851] 🎲 대조 값 → pl.c */
   return _plAttach({ ok:true, market:mk, source:_trendBatchSource, ts:Date.now(),
     sig:_trendCrossSig(cfg,_xsig), cfgDesc:_trendCrossDesc(cfg,mk), feePct:_trendFeeOf(mk),   // [S1409] 결과가 어느 마찰로 나왔는지 동봉
     n:perStock.length, used:use.length, capped:capped, cap:CAP, total:list.length,   // [S1407] used=실제 컷한 수 · n=BT 성공 수
@@ -19913,7 +19948,9 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1849';   // [S1849] ⚖️ 풀 전체 BT 측정 기준 배지([기각] · [못 가름] · [보류] · [통과] + 사유 · 여섯 탭 공통 · 세 판 = 창A · 창B · 현재 스냅)
+  window.SX_BUILD='S1851';   // [S1851] ⚖️ 배지 ③ = 🎲 무작위 진입 대조(📈 MA 크로스 · 🐢 터틀 · 🚦 슈퍼트렌드 · 창 판에서만 · 9벌 · 그냥 들고 있기는 참고만)
+  // [S1850] 🎯 ICT 🧪 실험 셋업 PO3(ICT Power Of Three · Flux Charts · KR · US 일봉만 · 엔진 sx_ict_flux.js MPL 2.0)
+  // [S1849] ⚖️ 풀 전체 BT 측정 기준 배지([기각] · [못 가름] · [보류] · [통과] + 사유 · 여섯 탭 공통 · 세 판 = 창A · 창B · 현재 스냅)
   // [S1848] ⤒ 트레일 기준점 = 장중 고가 칩(🧪 전략 조합 · 📈 MA 크로스 · 🐢 터틀 · 켬/끔 · 기본 끔 · 성적 주장 없음)
   // [S1847] 🎯 ICT 🧪 실험 셋업 셋(터틀 수프 · 유니콘 · 주다스 · 원본 청산 고정 · 성적 주장 없음 · 엔진 sx_ict_flux.js MPL 2.0)
   // [S1846] 종목분석 🕯️ 캔들 · 차트 읽기 카드(옛 캔들 패턴 칸 병합 + PDF 봉 · 갭 · 이평 · 거래량 · 반등 체크 · 보이기만 · 읽기 도움 · 판정 아님)
