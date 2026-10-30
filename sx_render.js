@@ -6155,6 +6155,7 @@ function _trendGridCell(num,label,color){ return `<div style="flex:1;min-width:0
 //   사용자 지시 2026-10-18 15:14 · 17:37("ict가 잘돼면 다른 파생전략의 게이트" · "측정이 먼저 · bt도 구현 · 6개탭은 풀bt방식"). 정의 = PREREG_S1824_ict_tab.md §1.
 //   셋업 = offline/ict/ict_criteria.md(측정 meas_ict.js 와 같은 식) · 측정 결과 offline/ict/ict_result.md = 일봉 9판 모두 못 가름 → 실험 도구 · 판정 아님.
 const _ICT_VER = 1, _ICT_SETUPS = ['fvg', 'ob', 'rev', 'cont', 'ssl'], _ICT_TAG = { fvg:'FVG', ob:'오더블록', rev:'반전', cont:'이어감', ssl:'SSL 스윕' };   // [S1836] 🎯 SSL 스윕 진입
+const _ICT_XSETUPS = ['ts', 'uc', 'jdw']; Object.assign(_ICT_TAG, { ts:'터틀 수프', uc:'유니콘', jdw:'주다스' });   // [S1847] 🧪 실험 셋업 셋(엔진 sx_ict_flux.js · MPL 2.0) — 셋업 칸에 저장 · 원본 청산 고정
 // [S1830] 🔄 3시장 기본 리셋 세트(🎯 ICT · 🚦 슈퍼트렌드 · ⚓ 지지/저항) — 사용자 결정(2026-10-20 19:37 화면 PDF · 20:00 "리셋을 내가 올려준 설정되로")을 offline/bat/decision_s1830_short_reset.txt 에 판독해 두고
 //   gen_s1830_reset.py 가 아래 한 줄을 생성했다(옮겨 적기 0). 화면에 칸이 없는 값(ICT disc · 지지/저항 pl · volM)은 종전 기본 · 코인은 봉 구분 없이 같은 값.
 //   쓰는 자리 = _xxDefaults(mk)(처음 값 · 🔄 리셋) 뿐 — mk 없는 _xxDefaults()(엔진 빈 칸 채움 · 직접 호출)는 종전 그대로.
@@ -6163,12 +6164,13 @@ const _ICT_VER = 1, _ICT_SETUPS = ['fvg', 'ob', 'rev', 'cont', 'ssl'], _ICT_TAG 
 const _SHORT_MKT_PRESET = {"ict":{"kr":{"setup":"fvg","ent":"top","tp":"r","tpR":1,"hold":30,"slOff":true,"xt":true},"us":{"setup":"fvg","ent":"top","tp":"r","tpR":1,"hold":60,"slOff":true,"xt":true},"coin":{"setup":"ob","ent":"top","tp":"r","tpR":1,"hold":15,"slOff":true}},"st":{"kr":{"ent":"pb","atrP":14,"mult":1,"tp1":false},"us":{"ent":"flip","atrP":14,"mult":3,"tp1":false},"coin":{"ent":"pb","atrP":14,"mult":3,"tp1":true}},"sr":{"kr":{"line":"pv","slM":5,"tpR":1,"hold":60},"us":{"line":"rn","slM":5,"tpR":1,"hold":60},"coin":{"line":"rn","slM":4,"tpR":1,"hold":15}}};
 function _ictDefaults(mk){ const d={ _ver:_ICT_VER, setup:'fvg', ent:'top', tp:'r', tpR:2, hold:30, disc:true }, P=(mk && Object.prototype.hasOwnProperty.call(_SHORT_MKT_PRESET.ict, mk))?_SHORT_MKT_PRESET.ict[mk]:null; if(P) Object.keys(P).forEach(function(k){ d[k]=P[k]; }); return d; }   /* [S1830] mk = 그 시장 리셋 세트(없으면 종전 값) */
 function _ictNorm(o){ const d=_ictDefaults(), s=(o&&typeof o==='object')?o:{}, num=(v,lo,hi,def,int)=>{ if(v==null || v==='' || typeof v==='boolean') return def; let x=+v; if(!isFinite(x)) return def; if(int) x=Math.round(x); return Math.min(hi, Math.max(lo, x)); };
-  return Object.assign({ _ver:_ICT_VER, setup:(_ICT_SETUPS.indexOf(s.setup)>=0)?s.setup:d.setup, ent:(s.ent==='mid')?'mid':'top', tp:(s.tp==='sw' || s.tp==='bsl')?s.tp:'r' /* [S1836] BSL */, tpR:num(s.tpR,0.5,10,d.tpR,false), hold:num(s.hold,5,200,d.hold,true), disc:(s.disc===false)?false:true }, (s.xt===true)?{ xt:true }:{} /* [S1835] 🎯 1R 절반 + 트레일 — 켰을 때만 키(끄면 S1834 와 바이트 같음) */, (s.tpOff===true)?{ tpOff:true }:{}, (s.slOff===true)?{ slOff:true }:{}, (s.hdOff===true)?{ hdOff:true }:{} /* [S1836] 익절 · 손절 · N봉 끔 — 껐을 때만 키(켠 기본은 S1835 와 바이트 같음) */); }
+  return Object.assign({ _ver:_ICT_VER, setup:(_ICT_SETUPS.indexOf(s.setup)>=0 || _ICT_XSETUPS.indexOf(s.setup)>=0 /* [S1847] */)?s.setup:d.setup, ent:(s.ent==='mid')?'mid':'top', tp:(s.tp==='sw' || s.tp==='bsl')?s.tp:'r' /* [S1836] BSL */, tpR:num(s.tpR,0.5,10,d.tpR,false), hold:num(s.hold,5,200,d.hold,true), disc:(s.disc===false)?false:true }, (s.xt===true)?{ xt:true }:{} /* [S1835] 🎯 1R 절반 + 트레일 — 켰을 때만 키(끄면 S1834 와 바이트 같음) */, (s.tpOff===true)?{ tpOff:true }:{}, (s.slOff===true)?{ slOff:true }:{}, (s.hdOff===true)?{ hdOff:true }:{} /* [S1836] 익절 · 손절 · N봉 끔 — 껐을 때만 키(켠 기본은 S1835 와 바이트 같음) */); }
 function _ictCfg(mk){ let o=null; try{ const raw=_sxTfGetRaw('SX_ICT_',mk); if(raw){ const p=JSON.parse(raw); if(p && p._ver===_ICT_VER) o=p; } }catch(_){} return _ictNorm(o||_ictDefaults(mk) /* [S1830] 그 시장 세트 */); }
 function _ictSave(mk,c){ try{ localStorage.setItem(_sxTfKey('SX_ICT_',mk), JSON.stringify(_ictNorm(c))); }catch(_){} }
 // 엔진 — 봉 t 마다 ① 확정 스윙 넣기 ② 보유 청산(손절 → 목표 → 보유 봉) ③ 대기 지정가(만료 · 닿음 → 체결 · 안 닿음 → 이어감 취소) ④ 셋업 찾기(늘 돎 · 보유 없을 때만 주문 · 새 주문이 대기 주문을 바꿈)
-function _ictBt(rows, cfg, feeP){
+function _ictBt(rows, cfg, feeP, tf, mk){   /* [S1847] tf · mk = 🧪 실험 셋업만 씀 */
   const P0=_ictNorm(cfg), n=(rows&&rows.length)||0, fee=(+feeP>0)?+feeP:0; if(n<60) return null;
+  if(_ICT_XSETUPS.indexOf(P0.setup)>=0) return _ictXBt(rows, P0, fee, tf, mk);   /* [S1847] 🧪 실험 셋업 → sx_ict_flux.js(원본 청산 고정) */
   const num=v=>{ v=+v; return isFinite(v)?v:NaN; }, O=new Array(n), H=new Array(n), L=new Array(n), C=new Array(n);
   for(let i=0;i<n;i++){ const r=rows[i]||{}; C[i]=num(r.close!=null?r.close:r.c); H[i]=num(r.high!=null?r.high:r.h); L[i]=num(r.low!=null?r.low:r.l); O[i]=num(r.open!=null?r.open:r.o); }
   const A=_fibAtr(rows), dt=i=>(rows[i]&&(rows[i].date||rows[i].t))||'', S=P0.setup, PV=[];
@@ -6220,7 +6222,52 @@ function _ictBt(rows, cfg, feeP){
     predHit:null, predFires:0, predDcHit:null, predDcFires:0, predDday:null, predDdayProb:null, predDdayType:null, predExitNow:false, heldSkipGc:0, _ict:true,
     ict:Object.assign({ cfg:P0, slN:trades.filter(t=>t.why==='sl').length, tpN:trades.filter(t=>t.why==='tp').length, tmN:trades.filter(t=>t.why==='tm').length, avgR:nT?+(sumR/nT).toFixed(2):null, pend, exitToday:(lastT && lastT.exitIdx===li)?lastT:null }, P0.xt?{ beN:trades.filter(t=>t.why==='be').length, trlN:trades.filter(t=>t.why==='trl').length, tp1N:trades.filter(t=>t.tp1).length }:{} /* [S1835] */, (S==='ssl')?{ sslLvl:stk.length?stk[stk.length-1].p:null }:{} /* [S1836] SSL 대기 글자 */, K) };
 }
-function _ictBtFor(rows, mk){ return _ictBt(rows, _ictCfg(mk), _trendFeeOf(mk)); }
+// ═══════════ [S1847] 🎯 ICT 🧪 실험 셋업 셋(Turtle Soup · Unicorn · Judas 옮긴 판) — 엔진 = sx_ict_flux.js(MPL 2.0 · Flux Charts © fluxchart 원본에서 옮김 · 이 파일엔 옮긴 코드 없음) ═══════════
+//   사용자 지시 2026-10-30 11:35("실험칩으로 넣어보자 한번 살펴볼게") · 정의 = PREREG_S1847_ict_flux.md §1 · 측정 offline/ictx2(자리 제안 규칙 통과 0) → 원본 청산 고정 · 성적 주장 없음 · 매수만
+const _ICT_XSN = { ts:'🧪 터틀 수프', uc:'🧪 유니콘', jdw:'🧪 주다스' };
+const _ICT_XINFO = {
+  ts:{ desc:'위 묶음(일봉 7봉 · 4시간 6봉 · 1시간 4봉) 최저가를 장중에 깨면(가짜 하락 · 터틀 수프) 그 뒤 고가가 앞 봉까지 10봉 최고가를 넘는 순간 매수(체결 = max(시가, 그 값)) · 원본은 위로 깨면 매도 쪽 셋업도 기계를 잡음', ex:'손절 = 앞 봉까지 10봉 최저 − 3.5 × ATR5(앞 봉) · 목표 = 진입 + 0.9 × 위험' },
+  uc:{ desc:'깨진 하락 오더블록(브레이커)과 상승 FVG 가 겹치는 봉이 생기면(유니콘) 다음 봉 종가에 매수 · FVG(세 봉 같은 쪽 · ATR10 거름) · 오더블록(10봉 스윙 깸)은 원본 장치 그대로', ex:'손절 = 100봉 최저 − 4.75 × ATR50 · 목표 = 진입 + 0.57 × 위험' },
+  jdw:{ desc:'세션(일봉 = 주 · 4시간 · 1시간 = 한국 09:00 시작 하루) 첫 2봉(1시간은 6봉) 안에 종가가 유동성 저점(스윙 3 · 3) 아래로 내려가면(가짜 하락 · 주다스) 그 뒤 처음 생긴 상승 FVG 봉 종가에 매수 · 원본 시계(뉴욕 개장 뒤 15분)를 달력으로 옮긴 판', ex:'손절 = 진입 − 6.5 × ATR50 · 목표 = 진입 + 0.47 × 위험' } };
+function _ictXTf(tf, mk){ if(!tf || tf==='day') return 'd'; if(mk==='coin' && tf==='240m') return 'h4'; if(mk==='coin' && tf==='60m') return 'h1'; return null; }   /* 지원 = 일봉(3시장) · 코인 4시간 · 1시간(잰 곳) */
+function _ictXBt(rows, P0, fee, tf, mk){
+  const n=rows.length, num=v=>{ v=+v; return isFinite(v)?v:NaN; }, C=rows.map(r=>num(r&&(r.close!=null?r.close:r.c))), dt=i=>(rows[i]&&(rows[i].date||rows[i].t))||'';
+  const k=P0.setup, xt=_ictXTf(tf, mk), F=(typeof window!=='undefined' && window.SXIctFlux) ? window.SXIctFlux : null;
+  const X={ kind:k, tf:xt, xShort:false, nShort:0, unsup:xt?null:String(tf||''), missing:!F }; let R=null;
+  if(xt && F){ try{ R=F.run(k, rows, xt); }catch(e){ R=null; } }
+  const trades=[]; let open=null;
+  if(R){ X.xShort=!!R.xShort; X.nShort=R.nShort||0;
+    R.trades.forEach(t=>{ const d=t.e-t.sl, pnl=(t.x/t.e-1)*100-fee; trades.push({ entry:t.e, exit:t.x, pnl:+pnl.toFixed(2), bars:t.xi-t.i, entryIdx:t.i, exitIdx:t.xi, sigIdx:t.i, stopPx:t.sl, tpPx:t.tp, R:(d>0)?+((t.x-t.e)/d).toFixed(3):0, why:(t.why==='sl0'?'sl':(t.why==='tp0'?'tp':t.why)), kind:k, entryDate:dt(t.i), exitDate:dt(t.xi) }); });
+    if(R.open){ const o=R.open, last=C[n-1]; open={ entry:o.e, cur:last, pnl:+((last/o.e-1)*100).toFixed(2), bars:(n-1)-o.i, entryIdx:o.i, sigIdx:o.i, stopPx:o.sl, tpPx:o.tp, kind:k, entryDate:dt(o.i) }; } }
+  const nT=trades.length; let wins=0,lossN=0,grossW=0,grossL=0,sumPnl=0,sumR=0;
+  trades.forEach(t=>{ if(t.pnl>0){wins++;grossW+=t.pnl;} else if(t.pnl<0){lossN++;grossL+=-t.pnl;} sumPnl+=t.pnl; sumR+=t.R; });
+  const winRate=nT?Math.round(wins/nT*1000)/10:0, avgWin=wins?+(grossW/wins).toFixed(2):0, avgLoss=lossN?+(grossL/lossN).toFixed(2):0, pf=grossL>0?Math.round(grossW/grossL*100)/100:(grossW>0?99:0), expectancy=nT?+(sumPnl/nT).toFixed(2):0;
+  let eq=1,peak=1,mdd=0; trades.forEach(t=>{ eq*=(1+t.pnl/100); if(eq>peak)peak=eq; const dd=peak>0?(peak-eq)/peak:0; if(dd>mdd)mdd=dd; });
+  const li=n-1, lastT=nT?trades[nT-1]:null;
+  return { winRate, pf, totalPnl:+((eq-1)*100).toFixed(2), totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, feePct:fee, lastClose:C[li],
+    predHit:null, predFires:0, predDcHit:null, predDcFires:0, predDday:null, predDdayProb:null, predDdayType:null, predExitNow:false, heldSkipGc:0, _ict:true,
+    ict:{ cfg:P0, slN:trades.filter(t=>t.why==='sl').length, tpN:trades.filter(t=>t.why==='tp').length, tmN:0, avgR:nT?+(sumR/nT).toFixed(2):null, pend:null, exitToday:(lastT && lastT.exitIdx===li)?lastT:null, setups:R?R.nSet:0, fills:R?R.nSet:0, dropRisk:0, dropDisc:0, dropSw:0, cancel:0, expire:0, replaced:0, x:X } };
+}
+function _ictXPanelRows(mk, c, bt, fee, row, lab, B, note, col){
+  const info=_ICT_XINFO[c.setup], X=(bt&&bt.ict&&bt.ict.x)||null, I=(bt&&bt.ict)||null;
+  let h=`<div style="font-size:9px;color:var(--text3);margin:-2px 0 7px;line-height:1.5">${info.desc}</div>`;
+  h+=row(lab(B('청산')+' = 원본 고정')+note(info.ex+' · 장중 저가 · 고가로 닿음 · 같은 봉에 둘 다면 손절 먼저 · 갭이면 시가'));
+  h+=row(note('탭의 진입 · 손절 · 익절 · 최대 보유 · 1R 절반 칸은 이 셋업에 안 씀 · 지원 = 일봉 · 코인 4시간 · 1시간 · 매수만(원본 기계는 양쪽)'));
+  h+=row(note((fee>0?('💸 왕복 '+fee+'%p 차감'):'무마찰')+' · 다른 탭과 같은 값')
+    +`<span style="margin-left:auto;display:flex;gap:6px"><span onclick="_sxVib(9);window._ictReset&&_ictReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span></span>`, 9);
+  const last=bt?bt.lastClose:null, rel=x=>(x>0&&last>0)?(((x/last)-1)*100):null, sg=v=>v==null?'—':((v>0?'+':'')+v.toFixed(1)+'%');
+  let st='', sc='var(--text2)';
+  if(!bt || !I){ st='🎯 데이터 부족 — 봉이 60개 이상이어야 합니다'; sc='var(--text3)'; }
+  else if(X && X.missing){ st='🧪 실험 엔진 파일(sx_ict_flux.js)을 못 불러옴 — 새로고침 · 배포 확인'; sc='var(--text3)'; }
+  else if(X && X.unsup!=null){ st='🧪 이 셋업은 일봉 · 코인 4시간 · 1시간에서만 돎(지금 '+((typeof _poolTfLbl==='function')?_poolTfLbl(X.unsup):X.unsup)+(mk!=='coin'?(' · '+String(mk).toUpperCase()):'')+')'; sc='var(--text3)'; }
+  else if(bt.open){ const o=bt.open; st='🎯 보유 중 · '+(o.bars===0?'오늘':o.bars+'봉 전')+' 진입 '+_turtleFmt(o.entry)+'('+_ICT_TAG[o.kind]+') · 평가 '+sg(o.pnl)+' · 🛑 손절 '+_turtleFmt(o.stopPx)+' ('+sg(rel(o.stopPx))+') · 🏁 목표 '+_turtleFmt(o.tpPx)+' ('+sg(rel(o.tpPx))+')'; sc=o.pnl>=0?'#22c55e':'#e8365a'; }
+  else { const x=I.exitToday; st=(x?('🔴 오늘 청산 — '+(x.why==='sl'?'🛑 손절':'🏁 익절')+' '+_turtleFmt(x.exit)+' ('+sg(x.pnl)+') · '):'')+'🎯 대기 — 보유 없음'+(X && X.xShort?' · 원본 기계가 지금 매도 쪽 셋업을 잡고 있음(그게 끝나야 새 매수)':(' · 셋업이 나오면 '+(c.setup==='ts'?'10봉 최고가를 넘는 순간':(c.setup==='uc'?'겹친 다음 봉 종가':'FVG 봉 종가'))+'에 매수')); sc=x?'#e8365a':'var(--text2)'; }
+  h+=`<div data-ict-st="1" style="font-size:12px;font-weight:700;color:${sc};margin-bottom:6px;padding:7px 10px;background:var(--surface2);border-radius:8px;line-height:1.5">${st}</div>`;
+  if(I && X && !X.missing && X.unsup==null) h+=`<div data-ict-sum="1" style="font-size:9.5px;color:var(--text3);margin-bottom:7px">확정 ${bt.totalTrades}건 · 🏁 익절 ${I.tpN} · 🛑 손절 ${I.slN} · 평균 ${I.avgR==null?'—':((I.avgR>=0?'+':'')+I.avgR+'R')} · 매수 진입 ${I.setups} · 매도 쪽 가상 셋업 ${X.nShort} · 🧪 실험 · 성적 주장 없음</div>`;
+  return h; }
+function _ictXDesc(c, fe){ return (fe>0?('💸왕복 '+fe+'%p · '):'무마찰 · ')+'🧪 실험 셋업['+_ICT_TAG[c.setup]+'] → 원본 청산 고정('+_ICT_XINFO[c.setup].ex+') · 지원 일봉 · 코인 4시간 · 1시간 · 성적 주장 없음'; }
+function _ictXNoteHtml(){ return '<br><span data-ict-xnote="1">🧪 실험 셋업 셋(offline/ictx2 · 2026-10-29 · 일봉 9판 + 코인 4시간 · 1시간 · 원본 청산 · 매수만 · 같은 청산으로 아무 데서나 산 무작위 · 같은 비율 그냥 두기와 비교): 터틀 수프 = 코인 1시간만 무작위보다 나음(그냥 두기는 판마다 갈림) · 일봉 · 4시간 못 가름 / 유니콘 = 다섯 묶음 모두 못 가름(KR 최신 판은 102건 모두 익절이지만 판정은 못 가름) / 주다스 = KR · US 일봉 그냥 두기보다 나음(무작위와는 갈림) · 코인 못 가름 — 자리 제안 규칙(둘 다 넘음) 통과 0 · <b>성적 주장 없음</b> · 원본 = Flux Charts(© fluxchart) Pine Script · MPL 2.0 · 옮긴 코드 = sx_ict_flux.js(MPL 2.0)</span>'; }
+function _ictBtFor(rows, mk){ return _ictBt(rows, _ictCfg(mk), _trendFeeOf(mk), _sxTfNow(), mk /* [S1847] */); }
 function _ictTag(t){ try{ const ctx=window._sxTrendCtx, c=_ictCfg((ctx&&ctx.market)||'kr'), x=(t.why==='sl')?'🛑손절':((t.why==='tp')?'🏁익절':((t.why==='tm')?('⏱'+c.hold+'봉'):((t.why==='be')?'↩본전':((t.why==='trl')?'📈트레일':'')))) /* [S1835] */; return ' · 🎯'+(_ICT_TAG[t.kind]||'ICT')+(t.tp1?' · 🏁1R절반':'')+(x?('→'+x):''); }catch(_){ return ''; } }
 function _ictPanelHtml(mk, rows, bt){
   const c=_ictCfg(mk), I=(bt&&bt.ict)||null, col=_TREND_TAB_COL.ict, fee=_trendFeeOf(mk);
@@ -6233,6 +6280,8 @@ function _ictPanelHtml(mk, rows, bt){
   let h=_sxTfSplitOn(mk) ? _tfStoreLine(_poolTfLbl(_sxTfNow()), _sxTfHasOwn('SX_ICT_',mk), 'ict') : '';
   const SN={ fvg:'FVG 되돌림', ob:'오더블록', rev:'반전 · 스윕→CHoCH→FVG', cont:'이어감 · BOS→FVG', ssl:'SSL 스윕' /* [S1836] */ };
   h+=row(lab(B('셋업'))+_ICT_SETUPS.map(k=>seg(c.setup===k, SN[k], 'setup|'+k)).join(''));
+  h+=row(lab(B('🧪 실험'))+_ICT_XSETUPS.map(k=>seg(c.setup===k, _ICT_XSN[k], 'setup|'+k)).join('')+note('원본 청산 고정 · 성적 주장 없음'));   /* [S1847] */
+  if(_ICT_XSETUPS.indexOf(c.setup)>=0) return h+_ictXPanelRows(mk, c, bt, fee, row, lab, B, note, col);   /* [S1847] 🧪 실험 셋업 — 아래 칸 대신 원본 청산 · 상태 · 요약 */
   const DESC={ fvg:'상승 FVG(1번 봉 고가 &lt; 3번 봉 저가 · 2번 양봉)가 생기면 그 구역에 지정가 매수 · 30봉 안 첫 닿음', ob:'종가로 마지막 스윙 고점을 넘으면(BOS) 그 직전 20봉 안 마지막 음봉(오더블록) 고가에 지정가 매수 · 30봉 안', rev:'고점이 낮아지는 중 남은 스윙 저점을 꼬리로 깨고 종가는 위(스윕) → 20봉 안 종가로 마지막 고점 돌파(CHoCH) → 그 사이 가장 최근 FVG 위 끝에 지정가 · 20봉 안 · CHoCH 전에 스윕 저점이 깨지면 무효', cont:'저점이 높아지는 중 종가로 마지막 고점 돌파(BOS) → 그 파동 안 가장 최근 FVG 위 끝에 지정가 · 30봉 안 · 닿기 전에 종가가 파동 바닥 아래면 취소', ssl:'저가가 남아 있는 가장 최근 스윙 저점 아래로 내려갔다가 종가는 그 위(SSL 스윕 · 아래쪽 유동성 청산)면 그 봉 종가에 매수 · 지정가 없음 · 보유 중이면 무시' /* [S1836] */ };
   h+=`<div style="font-size:9px;color:var(--text3);margin:-2px 0 7px;line-height:1.5">${DESC[c.setup]} · 스윙 = 좌우 3봉 프랙탈(3봉 뒤 확정) · 돌파 · 깸은 종가</div>`;
   if(c.setup==='fvg') h+=row(lab(B('진입'))+seg(c.ent==='top','FVG 위 끝','ent|top')+seg(c.ent==='mid','FVG 50%','ent|mid'));
@@ -6256,10 +6305,10 @@ function _ictPanelHtml(mk, rows, bt){
   if(I) h+=`<div data-ict-sum="1" style="font-size:9.5px;color:var(--text3);margin-bottom:7px">확정 ${bt.totalTrades}건 · ${I.tp1N!=null?('🏁 1R 절반 '+I.tp1N+' · 🛑 손절 '+I.slN+' · ↩ 본전 '+I.beN+' · 📈 트레일 '+I.trlN):('🏁 익절 '+I.tpN+' · 🛑 손절 '+I.slN)} · ⏱ 시간 ${I.tmN} · 평균 ${I.avgR==null?'—':((I.avgR>=0?'+':'')+I.avgR+'R')} · 셋업 ${I.setups}(새 셋업으로 바뀜 ${I.replaced}) · 체결 ${I.fills} · 버림 ${I.dropRisk+I.dropDisc+I.dropSw} · 취소 ${I.cancel} · 만료 ${I.expire}</div>`;
   return h; }
 function _ictNoteHtml(mk){
-  return `<div data-ict-note="1" style="font-size:8.5px;color:var(--text3);line-height:1.55;margin-top:8px;padding:7px 9px;background:var(--surface2);border-radius:7px">🎯 ICT(이너 서클 트레이더) 셋업을 프랙탈 스윙(좌우 3봉 · 3봉 뒤 확정)으로 정의해 기계로 돌린 것 — <b>매수만</b> · 한 번에 한 포지션 · 지정가는 셋업 다음 봉부터(새 셋업이 대기 지정가를 바꿈) · 체결 = min(시가, 지정가) · 손절은 장중 저가 · 익절은 장중 고가 · 같은 봉에 둘 다면 손절 먼저 · 킬존(세션 시각) · 주봉 오더블록 탑다운은 없음 · 저장은 다른 탭과 따로<br>📏 측정(offline/ict · 9판 일봉 · 2026-10-18 · 10-29 체결 봉 ATR 을 앞 봉 ATR 로 고쳐 다시 잼(offline/ictfix · 판정 그대로) · 같은 위험을 아무 자리에 건 대조와 비교): 스윕 뒤 20봉 오름 못 가름 · FVG 되돌림 대조보다 +0.01~0.18R(9판 중 8판 플러스 · 기준 +0.10R 미달) · 오더블록 판마다 갈림 · 반전 셋업 8판 중 7판 대조보다 낮음 · 이어감 판마다 갈림(프리미엄 쪽이 같거나 나음) — <b>모두 못 가름</b> · 오름장에선 아무 자리에 같은 1R:2R 를 걸어도 기대 R 플러스 · 코인 60분봉(서술)은 네 셋업 대조보다 +0.04~0.11R — 실험 도구 · 판정 아님<br><span data-ict-xtnote="1">📏 1R 절반 + 트레일 칩(offline/ictexit · 2026-10-23 · 일봉 9판 + 코인 4시간 · 1시간 · 진입은 그대로 · 청산만 바꿈): KR 3판 모두 지금 세트보다 나음(같은 비율 잣대 +0.6 ~ +9.3) · 같은 비율 그냥 두기는 못 가름(A 판만 이김) · US · 코인 못 가름 · 1R 에서 안 팔고 전량 트레일은 어디서도 못 나음 — 켬/끔 비교용 · 판정 아님</span><br><span data-ict-bslnote="1">📏 SSL 스윕 진입 · BSL 익절(offline/ictbsl · 2026-10-24 · 일봉 9판 + 코인 4시간 · 1시간 · BSL 보유 60봉 · 같은 손절 · 같은 BSL 을 아무 자리에 건 대조와 비교): US SSL→BSL 거래당 아무 자리보다 나음(3/3) · 지금 탭보다 D 나음(대부분 덜 들고 있어서) · KR FVG→BSL 거래당 아무 자리보다 나음 · 코인 SSL 은 지금 탭 · 아무 자리보다 못함 · 그냥 두기는 어디서도 못 넘음 — 켬/끔 비교용 · 판정 아님</span><br><span data-ict-fvgnote="1">🧲 FVG 측정(offline/fvgmag · fvgweek · 2026-10-19 · 일봉 9판 · 주봉 9판 · 주봉 FVG→일봉 6판 · 같은 거리의 아무 선과 비교): 자석(FVG 쪽으로 먼저 가나) · 위아래 둘 다일 때 어느 쪽 먼저(추세 · 높이로 나눠도) · 닿은 뒤 튕김 · 뒤집힘(IFVG) — <b>모두 못 가름</b> · FVG 까지 반등하면 2차 폭락은 오히려 덜 잦은 쪽(일봉 9판 중 8판 · 주봉 7판 · 판정선 미달) · 하락 FVG 아래 매수 금지는 근거 없음(일봉 8판에서 오히려 조금 더 오름) · 주봉 상승 FVG 에 일봉이 처음 닿으면 20일 뒤 오른 비율 +1.0~2.5%p(6판 모두 · 판정선 +3 미달) — 읽기 도움 · 판정 아님</span><br><span data-ict-rsnote="1">🔄 리셋 세트(사용자 결정 2026-10-27 · offline/ictuser · ictuser2): KR = FVG · 손절 끔 · 1R 절반(나머지 30봉 끝) · US = 같음(60봉) · 코인 = 오더블록 · 1R · 손절 끔 · 15봉 — 바꾸기 전 세트보다 KR · US 3판 모두 나음 · 코인 4시간 · 1시간 3판 모두 나음 · 코인 일봉 못 가름(같은 비율 잣대) · 같은 청산으로 아무 데서나 산 무작위와는 KR · US · 코인 일봉 못 가름 · 그냥 두기는 코인 1시간만 3판 모두 넘음 · 손절이 없어 한 거래가 −40 ~ −60% 까지 간 일 있음 · 손절 범위(셋업 저가 · −1 ATR · 체결가 −2 ATR)를 켜면 D 가 낮은 판이 대부분 — 실험 도구 · 판정 아님</span></div>`;   /* [S1837] 🔄 리셋 세트 한 줄 */ }   /* [S1826] 🧲 FVG 측정 한 줄 */
+  return `<div data-ict-note="1" style="font-size:8.5px;color:var(--text3);line-height:1.55;margin-top:8px;padding:7px 9px;background:var(--surface2);border-radius:7px">🎯 ICT(이너 서클 트레이더) 셋업을 프랙탈 스윙(좌우 3봉 · 3봉 뒤 확정)으로 정의해 기계로 돌린 것 — <b>매수만</b> · 한 번에 한 포지션 · 지정가는 셋업 다음 봉부터(새 셋업이 대기 지정가를 바꿈) · 체결 = min(시가, 지정가) · 손절은 장중 저가 · 익절은 장중 고가 · 같은 봉에 둘 다면 손절 먼저 · 킬존(세션 시각) · 주봉 오더블록 탑다운은 없음 · 저장은 다른 탭과 따로<br>📏 측정(offline/ict · 9판 일봉 · 2026-10-18 · 10-29 체결 봉 ATR 을 앞 봉 ATR 로 고쳐 다시 잼(offline/ictfix · 판정 그대로) · 같은 위험을 아무 자리에 건 대조와 비교): 스윕 뒤 20봉 오름 못 가름 · FVG 되돌림 대조보다 +0.01~0.18R(9판 중 8판 플러스 · 기준 +0.10R 미달) · 오더블록 판마다 갈림 · 반전 셋업 8판 중 7판 대조보다 낮음 · 이어감 판마다 갈림(프리미엄 쪽이 같거나 나음) — <b>모두 못 가름</b> · 오름장에선 아무 자리에 같은 1R:2R 를 걸어도 기대 R 플러스 · 코인 60분봉(서술)은 네 셋업 대조보다 +0.04~0.11R — 실험 도구 · 판정 아님<br><span data-ict-xtnote="1">📏 1R 절반 + 트레일 칩(offline/ictexit · 2026-10-23 · 일봉 9판 + 코인 4시간 · 1시간 · 진입은 그대로 · 청산만 바꿈): KR 3판 모두 지금 세트보다 나음(같은 비율 잣대 +0.6 ~ +9.3) · 같은 비율 그냥 두기는 못 가름(A 판만 이김) · US · 코인 못 가름 · 1R 에서 안 팔고 전량 트레일은 어디서도 못 나음 — 켬/끔 비교용 · 판정 아님</span><br><span data-ict-bslnote="1">📏 SSL 스윕 진입 · BSL 익절(offline/ictbsl · 2026-10-24 · 일봉 9판 + 코인 4시간 · 1시간 · BSL 보유 60봉 · 같은 손절 · 같은 BSL 을 아무 자리에 건 대조와 비교): US SSL→BSL 거래당 아무 자리보다 나음(3/3) · 지금 탭보다 D 나음(대부분 덜 들고 있어서) · KR FVG→BSL 거래당 아무 자리보다 나음 · 코인 SSL 은 지금 탭 · 아무 자리보다 못함 · 그냥 두기는 어디서도 못 넘음 — 켬/끔 비교용 · 판정 아님</span><br><span data-ict-fvgnote="1">🧲 FVG 측정(offline/fvgmag · fvgweek · 2026-10-19 · 일봉 9판 · 주봉 9판 · 주봉 FVG→일봉 6판 · 같은 거리의 아무 선과 비교): 자석(FVG 쪽으로 먼저 가나) · 위아래 둘 다일 때 어느 쪽 먼저(추세 · 높이로 나눠도) · 닿은 뒤 튕김 · 뒤집힘(IFVG) — <b>모두 못 가름</b> · FVG 까지 반등하면 2차 폭락은 오히려 덜 잦은 쪽(일봉 9판 중 8판 · 주봉 7판 · 판정선 미달) · 하락 FVG 아래 매수 금지는 근거 없음(일봉 8판에서 오히려 조금 더 오름) · 주봉 상승 FVG 에 일봉이 처음 닿으면 20일 뒤 오른 비율 +1.0~2.5%p(6판 모두 · 판정선 +3 미달) — 읽기 도움 · 판정 아님</span><br><span data-ict-rsnote="1">🔄 리셋 세트(사용자 결정 2026-10-27 · offline/ictuser · ictuser2): KR = FVG · 손절 끔 · 1R 절반(나머지 30봉 끝) · US = 같음(60봉) · 코인 = 오더블록 · 1R · 손절 끔 · 15봉 — 바꾸기 전 세트보다 KR · US 3판 모두 나음 · 코인 4시간 · 1시간 3판 모두 나음 · 코인 일봉 못 가름(같은 비율 잣대) · 같은 청산으로 아무 데서나 산 무작위와는 KR · US · 코인 일봉 못 가름 · 그냥 두기는 코인 1시간만 3판 모두 넘음 · 손절이 없어 한 거래가 −40 ~ −60% 까지 간 일 있음 · 손절 범위(셋업 저가 · −1 ATR · 체결가 −2 ATR)를 켜면 D 가 낮은 판이 대부분 — 실험 도구 · 판정 아님</span>${_ictXNoteHtml()}</div>`;   /* [S1847] 🧪 실험 셋업 문단 */   /* [S1837] 🔄 리셋 세트 한 줄 */ }   /* [S1826] 🧲 FVG 측정 한 줄 */
 function _ictApply(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market, c=_ictCfg(m), gv=id=>{ const e=document.getElementById(id); return e?e.value:null; };
   [['sxIctTpR','tpR'],['sxIctHold','hold']].forEach(p=>{ const v=gv(p[0]); if(v!=null && v!=='') c[p[1]]=+v; }); _ictSave(m,c); _trendRerender(); if(window._trendRedrawChart) _trendRedrawChart(); }
-function _ictSet(arg){ const ctx=window._sxTrendCtx; if(!ctx) return; const kv=String(arg||'').split('|'), k=kv[0], v=kv[1], ok={ setup:_ICT_SETUPS, ent:['top','mid'], tp:['r','sw','bsl'] /* [S1836] */ }; if(!ok[k] || ok[k].indexOf(v)<0) return; const m=ctx.market, c=_ictCfg(m); c[k]=v; _ictSave(m,c); _trendRerender(); if(window._trendRedrawChart) _trendRedrawChart(); }
+function _ictSet(arg){ const ctx=window._sxTrendCtx; if(!ctx) return; const kv=String(arg||'').split('|'), k=kv[0], v=kv[1], ok={ setup:_ICT_SETUPS.concat(_ICT_XSETUPS) /* [S1847] */, ent:['top','mid'], tp:['r','sw','bsl'] /* [S1836] */ }; if(!ok[k] || ok[k].indexOf(v)<0) return; const m=ctx.market, c=_ictCfg(m); c[k]=v; _ictSave(m,c); _trendRerender(); if(window._trendRedrawChart) _trendRedrawChart(); }
 function _ictToggle(k){ const ctx=window._sxTrendCtx; if(!ctx || (['disc','xt','tpOff','slOff','hdOff'].indexOf(k)<0 /* [S1835] · [S1836] */)) return; const m=ctx.market, c=_ictCfg(m); c[k]=!c[k]; _ictSave(m,c); _trendRerender(); if(window._trendRedrawChart) _trendRedrawChart(); }
 function _ictReset(){ const ctx=window._sxTrendCtx; if(!ctx) return; _ictSave(ctx.market,_ictDefaults(ctx.market) /* [S1830] 그 시장 세트 */); _trendRerender(); if(window._trendRedrawChart) _trendRedrawChart(); }
 if(typeof window!=='undefined'){ window._ictApply=_ictApply; window._ictSet=_ictSet; window._ictToggle=_ictToggle; window._ictReset=_ictReset; window._ictBt=_ictBt; window._ictCfg=_ictCfg; }
@@ -6277,7 +6326,8 @@ function _ictPoolList(mk){
   return { list, from:'src' };
 }
 function _ictSig(mk){ const c=_ictCfg(mk); return JSON.stringify({ c:[c.setup,c.ent,c.tp,c.tpR,c.hold,c.disc?1:0].concat(c.xt?['xt']:[]).concat(['tpOff','slOff','hdOff'].filter(k=>c[k])) /* [S1836] 껐을 때만 */ /* [S1835] 켰을 때만 */, fee:_trendFeeOf(mk), tf:_poolTfOf() }); }
-function _ictDesc(mk){ const c=_ictCfg(mk), fe=_trendFeeOf(mk), SLT={ fvg:'1번 봉 저가', ob:'오더블록 봉 저가', rev:'스윕 저점', cont:'파동 바닥', ssl:'스윕 봉 저가' /* [S1836] */ }, swOK=(c.setup==='rev' || c.setup==='cont');
+function _ictDesc(mk){ const c=_ictCfg(mk), fe=_trendFeeOf(mk); if(_ICT_XSETUPS.indexOf(c.setup)>=0) return _ictXDesc(c, fe);   /* [S1847] */
+  const SLT={ fvg:'1번 봉 저가', ob:'오더블록 봉 저가', rev:'스윕 저점', cont:'파동 바닥', ssl:'스윕 봉 저가' /* [S1836] */ }, swOK=(c.setup==='rev' || c.setup==='cont');
   return (fe>0?('💸왕복 '+fe+'%p · '):'무마찰 · ')+'셋업[🎯'+_ICT_TAG[c.setup]+((c.setup==='fvg' && c.ent==='mid')?' · 진입 50%':'')+'] → 손절['+(c.slOff?'끔':SLT[c.setup]) /* [S1836] */+'] · 익절['+(c.tpOff?'끔':c.xt?'1R 절반 · 나머지 본전 → 최고 종가 − 2ATR 트레일':(c.tp==='bsl'?'BSL(위쪽 전고점)':((swOK && c.tp==='sw')?'파동 고점':(c.tpR+'R')))) /* [S1836] */ /* [S1835] */+']'+(c.hdOff?' · N봉 끔':(' · 최대 '+c.hold+'봉')) /* [S1836] */+((c.setup==='cont' && c.disc)?' · 디스카운트만':''); }
 async function _ictPoolRun(mk, tf, onProgress){
   if(!(window.SXCandleBT&&SXCandleBT.fetchRows600)) return { ok:false, market:mk, reason:'캔들 fetch 미연결(SXCandleBT 미로드)' };
@@ -6298,7 +6348,7 @@ async function _ictPoolRun(mk, tf, onProgress){
     let rows=null; try{ rows=await SXCandleBT.fetchRows600(mk, tf, s.code); }catch(e){ rows=null; }
     if(!Array.isArray(rows) || rows.length<40){ skipped++; if(_snapCodes && !_snapCodes[s.code]) skippedNoSnap++; continue; }
     if(rows.length<_floor){ skippedShort++; continue; }
-    let bt=null; try{ bt=_ictBt(rows, ic, fee); }catch(e){ bt=null; }
+    let bt=null; try{ bt=_ictBt(rows, ic, fee, tf, mk /* [S1847] */); }catch(e){ bt=null; }
     if(!bt){ skipped++; continue; }
     barsList.push(rows.length);
     const I=bt.ict; cnt.setups+=I.setups; cnt.fills+=I.fills; cnt.drop+=I.dropRisk+I.dropDisc+I.dropSw; cnt.cancel+=I.cancel; cnt.expire+=I.expire; cnt.replaced+=I.replaced;
@@ -19786,7 +19836,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1846';   // [S1846] 종목분석 🕯️ 캔들 · 차트 읽기 카드(옛 캔들 패턴 칸 병합 + PDF 봉 · 갭 · 이평 · 거래량 · 반등 체크 · 보이기만 · 읽기 도움 · 판정 아님)
+  window.SX_BUILD='S1847';   // [S1847] 🎯 ICT 🧪 실험 셋업 셋(터틀 수프 · 유니콘 · 주다스 · 원본 청산 고정 · 성적 주장 없음 · 엔진 sx_ict_flux.js MPL 2.0)
+  // [S1846] 종목분석 🕯️ 캔들 · 차트 읽기 카드(옛 캔들 패턴 칸 병합 + PDF 봉 · 갭 · 이평 · 거래량 · 반등 체크 · 보이기만 · 읽기 도움 · 판정 아님)
   // [S1845] 🎯 ICT 엔진 위험 거름 ATR = 체결 앞 봉(체결 봉 ATR 은 그 봉 범위가 들어 있어 미래 보기 · offline/ictfix 재측정 · 판정 · 세트 근거 그대로)
   // [S1844] 📈 ⚓ 지지/저항 탭에 🧪 카마릴라 L3 선 + 📏 MA200 오름 거름(앞 봉) 실험 칩 — 측정 C1 규칙 그대로 · 그냥 두기 못 넘음 · 성적 주장 없음
   // [S1843] 종목분석 🌀 피보나치 · 엘리어트 카드에 📐 그랜빌(MA200) 배지 — 스윙 구조 표시용(보이기만 · ②③만 잼 · 읽기 도움 · 판정 아님)
