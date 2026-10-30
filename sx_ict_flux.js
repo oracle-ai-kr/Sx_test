@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-// sx_ict_flux.js — [S1847] 🎯 ICT 탭 🧪 실험 셋업 엔진(Turtle Soup · Unicorn · Judas 주간) · MPL 2.0
+// sx_ict_flux.js — [S1847] 🎯 ICT 탭 🧪 실험 셋업 엔진(Turtle Soup · Unicorn · Judas 주간) · MPL 2.0 · [S1850] + Power Of Three
 //   이 파일은 Flux Charts 의 TradingView Pine Script 세 개에서 옮겼다(원본 저작자 © fluxchart · 원본 라이선스 MPL 2.0):
 //     "ICT Turtle Soup" · "ICT Unicorn" · "ICT Judas Swing". 그래서 이 파일도 MPL 2.0 이다(파일 단위 · sx_render.js 는 부르기만 함).
+//   [S1850] 넷째 원본: Flux Charts "ICT Power Of Three"(© fluxchart · MPL 2.0) — 같은 저작자 · 같은 라이선스. SIGNAL X offline/fluxpv/src 에 원문을 둠.
 //   바꾼 점(원본과 다름):
 //     ① 파인 → 자바스크립트 · 화면 그림(상자 · 선 · 표)은 옮기지 않음 · 계산만.
 //     ② 원본은 양쪽(매수 · 매도) 상태 기계다 — 기계는 양쪽 그대로 돌리고 **매수 진입만** 거래로 기록한다(매도 쪽 셋업이 기계를 잡고 있는 동안은 새 매수가 안 나옴).
@@ -10,8 +11,12 @@
 //     ④ Judas 의 시계(뉴욕 개장 뒤 15분)는 달력 묶음으로 옮김: 일봉 = 주(월요일 시작) · 첫 2봉 / 4시간 = UTC 하루(한국 09:00 시작) · 첫 2봉 / 1시간 = 같은 하루 · 첫 6봉.
 //        Turtle Soup 의 위 시간 틀(원본 기본 60분)은 일봉 7봉 · 4시간 6봉 · 1시간 4봉으로 옮김.
 //     ⑤ 원본의 maxDistanceToLastBar(마지막 몇 천 봉만 계산)는 실행 시간 장치라 쓰지 않음.
+//     ⑥ [S1850] Power Of Three 는 기본값만(Algorithm Mode "Small Manipulation" · 깸 = 꼬리 · TP/SL = Dynamic · 위험 Normal = 손절 5 × ATR50 · 목표 0.86R).
+//        원본 '분배 대기'는 같은 봉에서 바로 진입으로 바뀌므로 조작 봉 종가에 진입 · 손절 · 목표는 다음 봉부터(③ 과 같은 체결) · 화면 그림 · 백테스트 표 · 알림은 옮기지 않음.
 //   계산은 SIGNAL X offline/ictx2/meas_tx.js(측정 코드 · 2026-10-29)의 runTS · runUC · runJD 와 같다(verify_s1847 이 전 종목 대조).
 //   성적 주장 없음 — 측정(offline/ictx2/tx_result.md)에서 자리 제안 규칙(무작위 · 그냥 두기 둘 다 넘음) 통과 0.
+//   [S1850] PO3 계산은 SIGNAL X offline/fluxpv/meas_pv.js(측정 코드 · 2026-10-31)의 po3Run(P3) 와 같다(verify_s1850 이 전 종목 대조).
+//     측정(offline/fluxpv/pv_result.md)에서 KR · US 일봉만 자리 제안 규칙을 넘었다(차이 작음 · 다른 모드 못 넘음 · 코인 · 시간봉 기각) — 앱은 KR · US 일봉에서만 부른다 · 성적 주장 없음.
 (function (G) {
   'use strict';
   var fin = Number.isFinite;
@@ -104,6 +109,20 @@
         else { sl = e + I.A50[t] * 6.5; tp = e - Math.abs(e - sl) * 0.47; pos = { long: false, e: e, i: t, sl: sl, tp: tp }; R.nShort++; } }
     }
     R.t0 = t0; return finish(R, pos); }
+  // ── [S1850] ICT Power Of Three(기본값 Small Manipulation · 꼬리 깸 · Dynamic Normal) — 매집(40봉 폭 ≤ 5 × ATR50) → 박스 깸 → 조작(박스 밖 0.6 × ATR50 더) 봉 종가에 반대로 ──
+  function runPO3(B, I) { var n = B.C.length, A = I.A50, HH = highest(B.H, 40), LL = lowest(B.L, 40), R = newRec(), t0 = 49, cur = null, x, e, sl, tp;
+    for (var t = t0; t < n; t++) {
+      if (!cur || cur.done) cur = { st: 'WA', done: false };
+      if (cur.st === 'WA') { if (HH[t] - LL[t] <= A[t] * 5) { cur.st = 'WAE'; cur.top = HH[t] + A[t] * 0.5; cur.bot = LL[t] - A[t] * 0.5; cur.aEnd = t; } }
+      if (cur.st === 'WAE') { if (B.H[t] > cur.top || B.L[t] < cur.bot) cur.st = 'WM'; else cur.aEnd = t; }
+      if (cur.st === 'WM') { if (t > cur.aEnd) { if (B.H[t] > cur.top + A[t] * 0.6) { cur.st = 'WD'; cur.long = false; } else if (B.L[t] < cur.bot - A[t] * 0.6) { cur.st = 'WD'; cur.long = true; } } }
+      if (cur.st === 'WD') { cur.st = 'ET'; e = B.C[t]; cur.e = e; cur.i = t;
+        if (cur.long) { sl = e - A[t] * 5; tp = e + Math.abs(e - sl) * 0.86; R.nSet++; } else { sl = e + A[t] * 5; tp = e - Math.abs(e - sl) * 0.86; R.nShort++; }
+        cur.sl = sl; cur.tp = tp; }
+      if (cur.st === 'ET' && t > cur.i) { x = cur.long ? exL(B, t, cur.sl, cur.tp) : exS(B, t, cur.sl, cur.tp);
+        if (x) { if (cur.long) R.trades.push({ e: cur.e, i: cur.i, x: x.px, xi: t, why: x.why, sl: cur.sl, tp: cur.tp }); cur.st = 'DONE'; cur.done = true; } }
+    }
+    R.t0 = t0; return finish(R, (cur && cur.st === 'ET') ? { long: cur.long, e: cur.e, i: cur.i, sl: cur.sl, tp: cur.tp } : null); }
   // ── 들어가는 곳 ──
   var BL = { d: 7, h4: 6, h1: 4 }, KJ = { d: 2, h4: 2, h1: 6 };
   function run(kind, rows, tf) {
@@ -113,6 +132,7 @@
     if (kind === 'ts') return runTS(B, I, BL[tf]);
     if (kind === 'uc') return runUC(B, I);
     if (kind === 'jdw') return runJD(B, I, periodsOf(B, tf), KJ[tf]);
+    if (kind === 'po3') return runPO3(B, I);   // [S1850]
     return null; }
-  G.SXIctFlux = { ver: 1, run: run };
+  G.SXIctFlux = { ver: 2 /* [S1850] PO3 있음 */, run: run };
 })(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));
