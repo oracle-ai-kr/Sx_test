@@ -4070,7 +4070,7 @@ function _stratPoolHtml(r){
   const rowsH=ps.map(s=>`<div style="display:flex;justify-content:space-between;font-size:9.5px;padding:3px 2px;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">${s.name} <span style="color:var(--text3)">${s.n}건·승${s.wr}%</span></span><b style="color:${s.tp>=0?'#22c55e':'#e8365a'}">${s.tp>=0?'+':''}${s.tp}%</b></div>`).join('');
   const det=ps.length?`<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #0ea5e955;background:#0ea5e918;color:#0ea5e9;cursor:pointer;list-style:none">▸ 종목별 복리 (${ps.length}) 펼치기</summary>${_stratExclBoxHtml(r) /* [S1777] 🚫 시즌2 열외 후보 상자 */}<div style="max-height:230px;overflow-y:auto;margin-top:4px">${rowsH}</div></details>`:'';
   const nt=`<div style="font-size:8.5px;color:#d97706;margin-top:6px;line-height:1.5">합산=거래 단위 · in-sample·${r.snapOn?'냉동':'라이브'} 캔들 [${r.tf?(_poolTfLbl(r.tf)+' '):''}600봉] · 풀=선택된 목록(선택·생존 편향) · ${r.feeTag} · MDD는 종목별 개념이라 합산 생략</div>`;
-  return head+btns+desc+grid+_bhCmpHtml(r) /* [S1833] 📌 */+incl+bd+_kellyPanelHtml(r)+op+det+disc+_plHtml(r) /* [S1829] 📈 전략 선 */+nt;   /* [S1774] 🎯 켈리 진단 패널(접힘 · 펼칠 때 계산) — 진입원별 줄 바로 아래 */   // [S1391] incl=평가포함 줄 · disc=발굴풀 각주 · [S1520] btns=복사 버튼 행
+  return head+_vdHtml(r) /* [S1849] ⚖️ 측정 기준 배지 */+btns+desc+grid+_bhCmpHtml(r) /* [S1833] 📌 */+incl+bd+_kellyPanelHtml(r)+op+det+disc+_plHtml(r) /* [S1829] 📈 전략 선 */+nt;   /* [S1774] 🎯 켈리 진단 패널(접힘 · 펼칠 때 계산) — 진입원별 줄 바로 아래 */   // [S1391] incl=평가포함 줄 · disc=발굴풀 각주 · [S1520] btns=복사 버튼 행
 }
 // [S1777] ★🚫 **시즌2 열외 후보 내려받기** — 📦 풀 BT '종목별 복리' 펼침 안 상자(사용자 지시 2026-10-10: *'시즌1 종목별복리에서 열외조건에 맞춰 열외종목을 json 으로 내려받아 시즌2 수동 목록에 불러오기'* · PREREG_S1777).
 //   ★식 = 시즌2 워커 `_atExclAuto` 와 같다: n ≥ N ∧ 승률 < W ∧ 복리 ≤ R — 확정 거래 · 수수료 뒤(`_stratBt` totalTrades·winRate·totalPnl = 워커 `_atExclStats` 의 n·winRate·ret 와 같은 정의).
@@ -6109,7 +6109,7 @@ function _turtlePoolRender(res){
     +ps.map(s=>'<div style="display:flex;justify-content:space-between;font-size:9.5px;padding:3px 2px;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">'+s.name+' <span style="color:var(--text3)">'+s.n+'건·승'+s.wr+'%</span></span><b style="color:'+(s.tp>=0?'#22c55e':'#e8365a')+'">'+(s.tp>=0?'+':'')+s.tp+'%</b></div>').join('')+'</div></details>'):'';
   const disc=(res.poolFrom==='snap')?_poolSnapNote(sm&&sm.poolKind, ''):(res.source==='disc'?'<div style="font-size:8.5px;color:#b45309;margin-top:5px;line-height:1.5">⚠ 발굴풀(S846)=레시피 발굴 표본 — 터틀은 그 발굴에 안 쓰였지만 종목 선정 편향은 그대로다 · 판정은 사전등록+OOS에서</div>':'');
   const nt='<div style="font-size:8.5px;color:#d97706;margin-top:6px;line-height:1.5">실험 지표 · 정식 판정과 무관 · 합산=거래 단위 · in-sample · 풀=선택된 목록(선택·생존 편향) · '+(res.feePct>0?('💸왕복 '+res.feePct+'%p 반영'):'무마찰')+' · 1포지션(피라미딩 없음) · 매수만 · MDD는 종목별 개념이라 합산 생략</div>';
-  return wrap(head+srcRow+bars+_ttHtfPoolLine(res) /* [S1805] */+desc+csvB+grid+_bhCmpHtml(res) /* [S1833] 📌 */+incl+_turtlePoolBreakdown(res.trades)+_turtleRgSplitHtml(res.rgSplit) /* [S1792] */+op+det+disc+_plHtml(res) /* [S1829] 📈 전략 선 */+nt);
+  return wrap(head+_vdHtml(res) /* [S1849] ⚖️ 측정 기준 배지 */+srcRow+bars+_ttHtfPoolLine(res) /* [S1805] */+desc+csvB+grid+_bhCmpHtml(res) /* [S1833] 📌 */+incl+_turtlePoolBreakdown(res.trades)+_turtleRgSplitHtml(res.rgSplit) /* [S1792] */+op+det+disc+_plHtml(res) /* [S1829] 📈 전략 선 */+nt);
 }
 async function _turtlePoolUI(){
   const el=document.getElementById('sxTurtlePoolOut'); if(!el) return;
@@ -6396,7 +6396,7 @@ function _ictPoolRender(res){
     +'<div style="font-size:9px;color:var(--text3);margin-bottom:2px">셋업 '+k.setups+' · 체결 '+k.fills+' · 버림 '+k.drop+' · 취소 '+k.cancel+' · 만료 '+k.expire+' · 새 셋업으로 바뀜 '+k.replaced+'</div>'
     +'<div style="font-size:9px;color:var(--text3);margin-top:3px">청산 사유: '+['sl','tp','tm'].filter(x=>xc[x]).map(x=>_ICT_XR_LBL[x]+' '+xc[x]).join(' · ')+'</div>';
   const nt='<div style="font-size:8.5px;color:#d97706;margin-top:6px;line-height:1.5">실험 지표 · 판정 아님 · 측정(9판 일봉 · offline/ict): 같은 위험을 아무 자리에 건 대조와 구분 안 됨 · 오름장 판에선 아무 자리도 기대 R 플러스 · 합산=거래 단위 · in-sample · 풀=선택된 목록(선택·생존 편향) · '+(res.feePct>0?('💸왕복 '+res.feePct+'%p 반영'):'무마찰')+' · 1포지션 · 매수만 · MDD는 종목별 개념이라 합산 생략</div>';
-  return wrap(head+srcRow+bars+desc+csvB+grid+_bhCmpHtml(res) /* [S1833] 📌 */+incl+rLine+op+det+disc+_plHtml(res) /* [S1829] 📈 전략 선 */+nt);
+  return wrap(head+_vdHtml(res) /* [S1849] ⚖️ 측정 기준 배지 */+srcRow+bars+desc+csvB+grid+_bhCmpHtml(res) /* [S1833] 📌 */+incl+rLine+op+det+disc+_plHtml(res) /* [S1829] 📈 전략 선 */+nt);
 }
 async function _ictPoolUI(){
   const el=document.getElementById('sxIctPoolOut'); if(!el) return;
@@ -6605,7 +6605,7 @@ function _stPoolRender(res){
   const rLine='<div data-st-rs="1" style="font-size:9.5px;font-weight:700;color:var(--text2);margin:6px 0 2px;line-height:1.5">📐 거래 '+rs.n+'건 합침 — 평균 '+sR(rs.avg)+'(ATR) · 중앙 '+sR(rs.med)+' · 이긴 '+rs.win+'% · 🏁 1차 익절 닿음 '+rs.tp1+'%</div>'
     +'<div style="font-size:9px;color:var(--text3);margin-top:3px">청산 사유: '+['st'].filter(x=>xc[x]).map(x=>_ST_XR_LBL[x]+' '+xc[x]).join(' · ')+'</div>';
   const nt='<div style="font-size:8.5px;color:#d97706;margin-top:6px;line-height:1.5">실험 지표 · 판정 아님 · 측정(일봉 9판 · offline/strend · stpull): 눌림목은 초록 중 아무 봉보다 9판 중 7판 조금 나음(판정선 바로 아래 · 못 가름) · 뒤집힘은 같은 길이 아무 자리와 구분 안 됨 · 합산=거래 단위 · in-sample · 풀=선택된 목록(선택·생존 편향) · '+(res.feePct>0?('💸왕복 '+res.feePct+'%p 반영'):'무마찰')+' · 1포지션 · 매수만 · MDD는 종목별 개념이라 합산 생략</div>';
-  return wrap(head+srcRow+bars+desc+csvB+grid+_bhCmpHtml(res) /* [S1833] 📌 */+incl+rLine+op+det+disc+_plHtml(res) /* [S1829] 📈 전략 선 */+nt);
+  return wrap(head+_vdHtml(res) /* [S1849] ⚖️ 측정 기준 배지 */+srcRow+bars+desc+csvB+grid+_bhCmpHtml(res) /* [S1833] 📌 */+incl+rLine+op+det+disc+_plHtml(res) /* [S1829] 📈 전략 선 */+nt);
 }
 async function _stPoolUI(){
   const el=document.getElementById('sxStPoolOut'); if(!el) return;
@@ -6917,7 +6917,7 @@ function _srPoolRender(res){
     +'<div style="font-size:9px;color:var(--text3);margin-bottom:2px">'+(res.isCm?('L3 닿은 묶음 '+k.ev+' · 거름 꺼져 못 산 묶음 '+k.skip):('선 닿음 '+k.ev+' · 보유 중이라 건너뜀 '+k.skip))+'</div>'
     +'<div style="font-size:9px;color:var(--text3);margin-top:3px">청산 사유: '+['sl','tp','tm','end','cap' /* [S1844] */].filter(x=>xc[x]).map(x=>_SR_XR_LBL[x]+' '+xc[x]).join(' · ')+'</div>';
   const nt='<div style="font-size:8.5px;color:#d97706;margin-top:6px;line-height:1.5">실험 지표 · 판정 아님 · '+(res.isCm?_SR_CM_POOL:'측정(일봉 9판 · 주봉 9판 · 코인 60분 · offline/srlim): 거래량 존 · 피벗 · 라운드 넘버 모두 같은 규칙으로 옮긴 근처 아무 선과 구분 안 됨(판마다 ±0.15R 안팎 · 못 가름) · 오름장 판에선 아무 자리도 기대 R 플러스') /* [S1844] */+' · 합산=거래 단위 · in-sample · 풀=선택된 목록(선택·생존 편향) · '+(res.feePct>0?('💸왕복 '+res.feePct+'%p 반영'):'무마찰')+' · 1포지션 · 매수만 · MDD는 종목별 개념이라 합산 생략</div>';
-  return wrap(head+srcRow+bars+desc+csvB+grid+_bhCmpHtml(res) /* [S1833] 📌 */+incl+rLine+op+det+disc+_plHtml(res) /* [S1829] 📈 전략 선 */+nt);
+  return wrap(head+_vdHtml(res) /* [S1849] ⚖️ 측정 기준 배지 */+srcRow+bars+desc+csvB+grid+_bhCmpHtml(res) /* [S1833] 📌 */+incl+rLine+op+det+disc+_plHtml(res) /* [S1829] 📈 전략 선 */+nt);
 }
 async function _srPoolUI(){
   const el=document.getElementById('sxSrPoolOut'); if(!el) return;
@@ -7036,7 +7036,7 @@ function _plLog(res){ try{
   localStorage.setItem(_PL_LOG_KEY, JSON.stringify(A)); return add;
  }catch(_e){ return 0; } }
 function _plAttach(res, a, tab){ try{
-  if(res && typeof res==='object' && a){ Object.defineProperty(res, 'pl', { value:{ tab, S:a.S, H:(a.H||[]) /* [S1833] */, tf:(res.tf||((typeof _poolTfOf==='function')?_poolTfOf():'day')) }, enumerable:false, configurable:true, writable:true }); _plLog(res); }
+  if(res && typeof res==='object' && a){ Object.defineProperty(res, 'pl', { value:{ tab, S:a.S, H:(a.H||[]) /* [S1833] */, tf:(res.tf||((typeof _poolTfOf==='function')?_poolTfOf():'day')) }, enumerable:false, configurable:true, writable:true }); _plLog(res); _vdRec(res, tab) /* [S1849] ⚖️ 판 각인 · 세 판 기억 */; }
  }catch(_e){} return res; }
 function _plLogCsvText(A){ const r6=v=>(v==null || !isFinite(v))?'':String(Math.round(v*1e6)/1e6), q=s=>'"'+String(s==null?'':s).replace(/"/g, '""')+'"';
   return '날짜,탭,시장,봉,창,종목수,초과수익(로그%p),승률(%),거래수,낙폭(%),설정지문,기록시각(KST)\n'+A.map(x=>[_plDate(x.d, x.tf), x.tab, x.mk, x.tf, x.W, x.n, r6(x.ex==null?null:x.ex*100), r6(x.wr==null?null:x.wr*100), (x.nt==null?'':x.nt), r6(x.dd==null?null:x.dd*100), q(x.sig), _poolKst(x.ts)].join(',')).join('\n')+'\n'; }
@@ -7079,6 +7079,81 @@ function _bhCmpHtml(res){ try{
     +'<div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-top:2px">거래가 있던 종목마다 같은 날들(첫 봉 ~ 끝 봉)을 봉 단위로 다시 센 값의 중앙 · 보유 중인 자리는 끝 봉 종가로 평가 · 수수료 = 위 칸과 같은 왕복 값(그냥 들고 있기는 한 번 사고 한 번 팖) · ⚠위 칸 종목복리(닫힌 거래만 곱함) · MDD(거래 사이 낙폭)와 식이 달라 값이 다르다 — 이 표의 MDD 는 봉마다 평가한 낙폭이라 더 크게 나온다 · 노출 = 첫 봉부터 센 든 봉 비율(위 칸 노출률은 첫 진입부터) · 같은 비율 = 이 설정이 든 봉 비율만큼만 첫 봉에 사서 끝까지 · 읽기 도움 · 판정 아님</div></div>';
  }catch(_e){ return ''; } }
 if(typeof window!=='undefined'){ window._bhCmpHtml=_bhCmpHtml; }
+// ═══════════ [S1849] ⚖️ 측정 기준 배지 — [기각] · [못 가름] · [보류] · [통과] + 사유 · 📦 풀 전체 BT 여섯 탭 공통 ═══════════
+//   사용자 지시 2026-10-30 22:02("너의 기각 판정이 옳으니까 [기각]/[통과] 배지를 눈에띄게 달아주고 아래에 사유를") · 22:05("제안대로") · 정의 = PREREG_S1849_verdict_badge.md §1
+//   값은 📌 맞대기(S1833)와 같은 종목 줄(res.pl.H)에서만 낸다 — 새 BT 0 · 결과 JSON · CSV 글자 그대로(열거 안 되는 `vd` 하나만 붙임).
+//   세 판 = 🕰 창A · 창B · 현재 스냅(같은 탭 · 시장 · 봉 · 수수료 · 설정 지문) — 돌린 그때 판을 결과에 각인하고 브라우저 저장소에 기억한다(🎯 켈리 창 기억 S1774 와 같은 꼴).
+//   ⚠무작위 대조는 앱에 없다(넣으면 풀 BT 시간이 약 10배) — [통과]여도 측정으로 확인. 앱은 첫 봉부터 · KR 130종목까지라 오프라인 측정과 숫자가 조금 다를 수 있다.
+const _VD_LS='SX_VD_MEM', _VD_KEEP=60, _VD_MINTR=30, _VD_WINS=[['A','창A'],['B','창B'],['L','현재 스냅']];
+let _vdMem=null;
+function _vdLoad(){ if(_vdMem) return _vdMem; let o=null; try{ o=JSON.parse(localStorage.getItem(_VD_LS)||'null'); }catch(_e){ o=null; } _vdMem=(o&&typeof o==='object'&&o.v===1&&o.sets&&typeof o.sets==='object')?o:{ v:1, sets:{} }; return _vdMem; }
+function _vdSave(){ const m=_vdLoad(); Object.keys(m.sets).sort((a,b)=>(m.sets[b].ts||0)-(m.sets[a].ts||0)).slice(_VD_KEEP).forEach(k=>{ delete m.sets[k]; }); try{ localStorage.setItem(_VD_LS, JSON.stringify(m)); }catch(_e){} }
+function _vdMed(a){ const v=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y), m=v.length; return m?((m%2)?v[m>>1]:(v[(m>>1)-1]+v[m>>1])/2):null; }
+// 한 판 값 — 종목마다 ln(1+이 설정) − ln(1+같은 비율) · ln(1+이 설정) − ln(1+그냥 들고 있기)의 중앙 · 나은 종목 수(📌 줄과 같은 셈) · 닫힌 거래 수
+function _vdStat(res){ try{
+  const H=res&&res.pl&&res.pl.H; if(!H||!H.length) return null;
+  const L=v=>Math.log(Math.max(1e-9, 1+v));
+  return { N:H.length, nT:((res.trades&&res.trades.length)||0), dR:_vdMed(H.map(x=>L(x.s)-L(x.r))), dB:_vdMed(H.map(x=>L(x.s)-L(x.b))), wR:H.filter(x=>x.s>x.r).length, wB:H.filter(x=>x.s>x.b).length };
+ }catch(_e){ return null; } }
+// 한 판 판정 — ① 같은 비율보다(중앙 > 0) · ② 나은 종목 절반 이상 · ③ 그냥 들고 있기보다(중앙 > 0) · ④ 닫힌 거래 30건 이상(아니면 그 판은 안 셈)
+function _vdJudge(t){ if(!t) return null;
+  const sg=v=>(v==null||!isFinite(v))?0:(v>0?1:(v<0?-1:0)), r1=sg(t.dR), r2=(t.N>0&&2*t.wR>=t.N)?1:-1, r3=sg(t.dB), few=!(t.nT>=_VD_MINTR);
+  return { r1, r2, r3, few, st:few?'few':((r1<0||r2<0||r3<0)?'rej':((r1>0&&r2>0&&r3>0)?'ok':'mid')) }; }
+// 돌린 그때의 판 — 'A' · 'B' · 'L'(현재 스냅) · null(라이브 봉 · 소스 칩 풀 · 창 글자와 주입된 스냅이 어긋남) · ⚠🧪 는 결과가 만들어진 직후(_plAttach)에만 부른다(스냅 메타를 그때 읽는다)
+function _vdWin(res){ try{
+  if(!res) return null;
+  if(res.srcMeta){ const m=res.srcMeta; if(!m.on || res.poolFrom!=='snap') return null; if(m.set==='A'||m.set==='B') return m.vintage?m.set:null; return (m.set||m.vintage)?null:'L'; }
+  if(res.snapOn && res.poolFrom==='snap'){ const v=res.vin||'', mk=res.market||res.mk, M=(window.SXCandleBT&&SXCandleBT.snapMeta)?((SXCandleBT.snapMeta()||{})[mk]||null):null, vt=!!(M&&M.vintage);
+    if(v==='A'||v==='B') return vt?v:null; return (v||vt)?null:'L'; }
+ }catch(_e){} return null; }
+function _vdKey(res, tab){ const p=res&&res.pl, sig=String((res&&res.sig)||''); if(!sig) return null; return [tab||(p&&p.tab)||'', res.market||res.mk||'', (p&&p.tf)||'', (res.feePct!=null)?String(res.feePct):'', sig].join('|'); }
+// 각인 — _plAttach 가 결과를 만들 때 한 번 부른다(그리기 때가 아니다 · 실행 뒤 창을 바꿔도 지난 결과에 새 판이 안 붙게)
+function _vdRec(res, tab){ try{
+  if(!res || typeof res!=='object') return false;
+  const t=_vdStat(res), w=_vdWin(res), key=_vdKey(res, tab);
+  Object.defineProperty(res, 'vd', { value:{ w, key, t }, enumerable:false, configurable:true, writable:true });
+  if(!t || !w || !key) return false;
+  let file=''; try{ file=(res.srcMeta&&res.srcMeta.file)||((((window.SXCandleBT&&SXCandleBT.snapMeta)?(SXCandleBT.snapMeta()||{}):{})[res.market||res.mk]||{}).file)||''; }catch(_e){ file=''; }
+  const m=_vdLoad(), S=m.sets[key]||(m.sets[key]={ ts:0, w:{} }), t0=res.ts||Date.now();
+  S.ts=t0; S.w[w]=Object.assign({ ts:t0, file }, t); _vdSave(); return true;
+ }catch(_e){ return false; } }
+function _vdAgg(res){
+  const vd=res&&res.vd, t=(vd&&vd.t)||_vdStat(res); if(!t) return null;
+  const cur=vd?vd.w:null, j=_vdJudge(t);
+  if(!cur) return { mode:'live', st:(j.st==='rej')?'rej':((j.st==='few')?'few':'hold'), cur:null, t, j, W:null, J:null, have:[], k:0 };
+  let S=null; try{ S=_vdLoad().sets[vd.key]||null; }catch(_e){ S=null; }
+  const W={}; _VD_WINS.forEach(([w])=>{ const e=S&&S.w&&S.w[w]; if(e) W[w]=e; }); W[cur]=t;   // 지금 판은 지금 결과 값(저장소가 막혀도 센다)
+  const J={}; Object.keys(W).forEach(w=>{ J[w]=_vdJudge(W[w]); });
+  const have=_VD_WINS.map(x=>x[0]).filter(w=>W[w]), meas=have.filter(w=>J[w].st!=='few');
+  let st='hold'; if(meas.some(w=>J[w].st==='rej')) st='rej'; else if(have.length===3) st=(meas.length>=2 && meas.every(w=>J[w].st==='ok'))?'ok':'few3';
+  return { mode:'3w', st, cur, t, j, W, J, have, k:have.length, nMeas:meas.length };
+}
+function _vdHtml(res){ try{
+  const A=_vdAgg(res); if(!A) return '';
+  const LB={ rej:['기각','#dc2626'], ok:['통과','#16a34a'], hold:['보류','#d97706'], few:['못 가름','#64748b'], few3:['못 가름','#64748b'] }[A.st];
+  const wn=w=>{ const e=_VD_WINS.find(x=>x[0]===w); return e?e[1]:'세 판 밖'; };
+  const pp=v=>(v==null||!isFinite(v))?'—':((v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+'%p');
+  const ck=c=>(c>0)?'<b style="color:#16a34a">✓</b>':((c<0)?'<b style="color:#dc2626">✗</b>':'<b style="color:var(--text3)">·</b>');
+  const t=A.t, j=A.j, pct=Math.round(100*t.wR/t.N);
+  const bad=q=>[(q.r1<0)?'① 같은 비율보다 못함':'', (q.r2<0)?'② 나은 종목 절반 미만':'', (q.r3<0)?'③ 그냥 들고 있기보다 못함':''].filter(Boolean).join(' · ');
+  let why;
+  if(A.st==='rej'){ if(A.mode==='live') why='이 판에서 '+bad(j); else { const g={}; A.have.filter(w=>A.J[w].st==='rej').forEach(w=>{ const k=bad(A.J[w]); (g[k]=g[k]||[]).push(wn(w)); }); why=Object.keys(g).map(k=>g[k].join(' · ')+'에서 '+k).join(' / '); } }   // 같은 기준으로 진 판은 한데 묶어 적는다
+  else if(A.st==='ok') why='세 판 중 셀 수 있는 '+A.nMeas+'판 모두 ①②③ ✓ — 채택 후보(무작위 대조는 측정으로 확인)';
+  else if(A.st==='hold') why=(A.mode==='live')?'이 결과는 🕰 창A · 창B · 현재 스냅 판이 아니라 세 판에 안 셈(라이브 봉 · 소스 칩 풀 등) — 스냅 판으로 같은 설정을 돌리면 셈':('남은 판('+_VD_WINS.filter(x=>!A.W[x[0]]).map(x=>x[1]).join(' · ')+')을 같은 설정으로 돌려 보세요');
+  else if(A.st==='few') why='닫힌 거래 30건 미만 — 이 판은 세지 않음';
+  else why='셀 수 있는 판(닫힌 거래 30건 이상 · 차이 0 아님)이 모자람';
+  const top='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span data-vd-badge="'+A.st+'" style="font-size:16px;font-weight:900;letter-spacing:0.5px;padding:3px 12px;border-radius:8px;background:'+LB[1]+';color:#fff">['+LB[0]+((A.st==='hold'&&A.mode==='3w')?(' · '+A.k+'/3판'):'')+']</span><span style="font-size:9.5px;font-weight:800;color:var(--text2);min-width:0">⚖️ 측정 기준 판정</span></div>';
+  const sum='<div style="font-size:10px;font-weight:800;color:'+LB[1]+';margin-top:6px;line-height:1.5">'+LB[0]+' — '+why+'</div>';
+  const rules='<div style="font-size:9.5px;color:var(--text2);margin-top:5px;line-height:1.65">이 판('+wn(A.cur)+' · '+t.N+'종목)'
+    +'<br>① 같은 비율만 들고 있기보다 — 종목별 차이 중앙 '+pp(t.dR)+' '+ck(j.r1)
+    +'<br>② 같은 비율보다 나은 종목 — '+t.wR+'/'+t.N+' ('+pct+'%) '+ck(j.r2)+((j.r2<0)?' 절반 미만':'')
+    +'<br>③ 그냥 들고 있기보다 — 종목별 차이 중앙 '+pp(t.dB)+' '+ck(j.r3)
+    +'<br>④ 닫힌 거래 '+t.nT+'건 '+ck(j.few?-1:1)+(j.few?' 30건 미만 — 이 판은 세지 않음':'')+'</div>';
+  const wins=(A.mode==='3w')?('<div data-vd-wins="1" style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.6">세 판 — '+_VD_WINS.map(([w,n])=>{ const q=A.J[w]; const s=q?(q.few?'거래 부족':(ck(q.r1)+ck(q.r2)+ck(q.r3))):'<span style="color:var(--text3)">아직 안 돌림</span>'; return (w===A.cur?'<b>':'')+n+(w===A.cur?'</b>':'')+' '+s; }).join(' · ')+'</div>'):'';
+  const note='<div style="font-size:8.5px;color:var(--text3);margin-top:4px;line-height:1.5">기각 = ①②③ 중 ✗ 가 하나라도 있는 판이 있으면 · 통과 = 같은 설정으로 🕰 창A · 창B · 현재 스냅 세 판을 돌려 셀 수 있는 판(닫힌 거래 30건 이상)이 2판 이상이고 모두 ✓ · ⚠무작위 대조는 앱에 없음(통과여도 측정으로 확인) · 앱은 첫 봉부터 · KR 130종목까지 세어 오프라인 측정(200번째 봉부터 · 전 종목)과 숫자가 조금 다를 수 있음 · 설정을 바꾸면 처음부터 다시 셈 · 라이브 봉 결과는 세 판에 안 셈</div>';
+  return '<div data-vd="1" style="margin:4px 0 8px;padding:8px 9px;border:2px solid '+LB[1]+';border-radius:10px;background:'+LB[1]+'14">'+top+sum+rules+wins+note+'</div>';
+ }catch(_e){ return ''; } }
+if(typeof window!=='undefined'){ window._vdHtml=_vdHtml; }
 function _plHtml(res){ try{
   const p=res && res.pl; if(!p || !p.S) return '';   // 그리기 함수의 마지막 반환(거래가 있는 결과)에서만 불린다
   const W=_plW(), L=_plLines(p, W), col=((typeof _TREND_TAB_COL!=='undefined' && _TREND_TAB_COL[p.tab])||'#2563eb'), N=L.cal.length;
@@ -8237,7 +8312,7 @@ function _trendBatchRender(res){
   const nt='<div style="font-size:8.5px;color:#d97706;margin-top:6px;line-height:1.5">실험 지표 · 정식 판정과 무관 · 합산=거래 단위 · in-sample · 풀=선택된 목록(선택·생존 편향) · '+((res.agg&&res.feePct>0)?('💸왕복 '+res.feePct+'%p 반영'):'무마찰')+' · 1포지션 · MDD는 종목별 개념이라 합산 생략</div>';
   // [S1531] 버튼 행 — 결과와 함께 그려진다(툴바는 재렌더 안 됨 · S1520 문법 상속).
   const csvB='<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 6px"><span onclick="_sxVib(9);window._trendPoolCsv&&_trendPoolCsv(this)" title="종목별 이력 CSV — 판 정보(시장·창·탭·설정)가 행마다 박혀 있어 여러 판을 이어붙여도 섞이지 않습니다 · 거래 0건 종목 포함" style="font-size:9px;font-weight:800;padding:5px 9px;border-radius:10px;cursor:pointer;background:var(--surface2);color:#15803d;border:1px dashed #15803d88">📄 종목별 CSV</span></div>';
-  return wrap(head+srcRow+bars+desc+csvB+grid+_bhCmpHtml(res) /* [S1833] 📌 */+incl+bd+op+det+disc+_plHtml(res) /* [S1829] 📈 전략 선 */+nt);
+  return wrap(head+_vdHtml(res) /* [S1849] ⚖️ 측정 기준 배지 */+srcRow+bars+desc+csvB+grid+_bhCmpHtml(res) /* [S1833] 📌 */+incl+bd+op+det+disc+_plHtml(res) /* [S1829] 📈 전략 선 */+nt);
 }
 async function _trendBatchUI(){
   const el=document.getElementById('sxTrendBatchResult'); if(!el) return;
@@ -19838,7 +19913,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1848';   // [S1848] ⤒ 트레일 기준점 = 장중 고가 칩(🧪 전략 조합 · 📈 MA 크로스 · 🐢 터틀 · 켬/끔 · 기본 끔 · 성적 주장 없음)
+  window.SX_BUILD='S1849';   // [S1849] ⚖️ 풀 전체 BT 측정 기준 배지([기각] · [못 가름] · [보류] · [통과] + 사유 · 여섯 탭 공통 · 세 판 = 창A · 창B · 현재 스냅)
+  // [S1848] ⤒ 트레일 기준점 = 장중 고가 칩(🧪 전략 조합 · 📈 MA 크로스 · 🐢 터틀 · 켬/끔 · 기본 끔 · 성적 주장 없음)
   // [S1847] 🎯 ICT 🧪 실험 셋업 셋(터틀 수프 · 유니콘 · 주다스 · 원본 청산 고정 · 성적 주장 없음 · 엔진 sx_ict_flux.js MPL 2.0)
   // [S1846] 종목분석 🕯️ 캔들 · 차트 읽기 카드(옛 캔들 패턴 칸 병합 + PDF 봉 · 갭 · 이평 · 거래량 · 반등 체크 · 보이기만 · 읽기 도움 · 판정 아님)
   // [S1845] 🎯 ICT 엔진 위험 거름 ATR = 체결 앞 봉(체결 봉 ATR 은 그 봉 범위가 들어 있어 미래 보기 · offline/ictfix 재측정 · 판정 · 세트 근거 그대로)
