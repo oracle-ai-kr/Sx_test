@@ -4407,7 +4407,8 @@ const _XMAT_KIND={
 //   ⚠헤드 라벨 색(`_headTone`·`_dirCol`)은 **이 표에 넣지 않았다** — 배지가 아니라 제목 층위이고,
 //     `transBadge`가 그 `_dirCol`을 그대로 쓰는 결합만 사실로 적어 둔다(별건).
 const _SXB_BADGE_COL = {
-  regime:     { bull:'#dc2626', up:'#16a34a', side:'#94a3b8', down:'#2563eb', crash:'#7c3aed' },
+  regime:     { bull:'#dc2626', up:'#f87171', side:'#94a3b8', down:'#60a5fa', crash:'#2563eb' },   // [S1855] 레짐 v4 — 빨강 = 위 · 파랑 = 아래(🧭 추세 읽기와 같은 말) · 옛 v3 { bull:'#dc2626', up:'#16a34a', side:'#94a3b8', down:'#2563eb', crash:'#7c3aed' }
+  hilo:       { hi:'#ea580c', lo:'#7c3aed' },   // [S1855] 🔥 신고가 · 🌋 신저가 배지
   vola:       { high:'#dc2626', mid:'#f59e0b', low:'#16a34a' },
   structRisk: { deadcat:'#dc2626', rebound:'#f59e0b' },
   cellSig:    { down:'#7f1d1d', fake:'#ea580c', real:'#16a34a' },
@@ -7626,7 +7627,7 @@ function _trendRenderInner(){
     //     ★US는 중립이 없어 모든 봉이 둘로 배정되고, 그래서 `하락장`이 KR 정의(60<120<200)의 두 배가 넘는다 — 🔻역배 real이 그만큼 넓게 열린다.
     //     ⚠그 **교정**은 발동 조건이 움직이므로 이 시리얼에서 하지 않는다(사전등록 대상 · S1282). 여기서는 사실만 밝힌다.
     //   ⚠실측 퍼센트는 화면에 올리지 않는다 — 빈티지마다 다시 재야 하는 값이라 각인에만 둔다(S1382 선례).
-    const _g3Axis = (market==='us') ? '레짐 v3(20×200 골격)' : 'MA 60>120>200';
+    const _g3Axis = (market==='us') ? '레짐(20×200 골격)' : 'MA 60>120>200';
     // 라우팅을 **안 받는** 진입원 — ON이어도 국면과 무관하다. 실측상 이쪽이 진입의 절반을 넘긴 판도 있었다.
     const _g3Free = [];
     if(sc.cell) _g3Free.push('🧩칸real');
@@ -7671,7 +7672,7 @@ function _trendRenderInner(){
       +(_tgPartial.length?`<span style="font-size:8.5px;font-weight:800;padding:3px 7px;border-radius:8px;background:#f59e0b1a;color:#b45309;border:1px solid #f59e0b66;white-space:nowrap" title="게이트쌍이 🔄재진입쌍과 같습니다 — 재진입 골든크로스가 난 봉은 그 상태를 정의상 이미 만족하므로 재진입은 못 자릅니다. 📈크로스 다리에는 정상 작동합니다.">⚠ ${_tgPartial.join('·')} 게이트는 🔄재진입엔 무동작</span>`:'')
       +_sChip(sc.pure,'⚖️ 혼재 차단','pure','#d97706','같은 봉에 fake 동시 발동 시 레시피 진입 스킵 — 시즌2 votes 방식(L-14 A/B용 · OFF와 비교)',_deadReal)   /* [S1680] */
       +_sChip(sc.mGate,'📅 월봉게이트','mGate','#0e7490','[S1599] 월봉(일봉을 달로 묶음) MA5>MA20일 때만 📈크로스·🔄재진입 진입 허용. 진행 중인 달은 그 봉까지의 종가(형성 중 월봉과 같음). 월 20개 미만(창 앞 ~19개월)은 판정 불가=허용. 🔲3×3(일봉 장기축)과 별개 축·AND. 다른 진입원엔 무관. 측정 0 — 테스트용')
-      +_sChip(sc.rgGate,'⛩️ 레짐게이트','rgGate','#ea580c','[S1251] 진입 봉 레짐이 불장·상승장일 때만 진입(전 진입원 공통 — 🌀BB회귀만 제외 · 자체 규칙) — 단일검증 ⛩️와 동일 판정(레짐 v3·SXExecCore.regime5At·20×200 골격). 🔲3×3 라우팅과 별개 축(라우팅=장기 정배/역배). 미검증·정찰용')
+      +_sChip(sc.rgGate,'⛩️ 레짐게이트','rgGate','#ea580c','[S1251] 진입 봉 레짐이 200선 위(📈 상승장 · ➡️ 횡보·상승권)일 때만 진입(전 진입원 공통 — 🌀BB회귀만 제외 · 자체 규칙) — 단일검증 ⛩️와 동일 판정(레짐 v3·SXExecCore.regime5At·20×200 골격). 🔲3×3 라우팅과 별개 축(라우팅=장기 정배/역배). 미검증·정찰용')
       +_cChip(!!cfg.predict,'🔮 kNN 예측','_trendTogglePredict','#7c3aed','크로스 임박 1~2봉 선행 진입/조기청산 · 실패 시 손절 · 📈크로스 블록 ON일 때만 작동')
       +_cChip(!!cfg.nextOpen,'⏭️ 다음봉 시가','_trendToggleNextOpen','#0891b2','ON: 신호 다음봉 시가 진입(마지막봉 신호=내일 매수 예정) · OFF: 신호봉 종가')
       +_cChip(!!cfg.reentry,'🔄 정배열 재진입','_trendToggleReentry','#16a34a','[S1545] MA 크로스 탭과 같은 규칙 — 청산 후 진입MA 정배열(＞)이 유지되는 중 재진입MA 골든크로스가 나면 다시 진입(청산 다음 봉은 제외). 📈 크로스 블록이 켜져 있을 때만 작동하고, 🔲 3×3 라우팅을 켜면 크로스와 같은 국면 제한을 받는다. 값은 MA 크로스 탭과 공유한다.')
@@ -7708,7 +7709,7 @@ function _trendRenderInner(){
       +_sChip(sc.exDown,'⛔ 칸 down','exDown','#dc2626','칸 down 규칙 히트=청산+그 봉 신규진입 차단(회피 트랙·매수투표 아님·in-sample) · 🌀BB회귀는 진입 차단에서 제외(자체 규칙)')
       +_sChip(sc.exCellFake,'🧩 칸 fake','exCellFake','#b45309','칸 fake 규칙 히트=청산(경보 배선·S1116 미사용분) · 진입차단 아님·매수투표 금지 계승 · in-sample')
       +_sChip(sc.exMa5,'⚡ '+_exMa5P(cfg)+'MA컷','exMa5','#dc2626','[S1695] 종가가 **진입쌍 단기MA**(지금 '+_exMa5P(cfg)+') 아래로 내려가면 📈크로스   /* [S1695] market 조건 철거 + 라벨이 실제 숫자 */ 계열 포지션을 즉시 청산 — 코인 전용. S1063이 🔲3×3 COIN 부속으로 숨겨 두었던 것을 칩으로 뺐다(청산 행에서 찾을 수 없던 그 자리). ⚠시즌2 워커에는 이 청산이 없다 — 시즌2와 맞추려면 꺼 둔다. ⚠S1546 실측: 3×3 ON 코인에서 청산 10건 중 8건이 이것이었다. ⚠가격 비교라 🧬TRIX 모드에서도 실제 MA를 본다. ⚠[S1695] **3시장 공통**이 됐다(종전 코인 전용) — 실측상 종전 KR·US는 이 청산이 0건이었다. ⚠이름의 5가 아니라 **MA쌍 앞 숫자**를 쓴다 — 쌍을 바꾸면 칩 이름도 같이 바뀐다.',_deadCross)   /* [S1680] */   /* [S1695] 코인 괄호 닫기 제거 */
-      +_sChip(sc.xSplit,'🚪 출구 분할','xSplit','#7c3aed','[S1251] 불장·상승장=데드크로스만(이중ATR 억제) · 나머지 레짐=ATR만(데드 무시) — 단일검증 🚪(S1216)와 동일 의미론·현재봉 레짐(v3) 기준. 데드/이중ATR 외 청산(가짜·칸·N봉컷·range)엔 불개입. ⚠불·상승에서 급락 하드브레이크 부재 — 미검증·정찰용')
+      +_sChip(sc.xSplit,'🚪 출구 분할','xSplit','#7c3aed','[S1251] 200선 위(📈 상승장 · ➡️ 횡보·상승권)=데드크로스만(이중ATR 억제) · 나머지 레짐=ATR만(데드 무시) — 단일검증 🚪(S1216)와 동일 의미론·현재봉 레짐(v3) 기준. 데드/이중ATR 외 청산(가짜·칸·N봉컷·range)엔 불개입. ⚠불·상승에서 급락 하드브레이크 부재 — 미검증·정찰용')
       +`<span onclick="_sxVib(9);window._stratTg&&_stratTg('exNBars')" title="[S1505] 진입 후 N봉 지나면 무조건 청산 — 값은 오른쪽 칸에서 직접 입력(1~60봉). 끄면 값을 기억했다가 다시 켜면 그대로 돌아온다. 15=역배 최적보유 측정(S838·구 세트) · 40=시즌2 하드상한 · ⚠단위는 봉이다(단일검증 BT의 ⏱N일 컷은 달력 일) · BB회귀 포지션 미적용(자체 20봉캡)" style="font-size:10px;font-weight:800;padding:5px 10px;border-radius:14px;border:1px solid;cursor:pointer;${sc.exNBars>0?`background:#0d9488;color:#fff;border-color:#0d9488`:`background:var(--surface2);color:#0d9488;border-color:#0d948855`}">${sc.exNBars>0?'☑ ⏱ '+sc.exNBars+'봉컷':'☐ ⏱ N봉컷'}</span>`
       +(sc.exNBars>0?`<span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><input id="sxStratNBars" type="number" step="1" min="1" max="60" value="${sc.exNBars}" onchange="window._stratNBars&&_stratNBars(this.value)" style="width:52px;padding:4px 6px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:10px;font-weight:700;text-align:center"><span style="font-size:9px;color:var(--text3)">봉</span></span>`:'')   /* [S1744] 칸과 단위가 줄 사이에서 안 갈리게 */
       // [S1744] ★ATR 묶음 — 🛡️마스터 한 줄 + 다리마다 한 줄(공용 틀 `_sxAtrLine` · 다리 칩 폭 110). 🏹TP_ATR 을 트레일 아래로 옮겼다(칩 순서만 — 마스터가 꺼져도 🏹 은 단독 작동 그대로).
@@ -7803,7 +7804,7 @@ function _trendRenderInner(){
     if(sc.dc) _cavParts.push('⚠ 역배 real=OOS풀 붕괴 관측(L-01·문제점 대장)');
     if(sc.minK>1) _cavParts.push('Σ임계=절대 개수·세트종속(L-15/L-17) — 겹침3+ 근거는 구 세트 측정·현 세트 재측정용');
     if(sc.deadGrace>0&&cfg.atr2) _cavParts.push('🤖 시즌2 프리셋=근사(시즌2는 장중가·tradable 격리 — 카드는 종가·전체 세트)');
-    if(sc.rgGate||sc.xSplit) _cavParts.push('⛩️🚪 레짐게이트/출구분할=단일검증 S1212·S1216 이식(레짐 v3 동일 판정) — 미검증·정찰용(시즌2 비배선)');   // [S1251]
+    if(sc.rgGate||sc.xSplit) _cavParts.push('⛩️🚪 레짐게이트/출구분할=단일검증 S1212·S1216 이식(레짐 v4 동일 판정) — 미검증·정찰용(시즌2 비배선)');   // [S1251]
     if(sc.xGate3&&sc.xSplit) _cavParts.push('⚠⬛+🚪 동시 ON — 장기축(전일 봉)과 레짐 v3(현재봉) 두 축이 모두 허용해야 데드·ATR이 발동한다(엇갈리면 둘 다 침묵)');   // [S1503]
     if(sc.xGate3 && !_ltRdy) _cavParts.push('⚠⬛ 게이트가 지금 아무 일도 안 하고 있습니다 — sx_exec_core.js가 구본이라 장기축을 못 읽습니다(배포 후 새로고침)');   // [S1504] 조용한 실패를 각주에서도 말한다
     if(sc.slPctOn) _cavParts.push(sc.slFromEntry
@@ -20104,7 +20105,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1854';   // [S1854] 🧪 신호 실험 카드(단일검증 탭 · 매수/매도 칩 34 · N봉 뒤 적중률)
+  window.SX_BUILD='S1855';   // [S1855] 레짐 v4(앱 전체 · 하락 쪽 기울기 대칭 · 이름 상승장 · 횡보(상승권 · 하락권) · 하락장 · 🔥 · 🌋 배지)
+  //window.SX_BUILD='S1854';   // [S1854] 🧪 신호 실험 카드(단일검증 탭 · 매수/매도 칩 34 · N봉 뒤 적중률)
   //window.SX_BUILD='S1853';   // [S1853] ⚖️ 배지 ④ 무작위 청산 대조(여섯 탭)
   //window.SX_BUILD='S1852';   // [S1852] ⚖️ 배지 ③ 무작위 진입 대조 2단계(🎯 ICT · ⚓ 지지/저항 · 🧪 전략 조합 · 🧪 실험 칩 · 셋업은 대조 없음)
   // [S1851] ⚖️ 배지 ③ = 🎲 무작위 진입 대조(📈 MA 크로스 · 🐢 터틀 · 🚦 슈퍼트렌드 · 창 판에서만 · 9벌 · 그냥 들고 있기는 참고만)
@@ -22107,15 +22109,16 @@ function _sxbRegimeWhy(){
     if(_M){
       const _f = function(e){ if(!e) return '–'; const _rm = (e.v==='무변별')?'무변별':(e.v+(e.rp===1?'·재현✓':(e.rp===-1?'·⚗보류':'·재현✗')));
         return 'Δret '+_q5Num(e.dR)+'pp · Δcrash '+_q5Num(e.dC)+'pp · '+_rm; };
-      const _ce = ss.cell ? _M.cells[ss.cell] : null, _re = ss.regime ? _M.rgs[ss.regime] : null;
+      const _ce = ss.cell ? _M.cells[ss.cell] : null, _re = (ss.regime && !_Q5_RG_STALE[ss.regime]) ? _M.rgs[ss.regime] : null;   /* [S1855] v4 에서 봉 구성이 바뀐 칸(down · crash)은 v3 측정값을 안 보인다 */
       _q5L = `\n\n🗺 측정 근거(S1269 PREREG 43a17c2f · 그 구역에 있던 모든 봉 · 진입 무관)`
         + (_ce?`\n· 칸 ${ss.cellLbl||ss.cell}: ${_f(_ce)}`:'')
-        + (_re?`\n· 레짐 ${ss.regimeLbl||ss.regime}: ${_f(_re)}`:'')
+        + (_re?`\n· 레짐 ${ss.regimeLbl||ss.regime}: ${_f(_re)}`:(ss.regime&&_Q5_RG_STALE[ss.regime]?`\n· 레짐 ${ss.regimeLbl||ss.regime}: v3 측정(S1269) — v4 에서 봉 구성이 바뀌어 숨김`:''))
         + `\n기준선 ${String(_mk1270).toUpperCase()} ret ${_q5Num(_M.base.ret)}% · crash ${_M.base.crash.toFixed(2)}%`
         + `\n※문항 답=cant — 강(+)·재현 구역 3시장 전무. 측정 기록이지 방향 지시 아님.`;
     }
   }catch(_e1270c){ _q5L=''; }
-  const msg = `🌦️ ${ss.regimeLbl||ss.regime} — 판정 근거\n규칙(레짐 v3 · SXExecCore.regime5At · 일봉): MA20 vs 장기MA(200 · 부족 시 120/60 폴백) 거리 ±1.5% 이내=횡보장 · 위=상승측 · 아래=하락측.\n상승측: 20MA 기울기(10봉) ≥ +0.15%/봉 → 불장, 아니면 상승장.\n하락측: 기울기 ≤ −0.5%/봉 · ATR% ≥ 5 · 20MA 이격 ≤ −7% 중 하나 → 폭락장, 아니면 하락장.\n현재: ${ss.regimeLbl||ss.regime}${ss.cellLbl?' · 칸 '+ss.cellLbl:''}\n※임계=선언값(측정 전) · 일봉 선언이라 주/월봉은 배지 공백${_q5L}`;
+  const msg = `🌦️ ${ss.regimeLbl||ss.regime} — 판정 근거\n규칙(레짐 v4 · S1855 · SXExecCore.regime5At · 일봉): MA20 vs 장기MA(200 · 부족 시 120/60 폴백) 거리 ±1.5% 이내=횡보 · 위=상승권 · 아래=하락권.\n상승권: 20MA 기울기(10봉) ≥ +0.15%/봉 → 상승장, 아니면 횡보·상승권.\n하락권: 20MA 기울기(10봉) ≤ −0.15%/봉 → 하락장, 아니면 횡보·하락권.\n🔥 불장 = 250봉 신고가 뒤 고점에서 3×ATR 안 · 🌋 폭락 = 250봉 신저가 뒤 저점에서 3×ATR 안(보조 배지).\n현재: ${ss.regimeLbl||ss.regime}${ss.cellLbl?' · 칸 '+ss.cellLbl:''}${ss.badge&&ss.badge.hi?' · 🔥 불장':''}${ss.badge&&ss.badge.lo?' · 🌋 폭락':''}\n※측정 offline/regv4(지금 모습의 이름 · 앞날 방향은 못 가름) · 일봉 기준이라 주/월봉은 배지 공백${_q5L}`;   // [S1855] v4 규칙 글
+  //const msg = `🌦️ ${ss.regimeLbl||ss.regime} — 판정 근거\n규칙(레짐 v3 · SXExecCore.regime5At · 일봉): MA20 vs 장기MA(200 · 부족 시 120/60 폴백) 거리 ±1.5% 이내=횡보장 · 위=상승측 · 아래=하락측.\n상승측: 20MA 기울기(10봉) ≥ +0.15%/봉 → 불장, 아니면 상승장.\n하락측: 기울기 ≤ −0.5%/봉 · ATR% ≥ 5 · 20MA 이격 ≤ −7% 중 하나 → 폭락장, 아니면 하락장.\n현재: ${ss.regimeLbl||ss.regime}${ss.cellLbl?' · 칸 '+ss.cellLbl:''}\n※임계=선언값(측정 전) · 일봉 선언이라 주/월봉은 배지 공백${_q5L}`;
   if(typeof toast === 'function') toast(msg);
   if(typeof _sxVib === 'function') _sxVib(8);
 }
@@ -23451,6 +23454,9 @@ function _sxbHTML(){
       const _rC = _SXB_BADGE_COL.regime[_ssB.regime] || _SXB_BADGE_COL.regime.side;   // [S1449] 색 SSOT
       const _rI = _sxbRegimeIcon(_ssB.regime);                                        // [S1449] 아이콘 SSOT(exec_core) — 날씨→방향 세트
       _regimeBadge = `<span class="sxb-badge" style="color:${_rC};background:${_rC}1A;border:1px solid ${_rC};cursor:pointer" onclick="event.stopPropagation();_sxbRegimeWhy&&_sxbRegimeWhy()">${_rI} ${_ssB.regimeLbl||_ssB.regime}</span>`;   // [S1262] 근거 토스트
+      { const _bg = _ssB.badge, _V = (typeof SXExecCore!=='undefined' && SXExecCore.STATE_VOCAB) || {}, _BL = _V.badge || {}, _BI = _V.badgeIcon || {};   // [S1855] 🔥 신고가 · 🌋 신저가 배지(켜졌을 때만 · 레짐 v4 보조 · 3×ATR 유지)
+        if(_bg && _bg.hi){ const _c = _SXB_BADGE_COL.hilo.hi; _regimeBadge += `<span class="sxb-badge" data-hilo="hi" style="color:${_c};background:${_c}1A;border:1px solid ${_c}" title="250봉 신고가 뒤 고점에서 3×ATR 안 · 지금 고점에서 ${_bg.hiDist!=null?(+_bg.hiDist).toFixed(1):'–'} ATR 아래">${_BI.hi||'🔥'} ${_BL.hi||'불장'}</span>`; }
+        if(_bg && _bg.lo){ const _c = _SXB_BADGE_COL.hilo.lo; _regimeBadge += `<span class="sxb-badge" data-hilo="lo" style="color:${_c};background:${_c}1A;border:1px solid ${_c}" title="250봉 신저가 뒤 저점에서 3×ATR 안 · 지금 저점에서 ${_bg.loDist!=null?(+_bg.loDist).toFixed(1):'–'} ATR 위">${_BI.lo||'🌋'} ${_BL.lo||'폭락'}</span>`; } }
     }
   }
   // [S361/S376] 휩소주의 — 엔진판단 ↔ 지표분포 방향 엇갈림 AND 신뢰도 낮음
@@ -24608,6 +24614,7 @@ function _computeBoardInputs(stock, indicators, scores, scoreMom, tf){
     if(_analTF==='day' && typeof SXExecCore!=='undefined' && SXExecCore.stockStateAt){
       const _ssRows = (stock && stock._lastAnalCandles) || null;
       if(Array.isArray(_ssRows) && _ssRows.length>=20) _boardExtras.stockState = SXExecCore.stockStateAt((indicators && indicators._advanced) || indicators, _ssRows, _ssRows.length-1);   // [S1244] flat-top trap — maAlignLT는 _advanced에(평탄본이면 cell 잠복 null)
+      if(_boardExtras.stockState && Array.isArray(_ssRows) && SXExecCore.hiLoBadgeAt){ try{ _boardExtras.stockState.badge = SXExecCore.hiLoBadgeAt(_ssRows, _ssRows.length-1); }catch(_eHL1855){} }   // [S1855] 🔥 · 🌋 배지는 전광판만 따로 부른다(stockStateAt 은 스캔 워커도 쓰니 그대로)
     }
   }catch(_eSS){}
   try {
@@ -27828,6 +27835,7 @@ var _Q5_MAP = {"kr":{"base":{"n":62980,"ret":3.859,"crash":11.76},"ctl":19.96,"c
 // [S1270→S1450] 구 `_Q5_RGL`은 각인이 **스스로를 '_btRenderRegime 어휘 미러'라 적고 있었다** — S1449가 세 표를 묶으면서
 //   ⚠**같은 파일 안의 이 네 번째 표를 못 봤다**(전수 검사가 없었던 탓 · S1450 배터리에 신설). 값은 그대로, 출처만 SSOT로.
 var _Q5_RGL = {}; ['bull','up','side','down','crash'].forEach(function(_r){ _Q5_RGL[_r]=_sxbRegimeTag(_r, false); });
+var _Q5_RG_STALE = { down:1, crash:1 };   // [S1855] 레짐 v4 — 하락 쪽 두 칸은 봉 구성이 바뀌어 위 박제(S1269 · v3 측정)가 그 칸을 말하지 않는다 · 상승장 · 횡보·상승권 · 횡보는 v3 와 같은 봉
 //  구역 1개 → {색, 등급칩} — 재현 실패/보류는 색 없음
 function _q5Tone(e){
   var T3='var(--text3)';
@@ -27887,13 +27895,14 @@ function _q5MapHtml(mk, curCell, curRg){
     h+='</table>';
     h+='<div style="font-size:9px;font-weight:700;color:'+T3+';margin:7px 0 3px">레짐 마진 <span style="font-weight:400">(regime5At 5국 · 같은 모집단)</span></div>';
     var RO=['bull','up','side','down','crash'];
-    for(var ri=0;ri<RO.length;ri++){ var rg=RO[ri], re=M.rgs[rg], rt=_q5Tone(re), rcur=(rg===curRg);
+    for(var ri=0;ri<RO.length;ri++){ var rg=RO[ri], re=_Q5_RG_STALE[rg]?null:M.rgs[rg], rt=_q5Tone(re), rcur=(rg===curRg);   /* [S1855] v4 에서 봉 구성이 바뀐 칸은 '–' */
       h+='<div style="display:flex;align-items:baseline;gap:6px;font-size:9px;padding:2.5px 4px;border-radius:5px;'+(rt.bg?('background:'+rt.bg+';'):'')+(rcur?'border:1px solid '+BLU+';':'')+'">'
         +'<span style="font-weight:'+(rcur?'800':'600')+';color:'+(rcur?BLU:T2)+';min-width:56px">'+_Q5_RGL[rg]+'</span>'
         +'<span style="color:'+rt.col+';font-weight:800">Δret '+(re?_q5Num(re.dR):'–')+'</span>'
         +'<span style="color:'+T3+'">Δcrash '+(re?_q5Num(re.dC):'–')+'</span>'
         +'<span style="margin-left:auto;color:'+rt.col+';font-weight:700;font-size:8px">'+(rt.chip?(esc(rt.chip)+(rt.mark?(' '+rt.mark):'')):'')+'</span>'
         +'</div>'; }
+    h+='<div data-q5stale="1" style="font-size:8px;color:'+T3+';line-height:1.6;margin-top:4px">횡보·하락권 · 하락장은 레짐 v4(S1855)에서 봉 구성이 바뀌어 v3 측정값을 숨겼다 — 다시 재기 전까지 \'–\' · 나머지 셋은 v3 와 같은 봉</div>';   // [S1855]
     h+='<div style="font-size:8px;color:'+T3+';line-height:1.6;margin-top:5px">문항 답 <b>cant</b>(현 기준하) — "가장 극대화" 단답이 성립할 <b>강(+)·재현 구역이 3시장 마진 2표 어디에도 없음</b>. 우위 축마저 시장별로 다름(KR=칸축·US=레짐축·COIN=표본 쏠림). '
       +'<b>색 있는 구역만 재현✓</b> · ⚗보류=홀드아웃 반쪽 n&lt;100(강(+) 후보 2곳 전부 여기) · 재현✗=전반/후반 한정. '
       +'대조군(ATR% 5분위 Δcrash) 통과 +19.96/+11.24/+7.18pp. 등급 임계는 사전선언값(Δret 2pp/1pp · Δcrash 5pp/2pp) — 사후 완화 없음. '
