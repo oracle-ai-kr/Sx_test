@@ -796,7 +796,8 @@ function _btRenderRegime(rb){
   return '<div class="bt-card" style="margin-top:10px">'
     + '<div class="bt-card-title">📊 레짐별 성과 <span style="font-size:9px;font-weight:500;color:var(--text3)">완성거래만</span> <span style="font-size:9px;font-weight:600;color:var(--text3)">(SMA 20/60/120/200 · 현재 파라미터 · 실험)</span></div>'
     + rowsHtml
-    + '<div style="font-size:9px;color:var(--text3);margin-top:6px;line-height:1.6">진입 봉의 큰 추세로 거래를 분류(레짐 v3·S1219) — 골격: 20×200 SMA ±1.5%(위=상승측·아래=하락측·밴드=횡보). 분화는 동역학: 상승측 <b>기울기 ≥+0.15%/봉=' + _btRegimeTag('bull',false) + '</b>·미달=' + _btRegimeTag('up',false) + '(구 60&gt;120&gt;200 조항 폐기 — 3×3 상승세와 중복) · 하락측 <b>급기울기(≤−0.5) ∨ 고변동(ATR≥5%) ∨ 과대이격(≤−7%)</b>=' + _btRegimeTag('crash',false) + '·미달=' + _btRegimeTag('down',false) + '. 전 임계값 선언값 초안. 같은 전략이 어느 추세에서 통하는지 확인용. PF=손익비, %=레짐 내 수익률 합.</div></div>';
+    + '<div style="font-size:9px;color:var(--text3);margin-top:6px;line-height:1.6">진입 봉의 큰 추세로 거래를 분류(레짐 v4·S1855) — 골격: 20×200 SMA ±1.5%(위=상승권·아래=하락권·밴드=' + _btRegimeTag('side',false) + '). 상승권 <b>기울기(MA20 10봉) ≥+0.15%/봉=' + _btRegimeTag('bull',false) + '</b>·미달=' + _btRegimeTag('up',false) + ' · 하락권 <b>기울기 ≤−0.15%/봉=' + _btRegimeTag('crash',false) + '</b>·미달=' + _btRegimeTag('down',false) + '(v3 의 ATR·이격 조건은 걷음 — 측정 offline/regv4: 이름은 지금 모습 · 앞날 방향은 못 가름). 같은 전략이 어느 추세에서 통하는지 확인용. PF=손익비, %=레짐 내 수익률 합.</div></div>';   // [S1855]
+    //+ '<div style="font-size:9px;color:var(--text3);margin-top:6px;line-height:1.6">진입 봉의 큰 추세로 거래를 분류(레짐 v3·S1219) — 골격: 20×200 SMA ±1.5%(위=상승측·아래=하락측·밴드=횡보). 분화는 동역학: 상승측 <b>기울기 ≥+0.15%/봉=' + _btRegimeTag('bull',false) + '</b>·미달=' + _btRegimeTag('up',false) + '(구 60&gt;120&gt;200 조항 폐기 — 3×3 상승세와 중복) · 하락측 <b>급기울기(≤−0.5) ∨ 고변동(ATR≥5%) ∨ 과대이격(≤−7%)</b>=' + _btRegimeTag('crash',false) + '·미달=' + _btRegimeTag('down',false) + '. 전 임계값 선언값 초안. 같은 전략이 어느 추세에서 통하는지 확인용. PF=손익비, %=레짐 내 수익률 합.</div></div>';
 }
 
 // S67: 신뢰도 라벨
