@@ -202,7 +202,8 @@ var STATE_VOCAB = {
     'bear|bull':'되돌림','bear|bear':'추가하락','bear|mixed':'하락세전환',
     'mixed|bull':'눌림목','mixed|bear':'바닥확인','mixed|mixed':'추세중립'
   },
-  regime: { bull:'불장', up:'상승장', side:'횡보장', down:'하락장', crash:'폭락장' },
+  regime: { bull:'상승장', up:'횡보·상승권', side:'횡보', down:'횡보·하락권', crash:'하락장' },   // [S1855] 레짐 v4 이름(사용자 2026-10-31 21:31 · 21:40 '상승권 · 하락권') — 키는 측정 정체성이라 그대로 · 뜻: bull = 상승장 · up = 200선 위 쉼 · side = 띠 · down = 200선 아래 쉼 · crash = 하락장
+  //regime: { bull:'불장', up:'상승장', side:'횡보장', down:'하락장', crash:'폭락장' },   // [S1217~S1854] v3 이름
   // [S1449] ★레짐 아이콘 SSOT — 라벨이 여기 있으니 아이콘도 여기다(둘은 한 어휘의 두 면이다).
   //   ⚠**표가 세 벌로 갈려 있었다**: 전광판 `{🔥,🌤️,〰️,🌧️,🌋}`(날씨 은유) · sx_bt `RG_L`·`L` `{🔥,📈,➡️,📉,🌋}`(방향 은유).
   //     같은 레짐이 두 화면에서 다른 글리프였고, sx_bt 안에서도 두 표가 라벨 형태만 달리 적혀 있었다(`횡보` vs `횡보장`).
@@ -212,7 +213,8 @@ var STATE_VOCAB = {
   //        방향 세트로 가면 변동성 3종(🌪️/🌫️/🌤️)을 **한 글자도 안 건드리고** 충돌이 사라진다.
   //     ㉢S1243이 날씨 은유를 고른 이유는 *'전이 배지(📈📉)와 비겹침'*이었는데 **S1448이 전이 배지를 철거해 그 제약이 사라졌다.**
   //   ⚠키는 측정 정체성이라 동결(STATE_VOCAB 규약 그대로) · 바뀌는 것은 표시 글리프뿐이다.
-  regimeIcon: { bull:'🔥', up:'📈', side:'➡️', down:'📉', crash:'🌋' }
+  regimeIcon: { bull:'📈', up:'➡️', side:'➡️', down:'➡️', crash:'📉' },   // [S1855] v4 — 🔥 · 🌋 는 신고가 · 신저가 배지로 옮김(옛 v3 표 { bull:'🔥', up:'📈', side:'➡️', down:'📉', crash:'🌋' })
+  badge: { hi:'불장', lo:'폭락' }, badgeIcon: { hi:'🔥', lo:'🌋' }   // [S1855] 보조 배지(hiLoSeries) — 레짐과 따로 계산 · 따로 표시
 };
 function cellLblOf(ck){ return (ck&&STATE_VOCAB.cell[ck])||ck||'?'; }
 // [S1450] 레짐 표기 조립도 SSOT가 맡는다 — S1449는 아이콘 표만 여기 두고 **조립은 render·bt가 각자** 했다.
@@ -228,6 +230,8 @@ function regimeTagOf(rg, sp){
 //   ② 하락측(S1218 유지): 폭락 = 기울기 ≤ −0.5%/봉 ∨ ATR14/종가 ≥ 5% ∨ 이격(종가/MA20) ≤ −7% · 하락장 = 미달.
 //   ③ 횡보장 = 밴드 안(전환 구간·v1 동일). ★게이트 불변 증명: 게이트 소비는 합집합 {불장,상승장}이고 그 합집합(=20>200+1.5%)은 v1≡v3 — 테스트 박제.
 //   전 임계값은 선언값 초안(측정 전·조정 가능). 함수명은 regime5At 유지(소비자 배선 불변).
+// [S1855] ★레짐 v4 — 위 ② 하락측을 상승측 거울(기울기 ≤ −0.15%/봉)로 바꿨다 · ①③ · 위치(regimeAt)는 그대로 ⇒ bull · up · side 는 v3 와 봉마다 같다(배터리 verify_s1855 [C]).
+//   측정 offline/regv4(rv4_criteria_v2.md 540b65c0d66e · 판정 실행 한 번 · 독립 검산 다름 0): 통과 AW · BW · DW 중 AW · v3 폭락장은 덩어리 중앙 4 ~ 5봉 · 1봉짜리 21 ~ 26% 로 깜빡였다.
 function regime5At(rows, idx){
   var base = regimeAt(rows, idx);
   if(base === 'side') return 'side';
@@ -239,17 +243,36 @@ function regime5At(rows, idx){
       return (us!=null&&us>=0.15)?'bull':'up';
     }catch(e){ return 'up'; }
   }
-  try{
+  try{                                                                              // [S1855] 레짐 v4 — 하락측 = 상승측 거울: 기울기(MA20 10봉) ≤ −0.15%/봉 → crash(하락장) · 아니면 down(횡보·하락권). v3 의 ATR ≥ 5% · 이격 ≤ −7% · −0.5 는 걷음(측정 offline/regv4 rv4_result.md · AW)
     function _sm(end,len){ if(end<len-1) return null; var t=0,k,c; for(k=end-len+1;k<=end;k++){ c=+(rows[k].close!=null?rows[k].close:rows[k].c); t+=c; } return t/len; }
     var m0=_sm(idx,20), m1=_sm(idx-10,20);
     var slope=(m0!=null&&m1!=null&&m1>0)?((m0-m1)/m1*100/10):null;      // %/봉
-    var atr=sxATR(rows.slice(0, idx+1), 14), cp=+(rows[idx].close!=null?rows[idx].close:rows[idx].c);
-    var atrPct=(atr!=null&&cp>0)?(atr/cp*100):null;
-    var disp=(m0!=null&&m0>0&&cp>0)?((cp-m0)/m0*100):null;                          // [S1218] 이격도(종가 vs MA20, %)
-    if((slope!=null&&slope<=-0.5)||(atrPct!=null&&atrPct>=5)||(disp!=null&&disp<=-7)) return 'crash';
+    if(slope!=null&&slope<=-0.15) return 'crash';
   }catch(e){}
   return 'down';
 }
+// [S1855] 🔥 신고가 · 🌋 신저가 배지(레짐 v4 보조 · offline/regv4 rv4_criteria_v2.md §4 글자 그대로) — 봉 t = 250 부터: 꺼져 있고 고가가 앞 250봉 최고가를 넘으면 켜고(고점 기록) ·
+//   켜져 있으면 고점 갱신 뒤 종가 < 고점 − 3×ATR14(와일더 · 1 … 14 평균으로 시작) 이면 끔 · 🌋 거울(저가 · 앞 250봉 최저가 · 종가 > 저점 + 3×ATR).
+//   봉마다 { hi, lo, hiDist, loDist }(거리 = ATR 배수 · 꺼졌으면 null) · t < 250 = null · 값이 이상한 봉(종·고·저 ≤ 0 · 숫자 아님)이 있으면 전부 null.
+//   ⚠앱 봉 창(200 ~ 600봉)의 250번째 봉부터 새로 센다 — 창 앞에서 켜졌어야 할 배지는 다음 신고가(신저가)부터 켜진다(측정도 계열의 250번째 봉부터 · 같은 규칙).
+function hiLoSeries(rows){
+  var n=(rows&&rows.length)||0;
+  try{
+    var out=new Array(n).fill(null); if(n<251) return out;
+    var H=new Array(n), L=new Array(n), C=new Array(n), i, t, k;
+    for(i=0;i<n;i++){ var r=rows[i]||{}; C[i]=+(r.close!=null?r.close:r.c); H[i]=+(r.high!=null?r.high:r.h); L[i]=+(r.low!=null?r.low:r.l); if(!(C[i]>0&&H[i]>0&&L[i]>0)) return new Array(n).fill(null); }
+    var atr=new Array(n).fill(null), s=0;
+    for(i=1;i<=14;i++) s+=Math.max(H[i]-L[i],Math.abs(H[i]-C[i-1]),Math.abs(L[i]-C[i-1]));
+    atr[14]=s/14; for(i=15;i<n;i++) atr[i]=(13*atr[i-1]+Math.max(H[i]-L[i],Math.abs(H[i]-C[i-1]),Math.abs(L[i]-C[i-1])))/14;
+    var on=false, pk=0, onL=false, tr=0;
+    for(t=250;t<n;t++){ var mx=-Infinity, mn=Infinity; for(k=t-250;k<t;k++){ if(H[k]>mx) mx=H[k]; if(L[k]<mn) mn=L[k]; }
+      if(!on && H[t]>mx){ on=true; pk=H[t]; } if(on){ pk=Math.max(pk,H[t]); if(C[t]<pk-3*atr[t]) on=false; }
+      if(!onL && L[t]<mn){ onL=true; tr=L[t]; } if(onL){ tr=Math.min(tr,L[t]); if(C[t]>tr+3*atr[t]) onL=false; }
+      out[t]={ hi:on, lo:onL, hiDist:on?(pk-C[t])/atr[t]:null, loDist:onL?(C[t]-tr)/atr[t]:null }; }
+    return out;
+  }catch(e){ return new Array(n).fill(null); }
+}
+function hiLoBadgeAt(rows, idx){ try{ if(!rows || idx==null || idx<250 || idx>=rows.length) return null; return hiLoSeries(rows.slice(0, idx+1))[idx]||null; }catch(e){ return null; } }   // [S1855] 봉 251개 미만 = null(이력 250봉 미만은 배지 없음)
 // [S1217] 종목 상태 헬퍼 — 전광판·조건검색 상태필터의 SSOT 기반(배선은 차후 세션).
 function stockStateAt(ind, rows, i){
   var ck=cellOfAt(ind, rows, i), rg=regime5At(rows, i);
@@ -379,7 +402,8 @@ var API = {
   bullVolAt: bullVolAt, v2SignalAt: v2SignalAt,                                        // [S1201]
   maCrossAt: maCrossAt, cellOfAt: cellOfAt, gcAgeAt: gcAgeAt, regimeAt: regimeAt,      // [S1210·S1211·S1212]
   STATE_VOCAB: STATE_VOCAB, cellLblOf: cellLblOf, regime5At: regime5At, stockStateAt: stockStateAt,   // [S1217]
-  regimeTagOf: regimeTagOf,                                                                           // [S1450]
+  regimeTagOf: regimeTagOf,
+  hiLoSeries: hiLoSeries, hiLoBadgeAt: hiLoBadgeAt,                                                  // [S1855] 🔥 신고가 · 🌋 신저가 배지                                                                           // [S1450]
   ltAt: ltAt,                                                                                        // [S1503] 장기축 조회 노출 — 시즌1 단기매매 카드 ⬛ 3×3판 출구게이트가 미러를 만들지 않고 이 함수만 부른다(설계원칙1). 산출식·소비처 무변경.
   runLifecycle: runLifecycle
 };
