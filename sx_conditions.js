@@ -254,9 +254,9 @@ const SX_CONDITIONS = [
         {id:'bear_bull',name:'되돌림'},{id:'bear_bear',name:'추가하락'},{id:'bear_mixed',name:'하락세전환'},
         {id:'mixed_bull',name:'눌림목'},{id:'mixed_bear',name:'바닥확인'},{id:'mixed_mixed',name:'추세중립'},
       ],source:'calc_candle',desc:'3×3 SSOT 칸(단기×장기 60/120/200) 현재 위치 — 복수 선택=OR. 분석탭 헤더 칸이름과 동일 판정(cellOfAt·데이터 세대 추종). 장기축 웜업(200봉) 미달 종목은 판정 불가로 탈락'},
-      {id:'struct_regime',name:'레짐 (시장국면 v3)',type:'multi_check',options:[
-        {id:'bull',name:'불장'},{id:'up',name:'상승장'},{id:'side',name:'횡보장'},{id:'down',name:'하락장'},{id:'crash',name:'폭락장'},
-      ],source:'calc_candle',desc:'레짐 v3(S1219): 골격 20vs200 ±1.5% + 동역학(기울기·ATR·이격) 5국면 — 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 임계값은 일봉 선언값'},
+      {id:'struct_regime',name:'레짐 (시장국면 v4)',type:'multi_check',options:[
+        {id:'bull',name:'상승장'},{id:'up',name:'횡보·상승권'},{id:'side',name:'횡보'},{id:'down',name:'횡보·하락권'},{id:'crash',name:'하락장'},   // [S1855] 레짐 v4 이름(id 그대로 · 옛 폭락장을 골라 둔 조건은 v4 하락장으로 거름)
+      ],source:'calc_candle',desc:'레짐 v4(S1855): 골격 20vs200 ±1.5%(상승권·띠·하락권) + MA20 기울기 ±0.15%/봉(상승장·하락장) — 나머지는 횡보. 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 일봉 측정값(offline/regv4)'},
       // [S1544] MA 배열 (직접 입력) — 두 이동평균의 **현재 대소**만 본다(`MA(n1) > MA(n2)` 엄격 부등호).
       //   ★방향 칩을 두지 않았다 — 입력을 뒤집으면(20 > 5) 그대로 역배열이라 자유도가 늘지 않는다.
       //   ★칸·레짐과 **같은 선행 게이트 규약**: 마지막 봉 단일 판정 · N봉 슬라이드 비적용 · 항상 AND
@@ -484,9 +484,9 @@ const COIN_CONDITIONS = [
         {id:'bear_bull',name:'되돌림'},{id:'bear_bear',name:'추가하락'},{id:'bear_mixed',name:'하락세전환'},
         {id:'mixed_bull',name:'눌림목'},{id:'mixed_bear',name:'바닥확인'},{id:'mixed_mixed',name:'추세중립'},
       ],source:'calc_candle',desc:'3×3 SSOT 칸(단기×장기 60/120/200) 현재 위치 — 복수 선택=OR. 분석탭 헤더 칸이름과 동일 판정(cellOfAt·데이터 세대 추종). 장기축 웜업(200봉) 미달 종목은 판정 불가로 탈락'},
-      {id:'struct_regime',name:'레짐 (시장국면 v3)',type:'multi_check',options:[
-        {id:'bull',name:'불장'},{id:'up',name:'상승장'},{id:'side',name:'횡보장'},{id:'down',name:'하락장'},{id:'crash',name:'폭락장'},
-      ],source:'calc_candle',desc:'레짐 v3(S1219): 골격 20vs200 ±1.5% + 동역학(기울기·ATR·이격) 5국면 — 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 임계값은 일봉 선언값'},
+      {id:'struct_regime',name:'레짐 (시장국면 v4)',type:'multi_check',options:[
+        {id:'bull',name:'상승장'},{id:'up',name:'횡보·상승권'},{id:'side',name:'횡보'},{id:'down',name:'횡보·하락권'},{id:'crash',name:'하락장'},   // [S1855] 레짐 v4 이름(id 그대로 · 옛 폭락장을 골라 둔 조건은 v4 하락장으로 거름)
+      ],source:'calc_candle',desc:'레짐 v4(S1855): 골격 20vs200 ±1.5%(상승권·띠·하락권) + MA20 기울기 ±0.15%/봉(상승장·하락장) — 나머지는 횡보. 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 일봉 측정값(offline/regv4)'},
       // [S1544] MA 배열 (직접 입력) — 두 이동평균의 **현재 대소**만 본다(`MA(n1) > MA(n2)` 엄격 부등호).
       //   ★방향 칩을 두지 않았다 — 입력을 뒤집으면(20 > 5) 그대로 역배열이라 자유도가 늘지 않는다.
       //   ★칸·레짐과 **같은 선행 게이트 규약**: 마지막 봉 단일 판정 · N봉 슬라이드 비적용 · 항상 AND
@@ -708,9 +708,9 @@ const US_CONDITIONS = [
         {id:'bear_bull',name:'되돌림'},{id:'bear_bear',name:'추가하락'},{id:'bear_mixed',name:'하락세전환'},
         {id:'mixed_bull',name:'눌림목'},{id:'mixed_bear',name:'바닥확인'},{id:'mixed_mixed',name:'추세중립'},
       ],source:'calc_candle',desc:'3×3 SSOT 칸(단기×장기 60/120/200) 현재 위치 — 복수 선택=OR. 분석탭 헤더 칸이름과 동일 판정(cellOfAt·데이터 세대 추종). 장기축 웜업(200봉) 미달 종목은 판정 불가로 탈락'},
-      {id:'struct_regime',name:'레짐 (시장국면 v3)',type:'multi_check',options:[
-        {id:'bull',name:'불장'},{id:'up',name:'상승장'},{id:'side',name:'횡보장'},{id:'down',name:'하락장'},{id:'crash',name:'폭락장'},
-      ],source:'calc_candle',desc:'레짐 v3(S1219): 골격 20vs200 ±1.5% + 동역학(기울기·ATR·이격) 5국면 — 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 임계값은 일봉 선언값'},
+      {id:'struct_regime',name:'레짐 (시장국면 v4)',type:'multi_check',options:[
+        {id:'bull',name:'상승장'},{id:'up',name:'횡보·상승권'},{id:'side',name:'횡보'},{id:'down',name:'횡보·하락권'},{id:'crash',name:'하락장'},   // [S1855] 레짐 v4 이름(id 그대로 · 옛 폭락장을 골라 둔 조건은 v4 하락장으로 거름)
+      ],source:'calc_candle',desc:'레짐 v4(S1855): 골격 20vs200 ±1.5%(상승권·띠·하락권) + MA20 기울기 ±0.15%/봉(상승장·하락장) — 나머지는 횡보. 복수 선택=OR. 단일검증 레짐별 성과와 동일 판정(regime5At). 일봉 측정값(offline/regv4)'},
       // [S1544] MA 배열 (직접 입력) — 두 이동평균의 **현재 대소**만 본다(`MA(n1) > MA(n2)` 엄격 부등호).
       //   ★방향 칩을 두지 않았다 — 입력을 뒤집으면(20 > 5) 그대로 역배열이라 자유도가 늘지 않는다.
       //   ★칸·레짐과 **같은 선행 게이트 규약**: 마지막 봉 단일 판정 · N봉 슬라이드 비적용 · 항상 AND
