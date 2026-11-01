@@ -12238,13 +12238,17 @@ function _maeCalc(rows, curAtrPct){
 //   칩 계산 · 카드 셈 = sx_sig_lab.js(SXSigLab.chips · card · 검산 check_lab.py 다름 0) · 이 블록은 화면과 불러오기만 한다.
 //   불러오기 = 단기매매 카드 여섯 탭과 같은 길(🕰 창 · 📂 로드 · 🔴 라이브 = _trendSnapCycle · _trendSnapLoad · _trendSnapOff 그대로 · 봉 = SXCandleBT.fetchRows600 · 모집단 = 스냅이면 스냅).
 //   판 하나 불러오면 종목마다 칩 34 를 한 번 계산해 기억(창A · 창B · 현재 스냅 · 라이브 따로) — 칩 · K · W · N 을 바꿔도 다시 안 셈.
-var _LAB_NM = { ut:'UT Bot', sqz:'스퀴즈', cmf:'CMF', don:'돈치안', ift:'IFT', lz:'Lorentzian', rk:'RSI 커널', smc:'SMC CHoCH', srb:'지지/저항 돌파', vwd:'VWAP 다이버전스', wt:'WaveTrend', macd:'MACD', ast:'🤖 적응형 슈퍼트렌드', mlmi:'🤖 MLMI', knns:'🤖 kNN 전략', logr:'🤖 로지스틱 회귀', ptp:'🤖 가격 목표(EMA 50/200)' };
+//   [S1858] 칩 31(새 14 = PREREG_S1858_siglab2.md §0 · 조립 offline/mlsig2/gen_lab2.js) · 칩 고르기를 계열 다섯으로 접음 · 칩마다 측정 꼬리표(못 가름 · 못 미침 · 일부 통함 · 묶음만 잼 · 안 잼).
+var _LAB_NM = { ut:'UT Bot', sqz:'스퀴즈', cmf:'CMF', don:'돈치안', ift:'IFT', lz:'Lorentzian', rk:'RSI 커널', smc:'SMC CHoCH', srb:'지지/저항 돌파', vwd:'VWAP 다이버전스', wt:'WaveTrend', macd:'MACD', ast:'🤖 적응형 슈퍼트렌드', mlmi:'🤖 MLMI', knns:'🤖 kNN 전략', logr:'🤖 로지스틱 회귀', ptp:'🤖 가격 목표(EMA 50/200)', zl:'Zero Lag 추세', ht:'하프트렌드', gtf:'가우시안 추세', rswb:'RSI·MACD 점', st3x:'3중 슈퍼트렌드', jst:'JS 눌림', strv:'슈퍼트렌드+상대거래량', stx:'슈퍼트렌드(추세 청산)', vwst:'거래량가중 슈퍼트렌드', src:'지지저항 채널', srlr:'S/R 로지스틱', bn:'BB 나다라야', lg:'유동성 스윕', mlr:'🤖 ML RSI' };
+var _LAB_FAM = [['tr','📈 추세 · 모멘텀',['ut','sqz','cmf','ift','wt','macd','vwd','zl','ht','gtf','rswb']], ['st','🚦 슈퍼트렌드',['ast','st3x','jst','strv','stx','vwst']], ['sr','🧱 지지저항 · 밴드',['don','srb','src','srlr','bn']], ['ict','🎯 구조 · 유동성',['smc','lg']], ['ml','🤖 머신러닝',['lz','rk','mlmi','knns','logr','ptp','mlr']]];   // [S1858] 칩 고르기 계열(접기)
+var _LAB_TAG = { ut:'bd', sqz:'nd', cmf:'bd', don:'bd', ift:'bd', lz:'nd', rk:'pt', smc:'bd', srb:'nd', vwd:'nd', wt:'nd', macd:'bd', ast:'nm', mlmi:'nm', knns:'nm', logr:'nm', ptp:'nm', zl:'nd', ht:'lt', gtf:'pt', rswb:'nm', st3x:'nd', jst:'nd', strv:'nd', stx:'nd', vwst:'nd', src:'nd', srlr:'nd', bn:'pt', lg:'nd', mlr:'nd' }, _LAB_TAGNM = { nd:'못 가름', lt:'못 미침', pt:'일부 통함', bd:'묶음만 잼', nm:'안 잼' };   // [S1858] 측정 꼬리표(PREREG_S1858_siglab2.md §0 표)
+var _LAB_MEAS = { ut:'SSOT 매도 묶음 안에서만(매도로서 세지 않음)', cmf:'SSOT 매도 묶음 안에서만(매도로서 세지 않음)', don:'SSOT 매도 묶음 안에서만(매도로서 세지 않음)', ift:'SSOT 매도 묶음 안에서만(매도로서 세지 않음)', macd:'SSOT 매도 묶음 안에서만(매도로서 세지 않음)', smc:'SSOT 매도 묶음 안에서만(매도로서 세지 않음)', sqz:'방향 예측 없음(TTM)', lz:'방향 예측 없음(15판 모두 ±3%p 안)', rk:'US 일봉만 규칙 통과 · KR · 코인 못 가름', srb:'현행이 나음 · 코인 일봉 무작위보다 못함', vwd:'표본이 모자라 못 가름', wt:'KR · 코인 일봉 무작위보다 나음 · 통과 0', ast:'안 잼', mlmi:'안 잼', knns:'안 잼', logr:'안 잼', ptp:'안 잼', zl:'채택 0 · KR · US 그냥 두기보다 못함', ht:'KR · US 무작위보다 못함', gtf:'영상 전략 일봉 롱 통함 · 거름으론 값 없음', rswb:'점 단독은 안 잼(GTF 확인 조건으로만 잼)', st3x:'무작위와 못 가름 · 그냥 두기보다 못함', jst:'무작위와 못 가름 · 그냥 두기보다 못함', strv:'기본값 = 슈퍼트렌드 교차 · 그냥 두기보다 못함', stx:'무작위 조기 청산과 못 가름', vwst:'코인 일봉 무작위보다 나음 · 현행과 못 가름', src:'무작위(옮긴 선)와 못 가름', srlr:'고른 선이 더 지켜지나 구분 못 함', bn:'US 일봉 진입만 규칙 통과', lg:'채택 없음 · 꼬리 크기가 결과를 줄 세우지 못함', mlr:'L · S 표시 못 가름(KR · US · 코인)' };   // [S1858] 📋 칩 하나씩 보기의 측정 한 줄
 var _LAB_SLOTS = [['A','창A'], ['B','창B'], ['L','현재 스냅'], ['R','라이브'], ['X','판 모름']];
-var _LAB = (function(){ var d={ side:'buy', sel:{ buy:['ut'], sell:['ut'] }, K:1, W:3, N:10, src:'rep' };
+var _LAB = (function(){ var d={ side:'buy', sel:{ buy:['ut'], sell:['ut'] }, K:1, W:3, N:10, src:'rep', open:{} };
   try{ var o=JSON.parse(localStorage.getItem('SX_SIGLAB_V1')||'null'); if(o && typeof o==='object'){ if(o.side==='sell') d.side='sell'; ['buy','sell'].forEach(function(s){ if(o.sel && Array.isArray(o.sel[s])) d.sel[s]=o.sel[s].filter(function(x){ return Object.prototype.hasOwnProperty.call(_LAB_NM, x); }); });
-    if(o.K>=1) d.K=Math.round(o.K); if([1,3,5,10].indexOf(o.W)>=0) d.W=o.W; if([5,10,20].indexOf(o.N)>=0) d.N=o.N; if(['rep','watch','disc'].indexOf(o.src)>=0) d.src=o.src; } }catch(_e){}
+    if(o.K>=1) d.K=Math.round(o.K); if([1,3,5,10].indexOf(o.W)>=0) d.W=o.W; if([5,10,20].indexOf(o.N)>=0) d.N=o.N; if(['rep','watch','disc'].indexOf(o.src)>=0) d.src=o.src; if(o.open && typeof o.open==='object') Object.keys(o.open).forEach(function(k){ if(o.open[k]) d.open[k]=1; }); } }catch(_e){}
   d.cache={}; d.busy=false; d.seen={}; d.tbl=null; d.last=''; d.msg=''; return d; })();
-function _labSave(){ try{ localStorage.setItem('SX_SIGLAB_V1', JSON.stringify({ side:_LAB.side, sel:_LAB.sel, K:_LAB.K, W:_LAB.W, N:_LAB.N, src:_LAB.src })); }catch(_e){} }
+function _labSave(){ try{ localStorage.setItem('SX_SIGLAB_V1', JSON.stringify({ side:_LAB.side, sel:_LAB.sel, K:_LAB.K, W:_LAB.W, N:_LAB.N, src:_LAB.src, open:_LAB.open })); }catch(_e){} }
 function _labEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function _labMk(){ return (window._sxTrendCtx && window._sxTrendCtx.market) || (typeof currentMarket!=='undefined' ? currentMarket : 'kr'); }
 function _labPoolList(mk){
@@ -12307,14 +12311,16 @@ function _labBody(){
   h+='<div style="margin-bottom:4px"><span style="font-size:10px;font-weight:800;color:var(--text2);margin-right:6px">📦 풀</span>'+chip(!so&&_LAB.src==='watch','⭐ 관심목록',"window._labSetSrc&&_labSetSrc('watch')",'#ea580c')+chip(!so&&_LAB.src==='rep','대표풀',"window._labSetSrc&&_labSetSrc('rep')",'#ea580c')+chip(!so&&_LAB.src==='disc','🔬 발굴풀',"window._labSetSrc&&_labSetSrc('disc')",'#ea580c')+'</div>';
   h+='<div>'+btn(rr('_trendSnapCycle'),'🕰 '+(ss.set?('창'+ss.set):'OFF(현재)'),'#7c3aed')+btn(rr('_trendSnapLoad'),'📂 로드','#0284c7')+btn(rr('_trendSnapOff'),'🔴 라이브','#64748b')+'</div>';
   h+='<div style="font-size:8.5px;font-weight:700;color:var(--text3);line-height:1.45;margin-bottom:6px">'+stTxt+(window._trendSnapMsg?(' · '+window._trendSnapMsg):'')+' · 모집단 '+n+'종('+lbl+') · '+_poolTfLbl(tf)+'</div>';
-  h+='<button onclick="window._labLoad&&_labLoad()" style="width:100%;font-size:11px;font-weight:700;padding:8px 0;border-radius:8px;cursor:pointer;color:#0d9488;background:var(--surface);border:1px solid #0d948866">▶ '+lbl+' '+(n?(Math.min(n,_TREND_BATCH_CAP)+'/'+n+'종목 '):'')+'· 칩 34 계산</button>';
+  h+='<button onclick="window._labLoad&&_labLoad()" style="width:100%;font-size:11px;font-weight:700;padding:8px 0;border-radius:8px;cursor:pointer;color:#0d9488;background:var(--surface);border:1px solid #0d948866">▶ '+lbl+' '+(n?(Math.min(n,_TREND_BATCH_CAP)+'/'+n+'종목 '):'')+'· 칩 '+SXSigLab.CHIP_IDS.length+' 계산</button>';
   if(_LAB.msg) h+='<div data-lab-msg="1" style="font-size:9px;color:var(--text2);margin-top:5px">'+_LAB.msg+'</div>';
   h+='<div style="margin-top:9px">'+chip(side==='buy','📈 매수 칩',"window._labSide&&_labSide('buy')",'#16a34a')+chip(side==='sell','📉 매도 칩',"window._labSide&&_labSide('sell')",'#dc2626')+'</div>';
-  h+='<div data-lab-chips="1">'+SXSigLab.CHIP_IDS.map(function(id){ return chip(sel.indexOf(id)>=0, _LAB_NM[id], "window._labTg&&_labTg('"+id+"')", side==='buy'?'#16a34a':'#dc2626'); }).join('')+'</div>';
+  h+='<div data-lab-chips="1">'+_labFams().map(function(f){ var on=sel.filter(function(x){ return f[2].indexOf(x)>=0; }).length, op=!!_LAB.open[f[0]];
+    return '<div data-lab-fam="'+f[0]+'" style="margin:3px 0"><span onclick="_sxVib(8);window._labFold&&_labFold(\''+f[0]+'\')" style="cursor:pointer;font-size:9.5px;font-weight:800;color:var(--text2)">'+(op?'▾ ':'▸ ')+f[1]+' <span style="font-weight:600;color:var(--text3)">('+f[2].length+(on?(' · 켬 '+on):'')+')</span></span>'
+      +(op?('<div style="margin-top:3px">'+f[2].map(function(id){ return chip(sel.indexOf(id)>=0, (_LAB_NM[id]||id)+' <span style="font-weight:600;opacity:.75">· '+_LAB_TAGNM[_LAB_TAG[id]||'nm']+'</span>', "window._labTg&&_labTg('"+id+"')", side==='buy'?'#16a34a':'#dc2626'); }).join('')+'</div>'):'')+'</div>'; }).join('')+'</div>';
   h+='<div style="font-size:9px;color:var(--text2);margin-top:2px">묶기 '+chip(K===1,'OR',"window._labK&&_labK(1)",'#64748b')+(m>2?chip(K>1&&K<m,'K '+(K>1&&K<m?K:2)+'개↑',"window._labK&&_labK("+((K>1&&K<m)?(K+1<m?K+1:2):2)+")",'#64748b'):'')+(m>1?chip(K===m,'AND',"window._labK&&_labK("+m+")",'#64748b'):'')
     +' · 창 W '+[1,3,5,10].map(function(w){ return chip(_LAB.W===w, String(w), "window._labW&&_labW("+w+")", '#64748b'); }).join('')
     +' · N봉 뒤 '+[5,10,20].map(function(v){ return chip(_LAB.N===v, String(v), "window._labN&&_labN("+v+")", '#64748b'); }).join('')+'</div>';
-  h+='<div style="font-size:8.5px;color:var(--text3);line-height:1.45">켠 칩 '+m+'개 · 신호 = 켠 칩 중 하나가 그 봉에 뜨고 · 최근 '+_LAB.W+'봉 안에 뜬 켠 칩이 '+K+'개 이상'+(m>2?' · K 칩을 누르면 2 → '+(m-1)+' 순환':'')+'</div>';
+  h+='<div style="font-size:8.5px;color:var(--text3);line-height:1.45">켠 칩 '+m+'개'+(m?('('+sel.map(function(x){ return _LAB_NM[x]||x; }).join(' · ')+')'):'')+' · 신호 = 켠 칩 중 하나가 그 봉에 뜨고 · 최근 '+_LAB.W+'봉 안에 뜬 켠 칩이 '+K+'개 이상'+(m>2?' · K 칩을 누르면 2 → '+(m-1)+' 순환':'')+'</div>';
   var keys=_LAB_SLOTS.map(function(x){ return mk+'|'+tf+'|'+x[0]; }).filter(function(k){ return _LAB.cache[k]; });
   if(!keys.length) h+='<div style="font-size:9px;color:var(--text3);margin-top:8px">▶ 를 눌러 판을 불러오면 결과가 나옵니다 · 🕰 창A · 창B · 현재 스냅을 차례로 불러오면 세 판을 같이 견줍니다(라이브는 세 판에 안 셈)</div>';
   else if(!m) h+='<div style="font-size:9px;color:var(--text3);margin-top:8px">칩을 하나 이상 켜세요</div>';
@@ -12328,7 +12334,7 @@ function _labBody(){
     var c0=_LAB.cache[_LAB.last] && _LAB.cache[_LAB.last].mk===mk && _LAB.cache[_LAB.last].tf===tf ? _LAB.cache[_LAB.last] : _LAB.cache[keys[keys.length-1]], tsg=side+'|'+_LAB.N+'|'+c0.mk+'|'+c0.tf+'|'+c0.slot;
     h+='<div style="margin-top:7px">'+btn('window._labTable&&_labTable()','📋 칩 하나씩 보기('+((_LAB_SLOTS.find(function(x){ return x[0]===c0.slot; })||['','?'])[1])+' · '+(side==='buy'?'매수':'매도')+' · '+_LAB.N+'봉)','#0d9488')+'</div>';
     if(_LAB.tbl && _LAB.tbl.sig===tsg) h+=_LAB.tbl.html; }
-  h+='<div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-top:8px">셀 봉 = 200봉째부터 끝 − N봉까지 · N봉 뒤 종가가 같으면 뺌 · ② 무작위 = 종목마다 그 종목 신호 수만큼 아무 봉이나 뽑음(씨앗 고정) · ③ 적중률이 무작위 최대보다 높으면 센 쪽 · 최소보다 낮으면 역방향 · 칩 = 원본 파인 스크립트 그대로 옮김(출처 = sx_sig_lab.js 머리 · offline/mlsig/sources.md) · 실험 도구 · 판정 아님 · 성적 주장 없음</div>';
+  h+='<div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-top:8px">셀 봉 = 200봉째부터 끝 − N봉까지 · N봉 뒤 종가가 같으면 뺌 · ② 무작위 = 종목마다 그 종목 신호 수만큼 아무 봉이나 뽑음(씨앗 고정) · ③ 적중률이 무작위 최대보다 높으면 센 쪽 · 최소보다 낮으면 역방향 · 칩 = 원본 파인 스크립트 그대로 옮김(출처 = sx_sig_lab.js 머리 · offline/mlsig/sources.md · offline/mlsig2/sources2.md) · 꼬리표 = 앞 측정(못 가름 · 못 미침 = 무작위보다 못함 · 일부 통함 = 한 시장 · 한 쓰임에서만 규칙 통과 · 묶음만 잼 = SSOT 매도 묶음 안에서만 · 안 잼) — 칩 신호와 잰 쓰임새가 다를 수 있음(📋 칩 하나씩 보기에 한 줄) · 실험 도구 · 판정 아님 · 성적 주장 없음</div>';
   return h;
 }
 function _buildSigLabCard(stock, indicators){
@@ -12342,15 +12348,17 @@ function _labTg(id){ var a=_LAB.sel[_LAB.side], i=a.indexOf(id); if(i>=0) a.spli
 function _labK(k){ _LAB.K=Math.max(1, k|0); _labSave(); _labRerender(); }
 function _labW(w){ _LAB.W=w; _labSave(); _labRerender(); }
 function _labN(v){ _LAB.N=v; _LAB.tbl=null; _labSave(); _labRerender(); }
+function _labFams(){ var ids=(window.SXSigLab&&SXSigLab.CHIP_IDS)||[], used={}, out=[]; _LAB_FAM.forEach(function(f){ var a=f[2].filter(function(x){ return ids.indexOf(x)>=0; }); a.forEach(function(x){ used[x]=1; }); if(a.length) out.push([f[0], f[1], a]); }); var rest=ids.filter(function(x){ return !used[x]; }); if(rest.length) out.push(['etc','기타',rest]); return out; }   // [S1858]
+function _labFold(k){ if(_LAB.open[k]) delete _LAB.open[k]; else _LAB.open[k]=1; _labSave(); _labRerender(); }   // [S1858]
 function _labTable(){
   var mk=_labMk(), tf=_poolTfOf(), keys=_LAB_SLOTS.map(function(x){ return mk+'|'+tf+'|'+x[0]; }).filter(function(k){ return _LAB.cache[k]; }); if(!keys.length) return;
   var c=(_LAB.cache[_LAB.last] && _LAB.cache[_LAB.last].mk===mk && _LAB.cache[_LAB.last].tf===tf) ? _LAB.cache[_LAB.last] : _LAB.cache[keys[keys.length-1]], side=_LAB.side;
   var rows=SXSigLab.CHIP_IDS.map(function(id){ var r=SXSigLab.card(c.P, { side:side, ids:[id], K:1, W:_LAB.W, N:_LAB.N, key:'lab|'+c.mk+'|'+c.tf+'|'+c.slot }); _LAB.seen[[side, id, 1, _LAB.W, _LAB.N].join('|')]=1; return [id, r]; });
-  var html='<div data-lab-tbl="1" style="margin-top:6px;font-size:9px;color:var(--text2);line-height:1.55">'+rows.map(function(x){ var r=x[1]; return '<div style="border-bottom:1px dashed var(--border);padding:3px 0"><b style="color:var(--text)">'+_LAB_NM[x[0]]+'</b> · 신호 '+r.nSig+' · 적중률 '+_labP(r.rate)+' · 차이 '+_labPP(r.diff)+' · 무작위 '+_labP(r.rmin)+'~'+_labP(r.rmax)+' · '+_labMarkHtml(r.mark)+'</div>'; }).join('')
-    +'<div style="color:var(--text3);margin-top:3px">칩 하나씩(K 1) · 이 판 하나만 · 17줄을 한꺼번에 보면 우연히 좋아 보이는 줄이 섞입니다 — 세 판으로 확인</div></div>';
+  var html='<div data-lab-tbl="1" style="margin-top:6px;font-size:9px;color:var(--text2);line-height:1.55">'+rows.map(function(x){ var r=x[1]; return '<div style="border-bottom:1px dashed var(--border);padding:3px 0"><b style="color:var(--text)">'+_LAB_NM[x[0]]+'</b> <span style="color:var(--text3)">['+_LAB_TAGNM[_LAB_TAG[x[0]]||'nm']+' · '+(_LAB_MEAS[x[0]]||'')+']</span> · 신호 '+r.nSig+' · 적중률 '+_labP(r.rate)+' · 차이 '+_labPP(r.diff)+' · 무작위 '+_labP(r.rmin)+'~'+_labP(r.rmax)+' · '+_labMarkHtml(r.mark)+'</div>'; }).join('')
+    +'<div style="color:var(--text3);margin-top:3px">칩 하나씩(K 1) · 이 판 하나만 · '+rows.length+'줄을 한꺼번에 보면 우연히 좋아 보이는 줄이 섞입니다 — 세 판으로 확인</div></div>';
   _LAB.tbl={ sig:side+'|'+_LAB.N+'|'+c.mk+'|'+c.tf+'|'+c.slot, html:html }; _labRerender();
 }
-if(typeof window!=='undefined'){ window._labLoad=_labLoad; window._labRerender=_labRerender; window._labSetSrc=_labSetSrc; window._labSide=_labSide; window._labTg=_labTg; window._labK=_labK; window._labW=_labW; window._labN=_labN; window._labTable=_labTable; window._buildSigLabCard=_buildSigLabCard; }
+if(typeof window!=='undefined'){ window._labLoad=_labLoad; window._labRerender=_labRerender; window._labSetSrc=_labSetSrc; window._labSide=_labSide; window._labTg=_labTg; window._labK=_labK; window._labW=_labW; window._labN=_labN; window._labTable=_labTable; window._labFold=_labFold; window._buildSigLabCard=_buildSigLabCard; }
 function _buildMaeCard(stock, indicators){
   try{
     var adv = (indicators && indicators._advanced) ? indicators._advanced : null;
@@ -20135,7 +20143,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1857';   // [S1857] 🧭 추세 읽기 층 = 다리 크기(단기 SMI · 장기 EMA 9×12 + SMI 0선 · 큰 그림 레짐 + EMA 9×26) · 두 칸 요약
+  window.SX_BUILD='S1858';   // [S1858] 🧪 신호 실험 칩 31(새 14 · 계열 접기 · 측정 꼬리표)
+  //window.SX_BUILD='S1857';   // [S1857] 🧭 추세 읽기 층 = 다리 크기(단기 SMI · 장기 EMA 9×12 + SMI 0선 · 큰 그림 레짐 + EMA 9×26) · 두 칸 요약
   //window.SX_BUILD='S1856';   // [S1856] 🧭 추세 읽기 ⛩️ 레짐 줄(레짐 v4 · 일봉만 · 🔥🌋 배지 · 띠 한 줄)
   //window.SX_BUILD='S1855';   // [S1855] 레짐 v4(앱 전체 · 하락 쪽 기울기 대칭 · 이름 상승장 · 횡보(상승권 · 하락권) · 하락장 · 🔥 · 🌋 배지)
   //window.SX_BUILD='S1854';   // [S1854] 🧪 신호 실험 카드(단일검증 탭 · 매수/매도 칩 34 · N봉 뒤 적중률)
