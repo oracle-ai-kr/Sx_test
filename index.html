@@ -1362,6 +1362,14 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
           </div>
           <div class="dc-summary" id="dcCoin">로딩...</div>
         </div>
+        <!-- [S1860] 🗺️ 섹터 흐름 (가로 두 칸 · 지금 모습 · 읽기 도움 · 판정 아님) -->
+        <div class="dash-card dash-wide" data-cat="secflow" onclick="SX.openSecFlowModal()">
+          <div class="dc-left">
+            <div class="dc-icon">🗺️</div>
+            <div class="dc-title">섹터 흐름</div>
+          </div>
+          <div class="dc-summary" id="dcSecFlow">로딩...</div>
+        </div>
         <!-- [S1838] 🔗 BTC 사이클 (가로 두 칸 · 읽기 도움 · 판정 아님) -->
         <div class="dash-card dash-wide" data-cat="cycle" onclick="SX.openCycleModal()">
           <div class="dc-left">
@@ -1791,10 +1799,129 @@ const _TERM_MAP=[
   [/\bTop Pick\b/gi,'최우선추천'],[/\bstop loss\b/gi,'손절'],
 ];
 function termKR(text){if(!text)return'';let t=text;_TERM_MAP.forEach(([rx,rep])=>{t=t.replace(rx,rep);});return t;}
+/* ═══ [S1860] 🗺️ 섹터 흐름 — 섹터 ETF 의 벤치마크 대비 초과수익(1주 · 1달 · 3달 · 6달) · 회전 위치(RRG) · 거래 몰림(거래대금 ÷ 20봉 평균) · 지금 모습 표시 · 읽기 도움 · 판정 아님 ═══
+   정의 = offline/bat/PREREG_S1860_secflow.md §1(= offline/secrot/sr_criteria.md §1 · §2 의 마지막 봉) · 측정 = offline/secrot/sr_result.md(일곱 주장 모두 다음 20일을 못 가름)
+   식 출처: RS-Ratio · RS-Momentum(60 · 10) = "Sector Rotation (Zeiierman)" © Zeiierman · CC BY-NC-SA 4.0 · 거래량 배수 꼴 = "Sector Rotation Dashboard v2.3.2" © nugoir · MPL 2.0 · 자료 = 야후 일봉(워커 /proxy) · KR ETF 이름 = 네이버 ETF 목록 */
+const _SX_SF_LIST = {
+  kr: { bench: ['069500', 'KODEX 200'], sfx: '.KS', etf: [['091160', '반도체', 'KODEX 반도체'], ['305720', '2차전지산업', 'KODEX 2차전지산업'], ['244580', '바이오', 'KODEX 바이오'], ['091180', '자동차', 'KODEX 자동차'], ['157490', '소프트웨어', 'TIGER 소프트웨어'],
+    ['091170', '은행', 'KODEX 은행'], ['102970', '증권', 'KODEX 증권'], ['140700', '보험', 'KODEX 보험'], ['117700', '건설', 'KODEX 건설'], ['117460', '에너지화학', 'KODEX 에너지화학'], ['117680', '철강', 'KODEX 철강'], ['266390', '경기소비재', 'KODEX 경기소비재'],
+    ['266410', '필수소비재', 'KODEX 필수소비재'], ['228810', '미디어컨텐츠', 'TIGER 미디어컨텐츠'], ['300950', '게임산업', 'KODEX 게임산업'], ['315270', '커뮤니케이션', 'TIGER 200커뮤니케이션서비스'], ['102960', '기계장비', 'KODEX 기계장비'], ['140710', '운송', 'KODEX 운송'],
+    ['307510', '의료기기', 'TIGER 의료기기'], ['266370', 'IT', 'KODEX IT'], ['139230', '중공업', 'TIGER 200 중공업'], ['228790', '화장품', 'TIGER 화장품'], ['228800', '여행레저', 'TIGER 여행레저'], ['449450', 'K방산', 'PLUS K방산'], ['487240', 'AI전력설비', 'KODEX AI전력핵심설비']] },
+  us: { bench: ['SPY', 'SPY(S&P 500)'], sfx: '', etf: [['XLK', '기술', 'Technology Select Sector SPDR'], ['XLF', '금융', 'Financial Select Sector SPDR'], ['XLE', '에너지', 'Energy Select Sector SPDR'], ['XLV', '헬스케어', 'Health Care Select Sector SPDR'],
+    ['XLY', '경기소비재', 'Consumer Discretionary Select Sector SPDR'], ['XLP', '필수소비재', 'Consumer Staples Select Sector SPDR'], ['XLI', '산업재', 'Industrial Select Sector SPDR'], ['XLB', '소재', 'Materials Select Sector SPDR'], ['XLU', '유틸리티', 'Utilities Select Sector SPDR'],
+    ['XLRE', '부동산', 'Real Estate Select Sector SPDR'], ['XLC', '커뮤니케이션', 'Communication Services Select Sector SPDR']] } };
+const _SX_SF_H = [5, 21, 63, 126];   // 1주 · 1달 · 3달 · 6달(봉)
+function _sxSfFin(x){ return typeof x === 'number' && isFinite(x); }
+// 야후 v8 일봉 → [{d, c, a, v}] 날짜 차례 · 측정 sr_criteria §1 읽기 그대로 + 아직 안 끝난 장의 봉은 뺌(완성된 봉만)
+function _sxSfBars(body, nowSec){
+  const r = body && body.chart && body.chart.result && body.chart.result[0]; if(!r) return null;
+  const ts = r.timestamp || [], q = (r.indicators && r.indicators.quote && r.indicators.quote[0]) || {}, A = r.indicators && r.indicators.adjclose && r.indicators.adjclose[0], ac = A && A.adjclose;
+  if(!ac || !q.close || !q.volume) return null;
+  const meta = r.meta || {}, off = meta.gmtoffset || 0, reg = meta.currentTradingPeriod && meta.currentTradingPeriod.regular, dOf = s => new Date((s + off) * 1000).toISOString().slice(0, 10);
+  const openDay = (reg && _sxSfFin(reg.start) && _sxSfFin(reg.end) && nowSec < reg.end) ? dOf(reg.start) : null;
+  const m = new Map();
+  for(let i = 0; i < ts.length; i++){
+    const c = q.close[i], a = ac[i], v = q.volume[i];
+    if(!(_sxSfFin(c) && c > 0 && _sxSfFin(a) && a > 0 && _sxSfFin(v) && v >= 0)) continue;
+    const d = dOf(ts[i]); if(d === openDay) continue;
+    m.set(d, { d, c, a, v });   // 같은 날짜면 뒤의 것
+  }
+  return [...m.values()].sort((x, y) => (x.d < y.d ? -1 : x.d > y.d ? 1 : 0));
+}
+// 마지막 봉의 재료 — sr_criteria §2 그대로(더하는 차례까지) · 값이 없으면 null
+function _sxSfCalc(E, B){
+  const bm = new Map(B.map(b => [b.d, b])), rows = E.filter(e => bm.has(e.d)), n = rows.length; if(!n) return null;
+  const AE = rows.map(r => r.a), AB = rows.map(r => bm.get(r.d).a), CE = rows.map(r => r.c), VE = rows.map(r => r.v), ratio = AE.map((a, i) => a / AB[i]);
+  const rsr = new Array(n).fill(NaN), roc = new Array(n).fill(NaN), rsm = new Array(n).fill(NaN);
+  for(let t = 59; t < n; t++){
+    let s = 0; for(let i = t - 59; i <= t; i++) s += ratio[i]; const basis = s / 60;
+    let ss = 0; for(let i = t - 59; i <= t; i++) ss += (ratio[i] - basis) * (ratio[i] - basis); const sd = Math.sqrt(ss / 60);
+    if(sd > 0) rsr[t] = 100 + (ratio[t] - basis) / sd;
+  }
+  for(let t = 10; t < n; t++) if(_sxSfFin(rsr[t]) && _sxSfFin(rsr[t - 10])) roc[t] = rsr[t] - rsr[t - 10];
+  const t = n - 1;
+  if(t >= 59){ let ok = true; for(let i = t - 59; i <= t; i++) if(!_sxSfFin(roc[i])){ ok = false; break; }
+    if(ok){ let s = 0; for(let i = t - 59; i <= t; i++) s += roc[i]; const mb = s / 60;
+      let ss = 0; for(let i = t - 59; i <= t; i++) ss += (roc[i] - mb) * (roc[i] - mb); const msd = Math.sqrt(ss / 60);
+      if(msd > 0) rsm[t] = 100 + (roc[t] - mb) / msd; } }
+  const o = { date: rows[t].d, n, rsr: _sxSfFin(rsr[t]) ? rsr[t] : null, rsm: _sxSfFin(rsm[t]) ? rsm[t] : null, q: null, tv: null };
+  if(o.rsr != null && o.rsm != null) o.q = o.rsr >= 100 ? (o.rsm >= 100 ? 'LEAD' : 'WEAK') : (o.rsm >= 100 ? 'IMPR' : 'LAG');
+  if(t >= 19){ let s = 0; for(let i = t - 19; i <= t; i++) s += CE[i] * VE[i]; const den = s / 20; if(den !== 0) o.tv = (CE[t] * VE[t]) / den; }
+  for(const h of _SX_SF_H) o['ex' + h] = t >= h ? (AE[t] / AE[t - h] - AB[t] / AB[t - h]) * 100 : null;
+  return o;
+}
+async function _sxSfFetch(fetchFn, nowMs, base){
+  const L = _SX_SF_LIST, nowSec = Math.floor(nowMs / 1000), out = { ts: nowMs, kr: null, us: null, err: [] }, got = {}, jobs = [];
+  const url = sym => base + '/proxy?url=' + encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?interval=1d&range=1y');
+  for(const mk of ['kr', 'us']) for(const code of [L[mk].bench[0]].concat(L[mk].etf.map(e => e[0]))) jobs.push([mk, code]);
+  let k = 0;
+  const lane = async () => { while(k < jobs.length){ const [mk, code] = jobs[k++];
+    try{ const r = await fetchFn(url(code + L[mk].sfx)); if(!r || !r.ok) throw new Error('HTTP ' + (r && r.status)); const b = _sxSfBars(await r.json(), nowSec); if(!b || !b.length) throw new Error('봉 없음'); got[mk + '_' + code] = b; }
+    catch(e){ out.err.push(mk + '_' + code); } } };
+  await Promise.all([lane(), lane(), lane(), lane(), lane(), lane()]);   // 한꺼번에 6개까지
+  for(const mk of ['kr', 'us']){
+    const B = got[mk + '_' + L[mk].bench[0]]; if(!B) continue;
+    const rows = L[mk].etf.map(([code, nm]) => { const E = got[mk + '_' + code]; let c = null;
+      try{ c = E ? _sxSfCalc(E, B) : null; }catch(e){ out.err.push('calc:' + mk + '_' + code); }
+      return Object.assign({ code, nm }, c || { miss: 1 }); });
+    out[mk] = { date: B[B.length - 1].d, rows };
+  }
+  return out;
+}
+// ── 글자 ──
+const _SX_SF_Q = { LEAD: ['강함', '↗', '벤치마크보다 강함 · 상대 흐름 좋아지는 중'], WEAK: ['강함', '↘', '벤치마크보다 강함 · 상대 흐름 나빠지는 중'], IMPR: ['약함', '↗', '벤치마크보다 약함 · 상대 흐름 좋아지는 중'], LAG: ['약함', '↘', '벤치마크보다 약함 · 상대 흐름 나빠지는 중'] };
+const _SX_SF_S = { 5: 3, 21: 6, 63: 12, 126: 20 };   // 칸 색 진하기 기준(%p) — 이만큼이면 가장 진함
+const _SX_SF_COL = [['ex5', '1주'], ['ex21', '1달'], ['ex63', '3달'], ['ex126', '6달'], ['q', '위치'], ['tv', '거래 몰림']];
+function _sxSfSg(x){ return (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(1); }
+function _sxSfSgT(x){ const a = Math.abs(x); return (x > 0 ? '+' : x < 0 ? '−' : '') + (a < 9.95 ? a.toFixed(1) : a.toFixed(0)); }   // 표 칸 — 10 이상은 정수(폰 폭)
+function _sxSfTint(x, h){ const a = (0.08 + 0.42 * Math.min(1, Math.abs(x) / _SX_SF_S[h])).toFixed(2); return x > 0 ? `rgba(224,49,49,${a})` : x < 0 ? `rgba(25,113,194,${a})` : 'transparent'; }
+function _sxSfSort(rows, col){
+  const v = r => col === 'q' ? r.rsr : r[col], A = rows.slice();
+  return A.sort((a, b) => { const x = v(a), y = v(b); if(x == null && y == null) return a.code < b.code ? -1 : 1; if(x == null) return 1; if(y == null) return -1; return (y - x) || (a.code < b.code ? -1 : 1); });
+}
+function _sxSfCardHtml(st){
+  if(!st) return '<span class="mut">불러오는 중…</span>';
+  const nw = 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis', mut = '<span class="mut">—</span>';
+  const top = M => { const r = M && _sxSfSort(M.rows.filter(x => x.ex21 != null), 'ex21')[0]; return r ? `${r.nm} <b style="color:${r.ex21 > 0 ? 'var(--up,#e03131)' : r.ex21 < 0 ? 'var(--down,#1971c2)' : 'var(--text)'}">${_sxSfSg(r.ex21)}</b>` : mut; };
+  const hot = M => { if(!M) return mut; const r = _sxSfSort(M.rows.filter(x => x.tv != null && x.tv >= 2), 'tv')[0]; return r ? `${r.nm} <b>${r.tv.toFixed(1)}배</b>` : '<span class="mut">없음</span>'; };
+  return `<div style="${nw}">1달 초과 🇰🇷 ${top(st.kr)} · 🇺🇸 ${top(st.us)}</div><div style="${nw}">거래 몰림 🇰🇷 ${hot(st.kr)} · 🇺🇸 ${hot(st.us)}</div>`;
+}
+function _sxSfModalHtml(st, view){
+  const v = Object.assign({ mk: 'kr', col: 'ex21' }, view || {}), s = st || {}, M = s[v.mk], L = _SX_SF_LIST[v.mk];
+  const tab = (mk, lab) => `<span class="fmd-chip" data-sf-mk="${mk}" onclick="SX._sfSet('mk','${mk}')" style="cursor:pointer;${v.mk === mk ? 'font-weight:700;color:var(--text);border-color:var(--text2)' : ''}">${lab}</span>`;
+  const tabs = `<div class="fmd-row"><div class="fmd-text">${tab('kr', '🇰🇷 국내 ' + _SX_SF_LIST.kr.etf.length)}${tab('us', '🇺🇸 미국 ' + _SX_SF_LIST.us.etf.length)}</div></div>`;
+  if(!M) return tabs + '<div class="fj-sub" style="color:var(--text3)">자료 못 받음 — ↻ 새로고침</div>';
+  const th = ([k, lab]) => `<th data-sf-col="${k}" onclick="SX._sfSet('col','${k}')" style="cursor:pointer;padding:4px 1px;font-weight:${v.col === k ? 800 : 600};color:${v.col === k ? 'var(--text)' : 'var(--text2)'};text-align:center;line-height:1.2;vertical-align:bottom">${lab}${v.col === k ? '▼' : ''}</th>`;
+  const td = (r, k) => {
+    if(k === 'q'){ const z = r.q && _SX_SF_Q[r.q]; return z ? `<td title="${z[2]}" style="text-align:center;padding:4px 1px;color:${z[0] === '강함' ? 'var(--up,#e03131)' : 'var(--down,#1971c2)'}">${z[0]}${z[1]}</td>` : '<td style="text-align:center;color:var(--text3)">—</td>'; }
+    if(k === 'tv'){ const x = r.tv; return x == null ? '<td style="text-align:center;color:var(--text3)">—</td>' : `<td style="text-align:center;padding:4px 1px;${x >= 2 ? 'background:rgba(245,159,0,0.40);font-weight:700' : x >= 1.5 ? 'background:rgba(245,159,0,0.18)' : ''}">${x.toFixed(1)}배</td>`; }
+    const x = r[k], h = +k.slice(2); return x == null ? '<td style="text-align:center;color:var(--text3)">—</td>' : `<td style="text-align:center;padding:4px 0;background:${_sxSfTint(x, h)}">${_sxSfSgT(x)}</td>`;
+  };
+  const body = _sxSfSort(M.rows, v.col).map(r => `<tr data-sf-row="${r.code}" style="border-top:1px solid var(--border,#e5e7eb)"><td style="padding:4px 2px;line-height:1.2;word-break:break-all">${r.nm}${(r.date && r.date !== M.date) ? `<span style="color:var(--text3);font-size:9px"> ${r.date.slice(5)}</span>` : ''}</td>` +
+    _SX_SF_COL.map(([k]) => r.miss ? '<td style="text-align:center;color:var(--text3)">—</td>' : td(r, k)).join('') + '</tr>').join('');
+  const tbl = `<table data-sf-tbl="${v.mk}" style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:10px;color:var(--text)"><colgroup><col style="width:28%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:14%"><col style="width:14%"></colgroup>` +
+    `<thead><tr><th style="text-align:left;padding:4px 2px;font-weight:600;color:var(--text2)">섹터</th>${_SX_SF_COL.map(th).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+  const nt = x => `<div class="fj-sub" style="margin-top:4px;font-size:10px;line-height:1.5">${x}</div>`;
+  const ref = ['KR: 1달 ~ 6달 초과 상위 섹터가 다음 20일 벤치마크를 더 자주 이긴 판(2012 ~ 16 · 2022 ~ )과 덜 이긴 판(2017 ~ 21)이 뒤집혀 판정선을 못 넘었다.',
+    'US: 0 근처 · 1주 초과 상위는 세 판 모두 다음 20일 살짝 덜 이겼다(짧은 되돌림 쪽).',
+    '위치(↗ · ↘): 강함↗ 대 약함↘ · 약함↗ 대 강함↘ 모두 판마다 방향이 달랐다.',
+    '거래 몰림: KR 은 거래가 몰린(2배 이상) 섹터 ETF 가 다음 20일 세 판 모두 조금 덜 이긴 쪽(−1.8 · −2.7 · −2.5%p · 판정선 3%p 는 못 넘음) — 개별 종목 거래량 급증 측정과 같은 쪽 · US 는 사례가 적다.',
+    'KR 2022 ~ 는 KODEX 200 안 반도체 비중이 커서 대부분 섹터 ETF 가 벤치마크에 졌다.'];
+  return tabs +
+    `<div class="fmd-row"><div class="fmd-text" style="font-size:11px;color:var(--text2)">완성된 봉 ${M.date} · 벤치마크 ${L.bench[1]} · 칸 = ETF 수익률 − 벤치마크 수익률(%p · 배당 반영 수정 종가) · 머리를 누르면 그 칸 차례</div></div>` +
+    `<div class="fmd-row" style="overflow-x:hidden">${tbl}</div>` +
+    `<div class="fmd-row"><div class="fmd-label">📏 칸 읽기</div>` +
+      nt('<b>1주 · 1달 · 3달 · 6달</b> = 지난 5 · 21 · 63 · 126봉 초과수익 · 지난 성적 — <b>다음 20일을 가르지 못함(측정)</b> 2012 ~ 2026 · KR 25 · US 11 · KR 은 판마다 뒤집힘 · US 는 0 근처') +
+      nt('<b>위치</b> = 회전(RRG) 4분면 자리 · 강함/약함 = 벤치마크 대비 상대강도(60봉)가 평소보다 위/아래 · ↗/↘ = 그 상대강도가 좋아지는 중/나빠지는 중(10봉) — <b>다음 20일을 가르지 못함(측정)</b>') +
+      nt('<b>거래 몰림</b> = 그 ETF 기준일 거래대금 ÷ 지난 20봉 평균(기준일 포함) · 순유입 아님 · ETF 거래 ≠ 업종 전체 · 앞날 못 가름(측정) · 1.5배부터 옅게 · 2배부터 진하게') +
+    `</div>` +
+    `<details class="fmd-row" data-sf-ref="1"><summary style="cursor:pointer;font-size:11px;color:var(--text2)">참고(측정 서술 · 판정 아님)</summary>${ref.map(nt).join('')}${nt('다음 20일 = 그 섹터 ETF 가 벤치마크보다 더 올랐는가 · 판 = 2012 ~ 16 · 2017 ~ 21 · 2022 ~ · 측정 offline/secrot')}</details>` +
+    `<div class="fmd-note" data-sf-note="1">💡 지금 모습 표시 · 읽기 도움 · 판정 아님 · 출처: 야후 일봉 · 네이버 ETF 이름 · 식 Sector Rotation (Zeiierman · CC BY-NC-SA 4.0) · 거래량 배수 꼴 Sector Rotation Dashboard (nugoir · MPL 2.0) · 받은 시각 ${new Date(s.ts).toLocaleString('ko-KR', { hour12: false })}${(s.stale && s.stale.length) ? ' · 못 받아 옛 값 ' + s.stale.length + '곳' : ''}</div>`;
+}
 /* ═══ [S1838] 🔗 BTC 사이클 — 2년 이동평균 배수 · Pi Cycle Top · Hash Ribbons · Puell Multiple + 코인베이스 프리미엄(₿ 코인 창) · 읽기 도움 · 판정 아님 · 정의 = PREREG_S1838_btc_cycle.md §1 ═══
    자료는 폰에서 바로 부른다(업비트 · mempool.space · blockchain.com · 코인베이스 · 바이낸스 공개 미러 — 모두 CORS 열림 · 워커 무변경).
    계산 함수는 DOM 을 안 만진다(배터리가 고정 자료로 따로 짠 파이썬과 대조 · offline/btccycle/calc_ref.py). */
-window.SX_INDEX_BUILD='S1840';   // [S1840] 🔗 NVT Signal 칸 더함 · 앞 각인 S1839(🔗 SSR 칸)
+window.SX_INDEX_BUILD='S1860';   // [S1860] 🗺️ 섹터 흐름 카드 더함 · 앞 각인 S1840(🔗 NVT Signal 칸)
 const _SX_CYC_HIST = {"ma2y":{"from":"2019-09-24","yearMax":{"2019":[1.2,"2019-10-27"],"2020":[2.97,"2020-12-31"],"2021":[4.81,"2021-02-21"],"2022":[1.66,"2022-01-01"],"2023":[1.61,"2023-12-06"],"2024":[2.65,"2024-03-13"],"2025":[2.28,"2025-01-21"],"2026":[1.17,"2026-01-14"]}},"pi":{"from":"2018-09-09","cross":["2021-04-12"],"yearMax":{"2018":[0.38,"2018-09-10"],"2019":[0.8,"2019-09-13"],"2020":[0.68,"2020-12-31"],"2021":[1.01,"2021-04-20"],"2022":[0.58,"2022-01-01"],"2023":[0.61,"2023-07-07"],"2024":[0.76,"2024-06-01"],"2025":[0.67,"2025-03-01"],"2026":[0.51,"2026-01-01"]},"top2021":["2021-04-13","2021-11-08"]},"hash":{"from":"2011-01-01","to":"2026-10-28","nCap7":26},"puell":{"n":725,"meanAbsDiff":0.02,"from":"2024-10-27","to":"2026-10-27"}};   // [S1838] offline/btccycle/hist.py → hist.json 그대로(과거 한 줄 숫자 · 읽기 도움)
 function _sxCycSmaLast(a, n, end){ end = (end == null) ? a.length : end; if(end < n) return null; let s = 0; for(let i = end - n; i < end; i++) s += a[i]; return s / n; }
 function _sxCycUtcDay(ms){ return new Date(ms).toISOString().slice(0, 10); }
@@ -3344,6 +3471,7 @@ const SX={
     }
     this.renderEconCal();  // [S476] 주요 경제지표 카드 (독립 fetch · 워커 KV 6h)
     this._loadBtcCycle(false);   // [S1838] 🔗 BTC 사이클(30분 캐시 · 자체 fetch)
+    this._loadSecFlow(false);   // [S1860] 🗺️ 섹터 흐름(6시간 캐시 · 자체 fetch)
   },
 
   // ── 캐시 읽기/쓰기 ──
@@ -3375,6 +3503,7 @@ const SX={
     this.fetchDashboard(true);
     this.renderEconCal(true);  // [S476] 경제지표도 함께 강제 갱신(워커 bypass)
     this._loadBtcCycle(true);   // [S1838] 🔗 BTC 사이클도 캐시 무시
+    this._loadSecFlow(true);   // [S1860] 🗺️ 섹터 흐름도 캐시 무시
   },
 
   // ── Yahoo Finance 배치 fetch ──
@@ -4298,6 +4427,7 @@ const SX={
     renderCard('sector',     'dcSector');
     renderCard('coin',       'dcCoin');
     this._renderCycleCard();   // [S1838] 🔗 BTC 사이클 카드(자체 상태 · data 와 무관)
+    this._renderSecFlowCard();   // [S1860] 🗺️ 섹터 흐름 카드(자체 상태 · data 와 무관)
 
     // 😰 VIX 메인 카드 렌더 (S126: 최상단 고정)
     this._renderVixMain(data);
@@ -4619,6 +4749,60 @@ const SX={
     // 통화 기호는 prefix, 그 외는 suffix
     const _isPrefix = /^[\$₩€£¥]$/.test(u);
     return _isPrefix ? `${u}${fmt}` : (u ? `${fmt}${u}` : fmt);
+  },
+
+  // ═══ [S1860] 🗺️ 섹터 흐름 — 상태 · 캐시 · 카드 · 창 (계산 · 글자 = 최상위 _sxSf* · PREREG_S1860_secflow.md §1) ═══
+  //   6시간 캐시(localStorage) · ↻ 새로고침은 캐시 무시 · 한 ETF(또는 한 시장) 새 값을 못 받으면 그것만 옛 값 유지(창 아래에 곳 수)
+  _SF_KEY: 'SX_SECFLOW_V1',
+  _SF_TTL: 6 * 60 * 60 * 1000,
+  _secFlow: null,
+  _sfBusy: false,
+  _sfV: { mk: 'kr', col: 'ex21' },
+  _sfLoadCache(){
+    try{ const j = JSON.parse(localStorage.getItem(this._SF_KEY) || 'null'); return (j && j.ts) ? j : null; }catch(_){ return null; }
+  },
+  async _loadSecFlow(force){
+    if(!this._secFlow) this._secFlow = this._sfLoadCache();
+    this._renderSecFlowCard();
+    const fresh = !!(this._secFlow && (Date.now() - this._secFlow.ts) < this._SF_TTL);
+    if((fresh && !force) || this._sfBusy) return this._secFlow;
+    this._sfBusy = true;
+    try{
+      const st = await _sxSfFetch(u => fetch(u, { signal: AbortSignal.timeout(12000) }), Date.now(), this._DASH_WORKER_BASE);
+      const old = this._secFlow || {}; st.stale = [];
+      ['kr', 'us'].forEach(mk => {
+        if(!st[mk] && old[mk]){ st[mk] = old[mk]; st.stale.push(mk); return; }
+        if(st[mk] && old[mk]) st[mk].rows = st[mk].rows.map(r => { if(!r.miss) return r; const o = (old[mk].rows || []).find(x => x.code === r.code && !x.miss); if(o){ st.stale.push(mk + '_' + r.code); return o; } return r; });
+      });
+      this._secFlow = st;
+      try{ localStorage.setItem(this._SF_KEY, JSON.stringify(st)); }catch(_){ }
+    }catch(e){ console.warn('[S1860] 섹터 흐름 fetch 실패', e && e.message); }
+    finally{ this._sfBusy = false; }
+    this._renderSecFlowCard();
+    const t = document.getElementById('fearModalTitle'), m = document.getElementById('fearModal');
+    if(t && m && m.style.display === 'flex' && t.textContent === '🗺️ 섹터 흐름') document.getElementById('fearModalBody').innerHTML = _sxSfModalHtml(this._secFlow, this._sfV);
+    return this._secFlow;
+  },
+  _renderSecFlowCard(){
+    const el = document.getElementById('dcSecFlow');
+    if(el) el.innerHTML = _sxSfCardHtml(this._secFlow);
+  },
+  openSecFlowModal(){
+    this._vib(8);
+    const t = document.getElementById('fearModalTitle'), b = document.getElementById('fearModalBody'), m = document.getElementById('fearModal');
+    if(!t || !b || !m) return;
+    t.textContent = '🗺️ 섹터 흐름';
+    b.innerHTML = _sxSfModalHtml(this._secFlow, this._sfV);
+    m.style.display = 'flex';
+    history.pushState({sx:'fearModal'}, '');
+    if(!this._secFlow) this._loadSecFlow(false);
+  },
+  _sfSet(k, val){
+    if(k === 'mk' && (val === 'kr' || val === 'us')) this._sfV.mk = val;
+    else if(k === 'col' && _SX_SF_COL.some(c => c[0] === val)) this._sfV.col = val;
+    else return;
+    const t = document.getElementById('fearModalTitle'), b = document.getElementById('fearModalBody');
+    if(t && b && t.textContent === '🗺️ 섹터 흐름') b.innerHTML = _sxSfModalHtml(this._secFlow, this._sfV);
   },
 
   // ═══ [S1838] 🔗 BTC 사이클 — 상태 · 캐시 · 카드 · 창 (계산 · 글자 = 최상위 _sxCyc* · PREREG_S1838_btc_cycle.md §1) ═══
