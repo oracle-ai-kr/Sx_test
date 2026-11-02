@@ -4,6 +4,7 @@
 //   계산 = 넘겨받은 봉 전부(보통 600) · 보이기 = 마지막 N봉(60 · 120 · 200) · 설정 = 이 브라우저 저장소 SX_TVCHART_V1(try/catch · 종목이 바뀌어도 유지)
 //   sx_chart.js 는 고리만 단다(openFull → renderFull · 캔들 칸 범위 · 봉 색 · 위에 그리기 · 아래 칸)
 //   [S1866] 입력 종류 'sel'(고르기 · 원본 input.string options) · 3단계 지표 파일 sx_tvind_mpl.js(MPL 2.0) 추가
+//   [S1870] 지표 정의에 app(앱 자체 정의 · 출처 글) 이 있으면 설정 시트 출처 줄을 그 글로(🎯 ICT 오더블록 — TradingView 스크립트가 아님)
 var SXTV = (function(){
 'use strict';
 // ── 파인 약속(offline/_pta.js fe4a960e2934 5 ~ 35줄 글자 그대로) ──
@@ -176,7 +177,7 @@ function sheetHtml() { if (!_sheet) return '';
     else h += '<input type="number" inputmode="decimal" data-tv-in="' + i.k + '" value="' + esc(v) + '"' + (i.min != null ? ' min="' + i.min + '"' : '') + (i.max != null ? ' max="' + i.max + '"' : '') + ' step="' + (i.t === 'int' ? 1 : (i.step || 'any')) + '" onchange="window._sxTv&&_sxTv.set(\'' + id + '\',\'' + i.k + '\',this.value)" style="width:76px;font-size:13px;padding:4px 6px;border:1px solid #d1d5db;border-radius:6px;text-align:right">';
     h += '</label>'; });
   h += '<div style="display:flex;gap:8px;margin-top:10px"><button onclick="window._sxTv&&_sxTv.reset(\'' + id + '\')" style="font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#374151">기본값 되돌리기</button></div>';
-  h += '<div style="font-size:9px;color:#9ca3af;margin-top:10px;line-height:1.5">출처: TradingView 공개 스크립트 "' + esc(d.name) + '" · 작성자 ' + esc(d.author) + ' · ' + esc(d.license) + ' · 표시만 · 판정 아님</div>';
+  h += '<div style="font-size:9px;color:#9ca3af;margin-top:10px;line-height:1.5">' + (d.app ? '출처: ' + esc(d.app) : '출처: TradingView 공개 스크립트 "' + esc(d.name) + '" · 작성자 ' + esc(d.author) + ' · ' + esc(d.license)) + ' · 표시만 · 판정 아님</div>';   // [S1870] app = 앱 자체 정의
   return h + '</div>'; }
 
 // ── 누름 ──
