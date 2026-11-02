@@ -2,6 +2,7 @@
 //  SX Chart Module v1.9
 //  캔들차트 + MA(5/10/20/60/120) + BB + 거래량 + RSI + MACD
 //  양봉=빨강, 음봉=파랑
+//  [S1864] 풀차트: 계산 = 넘겨받은 봉 전부 · 보이기 = 마지막 N봉 · TradingView 지표 고리(sx_tvchart.js · SXTV — 없으면 예전 화면 그대로)
 // ════════════════════════════════════════════════════════════
 const SXChart = (function(){
 'use strict';
@@ -154,12 +155,13 @@ function drawBBFill(ctx, bb, pad, cw, yFn){
 }
 
 /* ── 캔들 그리기 공통 (양봉=빨강꽉참, 음봉=파랑꽉참) ── */
-function drawCandles(ctx, data, pad, cw, yFn, thick){
+function drawCandles(ctx, data, pad, cw, yFn, thick, colFn){   /* [S1864] colFn(i) = 지표 봉 색(원본 barcolor) · 없거나 null 이면 예전 색 */
   thick = thick||false;
   data.forEach(function(d,i){
     var x=pad.l+i*cw+cw/2;
     var bull=d.close>=d.open;
-    var col=bull?BULL:BEAR;
+    var _cc=colFn?colFn(i):null;
+    var col=_cc||(bull?BULL:BEAR);
     // wick
     ctx.strokeStyle=col; ctx.lineWidth=thick?0.8:0.7;
     ctx.beginPath(); ctx.moveTo(x,yFn(d.high)); ctx.lineTo(x,yFn(d.low)); ctx.stroke();
@@ -169,14 +171,14 @@ function drawCandles(ctx, data, pad, cw, yFn, thick){
     ctx.fillStyle=col;
     ctx.fillRect(x-bw/2,bTop,bw,bH);
     // 테두리
-    ctx.strokeStyle=bull?'#cc2244':'#2563eb'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=_cc||(bull?'#cc2244':'#2563eb'); ctx.lineWidth=0.5;
     ctx.strokeRect(x-bw/2,bTop,bw,bH);
   });
 }
 
 /* ── MA 범례 ── */
 function drawMALegend(ctx, closes, pad, H, fontSize){
-  ctx.font=(fontSize||8)+'px Outfit,sans-serif';
+  ctx.font=(fontSize||8)+'px Outfit,sans-serif'; ctx.textAlign='left';   // [S1864] 왼쪽 맞춤 — 앞 그리기(drawGrid)가 'right' 로 둔 채라 MA 글자가 왼쪽으로 밀려 잘리고 겹쳤다(미니 차트도 같음)
   var lx=pad.l+2;
   var ly=H-3;
   [5,10,20,60,120].forEach(function(p){
@@ -256,42 +258,70 @@ function openFull(rows, stockName, trades){
   }
   ov.style.display = 'flex';
 
-  var data = rows.slice(-60);
-  var closes = data.map(function(d){return d.close;});
-  var rsiArr = calcRSI(closes, 14);
-  var macdObj = calcMACD(closes, 12, 26, 9);
-  var bb = calcBB(closes, 20, 2);
-
   history.pushState({view:'sxchart'},'');
+  // [S1864] 그리기를 _renderFull 로 뺐다 — 지표 설정 · 보일 봉 수 · 가로 보기에서 다시 그려도 뒤로 가기 기록이 쌓이지 않게
+  _fullCtx = { rows: rows, name: stockName, trades: trades };
+  _renderFull();
+}
+
+var _fullCtx = null;
+// [S1864] 풀차트 그리기 — 계산 = 넘겨받은 봉 전부 · 보이기 = 마지막 N봉(SXTV 없으면 60 · 예전과 같은 봉 수)
+//   ⚠예전에는 60봉만 잘라 MA · BB · RSI · MACD 를 계산했다 — 60봉 화면에서 MA60 은 점 하나 · MA120 은 안 그려짐 · RSI 앞 14봉이 50으로 평평 · MACD 앞 33봉이 비었다.
+function _renderFull(){
+  var c = _fullCtx, ov = document.getElementById('sxChartOverlay');
+  if(!c || !ov || !c.rows || c.rows.length<10) return;
+  var rows = c.rows, stockName = c.name, trades = c.trades;
+  var TV = (typeof window!=='undefined' && window.SXTV) ? window.SXTV : null;
+  var N = TV ? TV.bars() : 60;
+  var data = rows.slice(-N), off = rows.length - data.length;
+  var allC = rows.map(function(d){return d.close;});
+  var closes = data.map(function(d){return d.close;});
+  // RSI · MACD = 앱 기본 지표(목록에서 끄고 켬 · 입력값 ⚙️) — SXTV 없으면 예전처럼 14 · 12/26/9 로 늘 보임
+  var showR = TV ? TV.shown('rsi') : true, showM = TV ? TV.shown('macd') : true;
+  var pR = TV ? TV.params('rsi') : { len:14 }, pM = TV ? TV.params('macd') : { fast:12, slow:26, sig:9 };
+  var _r = calcRSI(allC, pR.len), rsiArr = _r.slice(off);
+  var _m = calcMACD(allC, pM.fast, pM.slow, pM.sig), macdObj = { macd:_m.macd.slice(off), signal:_m.signal.slice(off), hist:_m.hist.slice(off) };
+  var _b = calcBB(allC, 20, 2), bb = { mid:_b.mid.slice(off), upper:_b.upper.slice(off), lower:_b.lower.slice(off) };
+  if(TV) TV.layout(ov);
+  var cH = TV ? TV.candleH() : 240;
+  var _body = document.getElementById('sxChartBody'), _st = _body ? _body.scrollTop : 0;
 
   ov.innerHTML =
     '<div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #e5e7eb;flex-shrink:0;background:#fff">' +
-      '<button onclick="if(typeof _sxVib===\'function\')_sxVib(15);SXChart.closeFull()" style="border:none;background:none;font-size:16px;cursor:pointer;color:#333;padding:4px 8px">\u2039</button>' +
-      '<span style="font-size:13px;font-weight:700;flex:1;text-align:center;color:#333">' + (stockName||'') + ' 상세 차트</span>' +
-      '<button id="sxCpOvBtn" onclick="if(typeof _sxVib===\'function\')_sxVib(8);window._cpToggleOverlay&&_cpToggleOverlay()" style="border:1px solid #7c3aed;background:' + (window._sxCpOverlayOn!==false?'#7c3aed':'#fff') + ';color:' + (window._sxCpOverlayOn!==false?'#fff':'#7c3aed') + ';font-size:9px;font-weight:700;padding:4px 8px;border-radius:6px;cursor:pointer;flex-shrink:0">\uD83D\uDD2E \uC608\uCE21 ' + (window._sxCpOverlayOn!==false?'ON':'OFF') + '</button>' +
+      '<button onclick="if(typeof _sxVib===\'function\')_sxVib(15);SXChart.closeFull()" style="border:none;background:none;font-size:16px;cursor:pointer;color:#333;padding:4px 8px">‹</button>' +
+      '<span style="font-size:13px;font-weight:700;flex:1;text-align:center;color:#333;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (stockName||'') + ' 상세 차트</span>' +
+      (TV ? TV.headHtml() : '') +
+      '<button id="sxCpOvBtn" onclick="if(typeof _sxVib===\'function\')_sxVib(8);window._cpToggleOverlay&&_cpToggleOverlay()" style="border:1px solid #7c3aed;background:' + (window._sxCpOverlayOn!==false?'#7c3aed':'#fff') + ';color:' + (window._sxCpOverlayOn!==false?'#fff':'#7c3aed') + ';font-size:9px;font-weight:700;padding:4px 8px;border-radius:6px;cursor:pointer;flex-shrink:0;margin-left:4px">🔮 예측 ' + (window._sxCpOverlayOn!==false?'ON':'OFF') + '</button>' +
     '</div>' +
     '<div style="flex:1;overflow-y:auto;padding:10px 10px 20px;background:#fff" id="sxChartBody">' +
-      '<div style="font-size:10px;font-weight:600;color:#888;margin-bottom:4px">캔들 + MA + BB (최근 ' + data.length + '봉)</div>' +
-      '<canvas id="sxFullCandle" style="width:100%;height:240px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' +
+      (TV ? TV.topHtml() : '') +
+      '<div style="font-size:10px;font-weight:600;color:#888;margin-bottom:4px">캔들 + MA + BB (최근 ' + data.length + '봉' + (off>0 ? ' · 계산은 ' + rows.length + '봉' : '') + ')</div>' +
+      '<canvas id="sxFullCandle" style="width:100%;height:' + cH + 'px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' +
       '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">거래량</div>' +
       '<canvas id="sxFullVol" style="width:100%;height:70px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' +
-      '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">RSI (14)</div>' +
-      '<canvas id="sxFullRSI" style="width:100%;height:90px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' +
-      '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">MACD (12, 26, 9)</div>' +
-      '<canvas id="sxFullMACD" style="width:100%;height:90px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' +
-    '</div>';
+      (TV ? TV.paneHtml() : '') +
+      (showR ? '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">RSI (' + pR.len + ')</div>' +
+      '<canvas id="sxFullRSI" style="width:100%;height:90px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' : '') +
+      (showM ? '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">MACD (' + pM.fast + ', ' + pM.slow + ', ' + pM.sig + ')</div>' +
+      '<canvas id="sxFullMACD" style="width:100%;height:90px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' : '') +
+    '</div>' +
+    (TV ? TV.sheetHtml() : '');
+  var _nb = document.getElementById('sxChartBody'); if(_nb && _st) _nb.scrollTop = _st;
+  if(TV) cH = TV.fitH(document.getElementById('sxFullCandle'), cH);   // 가로면 캔들 칸을 화면에 남은 높이로
 
   setTimeout(function(){
-    _drawFullCandle('sxFullCandle', data, closes, bb, 240, rows.length, trades, rows);
+    _drawFullCandle('sxFullCandle', data, closes, bb, cH, rows.length, trades, rows);
     _drawFullVolume('sxFullVol', data, 70);
-    _drawFullRSI('sxFullRSI', rsiArr, 90);
-    _drawFullMACD('sxFullMACD', macdObj, 90);
+    if(TV) TV.drawPanes(rows, off, setupCanvas);
+    if(showR) _drawFullRSI('sxFullRSI', rsiArr, 90);
+    if(showM) _drawFullMACD('sxFullMACD', macdObj, 90);
     // [S663] 예측 오버레이 토글 재렌더용 — 캔들 캔버스만 다시 그림(예측 ON/OFF 시)
-    window._sxCpFullRedraw = function(){ try{ _drawFullCandle('sxFullCandle', data, closes, bb, 240, rows.length, trades, rows); }catch(_e){} };
+    window._sxCpFullRedraw = function(){ try{ _drawFullCandle('sxFullCandle', data, closes, bb, cH, rows.length, trades, rows); }catch(_e){} };
   }, 80);
 }
 
 function closeFull(){
+  try{ if(typeof window!=='undefined' && window.SXTV) window.SXTV.exitFs(); }catch(_e0){}   // [S1864] 전체화면(⤢)이면 먼저 푼다
   // [S213] display 토글은 popstate 핸들러(sx_screener.html)에서 처리
   //   여기서는 history.back()만 호출 → popstate 발화 → 거기서 display='none' + 미니차트 재렌더
   //   (이전 코드: display='none' 먼저 → history.back() 시 popstate 분기에서 display!=='none' false라 패스되어
@@ -335,6 +365,10 @@ function _drawFullCandle(id, data, closes, bb, H, fullLen, trades, fullRows){
   var allV = data.flatMap(function(d){return [d.high,d.low];});
   bb.upper.forEach(function(v){if(v!=null) allV.push(v);});
   bb.lower.forEach(function(v){if(v!=null) allV.push(v);});
+  // [S1864] 전체 봉 · TradingView 지표 — 계산 = fullRows 전부 · 화면 = 마지막 data.length 봉 · 차트 위 지표의 보이는 값을 가격 범위에 넣는다(TV 자동 범위처럼)
+  var _TV=(typeof window!=='undefined' && window.SXTV)?window.SXTV:null, _fOk=!!(fullRows && fullRows.length>=data.length), _off=_fOk?(fullRows.length-data.length):0;
+  var _allC=_fOk?fullRows.map(function(d){return d.close;}):closes;
+  if(_TV && _fOk) _TV.rangeVals(fullRows, _off, fullRows.length, allV);
   if(pred){   // fan/중앙값 가격 극단을 범위에 포함(클리핑 방지)
     var _anc = data[data.length-1].close;
     pred.analogs.forEach(function(a){ for(var _t=0;_t<a.path.length;_t++) allV.push(_anc*(1+a.path[_t])); });
@@ -346,12 +380,13 @@ function _drawFullCandle(id, data, closes, bb, H, fullLen, trades, fullRows){
 
   drawGrid(ctx, pad, W, H, lo, hi, 4);
   drawBBFill(ctx, bb, pad, cw, yFn);
-  drawCandles(ctx, data, pad, cw, yFn, true);
+  drawCandles(ctx, data, pad, cw, yFn, true, (_TV && _fOk) ? _TV.barColorFn(fullRows, _off) : null);
 
   [5,10,20,60,120].forEach(function(p){
-    if(closes.length<p) return;
-    drawLine(ctx, sma(closes,p), pad, cw, yFn, MA_COLORS[p], 1);
+    if(_allC.length<p) return;
+    drawLine(ctx, sma(_allC,p).slice(_allC.length-data.length), pad, cw, yFn, MA_COLORS[p], 1);   // [S1864] 전체 봉으로 계산 · 화면만 자름
   });
+  if(_TV && _fOk) _TV.drawOver(ctx, { pad:pad, cw:cw, yFn:yFn, W:W, H:H, off:_off, rows:fullRows });   // [S1864] 차트 위 지표(선 · 신호 글자)
 
   // S99/S128: BT 거래 마커 — 마지막 거래의 매수(▲)/매도(▼)를 차트 위에 표시
   //   화면 범위(최근 ~봉) 밖이면 해당 마커는 자동 생략 (각 함수 내부 가드)
@@ -488,7 +523,7 @@ function _drawFullCandle(id, data, closes, bb, H, fullLen, trades, fullRows){
   }
 
   if(_chartGreenRedMode() === 'S') _drawTrendMarkers(ctx, data, pad, cw, yFn, closes, W, 8, fullRows); // [S578] 추세마커는 녹/적='S'에서만 · [S1548] 큰 차트도 같은 처리(규칙17 거울상 — fullRows는 이미 9번째 인자로 들어와 있었다)
-  drawMALegend(ctx, closes, pad, H, 9);
+  drawMALegend(ctx, _allC, pad, H, 9);   // [S1864] 전체 봉 길이로 MA 범례(MA60 · MA120 이 그려지니 범례도)
 
   // [S663] 예측 오버레이 — 마지막 봉 종가를 앵커로 우측에 H봉 경로. (캔들 우측 공간에만 그림 → 캔들/마커와 미겹침)
   if(pred){
@@ -1409,5 +1444,5 @@ function highlightBar(canvasId, barIdx, rows, trades){
   }, 3000);
 }
 
-return { drawMini: drawMini, drawMiniWithTrades: drawMiniWithTrades, openFull: openFull, closeFull: closeFull, drawFinBar: drawFinBar, drawFinTrend: drawFinTrend, drawScoreSpark: drawScoreSpark, drawDeltaBar: drawDeltaBar, drawScoreGauge: drawScoreGauge, highlightBar: highlightBar };
+return { drawMini: drawMini, drawMiniWithTrades: drawMiniWithTrades, openFull: openFull, renderFull: _renderFull, closeFull: closeFull, drawFinBar: drawFinBar, drawFinTrend: drawFinTrend, drawScoreSpark: drawScoreSpark, drawDeltaBar: drawDeltaBar, drawScoreGauge: drawScoreGauge, highlightBar: highlightBar };
 })();
