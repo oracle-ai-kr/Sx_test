@@ -5,6 +5,7 @@
 //   sx_chart.js 는 고리만 단다(openFull → renderFull · 캔들 칸 범위 · 봉 색 · 위에 그리기 · 아래 칸)
 //   [S1866] 입력 종류 'sel'(고르기 · 원본 input.string options) · 3단계 지표 파일 sx_tvind_mpl.js(MPL 2.0) 추가
 //   [S1870] 지표 정의에 app(앱 자체 정의 · 출처 글) 이 있으면 설정 시트 출처 줄을 그 글로(🎯 ICT 오더블록 — TradingView 스크립트가 아님)
+//   [S1871] 설정 줄 접기(사용자 22:15) — 머리 ⚙️ 버튼(켠 지표 수 · ▾ 접힘 / ▴ 펼침)으로 '보일 봉' 줄 · 범례 줄(⚙️ 👁 ✕)을 펼치거나 접음 · 처음엔 접힘 · 상태 저장(fold)
 var SXTV = (function(){
 'use strict';
 // ── 파인 약속(offline/_pta.js fe4a960e2934 5 ~ 35줄 글자 그대로) ──
@@ -50,10 +51,11 @@ reg({ id: 'rsi', place: 'pane', builtin: true, name: 'Relative Strength Index', 
 reg({ id: 'macd', place: 'pane', builtin: true, name: 'MACD', short: 'MACD', kname: 'MACD', author: 'Gerald Appel(앱 기본)', license: '앱 기본 지표',
   inputs: [{ k: 'fast', nm: '빠른 길이', o: 'Fast Length', t: 'int', d: 12, min: 1, max: 200 }, { k: 'slow', nm: '느린 길이', o: 'Slow Length', t: 'int', d: 26, min: 2, max: 400 }, { k: 'sig', nm: '시그널 길이', o: 'Signal Smoothing', t: 'int', d: 9, min: 1, max: 100 }],
   legend: p => 'MACD (' + p.fast + ', ' + p.slow + ', ' + p.sig + ')' });
-function blank() { return { v: 1, bars: DEF_BARS, on: ['rsi', 'macd'], hide: {}, p: {} }; }   // 처음엔 예전처럼 RSI · MACD 칸이 보인다(✕ 로 끔)
+function blank() { return { v: 1, bars: DEF_BARS, on: ['rsi', 'macd'], hide: {}, p: {}, fold: true }; }   // [S1871] fold = 설정 줄 접힘(처음엔 접힘)   // 처음엔 예전처럼 RSI · MACD 칸이 보인다(✕ 로 끔)
 function load() { let o = null; try { o = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { o = null; }
   const s = blank(); if (!o || typeof o !== 'object') return s;
   if (BARS.indexOf(o.bars) >= 0) s.bars = o.bars;
+  if (typeof o.fold === 'boolean') s.fold = o.fold;   // [S1871] 저장값이 없으면 접힘
   if (Array.isArray(o.on)) { s.on = []; o.on.forEach(id => { if (typeof id === 'string' && s.on.indexOf(id) < 0) s.on.push(id); }); }   // 저장된 목록이 있으면 그것만(다 껐으면 빈 채)
   if (o.hide && typeof o.hide === 'object') Object.keys(o.hide).forEach(id => { if (o.hide[id]) s.hide[id] = 1; });
   if (o.p && typeof o.p === 'object') Object.keys(o.p).forEach(id => { if (o.p[id] && typeof o.p[id] === 'object') s.p[id] = Object.assign({}, o.p[id]); });
@@ -139,9 +141,10 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 // ── 화면 조각 ──
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 const BTN = 'border:1px solid #d1d5db;background:#fff;color:#374151;font-size:10px;font-weight:700;padding:4px 7px;border-radius:6px;cursor:pointer;flex-shrink:0;margin-left:4px';
-function headHtml() { return '<button id="sxTvAddBtn" onclick="window._sxTv&&_sxTv.list()" style="' + BTN + '">＋ 지표</button>' +
+function headHtml() { const f = !!st().fold; return '<button id="sxTvFoldBtn" data-tv-fold="' + (f ? 1 : 0) + '" onclick="window._sxTv&&_sxTv.fold()" title="지표 설정 줄 ' + (f ? '펼치기' : '접기') + '" style="' + BTN + '">⚙️ ' + onList().length + (f ? '▾' : '▴') + '</button>' +   // [S1871]
+  '<button id="sxTvAddBtn" onclick="window._sxTv&&_sxTv.list()" style="' + BTN + '">＋ 지표</button>' +
   '<button id="sxTvFsBtn" onclick="window._sxTv&&_sxTv.fs()" title="전체화면 + 가로" style="' + BTN + '">' + (isFs() ? '⤡' : '⤢') + '</button>'; }
-function topHtml() { const s = st();
+function topHtml() { const s = st(); if (s.fold) return '';   // [S1871] 접힘 = 보일 봉 · 범례 줄 안 보임(머리 ⚙️ 로 펼침)
   let h = '<div id="sxTvTop" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:6px">';
   h += '<span style="font-size:10px;color:#888;font-weight:600">보일 봉</span>' + BARS.map(b => '<button data-tv-bars="' + b + '" onclick="window._sxTv&&_sxTv.bars(' + b + ')" style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;cursor:pointer;border:1px solid ' + (s.bars === b ? '#2563eb;background:#2563eb;color:#fff' : '#d1d5db;background:#fff;color:#374151') + '">' + b + '</button>').join('');
   h += '</div>';
@@ -192,6 +195,7 @@ const H = {
   set: chg((id, k, v) => { const d = IND[id]; if (!d) return; const inp = d.inputs.filter(i => i.k === k)[0]; if (!inp) return; const s = st(); s.p[id] = s.p[id] || {}; const x = clean(inp, inp.t === 'bool' ? !!v : v); if (x === inp.d) delete s.p[id][k]; else s.p[id][k] = x; if (!Object.keys(s.p[id]).length) delete s.p[id]; }),
   reset: chg(id => { delete st().p[id]; }),
   bars: chg(b => { if (BARS.indexOf(b) >= 0) st().bars = b; }),
+  fold: chg(() => { const s = st(); s.fold = !s.fold; }),   // [S1871]
   fs: () => { try { if (typeof _sxVib === 'function') _sxVib(8); } catch (_) { } toggleFs(); }
 };
 if (typeof window !== 'undefined') window._sxTv = H;
