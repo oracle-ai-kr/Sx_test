@@ -3204,15 +3204,16 @@ function _sxSwRowHtml(tab, mk){ try{
 if(typeof window!=='undefined'){ window._sxSwSet=_sxSwSet; }
 // [S1865] 🧩 보조 재료 — 🎯 ICT · 🚦 슈퍼트렌드 · 🐢 터틀(⚓ 은 재료가 만들어지는 다음 단계) · 사용자 2026-11-02 07:06 · 07:53 · 07:57 · PREREG_S1865_aux.md §1
 // [S1867] 2단계 — 재료 넷 더함(풀차트 3단계 S1866 계산): 🎯 + Volume Profile(종가 > 롤링 POC · 창 200) · Vix Fix(직전 N봉 안 라임) · 🚦 + WaveTrend [Krypt](시그널 > MA) · ⚓ 줄 새로(WaveTrend · Volume Profile) · 🐢 + WaveTrend · Supertrend ANY(방향 위) · PREREG_S1867_aux2.md §1
+// [S1869] 3단계 — Smart Money Concepts(풀차트 4단계 S1868 smcCalc · 기본 입력) 칩 둘: SMC 내부(내부 구조 5봉) · SMC 스윙(스윙 구조 50봉) — 그 봉까지 마지막 구조 깨짐이 위(BOS↑ 또는 CHoCH↑ = 추세 bias 상승) · 🎯 ICT · ⚓ 지지/저항 줄 끝에 · ⚠ 는 재료마다(그 지표가 SXTV 에 없으면) · PREREG_S1869_axsmc.md §1
 //   켠 재료가 그 탭의 판단 봉(🧭 진입 구간과 같은 봉 · 같은 자리)에서 모두 '매수 쪽'일 때만 새 진입(AND) · 청산 무변경 · 🎲 무작위 진입 판단 봉도 같이 막음 · ⚖️ 기준줄 무변경
 //   계산: 스퀴즈 · S/R Breaks = SXTV(sx_tvind_nolic.js · sx_tvind_ccbyncsa.js) · 스토캐스틱 RSI · 초피니스 = SXTV(sx_tvind_builtin.js) — 풀차트와 같은 함수 · 입력값 = TV 기본값(풀차트 설정과 무관)
 //         [S1867] WaveTrend [Krypt] · Vix Fix = SXTV(sx_tvind_nolic.js) · Volume Profile = SXTV(sx_tvind_ccbyncsa.js · 롤링 POC · 창만 🧩 칸 · 칸 수 200) · Supertrend ANY = SXTV(sx_tvind_mpl.js · RSI 14 · 10 × 3)
 //         ADX = _sxAdxSeries(14 · 🐢 📐 와 같은 식) · MACD = _trMacd(12 · 26 · 9) · 슈퍼트렌드 = _stLine(🚦 탭 식 · ATR 10 × 3)
 //   SXTV 가 없으면(파일 못 받음) 그 재료는 늘 '아님' — 켜져 있으면 진입이 막힌다(지어내지 않음) · 키는 켰을 때만(다 끄면 지금과 바이트 같음)
-const _SX_AX_TABS={ ict:['srb','vp','wvf'], st:['sqz','srsi','chop','adx','macd','wtk'], sr:['wtk','vp'], turtle:['sqz','st','wtk','sta'] };   // [S1867] 넷 더함 · ⚓ 줄 새로
-const _SX_AX_TV={ sqz:1, srb:1, srsi:1, chop:1, vp:1, wvf:1, wtk:1, sta:1 };
-const _SX_AX_NM={ sqz:'스퀴즈 모멘텀', srsi:'스토캐스틱 RSI', chop:'초피니스', adx:'ADX', macd:'MACD', srb:'S/R 돌파', st:'슈퍼트렌드', vp:'볼륨 프로파일', wvf:'Vix Fix', wtk:'WaveTrend', sta:'슈퍼트렌드 ANY' };
-const _SX_AX_TIP={ sqz:'LazyBear 스퀴즈 모멘텀(20 · 2 · 20 · 1.5) — 라임 막대(모멘텀 > 0 이고 앞 봉보다 커짐)', srsi:'TradingView 내장 스토캐스틱 RSI(3 · 3 · 14 · 14) — %K > %D', chop:'TradingView 내장 초피니스 인덱스(14) — 문턱 아래(횡보 아님)', adx:'ADX(14 · 🐢 📐 와 같은 식) — ADX ≥ 문턱 이고 +DI > −DI', macd:'MACD(12 · 26 · 9) — MACD > 시그널', srb:'LuxAlgo S/R Levels with Breaks(15 · 15 · 20) — 판단 봉 포함 직전 N봉 안에 SR▲(거래량 돌파)', st:'슈퍼트렌드(🚦 탭 식 · ATR 10 × 3) — 방향 위', vp:'LuxAlgo Volume Profile(칸 200 · 창 N봉) — 종가 > 롤링 POC(거래가 가장 많이 몰린 가격대)', wvf:'CM Williams Vix Fix(22 · 20 · 2 · 50 · 0.85) — 판단 봉 포함 직전 N봉 안에 라임 막대(공포 극단)', wtk:'WaveTrend [Krypt](10 · 21 · 4 · 4) — 시그널 > MA(히스토그램 +)', sta:'Supertrend ANY(wbburgin · RSI 14 · 10 × 3) — 방향 위' };
+const _SX_AX_TABS={ ict:['srb','vp','wvf','smc','smcs'], st:['sqz','srsi','chop','adx','macd','wtk'], sr:['wtk','vp','smc','smcs'], turtle:['sqz','st','wtk','sta'] };   // [S1867] 넷 더함 · ⚓ 줄 새로 · [S1869] 🎯 · ⚓ + SMC 둘
+const _SX_AX_TV={ sqz:1, srb:1, srsi:1, chop:1, vp:1, wvf:1, wtk:1, sta:1, smc:1, smcs:1 }, _SX_AX_TVID={ smcs:'smc' };   // [S1869] SXTV 지표 id(칩 id 와 다를 때)
+const _SX_AX_NM={ sqz:'스퀴즈 모멘텀', srsi:'스토캐스틱 RSI', chop:'초피니스', adx:'ADX', macd:'MACD', srb:'S/R 돌파', st:'슈퍼트렌드', vp:'볼륨 프로파일', wvf:'Vix Fix', wtk:'WaveTrend', sta:'슈퍼트렌드 ANY', smc:'SMC 내부', smcs:'SMC 스윙' };
+const _SX_AX_TIP={ sqz:'LazyBear 스퀴즈 모멘텀(20 · 2 · 20 · 1.5) — 라임 막대(모멘텀 > 0 이고 앞 봉보다 커짐)', srsi:'TradingView 내장 스토캐스틱 RSI(3 · 3 · 14 · 14) — %K > %D', chop:'TradingView 내장 초피니스 인덱스(14) — 문턱 아래(횡보 아님)', adx:'ADX(14 · 🐢 📐 와 같은 식) — ADX ≥ 문턱 이고 +DI > −DI', macd:'MACD(12 · 26 · 9) — MACD > 시그널', srb:'LuxAlgo S/R Levels with Breaks(15 · 15 · 20) — 판단 봉 포함 직전 N봉 안에 SR▲(거래량 돌파)', st:'슈퍼트렌드(🚦 탭 식 · ATR 10 × 3) — 방향 위', vp:'LuxAlgo Volume Profile(칸 200 · 창 N봉) — 종가 > 롤링 POC(거래가 가장 많이 몰린 가격대)', wvf:'CM Williams Vix Fix(22 · 20 · 2 · 50 · 0.85) — 판단 봉 포함 직전 N봉 안에 라임 막대(공포 극단)', wtk:'WaveTrend [Krypt](10 · 21 · 4 · 4) — 시그널 > MA(히스토그램 +)', sta:'Supertrend ANY(wbburgin · RSI 14 · 10 × 3) — 방향 위', smc:'LuxAlgo Smart Money Concepts(내부 구조 5봉 · 풀차트 점선) — 그 봉까지 마지막 내부 구조 깨짐이 위(BOS↑ 또는 CHoCH↑)', smcs:'LuxAlgo Smart Money Concepts(스윙 구조 50봉 · 풀차트 실선) — 그 봉까지 마지막 스윙 구조 깨짐이 위(BOS↑ 또는 CHoCH↑)' };
 const _SX_AX_MEMO=(typeof WeakMap!=='undefined')?new WeakMap():null;
 function _sxAxNum(v,lo,hi,def,int){ if(v==null || v==='' || typeof v==='boolean') return def; let x=+v; if(!isFinite(x)) return def; if(int) x=Math.round(x); return Math.min(hi, Math.max(lo, x)); }
 const _SX_AX_K={ bjAdxT:[5,60,20,false], bjChopT:[20,80,61.8,false], bjSrbW:[1,30,5,true], bjVpW:[50,500,200,true], bjWvfW:[1,30,5,true] }, _SX_AX_KOF={ adx:'bjAdxT', chop:'bjChopT', srb:'bjSrbW', vp:'bjVpW', wvf:'bjWvfW' };   // [S1867] 칸 표(최소 · 최대 · 기본 · 정수)
@@ -3224,7 +3225,7 @@ function _sxAxNorm(s, tab){ const o={}, L=_SX_AX_TABS[tab]; if(!s || !L) return 
   if(L.indexOf('vp')>=0){ const v=_sxAxT(s,'bjVpW'); if(v!==200) o.bjVpW=v; }   /* [S1867] */
   if(L.indexOf('wvf')>=0){ const v=_sxAxT(s,'bjWvfW'); if(v!==5) o.bjWvfW=v; }
   return o; }   // 켰을 때만 ax · 문턱은 기본과 다를 때만(꺼도 남음 — 결과는 ax 가 없으면 무영향)
-function _sxAxTvDef(id){ const d=(typeof window!=='undefined' && window.SXTV && window.SXTV.IND)?window.SXTV.IND[id]:null; if(!d || typeof d.calc!=='function') return null; const p={}; (d.inputs||[]).forEach(i=>{ p[i.k]=i.d; }); return { d, p }; }
+function _sxAxTvDef(id){ id=_SX_AX_TVID[id]||id; /* [S1869] */ const d=(typeof window!=='undefined' && window.SXTV && window.SXTV.IND)?window.SXTV.IND[id]:null; if(!d || typeof d.calc!=='function') return null; const p={}; (d.inputs||[]).forEach(i=>{ p[i.k]=i.d; }); return { d, p }; }
 function _sxAxOk(rows, id, c){ const n=(rows&&rows.length)||0, lr=n?(rows[n-1]||{}):{}, lc=(lr.close!=null)?lr.close:lr.c;
   const key=id+'|'+(_SX_AX_KOF[id]?_sxAxT(c,_SX_AX_KOF[id]):'')+'|'+(_SX_AX_TV[id]?(_sxAxTvDef(id)?1:0):'');   // [S1867] 칸 표로
   let M=null; if(_SX_AX_MEMO && rows && typeof rows==='object'){ M=_SX_AX_MEMO.get(rows); if(!M || M.n!==n || M.lc!==lc){ M={ n, lc, by:{} }; _SX_AX_MEMO.set(rows, M); } if(M.by[key]) return M.by[key]; }
@@ -3237,6 +3238,7 @@ function _sxAxOk(rows, id, c){ const n=(rows&&rows.length)||0, lr=n?(rows[n-1]||
       else if(id==='wvf'){ const Wn=_sxAxT(c,'bjWvfW'); let last=-1e9; for(let i=0;i<n;i++){ if(R.g[i]) last=i; o[i]=(i-last<Wn)?1:0; } }   /* [S1867] */
       else if(id==='wtk'){ for(let i=0;i<n;i++) o[i]=(fin(R.sig[i]) && fin(R.ma[i]) && R.sig[i]>R.ma[i])?1:0; }
       else if(id==='sta'){ for(let i=0;i<n;i++) o[i]=(R.dir[i]===-1)?1:0; }
+      else if(id==='smc' || id==='smcs'){ const B=(id==='smc')?R.iB:R.sB; for(let i=0;i<n;i++) o[i]=(B && B[i]===1)?1:0; }   /* [S1869] 봉 i 의 구조 셈 뒤 추세 bias = 상승(1) */
       else if(id==='vp'){ for(let i=0;i<n;i++){ const r=rows[i]||{}, cl=+((r.close!=null)?r.close:r.c); o[i]=(fin(R.rpoc[i]) && fin(cl) && cl>R.rpoc[i])?1:0; } } } } }
   else { const num=v=>{ v=+v; return isFinite(v)?v:NaN; }, C=new Array(n), H=new Array(n), L=new Array(n);
     for(let i=0;i<n;i++){ const r=rows[i]||{}; C[i]=num(r.close!=null?r.close:r.c); H[i]=num(r.high!=null?r.high:r.h); L[i]=num(r.low!=null?r.low:r.l); }
@@ -3256,15 +3258,15 @@ function _sxAxSet(tab, k, v){ const ctx=(typeof window!=='undefined')?window._sx
 function _sxAxRowHtml(tab, mk, rows, bt){ try{
   const L=_SX_AX_TABS[tab]; if(!L) return ''; const c=_sxRgCfgOf(tab, mk); if(!c) return '';
   const col=((typeof _TREND_TAB_COL!=='undefined') && _TREND_TAB_COL[tab])||'#64748b', on=id=>Array.isArray(c.bj) && c.bj.indexOf(id)>=0;
-  const xs=(tab==='ict' && typeof _ICT_XSETUPS!=='undefined' && _ICT_XSETUPS.indexOf(c.setup)>=0), noTV=!(typeof window!=='undefined' && window.SXTV && window.SXTV.IND);
-  const chip=id=>{ const o=on(id), warn=(_SX_AX_TV[id] && noTV); return '<span data-ax-chip="'+id+'" data-on="'+(o?1:0)+'"'+(xs?'':(' onclick="_sxVib(9);_sxAxToggle(\''+tab+'\',\''+id+'\')"'))+' title="'+_SX_AX_TIP[id]+'" style="font-size:10px;font-weight:800;padding:4px 9px;border-radius:12px;white-space:nowrap;cursor:'+(xs?'default':'pointer')+';'+(o?('background:'+col+';color:#fff;border:1px solid '+col):'background:var(--surface);color:var(--text3);border:1px solid var(--border)')+(xs?';opacity:.45':'')+'">'+_SX_AX_NM[id]+(warn?' ⚠':'')+'</span>'; };
+  const xs=(tab==='ict' && typeof _ICT_XSETUPS!=='undefined' && _ICT_XSETUPS.indexOf(c.setup)>=0), tvMiss=L.some(id=>_SX_AX_TV[id] && !_sxAxTvDef(id));   /* [S1869] ⚠ 재료마다(그 지표가 SXTV 에 없으면 · 파일 통째로 없으면 전부) */
+  const chip=id=>{ const o=on(id), warn=(_SX_AX_TV[id] && !_sxAxTvDef(id)); return '<span data-ax-chip="'+id+'" data-on="'+(o?1:0)+'"'+(xs?'':(' onclick="_sxVib(9);_sxAxToggle(\''+tab+'\',\''+id+'\')"'))+' title="'+_SX_AX_TIP[id]+'" style="font-size:10px;font-weight:800;padding:4px 9px;border-radius:12px;white-space:nowrap;cursor:'+(xs?'default':'pointer')+';'+(o?('background:'+col+';color:#fff;border:1px solid '+col):'background:var(--surface);color:var(--text3);border:1px solid var(--border)')+(xs?';opacity:.45':'')+'">'+_SX_AX_NM[id]+(warn?' ⚠':'')+'</span>'; };
   const inp=(k,lb,step)=>'<span style="font-size:9.5px;color:var(--text2);white-space:nowrap">'+lb+' <input data-ax-in="'+k+'" type="number" inputmode="decimal" step="'+step+'" value="'+_sxAxT(c,k)+'" onchange="_sxAxSet(\''+tab+'\',\''+k+'\',this.value)" style="width:44px;padding:2px 4px;border:1px solid var(--border);border-radius:6px;font-size:11px;text-align:center;background:var(--surface);color:var(--text)"></span>';
   let ins=''; if(!xs){ if(on('adx')) ins+=inp('bjAdxT','ADX ≥','1'); if(on('chop')) ins+=inp('bjChopT','초피니스 <','0.1'); if(on('srb')) ins+=inp('bjSrbW','SR▲ 창','1'); if(on('vp')) ins+=inp('bjVpW','POC 창','10'); if(on('wvf')) ins+=inp('bjWvfW','라임 창','1'); }
   let now=''; const a=L.filter(on); if(!xs && a.length && rows && rows.length){ const li=rows.length-1, st=a.map(id=>{ const ok=_sxAxOk(rows, id, c)[li]===1; return _SX_AX_NM[id]+(ok?' ✓':' ✗'); }), all=a.every(id=>_sxAxOk(rows, id, c)[li]===1); now='지금 '+st.join(' · ')+' → '+(all?'진입 허용':'<b style="color:#dc2626">진입 막힘</b>')+' · '; }
   const blk=(bt && bt.bj)?('최근 BT 🧩 막힘 '+bt.bj.blk+' · '):'';
   const why=xs?'🧪 실험 셋업엔 안 걸림(원 스크립트 흐름 그대로)':((!a.length)?'다 꺼짐 = 거르지 않음':('켠 '+a.length+'개가 모두 매수 쪽일 때만 새 진입'));
   return '<div data-ax-row="'+tab+'" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 7px"><span style="font-size:11px;font-weight:800;color:'+col+'">🧩 보조 재료</span>'+L.map(chip).join('')+ins
-    +'<span style="flex:1 0 100%;min-width:0;font-size:8.5px;color:var(--text3);line-height:1.45">'+now+blk+why+' · 판단 = 🧭 와 같은 봉 · 열린 포지션 청산은 그대로 · 재료 계산 = 풀차트와 같은 함수(입력값 TV 기본)'+(noTV?' · <b style="color:#d97706">⚠ 지표 파일이 안 실림 — ⚠ 칩을 켜면 진입이 막힘</b>':'')+' · 실험 도구 · 성적 주장 없음</span></div>';
+    +'<span style="flex:1 0 100%;min-width:0;font-size:8.5px;color:var(--text3);line-height:1.45">'+now+blk+why+' · 판단 = 🧭 와 같은 봉 · 열린 포지션 청산은 그대로 · 재료 계산 = 풀차트와 같은 함수(입력값 TV 기본)'+(tvMiss?' · <b style="color:#d97706">⚠ 지표 파일이 안 실림 — ⚠ 칩을 켜면 진입이 막힘</b>':'')+' · 실험 도구 · 성적 주장 없음</span></div>';
  }catch(_e){ return ''; } }
 if(typeof window!=='undefined'){ window._sxAxToggle=_sxAxToggle; window._sxAxSet=_sxAxSet; }
 function _stratBt(rows, sig, cfg, sc, bbP, cellCtx, noDday, X){   /* [S1852] X = 🎲 무작위 진입 대조(없으면 무영향) */   /* [S1796] noDday = 풀 BT(D-day 예보 kNN 건너뜀 · 거래 무관) */
@@ -20341,7 +20343,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1867';   // [S1867] 🧩 보조 재료 2단계(재료 넷 · ⚓ 줄) — S1866 은 render 무변경(풀차트 3단계)
+  window.SX_BUILD='S1869';   // [S1869] 🧩 보조 재료 3단계(SMC 내부 · 스윙 — 🎯 · ⚓) — S1868 은 render 무변경(풀차트 4단계)
+  //window.SX_BUILD='S1867';   // [S1867] 🧩 보조 재료 2단계(재료 넷 · ⚓ 줄) — S1866 은 render 무변경(풀차트 3단계)
   //window.SX_BUILD='S1865';   // [S1865] 🧩 보조 재료 1단계(🎯 · 🚦 · 🐢 · 재료 일곱) — S1864 는 render 무변경(풀차트)
   //window.SX_BUILD='S1863';   // [S1863] 📉 단기 매매 6탭 추세전환 청산 칩(스윙 HH 확정 · LH 확정 · HL 이탈)
   //window.SX_BUILD='S1862';   // [S1862] 🧭 단기 매매 6탭 진입 구간 칩 · ⛩️ 레짐게이트 철거 · ⚖️ · 📌 같은 구간 기준
