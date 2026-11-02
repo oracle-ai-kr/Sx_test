@@ -3,6 +3,7 @@
 //   지표는 라이선스별 파일이 SXTV.reg 로 단다: sx_tvind_nolic.js(표기 없음) · sx_tvind_ccbyncsa.js(CC BY-NC-SA 4.0) — 출처는 각 파일 머리
 //   계산 = 넘겨받은 봉 전부(보통 600) · 보이기 = 마지막 N봉(60 · 120 · 200) · 설정 = 이 브라우저 저장소 SX_TVCHART_V1(try/catch · 종목이 바뀌어도 유지)
 //   sx_chart.js 는 고리만 단다(openFull → renderFull · 캔들 칸 범위 · 봉 색 · 위에 그리기 · 아래 칸)
+//   [S1866] 입력 종류 'sel'(고르기 · 원본 input.string options) · 3단계 지표 파일 sx_tvind_mpl.js(MPL 2.0) 추가
 var SXTV = (function(){
 'use strict';
 // ── 파인 약속(offline/_pta.js fe4a960e2934 5 ~ 35줄 글자 그대로) ──
@@ -60,6 +61,7 @@ let S = null; function st() { if (!S) S = load(); return S; }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(st())); } catch (_) { } }
 // 입력값 하나 고르기 — 정수는 반올림 · 범위 밖은 끝값 · 숫자가 아니면 기본값
 function clean(inp, v) {
+  if (inp.t === 'sel') return ((inp.opts || []).indexOf(v) >= 0) ? v : inp.d;   // [S1866] 고르기 — 목록 밖이면 기본값
   if (inp.t === 'bool') return (typeof v === 'boolean') ? v : inp.d;
   let x = +v; if (v === null || v === '' || !fin(x)) return inp.d;
   if (inp.t === 'int') x = Math.round(x);
@@ -79,7 +81,7 @@ function result(id, rows) { if (_cache.rows !== rows) _cache = { rows, m: {} };
 
 // ── sx_chart.js 고리 ──
 // 가격 범위에 차트 위 지표의 보이는 값을 넣는다(TV 자동 범위처럼)
-function rangeVals(rows, s, e, out) { let any = false; onList().forEach(id => { const d = IND[id]; if (d.place !== 'over' || !shown(id) || !d.range) return; any = true; const x = result(id, rows); if (x.R) d.range(x.R, s, e, x.p, out); });
+function rangeVals(rows, s, e, out) { let any = false; onList().forEach(id => { const d = IND[id]; if (d.place !== 'over' || !shown(id) || !d.range) return; if (!d.noMargin) any = true;   /* [S1866] noMargin = 글자 없는 지표(볼륨 프로파일)는 여유를 안 부름 */ const x = result(id, rows); if (x.R) d.range(x.R, s, e, x.p, out); });
   if (!any) return; let mx = -Infinity, mn = Infinity; for (const v of out) if (fin(v)) { if (v > mx) mx = v; if (v < mn) mn = v; } if (mx > mn) { const m = (mx - mn) * 0.07; out.push(mx + m, mn - m); } }   // 차트 위 지표를 켰을 때만 위아래 7% 여유(신호 글자 자리)
 // 봉 색(원본 barcolor) — 마지막에 켠 지표가 이긴다(파인과 같음 · 뒤에 그린 것이 덮음)
 function barColorFn(rows, off) { const fs = []; onList().forEach(id => { const d = IND[id]; if (d.place === 'over' && shown(id) && d.barColor) { const x = result(id, rows); if (x.R) fs.push([d, x]); } });
@@ -169,7 +171,8 @@ function sheetHtml() { if (!_sheet) return '';
   h += '<div style="font-size:9px;color:#9ca3af;margin-bottom:8px">' + esc(d.name) + '</div>';
   d.inputs.forEach(i => { const v = p[i.k];
     h += '<label style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f4f6"><span style="flex:1;min-width:0"><span style="font-size:12px;color:#111">' + esc(i.nm) + '</span><br><span style="font-size:9px;color:#9ca3af">' + esc(i.o) + ' · 기본 ' + esc(i.t === 'bool' ? (i.d ? '켬' : '끔') : i.d) + '</span></span>';
-    if (i.t === 'bool') h += '<input type="checkbox" data-tv-in="' + i.k + '"' + (v ? ' checked' : '') + ' onchange="window._sxTv&&_sxTv.set(\'' + id + '\',\'' + i.k + '\',this.checked)" style="width:20px;height:20px">';
+    if (i.t === 'sel') h += '<select data-tv-in="' + i.k + '" onchange="window._sxTv&&_sxTv.set(\'' + id + '\',\'' + i.k + '\',this.value)" style="font-size:12px;padding:4px 6px;border:1px solid #d1d5db;border-radius:6px;background:#fff;max-width:150px">' + (i.opts || []).map(o => '<option value="' + esc(o) + '"' + (o === v ? ' selected' : '') + '>' + esc((i.optNm && i.optNm[o]) || o) + '</option>').join('') + '</select>';   // [S1866]
+    else if (i.t === 'bool') h += '<input type="checkbox" data-tv-in="' + i.k + '"' + (v ? ' checked' : '') + ' onchange="window._sxTv&&_sxTv.set(\'' + id + '\',\'' + i.k + '\',this.checked)" style="width:20px;height:20px">';
     else h += '<input type="number" inputmode="decimal" data-tv-in="' + i.k + '" value="' + esc(v) + '"' + (i.min != null ? ' min="' + i.min + '"' : '') + (i.max != null ? ' max="' + i.max + '"' : '') + ' step="' + (i.t === 'int' ? 1 : (i.step || 'any')) + '" onchange="window._sxTv&&_sxTv.set(\'' + id + '\',\'' + i.k + '\',this.value)" style="width:76px;font-size:13px;padding:4px 6px;border:1px solid #d1d5db;border-radius:6px;text-align:right">';
     h += '</label>'; });
   h += '<div style="display:flex;gap:8px;margin-top:10px"><button onclick="window._sxTv&&_sxTv.reset(\'' + id + '\')" style="font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#374151">기본값 되돌리기</button></div>';
