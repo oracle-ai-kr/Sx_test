@@ -297,13 +297,15 @@ function _renderFull(){
       (TV ? TV.topHtml() : '') +
       '<div style="font-size:10px;font-weight:600;color:#888;margin-bottom:4px">캔들 + MA + BB (최근 ' + data.length + '봉' + (off>0 ? ' · 계산은 ' + rows.length + '봉' : '') + ')</div>' +
       '<canvas id="sxFullCandle" style="width:100%;height:' + cH + 'px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' +
+      (TV && TV.overReadHtml ? TV.overReadHtml(rows) : '') +   // [S1872] 차트 위 지표 읽기
       '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">거래량</div>' +
       '<canvas id="sxFullVol" style="width:100%;height:70px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' +
-      (TV ? TV.paneHtml() : '') +
-      (showR ? '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">RSI (' + pR.len + ')</div>' +
+      (TV ? TV.paneHtml(rows) : '') +   // [S1872] rows = 읽기 한 줄
+      (showR ? '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">RSI (' + pR.len + ')</div>' + (TV && TV.readLine ? TV.readLine('rsi', rsiArr) : '') +   // [S1872]
       '<canvas id="sxFullRSI" style="width:100%;height:90px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' : '') +
-      (showM ? '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">MACD (' + pM.fast + ', ' + pM.slow + ', ' + pM.sig + ')</div>' +
+      (showM ? '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">MACD (' + pM.fast + ', ' + pM.slow + ', ' + pM.sig + ')</div>' + (TV && TV.readLine ? TV.readLine('macd', macdObj) : '') +   // [S1872]
       '<canvas id="sxFullMACD" style="width:100%;height:90px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>' : '') +
+      (TV && TV.readFoot ? TV.readFoot() : '') +   // [S1872] 읽기 도움 · 판정 아님
     '</div>' +
     (TV ? TV.sheetHtml() : '');
   var _nb = document.getElementById('sxChartBody'); if(_nb && _st) _nb.scrollTop = _st;
