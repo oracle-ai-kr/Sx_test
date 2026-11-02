@@ -5,6 +5,7 @@
 //   sx_chart.js 는 고리만 단다(openFull → renderFull · 캔들 칸 범위 · 봉 색 · 위에 그리기 · 아래 칸)
 //   [S1866] 입력 종류 'sel'(고르기 · 원본 input.string options) · 3단계 지표 파일 sx_tvind_mpl.js(MPL 2.0) 추가
 //   [S1870] 지표 정의에 app(앱 자체 정의 · 출처 글) 이 있으면 설정 시트 출처 줄을 그 글로(🎯 ICT 오더블록 — TradingView 스크립트가 아님)
+//   [S1872] 지표 읽기 한 줄(사용자 22:12) — SXTV.READ[id](sx_tvread.js · 앱 자체) 가 있으면 아래 칸 제목 아래 · 캔들 칸 아래 '차트 위 지표 읽기' 묶음 · RSI · MACD 는 sx_chart.js 가 값을 넘김(readLine) · 끝에 '읽기 도움 · 판정 아님' 한 줄
 //   [S1871] 설정 줄 접기(사용자 22:15) — 머리 ⚙️ 버튼(켠 지표 수 · ▾ 접힘 / ▴ 펼침)으로 '보일 봉' 줄 · 범례 줄(⚙️ 👁 ✕)을 펼치거나 접음 · 처음엔 접힘 · 상태 저장(fold)
 var SXTV = (function(){
 'use strict';
@@ -105,8 +106,18 @@ function drawOver(ctx, g) { const list = onList().filter(id => IND[id].place ===
   ctx.restore(); }
 // 아래 칸(캔버스) HTML · 그리기
 function paneList() { return onList().filter(id => IND[id].place === 'pane' && !IND[id].builtin && shown(id)); }
-function paneHtml() { return paneList().map(id => { const d = IND[id], p = params(id);
-  return '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">' + esc(d.legend(p)) + '</div>' +
+// [S1872] 읽기 한 줄 — r = { t, ok } · lab = 지표 짧은 이름(차트 위 묶음) · 🧩 = 🧩 보조 재료 칩 '매수 쪽' 규칙 꼴
+let _readN = 0;
+function readRow(id, r, lab) { if (!r || !r.t) return ''; _readN++; return '<div data-tv-read="' + id + '" style="font-size:9.5px;color:#4b5563;line-height:1.45;margin:2px 0 4px">📖 ' + (lab ? '<b>' + esc(lab) + '</b> · ' : '') + esc(r.t) + (r.ok == null ? '' : ' · 🧩 매수 쪽 <b style="color:' + (r.ok ? '#16a34a' : '#dc2626') + '">' + (r.ok ? '✓' : '✗') + '</b>') + '</div>'; }
+function readOf(id, rows) { const f = (typeof SXTV !== 'undefined' && SXTV.READ) ? SXTV.READ[id] : null; if (!f || !rows) return null; const x = result(id, rows); if (!x.R) return null; try { return f(x.R, x.p, rows); } catch (_) { return null; } }
+function readHtml(id, rows, lab) { return readRow(id, readOf(id, rows), lab); }
+function readLine(id, v) { const f = (typeof SXTV !== 'undefined' && SXTV.READB) ? SXTV.READB[id] : null; if (!f) return ''; let r = null; try { r = f(v); } catch (_) { r = null; } return readRow(id, r, ''); }
+function overReadHtml(rows) { _readN = 0; const ids = onList().filter(id => IND[id].place === 'over' && shown(id)), h = ids.map(id => readHtml(id, rows, IND[id].short)).join('');
+  return h ? '<div data-tv-reads="over" style="margin:6px 0 2px"><div style="font-size:10px;font-weight:600;color:#888;margin-bottom:2px">차트 위 지표 읽기</div>' + h + '</div>' : ''; }
+function readFoot() { return _readN ? '<div data-tv-readfoot="1" style="font-size:9px;color:#9ca3af;margin:10px 0 0;line-height:1.5">📖 읽기 도움 · 판정 아님 · 🧩 = 🧩 보조 재료 칩과 같은 \'매수 쪽\' 규칙(칩은 입력 TV 기본값 · 여기는 지금 설정)</div>' : ''; }
+function paneHtml(rows) { return paneList().map(id => { const d = IND[id], p = params(id);
+  return '<div style="font-size:10px;font-weight:600;color:#888;margin:12px 0 4px">' + esc(d.legend(p)) + '</div>' + readHtml(id, rows, '') +   // [S1872] rows 가 있으면 읽기 한 줄
+
     '<canvas id="sxTvPane_' + id + '" style="width:100%;height:90px;display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px"></canvas>'; }).join(''); }
 function drawPanes(rows, off, setup) { paneList().forEach(id => { const cv = document.getElementById('sxTvPane_' + id); if (!cv) return; const x = result(id, rows); if (!x.R) return;
   const rect = cv.getBoundingClientRect(), W = Math.round(rect.width) || 360, H = 90, ctx = setup(cv, W, H), pad = { t: 8, b: 8, l: 8, r: 42 }, n = rows.length - off, cw = (W - pad.l - pad.r) / n;
@@ -200,7 +211,7 @@ const H = {
 };
 if (typeof window !== 'undefined') window._sxTv = H;
 
-return { pta, reg, IND, ORDER, KEY, BARS, params, isOn, shown, bars, result, rangeVals, barColorFn, drawOver, paneHtml, drawPanes, headHtml, topHtml, sheetHtml, layout, candleH, fitH, wide, exitFs, _state: st, _reload: () => { S = null; _cache = { rows: null, m: {} }; } };
+return { pta, reg, IND, ORDER, KEY, BARS, params, isOn, shown, bars, result, rangeVals, barColorFn, drawOver, paneHtml, drawPanes, headHtml, topHtml, sheetHtml, overReadHtml, readLine, readFoot /* [S1872] 읽기 */, layout, candleH, fitH, wide, exitFs, _state: st, _reload: () => { S = null; _cache = { rows: null, m: {} }; } };
 })();
 if (typeof window !== 'undefined') window.SXTV = SXTV;
 if (typeof module !== 'undefined' && module.exports) module.exports = SXTV;
