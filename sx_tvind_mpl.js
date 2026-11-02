@@ -6,6 +6,7 @@
 //     ② [S1870] 🎯 ICT 오더블록 — 앱 자체 정의(🎯 ICT 탭 BT 오더블록 셋업과 같은 식 · 원본 파인 없음) · 이 파일에 두어 MPL 2.0 · Power % 진하기 = ④ 식
 //     ③ [S1870] Market Structure Break & Order Block — © EmreKb · MPL 2.0 · 원본 = offline/tvchart/"Market Structure Break & Order Block.txt"(파인 v5)
 //     ④ [S1870] Power Order Blocks [ChartPrime] — © ChartPrime · MPL 2.0 · 원본 = offline/tvchart/"Power Order Blocks (ChartPrime).txt"(파인 v6)
+//     ⑤ [S1871] ICT Killzones & Pivots [TFO] — © tradeforopp · MPL 2.0 · 원본 = offline/tvchart/"ICT Killzones & Pivots.txt"(파인 v6) · 지난 주 · 월 고가 · 저가 · 중간선만(킬존 · 일 · 시가 · 표 등은 뺌 · 30분 봉 문턱 안 봄)
 //   봉마다 파인 그대로 계산한다(전체 봉 · 그 봉까지 자료만). 앱이 더한 설정은 이름에 '앱' 을 단다.
 (function(){
 'use strict';
@@ -254,5 +255,57 @@ TV.reg({
     R.labels.forEach(a => { if (!fin(a.y)) return; tx.push({ x: x(a.x), y: y(a.y) + (a.d === 1 ? 7 : -7), s: a.d === 1 ? '⇡' : '⇣', c: POB_COL[a.d], fz: 13, al: 'center' }); });
     obTexts(ctx, tx, RE, G.H); ctx.restore(); }
 });
-if (typeof module !== 'undefined' && module.exports) module.exports = { staCalc, stAny, atrAny, rngfilt, smoothrng, srcOf, ictObCalc, msbCalc, pobCalc };
+// ── ⑤ [S1871] ICT Killzones & Pivots [TFO](tradeforopp) — 지난 주 · 월 고가 · 저가 · 중간선(원본 470 ~ 481 · 515 ~ 591 · 593 ~ 645줄) · PREREG_S1871_tvkzp.md §1 ──
+//   앱: 킬존 상자(1시간봉 이하 자료 없음) · 일(D) · 시가 · 구분선 · 표 · 범위 레벨 · 시각 선 · 알림 · 맞힘 횟수는 뺌(설계 메모 01:20) · 원본 tf_limit(30분) 문턱을 안 봄(일봉에서도 그림)
+//   주 = 월요일 시작(날짜 앞 10글자) · 월 = 달 · 바뀜 = 앞 봉과 키가 다름(첫 봉 참) · 같은 가격 글자 합치기 = 정확히 같은 값(원본은 최소 호가 단위로 반올림)
+const kzDay = d => { const s = String(d == null ? '' : d).slice(0, 10).replace(/-/g, ''); return /^\d{8}$/.test(s) ? +s : NaN; };
+const kzDays = k => Math.round(Date.UTC(Math.floor(k / 10000), Math.floor(k / 100) % 100 - 1, k % 100) / 86400000);
+const kzWeek = k => { const d = kzDays(k); return d - (d + 3) % 7; };   // 그 주 월요일(1970-01-01 = 목)
+function kzpCalc(rows, p) { const n = rows.length, H = new Float64Array(n), L = new Float64Array(n), K = { W: new Float64Array(n), M: new Float64Array(n) };
+  for (let i = 0; i < n; i++) { const r = rows[i] || {}; H[i] = num(r.high); L[i] = num(r.low); const dk = kzDay(r.date); K.W[i] = fin(dk) ? kzWeek(dk) : NaN; K.M[i] = fin(dk) ? Math.floor(dk / 100) : NaN; }
+  const mx = (a, b) => (fin(a) && fin(b)) ? Math.max(a, b) : NaN, mn = (a, b) => (fin(a) && fin(b)) ? Math.min(a, b) : NaN;   // 파인 math.max · min — na 가 끼면 na
+  const TF = [['W', p.whl, p.wmid], ['M', p.mhl, p.mmid]], lim = p.dwm_history === 'Unlimited' ? Infinity : p.dwm_history === 'Most Recent' ? 1 : p.max_days;
+  const F = { W: { h: NaN, l: NaN, ph: NaN, pl: NaN }, M: { h: NaN, l: NaN, ph: NaN, pl: NaN } }, A = { W: { hi: [], lo: [], md: [], hiL: [], loL: [], mdL: [] }, M: { hi: [], lo: [], md: [], hiL: [], loL: [], mdL: [] } };
+  const ch = (tf, t) => t === 0 || !(K[tf][t] === K[tf][t - 1]);   // timeframe.change(tf)
+  const EL = [], EB = [], mkO = (E, o) => { E.push(o); if (E.length > 500) E.shift().gone = true; return o; }, kill = (E, o) => { if (!o || o.gone) return; o.gone = true; const i = E.indexOf(o); if (i >= 0) E.splice(i, 1); };   // 그림 한도 500(선 · 글자 따로) — 넘으면 가장 오래된 남은 것을 지움 · pop 도 지움
+  for (let t = 0; t < n; t++) {
+    TF.forEach(([tf, use]) => { if (!use) return; const f = F[tf]; if (ch(tf, t)) { f.ph = f.h; f.pl = f.l; f.h = H[t]; f.l = L[t]; } else { f.h = mx(H[t], f.h); f.l = mn(L[t], f.l); } });   // update_dwm_info
+    TF.forEach(([tf, use, mid]) => { if (!use) return; const a = A[tf], f = F[tf];   // dwm_hl
+      if (a.hi.length) { a.hi[0].x2 = t; a.lo[0].x2 = t; a.hiL[0].x = t; a.loL[0].x = t; }
+      if (mid && a.md.length) { a.md[0].x2 = t; a.mdL[0].x = t; }
+      if (!ch(tf, t)) return;
+      a.hi.unshift(mkO(EL, { tf, k: 'H', x1: t, x2: t, y: f.ph })); a.lo.unshift(mkO(EL, { tf, k: 'L', x1: t, x2: t, y: f.pl })); a.hiL.unshift(mkO(EB, { tf, k: 'H', x: t, y: f.ph, txt: 'P' + tf + 'H' })); a.loL.unshift(mkO(EB, { tf, k: 'L', x: t, y: f.pl, txt: 'P' + tf + 'L' }));
+      if (mid) { const m = (fin(f.ph) && fin(f.pl)) ? (f.ph + f.pl) / 2 : NaN; a.md.unshift(mkO(EL, { tf, k: 'M', x1: t, x2: t, y: m })); a.mdL.unshift(mkO(EB, { tf, k: 'M', x: t, y: m, txt: 'P' + tf + 'M' })); }
+      if (a.hi.length > lim) { kill(EL, a.hi.pop()); kill(EL, a.lo.pop()); kill(EB, a.hiL.pop()); kill(EB, a.loL.pop()); }
+      if (a.md.length > lim) { kill(EL, a.md.pop()); kill(EB, a.mdL.pop()); } }); }
+  let mg = []; TF.forEach(([tf, use, mid]) => { if (!use) return; const a = A[tf]; if (a.hiL.length) { mg.push(a.hiL[0], a.loL[0]); if (mid && a.mdL.length) mg.push(a.mdL[0]); } });   // 마지막 봉: 같은 가격 글자 합치기
+  mg = mg.filter(l => !l.gone); mg.forEach(l => { l.txt = 'P' + l.tf + l.k; }); const used = mg.map(() => false);
+  for (let i = 0; i < mg.length - 1; i++) { if (used[i]) continue; let s = mg[i].txt, hit = false; for (let j = i + 1; j < mg.length; j++) if (!used[j] && fin(mg[i].y) && fin(mg[j].y) && mg[i].y === mg[j].y) { hit = true; used[j] = true; s += ' / ' + mg[j].txt; mg[j].txt = ''; } if (hit) mg[i].txt = s; }
+  const lines = [], labels = [], cut = o => { const c = Object.assign({}, o); delete c.gone; return c; }; ['W', 'M'].forEach(tf => { const a = A[tf]; lines.push(...[...a.hi, ...a.lo, ...a.md].filter(o => !o.gone).map(cut)); labels.push(...[...a.hiL, ...a.loL, ...a.mdL].filter(o => !o.gone).map(cut)); });
+  return { n, lines, labels }; }
+const KZ_COL = { W: '#089981', M: '#f23645' }, KZ_DASH = { Solid: [], Dotted: [1, 2], Dashed: [5, 3] }, KZ_SZ = ['Auto', 'Tiny', 'Small', 'Normal', 'Large', 'Huge'], KZ_FZ = { Auto: 9, Tiny: 8, Small: 9, Normal: 11, Large: 13, Huge: 16 }, KZ_HIST = ['Most Recent', 'Session Limit', 'Unlimited'];
+TV.reg({
+  id: 'kzp', place: 'over', name: 'ICT Killzones & Pivots [TFO]', short: 'KZP [TFO]', kname: '주 · 월 기준선(ICT Killzones & Pivots)',
+  author: 'tradeforopp', license: 'MPL 2.0', srcFile: 'ICT Killzones & Pivots.txt',
+  inputs: [
+    { k: 'whl', nm: '지난 주 고가 · 저가', o: 'W High/Low', t: 'bool', d: true },
+    { k: 'wmid', nm: '지난 주 중간선', o: 'W Midline', t: 'bool', d: true },
+    { k: 'mhl', nm: '지난 달 고가 · 저가', o: 'M High/Low', t: 'bool', d: true },
+    { k: 'mmid', nm: '지난 달 중간선', o: 'M Midline', t: 'bool', d: true },
+    { k: 'htf_style', nm: '선 모양', o: 'Style', t: 'sel', d: 'Dotted', opts: ['Solid', 'Dotted', 'Dashed'], optNm: { Solid: '실선', Dotted: '점선', Dashed: '긴 점선' } },
+    { k: 'htf_width', nm: '선 굵기', o: 'Width', t: 'int', d: 1, min: 1, max: 4 },
+    { k: 'dwm_history', nm: '남길 선', o: 'History', t: 'sel', d: 'Session Limit', opts: KZ_HIST, optNm: { 'Most Recent': '가장 최근만', 'Session Limit': '개수 한도', 'Unlimited': '전부' } },
+    { k: 'max_days', nm: '개수 한도', o: 'Session Limit', t: 'int', d: 3, min: 1, max: 50 },
+    { k: 'lbl_size', nm: '글자 크기', o: 'Label Size', t: 'sel', d: 'Tiny', opts: KZ_SZ, optNm: { Auto: '자동', Tiny: '아주 작게', Small: '작게', Normal: '보통', Large: '크게', Huge: '아주 크게' } }
+  ],
+  legend: p => 'KZP 주 · 월' + (p.dwm_history === 'Session Limit' ? ' · ' + p.max_days : p.dwm_history === 'Most Recent' ? ' · 최근' : ' · 전부'),
+  calc: kzpCalc,
+  draw(ctx, R, G, p) { const RE = G.W - G.pad.r, x = G.x, y = G.y, li = R.n - 1, tx = [], fz = KZ_FZ[p.lbl_size] || 8;
+    ctx.save();
+    R.lines.forEach(l => { if (!fin(l.y)) return; ctx.strokeStyle = KZ_COL[l.tf]; ctx.lineWidth = p.htf_width; ctx.setLineDash(KZ_DASH[p.htf_style] || []); ctx.beginPath(); ctx.moveTo(x(l.x1), y(l.y)); ctx.lineTo(x(l.x2), y(l.y)); ctx.stroke(); });
+    ctx.setLineDash([]);
+    R.labels.forEach(a => { if (!fin(a.y) || !a.txt) return; const edge = a.x >= li; tx.push({ x: edge ? RE - 2 : x(a.x) + 3, y: y(a.y), s: a.txt, c: KZ_COL[a.tf], fz, al: edge ? 'right' : 'left' }); });   // label_left — 마지막 봉 글자는 그림 칸 오른쪽 끝에 오른쪽 맞춤(앱)
+    obTexts(ctx, tx, RE, G.H); ctx.restore(); }
+});
+if (typeof module !== 'undefined' && module.exports) module.exports = { staCalc, stAny, atrAny, rngfilt, smoothrng, srcOf, ictObCalc, msbCalc, pobCalc, kzpCalc };
 })();
