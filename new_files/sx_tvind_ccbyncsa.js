@@ -2,6 +2,7 @@
 //   표시용 · 판정 아님 · 실험 도구 · 성적 주장 없음 — 틀 = sx_tvchart.js(SXTV) · 파인 약속 = SXTV.pta(offline/_pta.js 5 ~ 35줄 글자 그대로)
 //   이 파일은 아래 원본을 JS 로 옮긴 것이고 같은 라이선스(CC BY-NC-SA 4.0 · 비상업 · 같은 조건 나눔)를 따른다.
 //     ① Support and Resistance Levels with Breaks [LuxAlgo] — © LuxAlgo · CC BY-NC-SA 4.0 · 원본 = offline/tvchart/"Support and Resistance Levels with Breaks.txt"
+//     ② [S1866] Volume Profile [LuxAlgo] — © LuxAlgo · CC BY-NC-SA 4.0 · 원본 = offline/tvchart/"Volume Profile.txt"
 //   봉마다 파인 그대로 계산한다(전체 봉 · 그 봉까지 자료만). 앱이 더한 설정은 이름에 '앱' 을 단다.
 (function(){
 'use strict';
@@ -63,5 +64,49 @@ TV.reg({
     for (let i = G.s; i < G.e; i++) { if (R.bUp[i]) G.label(i, 'SR▲', '#16a34a', false); if (R.wUp[i]) G.label(i, 'SR꼬리▲', '#16a34a', false); if (R.bDn[i]) G.label(i, 'SR▼', '#dc2626', true); if (R.wDn[i]) G.label(i, 'SR꼬리▼', '#dc2626', true); }
   }
 });
-if (typeof module !== 'undefined' && module.exports) module.exports = { srbCalc };
+// ── ② [S1866] Volume Profile [LuxAlgo] ──
+//   원본(봉 t · 지난 length 봉): hh = highest(length) · ll = lowest(length) · levels[i] = ll + i / row × (hh − ll)(i = 0 … row)
+//         sumv[j] = Σ_{k=0..length−1} (high[t−k] > levels[j] and low[t−k] < levels[j+1]) ? volume[t−k] : 0 · POC = 가장 큰 칸
+//         막대 길이 = round(length × width / 100 × sumv[j] / max) · POC 점선(그리기는 마지막 sumv[j] = max 칸 · 롤링 POC 는 첫 칸 = array.indexof)
+//   계산은 원본 그대로 · ★그리기는 화면 상자에 맞춤(사용자 2026-11-02 11:37 — 500봉 상자 왼쪽이 화면 밖이라 원본 자리면 막대가 안 보임): 기준 = 화면 왼쪽(뒤집기 = 오른쪽) · 길이 = 화면 폭 × width% × mult
+//   빠른 셈: 봉 k 마다 닿는 칸이 이어져 있어(levels 오름차순) 그 칸들에만 더한다 — 칸마다 더하는 차례(k = 0 → length−1)는 원본과 같아 합이 글자 그대로 같다
+function vpProfile(H, L, V, t, length, row) {   // 봉 t 의 프로파일 — { levels, sumv, max, first, last } 또는 null(봉 모자람 · 값 없음)
+  if (t < length - 1) return null; let hh = -Infinity, ll = Infinity; for (let k = 0; k < length; k++) { const h = H[t - k], l = L[t - k]; if (h > hh) hh = h; if (l < ll) ll = l; }
+  if (!fin(hh) || !fin(ll)) return null; const lv = new Float64Array(row + 1); for (let i = 0; i <= row; i++) lv[i] = ll + i / row * (hh - ll);
+  const sv = new Float64Array(row);
+  for (let k = 0; k < length; k++) { const i = t - k, h = H[i], l = L[i]; if (!(h > lv[0]) || !(l < lv[row])) continue;
+    let a = 0, b = row - 1; while (a < b) { const m = (a + b) >> 1; if (lv[m + 1] > l) b = m; else a = m + 1; } const jlo = a;   // 첫 j: levels[j+1] > low
+    a = 0; b = row - 1; while (a < b) { const m = (a + b + 1) >> 1; if (lv[m] < h) a = m; else b = m - 1; } const jhi = a;      // 끝 j: levels[j] < high
+    for (let j = jlo; j <= jhi; j++) sv[j] += V[i]; }
+  let mx = -Infinity, first = -1, last = -1; for (let j = 0; j < row; j++) { const v = sv[j]; if (v > mx) { mx = v; first = j; last = j; } else if (v === mx) last = j; }
+  return { levels: lv, sumv: sv, max: mx, first, last }; }   // max 가 0 이면(거래량 0) 롤링 POC 는 첫 칸(원본 indexof) · 막대는 안 그림(mult = 0/0)
+function vpCalc(rows, p) { const n = rows.length, H = new Float64Array(n), L = new Float64Array(n), V = new Float64Array(n);
+  for (let i = 0; i < n; i++) { const r = rows[i] || {}; H[i] = num(r.high); L[i] = num(r.low); V[i] = num(r.volume); }
+  const last = vpProfile(H, L, V, n - 1, p.length, p.row), rp = new Float64Array(n).fill(NaN);
+  if (p.show_rpoc) for (let t = 0; t < n; t++) { const P = vpProfile(H, L, V, t, p.length, p.row); if (P && P.first >= 0 && fin(P.max)) rp[t] = (P.levels[P.first] + P.levels[P.first + 1]) / 2; }
+  return { last, rpoc: rp }; }
+TV.reg({
+  id: 'vp', place: 'over', name: 'Volume Profile [LuxAlgo]', short: 'Volume Profile', kname: '볼륨 프로파일',
+  author: 'LuxAlgo', license: 'CC BY-NC-SA 4.0', srcFile: 'Volume Profile.txt',
+  inputs: [
+    { k: 'length', nm: '살펴볼 봉', o: 'Lookback', t: 'int', d: 500, min: 1, max: 1000 },
+    { k: 'row', nm: '칸 수', o: 'Row Size', t: 'int', d: 200, min: 1, max: 500 },
+    { k: 'show_rpoc', nm: '롤링 POC 보이기', o: 'Show Rolling POC', t: 'bool', d: false },
+    { k: 'width', nm: '막대 길이(상자 폭 %)', o: 'Width (% of the box)', t: 'int', d: 50, min: 1, max: 100 },
+    { k: 'bar_width', nm: '막대 두께', o: 'Bar Width', t: 'int', d: 2, min: 1, max: 10 },
+    { k: 'flip', nm: '뒤집기(오른쪽 기준)', o: 'Flip Histogram', t: 'bool', d: false },
+    { k: 'grad', nm: '진하기(길이에 따라)', o: 'Gradient', t: 'bool', d: true }
+  ],
+  legend: p => 'Volume Profile ' + p.length + ' ' + p.row + ' · 막대 = 화면 상자에 맞춤',
+  noMargin: true,   // 막대 · POC 는 가격 범위 · 위아래 여유에 안 끼어든다(롤링 POC 줄만 범위에 넣음)
+  calc: vpCalc,
+  range(R, s, e, p, out) { if (!p.show_rpoc) return; for (let i = s; i < e; i++) if (fin(R.rpoc[i])) out.push(R.rpoc[i]); },   // 프로파일 막대 · POC 는 가격 범위에 안 넣음(화면 밖 칸은 자름)
+  draw(ctx, R, G, p) { const P = R.last, L0 = G.pad.l, R0 = G.W - G.pad.r, bw = R0 - L0;
+    if (P && P.first >= 0 && P.max > 0) { ctx.save(); ctx.lineWidth = p.bar_width;
+      for (let j = 0; j < p.row; j++) { const m = P.sumv[j] / P.max; if (!(m > 0)) continue; const len = Math.round(bw * p.width / 100 * m), yy = G.y(P.levels[j]);
+        ctx.strokeStyle = p.grad ? ('rgba(33,87,243,' + (0.10 + 0.45 * m).toFixed(3) + ')') : 'rgba(33,87,243,.45)';   /* 흰 바탕 · 캔들이 비쳐 보이게 */ ctx.beginPath(); if (p.flip) { ctx.moveTo(R0, yy); ctx.lineTo(R0 - len, yy); } else { ctx.moveTo(L0, yy); ctx.lineTo(L0 + len, yy); } ctx.stroke(); }
+      const pj = P.last, py = G.y((P.levels[pj] + P.levels[pj + 1]) / 2); ctx.strokeStyle = p.grad ? '#5AB1BB' : '#ff5d00'; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(L0, py); ctx.lineTo(R0, py); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); }
+    if (p.show_rpoc) { ctx.save(); ctx.strokeStyle = '#ff1100'; ctx.lineWidth = 1.2; ctx.beginPath(); let on = false; for (let i = G.s; i < G.e; i++) { const v = R.rpoc[i]; if (!fin(v)) { on = false; continue; } if (!on) { ctx.moveTo(G.x(i), G.y(v)); on = true; } else ctx.lineTo(G.x(i), G.y(v)); } ctx.stroke(); ctx.restore(); } }
+});
+if (typeof module !== 'undefined' && module.exports) module.exports = { srbCalc, vpCalc, vpProfile };
 })();
