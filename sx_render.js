@@ -2204,6 +2204,7 @@ function _trendCfg(market){
     cfg.smiOn=!!o.smiOn; ['smiK','smiD','smiXK','smiXD','smiReK','smiReD'].forEach(function(k){ if(+o[k]>0) cfg[k]=Math.min(400,Math.max(k.slice(-1)==='K'?2:1,Math.round(+o[k]))); }); ['smiS','smiDS'].forEach(function(k){ if(+o[k]>0) cfg[k]=Math.min(100,Math.max(1,Math.round(+o[k]))); }); if(cfg.smiOn) cfg.trixOn=false;
     // [S1842] 🌊 WT · 📶 TSI — 저장 키 15종(없으면 기본값 = 구 저장본과 호환 · _TREND_CFG_VER 미상승) · 둘 이상 켜진 저장본은 SMI > WT > TSI > TRIX 차례로 하나만 남긴다.
     cfg.wtOn=!!o.wtOn; ['wtN1','wtN2','wtXN1','wtXN2','wtReN1','wtReN2'].forEach(function(k){ if(+o[k]>0) cfg[k]=Math.min(400,Math.max(1,Math.round(+o[k]))); }); cfg.tsiOn=!!o.tsiOn; ['tsiR','tsiG','tsiXR','tsiXG','tsiReR','tsiReG'].forEach(function(k){ if(+o[k]>0) cfg[k]=Math.min(400,Math.max(1,Math.round(+o[k]))); }); if(+o.tsiS>0) cfg.tsiS=Math.min(100,Math.max(1,Math.round(+o.tsiS))); if(cfg.smiOn){ cfg.wtOn=false; cfg.tsiOn=false; } if(cfg.wtOn){ cfg.tsiOn=false; cfg.trixOn=false; } if(cfg.tsiOn) cfg.trixOn=false;
+    Object.assign(cfg, _bbzNorm(o)); if(cfg.bbzOn){ cfg.trixOn=false; cfg.smiOn=false; cfg.wtOn=false; cfg.tsiOn=false; }   /* [S1876] 〰️ 볼린저 모드 — 켰을 때만 · 켜져 있으면 오실레이터 축은 꺼짐 */
     // [S1564] 크로스 전용 ATR — 불리언 4 + 배수 3(범위는 전략 조합 입력칸과 같은 0.1~20).
     cfg.xAtr2=!!o.xAtr2; cfg.xSlOn=!!o.xSlOn; cfg.xTrOn=!!o.xTrOn; cfg.xTpOn=!!o.xTpOn; cfg.noCrossB=('noCrossB' in o)?!!o.noCrossB:!!o.noCross; cfg.noCrossS=('noCrossS' in o)?!!o.noCrossS:!!o.noCross;   /* [S1782] 쪽별 크로스 제외 — B=진입 · S=청산 · 없으면 S1781 noCross 를 양쪽에 이어받는다 */   /* [S1781] 🚫 크로스 제외(재료만) — 없으면 false(구 저장본 호환 · _TREND_CFG_VER 미상승) */
     cfg.xSlMz=!!o.xSlMz; cfg.xTrMz=!!o.xTrMz; cfg.xTpMz=!!o.xTpMz; cfg.xTrHigh=(o.xTrHigh===true);   /* [S1848] ⤒ */   /* [S1743] 구간별 3종(없으면 false = 구 저장본 호환) */
@@ -2234,6 +2235,84 @@ function _trendBbParams(market){
 }
 
 // ── 지표 시리즈 헬퍼 ──
+// [S1876] 〰️ 볼린저 모드(📈 크로스 엔진) — 사용자 설계 2026-11-02 20:30 ~ 11-03 07:47 · 원안 'Custom Double BB + RSI + MA5 Strategy' v1 · v3(offline/bbzone) · PREREG_S1876_bbzmode.md §1
+//   밴드 = 같은 기간 SMA ± σ × 승수(셋 · 기본 1 · 2 · 3 · 기간 200 · 밴드마다 켬/끔 · 승수는 작은 것부터 안쪽으로 정렬) · σ = 모집단(_trStd)
+//   선 이름: 녹색 = 가장 안쪽 위 · 파랑 = 가장 안쪽 아래 · 하단 검정 = 두 번째 안쪽 아래(밴드 둘 이상) · 중심선 = SMA · 맨 위 · 맨 아래 = 가장 바깥
+//   진입 = 기준(종가 또는 MA N)이 고른 선을 위로 돌파(앞 봉 ≤ · 이 봉 >) · 선마다 RSI(14) ≥ 50 · MA 짧은 > 긴 거름(기본 끔) · 여럿이면 녹색 · 중심선 · 파랑 · 하단 검정 차례로 처음 것
+//   새 진입 금지 = 종가가 맨 위 선 위(과열) · 맨 아래 선 아래(폭락) · 잠금(종가가 맨 위 선 아래로 내려온 봉에 잠기고 기준이 녹색 아래로 내려오면 풀림 — 원안 v3 · 청산 켬/끔과 무관)
+//   청산 = 진입선 이탈(그 포지션이 돌파한 선 · 원안) · 사다리(켜진 선 아무거나 아래로 이탈) · 중앙선 이탈 + 과열 이탈(종가가 맨 위 선 아래로 · 켬 기본 · 원안 v3)
+const _BBZ_LN=['g','c','b','k'], _BBZ_LNM={ g:'녹색', c:'중심선', b:'파랑', k:'하단 검정' };
+function _bbzOn(cfg){ return !!(cfg && cfg.bbzOn===true); }
+function _bbzQ(cfg){ const c=cfg||{}, n=(v,lo,hi,d,int)=>{ if(v==null || v==='' || typeof v==='boolean') return d; let x=+v; if(!isFinite(x)) return d; if(int) x=Math.round(x); return Math.min(hi, Math.max(lo, x)); }, ls=v=>{ const t=(typeof v==='string')?v:''; return _BBZ_LN.filter(k=>t.indexOf(k)>=0).join(''); };
+  const B=[c.bbzB1!==false, c.bbzB2!==false, c.bbzB3!==false]; if(!B[0] && !B[1] && !B[2]) B[0]=true;   // 밴드는 하나 이상
+  return { P:n(c.bbzP,2,1000,200,true), M:[n(c.bbzM1,0.1,10,1,false), n(c.bbzM2,0.1,10,2,false), n(c.bbzM3,0.1,10,3,false)], B, E:(('bbzE' in c)?ls(c.bbzE):'g')||'g', R:ls(c.bbzR), A:ls(c.bbzA), ma1:n(c.bbzMa1,1,400,5,true), ma2:n(c.bbzMa2,1,400,20,true), bs:(c.bbzBs==='ma')?'ma':'c', bN:n(c.bbzBN,1,400,5,true), x:(c.bbzX==='ladder' || c.bbzX==='mid')?c.bbzX:'line', ox:c.bbzOx!==false }; }
+function _bbzNorm(o){ const r={}; if(!o) return r; const q=_bbzQ(o); if(o.bbzOn===true) r.bbzOn=true;   // 켰을 때만 · 기본과 다를 때만 키
+  if(q.P!==200) r.bbzP=q.P; ['bbzM1','bbzM2','bbzM3'].forEach((k,j)=>{ if(q.M[j]!==[1,2,3][j]) r[k]=q.M[j]; }); ['bbzB1','bbzB2','bbzB3'].forEach((k,j)=>{ if(!q.B[j]) r[k]=false; });
+  if(q.E!=='g') r.bbzE=q.E; if(q.R) r.bbzR=q.R; if(q.A) r.bbzA=q.A; if(q.ma1!==5) r.bbzMa1=q.ma1; if(q.ma2!==20) r.bbzMa2=q.ma2; if(q.bs!=='c') r.bbzBs=q.bs; if(q.bN!==5) r.bbzBN=q.bN; if(q.x!=='line') r.bbzX=q.x; if(!q.ox) r.bbzOx=false;
+  return r; }
+const _BBZ_KEYS=['bbzOn','bbzP','bbzM1','bbzM2','bbzM3','bbzB1','bbzB2','bbzB3','bbzE','bbzR','bbzA','bbzMa1','bbzMa2','bbzBs','bbzBN','bbzX','bbzOx'];
+function _bbzKs(q){ const ks=[]; [0,1,2].forEach(j=>{ if(q.B[j] && ks.indexOf(q.M[j])<0) ks.push(q.M[j]); }); ks.sort((a,b)=>a-b); return ks; }
+function _bbzSer(rows, close, cfg){ const q=_bbzQ(cfg), n=close.length, ks=_bbzKs(q);
+  const mid=_trSma(close, q.P), sd=_trStd(close, mid, q.P);
+  const BD=ks.map(k=>{ const u=new Array(n).fill(null), l=new Array(n).fill(null); for(let i=0;i<n;i++){ if(mid[i]==null || sd[i]==null) continue; u[i]=mid[i]+sd[i]*k; l[i]=mid[i]-sd[i]*k; } return { k, u, l }; });
+  const L={ c:mid }; if(BD.length){ L.g=BD[0].u; L.b=BD[0].l; if(BD.length>=2) L.k=BD[1].l; }
+  const top=BD.length?BD[BD.length-1].u:null, bot=BD.length?BD[BD.length-1].l:null;
+  const bs=(q.bs==='ma')?_trSma(close, q.bN):close.slice();
+  const rsi=q.R?_trRsi(close, 14):null, mA=q.A?_trSma(close, q.ma1):null, mB=q.A?_trSma(close, q.ma2):null;
+  const up=(a,i)=>!!a && i>0 && a[i]!=null && a[i-1]!=null && bs[i]!=null && bs[i-1]!=null && bs[i]>a[i] && bs[i-1]<=a[i-1];
+  const dn=(x,a,i)=>!!a && i>0 && a[i]!=null && a[i-1]!=null && x[i]!=null && x[i-1]!=null && x[i]<a[i] && x[i-1]>=a[i-1];
+  const lock=new Uint8Array(n); let lk=0; for(let i=0;i<n;i++){ if(L.g && L.g[i]!=null && bs[i]!=null && bs[i]<L.g[i]) lk=0; if(dn(close, top, i)) lk=1; lock[i]=lk; }
+  const ok=i=>!!top && top[i]!=null && bot[i]!=null && !(close[i]>top[i]) && !(close[i]<bot[i]) && lock[i]!==1;
+  const at=new Int8Array(n).fill(-1), gcA=new Uint8Array(n);
+  for(let i=1;i<n;i++){ for(const id of q.E){ const a=L[id]; if(!a || !up(a,i)) continue;
+    if(q.R.indexOf(id)>=0 && !(rsi && rsi[i]!=null && rsi[i]>=50)) continue;
+    if(q.A.indexOf(id)>=0 && !(mA && mB && mA[i]!=null && mB[i]!=null && mA[i]>mB[i])) continue;
+    gcA[i]=1; at[i]=_BBZ_LN.indexOf(id); break; } }
+  const all=[]; BD.forEach(b=>{ all.push(b.u); all.push(b.l); }); all.push(mid);
+  const why=(i,pos)=>{ let hit=false;
+    if(q.x==='ladder'){ for(const a of all) if(dn(bs,a,i)){ hit=true; break; } }
+    else if(q.x==='mid') hit=dn(bs,mid,i);
+    else { const id=(pos && pos.bbzL && L[pos.bbzL])?pos.bbzL:q.E[0]; hit=dn(bs,L[id],i); }
+    const hot=q.ox && dn(close, top, i); return hit?'line':(hot?'hot':''); };
+  return { q, ks, mid, sd, bs, L, BD, top, bot, lock, ok, gc:i=>gcA[i]===1, lineAt:i=>(at[i]>=0)?_BBZ_LN[at[i]]:null, dc:(i,pos)=>why(i,pos)!=='', why }; }
+// 구역(종가 기준 · 켜진 밴드 수에 따라 이름) — 셋: 과열 · 강한 상승 · 상승 · 횡보 위 · 횡보 아래 · 하락 · 강한 하락 · 폭락 / 둘: 과열 · 상승 · 횡보 · 하락 · 폭락 / 하나: 과열 · 횡보 · 폭락
+function _bbzZone(S, i, c){ const B=S.BD; if(!B.length || S.mid[i]==null || !Number.isFinite(c)) return '';
+  if(c>B[B.length-1].u[i]) return '과열'; if(c<B[B.length-1].l[i]) return '폭락';
+  if(B.length===3){ if(c>B[1].u[i]) return '강한 상승'; if(c>B[0].u[i]) return '상승'; if(c>=S.mid[i]) return '횡보 위'; if(c>=B[0].l[i]) return '횡보 아래'; if(c>=B[1].l[i]) return '하락'; return '강한 하락'; }
+  if(B.length===2){ if(c>B[0].u[i]) return '상승'; if(c>=B[0].l[i]) return '횡보'; return '하락'; }
+  return '횡보'; }
+function _bbzSigOf(cfg){ if(!_bbzOn(cfg)) return {}; const q=_bbzQ(cfg); return { bbz:[q.P, _bbzKs(q).join('/'), q.E, q.R, q.A, q.A?(q.ma1+'x'+q.ma2):0, q.bs, q.bs==='ma'?q.bN:0, q.x, q.ox?1:0] }; }   // 꺼졌으면 빈 객체 — 지문 글자 그대로
+function _bbzDescE(cfg){ const q=_bbzQ(cfg), f=id=>(q.R.indexOf(id)>=0?'·RSI≥50':'')+(q.A.indexOf(id)>=0?('·MA'+q.ma1+'>MA'+q.ma2):''); return '〰️볼린저 '+q.P+'·±'+_bbzKs(q).join('/')+' '+(q.bs==='ma'?('MA'+q.bN):'종가')+' '+q.E.split('').map(id=>_BBZ_LNM[id]+f(id)).join('|')+' 돌파'; }
+function _bbzDescX(cfg){ const q=_bbzQ(cfg); return '〰️'+({ line:'진입선 이탈', ladder:'사다리(아무 선 이탈)', mid:'중앙선 이탈' })[q.x]+(q.ox?' +과열 이탈':''); }
+// 토글 · 설정(크로스 탭 · 저장은 기본과 다를 때만)
+function _trendToggleBbz(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m);
+  if(cfg.bbzOn) delete cfg.bbzOn; else { cfg.bbzOn=true; cfg.trixOn=false; cfg.smiOn=false; cfg.wtOn=false; cfg.tsiOn=false; }   /* 축은 하나만 — 켜면 오실레이터 축 넷은 꺼짐 */
+  _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
+function _trendBbzSet(k, v){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m), q=_bbzQ(cfg), tmp=Object.assign({}, cfg);
+  if(k==='bbzB1' || k==='bbzB2' || k==='bbzB3'){ const j=+k.slice(-1)-1; if(q.B[j] && q.B.filter(Boolean).length<=1) return; tmp[k]=!q.B[j]; }   // 마지막 밴드는 못 끔
+  else if(k==='bbzE' || k==='bbzR' || k==='bbzA'){ if(_BBZ_LN.indexOf(v)<0) return; const cur=(k==='bbzE')?q.E:q[k.slice(-1)]; let nx=(cur.indexOf(v)>=0)?cur.split(v).join(''):(cur+v); if(k==='bbzE' && !nx) return; tmp[k]=_BBZ_LN.filter(x=>nx.indexOf(x)>=0).join(''); }   // 진입선은 하나 이상
+  else if(k==='bbzBs'){ tmp.bbzBs=(v==='ma')?'ma':'c'; }
+  else if(k==='bbzX'){ tmp.bbzX=v; }
+  else if(k==='bbzOx'){ tmp.bbzOx=!q.ox; }
+  else if(['bbzP','bbzM1','bbzM2','bbzM3','bbzMa1','bbzMa2','bbzBN'].indexOf(k)>=0){ tmp[k]=v; }
+  else return;
+  _BBZ_KEYS.forEach(x=>{ if(x!=='bbzOn') delete cfg[x]; }); Object.assign(cfg, _bbzNorm(Object.assign(tmp, { bbzOn:false })));
+  _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
+// 설정 줄(크로스 엔진 · 켰을 때)
+function _bbzRowHtml(cfg, mk, rows, bt){ try{
+  const q=_bbzQ(cfg), ks=_bbzKs(q), col='#0f766e', chip=(on,lb,k,v,tip)=>'<span data-bbz="'+k+':'+v+'" onclick="_sxVib(9);window._trendBbzSet&&_trendBbzSet(\''+k+'\',\''+v+'\')"'+(tip?(' title="'+tip+'"'):'')+' style="font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:11px;white-space:nowrap;cursor:pointer;'+(on?('background:'+col+';color:#fff;border:1px solid '+col):'background:var(--surface);color:var(--text3);border:1px solid var(--border)')+'">'+lb+'</span>';
+  const inp=(k,val,step,w)=>'<input data-bbz-in="'+k+'" type="number" inputmode="decimal" step="'+step+'" value="'+val+'" onchange="window._trendBbzSet&&_trendBbzSet(\''+k+'\',this.value)" style="width:'+(w||46)+'px;padding:2px 4px;border:1px solid var(--border);border-radius:6px;font-size:10.5px;text-align:center;background:var(--surface);color:var(--text)">';
+  const row=(lb,h)=>'<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="font-size:8.5px;font-weight:800;color:var(--text3);min-width:38px">'+lb+'</span>'+h+'</div>', grp=h=>'<span style="display:inline-flex;align-items:center;gap:3px;white-space:nowrap">'+h+'</span>';   /* 칸 · 칩 묶음은 같이 줄바꿈 */
+  let h='<div data-bbz-row="1" style="flex:1 0 100%;min-width:0;margin-top:6px;padding:7px 8px;border:1px solid '+col+'55;border-radius:10px;background:var(--surface2)"><div style="font-size:10px;font-weight:800;color:'+col+';margin-bottom:5px">〰️ 볼린저 모드 <span style="font-weight:600;color:var(--text3);font-size:8.5px">(골든 · 데드 대신 선 돌파 · 고른 청산)</span></div>';
+  h+=row('밴드',grp('<span style="font-size:9px;color:var(--text2)">기간</span>'+inp('bbzP',q.P,'1',52))+[0,1,2].map(j=>grp(chip(q.B[j],(q.B[j]?'☑':'☐')+' ±','bbzB'+(j+1),'1','밴드 '+(j+1)+' 켬/끔(마지막 하나는 못 끔)')+inp('bbzM'+(j+1),q.M[j],'0.1',50))).join(''));
+  h+=row('진입선',_BBZ_LN.filter(id=>id!=='k' || ks.length>=2).map(id=>chip(q.E.indexOf(id)>=0,_BBZ_LNM[id],'bbzE',id,'이 선을 위로 돌파하면 진입(여럿 켜면 아무 선이나)')).join(''));
+  h+=row('거름',q.E.split('').filter(id=>id!=='k' || ks.length>=2).map(id=>grp('<span style="font-size:8.5px;color:var(--text2)">'+_BBZ_LNM[id]+'</span>'+chip(q.R.indexOf(id)>=0,'RSI≥50','bbzR',id)+chip(q.A.indexOf(id)>=0,'MA'+q.ma1+'>MA'+q.ma2,'bbzA',id))).join('')+grp('<span style="font-size:8.5px;color:var(--text2)">MA</span>'+inp('bbzMa1',q.ma1,'1',42)+'<span style="font-size:8.5px;color:var(--text3)">×</span>'+inp('bbzMa2',q.ma2,'1',42)));
+  h+=row('기준',chip(q.bs==='c','종가 돌파','bbzBs','c')+chip(q.bs==='ma','MA 돌파','bbzBs','ma')+(q.bs==='ma'?grp('<span style="font-size:8.5px;color:var(--text2)">MA 길이</span>'+inp('bbzBN',q.bN,'1',42)):''));
+  h+=row('청산',chip(q.x==='line','진입선 이탈','bbzX','line')+chip(q.x==='ladder','사다리','bbzX','ladder','켜진 선 아무거나 아래로 이탈하면 청산')+chip(q.x==='mid','중앙선 이탈','bbzX','mid')+chip(q.ox,(q.ox?'☑':'☐')+' 과열 이탈 청산','bbzOx','1','종가가 맨 위 선 아래로 내려오면 청산(끄면 청산 없이 새 진입 잠금만)'));
+  let now=''; if(rows && rows.length){ const close=rows.map(r=>+(r.close!=null?r.close:r.c)), S=_bbzSer(rows, close, cfg), li=rows.length-1, z=_bbzZone(S, li, close[li]); if(z) now='지금 구역 <b>'+z+'</b>'+(S.lock[li]?' · 과열 이탈 잠금':'')+' · '; }
+  const blk=(bt && bt.bbz)?('최근 BT 과열 · 폭락 · 잠금 막힘 '+bt.bbz.blk+' · '):'';
+  h+='<div style="font-size:8.5px;color:var(--text3);line-height:1.45">'+now+blk+'선 = 같은 기간 SMA ± σ × 승수(승수는 작은 것부터 안쪽 · 녹색 = 가장 안쪽 위 · 파랑 = 가장 안쪽 아래 · 하단 검정 = 두 번째 안쪽 아래) · 과열(종가가 맨 위 선 위) · 폭락(맨 아래 선 아래) · 과열 이탈 뒤 기준이 녹색 아래로 한 번 내려오기 전엔 새 진입 금지(원안 v3) · 위 MA 칸(단기 · 장기)은 확인봉 · ⚡종가<단기MA · 🔄 재진입 크로스에만 씀 · 🔮 예측은 이 모드에서 쉼 · ⚙️ 게이트 🧩 · 🧭 · 📉 · ATR 청산은 그대로 걸림 · 실험 도구 · 성적 주장 없음</div></div>';
+  return h; }catch(_e){ return ''; } }
 function _trSma(a,p){ const o=new Array(a.length).fill(null); let s=0; for(let i=0;i<a.length;i++){ s+=a[i]; if(i>=p) s-=a[i-p]; if(i>=p-1) o[i]=s/p; } return o; }
 function _trStd(a,m,p){ const o=new Array(a.length).fill(null); for(let i=p-1;i<a.length;i++){ if(m[i]==null){o[i]=null;continue;} let s=0; for(let k=i-p+1;k<=i;k++){ const d=a[k]-m[i]; s+=d*d; } o[i]=Math.sqrt(s/p); } return o; }   // [S1064] 롤링 표준편차(BB용·m=동일창 SMA)
 function _trEma(a,p){ const o=new Array(a.length).fill(null); const k=2/(p+1); let e=null,cnt=0,acc=0; for(let i=0;i<a.length;i++){ const v=a[i]; if(v==null){ o[i]=null; continue; } if(e==null){ acc+=v; cnt++; if(cnt>=p){ e=acc/p; o[i]=e; } } else { e=v*k+e*(1-k); o[i]=e; } } return o; }
@@ -5344,6 +5423,8 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
   //   ⇒ 기능을 잃지 않고 축만 갈린다. 기울기 계열(조기진입·5MA기울기 청산·장기MA 방향)은 TRIX에서도
   //     뜻이 살아 있으므로 그대로 `maS`/`maL`을 쓴다(그게 이 축의 기울기다).
   const pxS = _txOn ? _trSma(close,cfg.s) : maS;
+  const _bbz = _bbzOn(cfg) ? _bbzSer(rows, close, cfg) : null; let _bbzBlk=0;   /* [S1876] 〰️ 볼린저 모드 — 골든 · 데드 대신 선 돌파 · 고른 청산(아래) · maS = 기준(종가 · MA N) · maL = 중심선(재진입 · 기울기 계열은 이 축을 봄) · pxS 는 진짜 MA 그대로 */
+  if(_bbz){ maS=_bbz.bs; maL=_bbz.mid; maXS=maS; maXL=maL; }
   // [S822] 재진입 골든크로스용 MA — 정배열 재진입 ON일 때 청산 후 재진입 게이트(골든크로스 발생). 조건 0건이어도 청산 직후 즉시 재진입 방지.
   const _reS=(+cfg.reEntryS||cfg.s), _reL=(+cfg.reEntryL||cfg.l);
   // [S1677] ★재진입도 켜진 축을 따른다 — 안 그러면 조건이 `TRIX>시그널 유지 + MA 골든크로스`로 **축이 섞인다**.
@@ -5479,6 +5560,7 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
   const _mkPos=(i,re)=>{
     if(_rgA && !_rgA(i)){ _rgBlk++; return null; }   /* [S1862] 막힌 구간 — 새 진입 없음(_mkPos = 진입 전용 한 목) */
     if(_axA && !_axA(i)){ _axBlk++; return null; }   /* [S1875] 🧩 켠 칩이 모두 매수 쪽이 아니면 새 진입 없음 */
+    if(_bbz && !_bbz.ok(i)){ _bbzBlk++; return null; }   /* [S1876] 〰️ 과열 · 폭락 · 과열 이탈 잠금이면 새 진입 없음 */
     let _p;
     if(_nextOpen){
       const j=i+1; if(j>=n) return null;
@@ -5492,7 +5574,7 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
     return _p;
   };
   // [S623] 🔮 크로스 예측 진입 — 해석적 임박(gap 수렴) 게이트 + kNN 확인. 룩어헤드 차단(후보 결과 ≤ 쿼리시점). 벡터 1회 구축.
-  const _predOn = !!cfg.predict;
+  const _predOn = !!cfg.predict && !_bbz;   /* [S1876] 볼린저 모드에선 🔮 예측 쉼 */
   const _auto = (cfg.predLead==='auto');
   const _lead = _auto ? 2 : ((cfg.predLead===2)?2:1);   // 진입 게이트 최대 창(1/2봉전)
   const _LBL = 3;                                        // [S627] kNN 라벨/미확정 손절 창 = 3봉 고정(진입 타이밍과 디커플)
@@ -5554,19 +5636,19 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
   let _heldSkipGc=0;   // [S1554] 보유 중이라 평가되지 않은 진입 크로스 — ★선언은 반드시 루프 앞(S1550에서 TDZ를 만든 자리)
   for(let i=1;i<n;i++){
     if(maS[i]==null||maL[i]==null||maS[i-1]==null||maL[i-1]==null) continue;
-    const gc = maS[i]>maL[i] && maS[i-1]<=maL[i-1];
-    const dc = !_noXS /* [S1781] 크로스 제외면 데드크로스 청산 없음 · [S1782] 청산 쪽 */ && (maXS[i]!=null&&maXL[i]!=null&&maXS[i-1]!=null&&maXL[i-1]!=null) && maXS[i]<maXL[i] && maXS[i-1]>=maXL[i-1];   // [S820] 청산 = 청산 MA 데드크로스(진입 후 새로 발생한 것만 — 직전봉 비교라 자동)
+    const gc = _bbz ? _bbz.gc(i) /* [S1876] 고른 선 위로 돌파(선별 거름) */ : (maS[i]>maL[i] && maS[i-1]<=maL[i-1]);
+    const dc = !_noXS /* [S1781] 크로스 제외면 데드크로스 청산 없음 · [S1782] 청산 쪽 */ && (_bbz ? _bbz.dc(i, pos) /* [S1876] 고른 청산 + 과열 이탈 */ : ((maXS[i]!=null&&maXL[i]!=null&&maXS[i-1]!=null&&maXL[i-1]!=null) && maXS[i]<maXL[i] && maXS[i-1]>=maXL[i-1]));   // [S820] 청산 = 청산 MA 데드크로스(진입 후 새로 발생한 것만 — 직전봉 비교라 자동)
     // [S1554] ★1포지션 구조 — 보유 중이면 아래 진입 분기를 **아예 안 돈다**. 막힌 게 아니라 평가조차 안 된다.
     //   사용자 실기기에서 그 침묵이 드러났다: 6/8부터 보유 중이라 9/3 골든크로스가 화면 어디에도 안 남았다.
     //   ⚠**세기만 한다** — `pos` 게이트도 진입 조건도 한 글자 안 바꿨다(거래·집계 무변경).
     //   ⚠어휘를 정확히 둔다: *'놓친 진입'*이 아니라 **'평가되지 않은 신호'**다 — 보유 중이 아니었어도
     //     `auxOk`·재료 게이트에서 막혔을 수 있고, 이 수는 그것을 구별하지 못한다(지어내지 않는다).
     if(pos!=null && gc && !_noXB /* [S1781] 크로스 제외면 골든크로스는 진입원이 아니다 · [S1782] 진입 쪽 */) _heldSkipGc++;
-    if(X){ if(pos==null){ if((!_rgA || _rgA(i)) && (!_axA || _axA(i)) /* [S1875] */){ X.nF=(X.nF||0)+1; if(X.eH){ if(X.eH(i)){ const p=_mkPos(i,false); if(p) pos=p; } continue; } } else if(X.eH) continue; } }   /* [S1862] 막힌 봉은 🎲 판단 봉으로 안 셈 */   /* [S1851] 🎲 진입 판단 봉 세기 · X.eH = 진입 판단 전부를 무작위 하나로(청산은 아래 그대로) — X 없으면 무영향 */
+    if(X){ if(pos==null){ if((!_rgA || _rgA(i)) && (!_axA || _axA(i)) /* [S1875] */ && (!_bbz || _bbz.ok(i)) /* [S1876] */){ X.nF=(X.nF||0)+1; if(X.eH){ if(X.eH(i)){ const p=_mkPos(i,false); if(p) pos=p; } continue; } } else if(X.eH) continue; } }   /* [S1862] 막힌 봉은 🎲 판단 봉으로 안 셈 */   /* [S1851] 🎲 진입 판단 봉 세기 · X.eH = 진입 판단 전부를 무작위 하나로(청산은 아래 그대로) — X 없으면 무영향 */
     if(pos==null){
       const _pl = (_predOn && !_noXB /* [S1781] · [S1782] 진입 쪽 */) ? _predGc(i) : 0;   // [S624] 0=안함 / 1·2=유효 선행봉
       if(_pl>0 && auxOk(i)){ const p=_mkPos(i,false); if(p){ p.pred=true; p.sigIdx=i; p.predLead=_pl; pos=p; } } // [S623/S624] 예측 선행 진입
-      else if(gc && !_noXB /* [S1781] · [S1782] 진입 쪽 */ && auxOk(i)){ const p=_mkPos(i,false); if(p) pos=p; } // [S581] 진입가/진입idx는 _mkPos가 결정
+      else if(gc && !_noXB /* [S1781] · [S1782] 진입 쪽 */ && auxOk(i)){ const p=_mkPos(i,false); if(p){ if(_bbz) p.bbzL=_bbz.lineAt(i); /* [S1876] 돌파한 선 */ pos=p; } } // [S581] 진입가/진입idx는 _mkPos가 결정
       // [S570] 재진입 — 실제 청산 이력(_lastExitIdx>=0) + 정배열 유지(maS>maL) + 청산 후 1봉 대기 + 매도조건 해제 + 매수조건 재충족
       else if(!_noXB /* [S1781] 재진입=재진입 골든크로스 · [S1782] 진입 쪽 */ && _reOn && _lastExitIdx>=0 && maS[i]>maL[i] && (maReS&&maReL&&maReS[i]!=null&&maReL[i]!=null&&maReS[i-1]!=null&&maReL[i-1]!=null&&maReS[i]>maReL[i]&&maReS[i-1]<=maReL[i-1]) && (i-_lastExitIdx>1) && !sellHit(i) && auxOk(i)){ const p=_mkPos(i,true); if(p) pos=p; }   // [S822] 재진입 = 정배열 유지 + 재진입 골든크로스 발생 + 매도해제 + 매수조건
       // [S687] 기울기 조기진입 — 단기MA 상향전환(꺾임→상승) 시 골든크로스(maS>maL) 전에 미리 진입(OR). 확인봉(종가>maS)·쿨다운(1봉)·auxOk. 검증된 기울기 청산의 거울.
@@ -5613,7 +5695,7 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
       const _axHit = !!(_axX && _axX(i));   /* [S1875] 🧩 청산 스위치 — 📉 와 같은 자리 · 같은 규칙 */
       const _xmHold = !!(_xmS && _xmMs==='and' && !_noXS /* [S1781] 크로스 제외면 재료는 필터가 아니라 방아쇠 · [S1782] 청산 쪽 */ && (_xmS[i]||0) < _xmNs && !_disSl);
       if((X && X.xH) ? (i>pos.entryIdx && X.xH(i)) /* [S1853] 🎲 무작위 청산 — 청산 식 대신 */ : (!_xmHold && (dc || sellHit(i) || _predFail || _predExit || _earlyMa5 || _earlySlope || _disSl || _slopeFail || _slAtrHit || _trAtrHit || _tpAtrHit || _swHit /* [S1863] */ || _axHit /* [S1875] */))){ const _xs1406=(!dc)&&sellHit(i);   /* [S1406] 사유 기록용 — 조건식은 위 그대로(단락평가 보존) · dc가 참이면 재평가하지 않는다(원본과 동일 호출 수 이하) */
-        const pnl=((close[i]/pos.entry-1)*100)-_feeP; trades.push({dc:!!dc,xsell:!!_xs1406,xmatEntry:!!pos.xmatEntry,preSlope:!!pos.preSlope,preRsi:!!pos.preRsi,entry:pos.entry,exit:close[i],pnl:+pnl.toFixed(2),bars:i-pos.entryIdx,entryIdx:pos.entryIdx,exitIdx:i,re:!!pos.re,pred:!!pos.pred,predLead:pos.predLead||0,fail:!!_predFail,predExit:!!_predExit,early:!!_earlyMa5,slope:!!_earlySlope,disSl:!!_disSl,slAtr:!!_slAtrHit,trAtr:!!_trAtrHit,tpAtr:!!_tpAtrHit,...((_swW && !(X && X.xH) && _swHit && !(dc||_xs1406||_predFail||_predExit||_earlyMa5||_earlySlope||_disSl||_slopeFail||_slAtrHit||_trAtrHit||_tpAtrHit))?{ sw:true }:{}) /* [S1863] 📉 칩만으로 판 거래 */,...((_axX && !(X && X.xH) && _axHit && !(dc||_xs1406||_predFail||_predExit||_earlyMa5||_earlySlope||_disSl||_slopeFail||_slAtrHit||_trAtrHit||_tpAtrHit||_swHit))?{ ax:true }:{}) /* [S1875] 🧩 청산 스위치만으로 판 거래 */,slopeEntry:!!pos.slopeEntry,slopeFail:!!_slopeFail,entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'',exitDate:(rows[i]&&(rows[i].date||rows[i].t))||''}); if(_mzX){ const _t=trades[trades.length-1]; _t.tz=pos.tz; if(_xSlMz) _t.slM=pos.slM; if(_xTrMz) _t.trM=pos.trM; if(_xTpMz) _t.tpM=pos.tpM; }   /* [S1743] 구간·배수를 거래에(구간별일 때만) */ pos=null; _lastExitIdx=i; }
+        const pnl=((close[i]/pos.entry-1)*100)-_feeP; trades.push({dc:!!dc,xsell:!!_xs1406,xmatEntry:!!pos.xmatEntry,preSlope:!!pos.preSlope,preRsi:!!pos.preRsi,entry:pos.entry,exit:close[i],pnl:+pnl.toFixed(2),bars:i-pos.entryIdx,entryIdx:pos.entryIdx,exitIdx:i,re:!!pos.re,pred:!!pos.pred,predLead:pos.predLead||0,fail:!!_predFail,predExit:!!_predExit,early:!!_earlyMa5,slope:!!_earlySlope,disSl:!!_disSl,slAtr:!!_slAtrHit,trAtr:!!_trAtrHit,tpAtr:!!_tpAtrHit,...((_swW && !(X && X.xH) && _swHit && !(dc||_xs1406||_predFail||_predExit||_earlyMa5||_earlySlope||_disSl||_slopeFail||_slAtrHit||_trAtrHit||_tpAtrHit))?{ sw:true }:{}) /* [S1863] 📉 칩만으로 판 거래 */,...((_axX && !(X && X.xH) && _axHit && !(dc||_xs1406||_predFail||_predExit||_earlyMa5||_earlySlope||_disSl||_slopeFail||_slAtrHit||_trAtrHit||_tpAtrHit||_swHit))?{ ax:true }:{}) /* [S1875] 🧩 청산 스위치만으로 판 거래 */,...(_bbz?{ bbzL:pos.bbzL||'', bbzX:dc?_bbz.why(i,pos):'' }:{}) /* [S1876] 〰️ 돌파한 선 · 청산 까닭(line · hot) */,slopeEntry:!!pos.slopeEntry,slopeFail:!!_slopeFail,entryDate:(rows[pos.entryIdx]&&(rows[pos.entryIdx].date||rows[pos.entryIdx].t))||'',exitDate:(rows[i]&&(rows[i].date||rows[i].t))||''}); if(_mzX){ const _t=trades[trades.length-1]; _t.tz=pos.tz; if(_xSlMz) _t.slM=pos.slM; if(_xTrMz) _t.trM=pos.trM; if(_xTpMz) _t.tpM=pos.tpM; }   /* [S1743] 구간·배수를 거래에(구간별일 때만) */ pos=null; _lastExitIdx=i; }
     }
   }
   // [S626] 예측 적중률 — 예측 발화한 모든 봉에서 실제 골든크로스가 유효 선행봉(L) 내 발생했는지. 미래 확정된 과거 구간만 평가(룩어헤드 아님).
@@ -5671,7 +5753,7 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
   let eq=1,peak=1,mdd=0;
   trades.forEach(t=>{ eq*=(1+t.pnl/100); if(eq>peak)peak=eq; const dd=peak>0?(peak-eq)/peak:0; if(dd>mdd)mdd=dd; });
   const totalPnl=+((eq-1)*100).toFixed(2);
-  return { winRate, pf, totalPnl, totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, feePct:_feeP, heldSkipGc:_heldSkipGc, ...(_rgA?{ rg:{ up:_rgA.up, dn:_rgA.dn, blk:_rgBlk } }:{}) /* [S1862] 🧭 게이트 있을 때만 */, ...(_swW?{ sw:_sxSwRes(_swW, trades) }:{}) /* [S1863] 📉 켰을 때만 */, ...(_axA?{ bj:_sxAxRes(_axA, _axBlk) }:{}), ...(_axX?{ bjx:{ ids:_axX.ids.slice(), mode:_axX.mode, hit:trades.filter(t=>t && t.ax===true).length } }:{}) /* [S1875] 🧩 켰을 때만 */, lastClose:close[n-1], predHit, predFires:_predFires, predDcHit, predDcFires:_predDcFires, predDday, predDdayProb, predDdayType, predExitNow };
+  return { winRate, pf, totalPnl, totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, feePct:_feeP, heldSkipGc:_heldSkipGc, ...(_rgA?{ rg:{ up:_rgA.up, dn:_rgA.dn, blk:_rgBlk } }:{}) /* [S1862] 🧭 게이트 있을 때만 */, ...(_swW?{ sw:_sxSwRes(_swW, trades) }:{}) /* [S1863] 📉 켰을 때만 */, ...(_axA?{ bj:_sxAxRes(_axA, _axBlk) }:{}), ...(_axX?{ bjx:{ ids:_axX.ids.slice(), mode:_axX.mode, hit:trades.filter(t=>t && t.ax===true).length } }:{}) /* [S1875] 🧩 켰을 때만 */, ...(_bbz?{ bbz:{ blk:_bbzBlk, ks:_bbz.ks.slice(), e:_bbz.q.E, x:_bbz.q.x, ox:_bbz.q.ox, bs:_bbz.q.bs } }:{}) /* [S1876] */, lastClose:close[n-1], predHit, predFires:_predFires, predDcHit, predDcFires:_predDcFires, predDday, predDdayProb, predDdayType, predExitNow };
 }
 
 // ── 현재 상태 라벨 ──
@@ -7615,7 +7697,8 @@ function _trendRenderInner(){
     <span onclick=\"_sxVib(10);window._trendToggleTrix&&_trendToggleTrix()\" title=\"크로스 판정 축을 이동평균에서 TRIX로 바꿉니다. 방식은 그대로 — TRIX선이 시그널선을 위로 뚫으면 골든, 아래로 뚫으면 데드. 청산 크로스 분리·재진입·크로스 임박도 같은 축을 따릅니다. 시즌2 워커에는 TRIX가 없어 시즌1 실험 축입니다.\" style=\"font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${cfg.trixOn?'background:#0891b2;color:#fff':'background:var(--surface2);color:#0891b2;border:1px solid #0891b266'}\">${cfg.trixOn?'☑':'☐'} 🧬 TRIX 크로스</span>
     <span onclick="_sxVib(10);window._trendToggleSmi&&_trendToggleSmi()" title="[S1754] 크로스 판정 축을 스토캐스틱 모멘텀(SMI)으로 바꿉니다. 방식은 그대로 — SMI선이 시그널선을 위로 뚫으면 골든, 아래로 뚫으면 데드. 청산 크로스 분리·재진입·크로스 임박도 같은 축을 따릅니다. 🧬 TRIX 와는 동시에 못 켭니다(하나를 켜면 다른 하나가 꺼집니다). 시즌2 워커에는 없어 시즌1 실험 축입니다." style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${_smiOn(cfg)?'background:#db2777;color:#fff':'background:var(--surface2);color:#db2777;border:1px solid #db277766'}">${_smiOn(cfg)?'☑':'☐'} 🎚️ 스토캐스틱 모멘텀</span>
     <span onclick="_sxVib(10);window._trendToggleWt&&_trendToggleWt()" title="[S1842] 크로스 판정 축을 WaveTrend(wt1 × wt2)로 바꿉니다. 방식은 그대로 — WT선이 시그널선을 위로 뚫으면 골든, 아래로 뚫으면 데드. 청산 크로스 분리·재진입·크로스 임박도 같은 축을 따릅니다. 다른 축(TRIX · SMI · TSI)과 동시에 못 켭니다. 시즌1 실험 축 · 측정(offline/stockind): WT 가 −53 아래에서 위로 넘는 꼴은 KR · 코인 일봉에서 무작위보다 나았지만 그냥 두기는 못 넘었고, 문턱 없는 크로스(이 축)는 더 못했다 · 성적 주장 없음." style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${_wtOn(cfg)?'background:#0d9488;color:#fff':'background:var(--surface2);color:#0d9488;border:1px solid #0d948866'}">${_wtOn(cfg)?'☑':'☐'} 🌊 WaveTrend</span>
-    <span onclick="_sxVib(10);window._trendToggleTsi&&_trendToggleTsi()" title="[S1842] 크로스 판정 축을 TSI(True Strength Index × 시그널)로 바꿉니다. 방식은 그대로 — TSI선이 시그널선을 위로 뚫으면 골든, 아래로 뚫으면 데드. 청산 크로스 분리·재진입·크로스 임박도 같은 축을 따릅니다. 다른 축(TRIX · SMI · WT)과 동시에 못 켭니다. 시즌1 실험 축 · 측정(offline/stockind): US 일봉 · 코인 1시간에서 무작위보다 못했고 그냥 두기는 못 넘었다 · 성적 주장 없음." style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${_tsiOn(cfg)?'background:#b45309;color:#fff':'background:var(--surface2);color:#b45309;border:1px solid #b4530966'}">${_tsiOn(cfg)?'☑':'☐'} 📶 TSI</span>
+    <span onclick="_sxVib(10);window._trendToggleTsi&&_trendToggleTsi()" title="[S1842] 크로스 판정 축을 TSI(True Strength Index × 시그널)로 바꿉니다. 방식은 그대로 — TSI선이 시그널선을 위로 뚫으면 골든, 아래로 뚫으면 데드. 청산 크로스 분리·재진입·크로스 임박도 같은 축을 따릅니다. 다른 축(TRIX · SMI · WT)과 동시에 못 켭니다. 시즌1 실험 축 · 측정(offline/stockind): US 일봉 · 코인 1시간에서 무작위보다 못했고 그냥 두기는 못 넘었다 · 성적 주장 없음." style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${_tsiOn(cfg)?'background:#b45309;color:#fff':'background:var(--surface2);color:#b45309;border:1px solid #b4530966'}">${_tsiOn(cfg)?'☑':'☐'} 📶 TSI</span>${(_trendEngine==='cross')?`
+    <span onclick="_sxVib(10);window._trendToggleBbz&&_trendToggleBbz()" title="[S1876] 〰️ 볼린저 모드 — 골든 · 데드 대신 고른 볼린저 선을 위로 돌파하면 진입 · 고른 청산(진입선 이탈 · 사다리 · 중앙선) · 과열 · 폭락은 새 진입 금지(사용자 설계 · 원안 v3) · 켜면 오실레이터 축은 꺼짐 · 📈 크로스 엔진만 · 실험 도구 · 성적 주장 없음" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${_bbzOn(cfg)?'background:#0f766e;color:#fff':'background:var(--surface2);color:#0f766e;border:1px solid #0f766e66'}">${_bbzOn(cfg)?'☑':'☐'} 〰️ 볼린저</span>`:''}
     ${cfg.trixOn?`<span style=\"display:inline-flex;align-items:center;gap:6px;white-space:nowrap\"><span style=\"font-weight:700;color:#0891b2\">진입 TRIX</span>${_inp('sxTrixP',cfg.trixP)}<span style=\"color:var(--text3)\">×시그널</span>${_inp('sxTrixSP',cfg.trixSP)}</span>`:''}
     ${(cfg.trixOn&&cfg.xCross)?`<span style=\"display:inline-flex;align-items:center;gap:6px;white-space:nowrap\"><span style=\"font-weight:700;color:#7c3aed\">청산 TRIX</span>${_inp('sxTrixXP',cfg.trixXP)}<span style=\"color:var(--text3)\">×시그널</span>${_inp('sxTrixXSP',cfg.trixXSP)}</span>`:''}
     ${cfg.trixOn?`<span style=\"flex:1 0 100%;min-width:0;font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:2px\">크로스는 <b>TRIX선 × 시그널선</b>으로 판정합니다 — 위 MA 값은 확인봉·⚡종가&lt;단기MA 조기청산 같은 <b>가격 비교</b>에만 쓰입니다(TRIX는 %오실레이터라 종가와 같은 축이 아닙니다). 앞 숫자는 삼중 EMA 평활 기간, 뒤는 시그널 평균 기간이라 MA 기간과 뜻이 다릅니다. 시그널 ${cfg.trixSP}이면 앞 약 ${(+cfg.trixSP||200)+(+cfg.trixP||3)*3}봉은 판정 불가라 진입이 안 납니다. ⚠시즌2 워커에는 TRIX가 없습니다 — 시즌1 실험 축이고 측정은 아직 0입니다. 🔄 정배열 재진입을 켜면 <b>재진입 크로스도 TRIX</b>로 판정합니다(끄면 종전 MA).</span>`:''}
@@ -7628,6 +7711,7 @@ function _trendRenderInner(){
     ${_tsiOn(cfg)?`<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#b45309">진입 TSI</span>${_inp('sxTsiR',_tsiPair(cfg,'e')[0])}<span style="color:var(--text3)">×시그널</span>${_inp('sxTsiG',_tsiPair(cfg,'e')[1])}</span><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="color:var(--text3)">짧은</span>${_inp('sxTsiS',_tsiS(cfg))}</span>`:''}
     ${(_tsiOn(cfg)&&cfg.xCross)?`<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-weight:700;color:#7c3aed">청산 TSI</span>${_inp('sxTsiXR',_tsiPair(cfg,'x')[0])}<span style="color:var(--text3)">×시그널</span>${_inp('sxTsiXG',_tsiPair(cfg,'x')[1])}</span>`:''}
     ${_tsiOn(cfg)?`<span style="flex:1 0 100%;min-width:0;font-size:8.5px;color:var(--text3);line-height:1.45;margin-top:2px">${_tsiNow(cfg)}크로스는 <b>TSI선 × 시그널선</b>으로 판정합니다(True Strength Index). 앞 숫자 = 긴 평활 · 시그널 = TSI 의 지수평균 기간 · 짧은 = 두 번째 평활(세 쌍이 공유) — TradingView 기본 25 · 13 · 13. 숫자를 바꾼 뒤 <b>적용</b>을 누르세요. 위 MA 값은 <b>가격 비교</b>에만 쓰입니다. 0 선 · 과매수·과매도 선은 쓰지 않습니다 — 크로스만 봅니다. ⚠시즌1 실험 축 · 측정(offline/stockind): US 일봉 · 코인 1시간에서 무작위보다 못했고 그냥 두기는 못 넘었다 · 성적 주장 없음. 🔄 정배열 재진입을 켜면 <b>재진입 크로스도 TSI</b>로 판정합니다.</span>`:''}
+    ${(_trendEngine==='cross' && _bbzOn(cfg))?_bbzRowHtml(cfg, market, rows, bt) /* [S1876] 〰️ 설정 줄 */:((_trendEngine==='strat' && _bbzOn(cfg))?'<span style="flex:1 0 100%;min-width:0;font-size:8.5px;color:#0f766e;line-height:1.45;margin-top:2px">〰️ 볼린저 모드는 📈 크로스 엔진에서만 — 🧪 전략 조합은 MA 크로스로 셈(오실레이터 축 꺼짐)</span>':'')}
   </div>${(function(){ /* [S1682] 지금 어느 저장소를 쓰는지 — 폴백 중이면 그 사실을 말한다(조용한 공유 금지 · S1680 문법) */
     if(!_sxTfSplitOn(market)) return '';
     const _own=_sxTfHasOwn('SX_TREND_',market)||_sxTfHasOwn('SX_STRAT_',market);
@@ -8286,15 +8370,15 @@ function _trendGuardOv(){ const ctx=window._sxTrendCtx; if(!ctx) return; const k
 function _trendTogglePredictLegacyS630(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); const g=window._trendGuardState, key=ctx.name||''; if(cfg.predict && g && g.stock===key && g.hurt){ window._trendGuardOverride=window._trendGuardOverride||{}; window._trendGuardOverride[key]=!window._trendGuardOverride[key]; _trendRerender(); return; } cfg.predict=!cfg.predict; _trendSave(m,cfg); _trendRerender(); } // [S623/S630] 🔮 토글 — 손해 종목은 전역 대신 종목별 강제 오버라이드
 // [S1676] 🧬 TRIX 크로스 축 토글 — 켜면 두 탭의 📈크로스 판정이 TRIX×시그널로 갈린다(기본 OFF).
 function _trendToggleTrix(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m);
-  cfg.trixOn=!cfg.trixOn; if(cfg.trixOn){ cfg.smiOn=false; cfg.wtOn=false; cfg.tsiOn=false; /* [S1842] */ }   /* [S1754] 축은 하나만 */ _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
+  cfg.trixOn=!cfg.trixOn; if(cfg.trixOn){ cfg.smiOn=false; cfg.wtOn=false; cfg.tsiOn=false; /* [S1842] */ delete cfg.bbzOn; /* [S1876] */ }   /* [S1754] 축은 하나만 */ _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
 // [S1754] 🎚️ 스토캐스틱 모멘텀(SMI) 크로스 축 토글 — 켜면 두 탭의 📈크로스 판정이 SMI×시그널로 갈린다(기본 OFF · 켜면 🧬 TRIX 는 꺼진다).
 function _trendToggleSmi(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m);
-  cfg.smiOn=!cfg.smiOn; if(cfg.smiOn){ cfg.trixOn=false; cfg.wtOn=false; cfg.tsiOn=false; /* [S1842] */ } _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
+  cfg.smiOn=!cfg.smiOn; if(cfg.smiOn){ cfg.trixOn=false; cfg.wtOn=false; cfg.tsiOn=false; /* [S1842] */ delete cfg.bbzOn; /* [S1876] */ } _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
 // [S1842] 🌊 WaveTrend · 📶 TSI 크로스 축 토글 — 켜면 두 탭의 📈크로스 판정이 그 선 × 시그널로 갈린다(기본 OFF · 켜면 다른 축 셋은 꺼진다 · 시즌1 실험 축).
 function _trendToggleWt(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m);
-  cfg.wtOn=!cfg.wtOn; if(cfg.wtOn){ cfg.trixOn=false; cfg.smiOn=false; cfg.tsiOn=false; } _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
+  cfg.wtOn=!cfg.wtOn; if(cfg.wtOn){ cfg.trixOn=false; cfg.smiOn=false; cfg.tsiOn=false; delete cfg.bbzOn; /* [S1876] */ } _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
 function _trendToggleTsi(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m);
-  cfg.tsiOn=!cfg.tsiOn; if(cfg.tsiOn){ cfg.trixOn=false; cfg.smiOn=false; cfg.wtOn=false; } _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
+  cfg.tsiOn=!cfg.tsiOn; if(cfg.tsiOn){ cfg.trixOn=false; cfg.smiOn=false; cfg.wtOn=false; delete cfg.bbzOn; /* [S1876] */ } _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }
 function _trendToggleXCross(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); cfg.xCross=!cfg.xCross; if(cfg.xCross){ if(!(cfg.xs>0))cfg.xs=cfg.s; if(!(cfg.xl>0))cfg.xl=cfg.l; } _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }   // [S820] 청산 크로스 분리 토글
 function _trendToggleNoCross(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); const _on=!(cfg.noCrossB&&cfg.noCrossS); cfg.noCrossB=_on; cfg.noCrossS=_on; /* [S1782] 양쪽 단축 */ _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }   // [S1781] 🚫 크로스 제외(재료만) 토글 — 진입·청산을 🧪 재료만으로(사용자 요청 2026-10-11 '순수 재료만의 진입과 청산')
 function _trendToggleNoCrossSide(sd){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m); const k=(sd==='buy')?'noCrossB':'noCrossS'; cfg[k]=!cfg[k]; _trendSave(m,cfg); _trendRerender(); if(window._trendRedrawChart)_trendRedrawChart(); }   // [S1782] 🧪 재료 조건 블록별 🚫 크로스 제외 — 매수=진입 쪽 · 매도=청산 쪽(사용자 요청 2026-10-11 '매수랑 매도에 각각 크로스 제외')
@@ -8434,7 +8518,7 @@ function _poolTfOf(){ try{ if(window.SXCandleBT && SXCandleBT.snapMode && SXCand
 function _poolTfLbl(tf){ return ({'30m':'30분봉','60m':'60분봉','240m':'4시간봉','day':'일봉','week':'주봉','month':'월봉'})[tf] || (tf || ''); }
 // 조합 시그 — 결과가 어느 설정으로 나왔는지 붙잡는다(바뀌면 '⚠ 설정이 바뀜'). 🧪 전략 조합 _stratComboSig와 같은 역할.
 function _trendCrossSig(cfg, xsig){
-  return JSON.stringify(Object.assign(_sxRgSig(cfg) /* [S1862] 🧭 꺼졌을 때만 */, _sxSwSigOf(cfg) /* [S1863] 📉 켰을 때만 */, _sxAxSigOf(cfg) /* [S1875] 🧩 켰을 때만 */, { ma:[cfg.s,cfg.l,cfg.xCross?cfg.xs:0,cfg.xCross?cfg.xl:0], n:cfg.n||3,
+  return JSON.stringify(Object.assign(_sxRgSig(cfg) /* [S1862] 🧭 꺼졌을 때만 */, _sxSwSigOf(cfg) /* [S1863] 📉 켰을 때만 */, _sxAxSigOf(cfg) /* [S1875] 🧩 켰을 때만 */, _bbzSigOf(cfg) /* [S1876] 〰️ 켰을 때만 */, { ma:[cfg.s,cfg.l,cfg.xCross?cfg.xs:0,cfg.xCross?cfg.xl:0], n:cfg.n||3,
     sm:(_smiOn(cfg)?[_smiPair(cfg,'e')[0],_smiSm(cfg)[0],_smiSm(cfg)[1],_smiPair(cfg,'e')[1],cfg.xCross?_smiPair(cfg,'x')[0]:0,cfg.xCross?_smiPair(cfg,'x')[1]:0,cfg.reentry?_smiPair(cfg,'r')[0]:0,cfg.reentry?_smiPair(cfg,'r')[1]:0]:0),   /* [S1754] 🎚️ SMI 축 */
     ...(_wtOn(cfg)?{ wt:[_wtPair(cfg,'e')[0],_wtPair(cfg,'e')[1],cfg.xCross?_wtPair(cfg,'x')[0]:0,cfg.xCross?_wtPair(cfg,'x')[1]:0,cfg.reentry?_wtPair(cfg,'r')[0]:0,cfg.reentry?_wtPair(cfg,'r')[1]:0] }:{}), ...(_tsiOn(cfg)?{ ts:[_tsiPair(cfg,'e')[0],_tsiS(cfg),_tsiPair(cfg,'e')[1],cfg.xCross?_tsiPair(cfg,'x')[0]:0,cfg.xCross?_tsiPair(cfg,'x')[1]:0,cfg.reentry?_tsiPair(cfg,'r')[0]:0,cfg.reentry?_tsiPair(cfg,'r')[1]:0] }:{}),   /* [S1842] 🌊📶 켰을 때만 — 끈 사람의 지문은 그대로 */
     tx:(_trixOn(cfg)?[1,+cfg.trixP||3,+cfg.trixSP||200,cfg.xCross?(+cfg.trixXP||3):0,cfg.xCross?(+cfg.trixXSP||5):0,cfg.reentry?_trixPair(cfg,'r')[0]:0,cfg.reentry?_trixPair(cfg,'r')[1]:0]:0),   /* [S1676] 크로스 축을 바꾸면 저장된 풀 결과가 '설정이 바뀜'으로 뜬다 · [S1677] 재진입 쌍 편입 */
@@ -8459,6 +8543,10 @@ function _trendCrossDesc(cfg, mk){
   let xm='';
   try{ if(_trendXmatSigOf(mk)){ const st=_xmatStore(mk); const b=_xmatConds(st,'buy').length, s=_xmatConds(st,'sell').length; xm=' · 🧪재료'+(b?(' 매수 '+b):'')+(s?(' 매도 '+s):''); } }catch(_){}
   const _fe=_trendFeeOf(mk);
+  if(_bbzOn(cfg)){   /* [S1876] 〰️ 볼린저 모드 — 진입 · 청산 문구만 바뀜(앞머리 · 마찰 · 재료 · 다른 청산은 같은 어휘) */
+    const _eB=cfg.noCrossB ? ('진입[🚫크로스 제외 · 🧪재료만'+(cfg.nextOpen?' +다음봉 시가':'')+']') : ('진입['+_bbzDescE(cfg)+(g.length?(' +'+g.join(' +')):'')+']');
+    const _xB=cfg.noCrossS ? ('청산[🚫데드크로스 제외 · 🧪재료'+(x.length?(' +'+x.join(' +')):'')+']') : ('청산['+_bbzDescX(cfg)+(x.length?(' +'+x.join(' +')):'')+']');
+    return _sxRgDescPre(cfg)+_sxSwDescPre(cfg)+_sxAxDescPre(cfg)+(_fe>0?('💸왕복 '+_fe+'%p · '):'무마찰 · ')+_eB+xm+' → '+_xB; }
   if(cfg.noCrossB||cfg.noCrossS){   /* [S1782] 쪽별 — 둘 다면 S1781 문구와 글자 같다 · 크로스가 남은 쪽은 종전 어휘 */
     const _eP=cfg.noCrossB ? ('진입[🚫크로스 제외 · 🧪재료만'+(cfg.nextOpen?' +다음봉 시가':'')+']') : ('진입[📈'+_axPair(cfg,'e')+' 골든'+(g.length?(' +'+g.join(' +')):'')+(cfg.predict?(' +🔮예측'+((window._trendGuardState&&window._trendGuardState.hurt)?'(⚠종목별 가드는 풀에 미적용)':'')):'')+']');
     const _xP=cfg.noCrossS ? ('청산[🚫데드크로스 제외 · 🧪재료'+(x.length?(' +'+x.join(' +')):'')+']') : ('청산['+(cfg.xCross?(cfg.xs+'×'+cfg.xl+' '):'')+'데드크로스'+(x.length?(' +'+x.join(' +')):'')+(cfg.predict?' +🔮예측 청산':'')+']');
@@ -8690,7 +8778,7 @@ const _TREND_RESET_SCOPE = {
   // [S1564] 크로스 목록에서 `atr2/atrInit/atrTrail`을 뺐다 — 그건 이제 **전략 조합 탭에만** 보인다.
   //   ⚠`atrInit`/`atrTrail`은 크로스 배수의 **폴백**이라 값 자체는 공유하나, 입력칸이 전략 조합 탭에만 있으므로
   //     그 탭 목록에 남긴다(화면에 없는 것을 되돌리지 않는다 · S1561 규칙).
-  cross:  ['rgUp','rgDn' /* [S1862] 🧭 리셋 = 둘 다 켜짐(키 없음) · 📥 일봉 복사도 */,'swX','swN','swAfter' /* [S1863] 📉 리셋 = 꺼짐(키 없음) · 📥 일봉 복사도 */,'bj','bjAdxT','bjChopT','bjSrbW','bjVpW','bjWvfW','bjBwN','bjBwX','bjSgIn','bjSgOut','bjX' /* [S1875] 🧩 리셋 = 꺼짐(키 없음) · 📥 일봉 복사도 */,'noCrossB','noCrossS' /* [S1782] 쪽별 두 칩(S1781 noCross 를 이어받음) — ↺ 리셋이 끈다 */, 'entrySlope','entryRsi','entryConfirm','earlyMa5','earlySlope','disSl','slAtr','xAtr2','xSlOn','xTrOn','xTpOn','xSlMult','xTrMult','xTpMult','xSlMz','xTrMz','xTpMz','xSlUp','xSlMid','xSlDn','xTrUp','xTrMid','xTrDn','xTpUp','xTpMid','xTpDn' /* [S1743] */, 'xTrHigh' /* [S1848] ⤒ — 크로스 탭 ↺ 리셋이 끈다 */],
+  cross:  ['rgUp','rgDn' /* [S1862] 🧭 리셋 = 둘 다 켜짐(키 없음) · 📥 일봉 복사도 */,'swX','swN','swAfter' /* [S1863] 📉 리셋 = 꺼짐(키 없음) · 📥 일봉 복사도 */,'bj','bjAdxT','bjChopT','bjSrbW','bjVpW','bjWvfW','bjBwN','bjBwX','bjSgIn','bjSgOut','bjX' /* [S1875] 🧩 리셋 = 꺼짐(키 없음) · 📥 일봉 복사도 */,'bbzOn','bbzP','bbzM1','bbzM2','bbzM3','bbzB1','bbzB2','bbzB3','bbzE','bbzR','bbzA','bbzMa1','bbzMa2','bbzBs','bbzBN','bbzX','bbzOx' /* [S1876] 〰️ 리셋 = 꺼짐 · 기본값(키 없음) · 📥 일봉 복사도 */,'noCrossB','noCrossS' /* [S1782] 쪽별 두 칩(S1781 noCross 를 이어받음) — ↺ 리셋이 끈다 */, 'entrySlope','entryRsi','entryConfirm','earlyMa5','earlySlope','disSl','slAtr','xAtr2','xSlOn','xTrOn','xTpOn','xSlMult','xTrMult','xTpMult','xSlMz','xTrMz','xTpMz','xSlUp','xSlMid','xSlDn','xTrUp','xTrMid','xTrDn','xTpUp','xTpMid','xTpDn' /* [S1743] */, 'xTrHigh' /* [S1848] ⤒ — 크로스 탭 ↺ 리셋이 끈다 */],
   strat:  ['atr2','atrInit','atrTrail','bullVol']
 };
 // [S1562] ★★**리셋이 절반만 돌고 있었다 — strat cfg를 안 건드렸다.**
@@ -8732,7 +8820,7 @@ function _trendReset(){
   }catch(_){}
   _trendRerender(); _trendRedrawChart();
 }   // [S572→S1561→S1562] 리셋 = 그 탭이 보여주는 필드만 기본 프리셋으로(trend cfg + strat cfg 양쪽)
-if(typeof window!=='undefined'){ window._trendApply=_trendApply; window._trendGateFold=_trendGateFold; window._trendSetEngine=_trendSetEngine; window._TREND_TAB_COL=_TREND_TAB_COL; window._trendEngineSaved=_trendEngineSaved; window._trendToggleReentry=_trendToggleReentry; window._trendToggleNextOpen=_trendToggleNextOpen; window._trendTogglePredict=_trendTogglePredict; window._trendGuardOv=_trendGuardOv; window._trendCycleLead=_trendCycleLead; window._trendToggleEarlyMa5=_trendToggleEarlyMa5; window._trendToggleEarlySlope=_trendToggleEarlySlope; window._trendToggleEntrySlope=_trendToggleEntrySlope; window._trendToggleBullVol=_trendToggleBullVol; window._trendToggleAtr2=_trendToggleAtr2; window._trendXAtr=_trendXAtr; window._trendXAtrNum=_trendXAtrNum; window._trendToggleEntryConfirm=_trendToggleEntryConfirm; window._trendToggleEntryRsi=_trendToggleEntryRsi; window._trendToggleDisasterSl=_trendToggleDisasterSl; window._trendCycleSlAtr=_trendCycleSlAtr; window._xmatNeedSet=_xmatNeedSet; window._xmatKindTg=_xmatKindTg; window._xmatResetTh=_xmatResetTh; window._xmatResetDial=_xmatResetDial; window._xmatResetAll=_xmatResetAll; window._xmatModeSet=_xmatModeSet; window._xmatWinSet=_xmatWinSet; window._trendBatchSetSource=_trendBatchSetSource; window._trendSnapCycle=_trendSnapCycle; window._trendSnapLoad=_trendSnapLoad; window._trendSnapOff=_trendSnapOff; window._trendSnapState=_trendSnapState; window._trendBatchUI=_trendBatchUI; window._trendToggleXCross=_trendToggleXCross; window._trendToggleNoCross=_trendToggleNoCross; window._trendToggleNoCrossSide=_trendToggleNoCrossSide; /* [S1782] */ /* [S1781] */ window._trendToggleTrix=_trendToggleTrix; window._trendToggleSmi=_trendToggleSmi;   /* [S1754] */ window._trendToggleWt=_trendToggleWt; window._trendToggleTsi=_trendToggleTsi;   /* [S1842] */ window._trendReset=_trendReset; }
+if(typeof window!=='undefined'){ window._trendApply=_trendApply; window._trendGateFold=_trendGateFold; window._trendSetEngine=_trendSetEngine; window._TREND_TAB_COL=_TREND_TAB_COL; window._trendEngineSaved=_trendEngineSaved; window._trendToggleReentry=_trendToggleReentry; window._trendToggleNextOpen=_trendToggleNextOpen; window._trendTogglePredict=_trendTogglePredict; window._trendGuardOv=_trendGuardOv; window._trendCycleLead=_trendCycleLead; window._trendToggleEarlyMa5=_trendToggleEarlyMa5; window._trendToggleEarlySlope=_trendToggleEarlySlope; window._trendToggleEntrySlope=_trendToggleEntrySlope; window._trendToggleBullVol=_trendToggleBullVol; window._trendToggleAtr2=_trendToggleAtr2; window._trendXAtr=_trendXAtr; window._trendXAtrNum=_trendXAtrNum; window._trendToggleEntryConfirm=_trendToggleEntryConfirm; window._trendToggleEntryRsi=_trendToggleEntryRsi; window._trendToggleDisasterSl=_trendToggleDisasterSl; window._trendCycleSlAtr=_trendCycleSlAtr; window._xmatNeedSet=_xmatNeedSet; window._xmatKindTg=_xmatKindTg; window._xmatResetTh=_xmatResetTh; window._xmatResetDial=_xmatResetDial; window._xmatResetAll=_xmatResetAll; window._xmatModeSet=_xmatModeSet; window._xmatWinSet=_xmatWinSet; window._trendBatchSetSource=_trendBatchSetSource; window._trendSnapCycle=_trendSnapCycle; window._trendSnapLoad=_trendSnapLoad; window._trendSnapOff=_trendSnapOff; window._trendSnapState=_trendSnapState; window._trendBatchUI=_trendBatchUI; window._trendToggleXCross=_trendToggleXCross; window._trendToggleNoCross=_trendToggleNoCross; window._trendToggleNoCrossSide=_trendToggleNoCrossSide; /* [S1782] */ /* [S1781] */ window._trendToggleTrix=_trendToggleTrix; window._trendToggleSmi=_trendToggleSmi;   /* [S1754] */ window._trendToggleWt=_trendToggleWt; window._trendToggleTsi=_trendToggleTsi; window._trendToggleBbz=_trendToggleBbz; window._trendBbzSet=_trendBbzSet; /* [S1876] */   /* [S1842] */ window._trendReset=_trendReset; }
 // ── [S550] 거래내역 모달 (캔들전이 검증 모달 패턴) ──
 function _trendCloseDetail(){ try{ var el=document.getElementById('sxTrendBTOverlay'); if(el&&el.parentNode) el.parentNode.removeChild(el); }catch(_){} }
 function _trendDetailClose(){ try{ history.back(); }catch(e){ _trendCloseDetail(); } }
@@ -14516,13 +14604,19 @@ function _fibSvg(rows, z, fr, ew){ const n=rows.length, li=n-1; let s=Math.max(0
   return '<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:auto;display:block;margin:6px 0 2px;background:var(--surface2);border-radius:8px">'+g+'</svg>'; }
 // ══ [S1815] 🧪 지그재그 지표 탭(피보 카드 안) — 확정 스윙점으로 만든 실험 지표 셋: 스윙 평균선 · 평균 스윙 크기 · 스윙 채널 · ATR 배수 · N 직접 입력 · 판정 아님 ══
 var _FIB_ZZ_DEF = { m:2, n:10, b:2 }, _FIB_ZZ_LIM = { m:[0.5,10], n:[2,50], b:[0.5,10] };   /* [S1820] b = 🎯 띠 ATR 배수(스윙 크기와 따로) */
+var _FIB_ZZ_BB = { bp:[2,1000,200], k1:[0.1,10,1], k2:[0.1,10,2], k3:[0.1,10,3] };   /* [S1877] 〰️ 볼린저 칸 [최소, 최대, 기본] — 📈 크로스 탭 〰️ 볼린저 모드와 같은 범위 · 칸은 이 탭에서 따로 */
+// [S1877] 선 고르기 ln = 'bb'(기본 · 〰️ 볼린저 트리플) | 'sw'(🟠 스윙 평균선 · 🔷 채널 · 🎯 띠 = S1815 ~ S1820 그대로) · 밴드 켬/끔 o1 ~ o3(하나는 남김) — 사용자 2026-11-03 09:45
+function _fibZzBbCfg(o){ const q={ ln:(o && o.ln==='sw')?'sw':'bb' }; Object.keys(_FIB_ZZ_BB).forEach(k=>{ const L=_FIB_ZZ_BB[k]; let x=(o && o[k]!=null && o[k]!=='' && typeof o[k]!=='boolean')?+o[k]:NaN; if(k==='bp') x=Math.round(x); q[k]=(isFinite(x)&&x>=L[0]&&x<=L[1])?x:L[2]; });
+  q.o1=!(o && o.o1===false); q.o2=!(o && o.o2===false); q.o3=!(o && o.o3===false); if(!q.o1 && !q.o2 && !q.o3) q.o1=true; return q; }
 function _fibTab(){ try{ return localStorage.getItem('SX_FIB_TAB')==='zz'?'zz':'fib'; }catch(_){ return 'fib'; } }
 function _fibZzCfg(){ let o={}; try{ o=JSON.parse(localStorage.getItem('SX_FIB_ZZ')||'{}')||{}; }catch(_){ o={}; } const m=+o.m, n=Math.round(+o.n), b=+o.b;   /* [S1820] 띠 배수 b */
-  return { m:(isFinite(m)&&m>=_FIB_ZZ_LIM.m[0]&&m<=_FIB_ZZ_LIM.m[1])?m:_FIB_ZZ_DEF.m, n:(isFinite(n)&&n>=_FIB_ZZ_LIM.n[0]&&n<=_FIB_ZZ_LIM.n[1])?n:_FIB_ZZ_DEF.n, b:(isFinite(b)&&b>=_FIB_ZZ_LIM.b[0]&&b<=_FIB_ZZ_LIM.b[1])?b:_FIB_ZZ_DEF.b }; }
+  return Object.assign({ m:(isFinite(m)&&m>=_FIB_ZZ_LIM.m[0]&&m<=_FIB_ZZ_LIM.m[1])?m:_FIB_ZZ_DEF.m, n:(isFinite(n)&&n>=_FIB_ZZ_LIM.n[0]&&n<=_FIB_ZZ_LIM.n[1])?n:_FIB_ZZ_DEF.n, b:(isFinite(b)&&b>=_FIB_ZZ_LIM.b[0]&&b<=_FIB_ZZ_LIM.b[1])?b:_FIB_ZZ_DEF.b }, _fibZzBbCfg(o)); }   /* [S1877] + 〰️ 칸 */
 function _fibRerender(){ try{ const el=document.getElementById('sxFibCard'), cx=window._sxFibCtx; if(el && cx) el.outerHTML=_fibCardHtml(cx); }catch(_){} }
 function _fibSetTab(t){ if(t!=='fib' && t!=='zz') return; try{ localStorage.setItem('SX_FIB_TAB', t); }catch(_){} _fibRerender(); }
 // 입력값 — 범위 밖이면 가장자리로 · 숫자가 아니면 무시
-function _fibZzSet(f, v){ if(f!=='m' && f!=='n' && f!=='b') return;   /* [S1820] b 칸 */ let x=+v; if(!isFinite(x)) return; const L=_FIB_ZZ_LIM[f]; if(f==='n') x=Math.round(x); x=Math.max(L[0], Math.min(L[1], x)); const c=_fibZzCfg(); c[f]=x; try{ localStorage.setItem('SX_FIB_ZZ', JSON.stringify(c)); }catch(_){} _fibRerender(); }
+function _fibZzSet(f, v){ if(f!=='m' && f!=='n' && f!=='b' && !_FIB_ZZ_BB[f]) return;   /* [S1820] b 칸 · [S1877] 〰️ 기간 · 승수 칸 */ let x=+v; if(!isFinite(x)) return; const L=_FIB_ZZ_LIM[f]||_FIB_ZZ_BB[f]; if(f==='n' || f==='bp') x=Math.round(x); x=Math.max(L[0], Math.min(L[1], x)); const c=_fibZzCfg(); c[f]=x; try{ localStorage.setItem('SX_FIB_ZZ', JSON.stringify(c)); }catch(_){} _fibRerender(); }
+function _fibZzLn(v){ if(v!=='bb' && v!=='sw') return; const c=_fibZzCfg(); c.ln=v; try{ localStorage.setItem('SX_FIB_ZZ', JSON.stringify(c)); }catch(_){} _fibRerender(); }   /* [S1877] 선 고르기 */
+function _fibZzBbTog(j){ const k='o'+j; if(['o1','o2','o3'].indexOf(k)<0) return; const c=_fibZzCfg(); if(c[k] && [c.o1,c.o2,c.o3].filter(Boolean).length<=1) return; c[k]=!c[k]; try{ localStorage.setItem('SX_FIB_ZZ', JSON.stringify(c)); }catch(_){} _fibRerender(); }   /* [S1877] 밴드 켬/끔 — 마지막 하나는 못 끔 */
 function _fibTabBar(cur){ const P='#7c3aed', tab=(t,l)=>'<span onclick="_sxVib(8);window._fibSetTab&&_fibSetTab(\''+t+'\')" style="flex:1;text-align:center;font-size:10.5px;font-weight:800;padding:5px 4px;border-radius:9px;cursor:pointer;'+(cur===t?('background:'+P+';color:#fff'):'background:var(--surface2);color:var(--text3)')+'">'+l+'</span>';
   return '<div data-fib-tabs="1" style="display:flex;gap:5px;margin-bottom:8px">'+tab('fib','🌀 피보 · 엘리어트')+tab('zz','🧪 지그재그 지표')+'</div>'; }
 // 지표 줄 — 봉 t 에서 확정된(c ≤ t) 스윙점만 · 최근 N개 다리(N+1개 점) · 평균선 = 다리 가운데값 평균 · 크기 = 다리 크기(%) 평균 · 채널 = 그 점들 중 고점 평균 / 저점 평균
@@ -14550,22 +14644,45 @@ function _fibZzPat(rows, z){ const n=rows.length, li=n-1, C=rows.map(r=>_fibNum(
     if(C[t]<L2.p && uL!==L2.i){ uL=L2.i; ev={ k:sg>0?'chD':'bosD', t, lvl:L2.p, hl:'L' }; } }
   let st=null; if(Hs.length>=2 && Ls.length>=2){ const H1=Hs[Hs.length-2], H2=Hs[Hs.length-1], L1=Ls[Ls.length-2], L2=Ls[Ls.length-1], h=H2.p>H1.p?'HH':(H2.p<H1.p?'LH':'EQ'), l=L2.p>L1.p?'HL':(L2.p<L1.p?'LL':'EQ'); st={ h, l, k:(h==='HH'&&l==='HL')?1:((h==='LH'&&l==='LL')?-1:0) }; }
   return { pats, st, ev, li }; }
+// [S1877] 〰️ 볼린저 트리플(지그재그 탭) — 계산 = 📈 크로스 탭 〰️ 볼린저 모드와 같은 함수(_bbzSer · _bbzZone · S1876) · 칸(기간 · 승수 · 켬/끔)은 이 탭에서 따로
+//   σ 자리 = (가격 − 그 봉 중심선) ÷ 그 봉 σ · 스윙점 가격 = 고점은 그 봉 고가 · 저점은 그 봉 저가(지그재그 점 가격 그대로) · 읽기 도움 · 판정 아님
+function _fibZzBbOf(rows, cf){ const close=rows.map(r=>_fibNum(r.close!=null?r.close:r.c)), B=_bbzSer(rows, close, { bbzOn:true, bbzP:cf.bp, bbzM1:cf.k1, bbzM2:cf.k2, bbzM3:cf.k3, bbzB1:cf.o1, bbzB2:cf.o2, bbzB3:cf.o3 });
+  B.zf=(i,v)=>{ const m=B.mid[i], d=B.sd[i]; return (m!=null && d!=null && isFinite(m) && d>0 && isFinite(v))?(v-m)/d:null; }; return B; }
+const _fibZzSgF=v=>(v>0?'+':(v<0?'−':''))+Math.abs(v).toFixed(1)+'σ';
+function _fibZzSgSvg(B, p, X, Y){ const z=B.zf(p.i, p.p); if(z==null) return ''; return '<text data-zz="sg" x="'+X(p.i).toFixed(1)+'" y="'+(p.t==='H'?Y(p.p)-12:Y(p.p)+18).toFixed(1)+'" font-size="7" fill="#7c3aed" opacity="0.85" text-anchor="middle">'+_fibZzSgF(z)+'</text>'; }   // 점 글자 바깥에 한 줄 더(고점은 위 · 저점은 아래)
+function _fibZzBbSvg(B, path){ const BD=B.BD, tag=(h,k)=>h.replace('<path ','<path data-zz="'+k+'" '); let g=tag(path(B.mid,'#6b7280',1,'4 3'),'bbc');
+  if(BD[2]) g+=tag(path(BD[2].u,'#f97316',1.1),'bbo')+tag(path(BD[2].l,'#f97316',1.1),'bbo');
+  if(BD[1]) g+=tag(path(BD[1].u,'currentColor',1.1),'bbk')+tag(path(BD[1].l,'currentColor',1.1),'bbk');   /* 검정 = 글자색(어두운 테마에서도 보이게) */
+  if(BD[0]) g+=tag(path(BD[0].u,'#16a34a',1.3),'bbg')+tag(path(BD[0].l,'#2563eb',1.3),'bbb');
+  return g; }
+function _fibZzBbLines(rows, S, cf, c, pc, line){ const n=rows.length, li=n-1, B=_fibZzBbOf(rows, cf); S.bb=B; const m=B.mid[li], ks=B.ks.join('/');
+  let a; if(m==null || !isFinite(m)) a=line('〰️','볼린저 구역', '기간 '+cf.bp+'봉이 모자라요(지금 '+n+'봉) — 기간을 줄여 보세요');
+  else { const z=B.zf(li, c), zn=_bbzZone(B, li, c); a=line('〰️','볼린저 구역', '지금 '+(zn||'—')+(z!=null?'('+_fibZzSgF(z)+')':'')+' · 중심선 '+_fibFmt(m)+'(현재가 대비 '+pc(m)+') · 녹색 '+_fibFmt(B.BD[0].u[li])+' · 파랑 '+_fibFmt(B.BD[0].l[li])+' · 기간 '+cf.bp+' · ±'+ks); }
+  const W=S.z.piv.slice(-cf.n-1), md=v=>{ const q=v.slice().sort((x,y)=>x-y), k=q.length; return k%2?q[(k-1)/2]:(q[k/2-1]+q[k/2])/2; }, one=(t,nm)=>{ const v=W.filter(o=>o.t===t).map(o=>B.zf(o.i, o.p)).filter(x=>x!=null); return v.length?(nm+' σ 중앙값 '+_fibZzSgF(md(v))+'('+_fibZzSgF(Math.min.apply(null,v))+' ~ '+_fibZzSgF(Math.max.apply(null,v))+' · '+v.length+'개)'):(nm+' — 밴드가 생기기 전 점뿐'); };
+  return a+line('📍','스윙점 σ', '최근 '+W.length+'개 확정 점 — '+one('L','저점')+' · '+one('H','고점')+' · 점 가격 = 저점은 저가 · 고점은 고가 · 그 봉 밴드 기준 · 읽기 도움 · 판정 아님'); }
+function _fibZzLnRow(cf){ const P='#7c3aed', chip=(v,l)=>'<span data-zz-ln="'+v+'" onclick="_sxVib(8);window._fibZzLn&&_fibZzLn(\''+v+'\')" style="font-size:10px;font-weight:800;padding:4px 9px;border-radius:12px;cursor:pointer;white-space:nowrap;'+(cf.ln===v?('background:'+P+';color:#fff;border:1px solid '+P):'background:var(--surface2);color:var(--text3);border:1px solid var(--border)')+'">'+l+'</span>';
+  return '<div data-fib-zzln="1" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:10px;color:var(--text3)">선</span>'+chip('bb','〰️ 볼린저 트리플')+chip('sw','🟠 스윙 평균 · 채널 · 띠')+'</div>'; }
+function _fibZzBbIn(cf){ const T2='var(--text2)', inp=(k,v,st,w)=>'<input data-zzbb-in="'+k+'" type="number" inputmode="decimal" value="'+v+'" min="'+_FIB_ZZ_BB[k][0]+'" max="'+_FIB_ZZ_BB[k][1]+'" step="'+st+'" onchange="window._fibZzSet&&_fibZzSet(\''+k+'\',this.value)" style="width:'+w+'px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:6px;background:var(--surface)">';
+  const tog=j=>{ const on=cf['o'+j]; return '<span data-zzbb-tog="'+j+'" onclick="_sxVib(8);window._fibZzBbTog&&_fibZzBbTog('+j+')" title="밴드 '+j+' 켬/끔(하나는 남김)" style="font-size:9.5px;font-weight:800;padding:3px 7px;border-radius:10px;cursor:pointer;white-space:nowrap;'+(on?'background:#0f766e;color:#fff;border:1px solid #0f766e':'background:var(--surface);color:var(--text3);border:1px solid var(--border)')+'">'+(on?'☑':'☐')+' ±</span>'; };
+  const grp=h=>'<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:10px;color:'+T2+'">'+h+'</span>';
+  return grp('기간'+inp('bp',cf.bp,1,56))+[1,2,3].map(j=>grp(tog(j)+inp('k'+j,cf['k'+j],0.1,50))).join(''); }
+const _FIB_ZZ_BBTXT='〰️ 볼린저 = 같은 기간 SMA ± σ × 승수(📈 크로스 탭 〰️ 볼린저 모드와 같은 계산 함수 · 칸은 이 탭에서 따로) · 녹색 = 가장 안쪽 위 · 파랑 = 가장 안쪽 아래 · 글자색 선 = 둘째 밴드 · 주황 = 셋째 밴드 · 회색 점선 = 중심선 · 점 글자 σ = 그 스윙점 가격(고점 = 고가 · 저점 = 저가)이 그 봉 중심선에서 몇 σ · 보라 = 지그재그(확정된 스윙점만) · 실험 지표 · 판정 아님 · 스윙 타점과 맞는지는 측정 사전등록에서 잼(같은 비율 무작위 대조) · 🟠 스윙 선은 위 \'선\' 칩으로';
 function _fibZzSvg(rows, S){ const n=rows.length, li=n-1, s=Math.max(0,n-160), C=rows.map(r=>_fibNum(r.close!=null?r.close:r.c)); let lo=Infinity, hi=-Infinity;
-  for(let i=s;i<=li;i++){ [C[i],S.ma[i],S.up[i],S.lo[i],S.tp?S.tp[i]:null,S.sl?S.sl[i]:null].forEach(v=>{   /* [S1819] 띠도 범위에 */ if(v!=null&&isFinite(v)){ if(v<lo) lo=v; if(v>hi) hi=v; } }); } S.z.piv.forEach(p=>{ if(p.i>=s){ if(p.p<lo) lo=p.p; if(p.p>hi) hi=p.p; } });
+  for(let i=s;i<=li;i++){ (S.bb?[C[i]].concat(S.bb.BD.map(b=>b.u[i]), S.bb.BD.map(b=>b.l[i])):[C[i],S.ma[i],S.up[i],S.lo[i],S.tp?S.tp[i]:null,S.sl?S.sl[i]:null]).forEach(v=>{   /* [S1819] 띠도 범위에 · [S1877] 볼린저면 켜진 밴드 선 */ if(v!=null&&isFinite(v)){ if(v<lo) lo=v; if(v>hi) hi=v; } }); } S.z.piv.forEach(p=>{ if(p.i>=s){ if(p.p<lo) lo=p.p; if(p.p>hi) hi=p.p; } });
   const NK=[]; if(S.pat){ S.pat.pats.forEach(o=>{ const a=Math.max(o.pts[1].i,s), e=o.st==='conf'?o.tb:li; if(e<a) return; const va=o.neck(a), ve=o.neck(e); NK.push({ a, e, va, ve }); [va,ve].forEach(v=>{ if(isFinite(v)){ if(v<lo) lo=v; if(v>hi) hi=v; } }); }); }   /* [S1822] 넥라인도 범위에 */
   if(!(hi>lo)) return '';
   const W=400, Hh=180, pl=4, pr=8, pt=10, pb=10, X=i=>pl+(i-s)/Math.max(1,li-s)*(W-pl-pr), Y=v=>pt+(hi-v)/(hi-lo)*(Hh-pt-pb), path=(a,col,w,dash)=>{ let d=''; for(let i=s;i<=li;i++){ const v=a[i]; if(v==null||!isFinite(v)){ continue; } d+=((d&&a[i-1]!=null&&i>s)?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1); } return d?'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+w+'"'+(dash?' stroke-dasharray="'+dash+'"':'')+'/>':''; };
-  let g=path(C,'#9ca3af',1)+path(S.up,'#2563eb',1.1,'4 3')+path(S.lo,'#2563eb',1.1,'4 3')+path(S.ma,'#f59e0b',1.6);
+  let g=path(C,'#9ca3af',1)+(S.bb?_fibZzBbSvg(S.bb, path) /* [S1877] 〰️ 볼린저 선 */:(path(S.up,'#2563eb',1.1,'4 3')+path(S.lo,'#2563eb',1.1,'4 3')+path(S.ma,'#f59e0b',1.6)));
   if(S.tp) g+=path(S.tp,'#10b981',1.1,'2 3').replace('<path ','<path data-zz="tp" '); if(S.sl) g+=path(S.sl,'#ef4444',1.1,'2 3').replace('<path ','<path data-zz="sl" ');   /* [S1819] 🎯 익절 · 손절 띠 */
   const pts=S.z.piv.filter(p=>p.i>=s); if(pts.length>1){ let d=''; pts.forEach((p,j)=>{ d+=(j?'L':'M')+X(p.i).toFixed(1)+' '+Y(p.p).toFixed(1); }); g+='<path d="'+d+'" fill="none" stroke="#7c3aed" stroke-width="1" opacity="0.7"/>'; }
   NK.forEach(q=>{ g+='<path data-zz="neck" d="M'+X(q.a).toFixed(1)+' '+Y(q.va).toFixed(1)+'L'+X(q.e).toFixed(1)+' '+Y(q.ve).toFixed(1)+'" fill="none" stroke="#d97706" stroke-width="1.1" stroke-dasharray="3 2"/>'; });   /* [S1822] 🔺 넥라인 */
-  pts.slice(-6).forEach(p=>{ const k=S.z.piv.indexOf(p); let pr=null; for(let j=k-1;j>=0;j--){ if(S.z.piv[j].t===p.t){ pr=S.z.piv[j]; break; } } if(!pr || pr.p===p.p) return; const lb=p.t==='H'?(p.p>pr.p?'HH':'LH'):(p.p>pr.p?'HL':'LL'); g+='<text data-zz="hl" x="'+X(p.i).toFixed(1)+'" y="'+(p.t==='H'?Y(p.p)-4:Y(p.p)+10).toFixed(1)+'" font-size="8" fill="#7c3aed" text-anchor="middle">'+lb+'</text>'; });   /* [S1822] 🧱 점 글자 */
+  pts.slice(-6).forEach(p=>{ const k=S.z.piv.indexOf(p); let pr=null; for(let j=k-1;j>=0;j--){ if(S.z.piv[j].t===p.t){ pr=S.z.piv[j]; break; } } if(!pr || pr.p===p.p) return; const lb=p.t==='H'?(p.p>pr.p?'HH':'LH'):(p.p>pr.p?'HL':'LL'); g+='<text data-zz="hl" x="'+X(p.i).toFixed(1)+'" y="'+(p.t==='H'?Y(p.p)-4:Y(p.p)+10).toFixed(1)+'" font-size="8" fill="#7c3aed" text-anchor="middle">'+lb+'</text>'+(S.bb?_fibZzSgSvg(S.bb, p, X, Y):''); });   /* [S1822] 🧱 점 글자 · [S1877] 볼린저면 σ 자리 한 줄 더 */
   g+='<circle cx="'+X(li).toFixed(1)+'" cy="'+Y(C[li]).toFixed(1)+'" r="3" fill="#111"/>';
   return '<svg data-fib-zzsvg="1" viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:auto;display:block;margin:6px 0 2px;background:var(--surface2);border-radius:8px">'+g+'</svg>'; }
 function _fibZzHtml(cx){ const rows=cx.rows, n=(rows&&rows.length)||0, T2='var(--text2)', T3='var(--text3)', cf=_fibZzCfg();
   const inp=(f,lbl,v,st)=>'<label style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:'+T2+'">'+lbl+'<input type="number" value="'+v+'" min="'+_FIB_ZZ_LIM[f][0]+'" max="'+_FIB_ZZ_LIM[f][1]+'" step="'+st+'" onchange="window._fibZzSet&&_fibZzSet(\''+f+'\',this.value)" style="width:56px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:6px;background:var(--surface)"></label>';
   let h='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:13px;font-weight:800;color:var(--text)">🧪 지그재그 지표</span><span style="font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:9px;background:#d9770614;color:#d97706">실험 · 판정 아님</span></div>'
-    +'<div data-fib-zzin="1" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px">'+inp('m','스윙 크기 ATR ×',cf.m,0.5)+inp('n','스윙 개수 N',cf.n,1)+inp('b','띠 ATR ×',cf.b,0.5)+   /* [S1820] 띠 배수 칸 */
+    +_fibZzLnRow(cf) /* [S1877] 선 고르기 */+'<div data-fib-zzin="1" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px">'+inp('m','스윙 크기 ATR ×',cf.m,0.5)+inp('n','스윙 개수 N',cf.n,1)+(cf.ln==='bb'?_fibZzBbIn(cf) /* [S1877] 〰️ 칸 */:inp('b','띠 ATR ×',cf.b,0.5))+   /* [S1820] 띠 배수 칸 */
       '<span style="font-size:9px;color:'+T3+'">· 봉 = 지금 분석 TF('+(cx.tfLbl||'')+') · 직접 바꿔 보며 살펴보세요</span></div>';
   if(n<60) return h+'<div style="font-size:10.5px;color:'+T3+'">봉이 부족해요(60봉 이상 필요 · 지금 '+n+'봉)</div>';
   const S=_fibZzSeries(rows, cf.m, cf.n), li=n-1, c=_fibNum(rows[li].close!=null?rows[li].close:rows[li].c), pc=v=>((v/c-1)*100>=0?'+':'')+((v/c-1)*100).toFixed(1)+'%';
@@ -14573,18 +14690,18 @@ function _fibZzHtml(cx){ const rows=cx.rows, n=(rows&&rows.length)||0, T2='var(-
   const P=S.z.piv, B=P[P.length-1], cur=Math.abs(c-B.p)/B.p*100, ratio=cur/S.sz[li], W=P.slice(-cf.n-1), lag=(()=>{ const a=W.map(o=>o.c-o.i).sort((x,y)=>x-y), m2=a.length; return m2%2?a[(m2-1)/2]:(a[m2/2-1]+a[m2/2])/2; })();
   const pos=c>S.up[li]?'위 밖(채널 위로 벗어남)':(c<S.lo[li]?'아래 밖(채널 아래로 벗어남)':('안 · 아래에서 '+Math.round((c-S.lo[li])/(S.up[li]-S.lo[li])*100)+'% 자리'));
   const line=(ico,t,d)=>'<div style="font-size:10.5px;line-height:1.6;padding:4px 0;border-top:1px dashed var(--border)"><b>'+ico+' '+t+'</b> <span style="color:'+T2+'">'+d+'</span></div>';
-  h+=line('🟠','스윙 평균선', _fibFmt(S.ma[li])+'(현재가 대비 '+pc(S.ma[li])+') · 지금 가격이 평균선 '+(c>=S.ma[li]?'위':'아래'))
+  h+=(cf.ln==='bb'?_fibZzBbLines(rows, S, cf, c, pc, line) /* [S1877] 〰️ 볼린저 구역 · 📍 스윙점 σ */:(line('🟠','스윙 평균선', _fibFmt(S.ma[li])+'(현재가 대비 '+pc(S.ma[li])+') · 지금 가격이 평균선 '+(c>=S.ma[li]?'위':'아래'))
     +line('🔷','스윙 채널', _fibFmt(S.lo[li])+' ~ '+_fibFmt(S.up[li])+' · 지금 '+pos)   /* [S1816] 채널을 평균선 바로 아래로(볼밴처럼 한 묶음) */
-    +(()=>{ const Bd=_fibZzBands(S, cf.b), tp=Bd.tp[li], sl=Bd.sl[li], a=S.z.atr[li]; S.tp=Bd.tp; S.sl=Bd.sl; if(tp==null || sl==null) return ''; return line('🎯','익절 · 손절 띠', '위 '+_fibFmt(tp)+'(현재가 대비 '+pc(tp)+') · 아래 '+_fibFmt(sl)+'('+pc(sl)+') · 채널 밖으로 ATR × '+cf.b+'(ATR '+_fibFmt(a)+') · 지금 '+(c>tp?'익절 띠 위':(c<sl?'손절 띠 아래':'띠 안'))+' · 롱 기준 위 = 익절 · 아래 = 손절'); })()   /* [S1819] 🎯 익절 · 손절 띠 */
+    +(()=>{ const Bd=_fibZzBands(S, cf.b), tp=Bd.tp[li], sl=Bd.sl[li], a=S.z.atr[li]; S.tp=Bd.tp; S.sl=Bd.sl; if(tp==null || sl==null) return ''; return line('🎯','익절 · 손절 띠', '위 '+_fibFmt(tp)+'(현재가 대비 '+pc(tp)+') · 아래 '+_fibFmt(sl)+'('+pc(sl)+') · 채널 밖으로 ATR × '+cf.b+'(ATR '+_fibFmt(a)+') · 지금 '+(c>tp?'익절 띠 위':(c<sl?'손절 띠 아래':'띠 안'))+' · 롱 기준 위 = 익절 · 아래 = 손절'); })()))   /* [S1819] 🎯 익절 · 손절 띠 */
     +line('📐','평균 스윙 크기', (+S.sz[li].toFixed(1))+'%(최근 '+cf.n+'개 다리) · 지금 다리 '+(+cur.toFixed(1))+'%(마지막 확정 '+(B.t==='H'?'고점':'저점')+' '+_fibFmt(B.p)+'에서) = '+(+ratio.toFixed(1))+'배 → '+(ratio>=1?'평균보다 크게 움직이는 중':'평균 안쪽'))
     +line('⏱','확정까지', '스윙점이 확정되기까지 중앙값 '+lag+'봉(최근 '+W.length+'개 점) — 클수록 신호가 늦어요');
   h+=(()=>{ const Q=_fibZzPat(rows, S.z), PN={ dtop:'쌍봉', dbot:'쌍바닥', hs:'헤드앤숄더', ihs:'역헤드앤숄더' }, EN={ bosU:'BOS 오름', bosD:'BOS 내림', chU:'CHoCH 오름', chD:'CHoCH 내림' }, ago=t=>(li-t)?((li-t)+'봉 전'):'이번 봉', dn=k=>(k==='dtop'||k==='hs');   /* [S1822] 🧱 구조 · 🔺 패턴 */
     S.pat=Q; const stT=Q.st?('고점 '+{ HH:'높아짐(HH)', LH:'낮아짐(LH)', EQ:'같음' }[Q.st.h]+' · 저점 '+{ HL:'높아짐(HL)', LL:'낮아짐(LL)', EQ:'같음' }[Q.st.l]+' → '+(Q.st.k>0?'오름 구조':(Q.st.k<0?'내림 구조':'섞임'))+((Q.ev&&li-Q.ev.t<30)?(' · 최근 사건 '+EN[Q.ev.k]+' '+ago(Q.ev.t)+'(마지막 '+(Q.ev.hl==='H'?'고점':'저점')+' '+_fibFmt(Q.ev.lvl)+'을 종가로 '+(Q.ev.hl==='H'?'넘음':'깸')+')'):' · 최근 30봉 안 BOS · CHoCH 없음')):'확정된 고점 · 저점이 둘씩 안 돼요';
     const ptT=Q.pats.length?Q.pats.map(o=>o.st==='form'?(PN[o.k]+' 생김(넥라인 깨기 전) · 넥라인 '+_fibFmt(o.neck(li))+'(현재가 대비 '+pc(o.neck(li))+') · 무효 = 종가가 '+_fibFmt(o.bad)+' '+(dn(o.k)?'위':'아래')+'로'):(PN[o.k]+' 확정 '+ago(o.tb)+'(넥라인 '+_fibFmt(o.neck(o.tb))+'을 종가로 '+(dn(o.k)?'깸':'넘음')+')')).join(' / '):'지금 생김 · 최근 확정 없음(쌍봉 · 쌍바닥 · 헤드앤숄더 · 역헤드앤숄더)';
     return '<div data-zzp="st">'+line('🧱','구조', stT+' · 읽기 도움 · 판정 아님')+'</div><div data-zzp="pt">'+line('🔺','패턴', ptT+' · 읽기 도움 · 판정 아님')+'</div>'; })();
-  h+=_fibZzSvg(rows, S)+'<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-top:5px">🟠 스윙 평균선 = 최근 N개 다리 가운데값의 평균 · 🔷 점선 = 그 스윙점들 중 고점 평균 / 저점 평균 · 보라 = 지그재그 · 확정된 스윙점만 써서 나중에 바뀌지 않아요 · 실험 지표 · 판정 아님 · 쓸 만한 값은 나중에 측정해서 채택<span data-fib-zzband="1"> · 🎯 띠 = 고점 평균 + ATR × 배수(위 · 익절 자리) · 저점 평균 − ATR × 배수(아래 · 손절 자리) · ATR 14 · 배수 = 입력칸 "띠 ATR ×"(스윙 크기와 따로 · 기본 2) · 롱 기준 · 측정(9판 · 2026-10-18 · 배수 2 · 60봉 안): 어느 띠에 먼저 닿는지는 같은 거리의 아무 선과 구분 안 됨 — 가까운 띠에 먼저 닿고 오름장 · 내림장에 따라 크게 달라짐(익절 먼저 21~75%)</span><span data-fib-zzpat="1"> · 🧱 구조 = 마지막 확정 고점 둘 · 저점 둘(HH 높아진 고점 · LH 낮아진 고점 · HL 높아진 저점 · LL 낮아진 저점) · BOS = 구조 방향으로 마지막 고점(저점)을 종가로 넘음(깸) · CHoCH = 구조 반대쪽으로 처음 깸 · 🔺 쌍봉 · 쌍바닥 = 이어진 고 · 저 · 고(저 · 고 · 저) 두 끝 차 ATR × 0.5 안 · 헤드앤숄더 = 머리가 큰 어깨보다 ATR × 0.5 이상 · 두 어깨 차 ATR 안 · 생김 = 마지막 점 확정 뒤 30봉 안 · 넥라인 종가 깨기 전 · 확정 = 깸(30봉 보임) · 무효 = 반대 끝을 종가로 넘음 · 측정(9판 · 2026-10-18 · 스윙 크기 2 · 일봉): 여덟 가지 모두 확정 뒤 20봉이 평소와 구분 안 됨(BOS 는 되돌아간 판이 더 많음) · 생김 → 확정 약 55~75%</span></div>';
+  h+=_fibZzSvg(rows, S)+'<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-top:5px">'+(cf.ln==='bb'?_FIB_ZZ_BBTXT /* [S1877] */:('🟠 스윙 평균선 = 최근 N개 다리 가운데값의 평균 · 🔷 점선 = 그 스윙점들 중 고점 평균 / 저점 평균 · 보라 = 지그재그 · 확정된 스윙점만 써서 나중에 바뀌지 않아요 · 실험 지표 · 판정 아님 · 쓸 만한 값은 나중에 측정해서 채택<span data-fib-zzband="1"> · 🎯 띠 = 고점 평균 + ATR × 배수(위 · 익절 자리) · 저점 평균 − ATR × 배수(아래 · 손절 자리) · ATR 14 · 배수 = 입력칸 "띠 ATR ×"(스윙 크기와 따로 · 기본 2) · 롱 기준 · 측정(9판 · 2026-10-18 · 배수 2 · 60봉 안): 어느 띠에 먼저 닿는지는 같은 거리의 아무 선과 구분 안 됨 — 가까운 띠에 먼저 닿고 오름장 · 내림장에 따라 크게 달라짐(익절 먼저 21~75%)</span>'))+'<span data-fib-zzpat="1"> · 🧱 구조 = 마지막 확정 고점 둘 · 저점 둘(HH 높아진 고점 · LH 낮아진 고점 · HL 높아진 저점 · LL 낮아진 저점) · BOS = 구조 방향으로 마지막 고점(저점)을 종가로 넘음(깸) · CHoCH = 구조 반대쪽으로 처음 깸 · 🔺 쌍봉 · 쌍바닥 = 이어진 고 · 저 · 고(저 · 고 · 저) 두 끝 차 ATR × 0.5 안 · 헤드앤숄더 = 머리가 큰 어깨보다 ATR × 0.5 이상 · 두 어깨 차 ATR 안 · 생김 = 마지막 점 확정 뒤 30봉 안 · 넥라인 종가 깨기 전 · 확정 = 깸(30봉 보임) · 무효 = 반대 끝을 종가로 넘음 · 측정(9판 · 2026-10-18 · 스윙 크기 2 · 일봉): 여덟 가지 모두 확정 뒤 20봉이 평소와 구분 안 됨(BOS 는 되돌아간 판이 더 많음) · 생김 → 확정 약 55~75%</span></div>';
   return h; }
-if(typeof window!=='undefined'){ window._fibSetTab=_fibSetTab; window._fibZzSet=_fibZzSet; }
+if(typeof window!=='undefined'){ window._fibSetTab=_fibSetTab; window._fibZzSet=_fibZzSet; window._fibZzLn=_fibZzLn; window._fibZzBbTog=_fibZzBbTog; /* [S1877] */ }
 // [S1814] 지금 위치(규칙 기준) — 5파 후보 6점(P5 = 지금 다리 끝) · 다음 파동은 앞의 같은 방향 파동 끝을 넘어야 인정 · 넘기 전엔 앞 파동이 길어지는 중
 function _fibPos(P){ if(!P || P.length!==6) return null; const s=(P[0].t==='L')?1:-1, X=P.map(o=>s*o.p);
   if(!(X[2]>X[0])) return { st:'nc', s };
@@ -20415,7 +20532,9 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1875';   // [S1875] 📈 크로스 탭 ⚙️ 게이트 🧩 보조 거름(칩 열여덟 · 진입 + 청산 스위치) — S1870 ~ S1874 는 render 무변경(풀차트)
+  window.SX_BUILD='S1877';   // [S1877] 🧪 지그재그 탭 〰️ 볼린저 트리플(기본) · 🟠 스윙 고르기 · 스윙점 σ
+  //window.SX_BUILD='S1876';   // [S1876] 〰️ 볼린저 모드(📈 크로스 엔진 · 트리플 기본 · 진입선 넷 · 고른 청산)
+  //window.SX_BUILD='S1875';   // [S1875] 📈 크로스 탭 ⚙️ 게이트 🧩 보조 거름(칩 열여덟 · 진입 + 청산 스위치) — S1870 ~ S1874 는 render 무변경(풀차트)
   //window.SX_BUILD='S1869';   // [S1869] 🧩 보조 재료 3단계(SMC 내부 · 스윙 — 🎯 · ⚓) — S1868 은 render 무변경(풀차트 4단계)
   //window.SX_BUILD='S1867';   // [S1867] 🧩 보조 재료 2단계(재료 넷 · ⚓ 줄) — S1866 은 render 무변경(풀차트 3단계)
   //window.SX_BUILD='S1865';   // [S1865] 🧩 보조 재료 1단계(🎯 · 🚦 · 🐢 · 재료 일곱) — S1864 는 render 무변경(풀차트)
