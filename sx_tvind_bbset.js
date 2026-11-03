@@ -137,12 +137,13 @@ TV.reg({
 // ── ⑤ 〰️ 볼린저 구역 배지 [S1878] — 앱 자체 정의(📈 크로스 탭 〰️ 볼린저 모드와 같은 계산 함수) · 선 없이 지금 구역만(사용자 2026-11-03 09:45) ──
 //   계산: window._bbzSer(rows, 종가, 설정) · window._bbzZone(sx_render.js · S1876) 를 그대로 부른다 → 구역 · 잠금이 탭 BT 와 같은 값
 //         함수가 없으면(sx_render.js 가 안 실린 곳) 배지를 안 그리고 읽기 글에 그렇게 적는다(지어내지 않음)
-//   배지(캔들 칸 왼쪽 위 · 마지막 봉 기준): '〰️ 구역 ±x.xσ' + 과열 이탈 잠금이면 ' · 🔒 잠금' · 색 = 과열 주황 · 상승 쪽 초록 · 횡보 회색 · 하락 쪽 빨강 · 폭락 보라(원안 v3 색)
+//   배지(캔들 칸 왼쪽 위 · 마지막 봉 기준): '〰️ 구역 ±x.xσ' + 과열 이탈 잠금이면 ' · 🔒 잠금' · [S1879] 색 = 트리플 선 자리(지그재그 탭 선 색과 같은 줄): 과열 빨강 · 강한 상승 주황 · 상승 노랑 · 횡보 녹색 · 하락 하늘 · 강한 하락 파랑 · 폭락 남색(노랑 · 하늘 바탕은 어두운 글자)
 //   σ 자리 = (종가 − 중심선) ÷ σ · 과열 이탈 = 종가가 맨 위 선 아래로 내려온 봉(탭의 과열 이탈 청산 · 잠금과 같은 정의 · 읽기 글에 '마지막 과열 이탈 n봉 전')
-const BZ_RGB = { side: [100, 116, 139], up: [22, 163, 74], dn: [220, 38, 38], hot: [234, 88, 12], crash: [147, 51, 234] };
+const BZ_ZC = { '과열': [220, 38, 38], '강한 상승': [249, 115, 22], '상승': [234, 179, 8], '횡보 위': [22, 163, 74], '횡보': [22, 163, 74], '횡보 아래': [22, 163, 74], '하락': [34, 195, 238], '강한 하락': [37, 99, 235], '폭락': [67, 56, 202] };   // [S1879] 사용자 12:26 · 위로 빨강 쪽 · 아래로 파랑 쪽 · 가운데 녹색
 const bzRgba = (c, a) => 'rgba(' + c.join(',') + ',' + Math.max(0, Math.min(1, a)).toFixed(3) + ')';
-const bzCol = z => z === '과열' ? BZ_RGB.hot : z === '폭락' ? BZ_RGB.crash : /상승/.test(z) ? BZ_RGB.up : /하락/.test(z) ? BZ_RGB.dn : BZ_RGB.side;
+const bzCol = z => BZ_ZC[z] || [100, 116, 139], bzFg = z => (z === '상승' || z === '하락') ? '#111827' : '#fff';   // [S1879] 노랑 · 하늘 바탕엔 어두운 글자
 const bzSg = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + 'σ';
+const bzK1 = R => { const k = R && R.S && R.S.ks ? R.S.ks[0] : null; return (k != null && fin(+k)) ? '+' + (+(+k).toFixed(3)) + 'σ' : '가장 안쪽 위 선'; };   // [S1879] 선 이름 = σ 이름(가장 안쪽 위 선 · 탭 _bbzLnNm('g') 와 같은 글자)
 function bbzCfg(p) { return { bbzOn: true, bbzP: p.P, bbzM1: p.m1, bbzM2: p.m2, bbzM3: p.m3, bbzB1: !!p.b1, bbzB2: !!p.b2, bbzB3: !!p.b3, bbzBs: p.bs, bbzBN: p.bN }; }
 function bbzCalc(rows, p) { const W = (typeof window !== 'undefined') ? window : {}, f = W._bbzSer, zf = W._bbzZone;
   if (typeof f !== 'function' || typeof zf !== 'function') return { none: true };
@@ -171,7 +172,7 @@ TV.reg({
   draw(ctx, R, G, p) { if (!R || R.none || !R.zone) return; const t = bzBadgeTxt(R), c = bzCol(R.zone);
     ctx.save(); ctx.font = 'bold 10px Outfit,sans-serif'; const w = ctx.measureText(t).width + 12, h = 17, x = G.pad.l + 4, y = G.pad.t + 4;
     ctx.fillStyle = bzRgba(c, 0.9); ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, 8); else ctx.rect(x, y, w, h); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(t, x + 6, y + h / 2 + 0.5); ctx.restore(); }
+    ctx.fillStyle = bzFg(R.zone); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(t, x + 6, y + h / 2 + 0.5); ctx.restore(); }
 });
 
 // ── 읽기 글(마지막 봉 · S1872 sx_tvread.js 와 같은 꼴 · 🧩 칩은 S1874 — 여기는 ok = null) ──
@@ -192,8 +193,8 @@ const RD = {
     return { t: sg(v) + ' · 이 봉 ' + ['보통(하늘)', '경고 +(라임)', '충격 +(주황)', '경고 −(빨강)', '충격 −(주황)'][R.bc[li]] + (k >= 0 ? ' · 마지막 경고 · 충격 ' + (R.bc[k] <= 2 ? '+ 쪽' : '− 쪽') + ' ' + ago(li, k) : ' · 경고 · 충격 아직 없음'), ok: null }; },
   bbz(R, p, rows) { if (!R || R.none) return { t: '⚠ 계산 함수 없음(📈 크로스 탭 sx_render.js 가 안 실림) — 배지 안 그림', ok: null }; if (!R.zone) return null; const li = rows.length - 1;
     let k = -1; for (let i = li; i >= 0; i--) if (R.hotX[i]) { k = i; break; }
-    return { t: '지금 구역 ' + R.zone + (R.z != null ? '(' + bzSg(R.z) + ')' : '') + (R.lock ? ' · 과열 이탈 잠금(기준이 녹색 아래로 내려오기 전엔 탭 새 진입 금지)' : '') + ' · ' + (k >= 0 ? '마지막 과열 이탈 ' + ago(li, k) : '과열 이탈 아직 없음'), ok: null }; }
+    return { t: '지금 구역 ' + R.zone + (R.z != null ? '(' + bzSg(R.z) + ')' : '') + (R.lock ? ' · 과열 이탈 잠금(기준이 ' + bzK1(R) + ' 아래로 내려오기 전엔 탭 새 진입 금지)' : '') + ' · ' + (k >= 0 ? '마지막 과열 이탈 ' + ago(li, k) : '과열 이탈 아직 없음'), ok: null }; }
 };
 if (TV.READ) Object.keys(RD).forEach(k => { TV.READ[k] = RD[k]; });
-if (typeof module !== 'undefined' && module.exports) module.exports = { bbpbCalc, bbwCalc, bbtrCalc, bbimpCalc, bb, hiN, loN, RD, bbzCalc, bbzCfg, bzBadgeTxt /* [S1878] */ };
+if (typeof module !== 'undefined' && module.exports) module.exports = { bbpbCalc, bbwCalc, bbtrCalc, bbimpCalc, bb, hiN, loN, RD, bbzCalc, bbzCfg, bzBadgeTxt /* [S1878] */, bzCol, bzFg /* [S1879] */ };
 })();
