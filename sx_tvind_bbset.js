@@ -7,6 +7,8 @@
 //      색 넷 = TV 도움말('0 에서 멀어지면 진하게 · 가까워지면 옅게') — 옛 공개판 BBTrend(optictropic · offline/tvchart/BBTrend (optictropic).txt)도 같은 네 갈래(그쪽은 × 100 없음 · 색 aqua · blue · red · maroon)
 //   ④ Bollinger Bands Impulse [LazyBear] — 작성자 LazyBear · 라이선스 표기 없음 · 원본 = offline/tvchart/Bollinger_Bands_Impulse.txt(사용자가 받아옴 · 파인 v1/v2)
 //   봉마다 파인 그대로 계산한다(전체 봉 · 그 봉까지 자료만). 읽기 글 넷은 이 파일에서 SXTV.READ 에 더한다(sx_tvread.js 는 그대로).
+//   ⑤ [S1878] 〰️ 볼린저 구역 배지(차트 위 · 선 없음) — 앱 자체 정의 · 계산 = 📈 크로스 탭 〰️ 볼린저 모드와 같은 함수(window._bbzSer · _bbzZone · sx_render.js S1876) 를 그대로 부름
+//      캔들 칸 왼쪽 위 배지 하나(지금 구역 · σ 자리 · 과열 이탈 잠금) + 읽기 글 — 사용자 2026-11-03 09:45 '풀차트에는 선은 그리지 말고 배지로' · PREREG_S1878
 (function(){
 'use strict';
 const TV = (typeof window !== 'undefined') ? window.SXTV : null; if (!TV) return;
@@ -132,6 +134,46 @@ TV.reg({
     const li = G.e - 1, v = R.bbi[li]; if (fin(v)) head(ctx, G, (v >= 0 ? '+' : '') + fmt2(v) + ' · 경고 ±' + A + ' · 충격 ±' + I, IMP_BC[R.bc[li]] || '#888'); }
 });
 
+// ── ⑤ 〰️ 볼린저 구역 배지 [S1878] — 앱 자체 정의(📈 크로스 탭 〰️ 볼린저 모드와 같은 계산 함수) · 선 없이 지금 구역만(사용자 2026-11-03 09:45) ──
+//   계산: window._bbzSer(rows, 종가, 설정) · window._bbzZone(sx_render.js · S1876) 를 그대로 부른다 → 구역 · 잠금이 탭 BT 와 같은 값
+//         함수가 없으면(sx_render.js 가 안 실린 곳) 배지를 안 그리고 읽기 글에 그렇게 적는다(지어내지 않음)
+//   배지(캔들 칸 왼쪽 위 · 마지막 봉 기준): '〰️ 구역 ±x.xσ' + 과열 이탈 잠금이면 ' · 🔒 잠금' · 색 = 과열 주황 · 상승 쪽 초록 · 횡보 회색 · 하락 쪽 빨강 · 폭락 보라(원안 v3 색)
+//   σ 자리 = (종가 − 중심선) ÷ σ · 과열 이탈 = 종가가 맨 위 선 아래로 내려온 봉(탭의 과열 이탈 청산 · 잠금과 같은 정의 · 읽기 글에 '마지막 과열 이탈 n봉 전')
+const BZ_RGB = { side: [100, 116, 139], up: [22, 163, 74], dn: [220, 38, 38], hot: [234, 88, 12], crash: [147, 51, 234] };
+const bzRgba = (c, a) => 'rgba(' + c.join(',') + ',' + Math.max(0, Math.min(1, a)).toFixed(3) + ')';
+const bzCol = z => z === '과열' ? BZ_RGB.hot : z === '폭락' ? BZ_RGB.crash : /상승/.test(z) ? BZ_RGB.up : /하락/.test(z) ? BZ_RGB.dn : BZ_RGB.side;
+const bzSg = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + 'σ';
+function bbzCfg(p) { return { bbzOn: true, bbzP: p.P, bbzM1: p.m1, bbzM2: p.m2, bbzM3: p.m3, bbzB1: !!p.b1, bbzB2: !!p.b2, bbzB3: !!p.b3, bbzBs: p.bs, bbzBN: p.bN }; }
+function bbzCalc(rows, p) { const W = (typeof window !== 'undefined') ? window : {}, f = W._bbzSer, zf = W._bbzZone;
+  if (typeof f !== 'function' || typeof zf !== 'function') return { none: true };
+  const n = rows.length, close = rows.map(r => +((r || {}).close)), S = f(rows, close, bbzCfg(p)), top = S.top, li = n - 1;
+  const hotX = new Uint8Array(n); for (let i = 1; i < n; i++) if (top && top[i] != null && top[i - 1] != null && close[i] < top[i] && close[i - 1] >= top[i - 1]) hotX[i] = 1;
+  const m = li >= 0 ? S.mid[li] : null, d = li >= 0 ? S.sd[li] : null, z = (m != null && d != null && fin(m) && d > 0 && fin(close[li])) ? (close[li] - m) / d : null;
+  return { S, close, hotX, zone: li >= 0 ? (zf(S, li, close[li]) || '') : '', z, lock: li >= 0 ? S.lock[li] === 1 : false }; }
+function bzBadgeTxt(R) { return '〰️ ' + R.zone + (R.z != null ? ' ' + bzSg(R.z) : '') + (R.lock ? ' · 🔒 잠금' : ''); }
+TV.reg({
+  id: 'bbz', place: 'over', name: 'Bollinger Zone Badge (앱 〰️ 볼린저 모드 정의)', short: 'BB Zone', kname: '〰️ 볼린저 구역 배지',
+  author: '앱(📈 크로스 탭 〰️ 볼린저 모드와 같은 계산 함수 · 사용자 설계)', license: '앱 자체 정의 · 라이선스 없음',
+  app: '앱 자체 정의 — 📈 크로스 탭 〰️ 볼린저 모드(S1876)와 같은 계산 함수(_bbzSer · 같은 기간 SMA ± 모집단 σ × 승수 · 과열 이탈 잠금) · 선 없이 지금 구역 배지만(사용자 2026-11-03)',
+  inputs: [
+    { k: 'P', nm: '기간(밴드 셋 같이)', o: '—', t: 'int', d: 200, min: 2, max: 1000, app: true },
+    { k: 'b1', nm: '밴드 1 쓰기', o: '—', t: 'bool', d: true, app: true },
+    { k: 'm1', nm: '  밴드 1 승수', o: '—', t: 'float', d: 1, min: 0.1, max: 10, step: 0.1, app: true },
+    { k: 'b2', nm: '밴드 2 쓰기', o: '—', t: 'bool', d: true, app: true },
+    { k: 'm2', nm: '  밴드 2 승수', o: '—', t: 'float', d: 2, min: 0.1, max: 10, step: 0.1, app: true },
+    { k: 'b3', nm: '밴드 3 쓰기', o: '—', t: 'bool', d: true, app: true },
+    { k: 'm3', nm: '  밴드 3 승수', o: '—', t: 'float', d: 3, min: 0.1, max: 10, step: 0.1, app: true },
+    { k: 'bs', nm: '기준(잠금 풀림 판단 · 구역은 늘 종가)', o: '—', t: 'sel', d: 'c', opts: ['c', 'ma'], optNm: { c: '종가', ma: 'MA' }, app: true },
+    { k: 'bN', nm: '  MA 길이', o: '—', t: 'int', d: 5, min: 1, max: 400, app: true }
+  ],
+  legend: p => '〰️ 볼린저 구역 ' + p.P + ' ±' + [[p.b1, p.m1], [p.b2, p.m2], [p.b3, p.m3]].filter(x => x[0]).map(x => x[1]).join('/') + (p.bs === 'ma' ? ' · MA' + p.bN : ''),
+  calc: bbzCalc,
+  draw(ctx, R, G, p) { if (!R || R.none || !R.zone) return; const t = bzBadgeTxt(R), c = bzCol(R.zone);
+    ctx.save(); ctx.font = 'bold 10px Outfit,sans-serif'; const w = ctx.measureText(t).width + 12, h = 17, x = G.pad.l + 4, y = G.pad.t + 4;
+    ctx.fillStyle = bzRgba(c, 0.9); ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, 8); else ctx.rect(x, y, w, h); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(t, x + 6, y + h / 2 + 0.5); ctx.restore(); }
+});
+
 // ── 읽기 글(마지막 봉 · S1872 sx_tvread.js 와 같은 꼴 · 🧩 칩은 S1874 — 여기는 ok = null) ──
 const ago = (li, i) => li - i === 0 ? '이 봉' : (li - i) + '봉 전';
 const px = v => !fin(v) ? '—' : (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-US') : Math.abs(v) >= 1 ? (+v.toFixed(2)).toString() : (+v.toPrecision(4)).toString());
@@ -147,8 +189,11 @@ const RD = {
   bbtr(R, p, rows) { const li = rows.length - 1, v = R.v[li], v1 = li > 0 ? R.v[li - 1] : NaN; if (!fin(v)) return null;
     return { t: sg(v) + ' · ' + (v > 0 ? '0 위(상승 쪽)' : v < 0 ? '0 아래(하락 쪽)' : '0') + ' · ' + ['0 에서 멀어짐(진한 초록)', '0 쪽으로 줄어듦(옅은 초록)', '0 에서 멀어짐(진한 빨강)', '0 쪽으로 줄어듦(옅은 빨강)'][R.bc[li]], ok: null }; },
   bbimp(R, p, rows) { const li = rows.length - 1, v = R.bbi[li]; if (!fin(v)) return null; let k = -1; for (let i = li; i >= 0; i--) if (R.bc[i] >= 1) { k = i; break; }
-    return { t: sg(v) + ' · 이 봉 ' + ['보통(하늘)', '경고 +(라임)', '충격 +(주황)', '경고 −(빨강)', '충격 −(주황)'][R.bc[li]] + (k >= 0 ? ' · 마지막 경고 · 충격 ' + (R.bc[k] <= 2 ? '+ 쪽' : '− 쪽') + ' ' + ago(li, k) : ' · 경고 · 충격 아직 없음'), ok: null }; }
+    return { t: sg(v) + ' · 이 봉 ' + ['보통(하늘)', '경고 +(라임)', '충격 +(주황)', '경고 −(빨강)', '충격 −(주황)'][R.bc[li]] + (k >= 0 ? ' · 마지막 경고 · 충격 ' + (R.bc[k] <= 2 ? '+ 쪽' : '− 쪽') + ' ' + ago(li, k) : ' · 경고 · 충격 아직 없음'), ok: null }; },
+  bbz(R, p, rows) { if (!R || R.none) return { t: '⚠ 계산 함수 없음(📈 크로스 탭 sx_render.js 가 안 실림) — 배지 안 그림', ok: null }; if (!R.zone) return null; const li = rows.length - 1;
+    let k = -1; for (let i = li; i >= 0; i--) if (R.hotX[i]) { k = i; break; }
+    return { t: '지금 구역 ' + R.zone + (R.z != null ? '(' + bzSg(R.z) + ')' : '') + (R.lock ? ' · 과열 이탈 잠금(기준이 녹색 아래로 내려오기 전엔 탭 새 진입 금지)' : '') + ' · ' + (k >= 0 ? '마지막 과열 이탈 ' + ago(li, k) : '과열 이탈 아직 없음'), ok: null }; }
 };
 if (TV.READ) Object.keys(RD).forEach(k => { TV.READ[k] = RD[k]; });
-if (typeof module !== 'undefined' && module.exports) module.exports = { bbpbCalc, bbwCalc, bbtrCalc, bbimpCalc, bb, hiN, loN, RD };
+if (typeof module !== 'undefined' && module.exports) module.exports = { bbpbCalc, bbwCalc, bbtrCalc, bbimpCalc, bb, hiN, loN, RD, bbzCalc, bbzCfg, bzBadgeTxt /* [S1878] */ };
 })();
