@@ -4,6 +4,7 @@
 //     ① Support and Resistance Levels with Breaks [LuxAlgo] — © LuxAlgo · CC BY-NC-SA 4.0 · 원본 = offline/tvchart/"Support and Resistance Levels with Breaks.txt"
 //     ② [S1866] Volume Profile [LuxAlgo] — © LuxAlgo · CC BY-NC-SA 4.0 · 원본 = offline/tvchart/"Volume Profile.txt"
 //     ③ [S1868] Smart Money Concepts Pro [Neon] — © LuxAlgo(원본 Smart Money Concepts) · 파인 v6 옮김 · 고침 · Neon 화면(옮긴 이 이름 없음) · CC BY-NC-SA 4.0 · 원본 = offline/tvchart/"Smart Money Concepts (by LuxAlgo).txt"
+//     ④ [S1874] Alpha Signal Engine Pro [MarkitTick] — © MarkitTick · CC BY-NC-SA 4.0 · 파인 v6 · 원본 = offline/tvchart/"Alpha Signal Engine Pro (MarkitTick).txt"
 //   봉마다 파인 그대로 계산한다(전체 봉 · 그 봉까지 자료만). 앱이 더한 설정은 이름에 '앱' 을 단다.
 (function(){
 'use strict';
@@ -321,5 +322,120 @@ TV.reg({
   barColor(R, i, p) { if (!p.colorBars || !R.cb) return null; const th = smcTheme(p); return smcCol(R.cb[i] === SMC_BULL ? th.bull : th.bear, 0); },
   draw: smcDraw
 });
-if (typeof module !== 'undefined' && module.exports) module.exports = { srbCalc, vpCalc, vpProfile, smcCalc, smcTheme };
+// ── ④ [S1874] Alpha Signal Engine Pro [MarkitTick](파인 v6 · © MarkitTick · CC BY-NC-SA 4.0) ──
+//   원본 99 ~ 216줄: atr = ta.atr(p1)[1] · priceMove = min(|c1 − c2| / max(c2, mintick), nz(pnr(그것, 100, 95), 그것))
+//         dynRaw = γ + atr / c1 × φ + priceMove × τ · 반폭 = na(앞) ? dynRaw × atr : α × dynRaw × atr + (1 − α) × 앞 반폭(α = 2 / (κ + 1))
+//         띠 = (h1 + l1) / 2 ± 반폭 · 추세선(var): na 면 위 띠 · c1 > TL[1] → 방향 1 · TL = max(아래 띠, TL) · 아니면 방향 −1 · TL = min(위 띠, TL)
+//         거름 다섯(정체 · 기울기 · 거래량 · 봉 폭 · BPS) 중 하나라도 걸리고 돌파 무시가 아니면 '평평' → 표시 방향(var 1)을 안 바꿈 · BUY = 표시 −1 → 1 · SELL = 1 → −1
+//         변동성 지문(켜면): ATR % 의 300봉 25 · 50 · 75 백분위 칸 → 배수 · 그림 = 추세선 · 구름(TL ↔ sma(hlc3, 8)) · 라벨 · 막대 색(세기 그러데이션) · 대시보드(앱 = 읽기 한 줄)
+//   앱: mintick 을 몰라 1e-10 · 차트 종류 경고 · 알림 · 웹훅 없음 · ta.percentile_nearest_rank = 창 안 na 빼고 오름차순 · 순위 ceil(p / 100 × 개수) · 앞 길이 − 1 봉 na(가정)
+const AL_MT = 1e-10;
+const alMax = (a, b) => (fin(a) && fin(b)) ? Math.max(a, b) : NaN, alMin = (a, b) => (fin(a) && fin(b)) ? Math.min(a, b) : NaN;   // 파인 math.max · min — na 가 끼면 na
+function alPnr(src, len, pct) { const N = src.length, o = new Float64Array(N).fill(NaN);
+  for (let t = len - 1; t < N; t++) { const w = []; for (let j = t - len + 1; j <= t; j++) if (fin(src[j])) w.push(src[j]); if (!w.length) continue; w.sort((a, b) => a - b); const k = Math.max(1, Math.ceil(pct / 100 * w.length)); o[t] = w[Math.min(k, w.length) - 1]; } return o; }
+// 파인 ta.linreg(src, n, off) = 절편 + 기울기 × (n − 1 − off) · 창 안 na 면 na · x = 0(가장 옛) … n − 1
+function alLinreg(src, n, off) { const N = src.length, o = new Float64Array(N).fill(NaN), xm = (n - 1) / 2; let sxx = 0; for (let i = 0; i < n; i++) sxx += (i - xm) * (i - xm);
+  for (let t = n - 1; t < N; t++) { let ym = 0, ok = true; for (let i = 0; i < n; i++) { const v = src[t - n + 1 + i]; if (!fin(v)) { ok = false; break; } ym += v; } if (!ok) continue; ym /= n;
+    let sxy = 0; for (let i = 0; i < n; i++) sxy += (i - xm) * (src[t - n + 1 + i] - ym); const b = sxy / sxx; o[t] = ym + b * (n - 1 - off - xm); } return o; }
+const sh1 = (a, k) => { const N = a.length, o = new Float64Array(N).fill(NaN); for (let t = k; t < N; t++) o[t] = a[t - k]; return o; };
+function alphaCalc(rows, p) { const n = rows.length, O = new Float64Array(n), H = new Float64Array(n), L = new Float64Array(n), C = new Float64Array(n), V = new Float64Array(n);
+  for (let i = 0; i < n; i++) { const r = rows[i] || {}; O[i] = num(r.open); H[i] = num(r.high); L[i] = num(r.low); C[i] = num(r.close); V[i] = num(r.volume); }
+  const atr = sh1(T.atr(H, L, C, p.atrLen), 1), C1 = sh1(C, 1), C2 = sh1(C, 2), H1 = sh1(H, 1), L1 = sh1(L, 1), V1 = sh1(V, 1);
+  const atrPct = new Float64Array(n), pmRaw = new Float64Array(n), hlR = new Float64Array(n);
+  for (let t = 0; t < n; t++) { atrPct[t] = atr[t] / Math.max(C1[t], AL_MT) * 100;   /* JS Math.max(NaN, x) = NaN = 파인 math.max(na, x) */ pmRaw[t] = Math.abs(C1[t] - C2[t]) / Math.max(C2[t], AL_MT); hlR[t] = H1[t] - L1[t]; }
+  const P25 = alPnr(atrPct, p.vfLb, 25), P50 = alPnr(atrPct, p.vfLb, 50), P75 = alPnr(atrPct, p.vfLb, 75), pm95 = alPnr(pmRaw, 100, 95), hlP = alPnr(hlR, p.cdN, p.cdP), volS = T.sma(V, p.ccN);
+  const nzv = (x, y) => fin(x) ? x : y, lt = (a, b) => fin(a) && fin(b) && a < b;
+  const bk = new Int8Array(n), GM = new Float64Array(n), effVol = new Float64Array(n), effHl = new Float64Array(n), tl = new Float64Array(n).fill(NaN), dir = new Int8Array(n), bh = new Float64Array(n).fill(NaN);
+  const vtf = new Uint8Array(n), tif = new Uint8Array(n), lqf = new Uint8Array(n), cdf = new Uint8Array(n), bpf = new Uint8Array(n), bo = new Uint8Array(n), flat = new Uint8Array(n), disp = new Int8Array(n), buy = new Uint8Array(n), sell = new Uint8Array(n), str = new Float64Array(n).fill(NaN);
+  const hlc3 = new Float64Array(n); for (let i = 0; i < n; i++) hlc3[i] = (H[i] + L[i] + C[i]) / 3; const ref = T.sma(hlc3, p.cfLen);
+  let tlPrev = NaN, dirV = 1, dispV = 1;
+  // 기울기 거름 = ta.linreg(TL[1], n, 0) − ta.linreg(TL[1], n, 1) — TL 은 봉마다 정해지므로 차례로 셈하며 창을 본다
+  const lrNow = (t, off) => { const m = p.cbN; if (t - 1 - (m - 1) < 0) return NaN; const w = new Float64Array(m); for (let i = 0; i < m; i++) w[i] = tl[t - 1 - (m - 1) + i]; return alLinreg(w, m, off)[m - 1]; };
+  for (let t = 0; t < n; t++) {
+    const a = atrPct[t]; bk[t] = lt(a, nzv(P25[t], a + 1)) ? 0 : (lt(a, nzv(P50[t], a + 1)) ? 1 : (lt(a, nzv(P75[t], a + 1)) ? 2 : 3));
+    const vf = !!p.vfOn, gm = [0.70, 1.00, 1.40, 2.00][bk[t]], phm = [0.70, 1.00, 1.30, 1.80][bk[t]], tam = [0.60, 1.00, 1.35, 1.70][bk[t]]; GM[t] = gm;
+    const eg = vf ? p.gam * gm : p.gam, ephi = vf ? p.phi * phm : p.phi, etau = vf ? p.tau * tam : p.tau, ekap = Math.max(1.0, vf ? p.kap * gm : p.kap);
+    const eCa = vf ? p.caQ * gm : p.caQ, eCb = vf ? p.cbZ * gm : p.cbZ, eCe = vf ? p.ceQ * gm : p.ceQ, eCf = vf ? p.cfQ * gm : p.cfQ;
+    const pm = alMin(pmRaw[t], nzv(pm95[t], pmRaw[t])), dyn = eg + (atr[t] / C1[t]) * ephi + pm * etau, al = 2.0 / (ekap + 1.0), raw = dyn * atr[t];
+    bh[t] = !fin(t > 0 ? bh[t - 1] : NaN) ? raw : al * raw + (1.0 - al) * bh[t - 1]; if (!fin(bh[t])) bh[t] = NaN;
+    const hl2 = (H1[t] + L1[t]) / 2.0, up = hl2 + bh[t], lo = hl2 - bh[t];
+    let cur = tlPrev; if (!fin(cur)) cur = fin(up) ? up : NaN;
+    if (fin(C1[t]) && fin(tlPrev) && C1[t] > tlPrev) { dirV = 1; cur = alMax(lo, cur); } else { dirV = -1; cur = alMin(up, cur); }
+    tl[t] = cur; dir[t] = dirV;
+    const tl1 = t >= 1 ? tl[t - 1] : NaN, tl2 = t >= 2 ? tl[t - 2] : NaN, dTL = Math.abs(tl1 - tl2);
+    vtf[t] = p.caOn && lt(dTL, atr[t] * eCa) ? 1 : 0;
+    const sl = lrNow(t, 0) - lrNow(t, 1), ns = Math.abs(sl) / Math.max(atr[t], AL_MT); tif[t] = p.cbOn && fin(atr[t]) && lt(ns, eCb) ? 1 : 0;
+    effVol[t] = vf ? volS[t] * gm : volS[t]; const ev1 = t >= 1 ? effVol[t - 1] : NaN; lqf[t] = p.ccOn && fin(V1[t]) && V1[t] <= nzv(ev1, V1[t] + 1) ? 1 : 0;
+    effHl[t] = vf ? hlP[t] * gm : hlP[t]; cdf[t] = p.cdOn && fin(hlR[t]) && hlR[t] <= nzv(effHl[t], hlR[t] + 1) ? 1 : 0;
+    const bps = dTL / Math.max(C2[t], AL_MT) * 10000.0; bpf[t] = p.ceOn && fin(C2[t]) && lt(bps, eCe) ? 1 : 0;
+    bo[t] = p.cfOn && fin(atr[t]) && fin(C1[t]) && fin(C2[t]) && Math.abs(C1[t] - C2[t]) > atr[t] * eCf ? 1 : 0;
+    flat[t] = (vtf[t] || tif[t] || lqf[t] || cdf[t] || bpf[t]) && !bo[t] ? 1 : 0;
+    if (!flat[t]) dispV = dirV; disp[t] = dispV;
+    if (t >= 1) { buy[t] = disp[t] === 1 && disp[t - 1] === -1 ? 1 : 0; sell[t] = disp[t] === -1 && disp[t - 1] === 1 ? 1 : 0; }
+    const rs = Math.abs(C1[t] - tl1) / Math.max(atr[t], AL_MT); str[t] = fin(rs) && fin(atr[t]) ? Math.min(1.0, rs / 3.0) : NaN;
+    tlPrev = cur; }
+  return { tl, dir, disp, buy, sell, str, ref, vtf, tif, lqf, cdf, bpf, bo, flat, bk }; }
+const AL_UA = [0, 229, 255], AL_DA = [224, 64, 251], AL_CN = [84, 110, 122];
+const alHex = c => '#' + c.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+// 파인 color.from_gradient(v, 0, 1, 회색, 방향 색) — 채널마다 곧은 섞기(앱 · 반올림)
+const alGrad = (s, d) => !fin(s) ? null : alHex(AL_CN.map((c, k) => c + ((d === 1 ? AL_UA : AL_DA)[k] - c) * Math.max(0, Math.min(1, s))));
+function alLabel(ctx, G, i, y, txt, col, up) {   // 원본 labelup(아래에 놓이고 위를 가리킴) · labeldown — 자리 = 추세선 가격(location.absolute)
+  ctx.save(); ctx.font = 'bold 9px Outfit,sans-serif'; const w = ctx.measureText(txt).width + 8, h = 13, x = G.x(i), top = up ? y + 4 : y - 4 - h;
+  ctx.fillStyle = col; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x - w / 2, top, w, h, 3); else ctx.rect(x - w / 2, top, w, h); ctx.fill();
+  ctx.beginPath(); if (up) { ctx.moveTo(x - 3, top); ctx.lineTo(x + 3, top); ctx.lineTo(x, y); } else { ctx.moveTo(x - 3, top + h); ctx.lineTo(x + 3, top + h); ctx.lineTo(x, y); } ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x, top + h / 2 + 0.5); ctx.restore(); }
+TV.reg({
+  id: 'alpha', place: 'over', name: 'Alpha Signal Engine Pro [MarkitTick]', short: 'Alpha SE', kname: 'Alpha 시그널 엔진',
+  author: 'MarkitTick', license: 'CC BY-NC-SA 4.0', srcFile: 'Alpha Signal Engine Pro (MarkitTick).txt',
+  inputs: [
+    { k: 'vfOn', nm: '변동성 지문 켜기', o: 'Enable Volatility Fingerprint', t: 'bool', d: false },
+    { k: 'vfLb', nm: '변동성 지문 길이', o: 'Lookback Length', t: 'int', d: 300, min: 50, max: 500 },
+    { k: 'atrLen', nm: 'ATR 기간', o: 'ATR Period', t: 'int', d: 14, min: 2, max: 500 },
+    { k: 'gam', nm: '띠 배수', o: 'Band Multiplier', t: 'float', d: 3.0, min: 0.1, max: 50, step: 0.1 },
+    { k: 'phi', nm: 'ATR 무게', o: 'ATR Weight', t: 'float', d: 1.0, min: 0.1, max: 50, step: 0.1 },
+    { k: 'tau', nm: '가격 움직임 무게', o: 'Price Move Weight', t: 'float', d: 5.0, min: 0.1, max: 50, step: 0.1 },
+    { k: 'kap', nm: 'EMA 다듬기 길이', o: 'EMA Smoothing Length', t: 'int', d: 1, min: 1, max: 50 },
+    { k: 'caOn', nm: '거름 · 추세선 정체', o: 'Trendline Stall Filter', t: 'bool', d: true },
+    { k: 'caQ', nm: '  정체 문턱(ATR 배)', o: 'Flatness Threshold', t: 'float', d: 0.05, min: 0.001, max: 1, step: 0.005 },
+    { k: 'cbOn', nm: '거름 · 기울기', o: 'Slope Filter', t: 'bool', d: true },
+    { k: 'cbN', nm: '  회귀 길이', o: 'Regression Length', t: 'int', d: 5, min: 3, max: 20 },
+    { k: 'cbZ', nm: '  기울기 문턱(ATR 배)', o: 'Slope Threshold', t: 'float', d: 0.05, min: 0.001, max: 1, step: 0.005 },
+    { k: 'ccOn', nm: '거름 · 거래량', o: 'Volume Filter', t: 'bool', d: true },
+    { k: 'ccN', nm: '  거래량 평균 길이', o: 'Volume MA Length', t: 'int', d: 20, min: 5, max: 100 },
+    { k: 'cdOn', nm: '거름 · 봉 폭', o: 'Range Filter', t: 'bool', d: true },
+    { k: 'cdN', nm: '  백분위 길이', o: 'Percentile Lookback', t: 'int', d: 100, min: 20, max: 500 },
+    { k: 'cdP', nm: '  봉 폭 백분위(%)', o: 'Range Percentile (%)', t: 'float', d: 20.0, min: 5, max: 50, step: 1 },
+    { k: 'ceOn', nm: '거름 · BPS 움직임', o: 'BPS Delta Filter', t: 'bool', d: true },
+    { k: 'ceQ', nm: '  최소 BPS', o: 'Min BPS Delta', t: 'float', d: 1.0, min: 0.1, max: 100, step: 0.1 },
+    { k: 'cfOn', nm: '돌파 무시(큰 봉이면 거름 무시)', o: 'Breakout Override', t: 'bool', d: true },
+    { k: 'cfQ', nm: '  돌파 ATR 배', o: 'Breakout ATR Multiple', t: 'float', d: 1.5, min: 0.5, max: 10, step: 0.1 },
+    { k: 'barc', nm: '막대 색(원본 기본 켬 · 앱 끔)', o: 'Dynamic Bar Coloring', t: 'bool', d: false, app: true },
+    { k: 'sig', nm: 'BUY · SELL 보이기', o: 'Show Buy/Sell Signals', t: 'bool', d: true },
+    { k: 'cloud', nm: '구름 보이기', o: 'Show Cloud Fill', t: 'bool', d: true },
+    { k: 'cfLen', nm: '구름 hlc3 평균 길이', o: 'Cloud HLC3 MA Length', t: 'int', d: 8, min: 1, max: 50 },
+    { k: 'cfTr', nm: '구름 투명도', o: 'Cloud Transparency', t: 'int', d: 65, min: 0, max: 95 }
+  ],
+  legend: p => 'Alpha SE ' + [p.atrLen, p.gam, p.phi, p.tau, p.kap].join(' ') + (p.vfOn ? ' · 지문' : ''),
+  calc: alphaCalc,
+  range(R, s, e, p, out) { for (let i = s; i < e; i++) if (fin(R.tl[i])) out.push(R.tl[i]); },
+  barColor(R, i, p) { if (!p.barc) return null; return alGrad(R.str[i], R.disp[i]); },
+  draw(ctx, R, G, p) { const ua = alHex(AL_UA), da = alHex(AL_DA);
+    if (p.cloud) { const a = (100 - p.cfTr) / 100; ctx.save();
+      for (let i = Math.max(G.s + 1, 1); i < G.e; i++) { const t0 = R.tl[i - 1], t1 = R.tl[i], r0 = R.ref[i - 1], r1 = R.ref[i]; if (![t0, t1, r0, r1].every(fin)) continue;   // 구름은 끊지 않음(색 = 그 봉 표시 방향)
+        const c = R.disp[i] === 1 ? AL_UA : AL_DA, x0 = G.x(i - 1), x1 = G.x(i), yt = G.y((t0 + t1) / 2), yr = G.y((r0 + r1) / 2), rgba = al => 'rgba(' + c.join(',') + ',' + al + ')';
+        let fill = rgba(a); if (ctx.createLinearGradient && yt !== yr) { const g = ctx.createLinearGradient(0, yt, 0, yr); g.addColorStop(0, rgba(a)); g.addColorStop(1, rgba(0)); fill = g; }
+        ctx.fillStyle = fill; ctx.beginPath(); ctx.moveTo(x0, G.y(t0)); ctx.lineTo(x1, G.y(t1)); ctx.lineTo(x1, G.y(r1)); ctx.lineTo(x0, G.y(r0)); ctx.closePath(); ctx.fill(); }
+      ctx.restore(); }
+    ctx.save(); ctx.lineWidth = 2; for (let i = Math.max(G.s + 1, 1); i < G.e; i++) { const a = R.tl[i - 1], b = R.tl[i]; if (!fin(a) || !fin(b) || R.disp[i] !== R.disp[i - 1]) continue;   // style_linebr — 위 · 아래 줄이 따로라 바뀌는 봉은 잇지 않음
+      ctx.strokeStyle = R.disp[i] === 1 ? ua : da; ctx.beginPath(); ctx.moveTo(G.x(i - 1), G.y(a)); ctx.lineTo(G.x(i), G.y(b)); ctx.stroke(); } ctx.restore();
+    if (p.sig) for (let i = G.s; i < G.e; i++) { if (!fin(R.tl[i])) continue; if (R.buy[i]) alLabel(ctx, G, i, G.y(R.tl[i]), 'BUY', 'rgba(0,229,255,0.8)', true); if (R.sell[i]) alLabel(ctx, G, i, G.y(R.tl[i]), 'SELL', 'rgba(224,64,251,0.8)', false); } }
+});
+// 읽기 글 — 이 파일은 sx_tvread.js 보다 먼저 실린다(스크립트 차례) → READ 가 이미 있으면 바로 더하고, 없으면 READ 가 생기는 순간(setter) 더함(sx_tvread.js 무변경)
+const alphaRead = (R, p, rows) => { const li = rows.length - 1; if (!fin(R.tl[li])) return null; let k = -1; for (let i = li; i >= 0; i--) if (R.buy[i] || R.sell[i]) { k = i; break; }
+  const nm = [['vtf', '정체', p.caOn], ['tif', '기울기', p.cbOn], ['lqf', '거래량', p.ccOn], ['cdf', '봉 폭', p.cdOn], ['bpf', 'BPS', p.ceOn]].filter(x => x[2] && R[x[0]][li]).map(x => x[1]);
+  return { t: '표시 방향 ' + (R.disp[li] === 1 ? '상승' : '하락') + (R.dir[li] !== R.disp[li] ? '(선은 ' + (R.dir[li] === 1 ? '상승' : '하락') + ' · 거름에 막힘)' : '') + (k >= 0 ? ' · 마지막 ' + (R.buy[k] ? 'BUY' : 'SELL') + ' ' + (k === li ? '이 봉' : (li - k) + '봉 전') : ' · 신호 아직 없음')
+    + ' · 거름 ' + (R.bo[li] ? '돌파로 무시' : (nm.length ? '걸림(' + nm.join(' · ') + ')' : '통과')), ok: null }; };
+{ const addR = o => { if (o && typeof o === 'object' && !o.alpha) o.alpha = alphaRead; };
+  if (TV.READ) addR(TV.READ); else { let _r; Object.defineProperty(TV, 'READ', { configurable: true, enumerable: true, get() { return _r; }, set(v) { _r = v; addR(v); } }); } }
+if (typeof module !== 'undefined' && module.exports) module.exports = { srbCalc, vpCalc, vpProfile, smcCalc, smcTheme, alphaCalc /* [S1874] */ };
 })();
