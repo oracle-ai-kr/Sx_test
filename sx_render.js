@@ -2276,10 +2276,10 @@ function _bbzSer(rows, close, cfg){ const q=_bbzQ(cfg), n=close.length, ks=_bbzK
     else { const id=(pos && pos.bbzL && L[pos.bbzL])?pos.bbzL:q.E[0]; hit=dn(bs,L[id],i); }
     const hot=q.ox && dn(close, top, i); return hit?'line':(hot?'hot':''); };
   return { q, ks, mid, sd, bs, L, BD, top, bot, lock, ok, gc:i=>gcA[i]===1, lineAt:i=>(at[i]>=0)?_BBZ_LN[at[i]]:null, dc:(i,pos)=>why(i,pos)!=='', why }; }
-// 구역(종가 기준 · 켜진 밴드 수에 따라 이름) — 셋: 과열 · 강한 상승 · 상승 · 횡보 위 · 횡보 아래 · 하락 · 강한 하락 · 폭락 / 둘: 과열 · 상승 · 횡보 · 하락 · 폭락 / 하나: 과열 · 횡보 · 폭락
+// 구역(종가 기준 · 켜진 밴드 수에 따라 이름) — 셋: 초과열권 · 상승 과열권 · 상승 가속권 · 회복 상승권 · 이탈 하락권 · 하락 가속권 · 침체 심화권 · 초공포권([S1882] 사용자 2026-11-04 · 🧭 〰️ 위치와 같은 표 _TRD_BZ · 같은 가름 _bbzZi) / 둘: 과열 · 상승 · 횡보 · 하락 · 폭락 / 하나: 과열 · 횡보 · 폭락
 function _bbzZone(S, i, c){ const B=S.BD; if(!B.length || S.mid[i]==null || !Number.isFinite(c)) return '';
+  if(B.length===3){ const k=_bbzZi(S, i, c); return (k>=0)?_TRD_BZ[k].nm:''; }   // [S1882] 셋 = 🧭 〰️ 위치와 같은 이름 · 같은 가름(옛 과열 · 강한 상승 · 상승 · 횡보 위 · 횡보 아래 · 하락 · 강한 하락 · 폭락 자리 그대로)
   if(c>B[B.length-1].u[i]) return '과열'; if(c<B[B.length-1].l[i]) return '폭락';
-  if(B.length===3){ if(c>B[1].u[i]) return '강한 상승'; if(c>B[0].u[i]) return '상승'; if(c>=S.mid[i]) return '횡보 위'; if(c>=B[0].l[i]) return '횡보 아래'; if(c>=B[1].l[i]) return '하락'; return '강한 하락'; }
   if(B.length===2){ if(c>B[0].u[i]) return '상승'; if(c>=B[0].l[i]) return '횡보'; return '하락'; }
   return '횡보'; }
 function _bbzSigOf(cfg){ if(!_bbzOn(cfg)) return {}; const q=_bbzQ(cfg); return { bbz:[q.P, _bbzKs(q).join('/'), q.E, q.R, q.A, q.A?(q.ma1+'x'+q.ma2):0, q.bs, q.bs==='ma'?q.bN:0, q.x, q.ox?1:0] }; }   // 꺼졌으면 빈 객체 — 지문 글자 그대로
@@ -14933,7 +14933,7 @@ function _trdSmiPos(k, i){ const v=k?k[i]:null; if(v==null || !isFinite(v) || !v
 // [S1881] 〰️ 위치 — 🧭 추세 읽기 줄 · 볼린저 트리플 200 · 1/2/3σ 고정(사용자 2026-11-04 09:09 '매수 매도 타이밍보단 위치적인 구도') · 계산 = 앱 〰️ 볼린저(_bbzSer · S1876) · 구역 가름 = _bbzZone 셋 가름과 같은 비교
 //   이름 · 상태 해석 = 사용자 표('직관형 명칭' · '시장 상태 해석' 열을 🧭 말투로) · '매매 관점' 열은 넣지 않음(사용자 답 '추세카드 읽기 개념에 맞춰서') · 칩 색 = S1879 풀차트 구역 배지 색 · 위치 설명 · 다음 방향 아님
 const _TRD_BZ=[ { nm:'초과열권', rg:'+3σ 위', d:'200봉 평균에서 가장 멀리 올라간 자리 — 극단적 과열(광기) 구간' }, { nm:'상승 과열권', rg:'+2 ~ +3σ', d:'강한 추세가 폭발적으로 뻗은 자리' }, { nm:'상승 가속권', rg:'+1 ~ +2σ', d:'우상향 추세를 순항 중인 자리' }, { nm:'회복 상승권', rg:'중심선 ~ +1σ', d:'200봉 평균 위 — 평균 이상의 긍정적 흐름' }, { nm:'이탈 하락권', rg:'−1σ ~ 중심선', d:'200봉 평균 아래 — 평균 이하의 조정 흐름' }, { nm:'하락 가속권', rg:'−2 ~ −1σ', d:'하방 압력이 심해진 자리' }, { nm:'침체 심화권', rg:'−3 ~ −2σ', d:'공포 매물이 몰린 언더슈팅 자리' }, { nm:'초공포권', rg:'−3σ 아래', d:'200봉 평균에서 가장 멀리 내려간 자리 — 극단적 공포(투매) 구간' } ];   // 위 → 아래(0 ~ 7)
-Object.assign(_TRD_LBL, { bz0:'초과열권', bz1:'상승 과열권', bz2:'상승 가속권', bz3:'회복 상승권', bz4:'이탈 하락권', bz5:'하락 가속권', bz6:'침체 심화권', bz7:'초공포권' }); Object.assign(_TRD_COL, { bz0:'#dc2626', bz1:'#f97316', bz2:'#eab308', bz3:'#16a34a', bz4:'#16a34a', bz5:'#22c3ee', bz6:'#2563eb', bz7:'#4338ca' });
+Object.assign(_TRD_LBL, { bz0:'초과열권', bz1:'상승 과열권', bz2:'상승 가속권', bz3:'회복 상승권', bz4:'이탈 하락권', bz5:'하락 가속권', bz6:'침체 심화권', bz7:'초공포권' }); Object.assign(_TRD_COL, { bz0:'#dc2626', bz1:'#f97316', bz2:'#eab308', bz3:'#16a34a', bz4:'#00ffab', bz5:'#22c3ee', bz6:'#2563eb', bz7:'#4338ca' });   // [S1882] 이탈 하락권 = 밝은 청록 #00ffab(사용자 2026-11-04 09:50)
 function _bbzZi(S, i, c){ const B=S&&S.BD; if(!B || B.length!==3 || !Number.isFinite(S.mid[i]) || !Number.isFinite(c)) return -1;   // 구역 번호(위 → 아래 0 ~ 7) · _bbzZone 셋 가름과 같은 차례 · 같은 부등호
   if(c>B[2].u[i]) return 0; if(c<B[2].l[i]) return 7; if(c>B[1].u[i]) return 1; if(c>B[0].u[i]) return 2; if(c>=S.mid[i]) return 3; if(c>=B[0].l[i]) return 4; if(c>=B[1].l[i]) return 5; return 6; }
 function _trdBzNow(rows){ const n=(rows&&rows.length)||0; if(!n) return { n:0, zi:-1 };
@@ -14988,7 +14988,7 @@ function _trdCardHtml(cx){ try{ const rows=cx.rows, n=(rows&&rows.length)||0, T2
   if(n<60) return wrap(head+'<div style="font-size:10.5px;color:'+T3+'">봉이 부족해요(60봉 이상 필요 · 지금 '+n+'봉)</div>');
   const S=_trdSeries(rows), i=n-1, L=_TRD_SL, st={ s:_trdState4(S.k,S.d,i), l:_trdState(S.m,S.s,i), r26:_trdRegime(S.g26,i), r12:_trdRegime(S.g12,i), t:_trdTtm(S.tn.t,i) };
   const _rgx=_trdRgSeries(rows, cx.tf, 60); S.rg=_rgx.band;   /* [S1856] ⛩️ 레짐 v4 — 띠 60봉 · 지금 줄(일봉만) */
-  const dark={ ua:1, da:1, rs:1, fs:1, sq:1, fi:1, pa:1, ma:1, c3:1, c0:1, uh:1, dh:1, tu3:1, td3:1, gbull:1, gcrash:1, bhi:1, blo:1 /* [S1856] */, bz0:1, bz1:1, bz3:1, bz4:1, bz6:1, bz7:1 /* [S1881] 노랑 · 하늘 빼고 흰 글자 */ }, chip=k=>k?('<span data-trd-k="'+k+'" style="display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:9px;background:'+_TRD_COL[k]+';color:'+(dark[k]?'#fff':'#1f2937')+'">'+_TRD_LBL[k]+'</span>'):'<span data-trd-k="" style="font-size:10px;color:'+T3+'">—</span>';
+  const dark={ ua:1, da:1, rs:1, fs:1, sq:1, fi:1, pa:1, ma:1, c3:1, c0:1, uh:1, dh:1, tu3:1, td3:1, gbull:1, gcrash:1, bhi:1, blo:1 /* [S1856] */, bz0:1, bz1:1, bz3:1, bz6:1, bz7:1 /* [S1881] 노랑 · 하늘 빼고 흰 글자 · [S1882] 이탈 하락권(밝은 청록)도 어두운 글자 */ }, chip=k=>k?('<span data-trd-k="'+k+'" style="display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:9px;background:'+_TRD_COL[k]+';color:'+(dark[k]?'#fff':'#1f2937')+'">'+_TRD_LBL[k]+'</span>'):'<span data-trd-k="" style="font-size:10px;color:'+T3+'">—</span>';
   const row=(ico,ttl,sub,k,detail,k2)=>'<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-top:1px dashed var(--border)"><div style="width:70px;flex-shrink:0"><div style="font-size:10.5px;font-weight:800;color:var(--text)">'+ico+' '+ttl+'</div><div style="font-size:8.5px;color:'+T3+'">'+sub+'</div></div><div style="flex:1;min-width:0">'+chip(k)+(k2?(' '+chip(k2)):'')+'<div style="font-size:9.5px;color:'+T2+';line-height:1.5;margin-top:2px">'+detail+'</div></div></div>';
   const rowN=(ico,ttl,sub,ks,detail)=>'<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-top:1px dashed var(--border)"><div style="width:70px;flex-shrink:0"><div style="font-size:10.5px;font-weight:800;color:var(--text)">'+ico+' '+ttl+'</div><div style="font-size:8.5px;color:'+T3+'">'+sub+'</div></div><div style="flex:1;min-width:0">'+(ks.length?ks.map(chip).join(' '):chip(null))+'<div style="font-size:9.5px;color:'+T2+';line-height:1.5;margin-top:2px">'+detail+'</div></div></div>';   /* [S1857] 큰 그림 줄 — 칩 셋까지 */
   const none='값이 아직 없어요';
@@ -20557,7 +20557,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1881';   // [S1881] 🧭 추세 읽기 〰️ 위치 줄 — 볼린저 트리플 200 · 1/2/3σ 고정 · 구역 여덟 이름(초과열권 ~ 초공포권) · 상태 해석
+  window.SX_BUILD='S1882';   // [S1882] 〰️ 트리플 구역 이름 = 🧭 〰️ 위치 이름(초과열권 ~ 초공포권) — 📈 크로스 탭 〰️ 줄 · 🧪 지그재그 탭 · 풀차트 배지 · 이탈 하락권 색 = 밝은 청록
+  //window.SX_BUILD='S1881';   // [S1881] 🧭 추세 읽기 〰️ 위치 줄 — 볼린저 트리플 200 · 1/2/3σ 고정 · 구역 여덟 이름(초과열권 ~ 초공포권) · 상태 해석
   //window.SX_BUILD='S1880';   // [S1880] 분석탭 접기 — 전광판 회색 패널 · 🔍 레시피 해석 · 🧩 칸 사다리 v2 · 🧪 재료 카운트(기본 접힘 · 펼쳐 보기)
   //window.SX_BUILD='S1879';   // [S1879] 트리플 선 색(위 빨강 쪽 · 아래 파랑 쪽 · 가운데 녹색) · 선 이름 = σ 이름 · 풀차트 배지 = 구역 자리 색 — S1878 은 render 무변경(풀차트)
   //window.SX_BUILD='S1877';   // [S1877] 🧪 지그재그 탭 〰️ 볼린저 트리플(기본) · 🟠 스윙 고르기 · 스윙점 σ
