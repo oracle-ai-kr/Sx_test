@@ -10629,13 +10629,14 @@ function _buildXmatCountCard(stock, indicators){
       return '<div id="sxXmatCountWrap" style="margin:0 0 10px;border-radius:12px;background:var(--surface);border:1px solid var(--border);overflow:hidden">'
         + '<div style="height:3px;background:linear-gradient(90deg,#16a34a,#94a3b8,#e8365a)"></div>'
         + '<div style="padding:11px 14px 12px">'
-        +   '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'
+        +   _sxFold('xm', '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'   /* [S1880] 카드 전체 기본 접기 */
+        +     _sxFoldC(_sxFoldOp('xm'))
         +     '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:rgba(22,163,74,.12);font-size:13px;flex-shrink:0">🧪</span>'
         +     '<span style="font-size:13.5px;font-weight:800;color:var(--text);white-space:nowrap">재료 카운트</span>'
         +     '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;background:rgba(22,163,74,.10);color:#16a34a;border:1px solid rgba(22,163,74,.30);white-space:nowrap">표시 전용</span>'
         +     (rightTxt?'<span style="margin-left:auto;flex-shrink:0;font-size:9px;color:var(--text3);white-space:nowrap">'+rightTxt+'</span>':'')
-        +   '</div>'
-        +   inner
+        +     _sxFoldT(_sxFoldOp('xm'), !rightTxt)
+        +   '</div>', inner)
         + '</div></div>';
     }
     var _mute='font-size:10.5px;color:var(--text3);line-height:1.6';
@@ -14929,6 +14930,25 @@ function _trdTdZone(p){ if(p==null || !isFinite(p)) return null; return p>50?1:(
 // [S1823] 장기 줄 SMI 위치 — %K > 0 → 0선 위 · < 0 → 0선 아래(측정 offline/rolecand: 큰 다리 맞힘 MACD 카드 쪽보다 +3~7%p · 덜 바뀜 · 2봉 늦음) · MACD 칩 옆에 비교용
 Object.assign(_TRD_LBL, { k0u:'SMI 0선 위', k0d:'SMI 0선 아래' }); Object.assign(_TRD_COL, { k0u:'#fda4af', k0d:'#a5b4fc' });
 function _trdSmiPos(k, i){ const v=k?k[i]:null; if(v==null || !isFinite(v) || !v) return null; return v>0?'k0u':'k0d'; }
+// [S1881] 〰️ 위치 — 🧭 추세 읽기 줄 · 볼린저 트리플 200 · 1/2/3σ 고정(사용자 2026-11-04 09:09 '매수 매도 타이밍보단 위치적인 구도') · 계산 = 앱 〰️ 볼린저(_bbzSer · S1876) · 구역 가름 = _bbzZone 셋 가름과 같은 비교
+//   이름 · 상태 해석 = 사용자 표('직관형 명칭' · '시장 상태 해석' 열을 🧭 말투로) · '매매 관점' 열은 넣지 않음(사용자 답 '추세카드 읽기 개념에 맞춰서') · 칩 색 = S1879 풀차트 구역 배지 색 · 위치 설명 · 다음 방향 아님
+const _TRD_BZ=[ { nm:'초과열권', rg:'+3σ 위', d:'200봉 평균에서 가장 멀리 올라간 자리 — 극단적 과열(광기) 구간' }, { nm:'상승 과열권', rg:'+2 ~ +3σ', d:'강한 추세가 폭발적으로 뻗은 자리' }, { nm:'상승 가속권', rg:'+1 ~ +2σ', d:'우상향 추세를 순항 중인 자리' }, { nm:'회복 상승권', rg:'중심선 ~ +1σ', d:'200봉 평균 위 — 평균 이상의 긍정적 흐름' }, { nm:'이탈 하락권', rg:'−1σ ~ 중심선', d:'200봉 평균 아래 — 평균 이하의 조정 흐름' }, { nm:'하락 가속권', rg:'−2 ~ −1σ', d:'하방 압력이 심해진 자리' }, { nm:'침체 심화권', rg:'−3 ~ −2σ', d:'공포 매물이 몰린 언더슈팅 자리' }, { nm:'초공포권', rg:'−3σ 아래', d:'200봉 평균에서 가장 멀리 내려간 자리 — 극단적 공포(투매) 구간' } ];   // 위 → 아래(0 ~ 7)
+Object.assign(_TRD_LBL, { bz0:'초과열권', bz1:'상승 과열권', bz2:'상승 가속권', bz3:'회복 상승권', bz4:'이탈 하락권', bz5:'하락 가속권', bz6:'침체 심화권', bz7:'초공포권' }); Object.assign(_TRD_COL, { bz0:'#dc2626', bz1:'#f97316', bz2:'#eab308', bz3:'#16a34a', bz4:'#16a34a', bz5:'#22c3ee', bz6:'#2563eb', bz7:'#4338ca' });
+function _bbzZi(S, i, c){ const B=S&&S.BD; if(!B || B.length!==3 || !Number.isFinite(S.mid[i]) || !Number.isFinite(c)) return -1;   // 구역 번호(위 → 아래 0 ~ 7) · _bbzZone 셋 가름과 같은 차례 · 같은 부등호
+  if(c>B[2].u[i]) return 0; if(c<B[2].l[i]) return 7; if(c>B[1].u[i]) return 1; if(c>B[0].u[i]) return 2; if(c>=S.mid[i]) return 3; if(c>=B[0].l[i]) return 4; if(c>=B[1].l[i]) return 5; return 6; }
+function _trdBzNow(rows){ const n=(rows&&rows.length)||0; if(!n) return { n:0, zi:-1 };
+  const close=rows.map(r=>_fibNum(r.close!=null?r.close:r.c)), S=_bbzSer(rows, close, { bbzOn:true, bbzP:200, bbzM1:1, bbzM2:2, bbzM3:3, bbzB1:true, bbzB2:true, bbzB3:true }), li=n-1, c=close[li], zi=_bbzZi(S, li, c);
+  if(zi<0) return { n, zi:-1 };
+  let run=1; for(let j=li-1;j>=0 && _bbzZi(S, j, close[j])===zi;j--) run++;
+  const m=S.mid[li], sd=S.sd[li], B=S.BD, LN=[['+3σ',B[2].u[li]],['+2σ',B[1].u[li]],['+1σ',B[0].u[li]],['중심선',m],['−1σ',B[0].l[li]],['−2σ',B[1].l[li]],['−3σ',B[2].l[li]]];
+  return { n, zi, c, m, run, z:(sd>0)?(c-m)/sd:null, up:zi>0?LN[zi-1]:null, dn:zi<7?LN[zi]:null }; }
+function _trdBzDesc(o){ if(!o || !(o.zi>=0)) return '200봉이 모자라요(지금 '+((o&&o.n)||0)+'봉) — 볼밴 200 은 200봉부터 보여요';
+  const pc=v=>{ const r=+((v/o.c-1)*100).toFixed(1); return (r>0?'+':(r<0?'−':''))+Math.abs(r).toFixed(1)+'%'; };
+  let first=true; const lab=(t,v)=>{ const x=t+' '+_fibFmt(v)+'('+(first?'현재가 대비 ':'')+pc(v)+')'; first=false; return x; };
+  let g='<span data-trd-bzg="1" style="display:inline-flex;gap:2px;vertical-align:middle;margin:0 2px">'; for(let q=7;q>=0;q--) g+='<span data-q="'+q+'" data-f="'+(q===o.zi?1:0)+'" style="display:inline-block;width:9px;height:8px;border-radius:2px;background:'+_TRD_COL['bz'+q]+';opacity:'+(q===o.zi?1:0.25)+'"></span>'; g+='</span>';   // 왼쪽 초공포권 → 오른쪽 초과열권
+  const P=[(o.z!=null?_fibZzSgF(o.z):'—')+' '+g, '이 구역 '+o.run+'봉째'];
+  if(o.up) P.push(lab('위 선 '+o.up[0], o.up[1])); if(o.dn) P.push(lab('아래 선 '+o.dn[0], o.dn[1])); if(!(o.up && o.up[0]==='중심선') && !(o.dn && o.dn[0]==='중심선')) P.push(lab('중심선', o.m));
+  return P.join(' · ')+' — '+_TRD_BZ[o.zi].d+' · 위치 설명 · 다음 방향 아님'; }
 function _trdSeries(rows){ const n=rows.length, C=rows.map(r=>_fibNum(r.close!=null?r.close:r.c)), sm=_trSmi(rows,10,3,3,10), mc=_turtleMacd(C,12,26,9), e9=_trEma(C,9), e12=_trEma(C,12), e26=_trEma(C,26), tn=_ttmNow(rows);
   const gap=(a,b)=>a.map((v,i)=>(v!=null&&b[i]!=null)?v-b[i]:null);
   const ri=_trRsi(C,14), rs=_trEma(ri,9);   /* [S1816] RSI 14 · 시그널 EMA 9(앱 rsiGc 와 같은 계산) */
@@ -14968,7 +14988,7 @@ function _trdCardHtml(cx){ try{ const rows=cx.rows, n=(rows&&rows.length)||0, T2
   if(n<60) return wrap(head+'<div style="font-size:10.5px;color:'+T3+'">봉이 부족해요(60봉 이상 필요 · 지금 '+n+'봉)</div>');
   const S=_trdSeries(rows), i=n-1, L=_TRD_SL, st={ s:_trdState4(S.k,S.d,i), l:_trdState(S.m,S.s,i), r26:_trdRegime(S.g26,i), r12:_trdRegime(S.g12,i), t:_trdTtm(S.tn.t,i) };
   const _rgx=_trdRgSeries(rows, cx.tf, 60); S.rg=_rgx.band;   /* [S1856] ⛩️ 레짐 v4 — 띠 60봉 · 지금 줄(일봉만) */
-  const dark={ ua:1, da:1, rs:1, fs:1, sq:1, fi:1, pa:1, ma:1, c3:1, c0:1, uh:1, dh:1, tu3:1, td3:1, gbull:1, gcrash:1, bhi:1, blo:1 /* [S1856] */ }, chip=k=>k?('<span data-trd-k="'+k+'" style="display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:9px;background:'+_TRD_COL[k]+';color:'+(dark[k]?'#fff':'#1f2937')+'">'+_TRD_LBL[k]+'</span>'):'<span data-trd-k="" style="font-size:10px;color:'+T3+'">—</span>';
+  const dark={ ua:1, da:1, rs:1, fs:1, sq:1, fi:1, pa:1, ma:1, c3:1, c0:1, uh:1, dh:1, tu3:1, td3:1, gbull:1, gcrash:1, bhi:1, blo:1 /* [S1856] */, bz0:1, bz1:1, bz3:1, bz4:1, bz6:1, bz7:1 /* [S1881] 노랑 · 하늘 빼고 흰 글자 */ }, chip=k=>k?('<span data-trd-k="'+k+'" style="display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:9px;background:'+_TRD_COL[k]+';color:'+(dark[k]?'#fff':'#1f2937')+'">'+_TRD_LBL[k]+'</span>'):'<span data-trd-k="" style="font-size:10px;color:'+T3+'">—</span>';
   const row=(ico,ttl,sub,k,detail,k2)=>'<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-top:1px dashed var(--border)"><div style="width:70px;flex-shrink:0"><div style="font-size:10.5px;font-weight:800;color:var(--text)">'+ico+' '+ttl+'</div><div style="font-size:8.5px;color:'+T3+'">'+sub+'</div></div><div style="flex:1;min-width:0">'+chip(k)+(k2?(' '+chip(k2)):'')+'<div style="font-size:9.5px;color:'+T2+';line-height:1.5;margin-top:2px">'+detail+'</div></div></div>';
   const rowN=(ico,ttl,sub,ks,detail)=>'<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-top:1px dashed var(--border)"><div style="width:70px;flex-shrink:0"><div style="font-size:10.5px;font-weight:800;color:var(--text)">'+ico+' '+ttl+'</div><div style="font-size:8.5px;color:'+T3+'">'+sub+'</div></div><div style="flex:1;min-width:0">'+(ks.length?ks.map(chip).join(' '):chip(null))+'<div style="font-size:9.5px;color:'+T2+';line-height:1.5;margin-top:2px">'+detail+'</div></div></div>';   /* [S1857] 큰 그림 줄 — 칩 셋까지 */
   const none='값이 아직 없어요';
@@ -14998,13 +15018,14 @@ function _trdCardHtml(cx){ try{ const rows=cx.rows, n=(rows&&rows.length)||0, T2
     const loc=(D.d==null)?'':('MA20이 MA'+D.lgN+'보다 '+(Math.abs(D.d)<1.5?('±1.5% 띠 안('+((D.d>0?'+':'')+(+D.d).toFixed(1))+'%)'):(((D.d>0?'+':'')+(+D.d).toFixed(1))+'% '+(D.d>0?'위':'아래')))+(D.lgN!==200?'(200봉 부족)':''));
     const parts=['레짐 '+loc, (D.s!=null)?('기울기 '+f1(D.s)+'%/봉'):'', x.run+'봉째', (b&&b.hi)?('🔥 250봉 신고가 뒤 고점에서 '+(b.hiDist!=null?f2(b.hiDist):'–')+' ATR 아래'):'', (b&&b.lo)?('🌋 250봉 신저가 뒤 저점에서 '+(b.loDist!=null?f2(b.loDist):'–')+' ATR 위'):'', '국면 '+g26, '이름 = 지금 모습 · 앞날 방향 아님'].filter(Boolean).join(' · ');
     return '<div data-trd-big="1" data-trd-rg="1">'+rowN('🌍','큰 그림','레짐 · EMA 9×26',[_TRD_RGK[x.g]||null,(b&&b.hi)?'bhi':((b&&b.lo)?'blo':null),st.r26].filter(Boolean),parts)+'</div>'; })();
+  const bzRow=(()=>{ const o=_trdBzNow(rows); return '<div data-trd-bz="1">'+row('〰️','위치','볼밴 200 · 1/2/3σ',(o.zi>=0)?('bz'+o.zi):null,_trdBzDesc(o))+'</div>'; })();   /* [S1881] 〰️ 위치 — 볼린저 트리플 200 · 1/2/3σ 고정 · 구역 여덟(사용자 이름) */
   const ssd=(S.k[i]!=null&&S.d[i]!=null)?((i>=L&&S.k[i-L]!=null)?Math.sign(S.k[i]-S.k[i-L]):0):0, lsd=(S.g12[i]!=null)?Math.sign(S.g12[i]):0, key=(ssd&&lsd)?((ssd>0?'+':'-')+(lsd>0?'+':'-')):null;   /* [S1857] 두 칸 요약(W2) — 단기 SMI × 장기 EMA 9×12 위치 */
   const bigT=(_rgx.day&&_rgx.now&&_TRD_RGK[_rgx.now.g])?('<span data-trd-sumbig="1" style="font-weight:600;color:'+T2+'"> · 큰 그림 '+_TRD_LBL[_TRD_RGK[_rgx.now.g]]+'</span>'):'';
   let h=head+(key?('<div data-trd-sum="'+key+'" style="font-size:11.5px;font-weight:800;color:var(--text);line-height:1.55;margin:2px 0 6px">'+_TRD_SUM2[key]+bigT+'</div>'):'')
-    +row('⚡','단기','SMI %K/%D',st.s,dS)+row('📈','장기','EMA 9×12 · SMI 0선',st.r12,dR(st.r12,S.g12,'12선','r12')+smT,kp)+_bigRow /* [S1857] 큰 그림 = 레짐 + 국면 9×26 */+rsiRow+tdRow+row('🗜️','힘','TTM',st.t,dT)+bwRow;   /* [S1821] 🔋 피로도 줄 · [S1857] 층 = 다리 크기 — 장기 MACD 줄 · 국면 두 줄 · 레짐 줄을 장기 · 큰 그림 두 줄로 */
+    +row('⚡','단기','SMI %K/%D',st.s,dS)+row('📈','장기','EMA 9×12 · SMI 0선',st.r12,dR(st.r12,S.g12,'12선','r12')+smT,kp)+_bigRow /* [S1857] 큰 그림 = 레짐 + 국면 9×26 */+bzRow /* [S1881] 〰️ 위치 */+rsiRow+tdRow+row('🗜️','힘','TTM',st.t,dT)+bwRow;   /* [S1821] 🔋 피로도 줄 · [S1857] 층 = 다리 크기 — 장기 MACD 줄 · 국면 두 줄 · 레짐 줄을 장기 · 큰 그림 두 줄로 */
   const sw=(c,t)=>'<span style="display:inline-flex;align-items:center;gap:3px;margin-right:7px"><span style="width:9px;height:9px;border-radius:2px;background:'+c+';display:inline-block"></span>'+t+'</span>';
   h+=_trdBand(S, rows)+'<div style="font-size:8.5px;color:'+T3+';line-height:1.7">'+sw('#dc2626','가속·↗ 벌어짐')+sw('#f87171','둔화·↗ 좁혀짐')+sw('#fecaca','꺾임')+sw('#2563eb','하락 가속·↘ 벌어짐')+sw('#60a5fa','하락 둔화·↘ 좁혀짐')+sw('#bfdbfe','반등 조짐')+sw('#6b7280','수축')+sw('#7c3aed','풀림')+'· 빨강 = 위(오름) · 파랑 = 아래(내림)<span data-trd-ccileg="1"> · CCI 높이 줄 = 100 위 진한 빨강 · 0~100 옅은 빨강 · −100~0 옅은 파랑 · −100 아래 진한 파랑</span><span data-trd-shleg="1"> · 단기 줄 = 상승 중 · 꺾임 · 조짐 · 하락 중 네 칸(가속/둔화는 측정에서 차이 없음)</span><span data-trd-smileg="1"> · SMI 0선 줄 = 0 위 분홍 · 0 아래 남색(위치)</span><span data-trd-rgleg="1"> · 레짐 줄 = 상승장 진한 빨강 · 횡보·상승권 옅은 빨강 · 횡보 회색 · 횡보·하락권 옅은 파랑 · 하락장 진한 파랑(일봉만)</span></div>'
-    +'<details data-trd-note="1"><summary style="font-size:8.5px;font-weight:700;color:'+T3+';cursor:pointer;margin-top:5px">설정 · 측정 근거 보기</summary><div style="font-size:8.5px;color:'+T3+';margin-top:5px;line-height:1.55">지금 상태 설명 · 예측 아님 · 설정 = 앱 기본(SMI %K 10 · 평활 3·3 · %D 10 · EMA 9×12 · 9×26 · TTM 20·2·1.5)<span data-trd-layernote="1"> · 층 = 다리 크기(측정 offline/trdv2 · trdv2c · 2026-11-01 · 독립 검산): ⚡ 단기 SMI 교차 = 뒤에서 본 2×ATR 다리 맞힘 70% 안팎 · 📈 장기 EMA 9×12 위치 · SMI 0선 = 5×ATR 71~74%(MACD 기울기 64~67% 보다 높음) · 🌍 큰 그림 EMA 9×26 위치 · 레짐 = 10×ATR 69~74% · 1시간봉 · 주봉에서도 같은 차례 · 같은 지표도 위치(높이)는 기울기(방향)보다 한 단계 큰 다리를 맞힘 · 한 줄 요약 = 단기 × 장기 두 칸(offline/trdv2s) · 큰 그림 이름은 덧붙이기만</span> · 기울기 = 3봉 차이 · 가속/둔화 = 지금 기울기와 3봉 전 기울기의 차 · 빠른 확인(2026-10-16 · 최신 스냅 · 판정 아님): 지난 10봉 방향과 59~83% 같음 · 상태가 위/아래일 때 앞으로 20봉 오른 비율 차 KR·US ±2%p 안팎 · 다리 측정(9판): 기울기가 다리 방향이면 더 감 +3~6%p(판정선 미달)<span data-trd-bwnote="1"> · 볼밴 폭 측정(9판 · 2026-10-17): 120봉 위쪽 ⅓ → 10봉 뒤 좁아짐 72~74% · 아래쪽 ⅓ 28~33%(판정 통과) · 가격이 덜 움직이는지는 못 가름</span><span data-trd-strnote="1"> · 💪 칩 = RSI 14 신호(EMA 9) 3봉 기울기 · 높이 = CCI 14 네 칸(100 위 과열 · 0~100 강세 · −100~0 약세 · −100 아래 침체 · CCI 는 끝이 없어 값을 함께 적음) · 측정(9판 · 2026-10-17 · 뒤에서 본 3×ATR 다리): 다리 방향 맞힘 RSI 신호 기울기 67~74% · CCI 14 위/아래 68~75% · CCI 네 칸 오름 다리 10 → 88%(KR) · 앞으로 20봉은 못 가름</span><span data-trd-legnote="1"> · 오름 다리였던 비율 = 그 TF 봉의 뒤에서 본 3×ATR 다리 중 오름 다리 비율(KR · US 2012~2026 · 코인 일봉 스냅 · 주 · 월봉 업비트 · 지금 상태 설명 · 앞날 아님) · 4칸 = EMA9 가 느린 선 위(↗) · 아래(↘) × 간격 벌어짐 · 좁혀짐</span><span data-trd-tdnote="1"> · 🔋 피로도 = TD 셋업 카운트(종가가 4봉 전 종가보다 높은 봉이 이어진 수 · 내림은 낮은 봉) · 이 종목 · 이 TF 의 지난 줄(끝난 줄)과 비교 · 칸 색 = 지난 줄 중 그 칸까지 온 몫(옅음 50% 넘게 · 중간 10~50% · 진함 10% 이하) · 측정(9판 · 2026-10-18 · 일봉): 줄 중앙 3~4봉 · 9봉 이상 약 10% · 4봉을 넘으면 몇 봉째든 다음 봉도 이어간 비율 약 3/4 로 거의 같음(길다고 끝나기 쉬운 건 아님) · 셋업 9 뒤 20봉은 꼭지 · 바닥과 구분 안 됨</span><span data-trd-sminote="1"> · 장기 줄 SMI = SMI %K 가 0 위/아래(위치 · 단기 줄은 %K/%D 교차) · 측정(9판 · 2026-10-18 · 뒤에서 본 5×ATR 다리): 큰 다리 맞힘 MACD 카드 쪽보다 +3~7%p(9/9) · 덜 바뀜(100봉에 약 8번 · MACD 카드 쪽 12번) · 다리 바뀐 뒤 약 2봉 늦게 따라옴</span><span data-trd-rgnote="1"> · ⛩️ 레짐 = 앱 레짐 v4(S1855 · 위치 MA20 vs MA200 ±1.5% · MA20 10봉 기울기 ±0.15%/봉 · 🔥 · 🌋 = 250봉 신고가 · 신저가 뒤 3×ATR 안 · 🔥 는 상승장 · 🌋 는 하락장일 때만 보임) · 측정(offline/regv4 · 2026-10-31 · 9판 · 독립 검산): 이름은 지금 모습과 맞음(상승장 지난 20봉 KR +9~13% · 하락장 −8%) · 상태 덩어리 중앙 15~20봉 · 앞날 방향은 못 가름 · 일봉 문턱이라 다른 TF 는 안 보임 · 한 줄 요약 끝에 이름만 덧붙임(조합 판정 없음)</span></div></details>';   /* [S1861] 설명 기본 접기(사용자 2026-11-01 18:25) */
+    +'<details data-trd-note="1"><summary style="font-size:8.5px;font-weight:700;color:'+T3+';cursor:pointer;margin-top:5px">설정 · 측정 근거 보기</summary><div style="font-size:8.5px;color:'+T3+';margin-top:5px;line-height:1.55">지금 상태 설명 · 예측 아님 · 설정 = 앱 기본(SMI %K 10 · 평활 3·3 · %D 10 · EMA 9×12 · 9×26 · TTM 20·2·1.5)<span data-trd-layernote="1"> · 층 = 다리 크기(측정 offline/trdv2 · trdv2c · 2026-11-01 · 독립 검산): ⚡ 단기 SMI 교차 = 뒤에서 본 2×ATR 다리 맞힘 70% 안팎 · 📈 장기 EMA 9×12 위치 · SMI 0선 = 5×ATR 71~74%(MACD 기울기 64~67% 보다 높음) · 🌍 큰 그림 EMA 9×26 위치 · 레짐 = 10×ATR 69~74% · 1시간봉 · 주봉에서도 같은 차례 · 같은 지표도 위치(높이)는 기울기(방향)보다 한 단계 큰 다리를 맞힘 · 한 줄 요약 = 단기 × 장기 두 칸(offline/trdv2s) · 큰 그림 이름은 덧붙이기만</span> · 기울기 = 3봉 차이 · 가속/둔화 = 지금 기울기와 3봉 전 기울기의 차 · 빠른 확인(2026-10-16 · 최신 스냅 · 판정 아님): 지난 10봉 방향과 59~83% 같음 · 상태가 위/아래일 때 앞으로 20봉 오른 비율 차 KR·US ±2%p 안팎 · 다리 측정(9판): 기울기가 다리 방향이면 더 감 +3~6%p(판정선 미달)<span data-trd-bwnote="1"> · 볼밴 폭 측정(9판 · 2026-10-17): 120봉 위쪽 ⅓ → 10봉 뒤 좁아짐 72~74% · 아래쪽 ⅓ 28~33%(판정 통과) · 가격이 덜 움직이는지는 못 가름</span><span data-trd-strnote="1"> · 💪 칩 = RSI 14 신호(EMA 9) 3봉 기울기 · 높이 = CCI 14 네 칸(100 위 과열 · 0~100 강세 · −100~0 약세 · −100 아래 침체 · CCI 는 끝이 없어 값을 함께 적음) · 측정(9판 · 2026-10-17 · 뒤에서 본 3×ATR 다리): 다리 방향 맞힘 RSI 신호 기울기 67~74% · CCI 14 위/아래 68~75% · CCI 네 칸 오름 다리 10 → 88%(KR) · 앞으로 20봉은 못 가름</span><span data-trd-legnote="1"> · 오름 다리였던 비율 = 그 TF 봉의 뒤에서 본 3×ATR 다리 중 오름 다리 비율(KR · US 2012~2026 · 코인 일봉 스냅 · 주 · 월봉 업비트 · 지금 상태 설명 · 앞날 아님) · 4칸 = EMA9 가 느린 선 위(↗) · 아래(↘) × 간격 벌어짐 · 좁혀짐</span><span data-trd-tdnote="1"> · 🔋 피로도 = TD 셋업 카운트(종가가 4봉 전 종가보다 높은 봉이 이어진 수 · 내림은 낮은 봉) · 이 종목 · 이 TF 의 지난 줄(끝난 줄)과 비교 · 칸 색 = 지난 줄 중 그 칸까지 온 몫(옅음 50% 넘게 · 중간 10~50% · 진함 10% 이하) · 측정(9판 · 2026-10-18 · 일봉): 줄 중앙 3~4봉 · 9봉 이상 약 10% · 4봉을 넘으면 몇 봉째든 다음 봉도 이어간 비율 약 3/4 로 거의 같음(길다고 끝나기 쉬운 건 아님) · 셋업 9 뒤 20봉은 꼭지 · 바닥과 구분 안 됨</span><span data-trd-sminote="1"> · 장기 줄 SMI = SMI %K 가 0 위/아래(위치 · 단기 줄은 %K/%D 교차) · 측정(9판 · 2026-10-18 · 뒤에서 본 5×ATR 다리): 큰 다리 맞힘 MACD 카드 쪽보다 +3~7%p(9/9) · 덜 바뀜(100봉에 약 8번 · MACD 카드 쪽 12번) · 다리 바뀐 뒤 약 2봉 늦게 따라옴</span><span data-trd-rgnote="1"> · ⛩️ 레짐 = 앱 레짐 v4(S1855 · 위치 MA20 vs MA200 ±1.5% · MA20 10봉 기울기 ±0.15%/봉 · 🔥 · 🌋 = 250봉 신고가 · 신저가 뒤 3×ATR 안 · 🔥 는 상승장 · 🌋 는 하락장일 때만 보임) · 측정(offline/regv4 · 2026-10-31 · 9판 · 독립 검산): 이름은 지금 모습과 맞음(상승장 지난 20봉 KR +9~13% · 하락장 −8%) · 상태 덩어리 중앙 15~20봉 · 앞날 방향은 못 가름 · 일봉 문턱이라 다른 TF 는 안 보임 · 한 줄 요약 끝에 이름만 덧붙임(조합 판정 없음)</span><span data-trd-bznote="1"> · 〰️ 위치 = 볼린저 200봉 · 1/2/3σ 고정(🧪 지그재그 탭 · 📈 크로스 탭 〰️ 설정과 따로 · 앱 〰️ 볼린저와 같은 계산: 종가 · 중심선 = 200봉 단순 평균 · σ = 같은 200봉 모집단 표준편차) · 구역 이름 = 사용자 2026-11-04(초과열권 ~ 초공포권) · 다음 방향을 말하지 않음 — 이 설정(일봉 · 3시장)으로 잰 “σ선에 닿은 뒤 반전”(QB2) · “−1σ 위로 돌파 → 반등”(QB3b)은 ⚫ no · “−2 ~ −1σ 머묾 → 약세”(QB3a) · “+1 ~ +2σ 머묾 → 강세”(QB3c)는 ⚪ 못 가름(offline/bbmeas · 2026-11-03)</span></div></details>';   /* [S1861] 설명 기본 접기(사용자 2026-11-01 18:25) */
   return wrap(h); }catch(_e){ return ''; } }
 function _buildTrdCard(stock, indicators){ try{ const rows=(indicators&&indicators._advanced&&Array.isArray(indicators._advanced.rows))?indicators._advanced.rows:((stock&&Array.isArray(stock._lastAnalCandles))?stock._lastAnalCandles:null); if(!rows || !rows.length) return '';
   const tf=(typeof _analTF!=='undefined'&&_analTF)?_analTF:'day', mk=(stock&&(stock._mkt||stock.market))||(typeof currentMarket!=='undefined'?currentMarket:'kr'); return _trdCardHtml({ rows, tf, mk, tfLbl:(typeof _poolTfLbl==='function'?_poolTfLbl(tf):tf) }); }catch(_e){ return ''; } }
@@ -20536,7 +20557,9 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1879';   // [S1879] 트리플 선 색(위 빨강 쪽 · 아래 파랑 쪽 · 가운데 녹색) · 선 이름 = σ 이름 · 풀차트 배지 = 구역 자리 색 — S1878 은 render 무변경(풀차트)
+  window.SX_BUILD='S1881';   // [S1881] 🧭 추세 읽기 〰️ 위치 줄 — 볼린저 트리플 200 · 1/2/3σ 고정 · 구역 여덟 이름(초과열권 ~ 초공포권) · 상태 해석
+  //window.SX_BUILD='S1880';   // [S1880] 분석탭 접기 — 전광판 회색 패널 · 🔍 레시피 해석 · 🧩 칸 사다리 v2 · 🧪 재료 카운트(기본 접힘 · 펼쳐 보기)
+  //window.SX_BUILD='S1879';   // [S1879] 트리플 선 색(위 빨강 쪽 · 아래 파랑 쪽 · 가운데 녹색) · 선 이름 = σ 이름 · 풀차트 배지 = 구역 자리 색 — S1878 은 render 무변경(풀차트)
   //window.SX_BUILD='S1877';   // [S1877] 🧪 지그재그 탭 〰️ 볼린저 트리플(기본) · 🟠 스윙 고르기 · 스윙점 σ
   //window.SX_BUILD='S1876';   // [S1876] 〰️ 볼린저 모드(📈 크로스 엔진 · 트리플 기본 · 진입선 넷 · 고른 청산)
   //window.SX_BUILD='S1875';   // [S1875] 📈 크로스 탭 ⚙️ 게이트 🧩 보조 거름(칩 열여덟 · 진입 + 청산 스위치) — S1870 ~ S1874 는 render 무변경(풀차트)
@@ -23480,10 +23503,27 @@ function _sxMacroInit(){                   // _sxbHTML 호출마다 불려도 �
 //     측정 상태는 **각주로 병기**한다(아래 `_axPanel` 하단).
 //   ⚠토스트를 쓰지 않는다 — **자동으로 사라져 표를 읽기 전에 없어진다.** 인라인 패널로 교체.
 //   ⚠접기/펼치기 제거 — 개별 도넛 11개가 없어져 접을 대상이 사라졌다. **도넛이 곧 탭**이다.
+// [S1880] 분석탭 접기 도우미(사용자 2026-11-04 08:29 '기본 접기 · 펼쳐서 볼 수 있게') — <details> + 세션 동안 기억(window._SXF · 새로 열면 다시 접힘)
+//   ▶ / ▼ · 펼치기 / 접기 글자는 ontoggle 에서 바로 바꿈(카드를 다시 그리지 않음 · 다시 그릴 때는 _SXF 로 같은 상태) · 계산 · 판정 · 저장 무변경
+if(typeof window!=='undefined' && !window._SXF) window._SXF = {};   // 키: ax(전광판 회색 패널) · ri(🔍 레시피 해석) · cl(🧩 칸 사다리 v2) · xm(🧪 재료 카운트)
+function _sxFoldOp(key){ try{ return !!(window._SXF && window._SXF[key]); }catch(_){ return false; } }
+function _sxFoldC(op){ return '<span data-fold-c="1" style="font-size:9px;color:var(--text3);width:9px;flex-shrink:0">'+(op?'▼':'▶')+'</span>'; }
+function _sxFoldT(op, auto){ return '<span data-fold-t="1" style="'+(auto===false?'margin-left:6px;':'margin-left:auto;')+'flex-shrink:0;font-size:9px;color:var(--text3);white-space:nowrap">'+(op?'접기':'펼치기')+'</span>'; }
+function _sxFold(key, head, body){ const op=_sxFoldOp(key);
+  return '<details data-sxfold="'+key+'"'+(op?' open':'')+' ontoggle="_sxFoldTg(this,\''+key+'\')"><summary style="display:block;list-style:none;cursor:pointer">'+head+'</summary>'+body+'</details>'; }
+if(typeof window!=='undefined') window._sxFoldTg = function(el, key){ try{ if(!window._SXF) window._SXF = {}; window._SXF[key] = !!el.open; const s = el.querySelector('summary'); if(!s) return;
+  const c = s.querySelector('[data-fold-c]'), t = s.querySelector('[data-fold-t]'); if(c) c.textContent = el.open ? '▼' : '▶'; if(t) t.textContent = el.open ? '접기' : '펼치기'; }catch(_){} };
+//   전광판 5축 도넛 아래 회색 패널(재료 표 · 뜻 · 기준) — 요약 줄 = 열린 축 이름 · 값 · 재료 수 · 도넛을 누르면 그 축으로 펼침(_axSelect)
+function _axFold(A){ const ax = A && A.axes && A.axes[_axTab], op = _sxFoldOp('ax'), nm = ax ? ax.label : '', v = (ax && ax.v != null) ? ax.v : null;
+  const head = '<div style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-top:1px solid var(--border);background:var(--surface2);font-size:10.5px;color:var(--text2)">'
+    + _sxFoldC(op) + '<b style="color:var(--text)">' + nm + '</b>' + (v != null ? '<b style="color:' + _axColor(v) + '">' + v + '</b>' : '')
+    + '<span style="font-size:9.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">· 재료 ' + ((ax && ax.n) || 0) + '개 표 · 뜻 · 기준</span>' + _sxFoldT(op) + '</div>';
+  return _sxFold('ax', head, _axPanel(A)); }
 let _axTab = 'pos';                       // [S1375] 열린 축. 기본 '자리' — 다 닫혀 있으면 '누르면 뭐가 나온다'를 모른다.
 window._axSelect = function(k){
   if(!k) return;
   _axTab = k;                             // 같은 탭 재클릭은 유지(닫기 없음 — 탭이므로)
+  try{ if(!window._SXF) window._SXF = {}; window._SXF.ax = true; }catch(_){}   // [S1880] 도넛을 누르면 아래 회색 패널을 그 축으로 펼침(기본 접힘)
   try{ if(typeof _sxVib === 'function') _sxVib(8); }catch(_){}
   const el = document.getElementById('sxScoreBoard');
   if(el) el.innerHTML = _sxbHTML();
@@ -24103,7 +24143,7 @@ function _sxbHTML(){
         + _sxbCircle(a && a.v != null ? a.v : null, a ? a.label : k, false, !(a && a.v != null), null, false, false, null, null, (a && a.v != null) ? _axColor(a.v) : null)
         + `</div>`;
     }
-    mini += `</div>` + _axPanel(_axS);
+    mini += `</div>` + _axFold(_axS);   // [S1880] 회색 패널 기본 접기(요약 줄 · 도넛 누르면 펼침)
   }
   //  ⚠[S1375] 상세(개별 도넛 11개) **철거** — 5축 패널이 그 자리를 대신한다.
   //    폐기 사유: ①접기/펼치기를 눌러야 보였다 ②`excl` 재료가 통째로 빠져 us는 4개·coin은 8개만 남았다
@@ -26445,11 +26485,14 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           else if(_tl && _tl.slopeFlag==='바닥권') _eHead += ' 60MA가 살아나며 바닥을 다지는 신호도 함께 보여요.';
 
           // ── 헤더 + 레시피란? 안내(초보) + 헤드라인 ──
-          let h = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          const _riOp = _sxFoldOp('ri');   // [S1880] 카드 전체 기본 접기 — 머리 줄이 요약 줄
+          const _riHd = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">${_sxFoldC(_riOp)}
             <span style="font-size:13px;font-weight:800;color:var(--text)">🔍 레시피 해석</span>
             <span style="font-size:9px;font-weight:800;color:#fff;background:${_badgeC};border-radius:9px;padding:2px 9px">${_badge}</span>
             ${(_tl && _tl.sigType) ? `<span style="font-size:8px;font-weight:700;color:${_tl.sigType==='상승'?C.green:C.blue};border:1px solid ${_tl.sigType==='상승'?C.green:C.blue}66;border-radius:8px;padding:1px 6px">${_tl.sigType}형</span>` : ''}
+            ${_sxFoldT(_riOp)}
           </div>`;
+          let h = '';
           h += `<div style="font-size:9.5px;color:var(--text3);line-height:1.55;margin:0 0 10px;padding:6px 9px;background:var(--surface2);border-radius:7px">💡 <b>'레시피'</b>란 차트 지표 여러 개를 묶은 <b>매수 조건 세트</b>예요. 지금 이 종목 차트가 살 만한 자리인지, 과거에 비슷했던 상황들과 비교해 아래에 풀어놨어요. 위에서부터 순서대로 보면 돼요.</div>`;
           h += `<div style="font-size:12px;font-weight:800;color:${_headC};margin-bottom:5px;line-height:1.5">${_headline}</div>`;
           if(_eHead) h += `<div style="font-size:10.5px;color:var(--text2);line-height:1.6;margin:0 0 12px">${_eHead}</div>`;
@@ -26585,7 +26628,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
             </div>
           </div>`;
 
-          return h;
+          return _sxFold('ri', _riHd, h);   // [S1880]
         }catch(_eRI){
           return '<div style="font-size:11px;color:var(--text3);padding:4px 2px">🔍 레시피 해석 — 생성 오류 (폴백). 재분석해 주세요.</div>';
         }
@@ -28360,12 +28403,14 @@ function _cellLadderCard(mk, qs, indicators){
   var GRN='#16a34a', RED='#dc2626', AMB='#ea580c', BLU='#2563eb', DKR='#7f1d1d', T2='var(--text2)', T3='var(--text3)';
   var esc=(typeof _bv2Esc==='function') ? _bv2Esc : function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(k){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[k]; }); };
   var wrap=function(body){
-    return '<div class="anal-header-card" style="margin-top:10px">'
-      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap">'
+    return '<div class="anal-header-card" style="margin-top:10px">'+_sxFold('cl',   /* [S1880] 카드 전체 기본 접기 */
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap">'
+      +_sxFoldC(_sxFoldOp('cl'))
       +'<span style="font-size:13px;font-weight:800;color:var(--text)">🧩 칸 사다리 v2</span>'
       +'<span style="font-size:8px;font-weight:800;color:#fff;background:'+BLU+';border-radius:9px;padding:2px 7px">표시 전용 · 판정 무관</span>'
       +'<span style="font-size:8px;font-weight:700;color:'+T3+'">실험</span>'
-      +'</div>'+body+'</div>';
+      +_sxFoldT(_sxFoldOp('cl'))
+      +'</div>', body)+'</div>';
   };
   var mute=function(t){ return wrap('<div style="font-size:10px;color:'+T3+';line-height:1.55">'+t+'</div>'); };
   try{
