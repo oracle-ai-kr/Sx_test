@@ -706,6 +706,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .anal-row .ar.bullish{color:var(--buy)}
 .anal-row .ar.bearish{color:var(--sell)}
 .anal-row .ar.neutral{color:var(--hold)}
+.anal-row .ar.up{color:#ef4444}  /* [S1886] 값 숫자 오름 · 과열 = 빨강(분석탭 기준표 v3 기준 2) */
+.anal-row .ar.down{color:#3b82f6}  /* [S1886] 내림 · 침체 = 파랑 */
 
 /* S99-2: 접기 시스템 — 기본 접힘, 종목 이동 시 리셋 (localStorage 미저장) */
 .anal-fold{margin-bottom:8px}
@@ -1098,6 +1100,8 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .itp-composite.warning{background:rgba(255,140,0,.06);border-left:3px solid #ff8c00}
 .itp-composite.danger{background:var(--sell-bg);border-left:3px solid #d32f2f}
 .itp-composite.neutral{background:var(--surface2);border-left:3px solid var(--text3)}
+.itp-composite.up{background:rgba(239,68,68,.08);border-left:3px solid #ef4444}  /* [S1886] 참고사항 상자 오름 · 반전 = 빨강 */
+.itp-composite.down{background:rgba(59,130,246,.08);border-left:3px solid #3b82f6}  /* [S1886] 침체 · 내림 = 파랑 */
 .itp-composite-title{font-weight:700;margin-bottom:2px}
 .itp-composite-text{color:var(--text2)}
 
