@@ -4735,14 +4735,14 @@ const _SXB_BADGE_COL = {
   //     코인은 `↘️ 약세`와 `➖ 중립`이 나란히 뜨는 일이 잦은데(주봉 약세 80%) 두 회색의 명도 차가 작아 갈리지 않았다.
   //     ⇒ 중립은 그대로 두고 강세·약세만 진하게 — **세 회색이 명도로 3단계**가 된다. 색축을 늘리지 않는다.
   //     밴드의 기존 문법과 같다(구 `🔀 3TF 엇갈림`도 *'자명한 정보는 회색'*이라 `#94a3b8`이었다).
-  mtf:        { align:'#3b82f6', divergent:'#94a3b8', overheat:'#0ea5e9', slump:'#0891b2',
+  mtf:        { align:'#3b82f6', divergent:'#94a3b8', overheat:'#dc2626', slump:'#2563eb',   // [S1885] 🌡️ 과열 하늘 #0ea5e9 → 빨강 · 🧊 침체 청록 #0891b2 → 파랑 (분석탭 기준표 v2 기준 2 · 사용자 2026-11-05)
                 bull:'#475569', neutral:'#94a3b8', bear:'#475569' },
   // [S1450] 재료 계열 색 4종 편입 — S1449가 *'색(㉢)만 2순위에 얹으면 된다'*고 해놓고 **빠뜨린 자리**다.
   //   소비처는 배지 밴드가 아니라 단일검증 🧪 재료 조건 섹션 + 분석탭 🧪 재료 카운트 카드(S1433)지만,
   //   ★`#e8365a`(과열)=되돌림주의 · `#0ea5e9`(상승진행)=상위TF 과열 · `#7c3aed`(하락진행)=레짐 폭락장 ·
   //     `#16a34a`(바닥)=레짐 상승장 ∧ 변동성 낮음 ∧ 칸 신호 — **네 개 전부 밴드 색과 같은 값**이라 한 표에 있어야 한다.
   //   ⚠값 변경 0 · 키는 `_XMAT_KIND` 키를 그대로 쓴다(측정 정체성 동결).
-  xmatKind:   { 'ext-lo':'#16a34a', 'ext-hi':'#e8365a', 'trend-up':'#0ea5e9', 'trend-dn':'#7c3aed' },
+  xmatKind:   { 'ext-lo':'#2563eb', 'ext-hi':'#e8365a', 'trend-up':'#f87171', 'trend-dn':'#60a5fa' },   // [S1885] 바닥(침체) 초록 → 파랑 · 상승진행 하늘 → 연한 빨강 · 하락진행 보라 → 연한 파랑 · 과열 그대로 (분석탭 기준표 v2 기준 2 · 사용자 2026-11-05) · 옛 { 'ext-lo':'#16a34a', 'trend-up':'#0ea5e9', 'trend-dn':'#7c3aed' }
   // [S1451] 재료 카운트 카드에만 있는 보조 3종 — S1450이 계열 4색을 표로 옮기면서 **여기 회색은 빠뜨렸다**(`_kindOf` 안 리터럴 4회).
   //   ⚠**`xmatKind`와 한 객체로 묶지 않는다** — `_XMAT_KIND_COL`이 그 객체를 그대로 가리키고 그 키는 측정 정체성이라 4개로 동결이다.
   //   세 값이 지금 같은 회색이어도 키를 나눠 둔다 — 뜻이 다르면 나중에 한쪽만 바꿀 수 있어야 한다(S1449 문법).
@@ -15156,12 +15156,12 @@ function _cndSetTab(t){ if(t!=='bar' && t!=='gap' && t!=='ma' && t!=='rb') retur
 function _cndTabBar(cur){ const P='#b45309', tab=(t,l)=>'<span onclick="_sxVib(8);window._cndSetTab&&_cndSetTab(\''+t+'\')" style="flex:1;text-align:center;font-size:10px;font-weight:800;padding:5px 2px;border-radius:9px;cursor:pointer;white-space:nowrap;'+(cur===t?('background:'+P+';color:#fff'):'background:var(--surface2);color:var(--text3)')+'">'+l+'</span>';
   return '<div data-cnd-tabs="1" style="display:flex;gap:4px;margin-bottom:8px">'+tab('bar','🕯️ 봉')+tab('gap','🕳️ 갭')+tab('ma','📈 이평·거래량')+tab('rb','📋 반등')+'</div>'; }
 function _cndCardHtml(cx){ try{
-  const rows=cx.rows, n=(rows&&rows.length)||0, cur=_cndTab(), T3='var(--text3)', T2='var(--text2)', G='#059669', Rd='#dc2626';
+  const rows=cx.rows, n=(rows&&rows.length)||0, cur=_cndTab(), T3='var(--text3)', T2='var(--text2)', G='#059669', Rd='#dc2626', Up='#dc2626', Dn='#2563eb';   /* [S1885] ▲ 오름 = Up 빨강 · ▼ 내림 = Dn 파랑(칩 · 줄) · G · Rd 는 좋음/나쁨(✅/❌ · 취소선 깨짐)에만 (분석탭 기준표 v2 기준 2 · 사용자 2026-11-05) */
   const F=x=>(x==null || !isFinite(x))?'—':((typeof _fibFmt==='function')?_fibFmt(x):String(+(+x).toPrecision(6))), last=n?+rows[n-1].close:NaN, pc=x=>(isFinite(x) && last>0)?(((x/last-1)*100>=0?'+':'')+((x/last-1)*100).toFixed(1)+'%'):'—';
   const ago=t=>(n-1-t===0)?'마지막 봉':((n-1-t)+'봉 전'), dt=t=>{ const r=rows[t]||{}; const d=String(r.date!=null?r.date:(r.t||'')); return d.length>=8?d.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3').slice(0,16):d; };
   const wrap=b=>'<div class="anal-header-card" id="sxCndCard" style="margin-top:10px;text-align:left"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:13px;font-weight:800;color:var(--text)">🕯️ 캔들 · 차트 읽기</span><span style="font-size:9px;color:'+T3+'">봉 = 지금 분석 TF('+(cx.tfLbl||'')+')'+(n?(' · 마지막 봉 '+dt(n-1)):'')+'</span></div>'+_cndTabBar(cur)+b
     +'<div data-cnd-note="1" style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-top:6px">그림 자료(PDF)의 말을 숫자로 옮긴 표시 · 이 카드의 신호들은 안 쟀어요(지금 봉 패턴의 측정 배지는 그대로) · 읽기 도움 · 판정 아님</div></div>';
-  const chip=(txt,side)=>'<span style="font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:9px;white-space:nowrap;background:'+(side>0?G:(side<0?Rd:'#6b7280'))+'14;color:'+(side>0?G:(side<0?Rd:'#6b7280'))+'">'+txt+'</span>';
+  const chip=(txt,side)=>'<span style="font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:9px;white-space:nowrap;background:'+(side>0?Up:(side<0?Dn:'#6b7280'))+'14;color:'+(side>0?Up:(side<0?Dn:'#6b7280'))+'">'+txt+'</span>';
   const line=h=>'<div style="font-size:10px;color:'+T2+';line-height:1.6;padding:4px 0;border-bottom:1px dashed var(--border)">'+h+'</div>';
   const sub=(t,h)=>'<div style="font-size:10px;font-weight:800;color:'+T2+';margin:8px 0 3px">'+t+(h?(' <span style="font-weight:500;color:'+T3+'">— '+h+'</span>'):'')+'</div>';
   if(n<60) return wrap((cur==='bar'?(cx.nowHtml||''):'')+'<div style="font-size:10.5px;color:'+T3+'">봉이 부족해요(60봉 이상 필요 · 지금 '+n+'봉)</div>');
@@ -15193,7 +15193,7 @@ function _cndCardHtml(cx){ try{
       let x=''; if(k==='m2' && e && e.w===1) x=' <b style="color:#d97706">⚠ 60선이 안 오를 때 골든(엉킴)</b>'; if(k==='m2' && e) x+=' <span style="color:'+T3+'">· 20선과 '+((e.d>=0?'+':'')+(e.d*100).toFixed(1))+'%</span>';
       if((k==='v3'||k==='v5') && e) x+=' <span style="color:'+T3+'">· '+((e.c===1)?'다음 봉 확인됨':((e.c===0)?'다음 봉 확인 안 됨':'다음 봉 기다림'))+((e.x>=0)?' · 취소':'')+'</span>';
       if(w5.length) x+=' <b style="color:#d97706">⚠ 가격 없는 거래량</b>';
-      return '<div style="display:flex;align-items:center;gap:6px;font-size:10px;padding:3px 0;border-bottom:1px dashed var(--border)"><span style="flex:1;color:'+(now?(side>0?G:Rd):T2)+';font-weight:'+(now?'800':'500')+'">'+(side>0?'▲ ':'▼ ')+_CND_NM[k]+'</span><span style="font-size:9.5px;color:'+(now?(side>0?G:Rd):T3)+';white-space:nowrap">'+(e?(now?'지금 켜짐':ago(e.t)):'최근 60봉 없음')+'</span></div>'+(x?('<div style="font-size:9px;margin:0 0 2px 10px">'+x+'</div>'):'')
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:10px;padding:3px 0;border-bottom:1px dashed var(--border)"><span style="flex:1;color:'+(now?(side>0?Up:Dn):T2)+';font-weight:'+(now?'800':'500')+'">'+(side>0?'▲ ':'▼ ')+_CND_NM[k]+'</span><span style="font-size:9.5px;color:'+(now?(side>0?Up:Dn):T3)+';white-space:nowrap">'+(e?(now?'지금 켜짐':ago(e.t)):'최근 60봉 없음')+'</span></div>'+(x?('<div style="font-size:9px;margin:0 0 2px 10px">'+x+'</div>'):'')
         +(wk.length?('<div style="font-size:9px;margin:0 0 2px 10px"><b style="color:#d97706">⚠ 꼬리만 넘은 돌파(가짜)</b> <span style="color:'+T3+'">'+ago(wk[wk.length-1].t)+'</span></div>'):''); };
     const ml=()=>{ const m=E.M20[n-1]; return (m>0)?('지금 종가가 20선 '+((last/m-1)*100>=0?'+':'')+((last/m-1)*100).toFixed(1)+'%'):''; };
     h+=sub('📈 이평 신호 8','PDF 6쪽 · 5 · 20 · 60선 · '+ml());
@@ -20557,7 +20557,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1884';   // [S1884] 분석탭 기준표 v1 기준 5 — 낡은 참조(판정 · 4축 · 검토영역 · 보라 마커 · 시즌2 규칙 · 한국 % · 20봉 가격 변화율)
+  window.SX_BUILD='S1885';   // [S1885] 분석탭 기준표 v2 기준 2 — 방향 · 과열/침체 = 빨강/파랑(캔들 · 3×3 · 레시피 · 주월 배지 · 재료 계열 · 지표 분석 꼬리표) · 좋음/나쁨 그대로
+  //window.SX_BUILD='S1884';   // [S1884] 분석탭 기준표 v1 기준 5 — 낡은 참조(판정 · 4축 · 검토영역 · 보라 마커 · 시즌2 규칙 · 한국 % · 20봉 가격 변화율)
   //window.SX_BUILD='S1883';   // [S1883] 분석탭 기준표 v1 — 🔍 레시피 해석 머리 글 칸 이름 = SSOT · 엔진 시장 상태 제목 · 깨진 교과서 문장(sx_interpret.js)
   //window.SX_BUILD='S1882';   // [S1882] 〰️ 트리플 구역 이름 = 🧭 〰️ 위치 이름(초과열권 ~ 초공포권) — 📈 크로스 탭 〰️ 줄 · 🧪 지그재그 탭 · 풀차트 배지 · 이탈 하락권 색 = 밝은 청록
   //window.SX_BUILD='S1881';   // [S1881] 🧭 추세 읽기 〰️ 위치 줄 — 볼린저 트리플 200 · 1/2/3σ 고정 · 구역 여덟 이름(초과열권 ~ 초공포권) · 상태 해석
@@ -23904,8 +23905,9 @@ function _sxbHTML(){
   const _sxTl = (window._sxBoard && window._sxBoard.trendLabel) || null;
   const _headTone = _sxTl ? {
     // [S1127] 표시=trendDisp(진행 접미) · 색판정=cellKey(축 키). 한글 이름은 어디에서도 키로 쓰지 않는다.
+    // [S1885] 3×3 머리 색 — 추가상승(bull|bull) 초록 → 빨강(오름 = 빨강 · ⚠️천장권도 빨강 그대로) (분석탭 기준표 v2 기준 2 · 사용자 2026-11-05)
     t: (_sxTl.trendDisp||_sxTl.trend) + (_sxTl.slopeFlag ? ' '+(_sxTl.slopeFlag==='천장권'?'⚠️':'🔼')+_sxTl.slopeFlag : '') + (_sxTl.sigType?' ['+_sxTl.sigType+'형]':''),
-    c: _sxTl.slopeFlag==='천장권'?'#dc2626':_sxTl.slopeFlag==='바닥권'?'#2563eb':_sxTl.cellKey==='bull|bull'?'#16a34a':_sxTl.cellKey==='bear|bull'?'#2563eb':_sxTl.cellKey==='bull|bear'?'#ea580c':_sxTl.cellKey==='bear|bear'?'#64748b':_sxTl.long==='mixed'?'#9333ea':'#64748b'
+    c: _sxTl.slopeFlag==='천장권'?'#dc2626':_sxTl.slopeFlag==='바닥권'?'#2563eb':_sxTl.cellKey==='bull|bull'?'#dc2626':_sxTl.cellKey==='bear|bull'?'#2563eb':_sxTl.cellKey==='bull|bear'?'#ea580c':_sxTl.cellKey==='bear|bear'?'#64748b':_sxTl.long==='mixed'?'#9333ea':'#64748b'
   } : tone;
   // ⚠[S1461] `_sxTl`이 없을 때의 폴백이 5분류 라벨(`bl`/`bc`/`bi`)이다.
   //   `_trendLabel()`은 **절대 null을 반환하지 않으므로**(maAlign 없으면 'mixed') `_sxTl`이 비는 것은
@@ -24911,6 +24913,20 @@ function _itpTone(label, tone){
   //    ★rev일 때만이다 — desc·미측정은 tone 보존(S1288 원칙: '반대'가 아니라 '근거 없음').
   return (_itpStat(label) === 'rev') ? 'muted' : (tone || 'neutral');
 }
+// [S1885] 꼬리표 색 = 뜻 (분석탭 기준표 v2 기준 2 · 사용자 2026-11-05) — 강세(bullish) · 약세(bearish) 꼬리표만 꼬리표 글자로 가른다:
+//   오름 · 과열 → 'up'(빨강) · 내림 · 침체 → 'down'(파랑) · 표에 없는 꼬리표(좋음 · 나쁨: 매집 · 분산 · 매수세 · 매도세 · 눌림목 · 추세장 · 횡보장 · 거래량 · 지지 · 저항 …)는 그대로(초록 · 빨강)
+//   역방향(muted)이 먼저 · '시장 환경' 줄의 '강세 · 약세'는 시장이 우호적인가(좋음 · 나쁨)라 표에서 뺀다 · 색 칸 = sx_screener.html .itp-label.up / .down
+const _ITP_DIR = {
+  '골든크로스 (제로선 위)':'up', '골든크로스 (제로선 아래)':'up', '골든크로스 (양수)':'up', '골든크로스 (음수권)':'up', '양수 확대':'up', '정배열':'up', '상승추세':'up', '상승 구조 (HH+HL)':'up',
+  '매우 강한 상승':'up', '강한 상승':'up', '완만한 상승':'up', '강세 구간':'up', '강세':'up', 'OBV 상승':'up', 'A/D 상승':'up',
+  '상승 다이버전스':'up', 'OBV 상승 다이버전스':'up', 'Stoch 상승 다이버전스':'up', 'A/D 상승 다이버전스':'up', '구름 위':'up', '구름 위 (양운)':'up', 'VWAP 상회':'up', '피벗~R1':'up', '피벗 R1~R2':'up', '채널 상단 돌파':'up', '과매도 반전':'up',
+  '낙관':'up',   // 과열
+  '데드크로스 (제로선 위)':'down', '데드크로스 (양수권)':'down', '데드크로스 (음수)':'down', '음수 확대':'down', '역배열':'down', '하락추세':'down', '하락 구조 (LH+LL)':'down',
+  '완만한 하락':'down', '강한 하락':'down', '약세 구간':'down', 'OBV 하락':'down', 'A/D 하락':'down', '하락 다이버전스':'down', 'Stoch 하락 다이버전스':'down', '구름 아래':'down', 'VWAP 하회':'down', '피벗 S1~S2':'down', '과매수 반전':'down',
+  '과매도':'down', '극단적 과매도':'down', '과매도 (자금유출)':'down', '하단 근접':'down', '하단 이탈':'down', '채널 하단권':'down', 'MA 크게 이격':'down', 'MA 극단 이격':'down', '비관':'down'   // 침체
+};
+const _ITP_DIR_SKIP = { '시장 환경':1 };
+function _itpCls(label, o){ const t = _itpTone(label, o && o.tone); return ((t === 'bullish' || t === 'bearish') && o && !_ITP_DIR_SKIP[label] && _ITP_DIR[o.label]) ? _ITP_DIR[o.label] : t; }
 function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   D = D || {}; extras = extras || {};
   const g1=[], g2=[], g3=[], g4=[], g5=[];
@@ -25734,7 +25750,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       let row = `<div class="anal-row itp-row"><span class="al">${label}</span><span class="ar ${valCls||''}">${dispVal}</span>`;
       if(itpObj){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
-        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpTone(label, itpObj.tone)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}</div>`;
+        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpObj)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}</div>`;
       } else { row += `</div>`; }
       return row;
     };
@@ -25828,7 +25844,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge_inline:''}</span><span class="ar ${valCls||''}">${dispVal}</span>`;
       if(itpObj){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
-        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpTone(label, itpObj.tone)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}</div>`;
+        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpObj)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}</div>`;
       } else { row += `</div>`; }
       return row;
     };
@@ -25912,7 +25928,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge:''}</span><span class="ar ${valCls||''}">${val}</span>`;
       if(itpData){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
-        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpTone(label, itpData.tone)}">${itpData.label}</span>${_itpBadge(label)}<div>${itpData.text}</div>${_itpNote(label)}</div>`;   // [S1284] 배지 주입(세 번째 경로)
+        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpData)}">${itpData.label}</span>${_itpBadge(label)}<div>${itpData.text}</div>${_itpNote(label)}</div>`;   // [S1284] 배지 주입(세 번째 경로)
       } else {
         row += `</div>`;
       }
@@ -26463,9 +26479,10 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
             //    ⚠'상승장'은 **시장 전체**를 가리키는 말인데 여기서 재는 것은 **이 종목의 장기 MA 배열**이다.
             //      칸 사다리 v2 행렬도 열 이름을 상승세/하락세/혼조세로 쓴다 — 그쪽이 옳다.
             //    ⇒ 판정·계산 무변경. 표기만 교체한다.
+            //  [S1885] 추가상승 칸 색 · [상승형] 꼬리 초록 → 빨강(오름 = 빨강) (분석탭 기준표 v2 기준 2 · 사용자 2026-11-05)
             //  [S1883] ★칸 이름 · 단기 축도 SSOT(STATE_VOCAB.cell · axisShort · axisLong)로 — S1217 이 칸 이름을 바꿨는데 이 표만 옛 이름(눌림목 · 바닥확인 · 상승세 약화 · 하락세 약화 · 횡보장 유지)이 남아
             //    배지(되돌림)와 머리 글(눌림목)이 한 카드에서 엇갈렸다 · 장기 혼조 '횡보장' → 혼조세 · 단기 '눌림' · '뒤섞임' → 약세 · 중립 · 괄호 꼬리 · 설명 글(카드 주장)은 그대로(분석탭 기준표 v1 기준 1)
-            'bull|bull':          { c:C.green,  hl:'장기 상승세 · 단기 강세 — 추가상승 (추세 지속)', ez:'큰 흐름도 위쪽이고 단기도 힘이 실려, 계속 오르는(추가상승) 자리예요.' },
+            'bull|bull':          { c:C.red,    hl:'장기 상승세 · 단기 강세 — 추가상승 (추세 지속)', ez:'큰 흐름도 위쪽이고 단기도 힘이 실려, 계속 오르는(추가상승) 자리예요.' },
             'bear|bull':            { c:C.blue,   hl:'장기 상승세 · 단기 약세 — 되돌림 (반등 기대)', ez:'큰 흐름은 위쪽인데 단기적으로 잠깐 쉬어가는(되돌림) 자리예요. 다시 오를지 보는 저가매수 구간이에요.' },
             'bull|bear':        { c:C.orange, hl:'장기 하락세 · 단기 강세 — 기술적반등 (주의)', ez:'큰 흐름은 아래쪽인데 단기적으로 잠깐 튀어오르는(기술적반등) 중이에요. 짧게 끝날 수 있어 주의가 필요해요.' },
             'bear|bear':          { c:C.gray,   hl:'장기 하락세 · 단기 약세 — 추가하락 중', ez:'큰 흐름도 아래쪽이고 단기도 약한(추가하락) 구간이에요. 반등은 아직이에요.' },
@@ -26494,7 +26511,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           const _riHd = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">${_sxFoldC(_riOp)}
             <span style="font-size:13px;font-weight:800;color:var(--text)">🔍 레시피 해석</span>
             <span style="font-size:9px;font-weight:800;color:#fff;background:${_badgeC};border-radius:9px;padding:2px 9px">${_badge}</span>
-            ${(_tl && _tl.sigType) ? `<span style="font-size:8px;font-weight:700;color:${_tl.sigType==='상승'?C.green:C.blue};border:1px solid ${_tl.sigType==='상승'?C.green:C.blue}66;border-radius:8px;padding:1px 6px">${_tl.sigType}형</span>` : ''}
+            ${(_tl && _tl.sigType) ? `<span style="font-size:8px;font-weight:700;color:${_tl.sigType==='상승'?C.red:C.blue};border:1px solid ${_tl.sigType==='상승'?C.red:C.blue}66;border-radius:8px;padding:1px 6px">${_tl.sigType}형</span>` : ''}
             ${_sxFoldT(_riOp)}
           </div>`;
           let h = '';
