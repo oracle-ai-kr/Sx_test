@@ -20557,7 +20557,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1886';   // [S1886] 분석탭 기준표 v3 기준 2 나머지 — 지표 분석 값 숫자 색 · 참고사항 상자 · 캔들 패턴 = 방향 · 과열/침체 빨강/파랑 · 좋음/나쁨 그대로
+  window.SX_BUILD='S1887';   // [S1887] 분석탭 기준표 v4 기준 3 — 5축 도넛 · 재료 분위 · 축 머리 · 참고사항 5축 종합 줄 = 높으면 빨강 · 낮으면 파랑 · 머리 녹/적 → 높/낮
+  //window.SX_BUILD='S1886';   // [S1886] 분석탭 기준표 v3 기준 2 나머지 — 지표 분석 값 숫자 색 · 참고사항 상자 · 캔들 패턴 = 방향 · 과열/침체 빨강/파랑 · 좋음/나쁨 그대로
   //window.SX_BUILD='S1885';   // [S1885] 분석탭 기준표 v2 기준 2 — 방향 · 과열/침체 = 빨강/파랑(캔들 · 3×3 · 레시피 · 주월 배지 · 재료 계열 · 지표 분석 꼬리표) · 좋음/나쁨 그대로
   //window.SX_BUILD='S1884';   // [S1884] 분석탭 기준표 v1 기준 5 — 낡은 참조(판정 · 4축 · 검토영역 · 보라 마커 · 시즌2 규칙 · 한국 % · 20봉 가격 변화율)
   //window.SX_BUILD='S1883';   // [S1883] 분석탭 기준표 v1 — 🔍 레시피 해석 머리 글 칸 이름 = SSOT · 엔진 시장 상태 제목 · 깨진 교과서 문장(sx_interpret.js)
@@ -23559,13 +23560,18 @@ function _axColor(q){
   //    **중간값이 전부 회색 하나**로 묶여 도넋 5개 중 3~4개가 회색이 된다.
   //    ⇒ 중간을 두 결로 갈라 농담을 준다. **색은 값의 향일 뿐 '좋다/나쁘다'가 아니다**(SPEC §1).
   //  ★헤드 카운트(녹/적)는 **≥70 / ≤30 두 끝만** 센다 — 중간 색조는 세지 않는다.
+  //  [S1887] 색 = 높낮이 온도 (분석탭 기준표 v4 기준 3 · 사용자 2026-11-05 17:46) — 높음 빨강 · 낮음 파랑(다섯 축 모두 같은 규칙 · 경계 70 · 60 · 40 · 30 그대로)
+  //    옛 색 초록 #16a34a · 연두 #65a30d · 회색 · 주황 #f59e0b · 빨강 #e8365a — S1885 뒤 분석탭 빨강 = 오름 · 과열이라 옛 '낮음 = 빨강'이 거꾸로 읽혔다(자리 10 = 바닥 근처가 빨강).
+  //    헤드 카운트 글자도 녹/적 → 높/낮(_sxbHTML) · 참고사항 '5축 종합' 줄도 이 색(_sumLineCol).
   if(q == null) return 'var(--text3)';
-  if(q >= 70) return '#16a34a';
-  if(q >= 60) return '#65a30d';
+  if(q >= 70) return '#dc2626';
+  if(q >= 60) return '#f87171';
   if(q > 40)  return 'var(--text2)';
-  if(q > 30)  return '#f59e0b';
-  return '#e8365a';
+  if(q > 30)  return '#60a5fa';
+  return '#2563eb';
 }
+// [S1887] ℹ️ 참고사항 '5축 종합 N · 같은 시장에서 …' 줄 색 = 도넛과 같은 다섯 단계 (분석탭 기준표 v4 기준 3 · 사용자 2026-11-05 17:46) — 톤(≥60 · ≥41 · 그 밖 = sx_interpret.js 경계)이 그 수와 같을 때만 · 공매도 · 공시가 글 머리나 톤을 바꾼 줄 · 5축 줄이 아닌 줄은 종전 색
+function _sumLineCol(sm){ const m = /^5축 종합 (\d+) · /.exec((sm && sm.stateLine) || ''); if(m){ const v = +m[1], t = (v >= 60) ? 'bullish' : (v >= 41) ? 'neutral' : 'bearish'; if(t === sm.tone) return _axColor(v); } const t0 = sm && sm.tone; return 'var(--' + ((t0 === 'bullish') ? 'buy' : (t0 === 'bearish') ? 'sell' : 'hold') + ')'; }
 //  ★패널 — 선택된 축의 재료 표. 원값 + 분위를 나란히(SPEC §6 원값 병기 의무).
 // [S1567] ★★**흔들림 도넛 진단 — 배지가 못 하던 "얼마나?"를 숫자로 말한다.**
 //   ⚠사용자 지적: *'배지에 변동성 높음이라고 뜨는데 어느 정도인지 가늠이 안 된다'*.
@@ -24118,8 +24124,8 @@ function _sxbHTML(){
                 if(!_qs.length) return '';                      // 재료가 하나도 없으면 지어내지 않는다
                 const _g = _qs.filter(q => q >= 70).length, _r = _qs.filter(q => q <= 30).length;
                 return `<div class="sxb-head-sub">${_vs.length}축 ${_qs.length}재료 · `
-                  + `<span style="color:#16a34a;font-weight:700">녹${_g}</span> `
-                  + `<span style="color:#ef4444;font-weight:700">적${_r}</span></div>`;
+                  + `<span style="color:#dc2626;font-weight:700">높${_g}</span> `   // [S1887] 녹 → 높 · 적 → 낮(빨강 · 파랑 = 도넛 색) (분석탭 기준표 v4 기준 3 · 사용자 2026-11-05 17:46)
+                  + `<span style="color:#2563eb;font-weight:700">낮${_r}</span></div>`;
               }
             }catch(_e1378){}
             //  산출 실패 시에만 구 표기 폴백(숫자를 지어내지 않는다).
@@ -26046,7 +26052,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       const _layer = _getSummaryLayerConfig(summary, null);
       summaryHTML = `<div class="itp-summary layer-${_layer.level}">
         <div class="itp-summary-title"><span>${_layer.icon}</span><span>${_layer.label}</span></div>
-        ${summary.stateLine?`<div style="font-size:11px;font-weight:800;color:var(--${summary.tone==='bullish'?'buy':summary.tone==='bearish'?'sell':'hold'});margin-bottom:4px">${summary.stateLine}</div>`:''}
+        ${summary.stateLine?`<div style="font-size:11px;font-weight:800;color:${_sumLineCol(summary)};margin-bottom:4px">${summary.stateLine}</div>`:''}
         ${summary.basisLine?`<div style=\"font-size:9px;color:var(--text3);margin-bottom:4px\">${summary.basisLine}</div>`:''}
         ${summary.axisLine?`<div style=\"font-size:10px;color:var(--text2);margin-bottom:3px\">${summary.axisLine}</div>`:''}
         ${summary.splitLine?`<div style=\"font-size:10px;font-weight:700;color:#ff8c00;margin-bottom:3px\">⚠ ${summary.splitLine}</div>`:''}
@@ -27552,7 +27558,7 @@ function _renderDisclosureUI(stock, scores, indicators, qs){
         // 참고사항 HTML 재렌더 (제목도 레이어에 맞춰 동적으로)
         summaryEl.innerHTML = `
           <div class="itp-summary-title"><span>${_layer.icon}</span><span>${_layer.label}</span></div>
-          ${overridden.stateLine?`<div style="font-size:11px;font-weight:800;color:var(--${overridden.tone==='bullish'?'buy':overridden.tone==='bearish'?'sell':'hold'});margin-bottom:4px">${overridden.stateLine}</div>`:''}
+          ${overridden.stateLine?`<div style="font-size:11px;font-weight:800;color:${_sumLineCol(overridden)};margin-bottom:4px">${overridden.stateLine}</div>`:''}
           ${overridden.basisLine?`<div style=\"font-size:9px;color:var(--text3);margin-bottom:4px\">${overridden.basisLine}</div>`:''}
           ${overridden.axisLine?`<div style=\"font-size:10px;color:var(--text2);margin-bottom:3px\">${overridden.axisLine}</div>`:''}
           ${overridden.splitLine?`<div style=\"font-size:10px;font-weight:700;color:#ff8c00;margin-bottom:3px\">⚠ ${overridden.splitLine}</div>`:''}
