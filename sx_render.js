@@ -20557,7 +20557,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1887';   // [S1887] 분석탭 기준표 v4 기준 3 — 5축 도넛 · 재료 분위 · 축 머리 · 참고사항 5축 종합 줄 = 높으면 빨강 · 낮으면 파랑 · 머리 녹/적 → 높/낮
+  window.SX_BUILD='S1888';   // [S1888] 분석탭 기준표 v5 기준 4 — 성격 꼬리표(저항 · 지지 띠 = 표시 전용 · 레시피 해석 · 엔진 시장 상태 · 부문별 점수 · 지표 분석 · 재무·매크로·기본정보 = 읽기 도움 · 판정 아님)
+  //window.SX_BUILD='S1887';   // [S1887] 분석탭 기준표 v4 기준 3 — 5축 도넛 · 재료 분위 · 축 머리 · 참고사항 5축 종합 줄 = 높으면 빨강 · 낮으면 파랑 · 머리 녹/적 → 높/낮
   //window.SX_BUILD='S1886';   // [S1886] 분석탭 기준표 v3 기준 2 나머지 — 지표 분석 값 숫자 색 · 참고사항 상자 · 캔들 패턴 = 방향 · 과열/침체 빨강/파랑 · 좋음/나쁨 그대로
   //window.SX_BUILD='S1885';   // [S1885] 분석탭 기준표 v2 기준 2 — 방향 · 과열/침체 = 빨강/파랑(캔들 · 3×3 · 레시피 · 주월 배지 · 재료 계열 · 지표 분석 꼬리표) · 좋음/나쁨 그대로
   //window.SX_BUILD='S1884';   // [S1884] 분석탭 기준표 v1 기준 5 — 낡은 참조(판정 · 4축 · 검토영역 · 보라 마커 · 시즌2 규칙 · 한국 % · 20봉 가격 변화율)
@@ -21592,7 +21593,7 @@ function _buildR1S1Card(stock, indicators){
   if(!_r1 && !_s1) return '';
   return `<div style="margin:0 0 8px;padding:8px 12px;background:#fff;border:1px solid var(--border);border-radius:10px;display:flex;justify-content:space-between;align-items:center">
     <span style="font-size:11px;color:#f97316;font-weight:700">저항 ${_r1 ? fmt(_r1) : '—'}</span>
-    <span style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.3px">${_rk} · ${_sk}</span>
+    <span style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.3px;text-align:center">${_rk} · ${_sk}<span data-ktag="disp" style="display:block;font-size:8px;font-weight:500;letter-spacing:0">표시 전용</span></span>${''/* [S1888] 성격 꼬리표 (분석탭 기준표 v5 기준 4 · 사용자 2026-11-05 22:41) — 글 · 계산 · 배지 그대로 */}
     <span style="font-size:11px;color:#3b82f6;font-weight:700">지지 ${_s1 ? fmt(_s1) : '—'}</span>
   </div>`;
 }
@@ -26530,10 +26531,11 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
 
           // ── 헤더 + 레시피란? 안내(초보) + 헤드라인 ──
           const _riOp = _sxFoldOp('ri');   // [S1880] 카드 전체 기본 접기 — 머리 줄이 요약 줄
-          const _riHd = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">${_sxFoldC(_riOp)}
+          const _riHd = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">${_sxFoldC(_riOp)}
             <span style="font-size:13px;font-weight:800;color:var(--text)">🔍 레시피 해석</span>
             <span style="font-size:9px;font-weight:800;color:#fff;background:${_badgeC};border-radius:9px;padding:2px 9px">${_badge}</span>
             ${(_tl && _tl.sigType) ? `<span style="font-size:8px;font-weight:700;color:${_tl.sigType==='상승'?C.red:C.blue};border:1px solid ${_tl.sigType==='상승'?C.red:C.blue}66;border-radius:8px;padding:1px 6px">${_tl.sigType}형</span>` : ''}
+            <span data-ktag="read" style="font-size:8.5px;font-weight:500;color:var(--text3);white-space:nowrap">읽기 도움 · 판정 아님</span>${''/* [S1888] 성격 꼬리표 (분석탭 기준표 v5 기준 4 · 사용자 2026-11-05 22:41) — 글 · 계산 · 배지 그대로 */}
             ${_sxFoldT(_riOp)}
           </div>`;
           let h = '';
@@ -26722,7 +26724,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       const _raHTML = '';
       // [S1883] 제목 '시장 레짐' → '엔진 시장 상태' — 엔진 MarketRegime(추세장 · 횡보장 · 전환기 …)은 레짐 v4(상승장 · 횡보 · 하락장)와 다른 엔진이라 이름으로 구분(분석탭 기준표 v1 기준 1) · 측정 장부 열쇠 '시장 레짐'(_itpBadge · _itpTone · _itpNote) · 안의 글 그대로
       return `<div class="anal-section" style="background:var(--surface2)">
-        <div class="anal-section-title" style="margin-bottom:6px">엔진 시장 상태${_itpBadge('시장 레짐')}</div>
+        <div class="anal-section-title" style="margin-bottom:6px">엔진 시장 상태${_itpBadge('시장 레짐')}<span data-ktag="read" style="margin-left:6px;font-size:8.5px;font-weight:500;color:var(--text3);white-space:nowrap">읽기 도움 · 판정 아님</span>${''/* [S1888] 성격 꼬리표 (분석탭 기준표 v5 기준 4 · 사용자 2026-11-05 22:41) — 글 · 계산 · 배지 그대로 */}</div>
         ${regime?`<div style="font-size:10px;color:var(--text2);margin-bottom:2px">${regime.icon} ${regime.label} · 추세강도 ${(regime.adx||0).toFixed(0)} · 변동폭 ${(regime.bbWidth||0).toFixed(1)}%</div>${_regimeFlipHtml?`<div style="margin-bottom:4px">${_regimeFlipHtml}</div>`:''}`:''}
         ${qs.reasons&&qs.reasons.length?`<div style="font-size:10px;color:var(--hold);margin-bottom:4px">${qs.reasons.join(' ')}</div>`:''}
         ${tags.length?`<div class="sf-tags" style="margin-top:4px">${tags.map(t=>`<span class="sf-tag ${t.cls || (t.dir>0?'pos':t.dir<0?'neg':'neutral')}">${t.label}</span>`).join('')}</div>`:''}
@@ -26830,7 +26832,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     })()}
 
     <div class="anal-fold">
-      <div class="anal-fold-hdr" onclick="_sxVib(8);this.parentElement.classList.toggle('fold-open')"><span class="anal-fold-arrow">▶</span> 부문별 점수</div>
+      <div class="anal-fold-hdr" onclick="_sxVib(8);this.parentElement.classList.toggle('fold-open')"><span class="anal-fold-arrow">▶</span> 부문별 점수<span data-ktag="read" style="margin-left:auto;font-size:8.5px;font-weight:500;color:var(--text3);white-space:nowrap">읽기 도움 · 판정 아님</span>${''/* [S1888] 성격 꼬리표 (분석탭 기준표 v5 기준 4 · 사용자 2026-11-05 22:41) — 글 · 계산 · 배지 그대로 */}</div>
       <div class="anal-fold-body">
     <div class="anal-section">
       <div class="anal-row"><span class="al">가격 모멘텀</span><span class="ar ${scores.momentum>=55?'bullish':scores.momentum<=45?'bearish':'neutral'}">${scores.momentum}</span></div>
@@ -26851,7 +26853,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     </div>
 
     <div class="anal-fold">
-      <div class="anal-fold-hdr" onclick="_sxVib(8);this.parentElement.classList.toggle('fold-open')"><span class="anal-fold-arrow">▶</span> 지표 분석</div>
+      <div class="anal-fold-hdr" onclick="_sxVib(8);this.parentElement.classList.toggle('fold-open')"><span class="anal-fold-arrow">▶</span> 지표 분석<span data-ktag="read" style="margin-left:auto;font-size:8.5px;font-weight:500;color:var(--text3);white-space:nowrap">읽기 도움 · 판정 아님</span>${''/* [S1888] 성격 꼬리표 (분석탭 기준표 v5 기준 4 · 사용자 2026-11-05 22:41) — 글 · 계산 · 배지 그대로 */}</div>
       <div class="anal-fold-body">
     ${advHTML}
 
@@ -26860,7 +26862,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     </div>
 
     <div class="anal-fold">
-      <div class="anal-fold-hdr" onclick="_sxVib(8);this.parentElement.classList.toggle('fold-open')"><span class="anal-fold-arrow">▶</span> 재무·매크로·기본정보</div>
+      <div class="anal-fold-hdr" onclick="_sxVib(8);this.parentElement.classList.toggle('fold-open')"><span class="anal-fold-arrow">▶</span> 재무·매크로·기본정보<span data-ktag="read" style="margin-left:auto;font-size:8.5px;font-weight:500;color:var(--text3);white-space:nowrap">읽기 도움 · 판정 아님</span>${''/* [S1888] 성격 꼬리표 (분석탭 기준표 v5 기준 4 · 사용자 2026-11-05 22:41) — 글 · 계산 · 배지 그대로 */}</div>
       <div class="anal-fold-body">
     <div class="anal-section">
       <div class="anal-section-title">기본 정보</div>
