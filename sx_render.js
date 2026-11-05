@@ -15623,7 +15623,7 @@ function _sxCrossCards(ind, qs, stock){
     if(_rg && _rg.direction){
       var _rd = _rg.direction==='UP' ? 'up' : _rg.direction==='DOWN' ? 'down' : 'flat';
       var _adxN = (_rg.adx!=null && isFinite(_rg.adx)) ? Math.round(_rg.adx) : null;
-      rows.push({ src:'시장 레짐', dir:_rd,
+      rows.push({ src:'엔진 시장 상태', dir:_rd,   // [S1883] 보이는 줄 이름만 = 카드 제목(장부 열쇠 label '시장 레짐' 그대로)
         txt:(_rg.label||'') + (_adxN!=null ? ' · ADX '+_adxN+(_adxN<25?'(추세 약)':'') : ''),
         label:'시장 레짐' });
     }
@@ -20557,7 +20557,9 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1882';   // [S1882] 〰️ 트리플 구역 이름 = 🧭 〰️ 위치 이름(초과열권 ~ 초공포권) — 📈 크로스 탭 〰️ 줄 · 🧪 지그재그 탭 · 풀차트 배지 · 이탈 하락권 색 = 밝은 청록
+  window.SX_BUILD='S1884';   // [S1884] 분석탭 기준표 v1 기준 5 — 낡은 참조(판정 · 4축 · 검토영역 · 보라 마커 · 시즌2 규칙 · 한국 % · 20봉 가격 변화율)
+  //window.SX_BUILD='S1883';   // [S1883] 분석탭 기준표 v1 — 🔍 레시피 해석 머리 글 칸 이름 = SSOT · 엔진 시장 상태 제목 · 깨진 교과서 문장(sx_interpret.js)
+  //window.SX_BUILD='S1882';   // [S1882] 〰️ 트리플 구역 이름 = 🧭 〰️ 위치 이름(초과열권 ~ 초공포권) — 📈 크로스 탭 〰️ 줄 · 🧪 지그재그 탭 · 풀차트 배지 · 이탈 하락권 색 = 밝은 청록
   //window.SX_BUILD='S1881';   // [S1881] 🧭 추세 읽기 〰️ 위치 줄 — 볼린저 트리플 200 · 1/2/3σ 고정 · 구역 여덟 이름(초과열권 ~ 초공포권) · 상태 해석
   //window.SX_BUILD='S1880';   // [S1880] 분석탭 접기 — 전광판 회색 패널 · 🔍 레시피 해석 · 🧩 칸 사다리 v2 · 🧪 재료 카운트(기본 접힘 · 펼쳐 보기)
   //window.SX_BUILD='S1879';   // [S1879] 트리플 선 색(위 빨강 쪽 · 아래 파랑 쪽 · 가운데 녹색) · 선 이름 = σ 이름 · 풀차트 배지 = 구역 자리 색 — S1878 은 render 무변경(풀차트)
@@ -22682,7 +22684,7 @@ function _sxbMixWhy(){
   if(m.reasons && m.reasons.length){
     msg += `\n\n안전필터 사유 (${m.reasons.length}건):\n` + m.reasons.map(r => `• ${r}`).join('\n');
   }
-  msg += `\n\n분석엔진(▲/▼ 보라)과 백테스트(▲/▼ 녹·빨)의 판단이 엇갈립니다. 검토영역에서 근거를 확인하세요.`;
+  msg += `\n\n분석엔진과 백테스트의 판단이 엇갈립니다.`;   // [S1884] 옛 글의 '(▲/▼ 보라)' 마커는 S1582 에 걷혔고 '검토영역'은 없음(분석탭 기준표 v1 기준 5)
   if(typeof toast === 'function') toast(msg);
   if(typeof _sxVib === 'function') _sxVib(8);
 }
@@ -24122,7 +24124,7 @@ function _sxbHTML(){
               + `<span style="color:#16a34a;font-weight:700">녹${greens}</span> `
               + `<span style="color:#ef4444;font-weight:700">적${reds}</span></div>`;
           })()   // [S1261] ▲▼→녹/적: 현재 색권 분포(위치) 표기 — 방향 글리프가 전이(어제Δ)로 오독되던 충돌 해소
-    +       `<div style="font-size:9px;color:var(--text3);margin-top:2px;letter-spacing:-.2px">지표=종목 상태 서술 · 매매 판단은 아래 검토영역 참고</div>`
+    +       `<div style="font-size:9px;color:var(--text3);margin-top:2px;letter-spacing:-.2px">지표=종목 상태 서술 · 읽기 도움 · 판정 아님</div>`   // [S1884] 옛 글 '매매 판단은 아래 검토영역 참고' — 검토영역 없음(분석탭 기준표 v1 기준 5)
     +       `<div class="sxb-badge-band">${_dirBadges}${_volaSafe}${_warnBadges}</div>`
     + `</div></div>`;   // [S1375] `▶` 화살표 제거 — 접기/펼치기가 없어져 가리킬 대상이 사라졌다(규칙17)
   let mini = '';
@@ -26065,7 +26067,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     + ` 안전선 ${_effBuy}/${_effSell}`;   // [S1369] TP/SL 표기 철거 — 청산은 이중ATR(고정 배수 없음)
   //  [S1328] 칩 아래 한 줄 — '안전선'이 무엇의 기준인지, 그리고 화면 판정과 다른 축임을 밝힌다.
   const _apNote = '안전선은 <b>안전필터(🔒임계값 등)와 진입 타이밍 게이트</b>의 기준입니다 — '
-    + '화면 판정(관심·관망·회피)은 <b>4축·BT·모멘텀</b>으로 따로 냅니다.';
+    + '분석탭 화면은 관심·관망·회피 같은 판정을 내지 않습니다.';   // [S1884] 옛 글 '화면 판정(관심·관망·회피)은 4축·BT·모멘텀으로 따로 냅니다' — 판정 · 4축은 S1582 ~ S1584 에 걷힘(분석탭 기준표 v1 기준 5)
   // S100: 현재 적용 프리셋 출처 라벨
   const _presetLabel = (typeof _getPresetSourceLabel === 'function') ? _getPresetSourceLabel() : '';
 
@@ -26461,15 +26463,17 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
             //    ⚠'상승장'은 **시장 전체**를 가리키는 말인데 여기서 재는 것은 **이 종목의 장기 MA 배열**이다.
             //      칸 사다리 v2 행렬도 열 이름을 상승세/하락세/혼조세로 쓴다 — 그쪽이 옳다.
             //    ⇒ 판정·계산 무변경. 표기만 교체한다.
+            //  [S1883] ★칸 이름 · 단기 축도 SSOT(STATE_VOCAB.cell · axisShort · axisLong)로 — S1217 이 칸 이름을 바꿨는데 이 표만 옛 이름(눌림목 · 바닥확인 · 상승세 약화 · 하락세 약화 · 횡보장 유지)이 남아
+            //    배지(되돌림)와 머리 글(눌림목)이 한 카드에서 엇갈렸다 · 장기 혼조 '횡보장' → 혼조세 · 단기 '눌림' · '뒤섞임' → 약세 · 중립 · 괄호 꼬리 · 설명 글(카드 주장)은 그대로(분석탭 기준표 v1 기준 1)
             'bull|bull':          { c:C.green,  hl:'장기 상승세 · 단기 강세 — 추가상승 (추세 지속)', ez:'큰 흐름도 위쪽이고 단기도 힘이 실려, 계속 오르는(추가상승) 자리예요.' },
-            'bear|bull':            { c:C.blue,   hl:'장기 상승세 · 단기 눌림 — 눌림목 (반등 기대)', ez:'큰 흐름은 위쪽인데 단기적으로 잠깐 쉬어가는(눌림목) 자리예요. 다시 오를지 보는 저가매수 구간이에요.' },
+            'bear|bull':            { c:C.blue,   hl:'장기 상승세 · 단기 약세 — 되돌림 (반등 기대)', ez:'큰 흐름은 위쪽인데 단기적으로 잠깐 쉬어가는(되돌림) 자리예요. 다시 오를지 보는 저가매수 구간이에요.' },
             'bull|bear':        { c:C.orange, hl:'장기 하락세 · 단기 강세 — 기술적반등 (주의)', ez:'큰 흐름은 아래쪽인데 단기적으로 잠깐 튀어오르는(기술적반등) 중이에요. 짧게 끝날 수 있어 주의가 필요해요.' },
-            'bear|bear':          { c:C.gray,   hl:'장기 하락세 · 단기 약세 — 바닥확인 중', ez:'큰 흐름도 아래쪽이고 단기도 약해, 바닥을 찾는(바닥확인) 구간이에요. 반등은 아직이에요.' },
-            'bull|mixed': { c:C.yellow, hl:'횡보장 · 단기 강세 — 상승세 전환 시도', ez:'방향 없던 횡보에서 단기가 위로 돌아 상승세로 전환하려는 조짐이에요.' },
-            'bear|mixed': { c:C.orange, hl:'횡보장 · 단기 약세 — 하락세 전환 시도', ez:'방향 없던 횡보에서 단기가 아래로 돌아 하락세로 전환하려는 조짐이에요.' },
-            'mixed|bull':   { c:C.blue,   hl:'장기 상승세 · 단기 뒤섞임 — 상승세 약화', ez:'큰 흐름은 위쪽인데 단기 이평선이 뒤섞여 상승세가 흔들리는 중이에요.' },
-            'mixed|bear':   { c:C.gray,   hl:'장기 하락세 · 단기 뒤섞임 — 하락세 약화', ez:'큰 흐름은 아래쪽인데 단기가 뒤섞여 하락세가 주춤하는 중이에요.' },
-            'mixed|mixed':   { c:C.purple, hl:'장·단기 모두 뒤섞임 — 횡보장 유지', ez:'큰 흐름도 단기도 뚜렷한 방향이 없어 옆으로 횡보하는 구간이에요.' }
+            'bear|bear':          { c:C.gray,   hl:'장기 하락세 · 단기 약세 — 추가하락 중', ez:'큰 흐름도 아래쪽이고 단기도 약한(추가하락) 구간이에요. 반등은 아직이에요.' },
+            'bull|mixed': { c:C.yellow, hl:'장기 혼조세 · 단기 강세 — 상승세전환 시도', ez:'방향 없던 횡보에서 단기가 위로 돌아 상승세로 전환하려는 조짐이에요.' },
+            'bear|mixed': { c:C.orange, hl:'장기 혼조세 · 단기 약세 — 하락세전환 시도', ez:'방향 없던 횡보에서 단기가 아래로 돌아 하락세로 전환하려는 조짐이에요.' },
+            'mixed|bull':   { c:C.blue,   hl:'장기 상승세 · 단기 중립 — 눌림목', ez:'큰 흐름은 위쪽인데 단기 이평선이 뒤섞여 상승세가 흔들리는 중이에요.' },
+            'mixed|bear':   { c:C.gray,   hl:'장기 하락세 · 단기 중립 — 바닥확인', ez:'큰 흐름은 아래쪽인데 단기가 뒤섞여 하락세가 주춤하는 중이에요.' },
+            'mixed|mixed':   { c:C.purple, hl:'장기 혼조세 · 단기 중립 — 추세중립', ez:'큰 흐름도 단기도 뚜렷한 방향이 없어 옆으로 횡보하는 구간이에요.' }
           };
           if(typeof _cellKeySelfCheck==='function' && !window.__sxCellChecked){ window.__sxCellChecked=1; _cellKeySelfCheck(_TREND_DESC); }   // [S1127]
           const _td = (_tl && _TREND_DESC[_tl.cellKey]) ? _TREND_DESC[_tl.cellKey] : { c:C.gray, hl:(_tl?_tl.trend:'분석 대기'), ez:'' };
@@ -26587,7 +26591,11 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           }
 
           // ── 측정 맥락 callout (④ — _cv2Confidence 겹침 base rate) ──
-          if(_conf){
+          if(_conf && _mk!=='kr'){   // [S1884] 이 % 는 한국 시장에서 잰 값(_cv2Confidence) — 미국 · 코인엔 숫자를 안 보임(사용자 2026-11-04 '1' · 분석탭 기준표 v1 기준 5)
+            h += `<div style="font-size:10px;padding:7px 9px;background:var(--surface2);border-radius:7px;margin:9px 0 6px;line-height:1.55;color:var(--text3)">
+              <b style="color:var(--text2)">측정 맥락</b>&nbsp; 이 구도의 과거 확률은 <b>한국 시장에서 잰 값</b>이라 ${_mk==='us'?'미국':'코인'} 종목엔 숫자를 보여주지 않아요.
+            </div>`;
+          } else if(_conf){
             const _nH = (_lt==='bear') ? 'N15' : 'N10';
             const _nDays = (_lt==='bear') ? '15거래일' : '10거래일';
             const _nNote = (_lt==='bear') ? ' 하락 종목은 천천히 바닥을 다져서 조금 더 길게(N15) 봐요.' : '';
@@ -26602,12 +26610,14 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           }
 
           // ── 행동 참고 callout (Q1 이중ATR · 판정 아님) ──
-          if(_px > 0 && indicators.atr && indicators.atr.atr > 0){
+          //  [S1884] '시즌2 자동매매와 같은 규칙' 말을 뺌 — 지금 시즌2 기본값은 시장마다 다르고(KR · 코인) 계정 설정도 못 읽음 · 카드 규칙(2×ATR · 트레일 · MA5×20 데드)은 그대로(사용자 2026-11-04 '제안대로')
+          //    미국 = 줄 숨김(사용자 '1') · 코인 = 손절선 자릿수 _fibFmt(1원 아래 코인이 0 으로 나오던 것) · KR = 종전 그대로(정수 원)
+          if(_mk!=='us' && _px > 0 && indicators.atr && indicators.atr.atr > 0){
             const _atr = indicators.atr.atr;
-            const _initStop = Math.round(_px - 2*_atr);
+            const _initStop = _px - 2*_atr, _isTxt = (_mk==='coin') ? _fibFmt(_initStop) : Math.round(_initStop).toLocaleString();
             h += `<div style="font-size:10px;padding:7px 9px;background:var(--buy-bg);border-radius:7px;margin-bottom:2px;line-height:1.55">
               <b style="color:var(--buy)">행동한다면</b> <span style="color:var(--text3);font-size:9px">(참고 · 판정 아님)</span><br>
-              <span style="color:var(--text2)">혹시 산다면 손절선은 <b>${_initStop.toLocaleString()}원</b> 근처예요 — 현재가에서 하루 평균 출렁임 폭(ATR)의 2배 아래. 오르면 손절선도 따라 올리고(트레일), 흐름이 꺾이면(MA5×20 데드) 정리하는 방식이에요. 시즌2 자동매매와 같은 규칙이고, '지금 사라'는 뜻은 아니에요.<br>신호가 없는 지금은 <b>사기보다 지켜보는 자리</b>라는 게 교과서 쪽 정석이에요 — 위 라벨대로 참고일 뿐입니다.</span>
+              <span style="color:var(--text2)">혹시 산다면 손절선은 <b>${_isTxt}원</b> 근처예요 — 현재가에서 하루 평균 출렁임 폭(ATR)의 2배 아래. 오르면 손절선도 따라 올리고(트레일), 흐름이 꺾이면(MA5×20 데드) 정리하는 방식이에요. '지금 사라'는 뜻은 아니에요.<br>신호가 없는 지금은 <b>사기보다 지켜보는 자리</b>라는 게 교과서 쪽 정석이에요 — 위 라벨대로 참고일 뿐입니다.</span>
             </div>`;
           }
 
@@ -26671,8 +26681,9 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       }
       // [S1092] 레짐 적응형 현황 블록 철거 — 토글·보정 모두 제거됨
       const _raHTML = '';
+      // [S1883] 제목 '시장 레짐' → '엔진 시장 상태' — 엔진 MarketRegime(추세장 · 횡보장 · 전환기 …)은 레짐 v4(상승장 · 횡보 · 하락장)와 다른 엔진이라 이름으로 구분(분석탭 기준표 v1 기준 1) · 측정 장부 열쇠 '시장 레짐'(_itpBadge · _itpTone · _itpNote) · 안의 글 그대로
       return `<div class="anal-section" style="background:var(--surface2)">
-        <div class="anal-section-title" style="margin-bottom:6px">시장 레짐${_itpBadge('시장 레짐')}</div>
+        <div class="anal-section-title" style="margin-bottom:6px">엔진 시장 상태${_itpBadge('시장 레짐')}</div>
         ${regime?`<div style="font-size:10px;color:var(--text2);margin-bottom:2px">${regime.icon} ${regime.label} · 추세강도 ${(regime.adx||0).toFixed(0)} · 변동폭 ${(regime.bbWidth||0).toFixed(1)}%</div>${_regimeFlipHtml?`<div style="margin-bottom:4px">${_regimeFlipHtml}</div>`:''}`:''}
         ${qs.reasons&&qs.reasons.length?`<div style="font-size:10px;color:var(--hold);margin-bottom:4px">${qs.reasons.join(' ')}</div>`:''}
         ${tags.length?`<div class="sf-tags" style="margin-top:4px">${tags.map(t=>`<span class="sf-tag ${t.cls || (t.dir>0?'pos':t.dir<0?'neg':'neutral')}">${t.label}</span>`).join('')}</div>`:''}
