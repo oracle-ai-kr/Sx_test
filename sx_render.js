@@ -15055,7 +15055,7 @@ function _cndNowHtml(ind, itpC, _ko){
       }
       const _seen={}, _rows=[];
       _raw.forEach(pt=>{ if(!pt||!pt.name||_seen[pt.name]) return; _seen[pt.name]=1;
-        const _col = pt.dir>0 ? 'var(--buy)' : pt.dir<0 ? 'var(--sell)' : 'var(--text2)';
+        const _col = pt.dir>0 ? '#ef4444' : pt.dir<0 ? '#3b82f6' : 'var(--text2)';   // [S1886] 상승 패턴 = 빨강 · 하락 = 파랑(꼬리표 up · down 과 같은 색) (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46)
         const _tags = [];
         if(_CONT.indexOf(pt.name)>=0) _tags.push('지속형');
         if(Math.abs(pt.score)>=7) _tags.push('고강도');
@@ -15069,7 +15069,7 @@ function _cndNowHtml(ind, itpC, _ko){
       return `<div class="anal-section">
       <div class="anal-section-title">캔들 패턴${_ko?'<span class="kis-off-badge" style="margin-left:6px" title="'+_KIS_TIP+'">장중 미확정</span>':''}${_itpBadge('캔들 패턴')}</div>
       ${_rows.join('')}
-      ${itpC?`<div class="itp-card show" style="margin-top:4px"><span class="itp-label ${_itpTone('캔들 패턴', itpC.tone)}">${itpC.label}</span>${_itpBadge('캔들 패턴')}<div>${itpC.text}</div>${_itpNote('캔들 패턴')}</div>`:''}
+      ${itpC?`<div class="itp-card show" style="margin-top:4px"><span class="itp-label ${_itpUpDn('캔들 패턴', itpC)}">${itpC.label}</span>${_itpBadge('캔들 패턴')}<div>${itpC.text}</div>${_itpNote('캔들 패턴')}</div>`:''}
     </div>`;
 }
 function _cndEvents(rows){
@@ -20557,7 +20557,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1885';   // [S1885] 분석탭 기준표 v2 기준 2 — 방향 · 과열/침체 = 빨강/파랑(캔들 · 3×3 · 레시피 · 주월 배지 · 재료 계열 · 지표 분석 꼬리표) · 좋음/나쁨 그대로
+  window.SX_BUILD='S1886';   // [S1886] 분석탭 기준표 v3 기준 2 나머지 — 지표 분석 값 숫자 색 · 참고사항 상자 · 캔들 패턴 = 방향 · 과열/침체 빨강/파랑 · 좋음/나쁨 그대로
+  //window.SX_BUILD='S1885';   // [S1885] 분석탭 기준표 v2 기준 2 — 방향 · 과열/침체 = 빨강/파랑(캔들 · 3×3 · 레시피 · 주월 배지 · 재료 계열 · 지표 분석 꼬리표) · 좋음/나쁨 그대로
   //window.SX_BUILD='S1884';   // [S1884] 분석탭 기준표 v1 기준 5 — 낡은 참조(판정 · 4축 · 검토영역 · 보라 마커 · 시즌2 규칙 · 한국 % · 20봉 가격 변화율)
   //window.SX_BUILD='S1883';   // [S1883] 분석탭 기준표 v1 — 🔍 레시피 해석 머리 글 칸 이름 = SSOT · 엔진 시장 상태 제목 · 깨진 교과서 문장(sx_interpret.js)
   //window.SX_BUILD='S1882';   // [S1882] 〰️ 트리플 구역 이름 = 🧭 〰️ 위치 이름(초과열권 ~ 초공포권) — 📈 크로스 탭 〰️ 줄 · 🧪 지그재그 탭 · 풀차트 배지 · 이탈 하락권 색 = 밝은 청록
@@ -24927,6 +24928,21 @@ const _ITP_DIR = {
 };
 const _ITP_DIR_SKIP = { '시장 환경':1 };
 function _itpCls(label, o){ const t = _itpTone(label, o && o.tone); return ((t === 'bullish' || t === 'bearish') && o && !_ITP_DIR_SKIP[label] && _ITP_DIR[o.label]) ? _ITP_DIR[o.label] : t; }
+// [S1886] 지표 분석 줄 값 숫자 색 (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46) — 방향 줄은 강세 → up(빨강) · 약세 → down(파랑) · 꼬리표 따라가는 줄은 그 줄 꼬리표와 같은 색(같은 톤일 때) · 그 밖(ADX · 시장 환경 · 맥락 분석 · 눌림신호 · OBV 다이버전스 · 심리적 가격대 · 구조 위치 …)은 그대로
+const _VAL_DIR_ROWS = { 'RSI (14)':1, 'MACD':1, 'Stoch %K/%D':1, 'RS (20일)':1, 'CCI (20)':1, 'MFI (14)':1, 'OBV 방향':1, 'SAR':1, 'Stoch 다이버전스':1, 'RSI 다이버전스':1, '스윙 구조':1, '20봉 가격 변화율':1 };
+const _VAL_TAG_ROWS = { 'VWAP':1, '일목균형표':1, '가격채널':1, '피벗':1, 'MA 이격도':1, '거래량 MA':1, 'A/D (수급)':1, 'EOM':1, 'VHF':1, '심리도':1, 'Chaikin (수급)':1, 'AB Ratio':1 };
+function _valCls(label, c, o){ if(c !== 'bullish' && c !== 'bearish') return c || ''; if(_VAL_DIR_ROWS[label]) return (c === 'bullish') ? 'up' : 'down'; if(_VAL_TAG_ROWS[label] && o && o.tone === c && _ITP_DIR[o.label]) return _ITP_DIR[o.label]; return c; }
+// [S1886] ℹ️ 참고사항 핵심 이유 · 위험 요소 상자 색 (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46) — 강세 · 약세 상자만 제목으로 가른다: 오름 · 침체에서 반전 → up · 침체 · 내림 → down · 표에 없는 상자(좋음 · 나쁨 · 공시 · 공매도 …)는 그대로
+const _CMP_DIR = {
+  'MACD 골든크로스 + 모멘텀 회복':'up', '상승 스윙 + 적정 RSI':'up', 'BB 스퀴즈 + 정배열':'up', 'VHF 추세 + ADX 강세 + 정배열':'up', 'VHF 추세 + EOM 매수 + MACD 골든 → 추세 가속':'up', '정배열 + OBV 상승':'up',
+  'VWAP 상회 + 거래량 유입':'up', 'OBV 상승 다이버전스':'up', '거래량 폭발 + 강세 캔들':'up', '5중 상승 확인 (추세+수급+모멘텀)':'up', '3중 전환 신호 (MACD+EOM+AB)':'up', '변동성 확장 + 상승 추세':'up',
+  'RSI 과매도 + Stoch 골든크로스':'up', '심리도 침체 + Stoch 바닥 반전':'up', '심리도 침체 + AB 매수 전환 → 바닥 반전 초기':'up',   // 침체에서 반전(꼬리표 '과매도 반전'과 같은 처리)
+  '심리도 + RSI 이중 과매도':'down', 'BB 하단 + RSI 과매도':'down', 'AB Ratio 극단 매도 + 심리도 침체':'down',   // 침체
+  'OBV 하락 다이버전스':'down', '반등보다 하방 우위':'down'
+};
+function _cmpCls(c){ const t = c && c.tone; return ((t === 'bullish' || t === 'bearish') && _CMP_DIR[c.title]) ? _CMP_DIR[c.title] : t; }
+// [S1886] 캔들 패턴 꼬리표 (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46) — 패턴은 모두 방향이라 강세 → up · 약세 → down(역방향 muted · 방향 혼재 mixed 그대로)
+function _itpUpDn(label, o){ const t = _itpTone(label, o && o.tone); return (t === 'bullish') ? 'up' : (t === 'bearish') ? 'down' : t; }
 function _buildBoardGroups(scores, sv4, structPos, pbScore, D, extras){
   D = D || {}; extras = extras || {};
   const g1=[], g2=[], g3=[], g4=[], g5=[];
@@ -25747,7 +25763,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     const advItpRow = (label, val, valCls, itpObj) => {
       const id = _id();
       const dispVal = _toneKr[val] || val;
-      let row = `<div class="anal-row itp-row"><span class="al">${label}</span><span class="ar ${valCls||''}">${dispVal}</span>`;
+      let row = `<div class="anal-row itp-row"><span class="al">${label}</span><span class="ar ${_valCls(label, valCls, itpObj)}">${dispVal}</span>`;
       if(itpObj){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
         row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpObj)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}</div>`;
@@ -25841,7 +25857,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       const id = 'adv_' + Math.random().toString(36).slice(2,8);
       const dispVal = _toneKr[val] || val;
       const dimCls = kisOff ? ' kis-dimmed' : '';
-      let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge_inline:''}</span><span class="ar ${valCls||''}">${dispVal}</span>`;
+      let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge_inline:''}</span><span class="ar ${_valCls(label, valCls, itpObj)}">${dispVal}</span>`;
       if(itpObj){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
         row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpObj)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}</div>`;
@@ -25925,7 +25941,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     const itpRow = (label, val, valCls, itpData, kisOff) => {
       const id = 'itp_' + Math.random().toString(36).slice(2,8);
       const dimCls = kisOff ? ' kis-dimmed' : '';
-      let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge:''}</span><span class="ar ${valCls||''}">${val}</span>`;
+      let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge:''}</span><span class="ar ${_valCls(label, valCls, itpData)}">${val}</span>`;
       if(itpData){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
         row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpData)}">${itpData.label}</span>${_itpBadge(label)}<div>${itpData.text}</div>${_itpNote(label)}</div>`;   // [S1284] 배지 주입(세 번째 경로)
@@ -26039,9 +26055,9 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
           <div style="font-size:9px;color:var(--text3);margin:2px 0 4px">이 문단은 <b>상태 서술</b>입니다.${summary.basisLine?`<br>— 산문은 <b>엔진 점수</b> 기준 · <b>위 5축과 다른 눈금</b>이라 머리말과 어긋날 수 있다`:''}</div>
           ${_sxLitSignalsHtml(stock, _analTF==='day')}   <!-- [S1586] 행동 가이드 → 🔎 지금 켜진 신호(사실) -->
         ${summary.keyReasons.length?'<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px">핵심 이유'+_krCutNote(summary)+_compBadge()+'</div>':''}
-        ${summary.keyReasons.map(c=>`<div class="itp-composite ${c.tone}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
+        ${summary.keyReasons.map(c=>`<div class="itp-composite ${_cmpCls(c)}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
         ${summary.risks.length?'<div style="font-size:10px;font-weight:700;color:var(--sell);margin:6px 0 4px">위험 요소'+_compBadge()+'</div>':''}
-        ${summary.risks.map(c=>`<div class="itp-composite ${c.tone}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
+        ${summary.risks.map(c=>`<div class="itp-composite ${_cmpCls(c)}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
         ${(summary.keyReasons.length||summary.risks.length)?_compFoot(_sxDimNow):''}
       </div>`;
     }
@@ -27545,9 +27561,9 @@ function _renderDisclosureUI(stock, scores, indicators, qs){
           <div style="font-size:9px;color:var(--text3);margin:2px 0 4px">이 문단은 <b>상태 서술</b>입니다.${overridden.basisLine?`<br>— 산문은 <b>엔진 점수</b> 기준 · <b>위 5축과 다른 눈금</b>이라 머리말과 어긋날 수 있다`:''}</div>
           ${_sxLitSignalsHtml(stock, (typeof _analTF!=='undefined') && _analTF==='day')}   <!-- [S1586] -->
           ${overridden.keyReasons&&overridden.keyReasons.length?'<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px">핵심 이유'+_krCutNote(overridden)+_compBadge()+'</div>':''}
-          ${(overridden.keyReasons||[]).map(c=>`<div class="itp-composite ${c.tone}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
+          ${(overridden.keyReasons||[]).map(c=>`<div class="itp-composite ${_cmpCls(c)}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
           ${overridden.risks&&overridden.risks.length?'<div style="font-size:10px;font-weight:700;color:var(--sell);margin:6px 0 4px">위험 요소'+_compBadge()+'</div>':''}
-          ${(overridden.risks||[]).map(c=>`<div class="itp-composite ${c.tone}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
+          ${(overridden.risks||[]).map(c=>`<div class="itp-composite ${_cmpCls(c)}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
           ${(((overridden.keyReasons||[]).length)||((overridden.risks||[]).length))?_compFoot(_sxDimNow):''}
         `;
       }
