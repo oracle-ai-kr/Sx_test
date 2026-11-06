@@ -20557,7 +20557,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1891';   // [S1891] 분석탭 기준표 v8 기준 8 — 일봉이 아닌 TF 에서 5축 자리(전광판 머리 · 5축 패널 머리 · 참고사항 5축 줄)에 [일봉기준] 배지 · 5축 패널 기준 줄 '일봉 5분위'
+  window.SX_BUILD='S1892';   // [S1892] 분석탭 기준표 v9 기준 9 — 공시 덮어쓰기 길 고침(참고사항 레이어 함수 바깥으로) · 치명 · 위험 공시면 참고사항에 사실 한 줄 · 공시 상세 카드가 첫 열기부터
+  //window.SX_BUILD='S1891';   // [S1891] 분석탭 기준표 v8 기준 8 — 일봉이 아닌 TF 에서 5축 자리(전광판 머리 · 5축 패널 머리 · 참고사항 5축 줄)에 [일봉기준] 배지 · 5축 패널 기준 줄 '일봉 5분위'
   //window.SX_BUILD='S1890';   // [S1890] 분석탭 기준표 v7 기준 2 — 취소선 깨짐 = 나쁨 빨강(양쪽) · 매수세 · 매집 · 시장 강세 = 빨강 · 매도세 · 분산 · 시장 약세 = 파랑(지표 분석 꼬리표 · 값 · 참고사항 상자 여섯) · 매크로 환경 = 추세 상승 빨강 · 하락 파랑
   //window.SX_BUILD='S1889';   // [S1889] 분석탭 기준표 v6 기준 8 — TF 칩 점 = 일봉 5축 종합(도넛 다섯 단계 색 · 꽉 찬 원 · 일봉 칩 · 오른쪽 끝만) · 옛 5분류 이모지 점 걷음
   //window.SX_BUILD='S1888';   // [S1888] 분석탭 기준표 v5 기준 4 — 성격 꼬리표(저항 · 지지 띠 = 표시 전용 · 레시피 해석 · 엔진 시장 상태 · 부문별 점수 · 지표 분석 · 재무·매크로·기본정보 = 읽기 도움 · 판정 아님)
@@ -26007,51 +26008,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     `;
   }
 
-  // ════════════════════════════════════════════════════════════
-  // S39 (Phase3-C-1): 참고사항 카드 — 5단계 다이나믹 레이어 시스템
-  //   [배경] 구 "종합평" 제목은 "최종 결론" 뉘앙스를 만들어 C 배너와 충돌
-  //          → 평시엔 "참고사항"(L3)으로 위계 명확화 / 공시 발동 시 제목+색 자동 승격
-  //
-  //   [레이어 매핑 — 공시 tone 기반]
-  //     L0 danger   : ⛔ 긴급경고  (빨강, C 판정 무시, 투자 부적격)
-  //     L1 bearish  : ⚠️ 위험안내   (주황, 관리종목·자본잠식 등)
-  //     L2 warning  : 💡 주의사항    (노랑, 주의 공시 감지)
-  //     L3 neutral  : ℹ️ 참고사항    (하늘, 평시 99% 케이스 — 분석엔진 보조)
-  //     L4 bullish  : ✨ 긍정요인  (초록, 호재 공시 보강)
-  //
-  //   [동작 원칙]
-  //     - 공시 없음 또는 tone=neutral  → L3 (기본)
-  //     - SXI.overrideSummaryWithDisclosure 후 stateLine이 '⛔'로 시작 → L0
-  //     - SXI.overrideSummaryWithDisclosure 후 stateLine이 '[주의]' 포함 → L1
-  //     - risks 중 '주의 공시 감지'가 있으면 → L2
-  //     - keyReasons 중 '호재 공시 감지'가 있으면 → L4
-  // ════════════════════════════════════════════════════════════
-  function _getSummaryLayerConfig(summary, discTone){
-    // 1) 공시 tone 직접 전달된 경우 우선 사용 (가장 신뢰 가능)
-    if(discTone === 'danger')  return {level:'l0', icon:'⛔', label:'긴급경고'};
-    if(discTone === 'bearish') return {level:'l1', icon:'⚠️', label:'위험안내'};
-    // [PATCH mixed] 호재·주의 동시 → 주의 우위로 L2 매핑 (보수 원칙)
-    //   참고사항 카드 자체는 L2(주황) 색이지만, 별도의 호재 공시 카드(보라색)에서 양면 정보 노출
-    if(discTone === 'mixed')   return {level:'l2', icon:'💡', label:'주의사항'};
-    if(discTone === 'warning') return {level:'l2', icon:'💡', label:'주의사항'};
-    if(discTone === 'bullish') return {level:'l4', icon:'✨', label:'긍정요인'};
-    // 2) discTone 미전달 시 summary 내용물로 추론 (오버라이드가 이미 적용된 상태)
-    if(summary){
-      const sl = summary.stateLine || '';
-      if(sl.indexOf('⛔') === 0 || sl.indexOf('치명적 공시') >= 0)
-        return {level:'l0', icon:'⛔', label:'긴급경고'};
-      if(sl.indexOf('[주의]') >= 0 || sl.indexOf('위험 공시') >= 0)
-        return {level:'l1', icon:'⚠️', label:'위험안내'};
-      const risks = summary.risks || [];
-      if(risks.some(r => r && r.title && r.title.indexOf('주의 공시') >= 0))
-        return {level:'l2', icon:'💡', label:'주의사항'};
-      const krs = summary.keyReasons || [];
-      if(krs.some(r => r && r.title && r.title.indexOf('호재 공시') >= 0))
-        return {level:'l4', icon:'✨', label:'긍정요인'};
-    }
-    // 3) 기본값: 평시 (L3)
-    return {level:'l3', icon:'ℹ️', label:'참고사항'};
-  }
+  // [S1892] 참고사항 레이어 함수(S39 _getSummaryLayerConfig)는 바깥(최상위)으로 옮김 — _renderDisclosureUI 도 같은 것을 부른다
 
   // S103-fix7 Phase3-B-3: verdictAction 5번째 파라미터 전달 — 보유중 5종일 때 보유자 맥락 종합평 생성
   // [S223] 6번째 파라미터 qs.regime 추가 — 27조합 (C × 레짐) 컨텍스트 부착
@@ -27495,6 +27452,71 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
   _renderFundSectorRow(stock);
 }
 
+// [S1892] 참고사항 레이어 — renderAnalysisResult 안쪽에서 바깥으로 옮김(머리 주석 · 본문 그대로 · 들여쓰기만 두 칸 줄임) (분석탭 기준표 v9 기준 9 · 사용자 2026-11-06 14:31 · 14:38)
+//   안쪽에 있을 땐 _renderDisclosureUI 가 못 찾아 공시 톤이 중립이 아니면 늘 멈췄다(ReferenceError · .catch 가 삼킴) → 참고사항 덮어쓰기 · 공시 상세 카드 사후 삽입이 안 됐다
+// ════════════════════════════════════════════════════════════
+// S39 (Phase3-C-1): 참고사항 카드 — 5단계 다이나믹 레이어 시스템
+//   [배경] 구 "종합평" 제목은 "최종 결론" 뉘앙스를 만들어 C 배너와 충돌
+//          → 평시엔 "참고사항"(L3)으로 위계 명확화 / 공시 발동 시 제목+색 자동 승격
+//
+//   [레이어 매핑 — 공시 tone 기반]
+//     L0 danger   : ⛔ 긴급경고  (빨강, C 판정 무시, 투자 부적격)
+//     L1 bearish  : ⚠️ 위험안내   (주황, 관리종목·자본잠식 등)
+//     L2 warning  : 💡 주의사항    (노랑, 주의 공시 감지)
+//     L3 neutral  : ℹ️ 참고사항    (하늘, 평시 99% 케이스 — 분석엔진 보조)
+//     L4 bullish  : ✨ 긍정요인  (초록, 호재 공시 보강)
+//
+//   [동작 원칙]
+//     - 공시 없음 또는 tone=neutral  → L3 (기본)
+//     - SXI.overrideSummaryWithDisclosure 후 stateLine이 '⛔'로 시작 → L0
+//     - SXI.overrideSummaryWithDisclosure 후 stateLine이 '[주의]' 포함 → L1
+//     - risks 중 '주의 공시 감지'가 있으면 → L2
+//     - keyReasons 중 '호재 공시 감지'가 있으면 → L4
+// ════════════════════════════════════════════════════════════
+function _getSummaryLayerConfig(summary, discTone){
+  // 1) 공시 tone 직접 전달된 경우 우선 사용 (가장 신뢰 가능)
+  if(discTone === 'danger')  return {level:'l0', icon:'⛔', label:'긴급경고'};
+  if(discTone === 'bearish') return {level:'l1', icon:'⚠️', label:'위험안내'};
+  // [PATCH mixed] 호재·주의 동시 → 주의 우위로 L2 매핑 (보수 원칙)
+  //   참고사항 카드 자체는 L2(주황) 색이지만, 별도의 호재 공시 카드(보라색)에서 양면 정보 노출
+  if(discTone === 'mixed')   return {level:'l2', icon:'💡', label:'주의사항'};
+  if(discTone === 'warning') return {level:'l2', icon:'💡', label:'주의사항'};
+  if(discTone === 'bullish') return {level:'l4', icon:'✨', label:'긍정요인'};
+  // 2) discTone 미전달 시 summary 내용물로 추론 (오버라이드가 이미 적용된 상태)
+  if(summary){
+    const sl = summary.stateLine || '';
+    if(sl.indexOf('⛔') === 0 || sl.indexOf('치명적 공시') >= 0)
+      return {level:'l0', icon:'⛔', label:'긴급경고'};
+    if(sl.indexOf('[주의]') >= 0 || sl.indexOf('위험 공시') >= 0)
+      return {level:'l1', icon:'⚠️', label:'위험안내'};
+    const risks = summary.risks || [];
+    if(risks.some(r => r && r.title && r.title.indexOf('주의 공시') >= 0))
+      return {level:'l2', icon:'💡', label:'주의사항'};
+    const krs = summary.keyReasons || [];
+    if(krs.some(r => r && r.title && r.title.indexOf('호재 공시') >= 0))
+      return {level:'l4', icon:'✨', label:'긍정요인'};
+  }
+  // 3) 기본값: 평시 (L3)
+  return {level:'l3', icon:'ℹ️', label:'참고사항'};
+}
+
+// [S1892] 치명 · 위험 공시 사실 한 줄 — 키워드(미국 = 8-K 항목) · 날짜 · (한국) 공시 제목 · 판정 · 지시 글 없음 (분석탭 기준표 v9 기준 9 · 사용자 2026-11-06 14:31 · 14:38)
+//   치명(danger) · 위험(bearish) 톤일 때만 · 걸린 배지 = 한국 등급 CRITICAL · SEVERE / 미국 배지 type danger · bearish · 없으면 빈 글
+function _discFactLine(stock, di){
+  try{
+    if(!di || (di.tone !== 'danger' && di.tone !== 'bearish')) return '';
+    const crit = di.tone === 'danger', sec = di._source === 'sec';
+    const hit = b => !!b && (b.grade ? (b.grade === 'CRITICAL' || b.grade === 'SEVERE') : (b.type === 'danger' || b.type === 'bearish'));
+    const bs = (di.badges || []).filter(hit);
+    if(!bs.length) return '';
+    const kw = Array.isArray(stock && stock._disclosureKw) ? stock._disclosureKw : [];
+    const md = d => { const x = String(d || '').replace(/\D/g, ''); return x.length >= 8 ? x.slice(4, 6) + '.' + x.slice(6, 8) : ''; };
+    const items = bs.map(b => { const k = sec ? null : kw.find(q => q && q.keyword === b.text && q.report_nm); const d = md(b.date); return '<b>' + _esc(b.text) + '</b>' + (d ? ' ' + d : '') + (k ? ' <span style="font-weight:400;color:var(--text2)">' + _esc(k.report_nm) + '</span>' : ''); }).join(' · ');
+    return '<div data-disc-fact="' + di.tone + '" style="margin-bottom:5px"><div style="font-size:11px;font-weight:800;color:' + (crit ? '#e8365a' : '#e67e00') + '">' + (crit ? '⛔ 치명적 공시' : '⚠️ 위험 공시') + (sec ? '' : ' 키워드') + ' — ' + items + '</div>'
+      + '<div style="font-size:9px;color:var(--text3)">' + (sec ? 'SEC 8-K 항목 번호로 나눈 것' : '공시 제목에서 키워드로 찾은 것') + ' · 원문은 위 공시 배지 · 판정 아님</div></div>';
+  }catch(_e1892){ return ''; }
+}
+
 // ══ S56: 공시 UI 동적 렌더 (비동기 fetch 완료 후 호출) ══
 function _renderDisclosureUI(stock, scores, indicators, qs){
   //  [S1324] 공시 오버라이드 경로는 **별도 함수**라 renderAnalysisResult의 _sxDimNow가 안 잡힌다
@@ -27560,40 +27582,20 @@ function _renderDisclosureUI(stock, scores, indicators, qs){
   //   → 부문별 영역에 동일 형식으로 합쳐서 한눈 비교 가능하게 변경
   //   별도 헬퍼로 분리해 분석탭 진입 시점/공시 fetch 후 시점 양쪽에서 안전하게 호출
   _renderFundSectorRow(stock);
-  // 3) 참고사항 오버라이드 (공시 감지 후 재렌더 — Phase3-C-1 다이나믹 레이어 적용)
-  if(di && di.tone !== 'neutral' && typeof SXI!=='undefined' && SXI.overrideSummaryWithDisclosure){
+  // 3) [S1892] 참고사항 — 치명 · 위험 공시일 때만: 제목 · 색을 S39 레이어대로 올리고 사실 한 줄(_discFactLine)을 제목 바로 아래에 얹음 · 5축 줄과 나머지 글은 첫 렌더 그대로 (분석탭 기준표 v9 기준 9 · 사용자 2026-11-06 14:31 · 14:38)
+  //   옛 길(SXI.overrideSummaryWithDisclosure 로 참고사항 전체를 다시 그림 · '투자 부적격 · 즉시 정리' 같은 판정 · 지시 글)은 레이어 함수를 못 찾아 늘 멈춰 화면에 나온 적이 없다 → 쓰지 않음
+  //   주의 · 혼재 · 호재 · 중립은 참고사항 그대로(미국은 10-Q 만 있어도 '호재' 톤) · 두 번 불려도 한 줄
+  if(di && (di.tone === 'danger' || di.tone === 'bearish')){
     const summaryEl = document.querySelector('.itp-summary');
-    if(summaryEl && qs && indicators){
-      // S103-fix7 Phase3-B-3: verdictAction 5번째 파라미터 전달 (공시 갱신 재렌더 시에도 보유 맥락 유지)
-      // [S223] 6번째 파라미터 qs.regime 추가 — 27조합 컨텍스트 (공시 재렌더 경로도 동기 적용)
-      //  ⚠[S1388] 7번째 인자 `{safetyViol}`를 **반드시** 넘긴다 — 빼면 `violLine`이 `reasons`(강등을 만든 것만)로
-      //     떨어져 초기 렌더(위반 전수)와 목록이 달라진다. 실측 kr 20.41 · us 18.75 · coin 15.29%의 봉에서 평균 1.4~1.6개 줄었다.
-      const baseSummary = SXI.summary(qs.action, qs.score, qs.reasons, indicators, null /* [S1584] */, qs.regime || null, { safetyViol: qs._safetyViol || [] });
-      if(baseSummary){
-        const overridden = SXI.overrideSummaryWithDisclosure(baseSummary, di);
-        // Phase3-C-1: 공시 tone 직접 전달 → 레이어 정확히 판정
-        const _layer = _getSummaryLayerConfig(overridden, di.tone);
-        // 기존 layer-l* 클래스 제거 후 새 레벨 클래스 부착 (border/background 자동 반영)
-        summaryEl.classList.remove('layer-l0','layer-l1','layer-l2','layer-l3','layer-l4');
-        summaryEl.classList.add('layer-' + _layer.level);
-        // 참고사항 HTML 재렌더 (제목도 레이어에 맞춰 동적으로)
-        summaryEl.innerHTML = `
-          <div class="itp-summary-title"><span>${_layer.icon}</span><span>${_layer.label}</span></div>
-          ${overridden.stateLine?`<div style="font-size:11px;font-weight:800;color:${_sumLineCol(overridden)};margin-bottom:4px">${overridden.stateLine}${/5축 종합 /.test(overridden.stateLine) ? _dayRulerBadge() : ''}</div>`:''}${''/* [S1891] [일봉기준] — 5축 종합 줄일 때만(공시 머리말이 붙은 줄 포함) */}
-          ${overridden.basisLine?`<div style=\"font-size:9px;color:var(--text3);margin-bottom:4px\">${overridden.basisLine}</div>`:''}
-          ${overridden.axisLine?`<div style=\"font-size:10px;color:var(--text2);margin-bottom:3px\">${overridden.axisLine}</div>`:''}
-          ${overridden.splitLine?`<div style=\"font-size:10px;font-weight:700;color:#ff8c00;margin-bottom:3px\">⚠ ${overridden.splitLine}</div>`:''}
-          ${overridden.demotedLine?`<div style=\"font-size:10px;padding:6px 8px;background:rgba(255,140,0,.06);border-radius:6px;margin:4px 0;line-height:1.55\"><span style=\"font-weight:700;color:#ff8c00\">🔒 ${overridden.demotedLine}</span>${overridden.violLine?`<br><span style=\"color:var(--text2)\">${overridden.violLine}</span>`:''}<br><span style=\"font-size:9px;color:var(--text3)\">— 여기서 '매수 문턱'은 <b>엔진 점수</b> 기준 · <b>위 5축과 다른 눈금</b>이다<br>— 켜진 필터 중 위반 · 점수 문턱 항목은 제외 · 판정 등급은 별도 기준</span></div>`:''}
-                    <div class="itp-summary-text">${overridden.mainText}</div>
-          <div style="font-size:9px;color:var(--text3);margin:2px 0 4px">이 문단은 <b>상태 서술</b>입니다.${overridden.basisLine?`<br>— 산문은 <b>엔진 점수</b> 기준 · <b>위 5축과 다른 눈금</b>이라 머리말과 어긋날 수 있다`:''}</div>
-          ${_sxLitSignalsHtml(stock, (typeof _analTF!=='undefined') && _analTF==='day')}   <!-- [S1586] -->
-          ${overridden.keyReasons&&overridden.keyReasons.length?'<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px">핵심 이유'+_krCutNote(overridden)+_compBadge()+'</div>':''}
-          ${(overridden.keyReasons||[]).map(c=>`<div class="itp-composite ${_cmpCls(c)}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
-          ${overridden.risks&&overridden.risks.length?'<div style="font-size:10px;font-weight:700;color:var(--sell);margin:6px 0 4px">위험 요소'+_compBadge()+'</div>':''}
-          ${(overridden.risks||[]).map(c=>`<div class="itp-composite ${_cmpCls(c)}"><div class="itp-composite-title">${c.icon||''} ${c.title}</div><div class="itp-composite-text">${c.text}</div></div>`).join('')}
-          ${(((overridden.keyReasons||[]).length)||((overridden.risks||[]).length))?_compFoot(_sxDimNow):''}
-        `;
-      }
+    if(summaryEl){
+      const _layer = _getSummaryLayerConfig(null, di.tone);
+      summaryEl.classList.remove('layer-l0','layer-l1','layer-l2','layer-l3','layer-l4');
+      summaryEl.classList.add('layer-' + _layer.level);
+      const tEl = summaryEl.querySelector('.itp-summary-title');
+      if(tEl) tEl.innerHTML = `<span>${_layer.icon}</span><span>${_layer.label}</span>`;
+      const old = summaryEl.querySelector('[data-disc-fact]'); if(old) old.remove();
+      const line = _discFactLine(stock, di);
+      if(line && tEl) tEl.insertAdjacentHTML('afterend', line);
     }
   }
   // 4) 레짐 카드에 공시 배지 추가
