@@ -783,6 +783,7 @@ SXI.compositeFlow = function(ind){
   // S51: Chaikin + OBV + EOM 3중 수급
   const coV=ind.chaikinOsc?.val??null, coT=ind.chaikinOsc?.trend;
   const eomV2=ind.eom?.val??null, eomT2=ind.eom?.trend;
+  const eomS2=(typeof ind.eom?.score100==='number')?ind.eom.score100:null;   // [S1895] 문턱을 점수로 — 앱식 하루 값은 거래량(백만 단위)에 비례해 고정 숫자 0.5 가 종목 · 시장마다 다르게 걸렸다 (분석탭 기준표 v11 · 사용자 2026-11-06 15:10 · 16:11)
   //  ★[S1317] '3중 수급 확인' — 두 가지를 함께 고친다.
   //    ① 추세추종 권유에 ADX 게이트가 없었다(S1312가 레짐 카드에서 걷어낸 그 사고).
   //    ② *"가능성이 매우 높으며 … 강력한 매수 확인 신호"* — S1302가 잡은 확률·신뢰도 계열과
@@ -797,8 +798,8 @@ SXI.compositeFlow = function(ind){
     + ``});
   if(coV!=null && coV<0 && obvT==='down' && eomV2!=null && eomV2<0) notes.push({tone:'danger',icon:'🚨',title:'3중 수급 이탈 (Chaikin+OBV+EOM)',text:`Chaikin Osc 음수(분산) + OBV 하락 + EOM 음수(앱식 · 가운데값 하락에 거래량 실림) — 세 가지 수급 지표가 모두 매도 쪽을 가리킵니다. 교과서에서는 이를 대량 매도 진행으로 봅니다. 비중 조정 시점은 미리 정한 규칙대로 판단하세요.`});
   if(coV!=null && coV>0 && obvT==='up' && maArr!=='bull') notes.push({tone:'bullish',icon:'🔎',title:'Chaikin+OBV 매집 (횡보 중)',text:'가격은 횡보하지만 Chaikin Osc와 OBV 모두 매집을 가리킵니다. 교과서에서는 이를 큰손이 조용히 물량을 확보하는 패턴으로 보고 돌파를 주시합니다.'});
-  if(eomV2!=null && eomV2>0.5 && volR>=1.5) notes.push({tone:'bullish',icon:'[#]',title:'EOM 강세 + 거래량 유입',text:`EOM ${eomV2.toFixed(2)}(앱식 · 가운데값 상승에 거래량이 실린 값)인 가운데, 거래량도 평소의 ${volR.toFixed(1)}배로 증가했습니다. 앱식 EOM은 거래량이 많을수록 커지는 식이라 거래량 증가와 함께 나오기 쉽습니다.`});
-  if(eomV2!=null && eomV2<-0.5 && volR>=1.5) notes.push({tone:'danger',icon:'💥',title:'EOM 약세 + 거래량 급증',text:`EOM ${eomV2.toFixed(2)}(앱식 · 가운데값 하락에 거래량이 실린 값)인 가운데, 거래량이 ${volR.toFixed(1)}배로 급증했습니다. 교과서에서는 이를 매도 우위 흐름으로 봅니다.`});
+  if(eomV2!=null && eomV2>0 && eomS2!=null && eomS2>=65 && volR>=1.5) notes.push({tone:'bullish',icon:'[#]',title:'EOM 강세 + 거래량 유입',text:`EOM ${eomV2.toFixed(2)}(앱식 · 가운데값 상승에 거래량이 실린 값)인 가운데, 거래량도 평소의 ${volR.toFixed(1)}배로 증가했습니다. 앱식 EOM은 거래량이 많을수록 커지는 식이라 거래량 증가와 함께 나오기 쉽습니다.`});
+  if(eomV2!=null && eomV2<0 && eomS2!=null && eomS2<35 && volR>=1.5) notes.push({tone:'danger',icon:'💥',title:'EOM 약세 + 거래량 급증',text:`EOM ${eomV2.toFixed(2)}(앱식 · 가운데값 하락에 거래량이 실린 값)인 가운데, 거래량이 ${volR.toFixed(1)}배로 급증했습니다. 교과서에서는 이를 매도 우위 흐름으로 봅니다.`});
   return notes;
 };
 
@@ -865,6 +866,7 @@ SXI.compositeSynergy = function(ind){
   const squeeze=ind.squeeze?.squeeze??ind.bb?.isSqueeze;
   const psyV=ind.psycho?.psycho??null;
   const eomV=ind.eom?.val??null, eomT=ind.eom?.trend;
+  const eomS=(typeof ind.eom?.score100==='number')?ind.eom.score100:null;   // [S1895] 횡보 속 EOM 신호 문턱을 점수로(옛 |값| > 0.3 은 거래량 단위에 비례) (분석탭 기준표 v11 · 사용자 2026-11-06 15:10 · 16:11)
   const coV=ind.chaikinOsc?.val??null;
   const obvT=ind.obv?.trend;
   const abT=ind.abRatio?.trend, abR=ind.abRatio?.ratio??null;
@@ -888,7 +890,7 @@ SXI.compositeSynergy = function(ind){
   if(psyV!=null && psyV>=75 && abT==='bearish')
     notes.push({tone:'danger',icon:'[X]',title:'심리도 과열 + AB 매도 전환 → 고점 분배',text:`심리도 ${psyV.toFixed(0)}%(과매수) 상태에서 AB Ratio가 매도 우위로 전환되었습니다. 과열된 낙관 속에서 장중 매도 압력이 커지고 있어, 세력(큰손)이 물량을 던지기 시작했을 가능성이 있습니다. 분할 익절을 강력히 검토하세요.`});
 
-  // [S1893] 이 함수 · compositeTrend · compositeFlow 의 EOM 조각 글을 앱식 계산에 맞춤(제목 · 조건 · 문턱 그대로 · 문턱 0.5 · 0.3 은 거래량 단위에 따라 크기가 달라지는 값이라 따로 정함) (분석탭 기준표 v10 기준 10 · 사용자 2026-11-06 14:31 · 15:10)
+  // [S1893] 이 함수 · compositeTrend · compositeFlow 의 EOM 조각 글을 앱식 계산에 맞춤(제목 · 조건 그대로 · [S1895] 문턱 0.5 · 0.3 → 점수 65 · 35) (분석탭 기준표 v10 기준 10 · 사용자 2026-11-06 14:31 · 15:10)
   // 4. 완전 상승 확신: 정배열 + VHF 추세 + EOM 매수 + Chaikin 매집 + OBV 상승
   if(maArr==='bull' && vhfT==='trending' && eomV!=null && eomV>0 && coV!=null && coV>0 && obvT==='up')
     notes.push({tone:'bullish',icon:'🏆',title:'5중 상승 확인 (추세+수급+모멘텀)',text:'MA 정배열 + VHF 추세장 + EOM 양수(앱식) + Chaikin 매집 + OBV 상승 — 다섯 축이 모두 상승을 가리킵니다. 교과서에서는 이런 정렬을 강한 컨플루언스로 봅니다.'});
@@ -898,9 +900,9 @@ SXI.compositeSynergy = function(ind){
     notes.push({tone:'danger',icon:'☠️',title:'5중 하락 경고 (추세+수급+모멘텀)',text:'MA 역배열 + VHF 추세장 + EOM 음수(앱식) + Chaikin 분산 + OBV 하락 — 다섯 축이 모두 하락을 가리킵니다. 청산 시점은 미리 정한 규칙대로 판단하세요.'});
 
   // 6. 횡보 중 방향 탐색: VHF 횡보 + EOM 방향 전환
-  if(vhfT==='ranging' && eomV!=null && Math.abs(eomV)>0.3){
-    if(eomT==='bullish') notes.push({tone:'bullish',icon:'[?]',title:'횡보 속 EOM 매수 신호',text:`VHF 횡보장이지만 EOM ${eomV.toFixed(2)}(앱식) — 하루 값 · 14봉 평균이 모두 양수입니다. 교과서에서는 이를 박스권 상방 돌파의 선행 신호로 보고 BB 상단을 함께 봅니다.`});
-    if(eomT==='bearish') notes.push({tone:'bearish',icon:'[?]',title:'횡보 속 EOM 매도 신호',text:`VHF 횡보장이지만 EOM ${eomV.toFixed(2)}(앱식) — 하루 값 · 14봉 평균이 모두 음수입니다. 교과서에서는 이를 박스권 하방 이탈의 선행 신호로 보고 BB 하단·지지선을 함께 봅니다.`});
+  if(vhfT==='ranging' && eomV!=null && eomS!=null){   // [S1895] 매수 = 추세 양수 · 점수 65 이상 / 매도 = 추세 음수 · 점수 35 미만
+    if(eomT==='bullish' && eomS>=65) notes.push({tone:'bullish',icon:'[?]',title:'횡보 속 EOM 매수 신호',text:`VHF 횡보장이지만 EOM ${eomV.toFixed(2)}(앱식) — 하루 값 · 14봉 평균이 모두 양수입니다. 교과서에서는 이를 박스권 상방 돌파의 선행 신호로 보고 BB 상단을 함께 봅니다.`});
+    if(eomT==='bearish' && eomS<35) notes.push({tone:'bearish',icon:'[?]',title:'횡보 속 EOM 매도 신호',text:`VHF 횡보장이지만 EOM ${eomV.toFixed(2)}(앱식) — 하루 값 · 14봉 평균이 모두 음수입니다. 교과서에서는 이를 박스권 하방 이탈의 선행 신호로 보고 BB 하단·지지선을 함께 봅니다.`});
   }
 
   // 7. 추세 전환 수렴: MACD 골든 + EOM 양수 전환 + AB 매수 전환 (비추세 구간)
@@ -1154,10 +1156,11 @@ SXI.summary = function(action, score, reasons, ind, verdictAction, regime, opts)
 SXI.eom = function(eom){
   if(!eom||eom.val==null) return null;
   const v=eom.val, sma=eom.sma, t=eom.trend, cr=eom.cross;
-  if(cr==='golden' && v>0) return {label:'골든크로스 (양수)',tone:'bullish',text:`EOM ${v.toFixed(2)} — 하루 값이 0선을 위로 넘으며(앞 봉 0 이하 → 이 봉 양수) 양수 영역입니다. 가운데값이 올랐고, 앱식 EOM은 봉 폭에 비해 거래량이 많이 실릴수록 값이 커집니다(교과서 EOM은 반대로 거래량이 적을수록 큼). MA 정배열·MACD 양수와 함께 나타나면 추세 가속 구간입니다. 거래량이 동반 증가하면 상승 모멘텀이 더욱 강화됩니다.`};
+  // [S1895] 꼬리표 이름 '골든크로스 (양수)' · '데드크로스 (음수)' → '0선 상향 (양수)' · '0선 하향 (음수)' — 하루 값 부호가 바뀌는 날(봉의 약 41 ~ 45%)마다 붙어 이동평균 교차처럼 읽혔다 · 톤 · 색 · 순서 그대로 (분석탭 기준표 v11 · 사용자 2026-11-06 15:10 · 16:11)
+  if(cr==='golden' && v>0) return {label:'0선 상향 (양수)',tone:'bullish',text:`EOM ${v.toFixed(2)} — 하루 값이 0선을 위로 넘으며(앞 봉 0 이하 → 이 봉 양수) 양수 영역입니다. 가운데값이 올랐고, 앱식 EOM은 봉 폭에 비해 거래량이 많이 실릴수록 값이 커집니다(교과서 EOM은 반대로 거래량이 적을수록 큼). MA 정배열·MACD 양수와 함께 나타나면 추세 가속 구간입니다. 거래량이 동반 증가하면 상승 모멘텀이 더욱 강화됩니다.`};
   // [S1893] 아래 '골든 음수권' · '데드 양수권' 두 가지는 닿지 않는다 — cross 는 하루 값의 0선 교차라 골든이면 늘 양수 · 데드면 늘 음수(EOM.calc) · 글 그대로 둠
   if(cr==='golden') return {label:'골든크로스 (음수권)',tone:'bullish',text:`EOM ${v.toFixed(2)} — 아직 음수권이지만 SMA를 상향 돌파했습니다. 하락 저항이 완화되기 시작하는 초기 신호이며, 제로선 돌파를 확인하면 본격적인 매수 전환 근거가 됩니다. RSI 과매도 반등이나 MACD 골든크로스와 동시 발생 시 교과서에서는 반전 신뢰도가 크게 높아진다고 봅니다.`};
-  if(cr==='dead' && v<0) return {label:'데드크로스 (음수)',tone:'bearish',text:`EOM ${v.toFixed(2)} — 하루 값이 0선을 아래로 넘으며(앞 봉 0 이상 → 이 봉 음수) 음수 영역입니다. 가운데값이 내렸고, 앱식 EOM은 봉 폭에 비해 거래량이 많이 실릴수록 더 깊은 음수가 됩니다. 거래량이 증가하면서 EOM이 더 깊은 음수로 향하면 하락 가속 경고입니다. 신규 매수를 자제하고, 보유 중이면 비중 축소를 검토하세요.`};
+  if(cr==='dead' && v<0) return {label:'0선 하향 (음수)',tone:'bearish',text:`EOM ${v.toFixed(2)} — 하루 값이 0선을 아래로 넘으며(앞 봉 0 이상 → 이 봉 음수) 음수 영역입니다. 가운데값이 내렸고, 앱식 EOM은 봉 폭에 비해 거래량이 많이 실릴수록 더 깊은 음수가 됩니다. 거래량이 증가하면서 EOM이 더 깊은 음수로 향하면 하락 가속 경고입니다. 신규 매수를 자제하고, 보유 중이면 비중 축소를 검토하세요.`};
   if(cr==='dead') return {label:'데드크로스 (양수권)',tone:'bearish',text:`EOM ${v.toFixed(2)} — 아직 양수권이지만 SMA를 하향 돌파했습니다. 상승 용이도가 약화되기 시작하는 초기 경고이며, 제로선을 하향 돌파하면 매도세가 주도권을 가지게 됩니다. 추격 매수를 자제하고 기존 포지션은 손절 기준을 점검하세요.`};
   // [S452] 기존 t==='up'/'down'은 EOM.trend('bullish'/'bearish'/'mixed')와 어휘가 달라 항상 죽은 가지 → cross 없으면 무조건 아래 '중립'으로 떨어짐.
   //   전광판 도넛·EOM 행 라벨과 동일하게 score100(상대 z) 기준으로 통일 → 세 표시가 항상 일치. (score100 누락 시 val 부호 폴백)
