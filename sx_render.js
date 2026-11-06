@@ -15169,7 +15169,7 @@ function _cndCardHtml(cx){ try{
   let h='';
   if(cur==='bar'){
     h+=(cx.nowHtml||'<div style="font-size:10px;color:'+T3+'">지금 봉 패턴(엔진) 없음</div>');
-    const one=e=>{ const buy=e.k[0]==='b', side=buy?1:-1, cf=(e.c===1)?'✓ 확인됨':((e.c===0)?'✗ 확인 안 됨':((e.c===null && _CND_DO[e.k] && /다음 봉/.test(_CND_DO[e.k]))?'… 다음 봉 기다림':'')), br=(e.x>=0)?('<b style="color:'+(buy?Rd:G)+'">취소선 깨짐('+ago(e.x)+')</b>'):'취소선 그대로';
+    const one=e=>{ const buy=e.k[0]==='b', side=buy?1:-1, cf=(e.c===1)?'✓ 확인됨':((e.c===0)?'✗ 확인 안 됨':((e.c===null && _CND_DO[e.k] && /다음 봉/.test(_CND_DO[e.k]))?'… 다음 봉 기다림':'')), br=(e.x>=0)?('<b style="color:'+Rd+'">취소선 깨짐('+ago(e.x)+')</b>'):'취소선 그대로';   /* [S1890] 취소선 깨짐 = 신호가 깨짐 = 나쁨 → 사는 봉 · 파는 봉 모두 빨강(옛: 파는 봉 깨짐 초록 = 좋은 신호처럼 보임) (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32) */
       return line(chip((buy?'▲ ':'▼ ')+_CND_NM[e.k]+((e.k==='x2'||e.k==='x4')?(' '+e.n+(e.k==='x2'?'연속':'봉 뒤')):''), side)+' <span style="color:'+T3+';font-size:9.5px">'+ago(e.t)+' · '+dt(e.t)+'</span><br><span style="font-size:9.5px">'+(_CND_DO[e.k]||'')+(cf?(' · '+cf):'')+' · 취소선 '+F(e.s)+' ('+pc(e.s)+') · '+br+'</span>'); };
     const A1=ev.filter(e=>/^[bs]\d$/.test(e.k) && inW(e,20)).sort((a,b)=>b.t-a.t).slice(0,6), A2=ev.filter(e=>/^x\d$/.test(e.k) && inW(e,20)).sort((a,b)=>b.t-a.t).slice(0,4);
     h+=sub('🕯️ 자리 있는 봉','PDF 3쪽 사는 봉 4 · 파는 봉 4 + 10쪽 교수형 · 최근 20봉');
@@ -20557,7 +20557,10 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1888';   // [S1888] 분석탭 기준표 v5 기준 4 — 성격 꼬리표(저항 · 지지 띠 = 표시 전용 · 레시피 해석 · 엔진 시장 상태 · 부문별 점수 · 지표 분석 · 재무·매크로·기본정보 = 읽기 도움 · 판정 아님)
+  window.SX_BUILD='S1891';   // [S1891] 분석탭 기준표 v8 기준 8 — 일봉이 아닌 TF 에서 5축 자리(전광판 머리 · 5축 패널 머리 · 참고사항 5축 줄)에 [일봉기준] 배지 · 5축 패널 기준 줄 '일봉 5분위'
+  //window.SX_BUILD='S1890';   // [S1890] 분석탭 기준표 v7 기준 2 — 취소선 깨짐 = 나쁨 빨강(양쪽) · 매수세 · 매집 · 시장 강세 = 빨강 · 매도세 · 분산 · 시장 약세 = 파랑(지표 분석 꼬리표 · 값 · 참고사항 상자 여섯) · 매크로 환경 = 추세 상승 빨강 · 하락 파랑
+  //window.SX_BUILD='S1889';   // [S1889] 분석탭 기준표 v6 기준 8 — TF 칩 점 = 일봉 5축 종합(도넛 다섯 단계 색 · 꽉 찬 원 · 일봉 칩 · 오른쪽 끝만) · 옛 5분류 이모지 점 걷음
+  //window.SX_BUILD='S1888';   // [S1888] 분석탭 기준표 v5 기준 4 — 성격 꼬리표(저항 · 지지 띠 = 표시 전용 · 레시피 해석 · 엔진 시장 상태 · 부문별 점수 · 지표 분석 · 재무·매크로·기본정보 = 읽기 도움 · 판정 아님)
   //window.SX_BUILD='S1887';   // [S1887] 분석탭 기준표 v4 기준 3 — 5축 도넛 · 재료 분위 · 축 머리 · 참고사항 5축 종합 줄 = 높으면 빨강 · 낮으면 파랑 · 머리 녹/적 → 높/낮
   //window.SX_BUILD='S1886';   // [S1886] 분석탭 기준표 v3 기준 2 나머지 — 지표 분석 값 숫자 색 · 참고사항 상자 · 캔들 패턴 = 방향 · 과열/침체 빨강/파랑 · 좋음/나쁨 그대로
   //window.SX_BUILD='S1885';   // [S1885] 분석탭 기준표 v2 기준 2 — 방향 · 과열/침체 = 빨강/파랑(캔들 · 3×3 · 레시피 · 주월 배지 · 재료 계열 · 지표 분석 꼬리표) · 좋음/나쁨 그대로
@@ -23521,9 +23524,18 @@ function _sxFold(key, head, body){ const op=_sxFoldOp(key);
 if(typeof window!=='undefined') window._sxFoldTg = function(el, key){ try{ if(!window._SXF) window._SXF = {}; window._SXF[key] = !!el.open; const s = el.querySelector('summary'); if(!s) return;
   const c = s.querySelector('[data-fold-c]'), t = s.querySelector('[data-fold-t]'); if(c) c.textContent = el.open ? '▼' : '▶'; if(t) t.textContent = el.open ? '접기' : '펼치기'; }catch(_){} };
 //   전광판 5축 도넛 아래 회색 패널(재료 표 · 뜻 · 기준) — 요약 줄 = 열린 축 이름 · 값 · 재료 수 · 도넛을 누르면 그 축으로 펼침(_axSelect)
+// [S1891] [일봉기준] 배지 — 5축 경계(분위 _AXIS_EDGES)는 일봉 스냅으로 쟀다 → 일봉이 아닌 TF(60분 · 4시간 · 주봉 · 월봉)에서 5축 값을 보여 주는 자리에 붙임 · 누르면 한 줄 설명 (분석탭 기준표 v8 기준 8 · 사용자 2026-11-06 10:24 · 10:33)
+//   꼴 = 측정 배지(_itpBadge '미측정')와 같은 흐린 테두리 글 · 일봉에서는 빈 글 · 값 · 계산 · 판정 그대로
+function _dayRulerBadge(){
+  try{
+    if(!(typeof _analTF !== 'undefined' && _analTF && _analTF !== 'day')) return '';
+    const t = (typeof _poolTfLbl === 'function' ? _poolTfLbl(_analTF) : _analTF), msg = '일봉기준 — 5축 경계(분위)는 일봉으로 쟀어요. 지금 ' + t + ' 값을 그 경계로 읽은 거예요(' + t + ' 경계는 따로 안 쟀어요).';
+    return '<span data-druler="b" title="' + msg + '" onclick="event.stopPropagation();event.preventDefault();if(typeof toast===\'function\')toast(this.title)" style="margin-left:4px;font-size:8px;font-weight:700;color:var(--text3);border:1px solid var(--text3);border-radius:4px;padding:0 3px;white-space:nowrap;cursor:pointer">일봉기준</span>';
+  }catch(_e1891){ return ''; }
+}
 function _axFold(A){ const ax = A && A.axes && A.axes[_axTab], op = _sxFoldOp('ax'), nm = ax ? ax.label : '', v = (ax && ax.v != null) ? ax.v : null;
   const head = '<div style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-top:1px solid var(--border);background:var(--surface2);font-size:10.5px;color:var(--text2)">'
-    + _sxFoldC(op) + '<b style="color:var(--text)">' + nm + '</b>' + (v != null ? '<b style="color:' + _axColor(v) + '">' + v + '</b>' : '')
+    + _sxFoldC(op) + '<b style="color:var(--text)">' + nm + '</b>' + (v != null ? '<b style="color:' + _axColor(v) + '">' + v + '</b>' : '') + _dayRulerBadge()   // [S1891]
     + '<span style="font-size:9.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">· 재료 ' + ((ax && ax.n) || 0) + '개 표 · 뜻 · 기준</span>' + _sxFoldT(op) + '</div>';
   return _sxFold('ax', head, _axPanel(A)); }
 let _axTab = 'pos';                       // [S1375] 열린 축. 기본 '자리' — 다 닫혀 있으면 '누르면 뭐가 나온다'를 모른다.
@@ -23814,7 +23826,8 @@ function _axPanel(A){
     +   (_gapOn1376 ? `<br>재료끼리 갈렸습니다(${Math.min(..._qs1376)}↔${Math.max(..._qs1376)}) — 평균 하나로 읽지 마세요. 어느 쪽이 맞는지는 이 화면이 판정하지 않습니다.`
                     + (_axTab === 'flow' ? ` 수급은 재료 셋 중 둘이 방향(오름·내림)이라 자주 갈립니다.` : '') : '')
     //  [S1390] `basisLine`과 **같은 어휘** — 경계만 고정이고 값은 지금 봉이다(두 자리가 갈리면 안 된다).
-    +   `<br>기준: 같은 시장 5분위 · 경계 빈티지 ${A.vintage || '—'} · 값은 지금 봉</div>`
+    +   `<br>기준: 같은 시장 일봉 5분위 · 경계 빈티지 ${A.vintage || '—'} · 값은 지금 봉`   // [S1891] '일봉' 을 밝힘 (분석탭 기준표 v8 기준 8 · 사용자 2026-11-06 10:24 · 10:33)
+    +   ((typeof _analTF !== 'undefined' && _analTF && _analTF !== 'day') ? `<span data-druler="panel">(${(typeof _poolTfLbl === 'function' ? _poolTfLbl(_analTF) : _analTF)}) — ${(typeof _poolTfLbl === 'function' ? _poolTfLbl(_analTF) : _analTF)} 경계는 따로 안 쟀어요</span>` : '') + `</div>`
     + `</div>`;
 }
 
@@ -24126,7 +24139,7 @@ function _sxbHTML(){
                 const _g = _qs.filter(q => q >= 70).length, _r = _qs.filter(q => q <= 30).length;
                 return `<div class="sxb-head-sub">${_vs.length}축 ${_qs.length}재료 · `
                   + `<span style="color:#dc2626;font-weight:700">높${_g}</span> `   // [S1887] 녹 → 높 · 적 → 낮(빨강 · 파랑 = 도넛 색) (분석탭 기준표 v4 기준 3 · 사용자 2026-11-05 17:46)
-                  + `<span style="color:#2563eb;font-weight:700">낮${_r}</span></div>`;
+                  + `<span style="color:#2563eb;font-weight:700">낮${_r}</span>${_dayRulerBadge()}</div>`;   // [S1891] [일봉기준]
               }
             }catch(_e1378){}
             //  산출 실패 시에만 구 표기 폴백(숫자를 지어내지 않는다).
@@ -24924,6 +24937,7 @@ function _itpTone(label, tone){
 // [S1885] 꼬리표 색 = 뜻 (분석탭 기준표 v2 기준 2 · 사용자 2026-11-05) — 강세(bullish) · 약세(bearish) 꼬리표만 꼬리표 글자로 가른다:
 //   오름 · 과열 → 'up'(빨강) · 내림 · 침체 → 'down'(파랑) · 표에 없는 꼬리표(좋음 · 나쁨: 매집 · 분산 · 매수세 · 매도세 · 눌림목 · 추세장 · 횡보장 · 거래량 · 지지 · 저항 …)는 그대로(초록 · 빨강)
 //   역방향(muted)이 먼저 · '시장 환경' 줄의 '강세 · 약세'는 시장이 우호적인가(좋음 · 나쁨)라 표에서 뺀다 · 색 칸 = sx_screener.html .itp-label.up / .down
+//   → [S1890] 매수세 · 매도세 · 매집 · 분산 · '시장 환경' 강세 · 약세도 방향으로 옮김(매수세 · 매집 · 강세 = 오름 빨강 · 매도세 · 분산 · 약세 = 내림 파랑) (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32)
 const _ITP_DIR = {
   '골든크로스 (제로선 위)':'up', '골든크로스 (제로선 아래)':'up', '골든크로스 (양수)':'up', '골든크로스 (음수권)':'up', '양수 확대':'up', '정배열':'up', '상승추세':'up', '상승 구조 (HH+HL)':'up',
   '매우 강한 상승':'up', '강한 상승':'up', '완만한 상승':'up', '강세 구간':'up', '강세':'up', 'OBV 상승':'up', 'A/D 상승':'up',
@@ -24931,21 +24945,24 @@ const _ITP_DIR = {
   '낙관':'up',   // 과열
   '데드크로스 (제로선 위)':'down', '데드크로스 (양수권)':'down', '데드크로스 (음수)':'down', '음수 확대':'down', '역배열':'down', '하락추세':'down', '하락 구조 (LH+LL)':'down',
   '완만한 하락':'down', '강한 하락':'down', '약세 구간':'down', 'OBV 하락':'down', 'A/D 하락':'down', '하락 다이버전스':'down', 'Stoch 하락 다이버전스':'down', '구름 아래':'down', 'VWAP 하회':'down', '피벗 S1~S2':'down', '과매수 반전':'down',
-  '과매도':'down', '극단적 과매도':'down', '과매도 (자금유출)':'down', '하단 근접':'down', '하단 이탈':'down', '채널 하단권':'down', 'MA 크게 이격':'down', 'MA 극단 이격':'down', '비관':'down'   // 침체
+  '과매도':'down', '극단적 과매도':'down', '과매도 (자금유출)':'down', '하단 근접':'down', '하단 이탈':'down', '채널 하단권':'down', 'MA 크게 이격':'down', 'MA 극단 이격':'down', '비관':'down',   // 침체
+  '강한 매수세':'up', '매수세 우위':'up', '강한 매수세 우위':'up', '매집 구간':'up', '매집 신호':'up', '강한 강세장':'up',   // [S1890] EOM · AB Ratio · Chaikin · OBV 다이버전스 · 시장 환경(강세는 위에 있음)
+  '강한 매도세':'down', '매도세 우위':'down', '강한 매도세 우위':'down', '분산 구간':'down', '분산 신호':'down', '약세':'down'   // [S1890] (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32)
 };
-const _ITP_DIR_SKIP = { '시장 환경':1 };
+const _ITP_DIR_SKIP = {};   // [S1890] '시장 환경' 뺌 — 강세 · 약세 = 방향(사용자 2026-11-06 06:32)
 function _itpCls(label, o){ const t = _itpTone(label, o && o.tone); return ((t === 'bullish' || t === 'bearish') && o && !_ITP_DIR_SKIP[label] && _ITP_DIR[o.label]) ? _ITP_DIR[o.label] : t; }
-// [S1886] 지표 분석 줄 값 숫자 색 (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46) — 방향 줄은 강세 → up(빨강) · 약세 → down(파랑) · 꼬리표 따라가는 줄은 그 줄 꼬리표와 같은 색(같은 톤일 때) · 그 밖(ADX · 시장 환경 · 맥락 분석 · 눌림신호 · OBV 다이버전스 · 심리적 가격대 · 구조 위치 …)은 그대로
-const _VAL_DIR_ROWS = { 'RSI (14)':1, 'MACD':1, 'Stoch %K/%D':1, 'RS (20일)':1, 'CCI (20)':1, 'MFI (14)':1, 'OBV 방향':1, 'SAR':1, 'Stoch 다이버전스':1, 'RSI 다이버전스':1, '스윙 구조':1, '20봉 가격 변화율':1 };
-const _VAL_TAG_ROWS = { 'VWAP':1, '일목균형표':1, '가격채널':1, '피벗':1, 'MA 이격도':1, '거래량 MA':1, 'A/D (수급)':1, 'EOM':1, 'VHF':1, '심리도':1, 'Chaikin (수급)':1, 'AB Ratio':1 };
+// [S1886] 지표 분석 줄 값 숫자 색 (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46) — 방향 줄은 강세 → up(빨강) · 약세 → down(파랑) · 꼬리표 따라가는 줄은 그 줄 꼬리표와 같은 색(같은 톤일 때) · 그 밖(ADX · 시장 환경 · 맥락 분석 · 눌림신호 · OBV 다이버전스 · 심리적 가격대 · 구조 위치 …)은 그대로 → [S1890] 시장 환경 = 방향 줄 · OBV 다이버전스 = 꼬리표 따라가는 줄 (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32)
+const _VAL_DIR_ROWS = { 'RSI (14)':1, 'MACD':1, 'Stoch %K/%D':1, 'RS (20일)':1, 'CCI (20)':1, 'MFI (14)':1, 'OBV 방향':1, 'SAR':1, 'Stoch 다이버전스':1, 'RSI 다이버전스':1, '스윙 구조':1, '20봉 가격 변화율':1, '시장 환경':1 };   // [S1890] 시장 환경
+const _VAL_TAG_ROWS = { 'VWAP':1, '일목균형표':1, '가격채널':1, '피벗':1, 'MA 이격도':1, '거래량 MA':1, 'A/D (수급)':1, 'EOM':1, 'VHF':1, '심리도':1, 'Chaikin (수급)':1, 'AB Ratio':1, 'OBV 다이버전스':1 };   // [S1890] OBV 다이버전스
 function _valCls(label, c, o){ if(c !== 'bullish' && c !== 'bearish') return c || ''; if(_VAL_DIR_ROWS[label]) return (c === 'bullish') ? 'up' : 'down'; if(_VAL_TAG_ROWS[label] && o && o.tone === c && _ITP_DIR[o.label]) return _ITP_DIR[o.label]; return c; }
-// [S1886] ℹ️ 참고사항 핵심 이유 · 위험 요소 상자 색 (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46) — 강세 · 약세 상자만 제목으로 가른다: 오름 · 침체에서 반전 → up · 침체 · 내림 → down · 표에 없는 상자(좋음 · 나쁨 · 공시 · 공매도 …)는 그대로
+// [S1886] ℹ️ 참고사항 핵심 이유 · 위험 요소 상자 색 (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46) — 강세 · 약세 상자만 제목으로 가른다: 오름 · 침체에서 반전 → up · 침체 · 내림 → down · 표에 없는 상자(좋음 · 나쁨 · 공시 · 공매도 …)는 그대로 → [S1890] 수급 상자 여섯(매수세 · 매집 = 오름 · 매도세 = 내림)도 표로 (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32)
 const _CMP_DIR = {
   'MACD 골든크로스 + 모멘텀 회복':'up', '상승 스윙 + 적정 RSI':'up', 'BB 스퀴즈 + 정배열':'up', 'VHF 추세 + ADX 강세 + 정배열':'up', 'VHF 추세 + EOM 매수 + MACD 골든 → 추세 가속':'up', '정배열 + OBV 상승':'up',
   'VWAP 상회 + 거래량 유입':'up', 'OBV 상승 다이버전스':'up', '거래량 폭발 + 강세 캔들':'up', '5중 상승 확인 (추세+수급+모멘텀)':'up', '3중 전환 신호 (MACD+EOM+AB)':'up', '변동성 확장 + 상승 추세':'up',
   'RSI 과매도 + Stoch 골든크로스':'up', '심리도 침체 + Stoch 바닥 반전':'up', '심리도 침체 + AB 매수 전환 → 바닥 반전 초기':'up',   // 침체에서 반전(꼬리표 '과매도 반전'과 같은 처리)
   '심리도 + RSI 이중 과매도':'down', 'BB 하단 + RSI 과매도':'down', 'AB Ratio 극단 매도 + 심리도 침체':'down',   // 침체
-  'OBV 하락 다이버전스':'down', '반등보다 하방 우위':'down'
+  'OBV 하락 다이버전스':'down', '반등보다 하방 우위':'down',
+  '3중 수급 확인 (Chaikin+OBV+EOM)':'up', 'Chaikin+OBV 매집 (횡보 중)':'up', 'EOM 강세 + 거래량 유입':'up', '횡보 속 EOM 매수 신호':'up', '횡보 속 매집 가능성':'up', '횡보 속 EOM 매도 신호':'down'   // [S1890]
 };
 function _cmpCls(c){ const t = c && c.tone; return ((t === 'bullish' || t === 'bearish') && _CMP_DIR[c.title]) ? _CMP_DIR[c.title] : t; }
 // [S1886] 캔들 패턴 꼬리표 (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46) — 패턴은 모두 방향이라 강세 → up · 약세 → down(역방향 muted · 방향 혼재 mixed 그대로)
@@ -25783,7 +25800,8 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     if(envSummary.state !== 'unknown'){
       const envCls = envSummary.state.includes('bull')?'bullish':envSummary.state.includes('bear')?'bearish':'neutral';
       const envItp = SXI.advMarketEnv(envSummary.state, envSummary.stateLabel, envSummary.indices);
-      envHTML = advItpRow('시장 환경', envSummary.stateLabel, envCls, envItp);
+      const _envLbl = String(envSummary.stateLabel || '').replace(/^(?:🟢|🔵|⚪|🟡|🔴|⚫)\s*/, '');   // [S1890] 앞 이모지(엔진 글 🟢 강세 · 🔴 약세)는 빨강 = 오름과 거꾸로라 이 줄에서만 뗌 · 글색 = 강세 · 약강 빨강 · 약하락 · 약세 파랑 · 중립 회색 (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32)
+      envHTML = advItpRow('시장 환경', envCls === 'neutral' ? '<span style="color:var(--text2)">' + _envLbl + '</span>' : _envLbl, envCls, envItp);
     }
     // 눌림목
     const pbScore = adv.pullback?.score || 0;
@@ -26053,7 +26071,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       const _layer = _getSummaryLayerConfig(summary, null);
       summaryHTML = `<div class="itp-summary layer-${_layer.level}">
         <div class="itp-summary-title"><span>${_layer.icon}</span><span>${_layer.label}</span></div>
-        ${summary.stateLine?`<div style="font-size:11px;font-weight:800;color:${_sumLineCol(summary)};margin-bottom:4px">${summary.stateLine}</div>`:''}
+        ${summary.stateLine?`<div style="font-size:11px;font-weight:800;color:${_sumLineCol(summary)};margin-bottom:4px">${summary.stateLine}${/5축 종합 /.test(summary.stateLine) ? _dayRulerBadge() : ''}</div>`:''}${''/* [S1891] [일봉기준] — 5축 종합 줄일 때만(공시 머리말이 붙은 줄 포함) */}
         ${summary.basisLine?`<div style=\"font-size:9px;color:var(--text3);margin-bottom:4px\">${summary.basisLine}</div>`:''}
         ${summary.axisLine?`<div style=\"font-size:10px;color:var(--text2);margin-bottom:3px\">${summary.axisLine}</div>`:''}
         ${summary.splitLine?`<div style=\"font-size:10px;font-weight:700;color:#ff8c00;margin-bottom:3px\">⚠ ${summary.splitLine}</div>`:''}
@@ -27238,13 +27256,14 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       if(!mi) return '';
       const miId = 'macro_' + Math.random().toString(36).slice(2,8);
       const fmt = (v,dec) => v!=null ? v.toFixed(dec||1) : '—';
+      const _mc = t => t === 'up' ? 'up' : t === 'down' ? 'down' : 'neutral';   // [S1890] 다섯 줄 = 추세(5일선 vs 20일선) 상승 빨강 · 하락 파랑 · 평평 그대로(옛: 주식에 좋은가 · VIX 는 수준) (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32)
       return `<div class="anal-section">
         <div class="anal-section-title">매크로 환경</div>
-        ${mac.dxy?`<div class="anal-row"><span class="al">달러인덱스</span><span class="ar ${mac.dxy.trend==='down'?'bullish':mac.dxy.trend==='up'?'bearish':'neutral'}">${fmt(mac.dxy.price,2)} (${mac.dxy.change5d>0?'+':''}${fmt(mac.dxy.change5d)}%)</span></div>`:''}
-        ${mac.tnx?`<div class="anal-row"><span class="al">미국10년금리</span><span class="ar ${mac.tnx.trend==='down'?'bullish':mac.tnx.trend==='up'?'bearish':'neutral'}">${fmt(mac.tnx.price,2)}%</span></div>`:''}
-        ${mac.usdkrw?`<div class="anal-row"><span class="al">달러/원 환율</span><span class="ar ${mac.usdkrw.trend==='down'?'bullish':mac.usdkrw.trend==='up'?'bearish':'neutral'}">${fmt(mac.usdkrw.price,0)}원</span></div>`:''}
-        ${mac.vix?`<div class="anal-row"><span class="al">VIX</span><span class="ar ${mac.vix.price>=25?'bearish':mac.vix.price<=15?'bullish':'neutral'}">${fmt(mac.vix.price,1)}</span></div>`:''}
-        ${mac.gold?`<div class="anal-row"><span class="al">금(XAU)</span><span class="ar ${mac.gold.trend==='up'?'neutral':mac.gold.trend==='down'?'bullish':'neutral'}">$${fmt(mac.gold.price,1)}</span></div>`:''}
+        ${mac.dxy?`<div class="anal-row"><span class="al">달러인덱스</span><span class="ar ${_mc(mac.dxy.trend)}">${fmt(mac.dxy.price,2)} (${mac.dxy.change5d>0?'+':''}${fmt(mac.dxy.change5d)}%)</span></div>`:''}
+        ${mac.tnx?`<div class="anal-row"><span class="al">미국10년금리</span><span class="ar ${_mc(mac.tnx.trend)}">${fmt(mac.tnx.price,2)}%</span></div>`:''}
+        ${mac.usdkrw?`<div class="anal-row"><span class="al">달러/원 환율</span><span class="ar ${_mc(mac.usdkrw.trend)}">${fmt(mac.usdkrw.price,0)}원</span></div>`:''}
+        ${mac.vix?`<div class="anal-row"><span class="al">VIX</span><span class="ar ${_mc(mac.vix.trend)}">${fmt(mac.vix.price,1)}</span></div>`:''}
+        ${mac.gold?`<div class="anal-row"><span class="al">금(XAU)</span><span class="ar ${_mc(mac.gold.trend)}">$${fmt(mac.gold.price,1)}</span></div>`:''}
         <div class="itp-toggle-inline" onclick="_sxVib(8);const el=document.getElementById('${miId}');el.classList.toggle('show');this.querySelector('.sb-arrow').textContent=el.classList.contains('show')?'▼':'▶'" style="font-size:10px;color:var(--accent);cursor:pointer;font-weight:600;margin-top:6px"><span class="sb-arrow">▶</span> ${mi.label} (점수: ${mi.score})</div>
         <div class="itp-card" id="${miId}" style="white-space:pre-line">
           <span class="itp-label ${mi.tone}">${mi.label}</span>
@@ -27560,7 +27579,7 @@ function _renderDisclosureUI(stock, scores, indicators, qs){
         // 참고사항 HTML 재렌더 (제목도 레이어에 맞춰 동적으로)
         summaryEl.innerHTML = `
           <div class="itp-summary-title"><span>${_layer.icon}</span><span>${_layer.label}</span></div>
-          ${overridden.stateLine?`<div style="font-size:11px;font-weight:800;color:${_sumLineCol(overridden)};margin-bottom:4px">${overridden.stateLine}</div>`:''}
+          ${overridden.stateLine?`<div style="font-size:11px;font-weight:800;color:${_sumLineCol(overridden)};margin-bottom:4px">${overridden.stateLine}${/5축 종합 /.test(overridden.stateLine) ? _dayRulerBadge() : ''}</div>`:''}${''/* [S1891] [일봉기준] — 5축 종합 줄일 때만(공시 머리말이 붙은 줄 포함) */}
           ${overridden.basisLine?`<div style=\"font-size:9px;color:var(--text3);margin-bottom:4px\">${overridden.basisLine}</div>`:''}
           ${overridden.axisLine?`<div style=\"font-size:10px;color:var(--text2);margin-bottom:3px\">${overridden.axisLine}</div>`:''}
           ${overridden.splitLine?`<div style=\"font-size:10px;font-weight:700;color:#ff8c00;margin-bottom:3px\">⚠ ${overridden.splitLine}</div>`:''}
@@ -28101,13 +28120,18 @@ function _renderAnalTfChips(){
   const tfs = (typeof ANAL_TF_MAP !== 'undefined' ? ANAL_TF_MAP[mkt] : null) || [{k:'day',l:'일봉'}];
   // _analTF가 현재 시장에서 유효한지 확인
   if(!tfs.find(t=>t.k===_analTF)) _analTF = 'day';
+  // [S1889] TF 칩 점 = 일봉 5축 종합(ℹ️ 참고사항 '5축 종합 N'과 같은 값 · 같은 식) · 색 = 도넛 다섯 단계(_axColor) · 꼴 = 꽉 찬 원(옛 이모지 점 크기 · 칩 9px · 오른쪽 끝 13px) (분석탭 기준표 v6 기준 8 · 사용자 2026-11-06 06:04)
+  //   옛 점 = 옛 도넛 5분류(_classifyBoardDist · S1375 에 화면에서 걷힌 도넛)를 셌다 · 빨간 점이 강한하락이라 지금 빨강 = 오름과 거꾸로 → 걷음. 5분류 계산(dist5) · 종합점수는 그대로(판정 SSOT).
+  //   5축 경계(분위)는 일봉 스냅으로 쟀다 → 일봉 칩에만 점 · 다른 TF 칩엔 점 없음(레짐 '일봉 기준'과 같은 결) · 테두리 없음(꽉 찬 원 · 지금 디자인) — 파란 칩(지금 TF) 위 파랑 점은 칩 색에 묻히나 그때(일봉 볼 때)는 오른쪽 끝 점이 바탕 위에 같은 색을 보임.
+  const _ax5 = c => { try{ const _i = c && c.indicators, _a = (_i && _i._advanced) || _i || null; const R = (_a && _a._axisRaw) || (_i && _i._axisRaw) || null, rs = (_a && _a.rs) || (_i && _i.rs) || null; const A = (R && typeof SXE !== 'undefined' && SXE.calcAxisScore) ? SXE.calcAxisScore(R, rs) : null; return (A && typeof A.score === 'number' && A.axes) ? A.score : null; }catch(_e1889){ return null; } };
+  const _ax5Dot = (s, px) => (s == null) ? '' : `<span class="atf-icon" data-ax5="${s}" title="일봉 5축 종합 ${s}" style="display:inline-block;width:${px}px;height:${px}px;border-radius:50%;background:${_axColor(s)};vertical-align:-1px"></span>`;
   let h = '';
   tfs.forEach(t => {
     // KIS 미연결 시 60분 비활성
     const disabled = (mkt==='kr' && t.k==='60m' && !window._kisEnabled);
     const active = (t.k === _analTF);
     const cacheHit = _analTFCache[t.k];
-    // [S357] 캐시된 TF의 5분류 컬러동그라미 표시 (verdict 아이콘 → 지표분포 5분류 dot로 교체)
+    // [S357] 캐시된 TF의 5분류 컬러동그라미 표시 (verdict 아이콘 → 지표분포 5분류 dot로 교체) → [S1889] 걷음 · 일봉 칩에만 5축 종합 점(위 도우미)
     // [S478] 백그라운드 로딩 중이면 회전 ↻ (캐시 채워지면 dot으로 교체). @keyframes spin(sx_screener.html:765) 재사용
     // [S480] 실제 사용 봉수(diag) 표기 — rows 길이. 데이터가 어디까지 반영됐는지 가시화(예: 일봉 600 / 주봉 200).
     let icon = '';
@@ -28117,17 +28141,17 @@ function _renderAnalTfChips(){
     } else if(cacheHit){
       const _bars = (cacheHit.rows && cacheHit.rows.length) ? cacheHit.rows.length : null;
       const _barTxt = _bars != null ? `<span class="atf-bars" style="font-size:8px;opacity:.6;margin-left:3px;font-weight:600">${_bars}</span>` : '';
-      const _dot = (cacheHit.dist5) ? `<span class="atf-icon" title="${cacheHit.dist5.label}">${cacheHit.dist5.dot}</span>` : '';
+      const _dot = (t.k === 'day') ? _ax5Dot(_ax5(cacheHit), 9) : '';   // [S1889] 일봉 칩에만 · 옛 5분류 이모지 점 걷음 (분석탭 기준표 v6 기준 8 · 사용자 2026-11-06 06:04)
       icon = `${_barTxt}${_dot}`;
     }
     h += `<div class="anal-tf-chip${active?' active':''}${disabled?' disabled':''}" onclick="${disabled?'':`_setAnalTF('${t.k}')`}">${t.l}${icon}</div>`;
   });
   wrap.innerHTML = h;
-  // [S357] 현재 TF의 5분류 동그라미
+  // [S357] 현재 TF의 5분류 동그라미 → [S1889] 일봉 볼 때만 5축 종합 점 · 다른 TF 는 빈칸
   const vEl = document.getElementById('analTfVerdict');
   if(vEl){
     const cur = _analTFCache[_analTF];
-    vEl.textContent = (cur && cur.dist5) ? cur.dist5.dot : '';
+    vEl.innerHTML = (_analTF === 'day') ? _ax5Dot(_ax5(cur), 13) : '';   // [S1889] (분석탭 기준표 v6 기준 8 · 사용자 2026-11-06 06:04)
   }
 }
 
