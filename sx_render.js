@@ -15155,6 +15155,15 @@ function _cndTab(){ try{ const v=localStorage.getItem('SX_CND_TAB'); return (v==
 function _cndSetTab(t){ if(t!=='bar' && t!=='gap' && t!=='ma' && t!=='rb') return; try{ localStorage.setItem('SX_CND_TAB', t); }catch(_){} try{ const el=document.getElementById('sxCndCard'), cx=window._sxCndCtx; if(el && cx) el.outerHTML=_cndCardHtml(cx); }catch(_){} }
 function _cndTabBar(cur){ const P='#b45309', tab=(t,l)=>'<span onclick="_sxVib(8);window._cndSetTab&&_cndSetTab(\''+t+'\')" style="flex:1;text-align:center;font-size:10px;font-weight:800;padding:5px 2px;border-radius:9px;cursor:pointer;white-space:nowrap;'+(cur===t?('background:'+P+';color:#fff'):'background:var(--surface2);color:var(--text3)')+'">'+l+'</span>';
   return '<div data-cnd-tabs="1" style="display:flex;gap:4px;margin-bottom:8px">'+tab('bar','🕯️ 봉')+tab('gap','🕳️ 갭')+tab('ma','📈 이평·거래량')+tab('rb','📋 반등')+'</div>'; }
+// [S1894] ⚖️ 봉 힘 — 교과서 EOM 1봉(Richard W. Arms Jr. 'Ease of Movement' · 식 = TradingView 위키 'Ease of Movement (EOM)'): 가운데값 변화 × 봉 폭 ÷ 거래량(위키의 나누는 수 1억은 분위에 영향 없어 뺌) (분석탭 기준표 v10 기준 10 · 사용자 2026-11-06 10:45 · 14:31 · 15:10)
+//   최근 5봉(새 봉부터) · 쉬움 분위 = 그 봉 |EOM| 이 앞 60봉 |EOM| 가운데 몇 % 보다 큰가(셀 수 있는 봉 40 이상일 때) · 거래량 배수 = 앞 20봉 평균 대비 · 앱 EOM(EOM.calc · 지표 분석 줄)과 다른 식 · 읽기 도움 · 판정 아님 · 미측정
+function _cndEom1(rows){ const n=(rows&&rows.length)||0, out=[];
+  const emv=t=>{ const a=rows[t], b=rows[t-1]; if(!a||!b) return null; const H=+a.high, L=+a.low, V=+a.volume, pH=+b.high, pL=+b.low; if(!(V>0) || !(H>L) || !isFinite(pH+pL)) return null; return (((H+L)/2-(pH+pL)/2)*(H-L))/V; };
+  for(let t=n-1; t>=Math.max(61, n-5); t--){ const e=emv(t); if(e==null){ out.push({ t, e:null }); continue; }
+    const hist=[]; for(let k=t-60;k<t;k++){ const v=emv(k); if(v!=null) hist.push(Math.abs(v)); }
+    const a=rows[t], b=rows[t-1], va=rows.slice(t-20,t).reduce((s,x)=>s+(+x.volume||0),0)/20;
+    out.push({ t, e, rank: hist.length>=40 ? Math.round(100*hist.filter(v=>v<Math.abs(e)).length/hist.length) : null, mid: (+a.high + +a.low)/(+b.high + +b.low)-1, rng: (+a.high - +a.low)/(+b.close), vx: va>0 ? (+a.volume)/va : null }); }
+  return out; }
 function _cndCardHtml(cx){ try{
   const rows=cx.rows, n=(rows&&rows.length)||0, cur=_cndTab(), T3='var(--text3)', T2='var(--text2)', G='#059669', Rd='#dc2626', Up='#dc2626', Dn='#2563eb';   /* [S1885] ▲ 오름 = Up 빨강 · ▼ 내림 = Dn 파랑(칩 · 줄) · G · Rd 는 좋음/나쁨(✅/❌ · 취소선 깨짐)에만 (분석탭 기준표 v2 기준 2 · 사용자 2026-11-05) */
   const F=x=>(x==null || !isFinite(x))?'—':((typeof _fibFmt==='function')?_fibFmt(x):String(+(+x).toPrecision(6))), last=n?+rows[n-1].close:NaN, pc=x=>(isFinite(x) && last>0)?(((x/last-1)*100>=0?'+':'')+((x/last-1)*100).toFixed(1)+'%'):'—';
@@ -15169,6 +15178,11 @@ function _cndCardHtml(cx){ try{
   let h='';
   if(cur==='bar'){
     h+=(cx.nowHtml||'<div style="font-size:10px;color:'+T3+'">지금 봉 패턴(엔진) 없음</div>');
+    { const L=_cndEom1(rows), P=v=>isFinite(v)?((v>=0?'+':'')+(v*100).toFixed(1)+'%'):'—', P2=v=>isFinite(v)?((v*100).toFixed(1)+'%'):'—';   /* [S1894] ⚖️ 봉 힘 — 교과서 EOM 1봉 (분석탭 기준표 v10 기준 10 · 사용자 2026-11-06 10:45 · 14:31 · 15:10) */
+      const wd=x=>{ if(x.e===0) return ['= 제자리', 0]; const s=x.e>0?1:-1, k=(x.rank==null)?'':(x.rank>=67?'쉽게 ':(x.rank<=33?'힘겹게 ':'보통으로 ')); return [(s>0?'▲ ':'▼ ')+k+(s>0?'올랐다':'내렸다'), s]; };
+      h+='<div data-cnd-eom="1">'+sub('⚖️ 봉 힘 — 교과서 EOM(1봉)','최근 5봉 · 쉬움 분위 = 앞 60봉 중 자리');
+      h+=L.length?L.map(x=>{ if(x.e==null) return line('<span data-eom-t="'+x.t+'" style="color:'+T3+'">'+ago(x.t)+' · '+dt(x.t)+' — 거래량 0 또는 봉 폭 0이라 못 봄</span>'); const w=wd(x); return line('<span data-eom-t="'+x.t+'"></span>'+chip(w[0], w[1])+' <span style="color:'+T3+';font-size:9.5px">'+ago(x.t)+' · '+dt(x.t)+'</span><br><span style="font-size:9.5px">쉬움 분위 <b>'+(x.rank==null?'—':x.rank)+'</b> · 가운데값 '+P(x.mid)+' · 봉 폭 '+P2(x.rng)+' · 거래량 평소의 '+(x.vx==null?'—':x.vx.toFixed(1))+'배</span>'); }).join(''):'<div style="font-size:10px;color:'+T3+'">봉이 부족해요(62봉 이상 필요)</div>';
+      h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-top:3px">EOM(교과서 · Arms) = 가운데값 변화 × 봉 폭 ÷ 거래량 — 크면 적은 거래로 크게 움직인 봉(쉽게) · 0 가까우면 거래에 비해 덜 움직인 봉(힘겹게) · 쉬움 분위 67↑ 쉽게 · 33↓ 힘겹게(정한 선 · <b>미측정</b>) · 지표 분석의 EOM(앱식)과 식이 달라요 · 마지막 봉이 안 끝났으면 거래량이 덜 쌓여 쉽게 쪽으로 보여요</div></div>'; }
     const one=e=>{ const buy=e.k[0]==='b', side=buy?1:-1, cf=(e.c===1)?'✓ 확인됨':((e.c===0)?'✗ 확인 안 됨':((e.c===null && _CND_DO[e.k] && /다음 봉/.test(_CND_DO[e.k]))?'… 다음 봉 기다림':'')), br=(e.x>=0)?('<b style="color:'+Rd+'">취소선 깨짐('+ago(e.x)+')</b>'):'취소선 그대로';   /* [S1890] 취소선 깨짐 = 신호가 깨짐 = 나쁨 → 사는 봉 · 파는 봉 모두 빨강(옛: 파는 봉 깨짐 초록 = 좋은 신호처럼 보임) (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32) */
       return line(chip((buy?'▲ ':'▼ ')+_CND_NM[e.k]+((e.k==='x2'||e.k==='x4')?(' '+e.n+(e.k==='x2'?'연속':'봉 뒤')):''), side)+' <span style="color:'+T3+';font-size:9.5px">'+ago(e.t)+' · '+dt(e.t)+'</span><br><span style="font-size:9.5px">'+(_CND_DO[e.k]||'')+(cf?(' · '+cf):'')+' · 취소선 '+F(e.s)+' ('+pc(e.s)+') · '+br+'</span>'); };
     const A1=ev.filter(e=>/^[bs]\d$/.test(e.k) && inW(e,20)).sort((a,b)=>b.t-a.t).slice(0,6), A2=ev.filter(e=>/^x\d$/.test(e.k) && inW(e,20)).sort((a,b)=>b.t-a.t).slice(0,4);
@@ -20557,7 +20571,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1892';   // [S1892] 분석탭 기준표 v9 기준 9 — 공시 덮어쓰기 길 고침(참고사항 레이어 함수 바깥으로) · 치명 · 위험 공시면 참고사항에 사실 한 줄 · 공시 상세 카드가 첫 열기부터
+  window.SX_BUILD='S1894';   // [S1894] 분석탭 기준표 v10 기준 10 새 표시 — 🕯️ 캔들 · 차트 읽기 '봉' 탭에 ⚖️ 봉 힘(교과서 EOM 1봉 · 최근 5봉 · 쉬움 분위 · 미측정)
+  //window.SX_BUILD='S1892';   // [S1892] 분석탭 기준표 v9 기준 9 — 공시 덮어쓰기 길 고침(참고사항 레이어 함수 바깥으로) · 치명 · 위험 공시면 참고사항에 사실 한 줄 · 공시 상세 카드가 첫 열기부터
   //window.SX_BUILD='S1891';   // [S1891] 분석탭 기준표 v8 기준 8 — 일봉이 아닌 TF 에서 5축 자리(전광판 머리 · 5축 패널 머리 · 참고사항 5축 줄)에 [일봉기준] 배지 · 5축 패널 기준 줄 '일봉 5분위'
   //window.SX_BUILD='S1890';   // [S1890] 분석탭 기준표 v7 기준 2 — 취소선 깨짐 = 나쁨 빨강(양쪽) · 매수세 · 매집 · 시장 강세 = 빨강 · 매도세 · 분산 · 시장 약세 = 파랑(지표 분석 꼬리표 · 값 · 참고사항 상자 여섯) · 매크로 환경 = 추세 상승 빨강 · 하락 파랑
   //window.SX_BUILD='S1889';   // [S1889] 분석탭 기준표 v6 기준 8 — TF 칩 점 = 일봉 5축 종합(도넛 다섯 단계 색 · 꽉 찬 원 · 일봉 칩 · 오른쪽 끝만) · 옛 5분류 이모지 점 걷음
