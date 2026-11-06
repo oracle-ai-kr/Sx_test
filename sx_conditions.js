@@ -105,7 +105,7 @@ const SX_CONDITIONS = [
       {id:'macd_signal',name:'MACD 시그널',type:'select',options:['설정안함','MACD > Signal (매수)','MACD < Signal (매도)'],default:'설정안함',source:'calc_candle',desc:'MACD vs 시그널선 현재 상태 - 매수=상승 모멘텀 유지. cross는 골든크로스 폴더의 gc_macd 참조'},
       {id:'adx_value',name:'ADX (추세강도)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세의 강도 (방향 무관) - 25↑=추세 형성, 40↑=강한 추세, 20↓=횡보',recommend:'25↑ (추세 형성) / 40↑ (강한 추세)'},
       {id:'parabolic_sar',name:'Parabolic SAR',type:'select',options:['설정안함','SAR 아래 (상승 추세)','SAR 위 (하락 추세)'],default:'설정안함',source:'calc_candle',desc:'추세 추종 지표 - SAR 아래=상승, SAR 위=하락 (포지션 청산 신호)'},
-      {id:'eom_trend',name:'EOM (이동용이도)',type:'select',options:['설정안함','매수세 (상승)','매도세 (하락)'],default:'설정안함',source:'calc_candle',desc:'가격 움직임의 용이도 - 거래량 대비 가격 변동 (양수=쉽게 상승)'},
+      {id:'eom_trend',name:'EOM (이동용이도)',type:'select',options:['설정안함','매수세 (상승)','매도세 (하락)'],default:'설정안함',source:'calc_candle',desc:'EOM(앱식 = 가운데값 변화 × 거래량 ÷ 봉 폭 · 교과서와 거래량 쪽이 반대) — 매수세 = 하루 값 · 14봉 평균 모두 양수 · 매도세 = 모두 음수'},   // [S1893] 설명을 앱식 계산에 맞춤 (분석탭 기준표 v10 기준 10 · 사용자 2026-11-06 14:31 · 15:10)
       {id:'vhf_state',name:'VHF (추세판별)',type:'select',options:['설정안함','추세장 (>0.4)','횡보장 (<0.3)','보통'],default:'설정안함',source:'calc_candle',desc:'추세 vs 횡보 판별 - 추세장=방향성 매매, 횡보장=박스권 매매'},
     ]},
     {id:'ta_momentum',name:'모멘텀지표',conditions:[
@@ -187,7 +187,7 @@ const SX_CONDITIONS = [
       {id:'gc_trix',name:'TRIX(15) 크로스',type:'select',options:['설정안함','0선 골든크로스','0선 데드크로스','Signal 골든크로스','Signal 데드크로스'],default:'설정안함',source:'calc_candle',desc:'TRIX(15) - 0선 교차(=양수/음수 전환) 또는 Signal(SMA9 of TRIX) 교차. 최근 N봉 안에. 3중 EMA, 노이즈 적은 추세 전환',recommend:'0선 골든크로스 (장기 추세 전환)'},
     ]},
     {id:'gc_volume',name:'거래량/추세 보조 크로스',conditions:[
-      {id:'gc_eom',name:'EOM(14) × 0선',type:'select',options:['설정안함','골든크로스 (0선 상향)','데드크로스 (0선 하향)'],default:'설정안함',source:'calc_candle',desc:'EOM(14) 0선 교차 - 최근 N봉 안에. 거래량 대비 가격 움직임 용이도 전환'},
+      {id:'gc_eom',name:'EOM × 0선',type:'select',options:['설정안함','골든크로스 (0선 상향)','데드크로스 (0선 하향)'],default:'설정안함',source:'calc_candle',desc:'EOM 하루 값(앱식) 0선 교차 - 최근 N봉 안에(14봉 평균 아님)'},   // [S1893] 이름 'EOM(14)' → 'EOM' · 설명을 앱식 계산에 맞춤(조건 · 판정 그대로) (분석탭 기준표 v10 기준 10 · 사용자 2026-11-06 14:31 · 15:10)
       {id:'gc_obv',name:'OBV × Signal(SMA20)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'OBV vs SMA20(OBV) - 최근 N봉 안에 교차 (거래량 누적선 전환)',recommend:'골든크로스 (매집 전환)'},
       {id:'gc_chaikin',name:'Chaikin Osc(3,10) × 0선',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'Chaikin Oscillator(EMA3-EMA10 of A/D) 0선 교차 - 최근 N봉 안에',recommend:'골든크로스 (매집-분산 전환)'},
     ]},
@@ -368,7 +368,7 @@ const COIN_CONDITIONS = [
       {id:'macd_signal',name:'MACD 시그널',type:'select',options:['설정안함','MACD > Signal (매수)','MACD < Signal (매도)'],default:'설정안함',source:'calc_candle',desc:'MACD vs 시그널선 현재 상태 - 매수=상승 모멘텀 유지. cross는 골든크로스 폴더의 gc_macd 참조'},
       {id:'adx_value',name:'ADX (추세강도)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세의 강도 (방향 무관) - 25↑=추세 형성, 40↑=강한 추세, 20↓=횡보',recommend:'25↑ (추세 형성) / 40↑ (강한 추세)'},
       {id:'parabolic_sar',name:'Parabolic SAR',type:'select',options:['설정안함','SAR 아래 (상승 추세)','SAR 위 (하락 추세)'],default:'설정안함',source:'calc_candle',desc:'추세 추종 지표 - SAR 아래=상승, SAR 위=하락 (포지션 청산 신호)'},
-      {id:'eom_trend',name:'EOM (이동용이도)',type:'select',options:['설정안함','매수세 (상승)','매도세 (하락)'],default:'설정안함',source:'calc_candle',desc:'가격 움직임의 용이도 - 거래량 대비 가격 변동 (양수=쉽게 상승)'},
+      {id:'eom_trend',name:'EOM (이동용이도)',type:'select',options:['설정안함','매수세 (상승)','매도세 (하락)'],default:'설정안함',source:'calc_candle',desc:'EOM(앱식 = 가운데값 변화 × 거래량 ÷ 봉 폭 · 교과서와 거래량 쪽이 반대) — 매수세 = 하루 값 · 14봉 평균 모두 양수 · 매도세 = 모두 음수'},   // [S1893] 설명을 앱식 계산에 맞춤 (분석탭 기준표 v10 기준 10 · 사용자 2026-11-06 14:31 · 15:10)
       {id:'vhf_state',name:'VHF (추세판별)',type:'select',options:['설정안함','추세장 (>0.4)','횡보장 (<0.3)','보통'],default:'설정안함',source:'calc_candle',desc:'추세 vs 횡보 판별 - 추세장=방향성 매매, 횡보장=박스권 매매'},
     ]},
     {id:'ta_momentum',name:'모멘텀지표',conditions:[
@@ -424,7 +424,7 @@ const COIN_CONDITIONS = [
       {id:'gc_trix',name:'TRIX(15) 크로스',type:'select',options:['설정안함','0선 골든크로스','0선 데드크로스','Signal 골든크로스','Signal 데드크로스'],default:'설정안함',source:'calc_candle',desc:'TRIX(15) - 0선 교차(=양수/음수 전환) 또는 Signal(SMA9 of TRIX) 교차. 최근 N봉 안에. 3중 EMA, 노이즈 적은 추세 전환',recommend:'0선 골든크로스 (장기 추세 전환)'},
     ]},
     {id:'gc_volume',name:'거래량/추세 보조 크로스',conditions:[
-      {id:'gc_eom',name:'EOM(14) × 0선',type:'select',options:['설정안함','골든크로스 (0선 상향)','데드크로스 (0선 하향)'],default:'설정안함',source:'calc_candle',desc:'EOM(14) 0선 교차 - 최근 N봉 안에. 거래량 대비 가격 움직임 용이도 전환'},
+      {id:'gc_eom',name:'EOM × 0선',type:'select',options:['설정안함','골든크로스 (0선 상향)','데드크로스 (0선 하향)'],default:'설정안함',source:'calc_candle',desc:'EOM 하루 값(앱식) 0선 교차 - 최근 N봉 안에(14봉 평균 아님)'},   // [S1893] 이름 'EOM(14)' → 'EOM' · 설명을 앱식 계산에 맞춤(조건 · 판정 그대로) (분석탭 기준표 v10 기준 10 · 사용자 2026-11-06 14:31 · 15:10)
       {id:'gc_obv',name:'OBV × Signal(SMA20)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'OBV vs SMA20(OBV) - 최근 N봉 안에 교차 (거래량 누적선 전환)',recommend:'골든크로스 (매집 전환)'},
       {id:'gc_chaikin',name:'Chaikin Osc(3,10) × 0선',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'Chaikin Oscillator(EMA3-EMA10 of A/D) 0선 교차 - 최근 N봉 안에',recommend:'골든크로스 (매집-분산 전환)'},
     ]},
@@ -599,7 +599,7 @@ const US_CONDITIONS = [
       {id:'macd_signal',name:'MACD 시그널',type:'select',options:['설정안함','MACD > Signal (매수)','MACD < Signal (매도)'],default:'설정안함',source:'calc_candle',desc:'MACD vs 시그널선 현재 상태 - 매수=상승 모멘텀 유지. cross는 골든크로스 폴더의 gc_macd 참조'},
       {id:'adx_value',name:'ADX (추세강도)',type:'range',unit:'',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'추세의 강도 (방향 무관) - 25↑=추세 형성, 40↑=강한 추세, 20↓=횡보',recommend:'25↑ (추세 형성) / 40↑ (강한 추세)'},
       {id:'parabolic_sar',name:'Parabolic SAR',type:'select',options:['설정안함','SAR 아래 (상승 추세)','SAR 위 (하락 추세)'],default:'설정안함',source:'calc_candle',desc:'추세 추종 지표 - SAR 아래=상승, SAR 위=하락 (포지션 청산 신호)'},
-      {id:'eom_trend',name:'EOM (이동용이도)',type:'select',options:['설정안함','매수세 (상승)','매도세 (하락)'],default:'설정안함',source:'calc_candle',desc:'가격 움직임의 용이도 - 거래량 대비 가격 변동 (양수=쉽게 상승)'},
+      {id:'eom_trend',name:'EOM (이동용이도)',type:'select',options:['설정안함','매수세 (상승)','매도세 (하락)'],default:'설정안함',source:'calc_candle',desc:'EOM(앱식 = 가운데값 변화 × 거래량 ÷ 봉 폭 · 교과서와 거래량 쪽이 반대) — 매수세 = 하루 값 · 14봉 평균 모두 양수 · 매도세 = 모두 음수'},   // [S1893] 설명을 앱식 계산에 맞춤 (분석탭 기준표 v10 기준 10 · 사용자 2026-11-06 14:31 · 15:10)
       {id:'vhf_state',name:'VHF (추세판별)',type:'select',options:['설정안함','추세장 (>0.4)','횡보장 (<0.3)','보통'],default:'설정안함',source:'calc_candle',desc:'추세 vs 횡보 판별 - 추세장=방향성 매매, 횡보장=박스권 매매'},
     ]},
     {id:'ta_momentum',name:'모멘텀지표',conditions:[
@@ -655,7 +655,7 @@ const US_CONDITIONS = [
       {id:'gc_trix',name:'TRIX(15) 크로스',type:'select',options:['설정안함','0선 골든크로스','0선 데드크로스','Signal 골든크로스','Signal 데드크로스'],default:'설정안함',source:'calc_candle',desc:'TRIX(15) - 0선 교차(=양수/음수 전환) 또는 Signal(SMA9 of TRIX) 교차. 최근 N봉 안에. 3중 EMA, 노이즈 적은 추세 전환',recommend:'0선 골든크로스 (장기 추세 전환)'},
     ]},
     {id:'gc_volume',name:'거래량/추세 보조 크로스',conditions:[
-      {id:'gc_eom',name:'EOM(14) × 0선',type:'select',options:['설정안함','골든크로스 (0선 상향)','데드크로스 (0선 하향)'],default:'설정안함',source:'calc_candle',desc:'EOM(14) 0선 교차 - 최근 N봉 안에. 거래량 대비 가격 움직임 용이도 전환'},
+      {id:'gc_eom',name:'EOM × 0선',type:'select',options:['설정안함','골든크로스 (0선 상향)','데드크로스 (0선 하향)'],default:'설정안함',source:'calc_candle',desc:'EOM 하루 값(앱식) 0선 교차 - 최근 N봉 안에(14봉 평균 아님)'},   // [S1893] 이름 'EOM(14)' → 'EOM' · 설명을 앱식 계산에 맞춤(조건 · 판정 그대로) (분석탭 기준표 v10 기준 10 · 사용자 2026-11-06 14:31 · 15:10)
       {id:'gc_obv',name:'OBV × Signal(SMA20)',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'OBV vs SMA20(OBV) - 최근 N봉 안에 교차 (거래량 누적선 전환)',recommend:'골든크로스 (매집 전환)'},
       {id:'gc_chaikin',name:'Chaikin Osc(3,10) × 0선',type:'select',options:['설정안함','골든크로스','데드크로스'],default:'설정안함',source:'calc_candle',desc:'Chaikin Oscillator(EMA3-EMA10 of A/D) 0선 교차 - 최근 N봉 안에',recommend:'골든크로스 (매집-분산 전환)'},
     ]},
