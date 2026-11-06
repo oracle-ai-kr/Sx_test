@@ -2241,12 +2241,15 @@ function _trendBbParams(market){
 //   진입 = 기준(종가 또는 MA N)이 고른 선을 위로 돌파(앞 봉 ≤ · 이 봉 >) · 선마다 RSI(14) ≥ 50 · MA 짧은 > 긴 거름(기본 끔) · 여럿이면 녹색 · 중심선 · 파랑 · 하단 검정 차례로 처음 것
 //   새 진입 금지 = 종가가 맨 위 선 위(과열) · 맨 아래 선 아래(폭락) · 잠금(종가가 맨 위 선 아래로 내려온 봉에 잠기고 기준이 녹색 아래로 내려오면 풀림 — 원안 v3 · 청산 켬/끔과 무관)
 //   청산 = 진입선 이탈(그 포지션이 돌파한 선 · 원안) · 사다리(켜진 선 아무거나 아래로 이탈) · 중앙선 이탈 + 과열 이탈(종가가 맨 위 선 아래로 · 켬 기본 · 원안 v3)
+//   [S1897] 청산 칩 셋은 각각 켬/끔(하나 이상) · 여럿이면 먼저 걸린 것에 청산 · 사다리 = 켜진 선 전부라 진입선 · 중심선을 늘 포함(같이 켜도 결과 같음 · 화면에선 옅게) · 저장 값 bbzX = 켠 것을 line · ladder · mid 차례로 '+' 로 이음(하나면 옛 값 그대로 · 지문 그대로) (사용자 2026-11-06 20:54 · 20:58) — PREREG_S1897_bbzexit.md §1
 const _BBZ_LN=['g','c','b','k'], _BBZ_LNM={ g:'+1σ', c:'중심선', b:'−1σ', k:'−2σ' };   /* [S1879] 색 이름(녹색 · 파랑 · 하단 검정) → σ 이름 — 선 색이 위 빨강 쪽 · 아래 파랑 쪽 · 가운데 녹색으로 바뀌어(사용자 2026-11-03 12:26) · 화면 글자는 켜진 승수를 따름(_bbzLnNm) · 키(g · c · b · k)와 저장 값은 그대로 */
 function _bbzLnNm(id, ks){ const f=k=>(k==null || !isFinite(+k))?'?':String(+(+k).toFixed(3)); if(id==='c') return '중심선'; if(id==='g') return '+'+f(ks && ks[0])+'σ'; if(id==='b') return '−'+f(ks && ks[0])+'σ'; if(id==='k') return '−'+f(ks && ks[1])+'σ'; return _BBZ_LNM[id]||String(id); }   /* [S1879] g = 가장 안쪽 위 · b = 가장 안쪽 아래 · k = 두 번째 안쪽 아래 */
 function _bbzOn(cfg){ return !!(cfg && cfg.bbzOn===true); }
+const _BBZ_X=['line','ladder','mid'];   /* [S1897] 청산 칩 차례(진입선 이탈 · 사다리 · 중앙선 이탈) */
+function _bbzXq(v){ const t=(typeof v==='string')?v.split('+'):[]; return _BBZ_X.filter(k=>t.indexOf(k)>=0).join('+')||'line'; }   /* [S1897] 켠 청산 칩 — 차례대로 '+' 로 이음 · 없거나 모르는 값이면 'line'(옛 읽기와 같음) */
 function _bbzQ(cfg){ const c=cfg||{}, n=(v,lo,hi,d,int)=>{ if(v==null || v==='' || typeof v==='boolean') return d; let x=+v; if(!isFinite(x)) return d; if(int) x=Math.round(x); return Math.min(hi, Math.max(lo, x)); }, ls=v=>{ const t=(typeof v==='string')?v:''; return _BBZ_LN.filter(k=>t.indexOf(k)>=0).join(''); };
   const B=[c.bbzB1!==false, c.bbzB2!==false, c.bbzB3!==false]; if(!B[0] && !B[1] && !B[2]) B[0]=true;   // 밴드는 하나 이상
-  return { P:n(c.bbzP,2,1000,200,true), M:[n(c.bbzM1,0.1,10,1,false), n(c.bbzM2,0.1,10,2,false), n(c.bbzM3,0.1,10,3,false)], B, E:(('bbzE' in c)?ls(c.bbzE):'g')||'g', R:ls(c.bbzR), A:ls(c.bbzA), ma1:n(c.bbzMa1,1,400,5,true), ma2:n(c.bbzMa2,1,400,20,true), bs:(c.bbzBs==='ma')?'ma':'c', bN:n(c.bbzBN,1,400,5,true), x:(c.bbzX==='ladder' || c.bbzX==='mid')?c.bbzX:'line', ox:c.bbzOx!==false }; }
+  return { P:n(c.bbzP,2,1000,200,true), M:[n(c.bbzM1,0.1,10,1,false), n(c.bbzM2,0.1,10,2,false), n(c.bbzM3,0.1,10,3,false)], B, E:(('bbzE' in c)?ls(c.bbzE):'g')||'g', R:ls(c.bbzR), A:ls(c.bbzA), ma1:n(c.bbzMa1,1,400,5,true), ma2:n(c.bbzMa2,1,400,20,true), bs:(c.bbzBs==='ma')?'ma':'c', bN:n(c.bbzBN,1,400,5,true), x:_bbzXq(c.bbzX) /* [S1897] 여럿 */, ox:c.bbzOx!==false }; }
 function _bbzNorm(o){ const r={}; if(!o) return r; const q=_bbzQ(o); if(o.bbzOn===true) r.bbzOn=true;   // 켰을 때만 · 기본과 다를 때만 키
   if(q.P!==200) r.bbzP=q.P; ['bbzM1','bbzM2','bbzM3'].forEach((k,j)=>{ if(q.M[j]!==[1,2,3][j]) r[k]=q.M[j]; }); ['bbzB1','bbzB2','bbzB3'].forEach((k,j)=>{ if(!q.B[j]) r[k]=false; });
   if(q.E!=='g') r.bbzE=q.E; if(q.R) r.bbzR=q.R; if(q.A) r.bbzA=q.A; if(q.ma1!==5) r.bbzMa1=q.ma1; if(q.ma2!==20) r.bbzMa2=q.ma2; if(q.bs!=='c') r.bbzBs=q.bs; if(q.bN!==5) r.bbzBN=q.bN; if(q.x!=='line') r.bbzX=q.x; if(!q.ox) r.bbzOx=false;
@@ -2270,10 +2273,11 @@ function _bbzSer(rows, close, cfg){ const q=_bbzQ(cfg), n=close.length, ks=_bbzK
     if(q.A.indexOf(id)>=0 && !(mA && mB && mA[i]!=null && mB[i]!=null && mA[i]>mB[i])) continue;
     gcA[i]=1; at[i]=_BBZ_LN.indexOf(id); break; } }
   const all=[]; BD.forEach(b=>{ all.push(b.u); all.push(b.l); }); all.push(mid);
+  const X=q.x.split('+');   /* [S1897] 켠 청산 칩 — 아무거나 걸리면 청산(한 봉에서 셋을 다 봄 · 하나만 켜면 옛 판과 같음) */
   const why=(i,pos)=>{ let hit=false;
-    if(q.x==='ladder'){ for(const a of all) if(dn(bs,a,i)){ hit=true; break; } }
-    else if(q.x==='mid') hit=dn(bs,mid,i);
-    else { const id=(pos && pos.bbzL && L[pos.bbzL])?pos.bbzL:q.E[0]; hit=dn(bs,L[id],i); }
+    if(X.indexOf('ladder')>=0){ for(const a of all) if(dn(bs,a,i)){ hit=true; break; } }
+    if(!hit && X.indexOf('mid')>=0) hit=dn(bs,mid,i);
+    if(!hit && X.indexOf('line')>=0){ const id=(pos && pos.bbzL && L[pos.bbzL])?pos.bbzL:q.E[0]; hit=dn(bs,L[id],i); }
     const hot=q.ox && dn(close, top, i); return hit?'line':(hot?'hot':''); };
   return { q, ks, mid, sd, bs, L, BD, top, bot, lock, ok, gc:i=>gcA[i]===1, lineAt:i=>(at[i]>=0)?_BBZ_LN[at[i]]:null, dc:(i,pos)=>why(i,pos)!=='', why }; }
 // 구역(종가 기준 · 켜진 밴드 수에 따라 이름) — 셋: 초과열권 · 상승 과열권 · 상승 가속권 · 회복 상승권 · 이탈 하락권 · 하락 가속권 · 침체 심화권 · 초공포권([S1882] 사용자 2026-11-04 · 🧭 〰️ 위치와 같은 표 _TRD_BZ · 같은 가름 _bbzZi) / 둘: 과열 · 상승 · 횡보 · 하락 · 폭락 / 하나: 과열 · 횡보 · 폭락
@@ -2284,7 +2288,7 @@ function _bbzZone(S, i, c){ const B=S.BD; if(!B.length || S.mid[i]==null || !Num
   return '횡보'; }
 function _bbzSigOf(cfg){ if(!_bbzOn(cfg)) return {}; const q=_bbzQ(cfg); return { bbz:[q.P, _bbzKs(q).join('/'), q.E, q.R, q.A, q.A?(q.ma1+'x'+q.ma2):0, q.bs, q.bs==='ma'?q.bN:0, q.x, q.ox?1:0] }; }   // 꺼졌으면 빈 객체 — 지문 글자 그대로
 function _bbzDescE(cfg){ const q=_bbzQ(cfg), f=id=>(q.R.indexOf(id)>=0?'·RSI≥50':'')+(q.A.indexOf(id)>=0?('·MA'+q.ma1+'>MA'+q.ma2):''); return '〰️볼린저 '+q.P+'·±'+_bbzKs(q).join('/')+' '+(q.bs==='ma'?('MA'+q.bN):'종가')+' '+q.E.split('').map(id=>_bbzLnNm(id, _bbzKs(q))+f(id)).join('|')+' 돌파'; }   /* [S1879] σ 이름 */
-function _bbzDescX(cfg){ const q=_bbzQ(cfg); return '〰️'+({ line:'진입선 이탈', ladder:'사다리(아무 선 이탈)', mid:'중앙선 이탈' })[q.x]+(q.ox?' +과열 이탈':''); }
+function _bbzDescX(cfg){ const q=_bbzQ(cfg); return '〰️'+q.x.split('+').map(x=>({ line:'진입선 이탈', ladder:'사다리(아무 선 이탈)', mid:'중앙선 이탈' })[x]).join(' + ')+(q.ox?' +과열 이탈':''); }   /* [S1897] 여럿이면 ' + ' */
 // 토글 · 설정(크로스 탭 · 저장은 기본과 다를 때만)
 function _trendToggleBbz(){ const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market; const cfg=_trendCfg(m);
   if(cfg.bbzOn) delete cfg.bbzOn; else { cfg.bbzOn=true; cfg.trixOn=false; cfg.smiOn=false; cfg.wtOn=false; cfg.tsiOn=false; }   /* 축은 하나만 — 켜면 오실레이터 축 넷은 꺼짐 */
@@ -2293,7 +2297,7 @@ function _trendBbzSet(k, v){ const ctx=window._sxTrendCtx; if(!ctx) return; cons
   if(k==='bbzB1' || k==='bbzB2' || k==='bbzB3'){ const j=+k.slice(-1)-1; if(q.B[j] && q.B.filter(Boolean).length<=1) return; tmp[k]=!q.B[j]; }   // 마지막 밴드는 못 끔
   else if(k==='bbzE' || k==='bbzR' || k==='bbzA'){ if(_BBZ_LN.indexOf(v)<0) return; const cur=(k==='bbzE')?q.E:q[k.slice(-1)]; let nx=(cur.indexOf(v)>=0)?cur.split(v).join(''):(cur+v); if(k==='bbzE' && !nx) return; tmp[k]=_BBZ_LN.filter(x=>nx.indexOf(x)>=0).join(''); }   // 진입선은 하나 이상
   else if(k==='bbzBs'){ tmp.bbzBs=(v==='ma')?'ma':'c'; }
-  else if(k==='bbzX'){ tmp.bbzX=v; }
+  else if(k==='bbzX'){ if(_BBZ_X.indexOf(v)<0) return; const cur=q.x.split('+'), nx=(cur.indexOf(v)>=0)?cur.filter(x=>x!==v):cur.concat([v]); if(!nx.length) return; tmp.bbzX=_BBZ_X.filter(x=>nx.indexOf(x)>=0).join('+'); }   // [S1897] 켬/끔 · 마지막 하나는 못 끔
   else if(k==='bbzOx'){ tmp.bbzOx=!q.ox; }
   else if(['bbzP','bbzM1','bbzM2','bbzM3','bbzMa1','bbzMa2','bbzBN'].indexOf(k)>=0){ tmp[k]=v; }
   else return;
@@ -2309,10 +2313,11 @@ function _bbzRowHtml(cfg, mk, rows, bt){ try{
   h+=row('진입선',_BBZ_LN.filter(id=>id!=='k' || ks.length>=2).map(id=>chip(q.E.indexOf(id)>=0,_bbzLnNm(id, ks) /* [S1879] σ 이름 */,'bbzE',id,'이 선을 위로 돌파하면 진입(여럿 켜면 아무 선이나)')).join(''));
   h+=row('거름',q.E.split('').filter(id=>id!=='k' || ks.length>=2).map(id=>grp('<span style="font-size:8.5px;color:var(--text2)">'+_bbzLnNm(id, ks)+'</span>'+chip(q.R.indexOf(id)>=0,'RSI≥50','bbzR',id)+chip(q.A.indexOf(id)>=0,'MA'+q.ma1+'>MA'+q.ma2,'bbzA',id))).join('')+grp('<span style="font-size:8.5px;color:var(--text2)">MA</span>'+inp('bbzMa1',q.ma1,'1',42)+'<span style="font-size:8.5px;color:var(--text3)">×</span>'+inp('bbzMa2',q.ma2,'1',42)));
   h+=row('기준',chip(q.bs==='c','종가 돌파','bbzBs','c')+chip(q.bs==='ma','MA 돌파','bbzBs','ma')+(q.bs==='ma'?grp('<span style="font-size:8.5px;color:var(--text2)">MA 길이</span>'+inp('bbzBN',q.bN,'1',42)):''));
-  h+=row('청산',chip(q.x==='line','진입선 이탈','bbzX','line')+chip(q.x==='ladder','사다리','bbzX','ladder','켜진 선 아무거나 아래로 이탈하면 청산')+chip(q.x==='mid','중앙선 이탈','bbzX','mid')+chip(q.ox,(q.ox?'☑':'☐')+' 과열 이탈 청산','bbzOx','1','종가가 맨 위 선 아래로 내려오면 청산(끄면 청산 없이 새 진입 잠금만)'));
+  const xs=q.x.split('+'), lad=xs.indexOf('ladder')>=0, xc=(id,lb,tip)=>{ const on=xs.indexOf(id)>=0, inc=lad && id!=='ladder', c=chip(on,(on?'☑':'☐')+' '+lb,'bbzX',id,inc?'사다리에 포함 — 사다리가 켜져 있으면 같이 켜도 결과가 같음(눌러 켜고 끌 수는 있음)':tip); return inc?c.replace('<span data-bbz="','<span data-bbz-inc="1" data-bbz="').replace('cursor:pointer;','cursor:pointer;opacity:.45;'):c; };   /* [S1897] 청산 칩 셋 켬/끔 · 사다리가 켜져 있으면 둘은 옅게 */
+  h+=row('청산',xc('line','진입선 이탈','')+xc('ladder','사다리','켜진 선 아무거나 아래로 이탈하면 청산(진입선 · 중심선도 들어 있음)')+xc('mid','중앙선 이탈','')+chip(q.ox,(q.ox?'☑':'☐')+' 과열 이탈 청산','bbzOx','1','종가가 맨 위 선 아래로 내려오면 청산(끄면 청산 없이 새 진입 잠금만)'));
   let now=''; if(rows && rows.length){ const close=rows.map(r=>+(r.close!=null?r.close:r.c)), S=_bbzSer(rows, close, cfg), li=rows.length-1, z=_bbzZone(S, li, close[li]); if(z) now='지금 구역 <b>'+z+'</b>'+(S.lock[li]?' · 과열 이탈 잠금':'')+' · '; }
   const blk=(bt && bt.bbz)?('최근 BT 과열 · 폭락 · 잠금 막힘 '+bt.bbz.blk+' · '):'';
-  h+='<div style="font-size:8.5px;color:var(--text3);line-height:1.45">'+now+blk+'선 = 같은 기간 SMA ± σ × 승수(승수는 작은 것부터 안쪽 · '+_bbzLnNm('g', ks)+' = 가장 안쪽 위 · '+_bbzLnNm('b', ks)+' = 가장 안쪽 아래'+(ks.length>=2?(' · '+_bbzLnNm('k', ks)+' = 두 번째 안쪽 아래'):'')+' · 칩 이름은 켜진 승수를 따름) · 과열(종가가 맨 위 선 위) · 폭락(맨 아래 선 아래) · 과열 이탈 뒤 기준이 '+_bbzLnNm('g', ks)+'(가장 안쪽 위) 아래로 한 번 내려오기 전엔 새 진입 금지(원안 v3) · 위 MA 칸(단기 · 장기)은 확인봉 · ⚡종가<단기MA · 🔄 재진입 크로스에만 씀 · 🔮 예측은 이 모드에서 쉼 · ⚙️ 게이트 🧩 · 🧭 · 📉 · ATR 청산은 그대로 걸림 · 실험 도구 · 성적 주장 없음</div></div>';
+  h+='<div style="font-size:8.5px;color:var(--text3);line-height:1.45">'+now+blk+'선 = 같은 기간 SMA ± σ × 승수(승수는 작은 것부터 안쪽 · '+_bbzLnNm('g', ks)+' = 가장 안쪽 위 · '+_bbzLnNm('b', ks)+' = 가장 안쪽 아래'+(ks.length>=2?(' · '+_bbzLnNm('k', ks)+' = 두 번째 안쪽 아래'):'')+' · 칩 이름은 켜진 승수를 따름) · 청산 칩 여럿 = 먼저 걸린 것에 청산'+(lad?(' · 사다리(켜진 선 전부)에 진입선 · 중심선이 들어 있어 사다리가 켜져 있으면 진입선 · 중앙선 이탈 칩은 옅게(같이 켜도 결과 같음)'):'')+' · 과열(종가가 맨 위 선 위) · 폭락(맨 아래 선 아래) · 과열 이탈 뒤 기준이 '+_bbzLnNm('g', ks)+'(가장 안쪽 위) 아래로 한 번 내려오기 전엔 새 진입 금지(원안 v3) · 위 MA 칸(단기 · 장기)은 확인봉 · ⚡종가<단기MA · 🔄 재진입 크로스에만 씀 · 🔮 예측은 이 모드에서 쉼 · ⚙️ 게이트 🧩 · 🧭 · 📉 · ATR 청산은 그대로 걸림 · 실험 도구 · 성적 주장 없음</div></div>';
   return h; }catch(_e){ return ''; } }
 function _trSma(a,p){ const o=new Array(a.length).fill(null); let s=0; for(let i=0;i<a.length;i++){ s+=a[i]; if(i>=p) s-=a[i-p]; if(i>=p-1) o[i]=s/p; } return o; }
 function _trStd(a,m,p){ const o=new Array(a.length).fill(null); for(let i=p-1;i<a.length;i++){ if(m[i]==null){o[i]=null;continue;} let s=0; for(let k=i-p+1;k<=i;k++){ const d=a[k]-m[i]; s+=d*d; } o[i]=Math.sqrt(s/p); } return o; }   // [S1064] 롤링 표준편차(BB용·m=동일창 SMA)
@@ -14610,17 +14615,17 @@ var _FIB_ZZ_BB = { bp:[2,1000,200], k1:[0.1,10,1], k2:[0.1,10,2], k3:[0.1,10,3] 
 // [S1877] 선 고르기 ln = 'bb'(기본 · 〰️ 볼린저 트리플) | 'sw'(🟠 스윙 평균선 · 🔷 채널 · 🎯 띠 = S1815 ~ S1820 그대로) · 밴드 켬/끔 o1 ~ o3(하나는 남김) — 사용자 2026-11-03 09:45
 function _fibZzBbCfg(o){ const q={ ln:(o && o.ln==='sw')?'sw':'bb' }; Object.keys(_FIB_ZZ_BB).forEach(k=>{ const L=_FIB_ZZ_BB[k]; let x=(o && o[k]!=null && o[k]!=='' && typeof o[k]!=='boolean')?+o[k]:NaN; if(k==='bp') x=Math.round(x); q[k]=(isFinite(x)&&x>=L[0]&&x<=L[1])?x:L[2]; });
   q.o1=!(o && o.o1===false); q.o2=!(o && o.o2===false); q.o3=!(o && o.o3===false); if(!q.o1 && !q.o2 && !q.o3) q.o1=true; return q; }
-function _fibTab(){ try{ return localStorage.getItem('SX_FIB_TAB')==='zz'?'zz':'fib'; }catch(_){ return 'fib'; } }
+function _fibTab(){ try{ const v=localStorage.getItem('SX_FIB_TAB'); return (v==='zz'||v==='mk')?v:'fib'; }catch(_){ return 'fib'; } }   /* [S1896] 'mk' = 🫧 민스키 · 거품 단계 탭 */
 function _fibZzCfg(){ let o={}; try{ o=JSON.parse(localStorage.getItem('SX_FIB_ZZ')||'{}')||{}; }catch(_){ o={}; } const m=+o.m, n=Math.round(+o.n), b=+o.b;   /* [S1820] 띠 배수 b */
   return Object.assign({ m:(isFinite(m)&&m>=_FIB_ZZ_LIM.m[0]&&m<=_FIB_ZZ_LIM.m[1])?m:_FIB_ZZ_DEF.m, n:(isFinite(n)&&n>=_FIB_ZZ_LIM.n[0]&&n<=_FIB_ZZ_LIM.n[1])?n:_FIB_ZZ_DEF.n, b:(isFinite(b)&&b>=_FIB_ZZ_LIM.b[0]&&b<=_FIB_ZZ_LIM.b[1])?b:_FIB_ZZ_DEF.b }, _fibZzBbCfg(o)); }   /* [S1877] + 〰️ 칸 */
 function _fibRerender(){ try{ const el=document.getElementById('sxFibCard'), cx=window._sxFibCtx; if(el && cx) el.outerHTML=_fibCardHtml(cx); }catch(_){} }
-function _fibSetTab(t){ if(t!=='fib' && t!=='zz') return; try{ localStorage.setItem('SX_FIB_TAB', t); }catch(_){} _fibRerender(); }
+function _fibSetTab(t){ if(t!=='fib' && t!=='zz' && t!=='mk') return;   /* [S1896] */ try{ localStorage.setItem('SX_FIB_TAB', t); }catch(_){} _fibRerender(); }
 // 입력값 — 범위 밖이면 가장자리로 · 숫자가 아니면 무시
 function _fibZzSet(f, v){ if(f!=='m' && f!=='n' && f!=='b' && !_FIB_ZZ_BB[f]) return;   /* [S1820] b 칸 · [S1877] 〰️ 기간 · 승수 칸 */ let x=+v; if(!isFinite(x)) return; const L=_FIB_ZZ_LIM[f]||_FIB_ZZ_BB[f]; if(f==='n' || f==='bp') x=Math.round(x); x=Math.max(L[0], Math.min(L[1], x)); const c=_fibZzCfg(); c[f]=x; try{ localStorage.setItem('SX_FIB_ZZ', JSON.stringify(c)); }catch(_){} _fibRerender(); }
 function _fibZzLn(v){ if(v!=='bb' && v!=='sw') return; const c=_fibZzCfg(); c.ln=v; try{ localStorage.setItem('SX_FIB_ZZ', JSON.stringify(c)); }catch(_){} _fibRerender(); }   /* [S1877] 선 고르기 */
 function _fibZzBbTog(j){ const k='o'+j; if(['o1','o2','o3'].indexOf(k)<0) return; const c=_fibZzCfg(); if(c[k] && [c.o1,c.o2,c.o3].filter(Boolean).length<=1) return; c[k]=!c[k]; try{ localStorage.setItem('SX_FIB_ZZ', JSON.stringify(c)); }catch(_){} _fibRerender(); }   /* [S1877] 밴드 켬/끔 — 마지막 하나는 못 끔 */
-function _fibTabBar(cur){ const P='#7c3aed', tab=(t,l)=>'<span onclick="_sxVib(8);window._fibSetTab&&_fibSetTab(\''+t+'\')" style="flex:1;text-align:center;font-size:10.5px;font-weight:800;padding:5px 4px;border-radius:9px;cursor:pointer;'+(cur===t?('background:'+P+';color:#fff'):'background:var(--surface2);color:var(--text3)')+'">'+l+'</span>';
-  return '<div data-fib-tabs="1" style="display:flex;gap:5px;margin-bottom:8px">'+tab('fib','🌀 피보 · 엘리어트')+tab('zz','🧪 지그재그 지표')+'</div>'; }
+function _fibTabBar(cur){ const P='#7c3aed', tab=(t,l)=>'<span onclick="_sxVib(8);window._fibSetTab&&_fibSetTab(\''+t+'\')" style="flex:1;text-align:center;font-size:10.5px;font-weight:800;padding:5px 4px;border-radius:9px;cursor:pointer;word-break:keep-all;'+(cur===t?('background:'+P+';color:#fff'):'background:var(--surface2);color:var(--text3)')+'">'+l+'</span>';   /* [S1896] 낱말 단위 줄바꿈(탭 셋 · 폭 320) */
+  return '<div data-fib-tabs="1" style="display:flex;gap:5px;margin-bottom:8px">'+tab('fib','🌀 피보 · 엘리어트')+tab('mk','🫧 민스키 · 거품 단계')+tab('zz','🧪 지그재그 지표')+'</div>'; }
 // 지표 줄 — 봉 t 에서 확정된(c ≤ t) 스윙점만 · 최근 N개 다리(N+1개 점) · 평균선 = 다리 가운데값 평균 · 크기 = 다리 크기(%) 평균 · 채널 = 그 점들 중 고점 평균 / 저점 평균
 function _fibZzSeries(rows, m, N){ const n=rows.length, z=_fibZigzag(rows, m), P=z.piv, ma=new Array(n).fill(null), sz=new Array(n).fill(null), up=new Array(n).fill(null), lo=new Array(n).fill(null); let q=0;
   for(let t=0;t<n;t++){ while(q<P.length && P[q].c<=t) q++; if(q<N+1) continue; const W=P.slice(q-N-1,q); let sm=0, ss=0; const H=[], L=[];
@@ -14784,6 +14789,67 @@ function _granvilleHtml(rows){ try{
   let rec=''; if(!r){ for(let k=1;k<=19;k++){ const q=S.g[t-k]; if(q){ rec='<span data-granville-rec="1" style="font-size:9.5px;white-space:nowrap;color:'+(q<=4?G:Rd)+'"> · 최근 '+NO[q]+' '+k+'봉 전</span>'; break; } } }
   const foot='<div data-granville-note="1" style="font-size:8.5px;color:'+T3+';line-height:1.5">그랜빌 8법칙을 MA200 하나로 센 표시 · ②③만 쟀어요(9판: 그냥 두기보다 못함) · 나머지는 안 쟀어요 · 읽기 도움 · 판정 아님</div>';
   return box(chip+sub+rec+foot); }catch(_e){ return ''; } }
+// ══ [S1896] 🫧 민스키 · 거품 단계 탭(피보 카드 가운데) — 지금 분석 TF 봉으로 거품 모델의 단계 칸 · 곡선(모델 모양) 위 빨간 원 = 지금 칸의 대략 자리 · 실험 · 판정 아님 · 미측정 (분석탭 기준표 v12 · 사용자 2026-11-06 17:05 · 18:01 · 18:12 · 18:21 · 18:23) ══
+//   단계 이름 = Jean-Paul Rodrigue 'Stages in a Bubble'(잠행기 · 인지기 · 열광기 · 청산기 · transportgeography.org) · 거품 이야기 = Hyman Minsky · Charles Kindleberger('Manias, Panics, and Crashes') · 그림은 옮기지 않음(곡선은 이 앱이 그린 모양)
+//   창 = 받은 봉 전부 · 고점 = 창 안 최고가(같으면 뒤) · 바닥 = 고점 전 최저가 · 오른 배수 2배 미만이면 칸 없음 · 오를 때 칸 = 종가가 처음 오른 폭 20 · 50% 에 닿은 봉으로 나눔 · 고점 뒤 칸 = 봉마다(오른 폭 80% 반납 → 바닥 가까이 / 첫 스윙 저점 확정 전 → 첫 하락(고점 뒤 종가가 한 번도 고점 90% 아래로 마감하지 않았으면 아직 열광기 · 한 번 내려가면 새 고점 전까지 열광기로 안 돌아감 · 사용자 19:02) / 그 뒤 첫 스윙 저점 아래 마감 → 첫 저점 아래 · 위 → 반등)
+//   다음 단계를 말하지 않음 · 심리 말(부정 · 공포 · 포기) 없음 · 정한 선은 모두 미측정
+var _FIB_MK = { m2:2, r1:0.2, r2:0.5, top:0.9, near:0.8 };
+function _fibMkCalc(rows, k){ const n=(rows&&rows.length)||0; if(n<60) return null;
+  const Hh=i=>_fibNum(rows[i].high!=null?rows[i].high:rows[i].h), Ll=i=>_fibNum(rows[i].low!=null?rows[i].low:rows[i].l), Cc=i=>_fibNum(rows[i].close!=null?rows[i].close:rows[i].c);
+  let iP=-1; for(let i=0;i<n;i++){ const h=Hh(i); if(isFinite(h) && h>0 && (iP<0 || h>=Hh(iP))) iP=i; } if(iP<0) return null;
+  let iB=-1; for(let i=0;i<=iP;i++){ const l=Ll(i); if(isFinite(l) && l>0 && (iB<0 || l<=Ll(iB))) iB=i; } if(iB<0) return null;
+  const P=Hh(iP), B=Ll(iB), C=Cc(n-1); if(!(C>0) || !(P>=B)) return null;
+  const o={ n, iP, iB, P, B, C, M:P/B, dd:C/P-1, ret:(P>B)?(P-C)/(P-B):0, cb:C/B, cell:null, t20:-1, t50:-1, L1:null, segs:{} };
+  if(!(o.M>=_FIB_MK.m2)) return o;
+  const lv=f=>B+f*(P-B); for(let t=iB+1;t<=iP;t++){ const c=Cc(t); if(o.t20<0 && c>=lv(_FIB_MK.r1)) o.t20=t; if(o.t50<0 && c>=lv(_FIB_MK.r2)) o.t50=t; }
+  const L1=_fibZigzag(rows,k).piv.find(q=>q.t==='L' && q.i>iP) || null; o.L1=L1;
+  let fell=false, last='mania'; const stOf=t=>{ const c=Cc(t); if(c<_FIB_MK.top*P) fell=true; if(c<=lv(1-_FIB_MK.near)) return 'near'; if(!L1 || t<L1.c) return (!L1 && !fell)?'mania':'drop'; return c<L1.p?'below':'bounce'; };   // 봉 순서대로 한 번씩(fell = 고점 뒤 90% 아래 마감이 있었나)
+  for(let t=iP+1;t<n;t++){ const s=stOf(t); last=s; if(s==='mania') continue; const g=o.segs[s]; if(!g || g.b!==t-1) o.segs[s]={ a:t, b:t }; else g.b=t; }
+  o.cell=(iP===n-1)?'mania':last; return o; }
+// 곡선(모델 모양 · 이 앱이 그림 · 실제 차트 아님) — 높이 q = 오른 폭 비율(바닥 0 · 고점 1) · 오름 띠 너비 고정(잠행 10~80 · 인지 80~145 · 열광 145~190) · 인지기 약한 눌림은 모양만 · 고점 뒤 = 정한 꺾임점(되돌림)
+var _FIB_MK_PRE = [[10,0],[45,0.06],[80,0.20],[98,0.30],[110,0.35],[122,0.30],[135,0.37],[145,0.50],[160,0.66],[175,0.84],[190,1.0]], _FIB_MK_POST = [[190,0],[205,0.40],[216,0.25],[250,0.80],[275,1.0]];
+function _fibMkDense(){ const P=_FIB_MK_PRE, out=[]; for(let i=0;i<P.length-1;i++){ const p0=P[Math.max(0,i-1)], p1=P[i], p2=P[i+1], p3=P[Math.min(P.length-1,i+2)]; for(let s=0;s<16;s++){ const t=s/16, t2=t*t, t3=t2*t, f=(a,b,c,d)=>0.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t2+(-a+3*b-3*c+d)*t3); out.push([f(p0[0],p1[0],p2[0],p3[0]), f(p0[1],p1[1],p2[1],p3[1])]); } } out.push(P[P.length-1]); return out; }
+function _fibMkY(q){ return 105-93*q; }
+function _fibMkPreX(r){ r=Math.max(0,Math.min(1,r)); return r<=0.2?10+70*(r/0.2):(r<=0.5?80+65*((r-0.2)/0.3):145+45*((r-0.5)/0.5)); }
+function _fibMkPreQ(x, D){ for(let i=1;i<D.length;i++){ if(x<=D[i][0]){ const a=D[i-1], b=D[i], u=(b[0]>a[0])?(x-a[0])/(b[0]-a[0]):0; return a[1]+(b[1]-a[1])*u; } } return 1; }
+function _fibMkPostQ(j, u){ const a=_FIB_MK_POST[j-1], b=_FIB_MK_POST[j], e=0.5-0.5*Math.cos(Math.PI*u); return 1-(a[1]+(b[1]-a[1])*e); }
+function _fibMkXY(o, D){ const r=(o.C-o.B)/(o.P-o.B), ret=o.ret;
+  if(o.cell==='mania'){ const x=_fibMkPreX(Math.max(_FIB_MK.r2,r)); return [x, _fibMkY(_fibMkPreQ(x, D))]; }   // 지금 칸이 될 수 있는 건 열광기 · 청산기 안 칸뿐(창 안 고점은 늘 지금이거나 그 앞) · 고점 봉 종가가 오른 폭 50% 아래여도 원은 열광기 띠 안
+  const J={ drop:1, bounce:2, below:3, near:4 }[o.cell], q=(o.cell==='drop')?Math.max(0.03,ret):(o.cell==='below'?Math.max(0.45,ret):ret);
+  const a=_FIB_MK_POST[J-1], b=_FIB_MK_POST[J], lo=Math.min(a[1],b[1]), hi=Math.max(a[1],b[1]), tq=Math.max(lo,Math.min(hi,q)); let bu=0, bd=9;
+  for(let i=0;i<=40;i++){ const u=i/40, e=0.5-0.5*Math.cos(Math.PI*u), qq=a[1]+(b[1]-a[1])*e; if(Math.abs(qq-tq)<bd){ bd=Math.abs(qq-tq); bu=u; } }
+  return [a[0]+(b[0]-a[0])*bu, _fibMkY(_fibMkPostQ(J, bu))]; }
+function _fibMkSvg(o, T3){ const D=_fibMkDense(), pts=D.map(p=>[p[0], _fibMkY(p[1])]);
+  for(let j=1;j<_FIB_MK_POST.length;j++){ const a=_FIB_MK_POST[j-1], b=_FIB_MK_POST[j]; for(let i=1;i<=12;i++){ const u=i/12; pts.push([a[0]+(b[0]-a[0])*u, _fibMkY(_fibMkPostQ(j, u))]); } }
+  const ph=o && o.cell ? ((o.cell==='stealth'||o.cell==='aware'||o.cell==='mania')?o.cell:'blow') : null;
+  const band=(x0,x1,key,l,alt)=>'<rect data-mk-band="'+key+'" x="'+x0+'" y="2" width="'+(x1-x0)+'" height="106" fill="'+(ph===key?'#7c3aed':'currentColor')+'" opacity="'+(ph===key?'0.16':(alt?'0.07':'0.03'))+'"/><text x="'+((x0+x1)/2)+'" y="128" font-size="8.5" text-anchor="middle" fill="'+(ph===key?'#7c3aed':'currentColor')+'" font-weight="'+(ph===key?'800':'400')+'" opacity="'+(ph===key?'1':'0.75')+'">'+l+'</text>';
+  const lab=(x,y,t,an)=>'<text x="'+x+'" y="'+y+'" font-size="7.5" text-anchor="'+(an||'middle')+'" fill="currentColor" opacity="0.85">'+t+'</text>';
+  let g='<svg data-mk-svg="1" viewBox="0 0 290 132" style="width:100%;height:auto;display:block;color:var(--text2)" role="img" aria-label="거품 단계 모델 곡선 · 빨간 원 = 지금 칸의 대략 자리">'
+    +band(4,80,'stealth','잠행기',0)+band(80,145,'aware','인지기',1)+band(145,190,'mania','열광기',0)+band(190,286,'blow','청산기',1)
+    +'<line x1="4" y1="105" x2="286" y2="105" stroke="currentColor" stroke-dasharray="3 3" opacity="0.45"/>'+lab(70,114,'바닥 가격대(바닥 = 창 안 고점 전 최저)','start')
+    +'<path d="M'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L')+'" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>'
+    +lab(190,9,'고점')+lab(202,59,'첫 하락','end')+lab(221,28,'반등','start')+lab(236,66,'첫 저점 아래','start')+lab(287,115,'바닥 가까이','end');
+  if(o && o.cell){ const m=_fibMkXY(o, D), mx=m[0].toFixed(1), my=m[1].toFixed(1); g+='<circle data-mk-mark="'+o.cell+'" cx="'+mx+'" cy="'+my+'" r="7" fill="none" stroke="#dc2626" stroke-width="2.5"/><circle cx="'+mx+'" cy="'+my+'" r="2.2" fill="#dc2626"/>'; }
+  return g+'</svg><div style="font-size:8.5px;color:'+T3+';margin:1px 0 6px">곡선 = 모델 모양(이 앱이 그린 그림 · 실제 차트 아님) · <span style="color:#dc2626;font-weight:800">빨간 원</span> = 지금 칸의 대략 자리(오를 때 = 띠 안에서 오른 폭 비율 · 고점 뒤 = 그 칸 안에서 되돌림 높이) · 보라 띠 = 지금 단계 · 인지기 눌림은 모양만(칸 규칙엔 없음)</div>'; }
+var _FIB_MK_NM = { stealth:'잠행기', aware:'인지기', mania:'열광기', drop:'첫 하락', bounce:'반등', below:'첫 저점 아래', near:'바닥 가까이' };
+function _fibMkHtml(cx, chips, k){ try{ const rows=cx.rows, n=(rows&&rows.length)||0, T3='var(--text3)', T2='var(--text2)', P7='#7c3aed';
+  let h='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:13px;font-weight:800;color:var(--text)">🫧 민스키 · 거품 단계</span><span style="font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:9px;background:#d9770614;color:#d97706">실험 · 판정 아님</span></div>'
+    +'<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:10px;color:'+T3+'">스윙 크기</span>'+chips+'<span style="font-size:9px;color:'+T3+'">· 봉 = 지금 분석 TF('+(cx.tfLbl||'')+') · 창 '+n+'봉 · 주봉으로 보는 게 맞아요</span></div>';
+  if(n<60) return h+'<div style="font-size:10.5px;color:'+T3+'">봉이 부족해요(60봉 이상 필요 · 지금 '+n+'봉)</div>';
+  const o=_fibMkCalc(rows, k); if(!o) return h+'<div style="font-size:10.5px;color:'+T3+'">고점 · 바닥을 셀 수 없어요</div>';
+  const F=v=>_fibFmt(v), DT=i=>(i>=0 && i<n)?String(_fibDate(rows,i)).slice(0,5):'—', kv=(a,b)=>'<span style="white-space:nowrap"><span style="color:'+T3+'">'+a+'</span> <b>'+b+'</b></span>';
+  h+='<div data-mk-num="1" style="font-size:10.5px;color:'+T2+';line-height:1.7;margin-bottom:6px">'+[kv('바닥',F(o.B)+' ('+DT(o.iB)+')'),kv('고점',F(o.P)+' ('+DT(o.iP)+')'),kv('오른 배수',o.M.toFixed(1)+'배'),kv('지금 고점 대비',(o.dd*100).toFixed(1)+'%'),kv('오른 폭 되돌림',(o.ret*100).toFixed(0)+'%'),kv('바닥 대비',o.cb.toFixed(1)+'배')].join(' · ')+'</div>';
+  h+=_fibMkSvg(o, T3);
+  const box=(key,rule,when,st)=>{ const on=st==='now'; return '<div data-mk-cell="'+key+'" data-mk-st="'+st+'" style="flex:1;min-width:0;word-break:keep-all;border:'+(on?'2px solid '+P7:'1px solid var(--border)')+';border-radius:8px;padding:5px;background:'+(on?P7+'14':(st==='past'?'var(--surface2)':'transparent'))+';opacity:'+(st==='after'?'0.55':'1')+'"><div style="font-size:10.5px;font-weight:800;color:'+(on?P7:'var(--text)')+'">'+_FIB_MK_NM[key]+(on?' <span style="font-size:9px">● 지금</span>':'')+'</div><div style="font-size:8.5px;color:'+T3+';line-height:1.35">'+rule+'</div>'+(when?'<div style="font-size:8.5px;color:'+T2+';margin-top:2px">'+when+'</div>':'')+'</div>'; };
+  if(!o.cell) h+='<div data-mk-none="1" style="font-size:10.5px;color:'+T3+';padding:8px;border:1px dashed var(--border);border-radius:8px">오른 배수 '+o.M.toFixed(2)+'배 — 2배 미만이라 거품 꼴 아님 · 칸 자리 없음</div>';
+  else { const ORD=['stealth','aware','mania','drop','bounce','below','near'], ci=ORD.indexOf(o.cell);
+    const st=key=>{ const i=ORD.indexOf(key); if(i===ci) return 'now'; if(i<3) return i<ci?'past':'after'; return o.segs[key]?'past':'after'; };
+    const rg=(a,b)=>(a<0||b<a)?'':(DT(a)+(b>a?' ~ '+DT(b):'')), sg=key=>{ const s=o.segs[key]; if(!s) return ''; return DT(s.a)+(s.b===n-1?' ~':(s.b>s.a?' ~ '+DT(s.b):'')); };
+    h+='<div style="display:flex;gap:4px;margin-bottom:4px">'+box('stealth','바닥 ~ 오른 폭 20%',rg(o.iB,o.t20>0?o.t20-1:o.iP),st('stealth'))+box('aware','오른 폭 20 ~ 50%',o.t20>0?rg(o.t20,o.t50>0?o.t50-1:o.iP):'',st('aware'))+box('mania','오른 폭 50% ~ 고점',o.t50>0?rg(o.t50,o.iP):'',st('mania'))
+      +'<div data-mk-cell="blow" style="flex:1;min-width:0;word-break:keep-all;border:1px solid var(--border);border-radius:8px;padding:5px;background:'+(ci>=3?P7+'0d':'transparent')+';opacity:'+(ci>=3?'1':'0.55')+'"><div style="font-size:10.5px;font-weight:800;color:var(--text)">청산기'+(ci>=3?' <span style="font-size:9px;color:'+P7+'">▼</span>':'')+'</div><div style="font-size:8.5px;color:'+T3+'">고점 뒤</div>'+(ci>=3?'<div style="font-size:8.5px;color:'+T2+';margin-top:2px">'+DT(o.iP)+' ~</div>':'')+'</div></div>';
+    h+='<div style="font-size:9px;color:'+T3+';margin:2px 0 3px">청산기 안 칸(고점 뒤 스윙 · 되돌림)</div><div style="display:flex;gap:4px">'+box('drop','고점 ~ 첫 스윙 저점 확정',sg('drop'),st('drop'))+box('bounce','첫 스윙 저점 위',sg('bounce'),st('bounce'))+box('below','첫 스윙 저점 아래 마감',sg('below'),st('below'))+box('near','오른 폭 80%↑ 반납',sg('near'),st('near'))+'</div>'; }
+  h+='<div data-mk-note="1" style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-top:6px">고점 뒤 칸은 봉마다 정해 오가요(반등했다 다시 아래로 가면 칸이 바뀜 · 칸마다 가장 최근 구간 날짜 · 고점 뒤 한 번 고점 90% 아래로 마감하면 새 고점 전까지 열광기로 안 돌아가요) · 단계 이름 = Rodrigue \'Stages in a Bubble\'(잠행기 · 인지기 · 열광기 · 청산기) · 거품 이야기 = Minsky · Kindleberger · 칸 = 정한 숫자 규칙(오른 배수 2배 · 오른 폭 20 · 50% · 고점 90% · 첫 스윙 저점 · 되돌림 80% — 모두 <b>미측정</b>) · 칸 순서는 모델 그림 순서일 뿐 다음에 그렇게 된다는 뜻 아님 · 이 종목이 거품인지는 말하지 않음</div>';
+  return h; }catch(_e1896){ return ''; } }
 function _fibCardHtml(cx){ try{ const rows=cx.rows, n=(rows&&rows.length)||0, kk=_fibKey(), k=_FIB_K[kk], T3='var(--text3)', T2='var(--text2)', G='#059669', Rd='#dc2626', Pp='#7c3aed';
   const LG=(n>=60)?{ s:_fibLegs(rows,_FIB_K.s), m:_fibLegs(rows,_FIB_K.m), l:_fibLegs(rows,_FIB_K.l) }:{};   /* [S1810] 칩 봉 수 */
   const chip=(key,lbl)=>'<span onclick="_sxVib(8);window._fibSetK&&_fibSetK(\''+key+'\')" style="font-size:10px;font-weight:800;padding:4px 9px;border-radius:12px;cursor:pointer;'+(kk===key?('background:'+Pp+';color:#fff;border:1px solid '+Pp):'background:var(--surface2);color:var(--text3);border:1px solid var(--border)')+'">'+lbl+(LG[key]?('<span data-fib-lc="1" style="font-size:9px;font-weight:700;opacity:.85"> · '+LG[key].L+'봉</span>'):'')+'</span>';
@@ -14791,6 +14857,7 @@ function _fibCardHtml(cx){ try{ const rows=cx.rows, n=(rows&&rows.length)||0, kk
     +'<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px"><span style="font-size:10px;color:'+T3+'">스윙 크기</span>'+chip('s','작게 2×ATR')+chip('m','보통 3×ATR')+chip('l','크게 5×ATR')+'<span style="font-size:9px;color:'+T3+'">· 봉 = 지금 분석 TF('+(cx.tfLbl||'')+')</span></div>';
   const wrap=b=>'<div class="anal-header-card" id="sxFibCard" style="margin-top:10px;text-align:left">'+_fibTabBar(_fibTab())+b+'</div>';   /* [S1815] 탭 줄 */
   if(_fibTab()==='zz') return wrap(_fibZzHtml(cx));   /* [S1815] 🧪 지그재그 지표 탭 */
+  if(_fibTab()==='mk') return wrap(_fibMkHtml(cx, chip('s','작게 2×ATR')+chip('m','보통 3×ATR')+chip('l','크게 5×ATR'), k));   /* [S1896] 🫧 민스키 · 거품 단계 탭(스윙 크기 칩 = 피보 탭과 같은 설정) */
   if(n<60) return wrap(head('')+'<div style="font-size:10.5px;color:'+T3+'">봉이 부족해요(60봉 이상 필요 · 지금 '+n+'봉)</div>');
   const z=_fibZigzag(rows,k), fr=_fibFrame(rows,z);
   if(!fr) return wrap(head('')+'<div style="font-size:10.5px;color:'+T3+'">확정된 스윙이 두 개 안 돼요 — 스윙 크기를 작게 해 보세요</div>');
@@ -20571,7 +20638,10 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1894';   // [S1894] 분석탭 기준표 v10 기준 10 새 표시 — 🕯️ 캔들 · 차트 읽기 '봉' 탭에 ⚖️ 봉 힘(교과서 EOM 1봉 · 최근 5봉 · 쉬움 분위 · 미측정)
+  window.SX_BUILD='S1897';   // [S1897] 📈 크로스 탭 〰️ 볼린저 모드 청산 칩 여럿 켬(먼저 걸린 것 · 사다리가 켜져 있으면 진입선 · 중앙선 옅게)
+  //window.SX_BUILD='S1896';   // [S1896] 분석탭 기준표 v12 — 피보 카드 셋째 탭 🫧 민스키 · 거품 단계(곡선 + 빨간 원 · 단계 칸 · 실험 · 판정 아님)
+  //window.SX_BUILD='S1895';   // [S1895] 분석탭 기준표 v11 — EOM 줄 값 색 = 값 말 · EOM 꼬리표 0선 상향 · 0선 하향 방향 표 · (해석 파일) 조합 상자 문턱 점수로
+  //window.SX_BUILD='S1894';   // [S1894] 분석탭 기준표 v10 기준 10 새 표시 — 🕯️ 캔들 · 차트 읽기 '봉' 탭에 ⚖️ 봉 힘(교과서 EOM 1봉 · 최근 5봉 · 쉬움 분위 · 미측정)
   //window.SX_BUILD='S1892';   // [S1892] 분석탭 기준표 v9 기준 9 — 공시 덮어쓰기 길 고침(참고사항 레이어 함수 바깥으로) · 치명 · 위험 공시면 참고사항에 사실 한 줄 · 공시 상세 카드가 첫 열기부터
   //window.SX_BUILD='S1891';   // [S1891] 분석탭 기준표 v8 기준 8 — 일봉이 아닌 TF 에서 5축 자리(전광판 머리 · 5축 패널 머리 · 참고사항 5축 줄)에 [일봉기준] 배지 · 5축 패널 기준 줄 '일봉 5분위'
   //window.SX_BUILD='S1890';   // [S1890] 분석탭 기준표 v7 기준 2 — 취소선 깨짐 = 나쁨 빨강(양쪽) · 매수세 · 매집 · 시장 강세 = 빨강 · 매도세 · 분산 · 시장 약세 = 파랑(지표 분석 꼬리표 · 값 · 참고사항 상자 여섯) · 매크로 환경 = 추세 상승 빨강 · 하락 파랑
@@ -24954,7 +25024,9 @@ function _itpTone(label, tone){
 //   오름 · 과열 → 'up'(빨강) · 내림 · 침체 → 'down'(파랑) · 표에 없는 꼬리표(좋음 · 나쁨: 매집 · 분산 · 매수세 · 매도세 · 눌림목 · 추세장 · 횡보장 · 거래량 · 지지 · 저항 …)는 그대로(초록 · 빨강)
 //   역방향(muted)이 먼저 · '시장 환경' 줄의 '강세 · 약세'는 시장이 우호적인가(좋음 · 나쁨)라 표에서 뺀다 · 색 칸 = sx_screener.html .itp-label.up / .down
 //   → [S1890] 매수세 · 매도세 · 매집 · 분산 · '시장 환경' 강세 · 약세도 방향으로 옮김(매수세 · 매집 · 강세 = 오름 빨강 · 매도세 · 분산 · 약세 = 내림 파랑) (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32)
+// [S1895] EOM 꼬리표 새 이름 '0선 상향 (양수)' · '0선 하향 (음수)' 를 같은 방향으로 넣음(옛 이름은 Chaikin 이 그대로 씀) (분석탭 기준표 v11 · 사용자 2026-11-06 15:10 · 16:11)
 const _ITP_DIR = {
+  '0선 상향 (양수)':'up', '0선 하향 (음수)':'down',
   '골든크로스 (제로선 위)':'up', '골든크로스 (제로선 아래)':'up', '골든크로스 (양수)':'up', '골든크로스 (음수권)':'up', '양수 확대':'up', '정배열':'up', '상승추세':'up', '상승 구조 (HH+HL)':'up',
   '매우 강한 상승':'up', '강한 상승':'up', '완만한 상승':'up', '강세 구간':'up', '강세':'up', 'OBV 상승':'up', 'A/D 상승':'up',
   '상승 다이버전스':'up', 'OBV 상승 다이버전스':'up', 'Stoch 상승 다이버전스':'up', 'A/D 상승 다이버전스':'up', '구름 위':'up', '구름 위 (양운)':'up', 'VWAP 상회':'up', '피벗~R1':'up', '피벗 R1~R2':'up', '채널 상단 돌파':'up', '과매도 반전':'up',
@@ -25945,7 +26017,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       ${_itp_inline.maDisparity?advItpRowKis('MA 이격도', (()=>{const md=indicators.maDisparity||indicators._advanced?.maDisparity||{}; const parts=[]; if(md.disparity20!=null) parts.push('20: '+(md.disparity20>=0?'+':'')+md.disparity20.toFixed(1)+'%'); if(md.disparity60!=null) parts.push('60: '+(md.disparity60>=0?'+':'')+md.disparity60.toFixed(1)+'%'); return parts.join(' / ')||_itp_inline.maDisparity.label;})(), _itp_inline.maDisparity.tone, _itp_inline.maDisparity):''}
       ${_itp_inline.volumeMA?advItpRowKis('거래량 MA', (indicators._advanced?.volPattern?.volRatio??1).toFixed(1)+'x', _itp_inline.volumeMA.tone, _itp_inline.volumeMA):''}
       ${_itp_inline.adLine?advItpRowKis('A/D (수급)', (()=>{const ad=indicators.ad||indicators._advanced?.ad||{}; return ad.trend==='up'?'상승':ad.trend==='down'?'하락':'횡보';})(), _itp_inline.adLine.tone, _itp_inline.adLine):''}
-      ${_itp_inline.eom?advItpRowKis('EOM', (()=>{const e=indicators.eom||indicators._advanced?.eom||{}; /* [S452] EOM 라벨 버그 수정: 엔진 EOM.trend는 'bullish'/'bearish'/'mixed'(='up'/'down' 아님)이라 기존 삼항식이 항상 '중립'으로 떨어짐. 전광판 score100과 동일 기준(≥65/<35)으로 통일 */ const _s=(e.score100!=null)?e.score100:(e.trend==='bullish'?70:e.trend==='bearish'?30:50); return _s>=65?'매수세':_s<35?'매도세':'중립';})(), _itp_inline.eom.tone, _itp_inline.eom):''}
+      ${_itp_inline.eom?(()=>{ const _w1895=(()=>{const e=indicators.eom||indicators._advanced?.eom||{}; /* [S452] EOM 라벨 버그 수정: 엔진 EOM.trend는 'bullish'/'bearish'/'mixed'(='up'/'down' 아님)이라 기존 삼항식이 항상 '중립'으로 떨어짐. 전광판 score100과 동일 기준(≥65/<35)으로 통일 */ const _s=(e.score100!=null)?e.score100:(e.trend==='bullish'?70:e.trend==='bearish'?30:50); return _s>=65?'매수세':_s<35?'매도세':'중립';})(); return advItpRowKis('EOM', _w1895, _w1895==='매수세'?'up':(_w1895==='매도세'?'down':'neutral'), _itp_inline.eom); })():''}${''/* [S1895] EOM 줄 값 색 = 값 말(매수세 빨강 · 매도세 파랑 · 중립 = 다른 줄 중립 색) — 옛: 꼬리표(0선 교차 먼저) 색이라 '중립'이 빨강 · 파랑으로 칠해졌다 (분석탭 기준표 v11 · 사용자 2026-11-06 15:10 · 16:11) */}
       ${_itp_inline.vhf?advItpRowKis('VHF', (()=>{const v=indicators.vhf||indicators._advanced?.vhf||{}; return v.trending==='trending'?'추세장':v.trending==='ranging'?'박스권':'보통';})(), _itp_inline.vhf.tone, _itp_inline.vhf):''}
       ${_itp_inline.psycho?advItpRowKis('심리도', (()=>{const p=indicators.psycho||indicators._advanced?.psycho||{}; const val=p.psycho; return val!=null?val.toFixed(0)+'%':'—';})(), _itp_inline.psycho.tone, _itp_inline.psycho, _ko_inline):''}
       ${_itp_inline.chaikinOsc?advItpRowKis('Chaikin (수급)', (()=>{const c=indicators.chaikinOsc||indicators._advanced?.chaikinOsc||{}; return c.val>0?'양수 (매집)':c.val<0?'음수 (분산)':'0';})(), _itp_inline.chaikinOsc.tone, _itp_inline.chaikinOsc):''}
