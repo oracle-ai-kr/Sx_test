@@ -7533,6 +7533,12 @@ function _vdRec(res, tab){ try{
   const m=_vdLoad(), S=m.sets[key]||(m.sets[key]={ ts:0, w:{} }), t0=res.ts||Date.now();
   S.ts=t0; S.w[w]=Object.assign({ ts:t0, file }, t); _vdSave(); return true;
  }catch(_e){ return false; } }
+// [S1898] ⚖️ [완화] 한 판 봐주기 — ④ 무작위 청산 ✓ · 대조 있음 · 거래 30건 이상인 판에서 수익 칸(①② 같은 비율 · ③ 무작위 진입) 하나까지 통과선의 70% 선이면 봐줌 · 둘 다 모자라면 못 봐줌 (사용자 2026-11-07 07:30 · 07:51 · 07:59) — PREREG_S1898_vd_relax.md §1
+function _vdRlxW(t, q){ if(!t || !q || q.few || q.r3==null || q.r4==null || !(q.r4>0)) return null;
+  const s12=!(q.r1>0 && q.r2>0), s3=!(q.r3>0); if(s12 && s3) return null; if(!s12 && !s3) return { cell:'' };
+  if(s12) return (t.N>0 && 20*t.wR>=7*t.N)?{ cell:'12', pct:Math.round(100*t.wR/t.N), dR:t.dR }:null;   // ①② 나은 종목 35% 이상(통과선 50% × 0.7 · 정수 셈)
+  const D=((t.c&&t.c.Dq)||[]).filter(v=>v!=null&&isFinite(v)), k=D.length, L=(k>>1)+1, L7=Math.floor((7*L+9)/10), b=D.filter(v=>t.dR>v).length;   // ③ 이긴 벌 ≥ ⌈0.7 × (⌊k/2⌋ + 1)⌉(9벌이면 5 → 4)
+  return (k>0 && b>=L7)?{ cell:'3', k, b, L, L7 }:null; }
 function _vdAgg(res){
   const vd=res&&res.vd, t=(vd&&vd.t)||_vdStat(res); if(!t) return null;
   const cur=vd?vd.w:null, j=_vdJudge(t), tab=(res&&res.pl&&res.pl.tab)||'', ctl=_VD_CTL.indexOf(tab)>=0, xc=!!(res&&res.pl&&res.pl.xc);   /* [S1852] xc = 🧪 실험 칩(대조 없음) */   /* [S1851] 대조가 있는 탭인가 */
@@ -7542,11 +7548,13 @@ function _vdAgg(res){
   const J={}; Object.keys(W).forEach(w=>{ J[w]=_vdJudge(W[w]); });
   const have=_VD_WINS.map(x=>x[0]).filter(w=>W[w]), meas=have.filter(w=>J[w].st!=='few'), m=meas.length, nUp=meas.filter(w=>J[w].up).length, nUp4=meas.filter(w=>J[w].up4).length /* [S1853] */, nNc=meas.filter(w=>J[w].st==='nc').length, need=Math.ceil(2*m/3);
   let st='hold'; if(meas.some(w=>J[w].st==='rej')) st='rej'; else if(have.length===3) st=(m>=2 && meas.every(w=>J[w].st==='ok') && nUp>=need && nUp4>=need /* [S1853] ④ 도 같은 꼴 */)?'ok':'few3';   /* [S1851] 통과 = 모두 ✓ + 무작위 최대를 넘은 판 ⌈2m/3⌉ 이상(오프라인 QRe 와 같은 꼴) */
-  return { mode:'3w', st, cur, t, j, W, J, have, k:have.length, nMeas:m, nUp, nUp4, nNc, need, tab, ctl, xc };
+  let rx=null; if(st==='rej' || st==='few3'){ const R={}; let hard=false; meas.forEach(w=>{ const r=_vdRlxW(W[w], J[w]); if(r) R[w]=r; else hard=true; }); const soft=meas.filter(w=>R[w] && R[w].cell), rem=3-have.length;   /* [S1898] ⚖️ 완화 — 못 봐줄 판이 없고 봐줄 판이 있을 때 */
+    if(!hard && soft.length){ if(have.length===3){ if(m>=2 && nUp>=need && nUp4>=need){ st='rlx'; rx={ R, soft }; } } else if(m+rem>=2 && nUp+rem>=2 && nUp4+rem>=2){ st='hold'; rx={ R, soft, part:true }; } } }
+  return { mode:'3w', st, cur, t, j, W, J, have, k:have.length, nMeas:m, nUp, nUp4, nNc, need, tab, ctl, xc, rx /* [S1898] */ };
 }
 function _vdHtml(res){ try{
   const A=_vdAgg(res); if(!A) return '';
-  const LB={ rej:['기각','#dc2626'], ok:['통과','#16a34a'], hold:['보류','#d97706'], few:['못 가름','#64748b'], few3:['못 가름','#64748b'] }[A.st];
+  const LB={ rej:['기각','#dc2626'], ok:['통과','#16a34a'], hold:['보류','#d97706'], few:['못 가름','#64748b'], few3:['못 가름','#64748b'], rlx:['완화','#16a34a'] /* [S1898] */ }[A.st];
   const wn=w=>{ const e=_VD_WINS.find(x=>x[0]===w); return e?e[1]:'세 판 밖'; };
   const pp=v=>(v==null||!isFinite(v))?'—':((v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+'%p');
   const ck=c=>(c>0)?'<b style="color:#16a34a">✓</b>':((c<0)?'<b style="color:#dc2626">✗</b>':'<b style="color:var(--text3)">·</b>');
@@ -7554,9 +7562,12 @@ function _vdHtml(res){ try{
   const SG=(res && res.pl && res.pl.rg)?'같은 구간 ':'';   /* [S1862] 🧭 구간 칩이면 기준 = 같은 구간 */
   const bad=q=>[(q.r1<0)?('① '+SG+'같은 비율보다 못함'):'', (q.r2<0)?'② 나은 종목 절반 미만':'', (q.r3!=null&&q.r3<0)?'③ 무작위 진입보다 못함':'', (q.r4!=null&&q.r4<0)?'④ 무작위 청산보다 못함':'' /* [S1853] */].filter(Boolean).join(' · ');
   const ncWhy=A.xc?'🧪 실험 칩 · 셋업은 무작위 대조가 없음 — ①② 로만 기각하고 통과는 내지 않음(오프라인 측정에서 따로 견줌)':'무작위 대조가 없는 판이 있음(대조를 넣기 전에 저장된 판 · ④ 무작위 청산을 넣기 전(S1852 까지)에 저장된 판 등) — 같은 설정으로 그 판을 다시 돌리면 셈';   /* [S1853] */   /* [S1852] */
+  const rxl=()=>(A.rx?A.rx.soft.map(w=>{ const r=A.rx.R[w]; return wn(w)+((r.cell==='12')?(' ①② 나은 종목 '+r.pct+'%(① '+pp(r.dR)+' · 통과선 50% · 70% 선 35%)'):(' ③ 무작위 진입 '+r.k+'벌 중 '+r.b+'벌 이김(통과선 '+r.L+'벌 · 70% 선 '+r.L7+'벌)')); }).join(' · '):'');   /* [S1898] 70% 선으로 본 칸 */
   let why;
   if(A.st==='rej'){ if(A.mode==='live') why='이 판에서 '+bad(j); else { const g={}; A.have.filter(w=>A.J[w].st==='rej').forEach(w=>{ const k=bad(A.J[w]); (g[k]=g[k]||[]).push(wn(w)); }); why=Object.keys(g).map(k=>g[k].join(' · ')+'에서 '+k).join(' / '); } }   // 같은 기준으로 진 판은 한데 묶어 적는다
   else if(A.st==='ok') why='세 판 중 셀 수 있는 '+A.nMeas+'판 모두 ①②③④ ✓ · 무작위 진입 최대를 넘은 판 '+A.nUp+'/'+A.nMeas+' · 무작위 청산 최대를 넘은 판 '+A.nUp4+'/'+A.nMeas+' — 채택 후보(오프라인 측정 기준과 같은 꼴)';   /* [S1853] */
+  else if(A.st==='rlx') why='합격 보류 · 방어 · 통과 아님 — ④ 무작위 청산은 셀 수 있는 '+A.nMeas+'판 모두 ✓ · 무작위 진입 최대를 넘은 판 '+A.nUp+'/'+A.nMeas+' · 무작위 청산 최대를 넘은 판 '+A.nUp4+'/'+A.nMeas+' · 70% 선으로 본 칸 '+A.rx.soft.length+': '+rxl()+' — 통과가 없을 때 고를 대체 후보 · 찾기에 안 쓴 자료로 한 번 더 확인 권함';   /* [S1898] */
+  else if(A.st==='hold' && A.rx && A.rx.part) why='완화 후보 — '+rxl()+' · 남은 판('+_VD_WINS.filter(x=>!A.W[x[0]]).map(x=>x[1]).join(' · ')+')을 같은 설정으로 돌려 보세요(무작위 최대를 넘은 판 ↑ 은 세 판을 다 돌린 뒤 셈)';   /* [S1898] */
   else if(A.st==='hold') why=(A.mode==='live')?'이 결과는 🕰 창A · 창B · 현재 스냅 판이 아니라 세 판에 안 셈(라이브 봉 · 소스 칩 풀 등) — 스냅 판으로 같은 설정을 돌리면 셈':('남은 판('+_VD_WINS.filter(x=>!A.W[x[0]]).map(x=>x[1]).join(' · ')+')을 같은 설정으로 돌려 보세요');
   else if(A.st==='few') why='닫힌 거래 30건 미만 — 이 판은 세지 않음';
   else why=(A.nNc>0)?ncWhy:((A.nMeas>=2 && (A.nUp<A.need || A.nUp4<A.need))?('①②③④ 는 모두 ✓ 이지만 최대를 넘은 판이 무작위 진입 '+A.nUp+'/'+A.nMeas+' · 무작위 청산 '+A.nUp4+'/'+A.nMeas+' — 둘 다 3분의 2 이상이어야 통과'):'셀 수 있는 판(닫힌 거래 30건 이상 · 차이 0 아님)이 모자람');   /* [S1853] */
@@ -7565,7 +7576,7 @@ function _vdHtml(res){ try{
   const cx=c&&c.x, mM=_vdMed(((res.pl&&res.pl.H)||[]).map(z=>z.sm)), dd1=v=>(v==null||!isFinite(v))?'—':((v*100).toFixed(1)+'%');   /* [S1853] ④ 무작위 청산 줄 */
   const r4t=(j.r4!=null)?('④ 무작위 청산보다 — ① 값 '+pp(t.dR)+' vs 무작위 청산 '+cx.n+'벌 중앙 '+pp(cx.med)+' · 최대 '+pp(cx.max)+' '+ck(j.r4)+(j.up4?(' '+upM+' 최대도 넘음'):'')+' <span style="color:var(--text3)">· MDD 이 설정 '+dd1(mM)+' · 무작위 청산 '+dd1(cx.mMed)+'(읽기 도움)</span>')
     :('④ 무작위 청산 대조 — <span style="color:var(--text3)">'+(A.xc?'🧪 실험 칩 · 셋업은 무작위 대조 없음(오프라인 측정에서 따로 견줌)':((A.mode==='live')?'라이브 판은 안 돌림(🕰 창A · 창B · 현재 스냅 판에서만 돎)':((c && !cx)?'이 결과에는 없음(④ 를 넣기 전에 저장된 판 · 다시 돌리면 셈)':'결과 없음(무작위 청산 거래가 안 남)')))+'</span>');
-  const top='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span data-vd-badge="'+A.st+'" style="font-size:16px;font-weight:900;letter-spacing:0.5px;padding:3px 12px;border-radius:8px;background:'+LB[1]+';color:#fff">['+LB[0]+((A.st==='hold'&&A.mode==='3w')?(' · '+A.k+'/3판'):'')+']</span><span style="font-size:9.5px;font-weight:800;color:var(--text2);min-width:0">⚖️ 측정 기준 판정</span></div>';
+  const top='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span data-vd-badge="'+A.st+'" style="font-size:16px;font-weight:900;letter-spacing:0.5px;padding:3px 12px;border-radius:8px;'+((A.st==='rlx')?('background:transparent;color:'+LB[1]+';box-shadow:inset 0 0 0 2px '+LB[1]) /* [S1898] 속 빈 배지 */:('background:'+LB[1]+';color:#fff'))+'">['+LB[0]+((A.st==='hold'&&A.mode==='3w')?(' · '+A.k+'/3판'):'')+']</span><span style="font-size:9.5px;font-weight:800;color:var(--text2);min-width:0">⚖️ 측정 기준 판정</span></div>';
   const sum='<div style="font-size:10px;font-weight:800;color:'+LB[1]+';margin-top:6px;line-height:1.5">'+LB[0]+' — '+why+'</div>';
   const rules='<div style="font-size:9.5px;color:var(--text2);margin-top:5px;line-height:1.65">이 판('+wn(A.cur)+' · '+t.N+'종목)'
     +'<br>① '+(SG?'같은 구간에서 ':'')+'같은 비율만 들고 있기보다 — 종목별 차이 중앙 '+pp(t.dR)+' '+ck(j.r1)
@@ -7575,8 +7586,8 @@ function _vdHtml(res){ try{
     +'<br>⑤ 닫힌 거래 '+t.nT+'건 '+ck(j.few?-1:1)+(j.few?' 30건 미만 — 이 판은 세지 않음':'')
     +'<br><span data-vd-ref="1" style="color:var(--text3)">참고 — '+(SG?'같은 구간에서 ':'')+'그냥 들고 있기보다: 종목별 차이 중앙 '+pp(t.dB)+' (노출이 달라 판정에 안 씀)</span></div>';
   const wins=(A.mode==='3w')?('<div data-vd-wins="1" style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.6">세 판 — '+_VD_WINS.map(([w,n])=>{ const q=A.J[w]; const s=q?(q.few?'거래 부족':(ck(q.r1)+ck(q.r2)+((q.r3!=null)?ck(q.r3):'<span style="color:var(--text3)">·</span>')+(q.up?upM:'')+((q.r4!=null)?ck(q.r4):'<span style="color:var(--text3)">·</span>')+(q.up4?upM:'') /* [S1853] ④ */)):'<span style="color:var(--text3)">아직 안 돌림</span>'; return (w===A.cur?'<b>':'')+n+(w===A.cur?'</b>':'')+' '+s; }).join(' · ')+'</div>'):'';
-  const note='<div style="font-size:8.5px;color:var(--text3);margin-top:4px;line-height:1.5">'+(SG?'<b>🧭 구간 칩 켬 — ①② · 참고의 기준은 같은 구간(켜진 구간에 들어갈 때 사고 나올 때 팜 · 수수료 포함) · 🎲 무작위 진입도 켜진 구간에서만</b> · ':'')+'기각 = ①②③④ 중 ✗ 가 하나라도 있는 판이 있으면 · 통과 = 같은 설정으로 🕰 창A · 창B · 현재 스냅 세 판을 돌려 셀 수 있는 판(닫힌 거래 30건 이상)이 2판 이상이고 모두 ✓ 이며 무작위 진입 · 무작위 청산 최대를 넘은(↑) 판이 각각 3분의 2 이상 · ④ 무작위 청산 = 진입은 이 설정 그대로 두고 청산만 종목마다 이 설정의 청산 비율(닫힌 거래 ÷ 든 봉 = 평균 보유가 같게)로 아무 봉에서나 그 봉 종가에 전부 팖(손절 · 익절 · 부분 청산 없음) · 9벌 · ③ 무작위 진입 = 종목마다 이 설정이 산 비율(포지션 수 ÷ 진입 판단 봉 수)로 아무 봉에서나 사고 청산은 이 설정 그대로 · 9벌 · 씨앗 고정 · 창 판에서만 돌아 풀 BT 가 더 걸림 · 여섯 탭 모두 있음(🎯 · ⚓ 무작위 진입은 그 봉 종가 · 위험 = 🎯 실제 체결 위험 ÷ ATR 중앙 × ATR · ⚓ 손절 배수 × ATR · 🧪 진입원 비율 그대로 · 🧪 실험 칩 · 셋업은 없음) · 그냥 들고 있기는 참고만 · 앱은 첫 봉부터 · KR 130종목까지 세어 오프라인 측정(200번째 봉부터 · 전 종목)과 숫자가 조금 다를 수 있음 · 설정을 바꾸면 처음부터 다시 셈 · 라이브 봉 결과는 세 판에 안 셈</div>';
-  return '<div data-vd="1" style="margin:4px 0 8px;padding:8px 9px;border:2px solid '+LB[1]+';border-radius:10px;background:'+LB[1]+'14">'+top+sum+'<details data-vd-more="1"><summary style="font-size:9px;font-weight:700;color:var(--text2);cursor:pointer;margin-top:5px">판정 근거 · 규칙 보기</summary>'+rules+wins+note+'</details></div>';   /* [S1861] 굵은 사유 줄 아래 기본 접기(사용자 2026-11-01 18:25 · 안 글 그대로) */
+  const note='<div style="font-size:8.5px;color:var(--text3);margin-top:4px;line-height:1.5">'+(SG?'<b>🧭 구간 칩 켬 — ①② · 참고의 기준은 같은 구간(켜진 구간에 들어갈 때 사고 나올 때 팜 · 수수료 포함) · 🎲 무작위 진입도 켜진 구간에서만</b> · ':'')+'기각 = ①②③④ 중 ✗ 가 하나라도 있는 판이 있으면 · 통과 = 같은 설정으로 🕰 창A · 창B · 현재 스냅 세 판을 돌려 셀 수 있는 판(닫힌 거래 30건 이상)이 2판 이상이고 모두 ✓ 이며 무작위 진입 · 무작위 청산 최대를 넘은(↑) 판이 각각 3분의 2 이상 · 완화 = 통과 아님 · 합격 보류(방어) — ④ 무작위 청산은 셀 수 있는 판 모두 ✓ 이고 ↑ 진입 · ↑ 청산은 통과와 같으며, 판마다 수익 칸(①② 같은 비율 · ③ 무작위 진입) 하나까지는 통과선의 70% 선이면 봐줌(①② 나은 종목 35% 이상 · ③ 무작위 진입 9벌 중 4벌 이상) · 세 판을 다 돌리기 전에 봐줄 칸만 모자라면 기각 대신 보류 · ④ 무작위 청산 = 진입은 이 설정 그대로 두고 청산만 종목마다 이 설정의 청산 비율(닫힌 거래 ÷ 든 봉 = 평균 보유가 같게)로 아무 봉에서나 그 봉 종가에 전부 팖(손절 · 익절 · 부분 청산 없음) · 9벌 · ③ 무작위 진입 = 종목마다 이 설정이 산 비율(포지션 수 ÷ 진입 판단 봉 수)로 아무 봉에서나 사고 청산은 이 설정 그대로 · 9벌 · 씨앗 고정 · 창 판에서만 돌아 풀 BT 가 더 걸림 · 여섯 탭 모두 있음(🎯 · ⚓ 무작위 진입은 그 봉 종가 · 위험 = 🎯 실제 체결 위험 ÷ ATR 중앙 × ATR · ⚓ 손절 배수 × ATR · 🧪 진입원 비율 그대로 · 🧪 실험 칩 · 셋업은 없음) · 그냥 들고 있기는 참고만 · 앱은 첫 봉부터 · KR 130종목까지 세어 오프라인 측정(200번째 봉부터 · 전 종목)과 숫자가 조금 다를 수 있음 · 설정을 바꾸면 처음부터 다시 셈 · 라이브 봉 결과는 세 판에 안 셈</div>';
+  return '<div data-vd="1" style="margin:4px 0 8px;padding:8px 9px;border:2px '+((A.st==='rlx')?'dashed':'solid') /* [S1898] 완화 = 점선 */+' '+LB[1]+';border-radius:10px;background:'+LB[1]+'14">'+top+sum+'<details data-vd-more="1"><summary style="font-size:9px;font-weight:700;color:var(--text2);cursor:pointer;margin-top:5px">판정 근거 · 규칙 보기</summary>'+rules+wins+note+'</details></div>';   /* [S1861] 굵은 사유 줄 아래 기본 접기(사용자 2026-11-01 18:25 · 안 글 그대로) */
  }catch(_e){ return ''; } }
 if(typeof window!=='undefined'){ window._vdHtml=_vdHtml; }
 function _plHtml(res){ try{
@@ -20638,7 +20649,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1897';   // [S1897] 📈 크로스 탭 〰️ 볼린저 모드 청산 칩 여럿 켬(먼저 걸린 것 · 사다리가 켜져 있으면 진입선 · 중앙선 옅게)
+  window.SX_BUILD='S1898';   // [S1898] ⚖️ 측정 기준 배지 [완화](합격 보류 · 방어 — ④ · ↑ 진입 · ↑ 청산 그대로 · 판마다 수익 칸 하나 70% 선)
+  //window.SX_BUILD='S1897';   // [S1897] 📈 크로스 탭 〰️ 볼린저 모드 청산 칩 여럿 켬(먼저 걸린 것 · 사다리가 켜져 있으면 진입선 · 중앙선 옅게)
   //window.SX_BUILD='S1896';   // [S1896] 분석탭 기준표 v12 — 피보 카드 셋째 탭 🫧 민스키 · 거품 단계(곡선 + 빨간 원 · 단계 칸 · 실험 · 판정 아님)
   //window.SX_BUILD='S1895';   // [S1895] 분석탭 기준표 v11 — EOM 줄 값 색 = 값 말 · EOM 꼬리표 0선 상향 · 0선 하향 방향 표 · (해석 파일) 조합 상자 문턱 점수로
   //window.SX_BUILD='S1894';   // [S1894] 분석탭 기준표 v10 기준 10 새 표시 — 🕯️ 캔들 · 차트 읽기 '봉' 탭에 ⚖️ 봉 힘(교과서 EOM 1봉 · 최근 5봉 · 쉬움 분위 · 미측정)
