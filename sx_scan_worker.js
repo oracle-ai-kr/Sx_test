@@ -2268,6 +2268,7 @@ function _slimResults(arr) {
 //   분석탭 _fetchIndexCloses와 동일 로직(워커 _fetchWithTimeout). 국내=코스피 ^KS11 / 코스닥 ^KQ11(S442 분리), 미국=^GSPC, 코인 보류.
 //   실패 시 null → RS 생략. 워커가 indicators.rs를 채우면 rs_value 조건검색 평가 + 결과 클릭 시 정합.
 let _wkrIndexCache = {};
+// [S1901] 돌려주는 값 = 날짜가 붙은 지수 봉 [{ d, c }](끝이 최신 · c 만 모으면 옛 종가 배열 그대로) — 분석탭 _fetchIndexCloses 와 같은 날짜 셈 · 주소 그대로 (사용자 2026-11-07 10:40)
 async function _fetchIndexClosesWorker(sym){
   if(!sym) return null;
   try {
@@ -2277,18 +2278,27 @@ async function _fetchIndexClosesWorker(sym){
       const r = await _fetchWithTimeout(url, {}, 12000);
       const j = await r.json();
       const arr = Array.isArray(j) ? j : (j.data || []);
-      const c = arr.map(x => parseFloat(x.trade_price || x.close || 0)).filter(v => v > 0).reverse();
+      const c = arr.map(x => ({ d: String(x.candle_date_time_kst || '').slice(0, 10).replace(/-/g, ''), c: parseFloat(x.trade_price || x.close || 0) })).filter(v => v.c > 0).reverse();   /* [S1901] 날짜 = KST 날짜 */
       return c.length ? c : null;
     }
     const yf = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=6mo`;
     const url = `${WORKER_BASE}/proxy?url=${encodeURIComponent(yf)}`;
     const r = await _fetchWithTimeout(url, {}, 12000);
     const j = await r.json();
-    const closes = (j && j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].indicators
-      && j.chart.result[0].indicators.quote && j.chart.result[0].indicators.quote[0]
-      && j.chart.result[0].indicators.quote[0].close || []).filter(c => c != null);
-    return closes.length ? closes : null;
+    const _R = j && j.chart && j.chart.result && j.chart.result[0], _ts = (_R && _R.timestamp) || [];   /* [S1901] */
+    const _cl = (_R && _R.indicators && _R.indicators.quote && _R.indicators.quote[0] && _R.indicators.quote[0].close) || [];
+    const rows = []; for(let t = 0; t < _cl.length; t++){ if(_cl[t] == null) continue; const _dt = (_ts[t] != null) ? new Date(+_ts[t] * 1000) : null; rows.push({ d: (_dt && !isNaN(_dt)) ? _dt.toISOString().slice(0, 10).replace(/-/g, '') : '', c: _cl[t] }); }   /* [S1901] 날짜 = UTC 날짜 · null 종가는 옛처럼 버림 */
+    return rows.length ? rows : null;
   } catch(e){ return null; }
+}
+// [S1901] 상대강도 같은 날짜끼리 — 종목 봉마다 같은 날짜의 지수 종가(없으면 null) · 둘 다 있는 마지막 날까지 자름 · SXE.calcRS 는 그대로 받음
+//   ★거울: sx_render.js ↔ sx_scan_worker.js 글자 같음(분석탭 전광판 · 조건검색 RS 가 같은 값) · 날짜 셈 = 🏁 칸 _sbYmd 와 같음 · PREREG_S1901_rs_dated.md §1 (나)
+function _rsAlignDated(rows, idx){
+  const ymd = v => String(v == null ? '' : v).slice(0, 10).replace(/-/g, ''), M = {};
+  (idx || []).forEach(x => { if(x && x.c > 0 && x.d) M[x.d] = x.c; });
+  const s = [], i = []; let lx = -1;
+  (rows || []).forEach((r, k) => { const v = r ? M[ymd(r.date || r.d)] : undefined; s.push(r ? +r.close : NaN); i.push(v > 0 ? v : null); if(v > 0) lx = k; });
+  return lx < 0 ? null : { s: s.slice(0, lx + 1), i: i.slice(0, lx + 1), lx: lx, n: s.length };
 }
 // [S442] 워커 코스닥 판별 — stock.market만(워커엔 OracleData 없음). 'KOSDAQ'/'코스닥'.
 function _isKosdaqWorker(s){
@@ -2785,7 +2795,7 @@ async function startScan(config) {
                 : (currentMarket === 'coin') ? 'KRW-BTC'
                 : (_isKosdaqWorker(s) ? '^KQ11' : '^KS11');
               const _rsIdx = _wkrIndexCache[_rsSym];
-              if(_rsIdx){ try { indicators.rs = SXE.calcRS(candles.map(c => c.close), _rsIdx); } catch(_eRS){} }
+              if(_rsIdx){ try { const _al = _rsAlignDated(candles, _rsIdx); if(_al) indicators.rs = SXE.calcRS(_al.s, _al.i); } catch(_eRS){} }   /* [S1901] 같은 날짜끼리 · 둘 다 있는 마지막 날까지 */
             }
             s._indicators = indicators;
             s._recentNHitBar = passedK; // 디버깅/표시용: 0=현재봉, 1=직전봉, ...
