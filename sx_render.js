@@ -691,11 +691,10 @@ function _isKosdaqStock(stock){
   } catch(_){}
   return false; // 불명 시 코스피 기준
 }
+// [S1900] 지수 심볼 고르기 — 분석탭 상대강도(_fetchIndexCloses)와 통계판 🏁 칸이 같이 씀(옮김 · 같은 값) (사용자 2026-11-07 10:28 · 10:40)
+function _rsIndexSym(market, stock){ if(market === 'us') return '^GSPC'; if(market === 'coin') return 'KRW-BTC'; /* [S443] 코인은 BTC 대비 강도 */ return _isKosdaqStock(stock) ? '^KQ11' : '^KS11'; /* [S442] 코스닥 분리 */ }
 async function _fetchIndexCloses(market, stock){
-  let sym = null;
-  if(market === 'us') sym = '^GSPC';
-  else if(market === 'coin') sym = 'KRW-BTC'; // [S443] 코인은 BTC 대비 강도
-  else sym = _isKosdaqStock(stock) ? '^KQ11' : '^KS11'; // [S442] 코스닥 분리
+  let sym = _rsIndexSym(market, stock);   /* [S1900] 고르기는 공용 함수로 */
   if(!sym) return null;
   const now = Date.now();
   const cached = _rsIndexCache[sym];
@@ -10427,6 +10426,66 @@ function _sbBlockHtml(b, rows){
     + '</div></div>';
 }
 
+// [S1900] 🏁 지수와 견주면 어땠나 — 통계판 칸 (사용자 2026-11-07 10:28 · 10:40) — PREREG_S1900_sb_rs.md §1
+//   지수 = _rsIndexSym(분석탭 상대강도와 같은 심볼) · 날짜가 붙은 지수 봉(_fetchIndexRows · 야후 3y/5y/10y · 업비트 200봉씩 거슬러 — 지수 스냅 S1345 와 같은 길) · 같은 날짜끼리 맞춤 · 일봉만 · 표시 전용
+//   ② 흔들림 감안 앞섬의 셈법 출처: Relative Strength (Volatility Adjusted) © mattishenner · MPL 2.0(TradingView 공개 스크립트 · 사용자 2026-11-07 10:28)
+var _sbIdxCache = {}, _IDX_NM = { '^KS11':'코스피', '^KQ11':'코스닥', '^GSPC':'S&P500', 'KRW-BTC':'BTC' };
+function _sbYmd(v){ return String(v==null?'':v).slice(0,10).replace(/-/g,''); }
+async function _fetchIndexRows(sym, fromYmd){
+  try{
+    const base=(typeof WORKER_BASE!=='undefined')?WORKER_BASE:'https://stock-signal-proxy.cheaheechang.workers.dev', M={};
+    if(sym==='KRW-BTC'){ let to='', guard=0;
+      while(guard++<8){ const r=await fetch(base+'/upbit/candles?market='+encodeURIComponent(sym)+'&type=days&count=200'+(to?('&to='+encodeURIComponent(to)):''), { signal:AbortSignal.timeout(15000) }); const j=await r.json(), a=Array.isArray(j)?j:((j&&j.data)||[]); if(!a.length) break;
+        for(let k=0;k<a.length;k++){ const c=a[k], d=_sbYmd(c.candle_date_time_kst), cl=+c.trade_price; if(!/^\d{8}$/.test(d) || !(cl>0)) continue; if(!M[d]) M[d]={ d, o:(+c.opening_price>0)?+c.opening_price:cl, h:(+c.high_price>0)?+c.high_price:cl, l:(+c.low_price>0)?+c.low_price:cl, c:cl }; }
+        if(_sbYmd(a[a.length-1].candle_date_time_kst)<=String(fromYmd)) break; to=String(a[a.length-1].candle_date_time_utc||'').replace('T',' '); if(!to) break; await _trendBatchSleep(120); } }
+    else { const f=String(fromYmd||''), yrs=(Date.now()-Date.parse(f.slice(0,4)+'-'+f.slice(4,6)+'-'+f.slice(6,8)))/(365.25*864e5), rg=(yrs<2.8)?'3y':((yrs<4.8)?'5y':'10y');
+      const r=await fetch(base+'/proxy?url='+encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range='+rg), { signal:AbortSignal.timeout(20000) }); const j=await r.json();
+      const R=j&&j.chart&&j.chart.result&&j.chart.result[0], ts=R&&R.timestamp, q=R&&R.indicators&&R.indicators.quote&&R.indicators.quote[0]; if(!ts || !q || !q.close) return null;
+      for(let t=0;t<ts.length;t++){ const cl=+q.close[t]; if(q.close[t]==null || !(cl>0)) continue; const d=new Date(ts[t]*1000).toISOString().slice(0,10).replace(/-/g,''), g=k=>((q[k] && +q[k][t]>0)?+q[k][t]:cl); M[d]={ d, o:g('open'), h:g('high'), l:g('low'), c:cl }; } }
+    const out=Object.keys(M).sort().map(function(k){ return M[k]; }); return out.length?out:null;
+  }catch(_e){ return null; } }
+function _sbIdxGet(sym, fromYmd){ const c=_sbIdxCache[sym], now=Date.now();
+  if(c==='pending') return 'pending';
+  if(c && (now-c.ts)<10*60*1000 && (c.fail || String(c.from)<=String(fromYmd))) return c;
+  _sbIdxCache[sym]='pending';
+  setTimeout(async function(){ let rows=null; try{ rows=await _fetchIndexRows(sym, fromYmd); }catch(_e){ rows=null; }
+    _sbIdxCache[sym]=rows?{ rows, from:fromYmd, ts:Date.now() }:{ rows:[], fail:true, from:fromYmd, ts:Date.now() };
+    try{ _sbRerender(); }catch(_e2){} }, 60);
+  return 'pending'; }
+function _sbAtr(H, Lo, C, p){ const n=C.length, o=new Array(n).fill(null); let s=0, a=null;
+  for(let i=0;i<n;i++){ const tr=(i===0)?(H[i]-Lo[i]):Math.max(H[i]-Lo[i], Math.abs(H[i]-C[i-1]), Math.abs(Lo[i]-C[i-1]));
+    if(i<p){ s+=tr; if(i===p-1){ a=s/p; o[i]=a; } } else { a=(a*(p-1)+tr)/p; o[i]=a; } }
+  return o; }
+function _sbRsRows(C){
+  if(C.tf!=='day') return null;
+  const L0=(typeof window!=='undefined')?window._sxSbLast:null, stock=L0&&L0.stock, sym=_rsIndexSym(C.mkt, stock), nm=_IDX_NM[sym]||sym, n=C.n, L=C.L, D=C.rows.map(function(r){ return _sbYmd(r.date||r.d); }), G=_sbIdxGet(sym, D[0]);
+  if(G==='pending') return [{ kind:'plain', label:nm+' 받는 중', val:'…', tot:0, note:'지수 봉을 받고 있습니다. 잠시 뒤 자동으로 채워집니다.' }];
+  if(G.fail) return [{ kind:'plain', label:nm+' 자료 없음', val:'—', tot:0, note:'지수 봉을 받지 못했습니다(네트워크 · 지수 자료 사정). 10분 뒤 다시 받습니다.' }];
+  const X={}; G.rows.forEach(function(r){ X[r.d]=r; });
+  const I=new Array(n).fill(null); let ov=0, Lx=-1; for(let i=0;i<n;i++){ const r=X[D[i]]; if(r && r.c>0){ I[i]=r.c; ov++; Lx=i; } }
+  if(ov<60) return [{ kind:'plain', label:'지수와 겹치는 날이 모자람', val:ov+'일', tot:ov, note:'같은 날짜끼리만 견줍니다. 60일 이상 겹쳐야 셉니다(지수 = '+nm+').' }];
+  const aI=_sbAtr(G.rows.map(function(r){ return r.h; }), G.rows.map(function(r){ return r.l; }), G.rows.map(function(r){ return r.c; }), 50), AI={}; G.rows.forEach(function(r,k){ AI[r.d]=aI[k]; });
+  const aS=_sbAtr(C.hi, C.lo, C.cl, 50), cl=C.cl, out=[], RS={};
+  const rs=function(j,N){ if(j-N<0 || I[j]==null || I[j-N]==null || !(cl[j]>0) || !(cl[j-N]>0) || !(I[j-N]>0)) return null; return (cl[j]/cl[j-N]-1)*100-(I[j]/I[j-N]-1)*100; };
+  const dLx=D[Lx]||'', when=(Lx<L && /^\d{8}$/.test(dLx))?(' · 기준 '+dLx.slice(4,6)+'/'+dLx.slice(6,8)+'(지수 봉이 늦게 들어와 두 자료가 같이 있는 마지막 날)'):'';
+  const S1267={ kr:'S1267 측정(KR · 20봉): 많이 앞선 쪽(위 20%)이 다음 20봉 수익도 컸지만 급락도 잦았습니다 — 양쪽 꼬리라 방향 신호가 아닙니다.', us:'S1267 측정(US · 20봉): 수익 쪽에 약한 차이뿐이라 장식으로 둡니다.', coin:'S1267 측정(코인 · 20봉): 급락 쪽에 약한 차이뿐이라 장식으로 둡니다.' };
+  [20,60,120,250].forEach(function(N){ const a=[]; for(let j=N;j<n;j++){ const v=rs(j,N); if(v!=null) a.push(v); } RS[N]=a; const now=rs(Lx,N); if(now==null || a.length<30) return;
+    out.push({ kind:'bar', label:N+'봉 지수 대비', nowTxt:_sbDir(now,1)+'p', dirCol:_sbDirCol(now), baseTxt:_sbDir(_sbMed(a),1)+'p', pctl:_sbPctl(a,now), n:a.length,
+      note:(N===20)?('이 종목 '+N+'봉 수익률 − '+nm+' '+N+'봉 수익률입니다(같은 날짜끼리 · 겹친 날 '+ov+'일'+when+'). 막대는 이 종목 이력 안에서 지금 값의 자리입니다. 분석탭 전광판 \'상대강도\'와 같은 셈입니다. '+(S1267[C.mkt]||'')):'' }); });
+  const tm=new Array(n).fill(null); for(let i=1;i<n;i++){ const ai=AI[D[i]]; if(I[i]==null || I[i-1]==null || !(aS[i]>0) || !(ai>0)) continue; tm[i]=(cl[i]-cl[i-1])/aS[i]-(I[i]-I[i-1])/ai; }
+  const va=[]; let vaNow=null; for(let j=99;j<n;j++){ let s=0, k=0; for(let i=j-99;i<=j;i++) if(tm[i]!=null){ s+=tm[i]; k++; } if(k>=90){ va.push(s); if(j===Lx) vaNow=s; } }
+  const fA=function(v){ return (v>0?'▲':(v<0?'▼':''))+_sbNum(Math.abs(v),1)+' ATR'; };
+  if(vaNow!=null && va.length>=30) out.push({ kind:'bar', label:'흔들림 감안 앞섬(100봉)', nowTxt:fA(vaNow), dirCol:_sbDirCol(vaNow), baseTxt:fA(_sbMed(va)), pctl:_sbPctl(va,vaNow), n:va.length,
+    note:'하루 변화를 각자 평소 흔들림(ATR 50)으로 나눠 100봉 더한 값의 차입니다(이 종목 − '+nm+'). 많이 흔들려서 앞선 것과 덜 흔들리고 앞선 것을 가릅니다. 출처 Relative Strength (Volatility Adjusted) © mattishenner · MPL 2.0 · 측정 안 함.' });
+  const it=[20,60,250].filter(function(N){ return RS[N] && RS[N].length; }).map(function(N){ return { t:N+'봉 지수 대비가 + 였던 봉', hit:RS[N].filter(function(v){ return v>0; }).length, tot:RS[N].length }; });
+  if(it.length) out.push({ kind:'pair', label:'지수를 앞선 봉 비율', items:it, note:'이 종목 이력('+n+'봉) 안에서 센 비율입니다. 원래 '+nm+'보다 잘 갔는지 보는 값이고, 앞으로 앞선다는 뜻은 아닙니다.' });
+  let un=0, dn=0, uh=0, dh=0, us=0, ui=0, ds=0, di=0;
+  for(let i=1;i<n;i++){ if(I[i]==null || I[i-1]==null || !(I[i-1]>0) || !(cl[i-1]>0)) continue; const ri=(I[i]/I[i-1]-1)*100, rv=(cl[i]/cl[i-1]-1)*100;
+    if(ri>0){ un++; us+=rv; ui+=ri; if(rv>ri) uh++; } else if(ri<0){ dn++; ds+=rv; di+=ri; if(rv>ri) dh++; } }
+  if(un) out.push({ kind:'plain', label:'지수 오른 날', val:'종목 '+_sbDir(us/un,2,0,true)+' · 지수 '+_sbDir(ui/un,2,0,true), tot:un, note:'지수('+nm+')가 오른 '+un+'일의 평균 하루 등락입니다.' });
+  if(dn) out.push({ kind:'plain', label:'지수 내린 날', val:'종목 '+_sbDir(ds/dn,2,0,true)+' · 지수 '+_sbDir(di/dn,2,0,true), tot:dn, note:'지수('+nm+')가 내린 '+dn+'일의 평균 하루 등락입니다.' });
+  if(un && dn) out.push({ kind:'pair', label:'오를 때 · 내릴 때', items:[{ t:'지수 오른 날 · 더 오른 날', hit:uh, tot:un }, { t:'지수 내린 날 · 덜 내린 날(오른 날 포함)', hit:dh, tot:dn }], note:'오를 때 더 오르고 내릴 때 덜 내렸는지 봅니다. 측정 안 함 · 앞으로를 말하지 않습니다.' });
+  return out; }
 // ══════ 블록 정의 — ★여기에 항목을 추가하면 주제가 늘어난다 ══════
 //  calc(C) 는 행 배열을 돌려준다. C = {rows,n,L,op,hi,lo,cl,vo,M,mkt,tf}
 var _SB_BLOCKS = [
@@ -10657,7 +10716,10 @@ var _SB_BLOCKS = [
         note:'왼쪽은 <b>절반의 경우</b> 이 정도까지 움직였다는 뜻이고, <b>드물게</b>는 10번 중 1번 꼴로 나온 값입니다. '
           + '어느 쪽으로 갈지가 아니라 <b>얼마나 벌어지는지</b>를 잰 것이라, 위·아래 값이 동시에 일어난다는 뜻은 아닙니다.'});
       return out;
-    }}
+    }},
+  { id:'rs', col:'#ca8a04', icon:'🏁', title:'지수와 견주면 어땠나',   // [S1900]
+    sub:'이 칸만 지수와 견줍니다 — KR 코스피(코스닥 종목은 코스닥) · US S&P500 · 코인 BTC · 같은 날짜끼리 맞춤 · 일봉만. 앞섰는지 뒤처졌는지만 보여 주고 좋다 · 나쁘다는 말하지 않습니다.',
+    calc:function(C){ return _sbRsRows(C); }}
 ];
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -11001,7 +11063,7 @@ function _buildStatBoardCard(stock, indicators){
 
     body += '<div style="margin-top:8px;padding-top:7px;border-top:1px dashed var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
       + '<span style="font-size:9px;color:'+T3+';line-height:1.5;flex:1;min-width:140px">'
-      +   '이 종목 이력만 셉니다. 다른 종목·다른 기간과 비교하지 않습니다.'
+      +   '이 종목 이력만 셉니다(🏁 칸만 지수와 견줌). 다른 종목·다른 기간과 비교하지 않습니다.'   /* [S1900] */
       + '</span>'
       + '<button onclick="_sbDetailToggle()" style="font-size:9px;font-weight:800;padding:3px 7px;border-radius:5px;cursor:pointer;'
       +   'border:1px solid var(--border);background:var(--surface2);color:'+(_SB_DETAIL?'var(--accent)':T3)+'">'
@@ -20734,7 +20796,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1899';   // [S1899] 단기매매 여섯 탭 ⚙️ 설정 내려받기 · 📂 불러오기(지금 시장 · 같은 탭 · 같은 봉 · 바뀌는 칸 확인 · 넣기 전 자동 내려받기)
+  window.SX_BUILD='S1900';   // [S1900] 종목 통계판 🏁 지수와 견주면 어땠나(기간별 · 흔들림 감안 · 앞선 봉 · 오른 날 · 내린 날 · 날짜 맞춤 · 일봉)
+  //window.SX_BUILD='S1899';   // [S1899] 단기매매 여섯 탭 ⚙️ 설정 내려받기 · 📂 불러오기(지금 시장 · 같은 탭 · 같은 봉 · 바뀌는 칸 확인 · 넣기 전 자동 내려받기)
   //window.SX_BUILD='S1898';   // [S1898] ⚖️ 측정 기준 배지 [완화](합격 보류 · 방어 — ④ · ↑ 진입 · ↑ 청산 그대로 · 판마다 수익 칸 하나 70% 선)
   //window.SX_BUILD='S1897';   // [S1897] 📈 크로스 탭 〰️ 볼린저 모드 청산 칩 여럿 켬(먼저 걸린 것 · 사다리가 켜져 있으면 진입선 · 중앙선 옅게)
   //window.SX_BUILD='S1896';   // [S1896] 분석탭 기준표 v12 — 피보 카드 셋째 탭 🫧 민스키 · 거품 단계(곡선 + 빨간 원 · 단계 칸 · 실험 · 판정 아님)
