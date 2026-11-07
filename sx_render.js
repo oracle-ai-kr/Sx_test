@@ -2098,14 +2098,8 @@ function _tfStoreLine(lb, own, tab){   // 💾 저장소 안내 + 📥 버튼 �
     ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span style="font-size:9px;font-weight:800;color:#0891b2">💾 ${lb} 전용 저장 — 일봉과 따로 보관됩니다</span>${btn}</div>`
     : `<div style="margin-bottom:8px;padding:6px 9px;background:#d9770618;border:1px solid #d9770655;border-radius:8px;font-size:9px;font-weight:800;color:#d97706;line-height:1.5">💾 ${lb} 전용 저장소가 아직 비어 있어 <b>일봉 값을 보고 있습니다</b> — 이 봉에서 적용·리셋을 한 번 하면 갈라집니다(그 뒤로 일봉에 안 섞입니다)<div style="margin-top:5px">${btn}</div></div>`;
 }
-function _tfImportDay(tab){
-  const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market;
-  if(!_sxTfSplitOn(m)) return;
-  const T={cross:'📈 MA 크로스',strat:'🧪 전략 조합',turtle:'🐢 터틀',ict:'🎯 ICT' /* [S1824] */,st:'🚦 슈퍼트렌드' /* [S1827] */,sr:'⚓ 지지/저항' /* [S1828] */}[tab]; if(!T) return;
-  const W={cross:'MA 줄(단기MA·신호창·TRIX·SMI) · ⚙️ 게이트·청산 칩 · 🧪 재료 조건 · 💸 수수료', strat:'MA 줄(단기MA·신호창·TRIX·SMI) · 진입/게이트/청산 블록 · 칸 바구니 · 💸 수수료', turtle:'터틀 칸·칩 전부(💸 수수료는 다른 탭 값 그대로)', ict:'ICT 칸·칩 전부(💸 수수료는 다른 탭 값 그대로)' /* [S1824] */, st:'슈퍼트렌드 칸·칩 전부(💸 수수료는 다른 탭 값 그대로)' /* [S1827] */, sr:'지지/저항 칸·칩 전부(💸 수수료는 다른 탭 값 그대로)' /* [S1828] */}[tab];
-  const lb=_poolTfLbl(_sxTfNow());
-  if(!confirm('일봉 설정을 '+lb+' '+T+' 탭에 불러올까요?\n\n덮어쓰는 것: '+W+((tab!=='turtle'&&tab!=='ict' /* [S1824] */&&tab!=='st' /* [S1827] */&&tab!=='sr' /* [S1828] */)?'\n· MA 줄은 크로스·전략 조합이 같이 쓰는 값이라 두 탭 다 바뀝니다':'')+'\n\n일봉 값과 다른 탭 값은 그대로입니다.')) return;
-  const D=_sxTfAsDay(function(){ return { trend:_trendCfg(m), strat:_stratCfg(m), xmat:_xmatStore(m), cb:_cbStore(m), turtle:_turtleCfg(m), ict:_ictCfg(m) /* [S1824] */, st:_stCfg(m) /* [S1827] */, sr:_srCfg(m) /* [S1828] */ }; });
+// [S1899] 탭 설정 쓰기 — 📥 일봉 불러오기(S1785)의 쓰기 덩어리를 글자 그대로 옮김 · 📂 파일 불러오기도 이 함수로 씀(쓰는 범위 = ↺ 리셋 범위 · 그 탭이 보여주는 것만) (사용자 2026-11-07 07:30 · 07:59 · 08:41) — PREREG_S1899_tab_io.md §1
+function _sxTabWrite(tab, m, D){
   if(tab==='sr'){ _srSave(m, D.sr); }   /* [S1828] */
   else if(tab==='st'){ _stSave(m, D.st); }   /* [S1827] */
   else if(tab==='ict'){ _ictSave(m, D.ict); }   /* [S1824] */
@@ -2121,9 +2115,97 @@ function _tfImportDay(tab){
     if(tab==='cross') _xmatSave(m, D.xmat);
     if(tab==='strat') _cbSave(m, D.cb);
   }
+}
+function _tfImportDay(tab){
+  const ctx=window._sxTrendCtx; if(!ctx) return; const m=ctx.market;
+  if(!_sxTfSplitOn(m)) return;
+  const T={cross:'📈 MA 크로스',strat:'🧪 전략 조합',turtle:'🐢 터틀',ict:'🎯 ICT' /* [S1824] */,st:'🚦 슈퍼트렌드' /* [S1827] */,sr:'⚓ 지지/저항' /* [S1828] */}[tab]; if(!T) return;
+  const W={cross:'MA 줄(단기MA·신호창·TRIX·SMI) · ⚙️ 게이트·청산 칩 · 🧪 재료 조건 · 💸 수수료', strat:'MA 줄(단기MA·신호창·TRIX·SMI) · 진입/게이트/청산 블록 · 칸 바구니 · 💸 수수료', turtle:'터틀 칸·칩 전부(💸 수수료는 다른 탭 값 그대로)', ict:'ICT 칸·칩 전부(💸 수수료는 다른 탭 값 그대로)' /* [S1824] */, st:'슈퍼트렌드 칸·칩 전부(💸 수수료는 다른 탭 값 그대로)' /* [S1827] */, sr:'지지/저항 칸·칩 전부(💸 수수료는 다른 탭 값 그대로)' /* [S1828] */}[tab];
+  const lb=_poolTfLbl(_sxTfNow());
+  if(!confirm('일봉 설정을 '+lb+' '+T+' 탭에 불러올까요?\n\n덮어쓰는 것: '+W+((tab!=='turtle'&&tab!=='ict' /* [S1824] */&&tab!=='st' /* [S1827] */&&tab!=='sr' /* [S1828] */)?'\n· MA 줄은 크로스·전략 조합이 같이 쓰는 값이라 두 탭 다 바뀝니다':'')+'\n\n일봉 값과 다른 탭 값은 그대로입니다.')) return;
+  const D=_sxTfAsDay(function(){ return { trend:_trendCfg(m), strat:_stratCfg(m), xmat:_xmatStore(m), cb:_cbStore(m), turtle:_turtleCfg(m), ict:_ictCfg(m) /* [S1824] */, st:_stCfg(m) /* [S1827] */, sr:_srCfg(m) /* [S1828] */ }; });
+  _sxTabWrite(tab, m, D);   /* [S1899] 쓰기 덩어리는 _sxTabWrite 로 옮김(글자 그대로 · 📂 파일 불러오기와 같이 씀) */
   _trendRerender(); _trendRedrawChart();
 }
 if(typeof window!=='undefined'){ window._tfImportDay=_tfImportDay; }
+// [S1899] ⚙️ 설정 내려받기 · 📂 불러오기 — 단기매매 여섯 탭 (사용자 2026-11-07 07:30 · 07:59 · 08:41) — PREREG_S1899_tab_io.md §1
+//   내려받기: 🐢 · 🎯 · 🚦 · ⚓ = 새 파일(sx_tab_settings · 3시장 · 지금 봉) · 📈 · 🧪 = 지금 ⚙️ 설정 파일(sx_settings)에 불러오기용 칸(tab · imp · xmatStore · lost)을 더함
+//   불러오기: 지금 시장 하나 · 같은 탭 파일 · 같은 봉(코인) · 미리 써 보고(원문은 바이트 그대로 되돌림) 바뀌는 칸을 보여 준 뒤 확인 · 넣기 전 지금 설정을 같은 꼴 파일로 · 쓰기는 _sxTabWrite
+const _SX_TAB_PFX={ cross:['SX_TREND_','SX_STRAT_','SX_XMAT_'], strat:['SX_TREND_','SX_STRAT_','SX_CELLBK_'], turtle:['SX_TURTLE_'], ict:['SX_ICT_'], st:['SX_ST_'], sr:['SX_SR_'] }, _SX_IO_MK={ kr:'KR', us:'US', coin:'코인' };
+function _sxTabName(tab){ return ({ cross:'📈 MA 크로스', strat:'🧪 전략 조합', turtle:'🐢 터틀', ict:'🎯 ICT', st:'🚦 슈퍼트렌드', sr:'⚓ 지지/저항' })[tab]||''; }
+function _sxTabIO(tab){ return ({
+  turtle:{ key:'SX_TURTLE_', cfg:_turtleCfg, def:function(mk){ return _turtleNorm(_turtleDefaults(mk), mk); }, sig:_turtleSig, desc:_turtleDesc },
+  ict:{ key:'SX_ICT_', cfg:_ictCfg, def:function(mk){ return _ictNorm(_ictDefaults(mk)); }, sig:_ictSig, desc:_ictDesc },
+  st:{ key:'SX_ST_', cfg:_stCfg, def:function(mk){ return _stNorm(_stDefaults(mk)); }, sig:_stSig, desc:_stDesc },
+  sr:{ key:'SX_SR_', cfg:_srCfg, def:function(mk){ return _srNorm(_srDefaults(mk)); }, sig:_srSig, desc:_srDesc } })[tab]||null; }
+function _sxJc(v){ if(Array.isArray(v)) return '['+v.map(function(x){ return (x===undefined)?'null':_sxJc(x); }).join(',')+']'; if(v && typeof v==='object') return '{'+Object.keys(v).filter(function(k){ return v[k]!==undefined; }).sort().map(function(k){ return JSON.stringify(k)+':'+_sxJc(v[k]); }).join(',')+'}'; return (v===undefined)?'undefined':JSON.stringify(v); }   // 키 정렬 JSON(비교용)
+function _sxTabLost(raw, cfg){ const r=[]; try{ const o=raw?JSON.parse(raw):null; if(!o || typeof o!=='object' || !cfg || typeof cfg!=='object') return r; Object.keys(o).forEach(function(k){ if(k==='_ver') return; if(!(k in cfg) || _sxJc(o[k])!==_sxJc(cfg[k])) r.push(k); }); }catch(_){} return r.sort(); }   // 저장소 원문엔 있는데 로더 값과 다른 칸
+function _sxDlJson(obj, name){ const blob=new Blob([JSON.stringify(obj,null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(function(){ try{ URL.revokeObjectURL(a.href); a.remove(); }catch(_){} },600); }
+function _sxTabExport(tab, el, sfx){ const IO=_sxTabIO(tab); if(!IO) return null;
+  const tf=(function(){ try{ return _sxTfNow(); }catch(_){ return 'day'; } })();
+  const out={ meta:{ kind:'sx_tab_settings', serial:'S1899', tab, tabName:_sxTabName(tab), build:(typeof window!=='undefined'&&window.SX_BUILD)||'', ts:new Date().toISOString(), tf, tfLabel:(function(){ try{ return _poolTfLbl(tf); }catch(_){ return ''; } })() }, markets:{} };
+  ['kr','us','coin'].forEach(function(mk){ const m={}, raw=(function(){ try{ return _sxTfGetRaw(IO.key, mk); }catch(_){ return null; } })();
+    m.saved=!!raw; m.tfOwn=(function(){ try{ return _sxTfHasOwn(IO.key, mk); }catch(_){ return false; } })(); m.tfSplit=(function(){ try{ return !!_SX_TF_SPLIT[mk]; }catch(_){ return false; } })();
+    try{ m.cfg=IO.cfg(mk); }catch(e){ m.cfg={ _err:String(e&&e.message||e) }; }
+    try{ m.def=IO.def(mk); }catch(e){ m.def={ _err:String(e&&e.message||e) }; }
+    m.diff=Array.from(new Set(Object.keys(m.cfg||{}).concat(Object.keys(m.def||{})))).filter(function(k){ return k!=='_ver' && _sxJc((m.cfg||{})[k])!==_sxJc((m.def||{})[k]); }).sort();
+    try{ m.fee=_trendFeeOf(mk); }catch(_){ m.fee=null; } try{ m.sig=IO.sig(mk); }catch(_){ m.sig=''; } try{ m.desc=IO.desc(mk); }catch(_){ m.desc=''; }
+    m.lost=_sxTabLost(raw, m.cfg); out.markets[mk]=m; });
+  const name='sxset_'+tab+'_'+tf+'_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+(sfx||'')+'.json';
+  try{ _sxDlJson(out, name); if(el){ const t=el.textContent; el.textContent='✅ 3시장'; setTimeout(function(){ try{ el.textContent=t; }catch(_){} },1600); } }catch(e){ if(el) el.textContent='⚠ 실패'; }
+  return name; }
+function _sxTabView(tab, m){ const IO=_sxTabIO(tab); if(IO){ const o={}; o[tab]=IO.cfg(m); return o; }
+  if(tab==='cross') return { trend:_trendCfg(m), strat:_stratCfg(m), xmat:_xmatStore(m) };
+  if(tab==='strat') return { trend:_trendCfg(m), strat:_stratCfg(m), cb:_cbStore(m) };
+  return null; }
+function _sxTabNorm(tab, m){ const IO=_sxTabIO(tab); if(IO){ ({ turtle:_turtleSave, ict:_ictSave, st:_stSave, sr:_srSave })[tab](m, IO.cfg(m)); return; } _trendSave(m, _trendCfg(m)); _stratSave(m, _stratCfg(m)); if(tab==='cross') _xmatSave(m, _xmatStore(m)); else _cbSave(m, _cbStore(m)); }   // 지금 값을 그 탭 저장 함수로 한 번 저장(꼴 맞춤 · 미리 써 보기 안에서만 · 뒤에 원문으로 되돌림)
+function _sxTabImpPlan(tab, m, o){
+  const IO=_sxTabIO(tab), mkL=_SX_IO_MK[m]||m, lb=function(t){ try{ return _poolTfLbl(t); }catch(_){ return String(t); } }, ok=function(v){ return !!(v && typeof v==='object' && !Array.isArray(v) && !v._err); };
+  if(!_SX_TAB_PFX[tab]) return { err:'모르는 탭' };
+  if(!o || typeof o!=='object' || !o.meta || typeof o.meta!=='object' || !o.markets || typeof o.markets!=='object') return { err:'설정 파일(JSON)이 아닙니다' };
+  const K=o.meta.kind, ON=_sxTabName(o.meta.tab)||String(o.meta.tab);
+  if(IO){ if(K==='sx_settings') return { err:'📈 MA 크로스 · 🧪 전략 조합 탭 파일입니다 — 그 탭에서 불러오세요' }; if(K!=='sx_tab_settings') return { err:'설정 파일이 아닙니다' }; if(o.meta.tab!==tab) return { err:'다른 탭 파일입니다(파일 = '+ON+')' }; }
+  else { if(K==='sx_tab_settings') return { err:'다른 탭 파일입니다(파일 = '+ON+')' }; if(K!=='sx_settings') return { err:'설정 파일이 아닙니다' }; if(o.meta.imp!=='S1899') return { err:'S1899 전에 내려받은 파일입니다 — 🧪 재료 조건 원래 값이 없어 불러오지 않습니다(지금 ⚙️ 설정으로 다시 내려받은 파일을 쓰세요)' }; }
+  const now=String(_sxTfNow()), ftf=String(o.meta.tf||'day'); if(_SX_TF_SPLIT[m] && ftf!==now) return { err:'봉이 다릅니다(파일 '+lb(ftf)+' · 지금 '+lb(now)+') — 봉을 맞춘 뒤 불러오세요' };
+  const M=o.markets[m]; let D;
+  if(IO){ if(!M || !ok(M.cfg)) return { err:'파일에 '+mkL+' 값이 없습니다' }; D={}; D[tab]=M.cfg; }
+  else { if(!M || !ok(M.trend) || !ok(M.strat) || (tab==='cross' && !ok(M.xmatStore)) || (tab==='strat' && !ok(M.cellbk))) return { err:'파일에 '+mkL+' 값이 없습니다' }; D={ trend:M.trend, strat:M.strat, xmat:M.xmatStore, cb:M.cellbk }; }
+  const keys=_SX_TAB_PFX[tab].map(function(p){ return _sxTfKey(p, m); }), S0=keys.map(function(k){ return [k, localStorage.getItem(k)]; }), RS=function(){ S0.forEach(function(x){ try{ if(x[1]==null) localStorage.removeItem(x[0]); else localStorage.setItem(x[0], x[1]); }catch(_){} }); }; let before=null, after=null;
+  try{ _sxTabNorm(tab, m); before=_sxTabView(tab, m); RS(); _sxTabWrite(tab, m, JSON.parse(JSON.stringify(D))); after=_sxTabView(tab, m); } finally { RS(); }   // 지금 값을 한 번 저장해 꼴을 맞춘 뒤 읽기(before) → 원문으로 → 미리 써 보기(after) → 원문 그대로 되돌림
+  const fv=function(v){ const s=(v===undefined)?'없음':((typeof v==='string')?v:JSON.stringify(v)); return (s.length>24)?(s.slice(0,23)+'…'):s; }, SK={ xmat:'🧪 재료 조건', cb:'🧺 칸 바구니' }, SKIP={ _ver:1, _market:1, _legacyChipN:1 }, ch=[], fix=[];
+  Object.keys(after).forEach(function(s){ const a=before[s]||{}, b=after[s]||{}; if(SK[s]){ if(_sxJc(a)!==_sxJc(b)) ch.push(SK[s]+' 바뀜'); return; }
+    Array.from(new Set(Object.keys(a).concat(Object.keys(b)))).sort().forEach(function(k){ if(!SKIP[k] && _sxJc(a[k])!==_sxJc(b[k])) ch.push(k+' '+fv(a[k])+' → '+fv(b[k])); }); });
+  const cmp=function(src, dst, ks){ ks.forEach(function(k){ if(!SKIP[k] && (k in src) && fix.indexOf(k)<0 && _sxJc(src[k])!==_sxJc(dst[k])) fix.push(k); }); };   // 파일에 있는 키만
+  if(IO) cmp(D[tab], after[tab], Object.keys(D[tab]));
+  else { cmp(D.trend, after.trend, _TREND_RESET_SCOPE.common.concat(_TREND_RESET_SCOPE[tab]||[])); cmp(D.strat, after.strat, (_STRAT_RESET_SCOPE[tab]||Object.keys(D.strat)).concat((tab==='strat')?['rgUp','rgDn','swX','swN','swAfter']:[]));
+    if(tab==='cross' && _sxJc(D.xmat)!==_sxJc(after.xmat)) fix.push('🧪 재료 조건'); if(tab==='strat' && _sxJc(D.cb)!==_sxJc(after.cb)) fix.push('🧺 칸 바구니'); }
+  const sv=M.saved, saved=IO?(sv===true):!!(sv && typeof sv==='object' && (sv.trend || sv.strat || ((tab==='cross')?sv.xmat:sv.cellbk)));
+  return { D, before, after, ch, fix, saved, meta:o.meta }; }
+function _sxTabImportText(tab, m, txt, fname){
+  const T=_sxTabName(tab), mkL=_SX_IO_MK[m]||m; let o=null; try{ o=JSON.parse(String(txt)); }catch(_){ o=null; }
+  let P; try{ P=_sxTabImpPlan(tab, m, o); }catch(e){ P={ err:'불러오기 준비 중 오류 — '+String(e&&e.message||e) }; }
+  if(P.err){ alert('📂 '+T+' — 불러오지 않음\n\n'+P.err); return P; }
+  if(!P.ch.length){ P.none=true; alert('📂 '+T+' — 바뀌는 칸 없음\n\n지금 '+mkL+' 설정과 파일 값이 같습니다.'); return P; }
+  const ts=Date.parse(P.meta.ts||''), tsK=isFinite(ts)?new Date(ts+9*3600e3).toISOString().slice(0,16).replace('T',' '):'?', tfL=(function(){ try{ return _poolTfLbl(String(P.meta.tf||'day')); }catch(_){ return String(P.meta.tf||''); } })();
+  const W={ cross:'MA 줄 · ⚙️ 게이트 · 청산 칩 · 🧪 재료 조건 · 💸 수수료(MA 줄은 🧪 전략 조합과 같이 씀 · ↺ 리셋과 같은 범위)', strat:'MA 줄 · 진입/게이트/청산 블록 · 칸 바구니 · 💸 수수료(MA 줄은 📈 MA 크로스와 같이 씀 · ↺ 리셋과 같은 범위)' }[tab]||'이 탭 칸 · 칩 전부(💸 수수료는 다른 탭 값 그대로)';
+  const L=P.ch.slice(0,20).map(function(x){ return '· '+x; }).join('\n')+((P.ch.length>20)?('\n… 그 밖 '+(P.ch.length-20)+'칸'):'');
+  const FX=P.fix.length?('\n\n⚠ 파일 값과 다르게 들어갈 칸 '+P.fix.length+'(범위 · 꼴 고침): '+P.fix.slice(0,10).join(' · ')+((P.fix.length>10)?' …':'')):'';
+  if(!confirm('📂 '+T+' 설정을 파일에서 불러올까요?\n\n파일: '+fname+'\n내려받은 때: '+tsK+' · '+tfL+(P.saved?'':' · ⚠ 파일의 이 시장 값은 저장 안 한 기본값')+'\n시장: '+mkL+'(지금 화면 · 다른 시장은 그 시장 화면에서 따로)\n쓰는 것: '+W+'\n\n바뀌는 칸 '+P.ch.length+':\n'+L+FX+'\n\n넣기 전에 지금 설정을 파일로 한 장 내려받습니다(그 파일을 불러오면 되돌림).')){ P.cancel=true; return P; }
+  const d=new Date(), p2=function(n){ return String(n).padStart(2,'0'); }, sfx='_before_'+p2(d.getHours())+p2(d.getMinutes())+p2(d.getSeconds());
+  P.backup=_sxTabIO(tab)?_sxTabExport(tab, null, sfx):_sxSettingsExport(null, sfx);
+  _sxTabWrite(tab, m, P.D); P.done=(_sxJc(_sxTabView(tab, m))===_sxJc(P.after));
+  _trendRerender(); try{ _trendRedrawChart(); }catch(_){}
+  alert('📂 불러옴 — '+mkL+' '+T+' · '+P.ch.length+'칸 바뀜'+FX.replace('들어갈','들어간')+(P.done?'':'\n\n⚠ 저장 뒤 값이 미리 본 값과 다릅니다 — 화면을 확인하세요')+'\n\n넣기 전 설정은 '+P.backup+' 로 내려받았습니다(그 파일을 불러오면 되돌림).');
+  return P; }
+function _sxTabImport(tab){ if(!_SX_TAB_PFX[tab]) return; const ctx=(typeof window!=='undefined')?window._sxTrendCtx:null; if(!ctx) return; const m=ctx.market;
+  let inp=document.getElementById('sxTabImpInput');
+  if(!inp){ inp=document.createElement('input'); inp.type='file'; inp.accept='application/json,.json'; inp.id='sxTabImpInput'; inp.style.display='none'; document.body.appendChild(inp); }
+  inp.onchange=function(){ const f=inp.files && inp.files[0]; inp.value=''; if(!f) return; const fr=new FileReader(); fr.onload=function(){ _sxTabImportText(tab, m, String(fr.result||''), f.name); }; fr.onerror=function(){ alert('📂 파일을 읽지 못했습니다'); }; fr.readAsText(f); };
+  inp.click(); }
+function _sxTabIoBtns(tab, impOnly){ const st='font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer;white-space:nowrap';
+  return (impOnly?'':('<span data-sx-io="exp" onclick="_sxVib(9);window._sxTabExport&&_sxTabExport(\''+tab+'\',this)" title="이 탭 설정(KR · US · 코인 · 지금 봉)을 파일로 내려받기" style="'+st+'">⚙️ 설정</span>'))
+    +'<span data-sx-io="imp" onclick="_sxVib(9);window._sxTabImport&&_sxTabImport(\''+tab+'\')" title="이 탭에서 내려받은 설정 파일을 지금 시장에 불러오기 — 바뀌는 칸을 먼저 보여 주고, 넣기 전에 지금 설정을 파일로 내려받음" style="'+st+'">📂 불러오기</span>'; }
+if(typeof window!=='undefined'){ window._sxTabExport=_sxTabExport; window._sxTabImport=_sxTabImport; }
 // [S573] 단기추세 기본 프리셋 — 순수 MA 골든/데드크로스만. 매수·매도 보조칩 전부 OFF, 정배열 재진입 OFF (사진 기준 0건 적용 상태).
 //   매번 새 객체 반환(aux/sell 참조 공유 방지). MA쌍은 시장별 _TREND_MKT_DEFAULT 사용.
 function _trendDefaults(market){
@@ -4475,7 +4557,7 @@ if(typeof window!=='undefined'){ window._stratPoolRun=_stratPoolRun; window._str
 //     ⇒ 원본 localStorage 유무를 따로 실어 **기본값과 저장값을 구별**한다.
 //   ⚠재료 체크는 **id와 한글 라벨을 함께** 싣는다 — id만 있으면 사람이 화면과 대조할 수 없고,
 //     라벨만 있으면 코드가 못 읽는다. 둘 다 있어야 양쪽에서 검산된다.
-function _sxSettingsExport(el){
+function _sxSettingsExport(el, sfx){   /* [S1899] sfx = 이름 끝(넣기 전 내려받기) · 파일 이름을 돌려줌 */
   const MKS=['kr','us','coin'];
   const out={ meta:{ kind:'sx_settings', serial:'S1555',
     build:(typeof window!=='undefined'&&window.SX_BUILD)||'', ts:new Date().toISOString(),
@@ -4483,7 +4565,8 @@ function _sxSettingsExport(el){
     // [S1682] ★**봉 주기를 기록한다** — 종전 내보내기는 이것이 없어 **파일만으로 코인 일봉/4시간을 구분할 수 없었다**
     //   (파일명에만 있었다). 봉별 저장이 생긴 이상 이 줄이 없으면 어느 저장소에서 나온 값인지 영영 알 수 없다.
     tf:(function(){ try{ return _sxTfNow(); }catch(_){ return ''; } })(),
-    tfLabel:(function(){ try{ return _poolTfLbl(_sxTfNow()); }catch(_){ return ''; } })() }, markets:{} };
+    tfLabel:(function(){ try{ return _poolTfLbl(_sxTfNow()); }catch(_){ return ''; } })(),
+    tab:(function(){ try{ return (_trendEngine==='strat')?'strat':'cross'; }catch(_){ return ''; } })(), imp:'S1899' /* [S1899] 📂 불러오기 꼴(이 칸이 있어야 불러옴) */ }, markets:{} };
   MKS.forEach(function(mk){
     // [S1682] `saved` 판정도 **그 봉이 실제로 읽는 키**를 봐야 한다 — 종전 식은 일봉 키만 보아,
     //   4시간 전용 저장값이 있어도 일봉 키가 비어 있으면 `saved:false`(= '사용자 설정 아님')로 거짓 보고했다.
@@ -4515,17 +4598,19 @@ function _sxSettingsExport(el){
         n:{ buy:Object.keys(side(st.buy,'buy')).length, sell:Object.keys(side(st.sell,'sell')).length },
         labeled:Object.keys(L).length };
     }catch(e){ m.xmat={_err:String(e&&e.message||e)}; }
+    try{ m.xmatStore=_xmatStore(mk); }catch(e){ m.xmatStore={_err:String(e&&e.message||e)}; } m.lost={ trend:_sxTabLost(raw('SX_TREND'), m.trend), strat:_sxTabLost(raw('SX_STRAT'), m.strat) };   /* [S1899] 🧪 재료 조건 원래 값(불러오기용) · 로더가 버린 칸 */
     out.markets[mk]=m;
   });
   try{
     const blob=new Blob([JSON.stringify(out,null,1)],{type:'application/json'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download='sxsettings_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.json';
+    a.download='sxsettings_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+(sfx||'')+'.json';   /* [S1899] */
     document.body.appendChild(a); a.click();
     setTimeout(function(){ try{ URL.revokeObjectURL(a.href); a.remove(); }catch(_){}},600);
     if(el){ const t=el.textContent; const nB=(out.markets.kr.xmat&&out.markets.kr.xmat.n)?out.markets.kr.xmat.n.buy:0;
       el.textContent='\u2705 3\uc2dc\uc7a5'; setTimeout(function(){ try{ el.textContent=t; }catch(_){}} ,1600); }
   }catch(e){ if(el) el.textContent='⚠ \uc2e4\ud328'; }
+  return 'sxsettings_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+(sfx||'')+'.json';   /* [S1899] */
 }
 if(typeof window!=='undefined'){ window._sxSettingsExport=_sxSettingsExport; }
 // ═══════════ [S1119] 🧪 재료 조건(빔서치 어휘) — 크로스 상세 모드의 매수(AND)/매도(OR) 커스텀 게이트 ═══════════
@@ -6269,7 +6354,7 @@ function _turtlePanelHtml(mk, rows, bt){
     h+=row(chip(c.tpFixOn,'🎯 TP고정','tpFixOn','진입가 대비 종가 상승률이 값 이상이면 그 봉 종가에 청산 — 전략조합 🎯 TP고정과 같은 식')+(c.tpFixOn?(inp('sxTtTpFix',c.tpFixPct,'1')+lab('%↑ 진입가')):note('끄면 무관')), 9);
   }
   h+=row(note((fee>0?('💸 왕복 '+fee+'%p 차감'):'무마찰')+' · 다른 탭과 같은 값')
-    +`<span style="margin-left:auto;display:flex;gap:6px"><span onclick="_sxVib(9);window._turtleReset&&_turtleReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span><span onclick="_sxVib(15);window._turtleApply&&_turtleApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:${col};color:#fff;cursor:pointer">적용</span></span>`, 9);
+    +`<span style="margin-left:auto;display:flex;gap:6px">${_sxTabIoBtns('turtle') /* [S1899] ⚙️ 📂 */}<span onclick="_sxVib(9);window._turtleReset&&_turtleReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span><span onclick="_sxVib(15);window._turtleApply&&_turtleApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:${col};color:#fff;cursor:pointer">적용</span></span>`, 9);
   // 상태줄 — 보유 중 / 오늘 신호·청산 / 대기(+건너뛰기 대기)
   const last=bt?bt.lastClose:null, rel=(x)=>(x>0&&last>0)?(((x/last)-1)*100):null, sg=(v)=>v==null?'—':((v>0?'+':'')+v.toFixed(1)+'%');
   let st='', sc='var(--text2)';
@@ -6601,7 +6686,7 @@ function _ictXPanelRows(mk, c, bt, fee, row, lab, B, note, col){
   h+=row(lab(B('청산')+' = 원본 고정')+note(info.ex+' · 장중 저가 · 고가로 닿음 · 같은 봉에 둘 다면 손절 먼저 · 갭이면 시가'));
   h+=row(note('탭의 진입 · 손절 · 익절 · 최대 보유 · 1R 절반 칸은 이 셋업에 안 씀 · 지원 = '+(c.setup==='po3'?'KR · US 일봉(측정에서 넘은 곳)':'일봉 · 코인 4시간 · 1시간') /* [S1850] */+' · 매수만(원본 기계는 양쪽)'));
   h+=row(note((fee>0?('💸 왕복 '+fee+'%p 차감'):'무마찰')+' · 다른 탭과 같은 값')
-    +`<span style="margin-left:auto;display:flex;gap:6px"><span onclick="_sxVib(9);window._ictReset&&_ictReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span></span>`, 9);
+    +`<span style="margin-left:auto;display:flex;gap:6px">${_sxTabIoBtns('ict') /* [S1899] ⚙️ 📂 */}<span onclick="_sxVib(9);window._ictReset&&_ictReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span></span>`, 9);
   const last=bt?bt.lastClose:null, rel=x=>(x>0&&last>0)?(((x/last)-1)*100):null, sg=v=>v==null?'—':((v>0?'+':'')+v.toFixed(1)+'%');
   let st='', sc='var(--text2)';
   if(!bt || !I){ st='🎯 데이터 부족 — 봉이 60개 이상이어야 합니다'; sc='var(--text3)'; }
@@ -6644,7 +6729,7 @@ function _ictPanelHtml(mk, rows, bt){
   h+=row(chip(!!c.xt,'1R 절반 익절 + 트레일','xt','켜면 1R(체결가 + 위험)에 처음 닿을 때 절반을 팔고 손절을 본전으로 · 나머지는 진입 뒤 최고 종가 − 2 × ATR14 로 올리는 손절 또는 최대 보유에서 청산 · 측정(offline/ictexit · 2026-10-23): KR 일봉 3판 모두 지금 세트보다 나음(같은 비율 잣대) · 그냥 두기는 못 가름 · US · 코인 못 가름 — 켬/끔 비교용 · 손절 칩을 끄면 본전 · 트레일 손절도 꺼짐(남은 절반은 N봉 끝 종가)'));   /* [S1835] · [S1837] 칩 설명 끝 = 손절 끔이면 본전 · 트레일도 꺼짐 */
   if(c.setup==='cont') h+=row(chip(c.disc,'디스카운트(0.5 아래)만','disc','지정가가 파동 바닥 ~ 최고가의 절반 아래일 때만 체결(문서 "0.5 아래 디스카운트") · 측정에선 프리미엄 쪽이 같거나 나은 판이 많았음'));
   h+=row(note((fee>0?('💸 왕복 '+fee+'%p 차감'):'무마찰')+' · 다른 탭과 같은 값')
-    +`<span style="margin-left:auto;display:flex;gap:6px"><span onclick="_sxVib(9);window._ictReset&&_ictReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span><span onclick="_sxVib(15);window._ictApply&&_ictApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:${col};color:#fff;cursor:pointer">적용</span></span>`, 9);
+    +`<span style="margin-left:auto;display:flex;gap:6px">${_sxTabIoBtns('ict') /* [S1899] ⚙️ 📂 */}<span onclick="_sxVib(9);window._ictReset&&_ictReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span><span onclick="_sxVib(15);window._ictApply&&_ictApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:${col};color:#fff;cursor:pointer">적용</span></span>`, 9);
   const last=bt?bt.lastClose:null, rel=x=>(x>0&&last>0)?(((x/last)-1)*100):null, sg=v=>v==null?'—':((v>0?'+':'')+v.toFixed(1)+'%');
   let st='', sc='var(--text2)';
   if(!bt || !I){ st='🎯 데이터 부족 — 봉이 60개 이상이어야 합니다'; sc='var(--text3)'; }
@@ -6862,7 +6947,7 @@ function _stPanelHtml(mk, rows, bt){
   h+=row(lab(B('청산')+' = 빨간색 전환 봉 종가')+note('종가가 슈퍼트렌드 선 아래로 마감'));
   h+=row(chip(c.tp1,'1차 익절 · VWAP +1σ 에서 절반','tp1','진입 다음 봉부터 고가가 (앞 봉 VWAP + 1σ) 에 닿고 그 밴드가 진입가 위면 절반을 그 가격에 · 나머지는 빨간색 전환 · 측정에선 큰 추세의 절반을 일찍 팔아 평균을 깎는 쪽'));
   h+=row(note((fee>0?('💸 왕복 '+fee+'%p 차감'):'무마찰')+' · 다른 탭과 같은 값')
-    +`<span style="margin-left:auto;display:flex;gap:6px"><span onclick="_sxVib(9);window._stReset&&_stReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span><span onclick="_sxVib(15);window._stApply&&_stApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:${col};color:#fff;cursor:pointer">적용</span></span>`, 9);
+    +`<span style="margin-left:auto;display:flex;gap:6px">${_sxTabIoBtns('st') /* [S1899] ⚙️ 📂 */}<span onclick="_sxVib(9);window._stReset&&_stReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span><span onclick="_sxVib(15);window._stApply&&_stApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:${col};color:#fff;cursor:pointer">적용</span></span>`, 9);
   const last=bt?bt.lastClose:null, rel=x=>(x>0&&last>0)?(((x/last)-1)*100):null, sg=v=>v==null?'—':((v>0?'+':'')+v.toFixed(1)+'%'), px=x=>(x==null)?'—':(_turtleFmt(x)+' ('+sg(rel(x))+')');
   let st='', sc='var(--text2)';
   if(!bt || !I){ st='🚦 데이터 부족 — 봉이 60개 이상이어야 합니다'; sc='var(--text3)'; }
@@ -7177,7 +7262,7 @@ function _srPanelHtml(mk, rows, bt){
   h+=row(lab(B('익절'))+lab('위험 ×')+inp('sxSrTpR',c.tpR,'0.5')+lab('R · '+'최대 보유')+inp('sxSrHold',c.hold)+lab('봉')+note('같은 봉에 둘 다면 손절 먼저 · 끝까지 안 닿으면 그 봉 종가'));
   }   /* [S1844] */
   h+=row(note((fee>0?('💸 왕복 '+fee+'%p 차감'):'무마찰')+' · 다른 탭과 같은 값')
-    +`<span style="margin-left:auto;display:flex;gap:6px"><span onclick="_sxVib(9);window._srReset&&_srReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span><span onclick="_sxVib(15);window._srApply&&_srApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:${col};color:#fff;cursor:pointer">적용</span></span>`, 9);
+    +`<span style="margin-left:auto;display:flex;gap:6px">${_sxTabIoBtns('sr') /* [S1899] ⚙️ 📂 */}<span onclick="_sxVib(9);window._srReset&&_srReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋</span><span onclick="_sxVib(15);window._srApply&&_srApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:${col};color:#fff;cursor:pointer">적용</span></span>`, 9);
   const last=bt?bt.lastClose:null, F=x=>(x==null || !isFinite(x))?'—':_turtleFmt(x), rel=x=>(x>0&&last>0)?(((x/last)-1)*100):null, sg=v=>v==null?'—':((v>0?'+':'')+v.toFixed(1)+'%'), px=x=>(x==null || !isFinite(x))?'—':(F(x)+' ('+sg(rel(x))+')');
   if(I){ const LV=I.levels, mark=z=>z.hit?'✓':(z.armed?'🟡':'⚪'), sel=k=>c.line===k;
     const line=(k,lbl,body)=>`<div style="margin-bottom:2px;${sel(k)?`font-weight:800;color:${col}`:''}">${lbl} — ${body}</div>`;
@@ -7708,7 +7793,7 @@ function _trendRenderInner(){
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:9px;font-size:11px;color:var(--text2)">
     <span title="골든크로스가 이 봉수 안에 있으면 아래 상태줄이 '진입 신호'로 뜹니다 · 지나면 '신호창 지남'">신호창 최근</span>${_inp('sxTrendN',cfg.n)}<span>봉</span>
-    <span style="margin-left:auto;display:flex;gap:6px"><span onclick="_sxVib(9);window._sxSettingsExport&&_sxSettingsExport(this)" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer;white-space:nowrap">⚙️ 설정</span><span onclick="_sxVib(12);window._trendReset&&_trendReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋${(_sxPresetTf(market)||_sxPresetStratTf(market))?('<span style="font-size:8.5px;font-weight:700;color:#0891b2;margin-left:3px">'+_poolTfLbl(_sxTfNow())+'</span>'):''}</span><span onclick="_sxVib(15);window._trendApply&&_trendApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:#2563eb;color:#fff;cursor:pointer">적용</span></span>
+    <span style="margin-left:auto;display:flex;gap:6px"><span onclick="_sxVib(9);window._sxSettingsExport&&_sxSettingsExport(this)" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer;white-space:nowrap">⚙️ 설정</span>${_sxTabIoBtns((_trendEngine==='strat')?'strat':'cross', true) /* [S1899] 📂 */}<span onclick="_sxVib(12);window._trendReset&&_trendReset()" style="font-size:11px;font-weight:800;padding:5px 11px;border-radius:7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer">리셋${(_sxPresetTf(market)||_sxPresetStratTf(market))?('<span style="font-size:8.5px;font-weight:700;color:#0891b2;margin-left:3px">'+_poolTfLbl(_sxTfNow())+'</span>'):''}</span><span onclick="_sxVib(15);window._trendApply&&_trendApply()" style="font-size:11px;font-weight:800;padding:5px 12px;border-radius:7px;background:#2563eb;color:#fff;cursor:pointer">적용</span></span>
   </div>
   <div style=\"display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:9px;font-size:11px;color:var(--text2)\">
     <span onclick=\"_sxVib(10);window._trendToggleTrix&&_trendToggleTrix()\" title=\"크로스 판정 축을 이동평균에서 TRIX로 바꿉니다. 방식은 그대로 — TRIX선이 시그널선을 위로 뚫으면 골든, 아래로 뚫으면 데드. 청산 크로스 분리·재진입·크로스 임박도 같은 축을 따릅니다. 시즌2 워커에는 TRIX가 없어 시즌1 실험 축입니다.\" style=\"font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;cursor:pointer;${cfg.trixOn?'background:#0891b2;color:#fff':'background:var(--surface2);color:#0891b2;border:1px solid #0891b266'}\">${cfg.trixOn?'☑':'☐'} 🧬 TRIX 크로스</span>
@@ -20649,7 +20734,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1898';   // [S1898] ⚖️ 측정 기준 배지 [완화](합격 보류 · 방어 — ④ · ↑ 진입 · ↑ 청산 그대로 · 판마다 수익 칸 하나 70% 선)
+  window.SX_BUILD='S1899';   // [S1899] 단기매매 여섯 탭 ⚙️ 설정 내려받기 · 📂 불러오기(지금 시장 · 같은 탭 · 같은 봉 · 바뀌는 칸 확인 · 넣기 전 자동 내려받기)
+  //window.SX_BUILD='S1898';   // [S1898] ⚖️ 측정 기준 배지 [완화](합격 보류 · 방어 — ④ · ↑ 진입 · ↑ 청산 그대로 · 판마다 수익 칸 하나 70% 선)
   //window.SX_BUILD='S1897';   // [S1897] 📈 크로스 탭 〰️ 볼린저 모드 청산 칩 여럿 켬(먼저 걸린 것 · 사다리가 켜져 있으면 진입선 · 중앙선 옅게)
   //window.SX_BUILD='S1896';   // [S1896] 분석탭 기준표 v12 — 피보 카드 셋째 탭 🫧 민스키 · 거품 단계(곡선 + 빨간 원 · 단계 칸 · 실험 · 판정 아님)
   //window.SX_BUILD='S1895';   // [S1895] 분석탭 기준표 v11 — EOM 줄 값 색 = 값 말 · EOM 꼬리표 0선 상향 · 0선 하향 방향 표 · (해석 파일) 조합 상자 문턱 점수로
