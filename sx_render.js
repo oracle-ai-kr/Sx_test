@@ -693,32 +693,43 @@ function _isKosdaqStock(stock){
 }
 // [S1900] 지수 심볼 고르기 — 분석탭 상대강도(_fetchIndexCloses)와 통계판 🏁 칸이 같이 씀(옮김 · 같은 값) (사용자 2026-11-07 10:28 · 10:40)
 function _rsIndexSym(market, stock){ if(market === 'us') return '^GSPC'; if(market === 'coin') return 'KRW-BTC'; /* [S443] 코인은 BTC 대비 강도 */ return _isKosdaqStock(stock) ? '^KQ11' : '^KS11'; /* [S442] 코스닥 분리 */ }
+// [S1901] 돌려주는 값 = 날짜가 붙은 지수 봉 [{ d, c }](끝이 최신 · c 만 모으면 옛 종가 배열 그대로) — 같은 날짜끼리 맞추려고(_rsAlignDated) · 이름 · 주소 · 기억 시간은 그대로(지수 스냅 · 엔진 주석이 RS 출처로 이 이름을 가리킴) (사용자 2026-11-07 10:40)
 async function _fetchIndexCloses(market, stock){
   let sym = _rsIndexSym(market, stock);   /* [S1900] 고르기는 공용 함수로 */
   if(!sym) return null;
   const now = Date.now();
   const cached = _rsIndexCache[sym];
-  if(cached && (now - cached.ts) < 10 * 60 * 1000) return cached.closes;
+  if(cached && (now - cached.ts) < 10 * 60 * 1000) return cached.rows;   /* [S1901] */
   try {
     const base = (typeof WORKER_BASE !== 'undefined') ? WORKER_BASE : 'https://stock-signal-proxy.cheaheechang.workers.dev';
-    let closes;
+    let rows;   /* [S1901] 날짜가 붙은 봉 */
     if(market === 'coin'){
       // [S443] 코인 지수 = 업비트 KRW-BTC 일봉 (최신 먼저 → reverse로 끝이 최신). trade_price=종가.
       const url = `${base}/upbit/candles?market=KRW-BTC&type=days&count=130`;
       const r = await fetch(url, { signal: AbortSignal.timeout(12000) });
       const j = await r.json();
       const arr = Array.isArray(j) ? j : (j.data || []);
-      closes = arr.map(c => parseFloat(c.trade_price || c.close || 0)).filter(c => c > 0).reverse();
+      rows = arr.map(c => ({ d: String(c.candle_date_time_kst || '').slice(0, 10).replace(/-/g, ''), c: parseFloat(c.trade_price || c.close || 0) })).filter(x => x.c > 0).reverse();   /* [S1901] 날짜 = KST 날짜 */
     } else {
       const yf = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=6mo`;
       const url = `${base}/proxy?url=${encodeURIComponent(yf)}`;
       const r = await fetch(url, { signal: AbortSignal.timeout(12000) });
       const j = await r.json();
-      closes = (j?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []).filter(c => c != null);
+      const _R = j?.chart?.result?.[0], _ts = _R?.timestamp || [], _cl = _R?.indicators?.quote?.[0]?.close || [];   /* [S1901] */
+      rows = []; for(let t = 0; t < _cl.length; t++){ if(_cl[t] == null) continue; const _dt = (_ts[t] != null) ? new Date(+_ts[t] * 1000) : null; rows.push({ d: (_dt && !isNaN(_dt)) ? _dt.toISOString().slice(0, 10).replace(/-/g, '') : '', c: _cl[t] }); }   /* [S1901] 날짜 = UTC 날짜(🏁 칸 · 지수 스냅 S1345 와 같은 셈) · null 종가는 옛처럼 버림 */
     }
-    if(closes && closes.length){ _rsIndexCache[sym] = { closes, ts: now }; return closes; }
+    if(rows && rows.length){ _rsIndexCache[sym] = { rows, ts: now }; return rows; }   /* [S1901] */
   } catch(e){ console.log('[RS] 지수 시계열 fetch 실패:', e && e.message); }
   return null;
+}
+// [S1901] 상대강도 같은 날짜끼리 — 종목 봉마다 같은 날짜의 지수 종가(없으면 null) · 둘 다 있는 마지막 날까지 자름 · SXE.calcRS 는 그대로 받음
+//   ★거울: sx_render.js ↔ sx_scan_worker.js 글자 같음(분석탭 전광판 · 조건검색 RS 가 같은 값) · 날짜 셈 = 🏁 칸 _sbYmd 와 같음 · PREREG_S1901_rs_dated.md §1 (나)
+function _rsAlignDated(rows, idx){
+  const ymd = v => String(v == null ? '' : v).slice(0, 10).replace(/-/g, ''), M = {};
+  (idx || []).forEach(x => { if(x && x.c > 0 && x.d) M[x.d] = x.c; });
+  const s = [], i = []; let lx = -1;
+  (rows || []).forEach((r, k) => { const v = r ? M[ymd(r.date || r.d)] : undefined; s.push(r ? +r.close : NaN); i.push(v > 0 ? v : null); if(v > 0) lx = k; });
+  return lx < 0 ? null : { s: s.slice(0, lx + 1), i: i.slice(0, lx + 1), lx: lx, n: s.length };
 }
 
 async function runAnalysis(stock){
@@ -875,10 +886,10 @@ async function runAnalysis(stock){
         if(_analTF === 'day'){
           try {
             const _mkt = (typeof currentMarket !== 'undefined') ? currentMarket : 'kr';
-            const _idxCloses = await _fetchIndexCloses(_mkt, stock);
-            if(_idxCloses && _idxCloses.length && indicators){
-              const _stkCloses = candles.map(c => c.close);
-              indicators.rs = (typeof SXE !== 'undefined' && SXE.calcRS) ? SXE.calcRS(_stkCloses, _idxCloses) : null;
+            const _idxRows = await _fetchIndexCloses(_mkt, stock);   /* [S1901] 날짜가 붙은 지수 봉 */
+            const _al = (_idxRows && _idxRows.length && indicators) ? _rsAlignDated(candles, _idxRows) : null;   /* [S1901] 같은 날짜끼리 · 둘 다 있는 마지막 날까지 */
+            if(_al){
+              indicators.rs = (typeof SXE !== 'undefined' && SXE.calcRS) ? SXE.calcRS(_al.s, _al.i) : null;
             }
           } catch(_eRS){ /* RS 실패 시 생략 */ }
         }
@@ -20796,7 +20807,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1900';   // [S1900] 종목 통계판 🏁 지수와 견주면 어땠나(기간별 · 흔들림 감안 · 앞선 봉 · 오른 날 · 내린 날 · 날짜 맞춤 · 일봉)
+  window.SX_BUILD='S1901';   // [S1901] 전광판 상대강도 · 조건검색 RS 같은 날짜끼리(지수 봉에 날짜 · 둘 다 있는 마지막 날까지 · 엔진 · 경계 · 화면 글 그대로)
+  //window.SX_BUILD='S1900';   // [S1900] 종목 통계판 🏁 지수와 견주면 어땠나(기간별 · 흔들림 감안 · 앞선 봉 · 오른 날 · 내린 날 · 날짜 맞춤 · 일봉)
   //window.SX_BUILD='S1899';   // [S1899] 단기매매 여섯 탭 ⚙️ 설정 내려받기 · 📂 불러오기(지금 시장 · 같은 탭 · 같은 봉 · 바뀌는 칸 확인 · 넣기 전 자동 내려받기)
   //window.SX_BUILD='S1898';   // [S1898] ⚖️ 측정 기준 배지 [완화](합격 보류 · 방어 — ④ · ↑ 진입 · ↑ 청산 그대로 · 판마다 수익 칸 하나 70% 선)
   //window.SX_BUILD='S1897';   // [S1897] 📈 크로스 탭 〰️ 볼린저 모드 청산 칩 여럿 켬(먼저 걸린 것 · 사다리가 켜져 있으면 진입선 · 중앙선 옅게)
