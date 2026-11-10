@@ -7,6 +7,7 @@
 //     ③ [S1870] Market Structure Break & Order Block — © EmreKb · MPL 2.0 · 원본 = offline/tvchart/"Market Structure Break & Order Block.txt"(파인 v5)
 //     ④ [S1870] Power Order Blocks [ChartPrime] — © ChartPrime · MPL 2.0 · 원본 = offline/tvchart/"Power Order Blocks (ChartPrime).txt"(파인 v6)
 //     ⑤ [S1871] ICT Killzones & Pivots [TFO] — © tradeforopp · MPL 2.0 · 원본 = offline/tvchart/"ICT Killzones & Pivots.txt"(파인 v6) · 지난 주 · 월 고가 · 저가 · 중간선만(킬존 · 일 · 시가 · 표 등은 뺌 · 30분 봉 문턱 안 봄)
+//     ⑥ [S1919] Auto Chart Patterns 2 — © mbedaiwi2 · MPL 2.0 · v4.5.1 · 원본 = offline/cpat/src_acp2.pine · 감지 · 겹침 정리 · 확정 · BUY/SELL 신호(그림 · 대시보드 · 성적 셈은 안 옮김) · 🕯️ 카드 📐 패턴 탭 표시용(풀차트 지표 아님)
 //   봉마다 파인 그대로 계산한다(전체 봉 · 그 봉까지 자료만). 앱이 더한 설정은 이름에 '앱' 을 단다.
 (function(){
 'use strict';
@@ -307,5 +308,138 @@ TV.reg({
     R.labels.forEach(a => { if (!fin(a.y) || !a.txt) return; const edge = a.x >= li; tx.push({ x: edge ? RE - 2 : x(a.x) + 3, y: y(a.y), s: a.txt, c: KZ_COL[a.tf], fz, al: edge ? 'right' : 'left' }); });   // label_left — 마지막 봉 글자는 그림 칸 오른쪽 끝에 오른쪽 맞춤(앱)
     obTexts(ctx, tx, RE, G.H); ctx.restore(); }
 });
-if (typeof module !== 'undefined' && module.exports) module.exports = { staCalc, stAny, atrAny, rngfilt, smoothrng, srcOf, ictObCalc, msbCalc, pobCalc, kzpCalc };
+// ════════ [S1919] ⑥ Auto Chart Patterns 2 — © mbedaiwi2 · MPL 2.0 · v4.5.1 · 원본 = offline/cpat/src_acp2.pine(e88d64826589 · 사용자 2026-11-10 첨부) · 🕯️ 캔들 · 차트 읽기 카드 📐 패턴 탭이 부름 ════════
+//   글 = offline/cpat/acp2.js(5b5450e69144 · offline/cpat 판정 실행과 독립 파이썬 검산 다름 0)를 기계로 옮김 — 피벗 · ATR · RSI · SMA = SXTV.pta(offline/_pta.js 와 같은 글) · 하락 쐐기 바로잡음 늘 켬 · 끝 봉(endBar) · 까닭(why) · 패턴 목록(pats)만 더함
+//   원본과 다른 점(offline/cpat/cp_criteria.md): ① 모든 봉에서 찾음(원본 = 마지막 400봉) ② 지수 완화 끔 ③ 그림 · 대시보드 · 성적 셈 안 옮김 ④ 하락 쐐기 식 바로잡음 · 잰 결과 = 일봉 9판 못 가름(2026-11-10) · 표시용 · 판정 아님
+const CP_ACP2 = (function () { const P = T;
+const DEF = { leftBars: 4, rightBars: 3, maxPats: 6, overlapTol: 0.35, reqTrend: true, priorLook: 40, shoulderTol: 0.08, dtTol: 0.03, minHeightAtr: 1.5, trendMult: 0.5, reqVolDecline: false, peakAtrTol: 1.0, maxCross: 2, swingDepthTol: 0.03, flatTol: 0.02, reqReversalCndl: false,
+  cupDepthMinPct: 0.05, cupDepthMaxPct: 0.50, handleDepthPct: 0.33, handleMaxBars: 20, poleAtrMult: 3.0, poleLook: 15, HS_MIN: 15, HS_MAX: 120, minGapBarsDT: 5, minSpanDT: 12, maxSpanDT: 60, minGapBarsTT: 5, minSpanTT: 20, maxSpanTT: 60,
+  CUP_MIN: 30, CUP_MAX: 80, SYM_MIN: 20, SYM_MAX: 50, TRI_MIN: 20, TRI_MAX: 50, FLAG_MIN: 5, FLAG_MAX: 20, WEDGE_MIN: 15, WEDGE_MAX: 100,
+  useFollowThrough: true, useVolumeSpike: true, volMult: 1.5, useRSIMomentum: true, rsiLen: 14, breakBufPct: 1.0, confirmWin: 3, expiryBars: 40, cooldownBars: 5 };
+const na = v => !(v === v);   // NaN · undefined
+const FWFIX = true;   // [S1919] 하락 쐐기 식 바로잡음 늘 켬(offline/cpat 기준서 원본과 다른 점 ④)
+function run(O, H, L, C, V, opt) { const o = Object.assign({}, DEF, opt || {}), n = C.length;
+  const PH = P.pivotHigh(H, o.leftBars, o.rightBars), PL = P.pivotLow(L, o.leftBars, o.rightBars), AT = P.atr(H, L, C, 14), RS = P.rsi(C, o.rsiLen), VA = P.sma(V, 20);
+  const phP = [], phB = [], plP = [], plB = [], pats = [], trig = [], buy = new Uint8Array(n), sell = new Uint8Array(n), stat = { add: {}, conf: {}, fail: {}, push: {} };
+  const cnt = (m, k) => { m[k] = (m[k] || 0) + 1; };
+  let t = 0, atrV = NaN, lastBuy = NaN, lastSell = NaN;
+  // 원본 도움 함수(봉 t 기준 · 절대 봉 번호)
+  const rangeLow = (x1, x2) => { let m = NaN, mb = NaN; const a = t - x2, b = t - x1; if (x1 >= 0 && a >= 0 && b >= a && b < 1000) for (let i = a; i <= b; i++) { const v = L[t - i]; if (!na(v) && (na(m) || v < m)) { m = v; mb = t - i; } } return [m, mb]; };
+  const rangeHigh = (x1, x2) => { let m = NaN, mb = NaN; const a = t - x2, b = t - x1; if (x1 >= 0 && a >= 0 && b >= a && b < 1000) for (let i = a; i <= b; i++) { const v = H[t - i]; if (!na(v) && (na(m) || v > m)) { m = v; mb = t - i; } } return [m, mb]; };
+  const priorLow = x => { let m = NaN; const a = Math.max(0, x - o.priorLook); if (x - 1 >= a) m = rangeLow(a, x - 1)[0]; return m; };
+  const priorHigh = x => { let m = NaN; const a = Math.max(0, x - o.priorLook); if (x - 1 >= a) m = rangeHigh(a, x - 1)[0]; return m; };
+  const crossCount = (x1, x2, lvl, above) => { let c = 0; const a = t - (x2 - 1), b = t - (x1 + 1); if (a >= 0 && b >= a && b < 1000) for (let i = a; i <= b; i++) { const v = C[t - i]; if (above ? v > lvl : v < lvl) c++; } return c; };
+  const contained = (xs, xe, ux, uy, us, lx, ly, ls) => { let ok = true; const tol = atrV * 0.25, a = t - xe, b = t - xs; if (a >= 0 && b >= a && b < 1000) for (let i = a; i <= b; i++) { const x = t - i, c = C[x]; if (c > uy + us * (x - ux) + tol || c < ly + ls * (x - lx) - tol) { ok = false; break; } } return ok; };
+  const overlapRatio = (a1, a2, b1, b2) => { const inter = Math.min(a2, b2) - Math.max(a1, b1); return inter <= 0 ? 0 : inter / Math.max(1, Math.min(a2 - a1, b2 - b1)); };
+  const mk = q => Object.assign({ twoSided: false, lvlSlope: 0, l2Y: NaN, l2X: NaN, l2Slope: 0, fixedTarget: NaN, stop: NaN, state: 0, beyondBar: NaN, trigBar: NaN, trigSL: NaN, trigTP: NaN }, q);
+  const tryAccept = p => { let ok = true; const N0 = pats.length;
+    for (let i = 0; i < N0; i++) { const q = pats[i]; if (q.kind === p.kind && q.x1 === p.x1 && q.x2 === p.x2) { ok = false; break; }
+      if (overlapRatio(p.x1, p.x2, q.x1, q.x2) >= o.overlapTol) { const rep = q.state === 2 || q.state === 4 || (q.state === 0 && (q.kind === p.kind || p.prio > q.prio)); if (!rep) { ok = false; break; } } }
+    if (ok && N0 > 0) for (let i = N0 - 1; i >= 0; i--) { const q = pats[i]; if (overlapRatio(p.x1, p.x2, q.x1, q.x2) >= o.overlapTol) { pats.splice(i, 1); if (q.state === 0) cnt(stat.push, q.kind); } }
+    return ok; };
+  const addPat = p => { const ok = tryAccept(p); if (ok) { p.formed = t; pats.push(p); cnt(stat.add, p.kind); while (pats.length > o.maxPats) { const old = pats.shift(); if (old.state === 0) cnt(stat.push, old.kind); } } return ok; };
+  const levelAt = (p, x) => p.lvlY + p.lvlSlope * (x - p.lvlX), level2At = (p, x) => p.l2Y + p.l2Slope * (x - p.l2X);
+  // ── 감지 다섯(원본 5) DETECTORS 그대로) ──
+  const detectHSTop = () => { const N = phP.length; if (N < 3) return; const Lv = phP[N - 3], Hv = phP[N - 2], R = phP[N - 1], bL = phB[N - 3], bH = phB[N - 2], bR = phB[N - 1], span = bR - bL;
+    const shapeOK = Hv > Lv && Hv > R && Hv - Math.max(Lv, R) >= atrV * 0.5 && Math.abs(Lv - R) / Hv < o.shoulderTol;
+    if (shapeOK && span >= o.HS_MIN && span <= o.HS_MAX) { const [t1, bt1] = rangeLow(bL, bH), [t2, bt2] = rangeLow(bH, bR);
+      if (!na(t1) && !na(t2) && bt2 > bt1 && Math.max(t1, t2) < Math.min(Lv, R) && Math.abs(t2 - t1) <= (Hv - Math.max(t1, t2)) * 0.6) { const pl = priorLow(bL), trendOK = !o.reqTrend || (!na(pl) && pl < Math.min(t1, t2));
+        if (trendOK) { const slope = (t2 - t1) / (bt2 - bt1), neckH = t1 + slope * (bH - bt1), neckR = t1 + slope * (bR - bt1);
+          if (R - neckR >= 0.3 * (Hv - neckH)) addPat(mk({ kind: 'HS', prio: 6, bull: false, x1: bL, x2: bR, lvlY: t1, lvlX: bt1, lvlSlope: slope, height: Hv - neckH, stop: R })); } } } };
+  const detectHSInv = () => { const N = plP.length; if (N < 3) return; const Lv = plP[N - 3], Hv = plP[N - 2], R = plP[N - 1], bL = plB[N - 3], bH = plB[N - 2], bR = plB[N - 1], span = bR - bL;
+    const shapeOK = Hv < Lv && Hv < R && Math.min(Lv, R) - Hv >= atrV * 0.5 && Math.abs(Lv - R) / Math.max(Lv, R) < o.shoulderTol;
+    if (shapeOK && span >= o.HS_MIN && span <= o.HS_MAX) { const [t1, bt1] = rangeHigh(bL, bH), [t2, bt2] = rangeHigh(bH, bR);
+      if (!na(t1) && !na(t2) && bt2 > bt1 && Math.min(t1, t2) > Math.max(Lv, R) && Math.abs(t2 - t1) <= (Math.min(t1, t2) - Hv) * 0.6) { const ph = priorHigh(bL), trendOK = !o.reqTrend || (!na(ph) && ph > Math.max(t1, t2));
+        if (trendOK) { const slope = (t2 - t1) / (bt2 - bt1), neckH = t1 + slope * (bH - bt1), neckR = t1 + slope * (bR - bt1);
+          if (neckR - R >= 0.3 * (neckH - Hv)) addPat(mk({ kind: 'IHS', prio: 6, bull: true, x1: bL, x2: bR, lvlY: t1, lvlX: bt1, lvlSlope: slope, height: neckH - Hv, stop: R })); } } } };
+  const detectTops = () => { const N = phP.length; let done = false;
+    if (N >= 3) { const h1 = phP[N - 3], h2 = phP[N - 2], h3 = phP[N - 1], b1 = phB[N - 3], b2 = phB[N - 2], b3 = phB[N - 1], mx = Math.max(h1, h2, h3), mnP = Math.min(h1, h2, h3);
+      const sim = (mx - mnP) / mx < o.dtTol && mx - mnP <= o.peakAtrTol * atrV && crossCount(b1, b3, mnP, true) <= o.maxCross, span = b3 - b1, gaps = b2 - b1 >= o.minGapBarsTT && b3 - b2 >= o.minGapBarsTT;
+      if (sim && gaps && span >= o.minSpanTT && span <= o.maxSpanTT) { const [tA] = rangeLow(b1, b2), [tB] = rangeLow(b2, b3), [hh] = rangeHigh(b1, b3), neck = Math.min(tA, tB), hgt = mx - neck;
+        const depthOK = (mnP - Math.max(tA, tB)) / mx > o.swingDepthTol && hgt >= o.minHeightAtr * atrV, pl = priorLow(b1), trendOK = !o.reqTrend || (!na(pl) && pl <= neck - o.trendMult * hgt), notBroken = C[t] >= neck;
+        if (hh <= mx && depthOK && trendOK && notBroken) done = addPat(mk({ kind: 'TT', prio: 5, bull: false, x1: b1, x2: b3, lvlY: neck, lvlX: b1, height: hgt, stop: mx })); } }
+    if (!done && N >= 2) { const d2 = phP[N - 1], e2 = phB[N - 1];
+      for (let j = N - 2; j >= Math.max(0, N - 6); j--) { const d1 = phP[j], e1 = phB[j], dspan = e2 - e1; if (dspan > o.maxSpanDT) break; const dmx = Math.max(d1, d2), dsim = Math.abs(d1 - d2) / dmx < o.dtTol && Math.abs(d1 - d2) <= o.peakAtrTol * atrV;
+        if (dsim && crossCount(e1, e2, Math.min(d1, d2), true) <= o.maxCross && dspan >= o.minGapBarsDT && dspan >= o.minSpanDT) { const [tr2] = rangeLow(e1, e2), [mid] = rangeHigh(e1 + 1, e2 - 1), hgt2 = dmx - tr2;
+          const cleanOK = na(mid) || mid <= dmx, depthOK2 = (Math.min(d1, d2) - tr2) / dmx > o.swingDepthTol && hgt2 >= o.minHeightAtr * atrV, pl2 = priorLow(e1), trendOK2 = !o.reqTrend || (!na(pl2) && pl2 <= tr2 - o.trendMult * hgt2), notBroken2 = C[t] >= tr2;
+          if (cleanOK && depthOK2 && trendOK2 && notBroken2) { done = addPat(mk({ kind: 'DT', prio: 4, bull: false, x1: e1, x2: e2, lvlY: tr2, lvlX: e1, height: hgt2, stop: dmx })); break; } } } }
+    return done; };
+  const detectBottoms = () => { const N = plP.length; let done = false;
+    if (N >= 3) { const l1 = plP[N - 3], l2 = plP[N - 2], l3 = plP[N - 1], b1 = plB[N - 3], b2 = plB[N - 2], b3 = plB[N - 1], mn = Math.min(l1, l2, l3), mxL = Math.max(l1, l2, l3);
+      const sim = (mxL - mn) / mxL < o.dtTol && mxL - mn <= o.peakAtrTol * atrV && crossCount(b1, b3, mxL, false) <= o.maxCross, span = b3 - b1, gaps = b2 - b1 >= o.minGapBarsTT && b3 - b2 >= o.minGapBarsTT;
+      if (sim && gaps && span >= o.minSpanTT && span <= o.maxSpanTT) { const [cA] = rangeHigh(b1, b2), [cB] = rangeHigh(b2, b3), [ll] = rangeLow(b1, b3), neck = Math.max(cA, cB), hgt = neck - mn;
+        const depthOK = (Math.min(cA, cB) - mxL) / neck > o.swingDepthTol && hgt >= o.minHeightAtr * atrV, ph = priorHigh(b1), trendOK = !o.reqTrend || (!na(ph) && ph >= neck + o.trendMult * hgt), notBroken = C[t] <= neck;
+        if (ll >= mn && depthOK && trendOK && notBroken) done = addPat(mk({ kind: 'TB', prio: 5, bull: true, x1: b1, x2: b3, lvlY: neck, lvlX: b1, height: hgt, stop: mn })); } }
+    if (!done && N >= 2) { const d2 = plP[N - 1], e2 = plB[N - 1];
+      for (let j = N - 2; j >= Math.max(0, N - 6); j--) { const d1 = plP[j], e1 = plB[j], dspan = e2 - e1; if (dspan > o.maxSpanDT) break; const dmn = Math.min(d1, d2), dsim = Math.abs(d1 - d2) / Math.max(d1, d2) < o.dtTol && Math.abs(d1 - d2) <= o.peakAtrTol * atrV;
+        if (dsim && crossCount(e1, e2, Math.max(d1, d2), false) <= o.maxCross && dspan >= o.minGapBarsDT && dspan >= o.minSpanDT) { const [cr2] = rangeHigh(e1, e2), [mid] = rangeLow(e1 + 1, e2 - 1), hgt2 = cr2 - dmn;
+          const cleanOK = na(mid) || mid >= dmn, depthOK2 = (cr2 - Math.max(d1, d2)) / cr2 > o.swingDepthTol && hgt2 >= o.minHeightAtr * atrV, ph2 = priorHigh(e1), trendOK2 = !o.reqTrend || (!na(ph2) && ph2 >= cr2 + o.trendMult * hgt2), notBroken2 = C[t] <= cr2;
+          if (cleanOK && depthOK2 && trendOK2 && notBroken2) { done = addPat(mk({ kind: 'DB', prio: 4, bull: true, x1: e1, x2: e2, lvlY: cr2, lvlX: e1, height: hgt2, stop: dmn })); break; } } } }
+    return done; };
+  const detectWedge = () => { const nh = phP.length, nl = plP.length; if (nh < 3 || nl < 3) return;
+    const hx1 = phB[nh - 3], hy1 = phP[nh - 3], hxm = phB[nh - 2], hym = phP[nh - 2], hx2 = phB[nh - 1], hy2 = phP[nh - 1], lx1 = plB[nl - 3], ly1 = plP[nl - 3], lxm = plB[nl - 2], lym = plP[nl - 2], lx2 = plB[nl - 1], ly2 = plP[nl - 1];
+    const x1 = Math.min(hx1, lx1), x2 = Math.max(hx2, lx2), xs = Math.max(hx1, lx1), span = x2 - x1, inter = xs < Math.min(hx2, lx2);
+    if (inter && span >= o.WEDGE_MIN && span <= o.WEDGE_MAX) { const sH = (hy2 - hy1) / (hx2 - hx1), sL = (ly2 - ly1) / (lx2 - lx1), uE = hy1 + sH * (x2 - hx1), dE = ly1 + sL * (x2 - lx1), gX = (hy1 + sH * (xs - hx1)) - (ly1 + sL * (xs - lx1)), gE = uE - dE;
+      const conv = gX > 0 && gE > 0 && gE < gX * 0.75, fit = Math.abs(hym - (hy1 + sH * (hxm - hx1))) <= atrV && Math.abs(lym - (ly1 + sL * (lxm - lx1))) <= atrV, rising = sH > 0 && sL > sH, falling = (FWFIX ? (sL < 0 && sH < sL) : (sH < 0 && sL < sH));   // 원본 하락 쐐기 식 = sH < 0 and sL < sH(아랫선이 더 가파름 → 벌어짐 → conv 와 함께 참이 될 수 없음) · 상승 쐐기의 거울로 바로잡음(기준서 원본과 다른 점 ④)
+      const inside = (conv && fit && (rising || falling)) ? contained(xs, x2, hx1, hy1, sH, lx1, ly1, sL) : false;
+      if (inside && rising) addPat(mk({ kind: 'RW', prio: 3, bull: false, x1, x2, lvlY: ly1, lvlX: lx1, lvlSlope: sL, height: gX, fixedTarget: ly1, stop: hy2 }));
+      else if (inside && falling) addPat(mk({ kind: 'FW', prio: 3, bull: true, x1, x2, lvlY: hy1, lvlX: hx1, lvlSlope: sH, height: gX, fixedTarget: hy1, stop: ly2 })); } };
+  const detectTriFlag = () => { const nh = phP.length, nl = plP.length; if (nh < 2 || nl < 2) return;
+    const bA = phB[nh - 2], hA = phP[nh - 2], bC = phB[nh - 1], hC = phP[nh - 1], lbA = plB[nl - 2], lA = plP[nl - 2], lbC = plB[nl - 1], lC = plP[nl - 1];
+    const x1 = Math.min(bA, lbA), x2 = Math.max(bC, lbC), xs = Math.max(bA, lbA), span = x2 - x1, inter = xs < Math.min(bC, lbC);
+    if (!(inter && span > 0)) return;
+    const sH = (hC - hA) / (bC - bA), sL = (lC - lA) / (lbC - lbA), uX = hA + sH * (xs - bA), dX = lA + sL * (xs - lbA), uE = hA + sH * (x2 - bA), dE = lA + sL * (x2 - lbA), gX = uX - dX, gE = uE - dE;
+    const flatH = Math.abs(hC - hA) / ((hC + hA) * 0.5) < o.flatTol, flatL = Math.abs(lC - lA) / ((lC + lA) * 0.5) < o.flatTol, conv = gX > 0 && gE > 0 && gE < gX * 0.8, parallel = gX > 0 && gE > 0 && Math.abs(gE / gX - 1.0) < 0.35;
+    const triSpan = span >= o.TRI_MIN && span <= o.TRI_MAX, symSpan = span >= o.SYM_MIN && span <= o.SYM_MAX, flagSpan = span >= o.FLAG_MIN && span <= o.FLAG_MAX;
+    if (conv && flatH && !flatL && lC > lA && triSpan) { const lvl = Math.max(hA, hC); if (contained(xs, x2, bA, lvl, 0.0, lbA, lA, sL)) addPat(mk({ kind: 'ASC', prio: 3, bull: true, x1, x2, lvlY: lvl, lvlX: bA, height: lvl - dX, stop: lC })); }
+    else if (conv && flatL && !flatH && hC < hA && triSpan) { const lvl = Math.min(lA, lC); if (contained(xs, x2, bA, hA, sH, lbA, lvl, 0.0)) addPat(mk({ kind: 'DESC', prio: 3, bull: false, x1, x2, lvlY: lvl, lvlX: lbA, height: uX - lvl, stop: hC })); }
+    else if (conv && !flatH && !flatL && hC < hA && lC > lA && symSpan) { if (contained(xs, x2, bA, hA, sH, lbA, lA, sL)) addPat(mk({ kind: 'SYM', prio: 3, bull: false, twoSided: true, x1, x2, lvlY: hA, lvlX: bA, lvlSlope: sH, l2Y: lA, l2X: lbA, l2Slope: sL, height: gX })); }
+    else if (parallel && flagSpan && x1 > 0) {
+      if (sH < 0 && sL < 0) { const [base] = rangeLow(Math.max(0, x1 - o.poleLook), x1), pole = hA - base; if (!na(base) && pole >= o.poleAtrMult * atrV && hA - Math.min(lA, lC) < pole * 0.5 && contained(xs, x2, bA, hA, sH, lbA, lA, sL)) addPat(mk({ kind: 'BF', prio: 2, bull: true, x1, x2, lvlY: hA, lvlX: bA, lvlSlope: sH, height: pole, stop: lC })); }
+      else if (sH > 0 && sL > 0) { const [peak] = rangeHigh(Math.max(0, x1 - o.poleLook), x1), pole2 = peak - lA; if (!na(peak) && pole2 >= o.poleAtrMult * atrV && Math.max(hA, hC) - lA < pole2 * 0.5 && contained(xs, x2, bA, hA, sH, lbA, lA, sL)) addPat(mk({ kind: 'BRF', prio: 2, bull: false, x1, x2, lvlY: lA, lvlX: lbA, lvlSlope: sL, height: pole2, stop: hC })); } } };
+  const detectCup = () => { const nh = phP.length, nl = plP.length; if (!(nh >= 2 && nl >= 1)) return; const hb = plB[nl - 1], hl = plP[nl - 1]; let r = -1;
+    for (let i = nh - 1; i >= 0; i--) if (phB[i] < hb) { r = i; break; }
+    if (r < 1) return; const R = phP[r], bR = phB[r], hLen = hb - bR; if (!(hLen >= 2 && hLen <= o.handleMaxBars && hl < R)) return;
+    let found = false, Lc = NaN, bL = NaN, bt = NaN;
+    for (let j = r - 1; j >= 0; j--) { const Lj = phP[j], bLj = phB[j], span = bR - bLj; if (span > o.CUP_MAX) break;
+      if (span >= o.CUP_MIN && Math.abs(Lj - R) / Math.max(Lj, R) < o.shoulderTol) { const [lo, blo] = rangeLow(bLj, bR), [hi] = rangeHigh(bLj, bR), rimJ = Math.max(Lj, R), depth = (rimJ - lo) / rimJ, pos = (blo - bLj) / span;
+        const hOK = R - hl <= o.handleDepthPct * (rimJ - lo) && hl > lo + (rimJ - lo) * 0.5;
+        if (depth > o.cupDepthMinPct && depth < o.cupDepthMaxPct && hi <= rimJ * 1.005 && pos >= 0.25 && pos <= 0.75 && hOK) { found = true; Lc = Lj; bL = bLj; bt = lo; break; } } }
+    if (found) { const rim = Math.max(Lc, R); addPat(mk({ kind: 'CH', prio: 4, bull: true, x1: bL, x2: hb, lvlY: rim, lvlX: bL, height: rim - bt, stop: hl })); } };
+  // ── 한 봉의 패턴 삶(원본 advance) ──
+  const advance = (p, bullFilt, bearFilt) => { let ev = 0;
+    if (p.state === 0) { const up = levelAt(p, t), dn = p.twoSided ? level2At(p, t) : NaN, buf = o.breakBufPct / 100;
+      const brkUp = (p.twoSided || p.bull) && C[t] > up * (1 + buf), brkDn = p.twoSided ? C[t] < dn * (1 - buf) : (!p.bull && C[t] < up * (1 - buf));
+      if (brkUp || brkDn) { if (na(p.beyondBar)) p.beyondBar = t; } else p.beyondBar = NaN;
+      const inWin = !na(p.beyondBar) && t - p.beyondBar <= o.confirmWin, fireUp = brkUp && inWin && bullFilt, fireDn = brkDn && inWin && bearFilt;
+      const invalid = !p.twoSided && ((p.bull && (C[t] < p.stop || up <= p.stop)) || (!p.bull && (C[t] > p.stop || up >= p.stop)));
+      const expired = t - p.x2 > o.expiryBars || (!na(p.beyondBar) && t - p.beyondBar > o.confirmWin);
+      if (fireUp || fireDn) { const isBull = fireUp, lvlB = isBull ? up : (p.twoSided ? dn : up); let tgt = isBull ? lvlB + p.height : lvlB - p.height;
+        if (!na(p.fixedTarget) && (isBull ? p.fixedTarget > C[t] : p.fixedTarget < C[t])) tgt = p.fixedTarget;
+        p.state = 1; p.bull = isBull; p.trigBar = t; p.trigSL = p.twoSided ? (isBull ? dn : up) : p.stop; p.trigTP = tgt; ev = 1; }
+      else if (invalid || expired) { p.state = 2; ev = 2; p.endBar = t; p.why = invalid ? 'inv' : 'exp'; } /* [S1919] 끝 봉 · 까닭(표시용) */ }
+    else if (p.state === 1 && t > p.trigBar) { const slHit = p.bull ? L[t] <= p.trigSL : H[t] >= p.trigSL, tpHit = p.bull ? H[t] >= p.trigTP : L[t] <= p.trigTP; if (slHit) { p.state = 4; ev = 4; p.endBar = t; } else if (tpHit) { p.state = 3; ev = 3; p.endBar = t; } }
+    return ev; };
+  for (t = 0; t < n; t++) {
+    if (!na(PH[t])) { phP.push(PH[t]); phB.push(t - o.rightBars); if (phP.length > 150) { phP.shift(); phB.shift(); } }
+    if (!na(PL[t])) { plP.push(PL[t]); plB.push(t - o.rightBars); if (plP.length > 150) { plP.shift(); plB.shift(); } }
+    atrV = na(AT[t]) ? H[t] - L[t] : AT[t];
+    const newPH = !na(PH[t]), newPL = !na(PL[t]);
+    if (newPH) { detectHSTop(); detectTops(); }
+    if (newPL) { detectHSInv(); detectBottoms(); detectCup(); }
+    if (newPH || newPL) { detectWedge(); detectTriFlag(); }
+    const rsiUp = RS[t] > RS[t - 1], rsiDn = RS[t] < RS[t - 1], hasVol = !na(V[t]) && !na(VA[t]) && VA[t] > 0, volSpike = hasVol ? V[t] > VA[t] * o.volMult : true;
+    const bullFilt = (!o.useFollowThrough || (C[t] > O[t] && C[t] > C[t - 1])) && (!o.useVolumeSpike || volSpike) && (!o.useRSIMomentum || rsiUp);
+    const bearFilt = (!o.useFollowThrough || (C[t] < O[t] && C[t] < C[t - 1])) && (!o.useVolumeSpike || volSpike) && (!o.useRSIMomentum || rsiDn);
+    let bS = false, sS = false;
+    for (let i = pats.length - 1; i >= 0; i--) { const p = pats[i], ev = advance(p, bullFilt, bearFilt);
+      if (ev === 1) { const isBull = p.bull; trig.push({ t, kind: p.kind, dir: isBull ? 1 : -1, id: p.kind + '@' + p.x1 + '-' + p.x2 }); cnt(stat.conf, p.kind + (isBull ? '+' : '-'));
+        const cool = isBull ? (na(lastBuy) || t - lastBuy >= o.cooldownBars) : (na(lastSell) || t - lastSell >= o.cooldownBars), slotFree = isBull ? !bS : !sS;
+        if (cool && slotFree) { if (isBull) { bS = true; lastBuy = t; } else { sS = true; lastSell = t; } } }
+      else if (ev === 2) cnt(stat.fail, p.kind); }
+    if (bS) buy[t] = 1; if (sS) sell[t] = 1; }
+  return { trig, buy, sell, stat, pats }; }   // [S1919] pats = 원본 그림에 남은 패턴(최대 6 · 표시용)
+  return { run, DEF }; })();
+TV.acp2 = CP_ACP2;
+if (typeof module !== 'undefined' && module.exports) module.exports = { staCalc, stAny, atrAny, rngfilt, smoothrng, srcOf, ictObCalc, msbCalc, pobCalc, kzpCalc, acp2: CP_ACP2 };   // [S1919] ⑥
 })();
