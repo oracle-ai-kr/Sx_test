@@ -8,6 +8,7 @@
 //     ④ [S1870] Power Order Blocks [ChartPrime] — © ChartPrime · MPL 2.0 · 원본 = offline/tvchart/"Power Order Blocks (ChartPrime).txt"(파인 v6)
 //     ⑤ [S1871] ICT Killzones & Pivots [TFO] — © tradeforopp · MPL 2.0 · 원본 = offline/tvchart/"ICT Killzones & Pivots.txt"(파인 v6) · 지난 주 · 월 고가 · 저가 · 중간선만(킬존 · 일 · 시가 · 표 등은 뺌 · 30분 봉 문턱 안 봄)
 //     ⑥ [S1919] Auto Chart Patterns 2 — © mbedaiwi2 · MPL 2.0 · v4.5.1 · 원본 = offline/cpat/src_acp2.pine · 감지 · 겹침 정리 · 확정 · BUY/SELL 신호(그림 · 대시보드 · 성적 셈은 안 옮김) · 🕯️ 카드 📐 패턴 탭 표시용(풀차트 지표 아님)
+//     ⑦ [S1925] Wick Sequence Breakout — © Uncle_the_shooter · MPL 2.0 · 파인 v6 · 원본 = offline/tvchart/"Wick Sequence Breakout.txt"(273c7e35f64f · 사용자 2026-11-11 첨부) · 꼬리 · 흡수 봉 모임 상자 · 거래량 몫(추정) · 돌파 ▲▼ · TP/SL 그림 · 🕯️ 카드 📐 패턴 탭도 부름
 //   봉마다 파인 그대로 계산한다(전체 봉 · 그 봉까지 자료만). 앱이 더한 설정은 이름에 '앱' 을 단다.
 (function(){
 'use strict';
@@ -441,5 +442,132 @@ function run(O, H, L, C, V, opt) { const o = Object.assign({}, DEF, opt || {}), 
   return { trig, buy, sell, stat, pats }; }   // [S1919] pats = 원본 그림에 남은 패턴(최대 6 · 표시용)
   return { run, DEF }; })();
 TV.acp2 = CP_ACP2;
-if (typeof module !== 'undefined' && module.exports) module.exports = { staCalc, stAny, atrAny, rngfilt, smoothrng, srcOf, ictObCalc, msbCalc, pobCalc, kzpCalc, acp2: CP_ACP2 };   // [S1919] ⑥
+// ════════ [S1925] ⑦ Wick Sequence Breakout(WSB) — © Uncle_the_shooter · MPL 2.0 · 파인 v6 · 원본 = offline/tvchart/"Wick Sequence Breakout.txt"(사용자 2026-11-11 첨부) ════════
+//   꼬리 봉 · 흡수 봉이 최근 창(5봉)에 N(3)개 이상 → 상자(창 최고가 ~ 최저가) · 상자에 걸친 봉의 거래량을 종가 자리로 나눈 매수 · 매도 몫(추정치 — 실제 체결 매수 · 매도량 아님)
+//   종가가 상자를 뚫고 그쪽 몫이 크면 ▲ BUY(롱) · ▼ SELL(숏) · 어긋나면 상자만 지움 · TP/SL = 그림만(진입 = 신호 봉 종가 · SL = ATR × 1.5 · TP1 ~ 3 = 1 ~ 3R · 닿음은 SL · 맨 끝 TP 만 · 마지막 신호 하나)
+//   원본 15 ~ 523줄 봉마다 그대로 · 앱 차이: % 글 = 기다리는 상자 · 마지막 상자만(앱 칸 · 끄면 원본처럼 모든 상자) · % 글에 '추정' · 마지막 TP/SL 선을 가격 범위에 넣음 · 오른쪽 끝을 넘는 글은 안으로 당김 · 색 셋은 원본 기본 색
+//   표시용 · 판정 아님 · 실험 도구 · 성적 주장 없음 · 🕯️ 캔들 · 차트 읽기 카드 📐 패턴 탭이 같은 계산을 부름(기본 설정)
+const WSB_MT = 1e-9;   // syminfo.mintick 자리 — 봉 길이 0 일 때 나눗셈만 막음(그때 몫 = 0 · 값에 영향 없음)
+function wsbCalc(rows, p) { const { n, O, H, L, C } = cols4(rows), V = new Float64Array(n); for (let i = 0; i < n; i++) V[i] = num((rows[i] || {}).volume);
+  const rng = new Float64Array(n), up = new Float64Array(n), lo = new Float64Array(n), cp = new Float64Array(n);
+  for (let t = 0; t < n; t++) { const r = H[t] - L[t], ok = r > 0; rng[t] = r; up[t] = ok ? (H[t] - Math.max(O[t], C[t])) / r * 100 : 0; lo[t] = ok ? (Math.min(O[t], C[t]) - L[t]) / r * 100 : 0; cp[t] = ok ? (C[t] - L[t]) / r * 100 : 50; }
+  const atrV = T.atr(H, L, C, p.atrLen), atrTP = T.atr(H, L, C, p.tpAtrPeriod), avgR = T.sma(rng, p.signalSizeLen), avgV = T.sma(V, p.volAvgLen), W = p.windowSize, hh = hiN(H, W), ll = loN(L, W);   // ta.highest · lowest = ③ 의 hiN · loN(na 건너뜀 · 다 na 면 na · 앞 W − 1 봉 na)
+  const bearW = new Uint8Array(n), bullW = new Uint8Array(n), bearA = new Uint8Array(n), bullA = new Uint8Array(n), bearC = new Uint8Array(n), bullC = new Uint8Array(n);
+  for (let t = 0; t < n; t++) { const hv = p.useAbsorption && fin(avgV[t]) && avgV[t] > 0 && fin(V[t]) && V[t] >= avgV[t] * p.absVolMult, rOk = !p.useMinRange || ge(rng[t], atrV[t] * p.minAtrMult);
+    const bs = up[t] >= p.minUpperBear && lo[t] <= p.maxLowerBear, us = lo[t] >= p.minLowerBull && up[t] <= p.maxUpperBull; bearW[t] = (rOk && bs) ? 1 : 0; bullW[t] = (rOk && us) ? 1 : 0;
+    const ab = hv && rng[t] > 0 && le(rng[t], atrV[t] * p.absMaxAtr) && !bearW[t] && !bullW[t];
+    bullA[t] = (ab && (us || (!bs && cp[t] >= p.absClosePct))) ? 1 : 0; bearA[t] = (ab && (bs || (!us && cp[t] <= 100 - p.absClosePct))) ? 1 : 0;
+    bearC[t] = (bearW[t] || bearA[t]) ? 1 : 0; bullC[t] = (bullW[t] || bullA[t]) ? 1 : 0; }
+  const act = [], forms = [], sigB = new Uint8Array(n), sigS = new Uint8Array(n); let pB = false, pU = false, pM = false, tp = null;
+  const addV = (f, k) => { const h = H[k], l = L[k], c = C[k], v = V[k], r = Math.max(h - l, WSB_MT); if (h > f.bot && l < f.top) { f.bv += v * (c - l) / r; f.sv += v * (h - c) / r; } };
+  for (let t = 0; t < n; t++) {
+    let bc = 0, uc = 0, ac = 0; for (let i = 0; i < W; i++) { const k = t - i; if (k < 0) break; bc += bearC[k]; uc += bullC[k]; ac += (bearC[k] || bullC[k]) ? 1 : 0; }
+    const bR = bc >= p.nBars, uR = uc >= p.nBars, bP = bR && !uR, uP = uR && !bR, mP = p.useMixed && ac >= p.nBars && !bP && !uP, bF = bP && !pB, uF = uP && !pU, mF = mP && !pM; pB = bP; pU = uP; pM = mP;
+    const sOk = !p.useSignalSizeFilter || ge(rng[t], (t > 0 ? avgR[t - 1] : NaN) * p.signalSizeMult);
+    let recent = false; act.forEach(g => { if (g.formBar > t - W) recent = true; });
+    if ((bF || uF || (mF && !recent)) && act.length < p.maxConcurrent) {
+      const f = { top: hh[t], bot: ll[t], left: t - W + 1, formBar: t, mixed: !bF && !uF, kind: bF ? -1 : (uF ? 1 : 0), bv: 0, sv: 0, end: -1, st: 'live', vr: t, atr: atrV[t] };
+      for (let off = 0; off < W; off++) { if (t - off >= 0) addV(f, t - off); } act.push(f); forms.push(f); }
+    let bS = false, sS = false;
+    for (let i = act.length - 1; i >= 0; i--) { const f = act[i]; let rm = false;
+      const bu = (p.useCloseBO ? C[t] : H[t]) > f.top, bd = (p.useCloseBO ? C[t] : L[t]) < f.bot;
+      if (t > f.formBar && !(bu || bd)) addV(f, t);
+      f.vr = t; f.atr = atrV[t];
+      const vU = bu && f.bv >= f.sv, vD = bd && f.sv > f.bv;
+      if (bu || bd) { f.end = t; if (vU || vD) { f.st = vU ? 'up' : 'dn'; if (sOk) { if (vU && p.showBullSig) bS = true; if (vD && p.showBearSig) sS = true; } } else f.st = 'inv'; rm = true; }
+      else if (p.maxWaitBars > 0 && t - f.formBar > p.maxWaitBars) { f.st = 'exp'; f.end = t; rm = true; }
+      if (rm) act.splice(i, 1); }
+    if (bS) sigB[t] = 1; if (sS) sigS[t] = 1;
+    if (p.showTargets && bS !== sS) { const d = bS ? 1 : -1, e = C[t], rd = p.useAtrSL ? atrTP[t] * p.slAtrMult : e * (p.slPercent / 100);
+      const t1 = e + d * rd * p.rrTP1, t2 = e + d * rd * p.rrTP2, t3 = e + d * rd * p.rrTP3;
+      tp = { d, i: t, e, sl: e - d * rd, t1, t2, t3, ext: p.showTp3Level ? t3 : (p.showTp2Level ? t2 : (p.showTp1Level ? t1 : NaN)), end: -1, slH: false, tpH: false }; }
+    if (tp && tp.end < 0 && t > tp.i) { const slH = tp.d === 1 ? L[t] <= tp.sl : H[t] >= tp.sl, tpH = fin(tp.ext) && (tp.d === 1 ? H[t] >= tp.ext : L[t] <= tp.ext); if (slH || tpH) { tp.end = t; tp.slH = slH; tp.tpH = tpH; } }
+  }
+  return { n, O, C, hi: H, lw: L, atrTP, bearW, bullW, bearA, bullA, sigB, sigS, forms, tp }; }
+const WSB_COL = { bu: '#06a22f', be: '#cf1717', nt: '#787b86' };
+const wsbPx = v => !fin(v) ? '—' : (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-US') : Math.abs(v) >= 1 ? (+v.toFixed(2)).toString() : (+v.toPrecision(4)).toString());   // 원본 format.mintick 자리(앱 읽기 줄과 같은 꼴)
+function wsbTag(ctx, x, y, lines, bg, al, RE) {   // 원본 label(색 바탕 · 흰 글자) — al: 'l' = 점 오른쪽 · 'r' = 점 왼쪽(오른쪽 끝) · 'ul' = 점 아래 오른쪽(label_upper_left)
+  ctx.font = '600 8px Outfit,sans-serif'; const w = Math.max(...lines.map(s => ctx.measureText(s).width)) + 6, h = lines.length * 10 + 2;
+  let x0 = al === 'r' ? x - w : x; if (RE != null && x0 + w > RE) x0 = RE - w; const y0 = al === 'ul' ? y : y - h / 2;   // 앱: 그림 칸 오른쪽 끝을 넘으면 안으로 당김
+  ctx.fillStyle = bg; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, y0, w, h, 2); else ctx.rect(x0, y0, w, h); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; lines.forEach((s, j) => ctx.fillText(s, x0 + 3, y0 + 6 + j * 10)); return { y0, h }; }
+TV.reg({
+  id: 'wsb', place: 'over', name: 'Wick Sequence Breakout', short: 'WSB', kname: '꼬리 연속 돌파(WSB)',
+  author: 'Uncle_the_shooter', license: 'MPL 2.0', srcFile: 'Wick Sequence Breakout.txt',
+  inputs: [
+    { k: 'nBars', nm: '꼬리 봉 최소 개수', o: 'Min. number of wick candles', t: 'int', d: 3, min: 1, max: 20 },
+    { k: 'windowSize', nm: '창 크기(봉)', o: 'Window size (candles)', t: 'int', d: 5, min: 1, max: 50 },
+    { k: 'minUpperBear', nm: '하락 모임 — 윗꼬리 최소(%)', o: 'Min. upper wick share — bearish (%)', t: 'float', d: 45, min: 0, max: 100, step: 1 },
+    { k: 'maxLowerBear', nm: '하락 모임 — 아랫꼬리 최대(%)', o: 'Max. lower wick share — bearish (%)', t: 'float', d: 25, min: 0, max: 100, step: 1 },
+    { k: 'minLowerBull', nm: '상승 모임 — 아랫꼬리 최소(%)', o: 'Min. lower wick share — bullish (%)', t: 'float', d: 45, min: 0, max: 100, step: 1 },
+    { k: 'maxUpperBull', nm: '상승 모임 — 윗꼬리 최대(%)', o: 'Max. upper wick share — bullish (%)', t: 'float', d: 25, min: 0, max: 100, step: 1 },
+    { k: 'maxWaitBars', nm: '돌파 기다림 한도(봉 · 0 = 없음)', o: 'Breakout wait limit (bars)', t: 'int', d: 100, min: 0, max: 5000 },
+    { k: 'useCloseBO', nm: '종가로 돌파 봄(끄면 고가 · 저가)', o: 'Breakout by close price', t: 'bool', d: true },
+    { k: 'useMinRange', nm: '작은 봉 거름(ATR)', o: 'Filter small candles (ATR)', t: 'bool', d: false },
+    { k: 'minAtrMult', nm: '작은 봉 — ATR 배수', o: 'ATR multiplier', t: 'float', d: 0.3, min: 0, max: 10, step: 0.05 },
+    { k: 'atrLen', nm: 'ATR 기간', o: 'ATR period', t: 'int', d: 14, min: 1, max: 500 },
+    { k: 'useSignalSizeFilter', nm: '돌파 봉 크기 거름', o: 'Filter by breakout candle size', t: 'bool', d: false },
+    { k: 'signalSizeMult', nm: '돌파 봉 — 크기 배수', o: 'Size multiplier', t: 'float', d: 1.5, min: 0.1, max: 20, step: 0.1 },
+    { k: 'signalSizeLen', nm: '평균 봉 길이 기간', o: 'Average candle size period', t: 'int', d: 20, min: 1, max: 500 },
+    { k: 'showBearSig', nm: '▼ SELL(숏) 신호', o: 'Show bearish signals', t: 'bool', d: true },
+    { k: 'showBullSig', nm: '▲ BUY(롱) 신호', o: 'Show bullish signals', t: 'bool', d: true },
+    { k: 'removeInvalidBox', nm: '거래량과 어긋난 돌파 상자 지움', o: 'Remove box on mismatched signal', t: 'bool', d: true },
+    { k: 'useAbsorption', nm: '흡수 봉(작은 봉 · 큰 거래량)도 셈', o: 'Count absorption candles', t: 'bool', d: true },
+    { k: 'volAvgLen', nm: '평균 거래량 기간', o: 'Average volume period', t: 'int', d: 20, min: 1, max: 500 },
+    { k: 'absVolMult', nm: '흡수 — 거래량 배수', o: 'Volume multiplier', t: 'float', d: 1.1, min: 1, max: 20, step: 0.1 },
+    { k: 'absMaxAtr', nm: '흡수 — 봉 길이 최대(× ATR)', o: 'Max. candle size (× ATR)', t: 'float', d: 0.6, min: 0.05, max: 10, step: 0.05 },
+    { k: 'absClosePct', nm: '흡수 — 종가 자리 문턱(%)', o: 'Close location threshold (%)', t: 'float', d: 60, min: 50, max: 100, step: 1 },
+    { k: 'maxConcurrent', nm: '동시에 기다리는 상자', o: 'Max. active formations', t: 'int', d: 2, min: 1, max: 30 },
+    { k: 'useMixed', nm: '섞임 상자(점선)', o: 'Mixed formations', t: 'bool', d: true },
+    { k: 'keepExpiredBox', nm: '기한 넘긴 상자도 흐리게 남김', o: 'Keep expired boxes', t: 'bool', d: false },
+    { k: 'paintWicks', nm: '꼬리 · 흡수 봉 색칠', o: 'Highlight wick candles', t: 'bool', d: true },
+    { k: 'boxFillTransp', nm: '상자 바탕 투명도', o: 'Box background transparency', t: 'int', d: 85, min: 0, max: 100 },
+    { k: 'boxBorderTransp', nm: '상자 테두리 투명도', o: 'Box border transparency', t: 'int', d: 60, min: 0, max: 100 },
+    { k: 'showVolBars', nm: '매수 · 매도 몫 막대(추정)', o: 'Show volume bars', t: 'bool', d: true },
+    { k: 'showVolPctLabel', nm: '매수 · 매도 % 글(추정)', o: 'Show % label', t: 'bool', d: true },
+    { k: 'pctLast', nm: '% 글은 기다리는 상자 · 마지막 상자만(앱)', o: '(앱 — 원본은 모든 상자)', t: 'bool', d: true },
+    { k: 'showTargets', nm: 'TP/SL 선', o: 'Show TP/SL levels', t: 'bool', d: true },
+    { k: 'useAtrSL', nm: 'SL = ATR(끄면 진입가 %)', o: 'SL = ATR', t: 'bool', d: true },
+    { k: 'tpAtrPeriod', nm: 'TP/SL ATR 기간', o: 'ATR period (TP/SL)', t: 'int', d: 14, min: 1, max: 500 },
+    { k: 'slAtrMult', nm: 'SL — ATR 배수', o: 'ATR multiplier for SL', t: 'float', d: 1.5, min: 0.1, max: 20, step: 0.1 },
+    { k: 'slPercent', nm: 'SL — 진입가 %', o: 'SL % from Entry', t: 'float', d: 1.0, min: 0.1, max: 50, step: 0.1 },
+    { k: 'rrTP1', nm: 'TP1 R', o: 'RR for TP1', t: 'float', d: 1.0, min: 0.1, max: 20, step: 0.1 },
+    { k: 'rrTP2', nm: 'TP2 R', o: 'RR for TP2', t: 'float', d: 2.0, min: 0.1, max: 20, step: 0.1 },
+    { k: 'rrTP3', nm: 'TP3 R', o: 'RR for TP3', t: 'float', d: 3.0, min: 0.1, max: 20, step: 0.1 },
+    { k: 'showSlLevel', nm: 'SL 선', o: 'Show SL level', t: 'bool', d: true },
+    { k: 'showTp1Level', nm: 'TP1 선', o: 'Show TP1 level', t: 'bool', d: true },
+    { k: 'showTp2Level', nm: 'TP2 선', o: 'Show TP2 level', t: 'bool', d: true },
+    { k: 'showTp3Level', nm: 'TP3 선', o: 'Show TP3 level', t: 'bool', d: true }
+  ],
+  legend: p => 'WSB ' + p.nBars + '/' + p.windowSize,
+  calc: wsbCalc,
+  range(R, s, e, p, out) { const q = R.tp; if (!p.showTargets || !q) return; const r = q.end < 0 ? R.n : q.end; if (r < s || q.i >= e) return;   // 앱: 마지막 TP/SL 선을 가격 범위에 넣음(원본 TV 는 안 넣음 — 안 넣으면 TP3 가 그림 칸 밖으로 나가 안 보임)
+    out.push(q.e); if (p.showSlLevel) out.push(q.sl); if (p.showTp1Level) out.push(q.t1); if (p.showTp2Level) out.push(q.t2); if (p.showTp3Level) out.push(q.t3); },
+  barColor(R, i, p) { if (!p.paintWicks) return null; return R.bearW[i] ? rgba(WSB_COL.be, 0.3) : R.bullW[i] ? rgba(WSB_COL.bu, 0.3) : R.bearA[i] ? rgba(WSB_COL.be, 0.65) : R.bullA[i] ? rgba(WSB_COL.bu, 0.65) : null; },
+  draw(ctx, R, G, p) { const RE = G.W - G.pad.r, x = G.x, y = G.y, li = R.n - 1, fa = (100 - p.boxFillTransp) / 100, ba = (100 - p.boxBorderTransp) / 100;
+    ctx.save(); let lastF = null; R.forms.forEach(f => { if (f.st === 'up' || f.st === 'dn' || (f.st === 'inv' && !p.removeInvalidBox) || (f.st === 'exp' && p.keepExpiredBox)) lastF = f; });
+    R.forms.forEach(f => { if (!fin(f.top) || !fin(f.bot)) return; if (f.st === 'inv' && p.removeInvalidBox) return; if (f.st === 'exp' && !p.keepExpiredBox) return;
+      const rb = f.st === 'live' ? li + 1 : f.end, x0 = x(f.left), x1 = Math.min(x(rb), RE); if (x1 < G.pad.l) return;
+      const col = f.st === 'up' ? WSB_COL.bu : f.st === 'dn' ? WSB_COL.be : WSB_COL.nt, y0 = y(f.top), y1 = y(f.bot), h = Math.max(y1 - y0, 0.5);
+      ctx.fillStyle = rgba(col, f.st === 'exp' ? 0.08 : fa); ctx.fillRect(x0, y0, x1 - x0, h); ctx.strokeStyle = rgba(col, f.st === 'exp' ? 0.25 : ba); ctx.lineWidth = 1; ctx.setLineDash(f.mixed ? [4, 3] : []); ctx.strokeRect(x0, y0, x1 - x0, h); ctx.setLineDash([]);
+      if (!fin(f.atr)) return; const bH = f.atr * 0.18, gH = f.atr * 0.08, uT = f.bot - gH, uB = uT - bH, dT = uB - gH, dB = dT - bH, tot = f.bv + f.sv, fw = Math.max((f.vr + 1) - f.left, 1);
+      if (p.showVolBars) { const ur = f.left + Math.round(fw * (tot > 0 ? f.bv / tot : 0.5)), dr = f.left + Math.round(fw * (tot > 0 ? f.sv / tot : 0.5));
+        ctx.fillStyle = rgba(WSB_COL.bu, 0.85); ctx.fillRect(x0, y(uT), Math.min(x(ur), RE) - x0, Math.max(y(uB) - y(uT), 1)); ctx.fillStyle = rgba(WSB_COL.be, 0.85); ctx.fillRect(x0, y(dT), Math.min(x(dr), RE) - x0, Math.max(y(dB) - y(dT), 1)); }
+      if (p.showVolPctLabel && (!p.pctLast || f.st === 'live' || f === lastF)) { const bp = tot > 0 ? f.bv / tot * 100 : 50, ex = f.st === 'exp';
+        wsbTag(ctx, x0, y(dB - gH * 0.5), ex ? ['EXPIRED'] : ['Buy ' + bp.toFixed(1) + '%', 'Sell ' + (100 - bp).toFixed(1) + '% · 추정'], ex ? '#9e9e9e' : (bp >= 50 ? WSB_COL.bu : WSB_COL.be), 'ul', RE); } });
+    const q = R.tp; if (p.showTargets && q) { const rb = q.end < 0 ? li + 1 : q.end, x0 = x(q.i), x1 = Math.min(x(rb), RE);
+      if (x1 >= G.pad.l) { const buy = q.d === 1, cE = buy ? WSB_COL.bu : WSB_COL.be, cS = buy ? WSB_COL.be : WSB_COL.bu, ln = (v, c, w, dash) => { if (!fin(v)) return; ctx.strokeStyle = rgba(c, 0.6); ctx.lineWidth = w; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y(v)); ctx.lineTo(x1, y(v)); ctx.stroke(); ctx.setLineDash([]); };
+        if (p.showSlLevel && fin(q.sl)) { ctx.fillStyle = rgba(cS, 0.2); ctx.fillRect(x0, Math.min(y(q.e), y(q.sl)), x1 - x0, Math.abs(y(q.sl) - y(q.e))); }
+        let fx = q.e; [[p.showTp1Level, q.t1], [p.showTp2Level, q.t2], [p.showTp3Level, q.t3]].forEach(([on, v]) => { if (on && fin(v)) fx = buy ? Math.max(fx, v) : Math.min(fx, v); });
+        if (fx !== q.e) { ctx.fillStyle = rgba(cE, 0.2); ctx.fillRect(x0, Math.min(y(q.e), y(fx)), x1 - x0, Math.abs(y(fx) - y(q.e))); }
+        ln(q.e, cE, 2, []); if (p.showSlLevel) ln(q.sl, cS, 1, [4, 3]); if (p.showTp1Level) ln(q.t1, cE, 1, []); if (p.showTp2Level) ln(q.t2, cE, 1, []); if (p.showTp3Level) ln(q.t3, cE, 1, [1, 2]);
+        const live = q.end < 0, lx = live ? RE - 2 : x(q.end) + 3, tags = [[q.e, (buy ? 'BUY ' : 'SELL ') + wsbPx(q.e), cE]];
+        if (p.showSlLevel) tags.push([q.sl, 'SL ' + wsbPx(q.sl), cS]); if (p.showTp1Level) tags.push([q.t1, 'TP1 ' + wsbPx(q.t1), cE]); if (p.showTp2Level) tags.push([q.t2, 'TP2 ' + wsbPx(q.t2), cE]); if (p.showTp3Level) tags.push([q.t3, 'TP3 ' + wsbPx(q.t3), cE]);
+        let last = -Infinity; tags.map(a => ({ v: a[0], s: a[1], c: a[2], yy: y(a[0]) })).filter(a => fin(a.yy)).sort((a, b) => a.yy - b.yy).forEach(a => { if (a.yy < last + 11) a.yy = last + 11; last = a.yy; wsbTag(ctx, lx, a.yy, [a.s], rgba(a.c, 0.75), live ? 'r' : 'l', RE); }); } }
+    for (let i = Math.max(0, G.s); i < R.n; i++) { const xi = x(i); if (xi < G.pad.l || xi > RE) continue;   // plotshape ▲(봉 아래) · ▼(봉 위)
+      if (R.sigB[i]) { const yy = y(R.lw[i]) + 4; ctx.fillStyle = WSB_COL.bu; ctx.beginPath(); ctx.moveTo(xi, yy); ctx.lineTo(xi - 4, yy + 7); ctx.lineTo(xi + 4, yy + 7); ctx.fill(); }
+      if (R.sigS[i]) { const yy = y(R.hi[i]) - 4; ctx.fillStyle = WSB_COL.be; ctx.beginPath(); ctx.moveTo(xi, yy); ctx.lineTo(xi - 4, yy - 7); ctx.lineTo(xi + 4, yy - 7); ctx.fill(); } }
+    ctx.restore(); }
+});
+if (typeof module !== 'undefined' && module.exports) module.exports = { staCalc, stAny, atrAny, rngfilt, smoothrng, srcOf, ictObCalc, msbCalc, pobCalc, kzpCalc, acp2: CP_ACP2, wsbCalc };   // [S1919] ⑥ · [S1925] ⑦
 })();
