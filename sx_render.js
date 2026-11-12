@@ -4604,6 +4604,9 @@ if(typeof window!=='undefined'){ window._stratPoolCsv=_stratPoolCsv; window._tre
 //     `nStocks`는 **거래발생 수가 아니라 시도한 종목 수**다 — 미청산율 분모라서 여기를 틀리면 조용히 다른 수가 된다.
 function _poolGridHtml(r){
   const a=r.agg||{n:0};
+  // [S1929] ⚖️ 배지 값과 맞춤 — 같은 종목 줄(r.pl.H)이 있으면 노출보정 Δ 칸 → 같은 비율보다 Δ(배지 ①) · 기저 줄 → 그냥 들고 있기 줄(Δ = 배지 '참고') · 같은 이름 다른 셈 칸에 꼬리 — 값은 _vdStat · _bhMed 그대로(새 셈 0) · 줄이 없으면 직전본 그대로
+  const _pl=r.pl, _vs=(_pl && _pl.H && _pl.H.length && typeof _vdStat==='function')?_vdStat({ pl:_pl }):null, _vt=(_vs && _vs.dR!=null && isFinite(_vs.dR))?{ r:_vs.dR, b:_vs.dB, B:_bhMed(_pl.H,'b'), rg:!!_pl.rg }:null;
+  const _pp=v=>(v==null || !isFinite(v))?'—':((v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+'%p'), _tl=t=>_vt?'<br><span data-tl="1" style="font-size:7.5px;opacity:.85">'+t+'</span>':'';
   const box=(v,l,c)=>`<div style="background:var(--surface2);border-radius:8px;padding:7px 3px;text-align:center"><div style="font-size:13px;font-weight:800;color:${c||'var(--text)'}">${v}</div><div style="font-size:8.5px;color:var(--text3)">${l}</div></div>`;
   const pc=v=>((+v>=0?'+':'')+v);
   const cOf=v=>(+v>=0?'#22c55e':'#e8365a');
@@ -4633,21 +4636,24 @@ function _poolGridHtml(r){
   const _idle=(_dlt!=null && Math.abs(_dlt)<5 && _openPct>=50);
   const _dltC=(_dlt==null)?'var(--text3)':(_idle?'#d97706':'var(--text2)');
   const _dltNote=_idle?' ⚠칩 무동작 의심(미청산 '+_openPct.toFixed(0)+'%)':((_dlt!=null&&Math.abs(_dlt)<5)?' — 많이 일했지만 순기여 0':'');
+  // [S1929] 그냥 들고 있기 줄(배지 '참고'와 같은 값) — '칩 무동작' 경고는 지금 조건(첫 진입 뒤 손절 없이 들고 있던 것과 5%p 안쪽 · 미청산 50% 이상) 그대로 · 글자만 Δ 대신 그 뜻으로
+  const _dltNote2=_idle?(' ⚠칩 무동작 의심(미청산 '+_openPct.toFixed(0)+'% · 첫 진입 뒤 손절 없이 들고 있던 것과 5%p 안쪽)'):((_dlt!=null&&Math.abs(_dlt)<5)?' — 첫 진입 뒤 손절 없이 들고 있던 것과 5%p 안쪽(많이 일했지만 순기여 0)':'');
+  const _bhLn=_vt?('<div data-bh-line="1" style="font-size:8.5px;color:var(--text3);margin:3px 0 2px;line-height:1.5">'+(_vt.rg?'🧺 같은 구간 들고 있기(켜진 구간에 들어갈 때 사고 나올 때 팜)':'🧺 그냥 들고 있기(첫 봉 종가 매수 → 끝 봉 종가)')+' 종목복리 중앙 <b>'+((_vt.B==null || !isFinite(_vt.B))?'—':((_vt.B>=0?'+':'−')+Math.abs(_vt.B*100).toFixed(1)+'%'))+'</b> · 이 설정 Δ <b style="color:'+((_vt.b!=null && isFinite(_vt.b))?(_vt.b>=0?'#22c55e':'#e8365a'):'var(--text3)')+'">'+_pp(_vt.b)+'</b>(종목별 차이 중앙 · ⚖️ 배지 \'참고\'와 같은 값)'+_dltNote2+' — '+(_vt.rg?'같은 구간 들고 있기는 켜진 구간 내내 들고 있어':'그냥 들고 있기는 늘 100% 들고 있어')+' 덜 들어가는 설정은 이 Δ 가 낮게 나오기 쉽다 → 든 만큼만 견준 <b>같은 비율보다 Δ</b>(위 칸 · 배지 ①)를 함께 보세요</div>'):'';
   return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:2px">`
     +box(a.n,'총 거래')+box(a.winRate+'%','승률',wrC)+box(a.pf,'손익비')
-    +box(pc(a.avg)+'%','건당 평균',cOf(a.avg))+box(pc(a.med)+'%','건당 중앙',cOf(a.med))+box(pc(a.stMed)+'%','종목복리 중앙',cOf(a.stMed))
+    +box(pc(a.avg)+'%','건당 평균',cOf(a.avg))+box(pc(a.med)+'%','건당 중앙',cOf(a.med))+box(pc(a.stMed)+'%','종목복리 중앙'+_tl('닫힌 거래만'),cOf(a.stMed))
     +box((a.stMedI!=null?pc(a.stMedI)+'%':'—'),'평가포함',(a.stMedI!=null?cOf(a.stMedI):'var(--text3)'))
     +box((_gap!=null?pc(_gap)+'%p':'—'),'괴리(평가−확정)',_gapC)
     +box(_openPct.toFixed(0)+'%','미청산율',_openC)
-    +box((a.mddMed!=null?a.mddMed+'%':'—'),'MDD 중앙','var(--text)')
+    +box((a.mddMed!=null?a.mddMed+'%':'—'),'MDD 중앙'+_tl('거래 사이 낙폭'),'var(--text)')
     +box((a.barMed!=null?a.barMed+'봉':'—'),'보유봉 중앙','var(--text)')
-    +box((_H.rMdd!=null)?_H.rMdd:'—','수익/MDD','var(--text)')   /* [S1519] SSOT */
-    +box((a.expMed!=null?a.expMed+'%':'—'),'노출률','var(--text)')
-    +box((_H.expAdj!=null)?pc(_H.expAdj)+'%p':'—','노출보정 Δ','var(--text2)')   /* [S1519] SSOT */
+    +box((_H.rMdd!=null)?_H.rMdd:'—','수익/MDD'+_tl('평가포함 ÷ 이 MDD'),'var(--text)')   /* [S1519] SSOT */
+    +box((a.expMed!=null?a.expMed+'%':'—'),'노출률'+_tl('첫 진입부터'),'var(--text)')
+    +(_vt?('<div data-vd-g="1" style="background:var(--surface2);border-radius:8px;padding:7px 3px;text-align:center"><div style="font-size:13px;font-weight:800;color:'+(_vt.r>=0?'#22c55e':'#e8365a')+'">'+_pp(_vt.r)+'</div><div style="font-size:8.5px;color:var(--text3)">같은 비율보다 Δ'+_tl(_vt.rg?'🧭 구간 · 배지 ①과 같은 값':'⚖️ 배지 ①과 같은 값')+'</div></div>'):box((_H.expAdj!=null)?pc(_H.expAdj)+'%p':'—','노출보정 Δ','var(--text2)'))   /* [S1929] */   /* [S1519] SSOT */
     +box((_H.slShare!=null)?(_H.slShare+'%'):'—','손절 비중','var(--text)')   /* [S1519] SSOT */
     +`</div>`
-    +(a.bhMed!=null?`<div style="font-size:8.5px;color:var(--text3);margin:3px 0 2px">기저(청산 칩 없이 첫 진입 후 보유·무손절) 종목복리 중앙 <b>${pc(a.bhMed)}%</b> · 이 조합 Δ <b style="color:${_dltC}">${pc(_dlt)}%p</b>${_dltNote} — ⚠Δ 음수는 <b>정상</b>입니다(기저는 손절이 없어 위험이 무제한). 합격선이 아니라 <b>MDD·보유봉과 짝지어</b> 읽으세요. ${(a.expMed!=null&&a.expMed<80)?`⚠기저는 <b>첫 진입 후 100% 노출</b>인데 이 조합은 <b>${a.expMed}%</b>만 들어가 있습니다 — Δ 음수의 상당분이 '청산이 나빠서'가 아니라 '시장에 덜 있어서'입니다. <b>노출보정 Δ</b>를 함께 보세요`:''}</div>`:'')
-    +`<div style="font-size:8px;color:var(--text3);margin:3px 0 0;line-height:1.5">색 규약 — <b style="color:#22c55e">초록</b>=믿을 만함 · <b style="color:#d97706">주황</b>=경계 · <b style="color:#e8365a">빨강</b>=확정 통계 쓰지 말 것. <b>괴리·미청산율은 0에 가까울수록 좋다</b>(괴리는 부호가 아니라 크기). ⚠<b>Δ만 반대</b> — 0 근처가 '칩 무동작' 경고다</div>`
+    +(_vt?_bhLn:(a.bhMed!=null?`<div style="font-size:8.5px;color:var(--text3);margin:3px 0 2px">기저(청산 칩 없이 첫 진입 후 보유·무손절) 종목복리 중앙 <b>${pc(a.bhMed)}%</b> · 이 조합 Δ <b style="color:${_dltC}">${pc(_dlt)}%p</b>${_dltNote} — ⚠Δ 음수는 <b>정상</b>입니다(기저는 손절이 없어 위험이 무제한). 합격선이 아니라 <b>MDD·보유봉과 짝지어</b> 읽으세요. ${(a.expMed!=null&&a.expMed<80)?`⚠기저는 <b>첫 진입 후 100% 노출</b>인데 이 조합은 <b>${a.expMed}%</b>만 들어가 있습니다 — Δ 음수의 상당분이 '청산이 나빠서'가 아니라 '시장에 덜 있어서'입니다. <b>노출보정 Δ</b>를 함께 보세요`:''}</div>`:''))   /* [S1929] 줄이 있으면 그냥 들고 있기 줄 */
+    +`<div style="font-size:8px;color:var(--text3);margin:3px 0 0;line-height:1.5">색 규약 — <b style="color:#22c55e">초록</b>=믿을 만함 · <b style="color:#d97706">주황</b>=경계 · <b style="color:#e8365a">빨강</b>=확정 통계 쓰지 말 것. <b>괴리·미청산율은 0에 가까울수록 좋다</b>(괴리는 부호가 아니라 크기). ${_vt?'<b>Δ 는 0 위 = 나음</b>(⚖️ 배지와 같은 값)':"⚠<b>Δ만 반대</b> — 0 근처가 '칩 무동작' 경고다"}</div>`
     +(_warn.length?`<div style="font-size:9px;font-weight:800;color:#e8365a;background:#e8365a14;border:1px solid #e8365a55;border-radius:8px;padding:5px 8px;margin:4px 0 2px;line-height:1.5">⚠ 검열 신호 — ${_warn.join(' · ')} · 확정 통계를 읽지 말고 <b>평가포함</b>으로 판단하세요</div>`:'')
 }
 // [S1776] ★풀 BT 표본 주석 — 📂 스냅 모집단이면 **스냅의 poolKind** 로 고른다(사용자 지시 2026-10-10 '주석 고쳐줘' · PREREG_S1776 §1). 🧪 전략 조합·📈 MA 크로스 결과가 같이 쓴다.
@@ -6976,7 +6982,7 @@ function _turtlePoolRender(res){
   const wrap=inner=>'<div style="padding:9px 10px;background:var(--surface);border-radius:9px;border:1px solid #05966955">'+inner+'</div>';
   if(!a.n) return wrap(head+srcRow+bars+_ttHtfPoolLine(res) /* [S1805] */+desc+'<div style="font-size:9.5px;color:var(--text3);padding:4px 0">거래 0건 — 칸 값을 바꾸거나 풀을 바꿔보세요.</div>');
   const csvB='<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 6px"><span onclick="_sxVib(9);window._turtlePoolCsv&&_turtlePoolCsv(this)" title="종목별 이력 CSV — 판 정보(시장·창·탭·설정)가 행마다 박혀 있어 여러 판을 이어붙여도 섞이지 않습니다 · 거래 0건 종목 포함" style="font-size:9px;font-weight:800;padding:5px 9px;border-radius:10px;cursor:pointer;background:var(--surface2);color:#15803d;border:1px dashed #15803d88">📄 종목별 CSV</span></div>';
-  const grid=_poolGridHtml({ agg:a, nStocks:(res.nStocks||res.used||res.n), openList:res.openList, trades:res.trades, slXr:['stop'], xrLbl:_TURTLE_XR_LBL })
+  const grid=_poolGridHtml({ agg:a, nStocks:(res.nStocks||res.used||res.n), openList:res.openList, trades:res.trades, slXr:['stop'], xrLbl:_TURTLE_XR_LBL, pl:res.pl /* [S1929] */ })
     +_trendGapHtml(a)+'<div style="font-size:8.5px;color:var(--text3);margin-bottom:2px">종목 복리 범위 '+pc(a.stMin)+'% ~ '+pc(a.stMax)+'%</div>';
   const incl=((res.openList&&res.openList.length&&a.stMedI!=null)?'<div style="font-size:8.5px;color:var(--text2);margin-bottom:2px">평가 포함(보유 '+res.openList.length+'종 기말 강제청산 가정·수수료 동일 감산): 종목복리 중앙 <b style="color:'+cOf(a.stMedI)+'">'+pc(a.stMedI)+'%</b> · 범위 '+pc(a.stMinI)+'% ~ '+pc(a.stMaxI)+'% — 확정매매 통계는 미청산 손익을 세지 않음(검열)</div>':'');
   const op=((res.openList&&res.openList.length)?'<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #0d948855;background:#0d948818;color:#0d9488;cursor:pointer;list-style:none">▸ 보유중 '+res.openList.length+'종 펼치기</summary><div style="font-size:9px;color:var(--text2);margin-top:3px;max-height:180px;overflow-y:auto">'+res.openList.map(o=>o.name+'('+(_TURTLE_SRC_LBL[o.src]||o.src)+' '+(o.pnl>=0?'+':'')+o.pnl+'%·'+o.bars+'봉)').join(' · ')+'</div></details>':'');
@@ -7297,7 +7303,7 @@ function _ictPoolRender(res){
   const wrap=inner=>'<div style="padding:9px 10px;background:var(--surface);border-radius:9px;border:1px solid #e11d4855">'+inner+'</div>';
   if(!a.n) return wrap(head+srcRow+bars+desc+'<div style="font-size:9.5px;color:var(--text3);padding:4px 0">거래 0건 — 칸 값을 바꾸거나 풀을 바꿔보세요.</div>');
   const csvB='<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 6px"><span onclick="_sxVib(9);window._ictPoolCsv&&_ictPoolCsv(this)" title="종목별 이력 CSV — 판 정보(시장·창·탭·설정)가 행마다 박혀 있어 여러 판을 이어붙여도 섞이지 않습니다 · 거래 0건 종목 포함" style="font-size:9px;font-weight:800;padding:5px 9px;border-radius:10px;cursor:pointer;background:var(--surface2);color:#15803d;border:1px dashed #15803d88">📄 종목별 CSV</span></div>';
-  const grid=_poolGridHtml({ agg:a, nStocks:(res.nStocks||res.used||res.n), openList:res.openList, trades:res.trades, slXr:(res.slXr||['sl']), xrLbl:(res.xrLbl||_ICT_XR_LBL) /* [S1835] */ })
+  const grid=_poolGridHtml({ agg:a, nStocks:(res.nStocks||res.used||res.n), openList:res.openList, trades:res.trades, slXr:(res.slXr||['sl']), xrLbl:(res.xrLbl||_ICT_XR_LBL) /* [S1835] */, pl:res.pl /* [S1929] */ })
     +_trendGapHtml(a)+'<div style="font-size:8.5px;color:var(--text3);margin-bottom:2px">종목 복리 범위 '+pc(a.stMin)+'% ~ '+pc(a.stMax)+'%</div>';
   const incl=((res.openList&&res.openList.length&&a.stMedI!=null)?'<div style="font-size:8.5px;color:var(--text2);margin-bottom:2px">평가 포함(보유 '+res.openList.length+'종 기말 강제청산 가정·수수료 동일 감산): 종목복리 중앙 <b style="color:'+cOf(a.stMedI)+'">'+pc(a.stMedI)+'%</b> · 범위 '+pc(a.stMinI)+'% ~ '+pc(a.stMaxI)+'% — 확정매매 통계는 미청산 손익을 세지 않음(검열)</div>':'');
   const op=((res.openList&&res.openList.length)?'<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #0d948855;background:#0d948818;color:#0d9488;cursor:pointer;list-style:none">▸ 보유중 '+res.openList.length+'종 펼치기</summary><div style="font-size:9px;color:var(--text2);margin-top:3px;max-height:180px;overflow-y:auto">'+res.openList.map(o=>o.name+'('+(_ICT_SRC_LBL[o.src]||o.src)+' '+(o.pnl>=0?'+':'')+o.pnl+'%·'+o.bars+'봉)').join(' · ')+'</div></details>':'');
@@ -7537,7 +7543,7 @@ function _stPoolRender(res){
   const wrap=inner=>'<div style="padding:9px 10px;background:var(--surface);border-radius:9px;border:1px solid #ea580c55">'+inner+'</div>';
   if(!a.n) return wrap(head+srcRow+bars+desc+'<div style="font-size:9.5px;color:var(--text3);padding:4px 0">거래 0건 — 칸 값을 바꾸거나 풀을 바꿔보세요.</div>');
   const csvB='<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 6px"><span onclick="_sxVib(9);window._stPoolCsv&&_stPoolCsv(this)" title="종목별 이력 CSV — 판 정보(시장·창·탭·설정)가 행마다 박혀 있어 여러 판을 이어붙여도 섞이지 않습니다 · 거래 0건 종목 포함" style="font-size:9px;font-weight:800;padding:5px 9px;border-radius:10px;cursor:pointer;background:var(--surface2);color:#15803d;border:1px dashed #15803d88">📄 종목별 CSV</span></div>';
-  const grid=_poolGridHtml({ agg:a, nStocks:(res.nStocks||res.used||res.n), openList:res.openList, trades:res.trades, slXr:['st'], xrLbl:_ST_XR_LBL })
+  const grid=_poolGridHtml({ agg:a, nStocks:(res.nStocks||res.used||res.n), openList:res.openList, trades:res.trades, slXr:['st'], xrLbl:_ST_XR_LBL, pl:res.pl /* [S1929] */ })
     +_trendGapHtml(a)+'<div style="font-size:8.5px;color:var(--text3);margin-bottom:2px">종목 복리 범위 '+pc(a.stMin)+'% ~ '+pc(a.stMax)+'%</div>';
   const incl=((res.openList&&res.openList.length&&a.stMedI!=null)?'<div style="font-size:8.5px;color:var(--text2);margin-bottom:2px">평가 포함(보유 '+res.openList.length+'종 기말 강제청산 가정·수수료 동일 감산): 종목복리 중앙 <b style="color:'+cOf(a.stMedI)+'">'+pc(a.stMedI)+'%</b> · 범위 '+pc(a.stMinI)+'% ~ '+pc(a.stMaxI)+'% — 확정매매 통계는 미청산 손익을 세지 않음(검열)</div>':'');
   const op=((res.openList&&res.openList.length)?'<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #0d948855;background:#0d948818;color:#0d9488;cursor:pointer;list-style:none">▸ 보유중 '+res.openList.length+'종 펼치기</summary><div style="font-size:9px;color:var(--text2);margin-top:3px;max-height:180px;overflow-y:auto">'+res.openList.map(o=>o.name+'('+(_ST_SRC_LBL[o.src]||o.src)+' '+(o.pnl>=0?'+':'')+o.pnl+'%·'+o.bars+'봉)').join(' · ')+'</div></details>':'');
@@ -8053,7 +8059,7 @@ function _srPoolRender(res){
   const wrap=inner=>'<div style="padding:9px 10px;background:var(--surface);border-radius:9px;border:1px solid #4f46e555">'+inner+'</div>';
   if(!a.n) return wrap(head+srcRow+bars+desc+'<div style="font-size:9.5px;color:var(--text3);padding:4px 0">거래 0건 — 칸 값을 바꾸거나 풀을 바꿔보세요.</div>');
   const csvB='<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 6px"><span onclick="_sxVib(9);window._srPoolCsv&&_srPoolCsv(this)" title="종목별 이력 CSV — 판 정보(시장·창·탭·설정)가 행마다 박혀 있어 여러 판을 이어붙여도 섞이지 않습니다 · 거래 0건 종목 포함" style="font-size:9px;font-weight:800;padding:5px 9px;border-radius:10px;cursor:pointer;background:var(--surface2);color:#15803d;border:1px dashed #15803d88">📄 종목별 CSV</span></div>';
-  const grid=_poolGridHtml({ agg:a, nStocks:(res.nStocks||res.used||res.n), openList:res.openList, trades:res.trades, slXr:['sl'], xrLbl:_SR_XR_LBL })
+  const grid=_poolGridHtml({ agg:a, nStocks:(res.nStocks||res.used||res.n), openList:res.openList, trades:res.trades, slXr:['sl'], xrLbl:_SR_XR_LBL, pl:res.pl /* [S1929] */ })
     +_trendGapHtml(a)+'<div style="font-size:8.5px;color:var(--text3);margin-bottom:2px">종목 복리 범위 '+pc(a.stMin)+'% ~ '+pc(a.stMax)+'%</div>';
   const incl=((res.openList&&res.openList.length&&a.stMedI!=null)?'<div style="font-size:8.5px;color:var(--text2);margin-bottom:2px">평가 포함(보유 '+res.openList.length+'종 기말 강제청산 가정·수수료 동일 감산): 종목복리 중앙 <b style="color:'+cOf(a.stMedI)+'">'+pc(a.stMedI)+'%</b> · 범위 '+pc(a.stMinI)+'% ~ '+pc(a.stMaxI)+'% — 확정매매 통계는 미청산 손익을 세지 않음(검열)</div>':'');
   const op=((res.openList&&res.openList.length)?'<details style="margin-top:6px"><summary style="display:inline-block;font-size:9.5px;font-weight:800;padding:5px 11px;border-radius:14px;border:1px solid #0d948855;background:#0d948818;color:#0d9488;cursor:pointer;list-style:none">▸ 보유중 '+res.openList.length+'종 펼치기</summary><div style="font-size:9px;color:var(--text2);margin-top:3px;max-height:180px;overflow-y:auto">'+res.openList.map(o=>o.name+'('+(_SR_SRC_LBL[o.src]||o.src)+' '+(o.pnl>=0?'+':'')+o.pnl+'%·'+o.bars+'봉)').join(' · ')+'</div></details>':'');
@@ -8187,7 +8193,7 @@ function _plLog(res){ try{
   localStorage.setItem(_PL_LOG_KEY, JSON.stringify(A)); return add;
  }catch(_e){ return 0; } }
 function _plAttach(res, a, tab){ try{
-  if(res && typeof res==='object' && a){ Object.defineProperty(res, 'pl', { value:{ tab, S:a.S, H:(a.H||[]) /* [S1833] */, c:(a.C||null) /* [S1851] 🎲 무작위 진입 대조 */, xc:(a.X||null) /* [S1852] 🧪 실험 칩(대조 없음) */, tf:(res.tf||((typeof _poolTfOf==='function')?_poolTfOf():'day')) }, enumerable:false, configurable:true, writable:true }); _plLog(res); _vdRec(res, tab) /* [S1849] ⚖️ 판 각인 · 세 판 기억 */; }
+  if(res && typeof res==='object' && a){ Object.defineProperty(res, 'pl', { value:{ tab, S:a.S, H:(a.H||[]) /* [S1833] */, c:(a.C||null) /* [S1851] 🎲 무작위 진입 대조 */, xc:(a.X||null) /* [S1852] 🧪 실험 칩(대조 없음) */, tf:(res.tf||((typeof _poolTfOf==='function')?_poolTfOf():'day')), ...(a.rg?{ rg:a.rg }:{}) /* [S1929] 🧭 구간 칩 표시 연결(글자만 · 값 그대로) */ }, enumerable:false, configurable:true, writable:true }); _plLog(res); _vdRec(res, tab) /* [S1849] ⚖️ 판 각인 · 세 판 기억 */; }
  }catch(_e){} return res; }
 function _plLogCsvText(A){ const r6=v=>(v==null || !isFinite(v))?'':String(Math.round(v*1e6)/1e6), q=s=>'"'+String(s==null?'':s).replace(/"/g, '""')+'"';
   return '날짜,탭,시장,봉,창,종목수,초과수익(로그%p),승률(%),거래수,낙폭(%),설정지문,기록시각(KST)\n'+A.map(x=>[_plDate(x.d, x.tf), x.tab, x.mk, x.tf, x.W, x.n, r6(x.ex==null?null:x.ex*100), r6(x.wr==null?null:x.wr*100), (x.nt==null?'':x.nt), r6(x.dd==null?null:x.dd*100), q(x.sig), _poolKst(x.ts)].join(',')).join('\n')+'\n'; }
@@ -8229,6 +8235,7 @@ function _bhCmpHtml(res){ try{
   const p=res && res.pl, H=p && p.H; if(!H || !H.length) return '';
   const S=_bhMed(H,'s'), SM=_bhMed(H,'sm'), B=_bhMed(H,'b'), BM=_bhMed(H,'bm'), R=_bhMed(H,'r'), RM=_bhMed(H,'rm'), F=_bhMed(H,'f'), N=H.length;
   const wB=H.filter(x=>x.s>x.b).length, wR=H.filter(x=>x.s>x.r).length;
+  const _vs=_vdStat(res), tl=t=>'<br><span data-tl="1" style="font-weight:400">'+t+'</span>', dq=k=>{ const v=_vs && (k==='b'?_vs.dB:_vs.dR); return (v==null || !isFinite(v))?'':('<span data-bh-dq="'+k+'"> · 차이 중앙 <b style="color:'+(v>=0?'#22c55e':'#e8365a')+'">'+(v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+'%p</b></span>'); };   /* [S1929] 배지 ① · 참고와 같은 값 */
   const pc=v=>(v==null || !isFinite(v))?'—':((v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+'%'), dd=v=>(v==null || !isFinite(v))?'—':((v*100).toFixed(1)+'%');
   const rt=(r,m)=>(r==null || m==null || !(m>0.0005))?'—':(r/m).toFixed(2);
   const T=_PL_TABS[p.tab], nm=T?T[3]:'이 설정', col=((typeof _TREND_TAB_COL!=='undefined' && _TREND_TAB_COL[p.tab])||'#2563eb');
@@ -8236,9 +8243,9 @@ function _bhCmpHtml(res){ try{
   const row=(lb,r,m,ex,me)=>'<tr style="border-top:1px solid var(--border)"><td style="padding:3px 4px;text-align:left;'+(me?('font-weight:800;color:'+col):'color:var(--text2)')+'">'+lb+'</td><td style="'+td+';font-weight:800;color:'+((r==null || !isFinite(r))?'var(--text3)':(r>=0?'#22c55e':'#e8365a'))+'">'+pc(r)+'</td><td style="'+td+'">'+dd(m)+'</td><td style="'+td+'">'+rt(r,m)+'</td><td style="'+td+'">'+ex+'</td></tr>';
   return '<div data-bh="1" style="margin:6px 0 3px;padding:6px 7px;border:1px solid '+col+'44;border-radius:9px;background:var(--surface)">'
     +'<div style="font-size:9.5px;font-weight:800;color:var(--text2);margin-bottom:3px">'+(p.rg?'📌 같은 구간 들고 있기와 맞대기 — 켜진 구간에 들어갈 때 사고 나올 때 팜(수수료 포함) · 종목 ':'📌 그냥 들고 있기와 맞대기 — 첫 봉 종가 매수 → 끝 봉 종가 · 종목 ')+N+' 중앙</div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:9.5px"><tr><td></td><td style="'+th+'">종목복리</td><td style="'+th+'">MDD</td><td style="'+th+'">수익/MDD</td><td style="'+th+'">노출</td></tr>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:9.5px"><tr><td></td><td style="'+th+'">종목복리'+tl('보유도 셈')+'</td><td style="'+th+'">MDD'+tl('봉마다')+'</td><td style="'+th+'">수익/MDD</td><td style="'+th+'">노출'+tl('첫 봉부터')+'</td></tr>'
     +row(nm+' · 이 설정', S, SM, dd(F), true)+row(p.rg?'🧺 같은 구간 들고 있기':'🧺 그냥 들고 있기', B, BM, p.rg?'켜진 구간':'100%', false)+row(p.rg?'⚖️ 같은 구간 같은 비율':'⚖️ 같은 비율만 들고 있기', R, RM, dd(F), false)+'</table>'
-    +'<div style="font-size:9px;color:var(--text2);margin-top:3px">이 설정이 나은 종목 — '+(p.rg?'같은 구간 들고 있기보다':'그냥 들고 있기보다')+' <b>'+wB+'/'+N+'</b> · '+(p.rg?'같은 구간 같은 비율보다':'같은 비율보다')+' <b>'+wR+'/'+N+'</b></div>'
+    +'<div style="font-size:9px;color:var(--text2);margin-top:3px">이 설정이 나은 종목 — '+(p.rg?'같은 구간 들고 있기보다':'그냥 들고 있기보다')+' <b>'+wB+'/'+N+'</b>'+dq('b')+'<br data-bh-br="1">'+(p.rg?'같은 구간 같은 비율보다':'같은 비율보다')+' <b>'+wR+'/'+N+'</b>'+dq('r')+(_vs?'<span data-bh-same="1" style="color:var(--text3)"> (⚖️ 배지와 같은 값)</span>':'')+'</div>'
     +'<div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-top:2px">거래가 있던 종목마다 같은 날들(첫 봉 ~ 끝 봉)을 봉 단위로 다시 센 값의 중앙 · 보유 중인 자리는 끝 봉 종가로 평가 · 수수료 = 위 칸과 같은 왕복 값(그냥 들고 있기는 한 번 사고 한 번 팖) · ⚠위 칸 종목복리(닫힌 거래만 곱함) · MDD(거래 사이 낙폭)와 식이 달라 값이 다르다 — 이 표의 MDD 는 봉마다 평가한 낙폭이라 더 크게 나온다 · 노출 = 첫 봉부터 센 든 봉 비율(위 칸 노출률은 첫 진입부터) · 같은 비율 = 이 설정이 든 봉 비율만큼만 첫 봉에 사서 끝까지 · 읽기 도움 · 판정 아님</div></div>';
  }catch(_e){ return ''; } }
 if(typeof window!=='undefined'){ window._bhCmpHtml=_bhCmpHtml; }
@@ -8369,7 +8376,7 @@ function _plHtml(res){ try{
   const has=[L.ex, L.wr, L.nt, L.dd].some(a=>a.some(v=>v!=null));
   const lastJ={ d:N?L.cal[N-1]:'', ex:N?L.ex[N-1]:null, wr:N?L.wr[N-1]:null, nt:N?L.nt[N-1]:null, dd:N?L.dd[N-1]:null };
   const nLog=_plLogRead().length;
-  const head='<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px"><span style="font-size:9.5px;font-weight:800;color:var(--text2)">📈 전략 선 — 풀 전체 · '+W+'봉 창</span>'+_PL_WS.map(chip).join('')+'</div>';
+  const head='<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px"><span style="font-size:9.5px;font-weight:800;color:var(--text2)">📈 전략 선 — 최근 '+W+'봉 거울 · 판정 아님</span>'+_PL_WS.map(chip).join('')+'</div>';
   const exp='<div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-bottom:4px">초과 수익 = 같은 기간 같은 비율만 들고 있었을 때보다 얼마나 나았나(로그%p · 종목 평균) · 승률 · 거래 수 = 그 창에 닫힌 풀 전체 거래 · 낙폭 = 풀 전략 자산 줄의 창 안 최대 낙폭</div>';
   const body=has?_plSvg(L, col, p.tf):('<div style="font-size:9.5px;color:var(--text3);padding:4px 0">봉이 모자라 선 없음(시작 봉 '+_PL_START+' + 창 '+W+')</div>');
   const now=has?('<div data-pl-now="1" style="font-size:9.5px;font-weight:700;color:var(--text2);margin:3px 0 2px">마지막 날 '+_plDate(lastJ.d, p.tf)+' · 초과 '+_plNum(lastJ.ex, 'ex')+' · 승률 '+_plNum(lastJ.wr, 'wr')+' · 거래 '+_plNum(lastJ.nt, 'nt')+' · 낙폭 '+_plNum(lastJ.dd, 'dd')+'</div>'):'';
@@ -9526,7 +9533,7 @@ function _trendBatchRender(res){
   //   그 15칸의 앞 두 줄 그대로라 **없어지는 칸은 없다** — 아래 세 줄(평가포함·괴리·미청산율 / MDD·보유봉·수익MDD / 노출률·노출보정·손절비중)이 붙는다.
   //   ⚠`nStocks`는 시도한 종목 수다(거래발생 수 아님) — 미청산율 분모. 구 결과(각인 전)면 `res.n`으로 폴백하되 그때는 분모가 달라진다.
   const _rH={ agg:a, nStocks:(res.nStocks||res.used||res.n), openList:res.openList, trades:res.trades,
-              slXr:(res.slXr||null), xrLbl:(res.xrLbl||_TREND_XR_LBL) };
+              slXr:(res.slXr||null), xrLbl:(res.xrLbl||_TREND_XR_LBL), pl:res.pl /* [S1929] */ };
   const grid=_poolGridHtml(_rH)
     +_trendGapHtml(a)
     +'<div style="font-size:8.5px;color:var(--text3);margin-bottom:2px">종목 복리 범위 '+pc(a.stMin)+'% ~ '+pc(a.stMax)+'%</div>';
@@ -21825,7 +21832,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1928';   // [S1928] 🕯️ 캔들 · 차트 읽기 — 탭마다 작은 그림 하나(🕯️ 봉 · 🕳️ 갭 · 📈 이평 · 거래량(🏃 합침) · 📋 반등 · 📐 패턴(🕯️ WSB 합침) · 신호 두 글자) + 🕳️ 시가 갭 하락 줄 · 갭 잰 결과(offline/gap) — 읽기 도움 · 판정 아님(사용자 2026-11-12 11:12 · 11:36 · 11:41 · 11:44)
+  window.SX_BUILD='S1929';   // [S1929] 📦 풀 BT 여섯 탭 — 그리드 기저 Δ · 노출보정 Δ 를 ⚖️ 배지 값(같은 비율보다 · 그냥 들고 있기보다 종목별 차이 중앙)과 맞춤 · 같은 이름 다른 셈 칸 꼬리 · 📌 표 차이 중앙 · 📈 전략 선 '최근 N봉 거울 · 판정 아님' · 🧭 구간 칩 표시 연결 — 셈 그대로 · 글자만(사용자 2026-11-12 15:56 · 16:06 · 18:47)
+  //window.SX_BUILD='S1928';   // [S1928] 🕯️ 캔들 · 차트 읽기 — 탭마다 작은 그림 하나(🕯️ 봉 · 🕳️ 갭 · 📈 이평 · 거래량(🏃 합침) · 📋 반등 · 📐 패턴(🕯️ WSB 합침) · 신호 두 글자) + 🕳️ 시가 갭 하락 줄 · 갭 잰 결과(offline/gap) — 읽기 도움 · 판정 아님(사용자 2026-11-12 11:12 · 11:36 · 11:41 · 11:44)
   //window.SX_BUILD='S1927';   // [S1927] 🐢 터틀 🧱 피라미딩(종가 ≥ 마지막 매수가 + 간격 × N → 한 유닛 · 최대 유닛 · 손절 올림) · 💼 수량(전액 | 위험% ÷ N) — 손익 = 자산 대비 · 📌 · ⚖️ 같은 비율 = 평균 노출 · 실험 칩 · 안 잰 값(사용자 2026-11-12 06:01 · 06:17)
   //window.SX_BUILD='S1926';   // [S1926] 🐢 터틀 진입 신호 [📏 N봉 선][🕯️ WSB ▲] · 청산 신호 [📏 N봉 선][🕯️ WSB ▼][둘 중 먼저] — 꼬리 연속 돌파(S1925 풀차트 ⑦ 계산 · 꼬리 봉 · 창만 이 탭 칸) · TP/SL = 이 탭 칩 · 실험 칩 · 안 잰 값(사용자 2026-11-11 22:02 · 2026-11-12 01:05)
   //window.SX_BUILD='S1925';   // [S1925] 풀차트 ⑦ Wick Sequence Breakout(© Uncle_the_shooter · MPL 2.0 · sx_tvind_mpl.js) + 🕯️ 캔들 · 차트 읽기 카드 📐 패턴 탭 아래 꼬리 연속 돌파 줄(기다리는 상자 · 최근 60봉 신호 셋 · 신호마다 원본 TP/SL 규칙 · 그림) · 표시용 · 읽기 도움 · 판정 아님 · 안 잰 값(사용자 2026-11-11 21:27 · 21:43 · 22:02)
