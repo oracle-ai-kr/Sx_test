@@ -16164,7 +16164,7 @@ function _cndPatSvg(D, F){ const O=D.O, H=D.H, L=D.L, C=D.C, n=D.n, DR=D.list.fi
     cd+='<line data-cpg="cdl" x1="'+x+'" y1="'+Y(H[i])+'" x2="'+x+'" y2="'+Y(L[i])+'" stroke="'+c+'" stroke-width="0.8"/><rect x="'+r1(x-bw*0.35)+'" y="'+Y(Math.max(O[i],C[i]))+'" width="'+r1(bw*0.7)+'" height="'+r1(Math.max(0.8,Math.abs(Y(O[i])-Y(C[i]))))+'" fill="'+c+'"/>'; }
   const last=C[n-1];
   return '<svg data-cnd-pat-svg="1" data-s="'+a0+'" data-lo="'+lo+'" data-hi="'+hi+'" viewBox="0 0 '+W+' '+HH+'" style="width:100%;height:auto;display:block;margin-top:4px;background:var(--surface2);border-radius:8px"><clipPath id="sxCndPatClip"><rect x="'+PL+'" y="'+PT+'" width="'+(W-PL-PR)+'" height="'+(HH-PT-PB)+'"/></clipPath>'+cd+'<g clip-path="url(#sxCndPatClip)">'+g+'</g>'+gl+(isFinite(last)?lab(Y(last),'종가 '+F(last),'#888',false):'')+'</svg>'; }
-function _cndPatHtml(rows, U){ const T3=U.T3, D=_cndPatList(rows); let h=U.sub('📐 차트 패턴','자동 차트 패턴(Auto Chart Patterns 2 · mbedaiwi2) · 기본 설정 · 최근 60봉');
+function _cndPatHtml(rows, U){ const T3=U.T3, D=U.Dp||_cndPatList(rows) /* [S1928] 미리 센 것 */; let h=U.sub('📐 차트 패턴','자동 차트 패턴(Auto Chart Patterns 2 · mbedaiwi2) · 기본 설정 · 최근 60봉');
   if(D.err) return '<div data-cnd-pat="1">'+h+'<div style="font-size:10px;color:'+T3+'">'+(D.err==='nolib'?'패턴 계산 파일을 못 불렀어요(sx_tvind_mpl.js)':'패턴 계산 오류')+'</div></div>';
   const n=D.n, F=U.F, pc=U.pc, ago=U.ago;
   h+=D.list.length?D.list.map((p,j)=>{ const side=(p.state===2)?0:(p.bull?1:-1), nm=(_CND_PAT_NM[p.kind]||p.kind)+((p.kind==='SYM' && p.state!==0)?(p.bull?' 위':' 아래'):''), lv=_cndPatLv(p,n-1,false), lv2=_cndPatLv(p,n-1,true);
@@ -16175,8 +16175,8 @@ function _cndPatHtml(rows, U){ const T3=U.T3, D=_cndPatList(rows); let h=U.sub('
     else if(p.state===4){ st='확정 → 손절선 닿음'; body='확정 '+ago(p.trigBar)+' · 손절선 '+F(p.trigSL)+' 닿음('+ago(p.endBar)+')'; }
     else { st=(p.why==='exp')?'만료':'무효'; body=(p.why==='exp')?('돌파 확정 없이 끝남('+ago(p.endBar)+')'):('확정 전에 무효선 '+F(p.stop)+' 깸('+ago(p.endBar)+')'); }
     return '<div data-cp-row="'+j+'" data-cp-k="'+p.kind+'" data-cp-st="'+p.state+'">'+U.line(U.chip((side>0?'▲ ':(side<0?'▼ ':''))+nm+' · '+st, side)+' <span style="color:'+T3+';font-size:9.5px">'+ago(p.formed)+' 생김 · '+U.dt(p.formed)+'</span><br><span style="font-size:9.5px">'+body+'</span>')+'</div>'; }).join(''):'<div style="font-size:10px;color:'+T3+'">최근 60봉에 없음</div>';
-  const sv=_cndPatSvg(D, F); h+=sv;
-  if(D.list.length && !sv) h+='<div style="font-size:9px;color:'+T3+';margin-top:3px">그림 없음 — 기다림 · 확정된 패턴만 그려요(무효 · 만료는 글만)</div>';
+  const sv=(U.pic!=null)?U.pic:_cndPatSvg(D, F); h+=sv;   /* [S1928] 📐 · 🕯️ WSB 그림 하나(U.pic) */
+  if(D.list.length && !D.list.some(p=>p.state!==2)) h+='<div style="font-size:9px;color:'+T3+';margin-top:3px">그림 없음 — 기다림 · 확정된 패턴만 그려요(무효 · 만료는 글만)</div>';
   h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-top:4px">확정 = 돌파선을 1% 넘게 넘은 종가 · 따라오는 봉 · 거래량 20봉 평균의 1.5배 · RSI 같은 쪽(돌파 뒤 3봉 안) — 원본 기본 설정 그대로 · 확정 전에 무효선을 깨면 무효 · 40봉 안에 확정 안 되면 만료 · 마지막 봉이 안 끝났으면 바뀔 수 있어요</div>';
   h+='<div data-cnd-pat-res="1" style="font-size:9px;line-height:1.55;margin-top:3px;padding:4px 7px;border-radius:7px;background:#6b728014;color:'+U.T2+'"><b>잰 결과: 못 가름</b> <span style="color:'+T3+'">(2026-11-10 · 일봉 3시장 9판 1,005종목 · 패턴 열다섯 · 원본 BUY/SELL 신호 · 패턴 겹침 · 재료 · 캔들 · 🧭 같이 — 확정 뒤 20봉 방향을 못 가름)</span></div>';
   return '<div data-cnd-pat="1">'+h+'</div>'; }
@@ -16224,7 +16224,7 @@ function _cndBwHtml(rows, U){ const T3=U.T3, D=_cndBwList(rows), n=D.n, ago=U.ag
     const st=z.st==='run'?U.chip('▲ 진행 중 '+z.seen+'/10봉',1):(z.st==='ok'?chip2('✓ 밴드워크 됨',G):(z.st==='brk'?U.chip('✗ 깨짐',0):U.chip('△ 상단 근처 부족',0)));
     const bd=z.st==='brk'?((z.brk-z.r)+'봉째 20일선 아래 마감('+ago(z.brk)+')'):('20일선 위 '+z.up+'/'+z.seen+'봉 · 상단 근처(%B ≥ 0.8) '+z.hi+'번'+(z.st==='run'?' · 10봉 채우고 상단 근처 5번이면 밴드워크':(z.st==='weak'?'(5번 미만)':'')));
     return '<div data-bw-row="'+j+'" data-bw-st="'+z.st+'" data-bw-r="'+z.r+'">'+U.line(st+' <span style="color:'+T3+';font-size:9.5px">'+ago(z.r)+' · '+U.dt(z.r)+' · '+kind+'</span><br><span style="font-size:9.5px">'+bd+'</span>')+'</div>'; }).join(''):'<div style="font-size:10px;color:'+T3+'">최근 60봉에 없음</div>';
-  const sv=_cndBwSvg(D, U.F); if(sv){ h+=sv+'<div style="font-size:8.5px;color:'+T3+';margin-top:2px">▲ = 자리(다음 봉 확인) · 띠 = 그 뒤 10봉(초록 됨 · 주황 진행 중 · 회색 깨짐/부족) · 점 = 상단 근처(%B ≥ 0.8)</div>'; }
+  if(D.list.length) h+='<div data-cnd-bw-pic="1" style="font-size:8.5px;color:'+T3+';margin-top:2px">그림 = 위 📈 이평 · 거래량 그림의 \'밴드\' 글자 · 띠(그 뒤 10봉) · 점(상단 근처)</div>';   /* [S1928] 밴드워크 그림은 📈 그림 하나로 합침(_cndBwSvg 는 안 부름) */
   const mk=String(U.mk||'').toLowerCase(), rs=_CND_BW_RES[mk], tfx=(U.tf && U.tf!=='day')?' · 지금 TF 는 안 잼(일봉 결과)':'';
   h+='<div data-cnd-bw-res="1" style="font-size:9px;line-height:1.55;margin-top:4px;padding:4px 7px;border-radius:7px;background:#6b728014;color:'+U.T2+'">'+(rs?('<b>잰 결과('+rs[0]+' 일봉 3판 · 2026-11-10): '+(rs[1]?'이 자리 뒤 10봉 밴드워크가 무작위보다 자주 나옴':'못 가름')+'</b> <span style="color:'+T3+'">('+rs[2]+' · 밴드워크 = 10봉 모두 20일선 위 + 상단 근처 5번 이상 · '+rs[3]+' · 상승장악형은 무작위와 못 가름이라 뺌'+tfx+')</span>'):('<b>잰 결과: KR · US · 코인 일봉만 잼</b>'+'<span style="color:'+T3+'">'+tfx+'</span>'))+'</div>';
   h+='<div style="font-size:8.5px;color:'+T3+';margin-top:3px">밴드워크 가능성 표시 · 읽기 도움 · 판정 아님 · 마지막 봉이 안 끝났으면 바뀔 수 있어요</div>';
@@ -16271,7 +16271,7 @@ function _cndWsbSvg(D, F){ const R=D.R, n=D.n, a0=D.a0, O=R.O, H=R.hi, L=R.lw, C
   if(isFinite(C[n-1])) RL.push({ y:Y(C[n-1]), t:'종가 '+F(C[n-1]), c:'#888', b:false });
   const seen={}; let pv=-Infinity; RL.filter(a=>{ if(seen[a.t]) return false; seen[a.t]=1; return true; }).sort((a,b)=>a.y-b.y).forEach(a=>{ const yy=(a.y<pv+9)?pv+9:a.y; pv=yy; gl+='<text data-wsg="lab" x="'+RX+'" y="'+r1(yy+3)+'" font-size="8.5"'+(a.b?' font-weight="700"':'')+' fill="'+a.c+'">'+a.t+'</text>'; });   // 오른쪽 글자 — 같은 글은 한 번 · 9 칸씩 비킴
   return '<svg data-cnd-wsb-svg="1" data-s="'+a0+'" data-lo="'+lo+'" data-hi="'+hi+'" viewBox="0 0 '+W+' '+HH+'" style="width:100%;height:auto;display:block;margin-top:4px;background:var(--surface2);border-radius:8px"><clipPath id="sxCndWsbClip"><rect x="'+PL+'" y="'+PT+'" width="'+(W-PL-PR)+'" height="'+(HH-PT-PB)+'"/></clipPath><g clip-path="url(#sxCndWsbClip)">'+g+cd+'</g>'+gl+'</svg>'; }
-function _cndWsbHtml(rows, U){ const T3=U.T3, F=U.F, pc=U.pc, ago=U.ago, D=_cndWsbData(rows); let h=U.sub('🕯️ 꼬리 연속 돌파(WSB)','Wick Sequence Breakout(Uncle_the_shooter) · 기본 설정 · 최근 60봉');
+function _cndWsbHtml(rows, U){ const T3=U.T3, F=U.F, pc=U.pc, ago=U.ago, D=U.Dw||_cndWsbData(rows) /* [S1928] 미리 센 것 */; let h=U.sub('🕯️ 꼬리 연속 돌파(WSB)','Wick Sequence Breakout(Uncle_the_shooter) · 기본 설정 · 최근 60봉');
   if(D.err) return '<div data-cnd-wsb="1">'+h+'<div style="font-size:10px;color:'+T3+'">'+(D.err==='nolib'?'꼬리 연속 돌파 계산 파일을 못 불렀어요(sx_tvind_mpl.js)':'꼬리 연속 돌파 계산 오류')+'</div></div>';
   const n=D.n, P=D.P, Up='#dc2626', Dn='#2563eb', pe=(x,e)=>(isFinite(x) && e>0)?(((x/e-1)*100>=0?'+':'')+((x/e-1)*100).toFixed(1)+'%'):'—', K=f=>_CND_WSB_KIND[String(f.kind)]||'', sh=f=>{ const t=f.bv+f.sv; return t>0?f.bv/t*100:50; }, L=[];
   D.live.forEach(f=>{ const bp=sh(f), up=f.bv>=f.sv;
@@ -16282,16 +16282,139 @@ function _cndWsbHtml(rows, U){ const T3=U.T3, F=U.F, pc=U.pc, ago=U.ago, D=_cndW
     const fb=s.f?(' · '+K(s.f)+' 상자를 '+(buy?'위로':'아래로')+' 뚫음 · 매수 몫 '+sh(s.f).toFixed(0)+'%(추정)'):'';
     L.push('<div data-wsb-row="sig" data-i="'+s.t+'" data-d="'+s.d+'" data-st="'+(s.end<0?'open':s.why)+'" data-best="'+s.best+'">'+U.line(U.chip((buy?'▲ BUY(롱)':'▼ SELL(숏)')+' · '+ago(s.t),buy?1:-1)+' <span style="color:'+T3+';font-size:9.5px">'+U.dt(s.t)+fb+'</span><br><span style="font-size:9.5px">진입 '+F(s.e)+' · SL '+F(s.sl)+' ('+pe(s.sl,s.e)+') · TP1 '+F(s.t1)+' · TP2 '+F(s.t2)+' · TP3 '+F(s.t3)+' ('+pe(s.t3,s.e)+' · % = 진입가 대비) — <b>'+st+'</b>'+(buy?'':' · <span style="color:'+T3+'">숏 — 롱만 하는 매매엔 참고만</span>')+'</span>')+'</div>'); });
   h+=L.length?L.join(''):'<div style="font-size:10px;color:'+T3+'">최근 60봉에 기다리는 상자 · 신호 없음</div>';
-  h+=_cndWsbSvg(D, F);
+  h+=U.noSvg?'<div data-cnd-wsb-pic="1" style="font-size:8.5px;color:'+T3+';margin-top:2px">그림 = 위 📐 그림의 상자 · ▲▼ · BUY · SL · TP 선</div>':_cndWsbSvg(D, F);   /* [S1928] 그림은 📐 그림 하나로 합침 */
   h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-top:4px">꼬리 봉 = 윗(아랫)꼬리가 봉 길이의 45% 이상 · 반대 꼬리 25% 이하 · 흡수 봉 = 봉 길이 ATR 0.6배 이하에 거래량 20봉 평균 1.1배 이상 · 최근 5봉에 3개 이상 모이면 상자(5봉 최고가 ~ 최저가) · 종가가 상자를 뚫고 그쪽 몫이 크면 신호(어긋나면 지움) · 몫 = 거래량을 봉 안 종가 자리로 나눈 추정치(실제 체결 매수 · 매도량 아님) · TP/SL = 신호 봉 종가 ± ATR14 × 1.5 · 1 ~ 3R(신호마다 따로 셈 · 원본 그림은 마지막 신호만) — 원본 기본 설정 그대로 · 마지막 봉이 안 끝났으면 바뀔 수 있어요</div>';
   h+='<div data-cnd-wsb-res="1" style="font-size:9px;line-height:1.55;margin-top:3px;padding:4px 7px;border-radius:7px;background:#6b728014;color:'+U.T2+'"><b>잰 결과: 아직 안 잼</b> <span style="color:'+T3+'">(안 잰 값 · 읽기 도움 · 판정 아님)</span></div>';
   return '<div data-cnd-wsb="1">'+h+'</div>'; }
+// [S1928] 🕯️ 캔들 · 차트 읽기 — 탭마다 작은 그림 하나(🕯️ 봉 · 🕳️ 갭 · 📈 이평 · 거래량(🏃 밴드워크 그림을 합침) · 📋 반등 · 📐 패턴(📐 · 🕯️ WSB 두 그림을 합침)) + 🕳️ 시가 갭 하락 줄 · 갭 잰 결과(offline/gap · 2026-11-12) — 읽기 도움 · 판정 아님
+//   사용자 2026-11-12 11:12 '갭탭에 표시용으로 추가 · 5탭 모두 탭별로 미니차트' · 11:36 '두 글자로 · 이평/거래량 그림 한 개로' · 11:41 '카드 길이를 줄이기 위해 하나로' · 11:44 '봉 탭도 두 글자'
+function _cndOHLC(rows){ const n=(rows&&rows.length)||0, num=v=>{ v=+v; return isFinite(v)?v:NaN; }, O=new Array(n), H=new Array(n), L=new Array(n), C=new Array(n), V=new Array(n);
+  for(let i=0;i<n;i++){ const r=rows[i]||{}; O[i]=num(r.open!=null?r.open:r.o); H[i]=num(r.high!=null?r.high:r.h); L[i]=num(r.low!=null?r.low:r.l); C[i]=num(r.close!=null?r.close:r.c); V[i]=num(r.volume!=null?r.volume:r.v); }
+  return { n, O, H, L, C, V }; }
+// 작은 그림 틀 — 최근 60봉 봉 · 값 축(캔들 범위 + 그림 안 값(± 35%) · 6% 여백) · 오른쪽 글자(같은 글 한 번 · 9 칸씩 비킴) · 두 글자 표시(겹치면 9 칸씩 비킴 · 바탕색 테두리)
+function _cndMini(D, o){ const n=D.n, a0=Math.max(0,n-60), W=400, HH=o.HH||140, PL=4, PR=o.PR||56, PT=o.PT||8, PB=10, bw=(W-PL-PR)/Math.max(1,n-a0), r1=x=>Math.round(x*10)/10, tag=o.tag;
+  let lo=Infinity, hi=-Infinity; for(let i=a0;i<n;i++){ if(isFinite(D.L[i]) && D.L[i]<lo) lo=D.L[i]; if(isFinite(D.H[i]) && D.H[i]>hi) hi=D.H[i]; } if(!(hi>=lo) || n<2) return null;
+  const lo0=lo, hi0=hi, sp=hi0-lo0, inR=v=>v!=null && isFinite(v) && v>=lo0-0.35*sp && v<=hi0+0.35*sp;   // '그림 안' = 캔들 범위 ± 35%(📐 패턴 그림과 같은 선 · 축을 넓힌 뒤에도 그대로)
+  (o.ext||[]).forEach(v=>{ if(inR(v)){ if(v<lo) lo=v; if(v>hi) hi=v; } });
+  if(hi===lo){ hi+=Math.abs(hi)*0.01||1; lo-=Math.abs(lo)*0.01||1; } const pad=(hi-lo)*0.06; lo-=pad; hi+=pad;
+  const yb=HH-PB-(o.vh||0), X=i=>r1(PL+(i-a0+0.5)*bw), Y=v=>r1(PT+(hi-v)/(hi-lo)*(yb-PT)), Up='#dc2626', Dn='#2563eb';
+  let cd=''; for(let i=a0;i<n;i++){ if(!(isFinite(D.O[i]) && isFinite(D.H[i]) && isFinite(D.L[i]) && isFinite(D.C[i]))) continue; const c=D.C[i]>=D.O[i]?Up:Dn, x=X(i);
+    cd+='<line data-'+tag+'="cdl" data-i="'+i+'" x1="'+x+'" y1="'+Y(D.H[i])+'" x2="'+x+'" y2="'+Y(D.L[i])+'" stroke="'+c+'" stroke-width="0.8"/><rect x="'+r1(x-bw*0.35)+'" y="'+Y(Math.max(D.O[i],D.C[i]))+'" width="'+r1(bw*0.7)+'" height="'+r1(Math.max(0.8,Math.abs(Y(D.O[i])-Y(D.C[i]))))+'" fill="'+c+'"/>'; }
+  const RL=[], lab=(y,t,c,b)=>{ RL.push({ y, t, c, b }); };
+  const right=()=>{ let s='', pv=-Infinity; const seen={}; RL.filter(a=>{ if(seen[a.t]) return false; seen[a.t]=1; return true; }).sort((a,b)=>a.y-b.y).forEach(a=>{ const yy=Math.min(HH-2, (a.y<pv+9)?pv+9:a.y); pv=yy; s+='<text data-'+tag+'="rl" x="'+(W-PR+3)+'" y="'+r1(yy+3)+'" font-size="8.5"'+(a.b?' font-weight="700"':'')+' fill="'+a.c+'">'+a.t+'</text>'; }); return s; };
+  const placed=[], free=(x,y)=>!placed.some(p=>Math.abs(p.x-x)<17 && Math.abs(p.y-y)<9), put=(i,base,dir,ylo,yhi,txt,col,at)=>{ const x=X(i), b0=Math.max(ylo,Math.min(yhi,base)); let y=null;
+    for(let q=0;q<8 && y==null;q++){ const c=base+dir*9*q; if(c>=ylo && c<=yhi && free(x,c)) y=c; }   // 먼저 바깥쪽으로 9 칸씩 · 칸 끝에 막히면 반대쪽으로
+    for(let q=1;q<8 && y==null;q++){ const c=b0-dir*9*q; if(c>=ylo && c<=yhi && free(x,c)) y=c; } if(y==null) y=b0; placed.push({ x, y });
+    return '<text '+at+' x="'+x+'" y="'+r1(y)+'" font-size="8" font-weight="700" text-anchor="middle" fill="'+col+'" style="paint-order:stroke;stroke:var(--surface2);stroke-width:2.6px;stroke-linejoin:round">'+txt+'</text>'; };
+  const mk=(i,side,txt,col,at)=>put(i, side>0?(Y(D.L[i])+9):(Y(D.H[i])-7), side>0?1:-1, PT+7, yb-1, txt, col, at);   // side > 0 = 봉 아래(▲ 쪽) · < 0 = 봉 위(▼ 쪽)
+  const wrap=(body,id)=>'<svg data-'+tag+'-svg="1" data-s="'+a0+'" data-lo="'+lo+'" data-hi="'+hi+'" data-yb="'+yb+'" viewBox="0 0 '+W+' '+HH+'" style="width:100%;height:auto;display:block;margin-top:4px;background:var(--surface2);border-radius:8px"><clipPath id="'+id+'"><rect x="'+PL+'" y="'+PT+'" width="'+(W-PL-PR)+'" height="'+(yb-PT)+'"/></clipPath>'+body+right()+'</svg>';
+  return { n, a0, W, HH, PL, PR, PT, PB, yb, bw, r1, lo, hi, X, Y, cd, inR, lab, put, mk, wrap, Up, Dn }; }
+const _cndLeg=(T3,t)=>'<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-top:2px">'+t+'</div>';
+const _cndPic=(tab,h)=>h?('<div data-cnd-pic="'+tab+'">'+h+'</div>'):'';
+// 🕯️ 봉 — 위 두 목록(자리 있는 봉 · 매도 쪽 봉 · 최근 20봉)의 자리를 두 글자로 + 가장 최근 신호의 취소선
+const _CND_BAR_CH = { b1:'망치', b2:'장양', b3:'장악', b4:'도지', s1:'유성', s2:'장음', s3:'장악', s4:'도지', s5:'교수', x1:'갭락', x2:'첫음', x3:'무효', x4:'이탈' };
+function _cndBarSvgH(rows, L0, U){ if(!L0.length) return ''; const E=L0.slice().sort((a,b)=>b.t-a.t), e0=E[0], D=_cndOHLC(rows), M=_cndMini(D, { tag:'cbg', HH:150, PR:68, PT:18, ext:[e0.s] }); if(!M) return '';
+  const { X, Y, r1, n, a0, bw, PT, yb, Up, Dn } = M, Gr='#6b7280', z0=Math.max(a0,n-20);
+  let g='<rect data-cbg="w20" data-i1="'+z0+'" x="'+r1(X(z0)-bw/2)+'" y="'+PT+'" width="'+r1((n-z0)*bw)+'" height="'+r1(yb-PT)+'" fill="#6b7280" opacity="0.07"/>', gl='';
+  if(M.inR(e0.s)){ const t1=(e0.x>=0)?e0.x:(n-1); g+='<line data-cbg="cut" data-k="'+e0.k+'" data-i1="'+e0.t+'" data-i2="'+t1+'" data-v="'+e0.s+'" x1="'+X(e0.t)+'" y1="'+Y(e0.s)+'" x2="'+X(t1)+'" y2="'+Y(e0.s)+'" stroke="'+Gr+'" stroke-width="1" stroke-dasharray="3 2"/>'; M.lab(Y(e0.s),'취소선 '+U.F(e0.s),Gr,false); }
+  E.forEach(e=>{ if(e.t<a0) return; const buy=e.k[0]==='b'; gl+=M.mk(e.t, buy?1:-1, _CND_BAR_CH[e.k]||e.k, buy?Up:Dn, 'data-cbg="mk" data-k="'+e.k+'" data-i="'+e.t+'"'); });
+  if(isFinite(D.C[n-1])) M.lab(Y(D.C[n-1]),'종가 '+U.F(D.C[n-1]),'#888',false);
+  return _cndPic('bar', M.wrap(M.cd+'<g clip-path="url(#sxCndBarClip)">'+g+'</g>'+gl,'sxCndBarClip')
+    +_cndLeg(U.T3,'두 글자 = 위 두 목록의 자리(빨강 봉 아래 = 사는 봉: 망치 · 장양 · 장악 · 도지 / 파랑 봉 위 = 파는 봉: 유성 · 장음 · 장악 · 도지 · 교수 · 갭락 · 첫음 · 무효 · 이탈) · 점선 = 가장 최근 신호의 취소선 · 옅은 띠 = 최근 20봉')); }
+// 🕳️ 갭 — 띠(앞 봉과 이 봉 사이 빈 곳 · 다 메운 봉에서 끝) · 갭 목표(남은 길 = 지나온 길) · ◇ 시가 갭 하락 · 가장 최근 시가 갭 하락의 어제 저가
+function _cndOgList(D, w){ const n=D.n, out=[]; for(let t=Math.max(1,n-w);t<n;t++){ if(!(D.O[t]<D.L[t-1])) continue; const G=D.L[t-1]; let j=-1; for(let u=t;u<n;u++){ if(D.H[u]>=G){ j=u; break; } } out.push({ t, G, o:D.O[t], j }); } return out; }   // 시가 갭 하락 = 시가 < 어제 저가 · j = 어제 저가에 처음 닿은 봉(그날 포함 · 없으면 −1)
+function _cndGapSvgH(D, gs, U){ const n=D.n, og=_cndOgList(D,60), o0=og.length?og[og.length-1]:null;
+  if(!gs.length && !og.length) return ''; const ext=[]; gs.forEach(e=>{ if(e.c==='meas') ext.push(e.tg); }); if(o0 && o0.j<0) ext.push(o0.G);
+  const M=_cndMini(D, { tag:'cgg', HH:150, PR:68, ext }); if(!M) return ''; const { X, Y, r1, a0, bw, Up, Dn } = M, Gr='#6b7280', Tg='#059669';
+  let g='', gl='';
+  gs.forEach((e,k)=>{ const up=e.k==='gu', z0=e.z0, z1=e.z1; let end=-1; for(let u=e.t+1;u<n;u++){ if(up?(D.L[u]<=z0):(D.H[u]>=z1)){ end=u; break; } } const e1=end>=0?end:(n-1), xa=Math.max(a0,e.t), col=up?Up:Dn;
+    g+='<rect data-cgg="band" data-k="'+k+'" data-g="'+e.k+'" data-i="'+e.t+'" data-e="'+end+'" data-z0="'+z0+'" data-z1="'+z1+'" x="'+r1(X(xa)-bw/2)+'" y="'+Y(z1)+'" width="'+r1((e1-xa+1)*bw)+'" height="'+r1(Math.max(2,Y(z0)-Y(z1)))+'" fill="'+col+'" fill-opacity="0.28" stroke="'+col+'" stroke-opacity="0.75" stroke-width="0.7"/>';
+    if(e.c==='meas' && M.inR(e.tg)){ const t1=(e.j>=0)?e.j:(n-1); g+='<line data-cgg="tg" data-k="'+k+'" data-v="'+e.tg+'" x1="'+X(xa)+'" y1="'+Y(e.tg)+'" x2="'+X(t1)+'" y2="'+Y(e.tg)+'" stroke="'+Tg+'" stroke-width="1" stroke-dasharray="1.5 2"/>'; if(e.j<0) M.lab(Y(e.tg),'목표 '+U.F(e.tg),Tg,false); }
+    if(end<0) M.lab(Y((z0+z1)/2),(up?'갭 위 ':'갭 아래 ')+'안 메움',col,false); });
+  og.forEach(q=>{ if(q.t<a0) return; gl+='<text data-cgg="og" data-i="'+q.t+'" x="'+X(q.t)+'" y="'+r1(Y(D.L[q.t])+9)+'" font-size="8" text-anchor="middle" fill="'+Dn+'">◇</text>'; });
+  if(o0 && o0.t>=a0 && M.inR(o0.G)){ const t1=(o0.j>=0)?o0.j:(n-1); g+='<line data-cgg="ogG" data-i1="'+o0.t+'" data-i2="'+t1+'" data-v="'+o0.G+'" x1="'+r1(X(o0.t)-bw/2)+'" y1="'+Y(o0.G)+'" x2="'+r1(X(t1)+bw/2)+'" y2="'+Y(o0.G)+'" stroke="'+Gr+'" stroke-width="1" stroke-dasharray="3 2"/>'; if(o0.j<0) M.lab(Y(o0.G),'어제 저가 '+U.F(o0.G),Gr,false); }
+  if(isFinite(D.C[n-1])) M.lab(Y(D.C[n-1]),'종가 '+U.F(D.C[n-1]),'#888',false);
+  return _cndPic('gap', M.wrap(M.cd+'<g clip-path="url(#sxCndGapClip)">'+g+'</g>'+gl,'sxCndGapClip')+_cndLeg(U.T3,'띠 = 갭(빨강 위로 · 파랑 아래로) · 띠 끝 = 갭을 다 메운 봉 · 끝까지 가면 아직 · 초록 점선 = 갭 목표(남은 길 = 지나온 길) · ◇ = 시가 갭 하락 · 회색 점선 = 가장 최근 시가 갭 하락의 어제 저가')); }
+const _CND_GAP_RES = { kr:['KR', '70 ~ 80%', '69 ~ 78%', '75 ~ 83%', '−0.11 ~ +0.24%', '−0.41 ~ −0.25%'], us:['US', '68 ~ 80%', '70 ~ 81%', '71 ~ 77%', '−0.17 ~ +0.16%', '−0.23 ~ +0.03%'] };   // offline/gap gap_result.md(기준 a6d973511843 · 판정 실행 한 번 · 독립 검산 다름 0) · 시장 판 셋의 가장 작은 ~ 큰 값
+function _cndGapMoreHtml(rows, gs, U){ const T3=U.T3, D=_cndOHLC(rows), og=_cndOgList(D,20).reverse().slice(0,3);
+  let h=_cndGapSvgH(D, gs, U);
+  h+=U.sub('🕳️ 시가 갭 하락','그날 시가가 어제 저가보다 낮게 열린 봉 · 최근 20봉');
+  h+=og.length?og.map(q=>'<div data-og-row="'+q.t+'" data-og-j="'+q.j+'">'+U.line(U.chip('▼ 시가 갭 하락',-1)+' <span style="color:'+T3+';font-size:9.5px">'+U.ago(q.t)+' · '+U.dt(q.t)+'</span><br><span style="font-size:9.5px">시가 '+U.F(q.o)+' · 어제 저가 '+U.F(q.G)+'보다 '+((q.o/q.G-1)*100).toFixed(1)+'% · '+((q.j===q.t)?'그날 어제 저가 닿음':((q.j>q.t)?((q.j-q.t)+'봉 뒤 어제 저가 닿음'):('아직 안 닿음 · 어제 저가 '+U.F(q.G)+' ('+U.pc(q.G)+')')))+'</span>')+'</div>').join(''):'<div style="font-size:10px;color:'+T3+'">최근 20봉에 없음</div>';
+  const mk=String(U.mk||'').toLowerCase(), rs=_CND_GAP_RES[mk], tfx=(U.tf && U.tf!=='day')?' · 지금 TF 는 안 잼(일봉 결과)':'';
+  h+='<div data-cnd-gap-res="1" style="font-size:9px;line-height:1.55;margin-top:4px;padding:4px 7px;border-radius:7px;background:#6b728014;color:'+U.T2+'">'+(rs?('<b>잰 결과(KR · US 일봉 6판 · 2026-11-12 · 숫자는 '+rs[0]+' 3판): 갭 메움은 같은 거리 아무 선과 못 가름 · 시가 갭 하락 날 시가에 사서 어제 저가에 팔기는 같은 규칙 무작위 진입보다 나음</b> <span style="color:'+T3+'">(20봉 안 갭 메움 '+rs[1]+' · 같은 거리 아무 선 '+rs[2]+' · 시가 갭 하락 그날 어제 저가 닿음 '+rs[3]+' · 그날 · 5봉 · 20봉 × 2 × ATR 손절 끔 · 켬 여섯 모두 나음 · 그래도 수수료(편도 0.1%) 뒤 거래당 평균 '+rs[4]+'(0 언저리 · 무작위 '+rs[5]+') · 매도 거래세 · 미끄러짐 안 넣음 · 완전 갭 하락 종가 매수 · 갭 상승 시가 매수는 못 가름'+tfx+')</span>'):('<b>잰 결과: KR · US 일봉만 잼</b><span style="color:'+T3+'"> · 코인은 24시간 거래라 일봉 갭이 거의 없어 안 잼'+tfx+'</span>'))+'</div>';
+  h+='<div style="font-size:8.5px;color:'+T3+';margin-top:3px">시가 갭 하락 · 갭 메움 표시 · 읽기 도움 · 판정 아님 · 마지막 봉이 안 끝났으면 바뀔 수 있어요</div>';
+  return '<div data-cnd-gap2="1">'+h+'</div>'; }
+// 📈 이평 · 📊 거래량 — 한 그림: 위 = 봉 + 5 · 20 · 60선 + 🏃 밴드워크 띠 · 점 · '밴드' + 이평 신호 8 의 가장 최근 자리 · 아래 = 거래량 막대 + 평소(앞 20봉 평균) + 거래량 신호 8 의 가장 최근 자리 — 두 글자
+const _CND_MA_CH = { m1:'정배', m2:'골든', m3:'눌림', m4:'복귀', m5:'역배', m6:'데드', m7:'이탈', m8:'이격', v1:'돌파', v2:'다시', v3:'바닥', v4:'선행', v5:'천장', v6:'감소', v7:'신저', v8:'힘없' };
+function _cndMaVolSvgH(rows, ev, U){ const D=_cndOHLC(rows), n=D.n, a0=Math.max(0,n-60), sm=p=>{ const a=new Array(n).fill(null); for(let t=p-1;t<n;t++){ let s=0; for(let j=t-p+1;j<=t;j++) s+=D.C[j]; a[t]=s/p; } return a; };
+  const A=[[sm(5),'#9333ea','5선'],[sm(20),'#d97706','20선'],[sm(60),'#059669','60선']], ext=[]; A.forEach(z=>{ for(let i=a0;i<n;i++) if(z[0][i]!=null) ext.push(z[0][i]); });
+  const VH=50, M=_cndMini(D, { tag:'cmg', HH:216, PR:40, PT:16, vh:VH, ext }); if(!M) return ''; const { X, Y, r1, bw, PT, HH, PB, PL, PR, W, yb, Up, Dn } = M, Gr='#6b7280', vt=yb+10, vb=HH-PB;
+  let g='', gl='', vv='';
+  const B=_cndBwList(rows), bc=z=>z.st==='ok'?'#059669':(z.st==='run'?'#d97706':Gr);
+  B.list.forEach((z,k)=>{ const e=Math.min(n-1,z.r+10), s=Math.max(a0,z.r+1), col=bc(z);
+    if(e>=s) g+='<rect data-cmg="bw" data-k="'+k+'" data-st="'+z.st+'" data-i1="'+s+'" data-i2="'+e+'" x="'+r1(X(s)-bw/2)+'" y="'+PT+'" width="'+r1((e-s+1)*bw)+'" height="'+r1(yb-PT)+'" fill="'+col+'" opacity="0.12"/>';
+    for(let j=s;j<=e;j++){ if(z.brk>=0 && j>=z.brk) break; if(B.PB[j]!=null && B.PB[j]>=0.8 && isFinite(D.H[j])) gl+='<circle data-cmg="bwhi" data-k="'+k+'" data-i="'+j+'" cx="'+X(j)+'" cy="'+r1(Y(D.H[j])-4)+'" r="1.6" fill="'+col+'"/>'; } });
+  A.forEach(z=>{ let p='', k=0; for(let i=a0;i<n;i++){ const v=z[0][i]; if(v==null || !isFinite(v)) continue; p+=(k++?'L':'M')+X(i)+' '+Y(v); } if(p) g+='<path data-cmg="ma" data-p="'+z[2]+'" d="'+p+'" fill="none" stroke="'+z[1]+'" stroke-width="1.1"/>'; const lv=z[0][n-1]; if(lv!=null && isFinite(lv)) M.lab(Y(lv),z[2],z[1],false); });
+  const last=k=>{ const L0=ev.filter(e=>e.k===k && e.t>=n-60); return L0.length?L0[L0.length-1]:null; };
+  B.list.forEach(z=>{ if(z.r>=a0 && isFinite(D.L[z.r])) gl+=M.mk(z.r, 1, '밴드', bc(z), 'data-cmg="bwsig" data-i="'+z.r+'"'); });
+  ['m1','m2','m3','m4','m5','m6','m7','m8'].forEach(k=>{ const e=last(k); if(!e || e.t<a0) return; const up=k<='m4'; gl+=M.mk(e.t, up?1:-1, _CND_MA_CH[k], up?Up:Dn, 'data-cmg="mk" data-k="'+k+'" data-i="'+e.t+'"'); });
+  const V20=new Array(n).fill(null); for(let t=20;t<n;t++){ let s=0; for(let j=t-20;j<t;j++) s+=D.V[j]; V20[t]=s/20; }   // 평소 = 앞 20봉 평균(거래량 신호 8 과 같은 셈)
+  let mx=0; for(let i=a0;i<n;i++){ if(isFinite(D.V[i]) && D.V[i]>mx) mx=D.V[i]; if(V20[i]!=null && V20[i]>mx) mx=V20[i]; }
+  if(mx>0){ const Yv=v=>r1(vt+(1-v/mx)*(vb-vt)); let p='', k=0;
+    vv+='<line data-cmg="sep" x1="'+PL+'" y1="'+r1(yb+4)+'" x2="'+(W-PR)+'" y2="'+r1(yb+4)+'" stroke="'+Gr+'" stroke-opacity="0.35" stroke-width="0.6"/><text x="'+(PL+2)+'" y="'+r1(yb+12)+'" font-size="7.5" fill="'+Gr+'">거래량</text>';
+    for(let i=a0;i<n;i++){ if(isFinite(D.V[i]) && D.V[i]>0) vv+='<rect data-cmg="vol" data-i="'+i+'" data-v="'+D.V[i]+'" x="'+r1(X(i)-bw*0.35)+'" y="'+Yv(D.V[i])+'" width="'+r1(bw*0.7)+'" height="'+r1(vb-Yv(D.V[i]))+'" fill="'+(D.C[i]>=D.O[i]?Up:Dn)+'" opacity="0.45"/>'; if(V20[i]!=null) p+=(k++?'L':'M')+X(i)+' '+Yv(V20[i]); }
+    if(p) vv+='<path data-cmg="avg" d="'+p+'" fill="none" stroke="'+Gr+'" stroke-width="1" stroke-dasharray="3 2"/>'; if(V20[n-1]!=null && V20[n-1]>0) M.lab(Yv(V20[n-1]),'평소',Gr,false);
+    ['v1','v2','v3','v4','v5','v6','v7','v8'].forEach(k=>{ const e=last(k); if(!e || e.t<a0) return; gl+=M.put(e.t, Yv(isFinite(D.V[e.t])?D.V[e.t]:0)-3, -1, vt+1, vb-1, _CND_MA_CH[k], k<='v4'?Up:Dn, 'data-cmg="vmk" data-k="'+k+'" data-i="'+e.t+'"'); }); }
+  return _cndPic('ma', M.wrap(M.cd+'<g clip-path="url(#sxCndMaClip)">'+g+'</g>'+vv+gl,'sxCndMaClip')
+    +_cndLeg(U.T3,'선 = 5선(보라) · 20선(주황) · 60선(초록) · 두 글자 = 신호의 가장 최근 자리(빨강 = ▲ 쪽 · 파랑 = ▼ 쪽) — 이평: 정배 · 골든 · 눌림 · 복귀 · 역배 · 데드 · 이탈 · 이격 / 거래량: 돌파 · 다시 · 바닥 · 선행 · 천장 · 감소 · 신저 · 힘없')
+    +_cndLeg(U.T3,'밴드 = 🏃 밴드워크 자리 · 띠 = 그 뒤 10봉(초록 됨 · 주황 진행 중 · 회색 깨짐/부족) · 점 = 상단 근처(%B ≥ 0.8) · 아래 막대 = 거래량 · 점선 = 평소(앞 20봉 평균)')); }
+// 📋 반등 — 가장 최근 반등 첫날(최근 60봉): 40봉 고점 → 반등 첫날 띠 · 절반 · 1/3 되돌림 선(체크 ⑤ 의 선) · 반등 첫날 ▲
+function _cndRbSvgH(rows, ev, U){ const D=_cndOHLC(rows), n=D.n, rb=ev.filter(e=>e.k==='rb' && e.t>=n-60).sort((a,b)=>b.t-a.t)[0]; if(!rb) return '';
+  const s=rb.t, hi=rb.hi, lo=rb.lo, half=lo+0.5*(hi-lo), th=lo+(hi-lo)/3; let j=s-40; for(let q=s-40;q<=s-1;q++) if(D.H[q]>=D.H[j]) j=q;   // j = 40봉 고점 봉(같으면 나중 · 체크 ⑥ 과 같은 셈)
+  const M=_cndMini(D, { tag:'crg', HH:150, PR:68, ext:[hi, lo, half, th] }); if(!M) return ''; const { X, Y, r1, a0, bw, PT, yb, Up } = M, Gr='#6b7280', Tg='#059669';
+  const xa=Math.max(a0,j); let g=(s>xa)?('<rect data-crg="drop" data-i1="'+j+'" data-i2="'+s+'" x="'+r1(X(xa)-bw/2)+'" y="'+PT+'" width="'+r1((s-xa)*bw)+'" height="'+r1(yb-PT)+'" fill="#6b7280" opacity="0.08"/>'):'', gl='';
+  [[half,'절반 ',Tg,'3 2','half'],[th,'1/3 ',Gr,'1.5 2','third']].forEach(z=>{ if(M.inR(z[0])){ g+='<line data-crg="'+z[4]+'" data-v="'+z[0]+'" x1="'+X(Math.max(a0,s))+'" y1="'+Y(z[0])+'" x2="'+X(n-1)+'" y2="'+Y(z[0])+'" stroke="'+z[2]+'" stroke-width="1" stroke-dasharray="'+z[3]+'"/>'; M.lab(Y(z[0]),z[1]+U.F(z[0]),z[2],false); } });
+  if(j>=a0) gl+='<text data-crg="hi" data-i="'+j+'" x="'+X(j)+'" y="'+r1(Y(D.H[j])-3)+'" font-size="7.5" text-anchor="middle" fill="'+Gr+'">고점</text>';
+  if(s>=a0) gl+='<text data-crg="rb" data-i="'+s+'" x="'+X(s)+'" y="'+r1(Y(D.L[s])+9)+'" font-size="9" text-anchor="middle" fill="'+Up+'">▲</text>';
+  if(isFinite(D.C[n-1])) M.lab(Y(D.C[n-1]),'종가 '+U.F(D.C[n-1]),'#888',false);
+  return _cndPic('rb', M.wrap(M.cd+'<g clip-path="url(#sxCndRbClip)">'+g+'</g>'+gl,'sxCndRbClip')+_cndLeg(U.T3,'옅은 띠 = 40봉 고점에서 반등 첫날까지 · ▲ = 반등 첫날'+((n-1-s)>4?(' ('+U.ago(s)+' · 체크는 최근 5봉만)'):'')+' · 초록 점선 = 낙폭 절반 되돌림(⑤ ✅ 선) · 회색 점선 = 1/3(⑤ ❌ 선)')); }
+// 📐 패턴 — 📐 차트 패턴 그림과 🕯️ 꼬리 연속 돌파(WSB) 그림을 하나로 · 그리는 것은 두 그림(_cndPatSvg · _cndWsbSvg)과 같음 · 패턴 확정 봉은 '확정' 글자(▲▼ 는 WSB 신호) · 오른쪽 글자는 모아서 비킴
+function _cndPatWsbSvg(Dp, Dw, F, T3){ const okP=Dp && !Dp.err, okW=Dw && !Dw.err; if(!okP && !okW) return '';
+  const S=okP?{ n:Dp.n, O:Dp.O, H:Dp.H, L:Dp.L, C:Dp.C }:{ n:Dw.n, O:Dw.R.O, H:Dw.R.hi, L:Dw.R.lw, C:Dw.R.C }, n=S.n, DR=okP?Dp.list.filter(p=>p.state!==2):[];
+  const SG=okW?Dw.sigs.filter(s=>s.d):[], LS=SG.length?SG[SG.length-1]:null, ext=[];
+  DR.forEach(p=>{ (p.state===0?[_cndPatLv(p,n-1,false), p.twoSided?_cndPatLv(p,n-1,true):NaN, p.twoSided?NaN:p.stop]:[p.trigTP, p.state===1?p.trigSL:NaN]).forEach(v=>ext.push(v)); });
+  if(LS) [LS.e, LS.sl, LS.t1, LS.t2, LS.t3].forEach(v=>ext.push(v));
+  const M=_cndMini(S, { tag:'cpw', HH:196, PR:68, PT:16, ext }); if(!M) return ''; const { X, Y, r1, a0, bw, PT, yb, Up, Dn } = M, Gr='#6b7280', Tg='#059669', inR=v=>M.inR(v);
+  let g='', gl='';
+  DR.forEach((p,k)=>{ const op=k===0?1:0.55, col=p.bull?Up:Dn, xa=Math.max(a0,p.x1), e1=isFinite(p.trigBar)?p.trigBar:(n-1);
+    if(p.x2>=a0) g+='<rect data-cpg="span" data-k="'+k+'" x="'+r1(X(xa)-bw/2)+'" y="'+PT+'" width="'+r1((p.x2-xa+1)*bw)+'" height="'+r1(yb-PT)+'" fill="'+col+'" opacity="'+r1(0.07*op*1000)/1000+'"/>';
+    if(e1>=xa) [false].concat(p.twoSided?[true]:[]).forEach(two=>{ const v1=_cndPatLv(p,xa,two), v2=_cndPatLv(p,e1,two); g+='<line data-cpg="'+(two?'lvl2':'lvl')+'" data-k="'+k+'" data-i1="'+xa+'" data-i2="'+e1+'" data-v="'+v2+'" x1="'+X(xa)+'" y1="'+Y(v1)+'" x2="'+X(e1)+'" y2="'+Y(v2)+'" stroke="'+col+'" stroke-width="1.4" opacity="'+op+'"/>'; });
+    if(p.state===0){ [false].concat(p.twoSided?[true]:[]).forEach(two=>{ const v=_cndPatLv(p,n-1,two); if(inR(v)) M.lab(Y(v),(p.twoSided?(two?'아래 ':'위 '):'')+'돌파 '+F(v),col,true); });
+      if(!p.twoSided && inR(p.stop)){ g+='<line data-cpg="stop" data-k="'+k+'" data-v="'+p.stop+'" x1="'+X(Math.max(a0,p.x2))+'" y1="'+Y(p.stop)+'" x2="'+X(n-1)+'" y2="'+Y(p.stop)+'" stroke="'+Gr+'" stroke-width="1" stroke-dasharray="3 2" opacity="'+op+'"/>'; M.lab(Y(p.stop),'무효 '+F(p.stop),Gr,false); } }
+    else { const t0=Math.max(a0,p.trigBar), t1=isFinite(p.endBar)?p.endBar:(n-1);
+      if(p.trigBar>=a0) gl+=M.put(p.trigBar, p.bull?(Y(S.L[p.trigBar])+18):(Y(S.H[p.trigBar])-12), p.bull?1:-1, PT+7, yb-1, '확정', col, 'data-cpg="trig" data-k="'+k+'" data-i="'+p.trigBar+'"');   // WSB ▲▼ 자리(봉 바로 아래 · 위) 한 칸 바깥
+      if(inR(p.trigTP) && t1>=t0){ g+='<line data-cpg="tp" data-k="'+k+'" data-v="'+p.trigTP+'" x1="'+X(t0)+'" y1="'+Y(p.trigTP)+'" x2="'+X(t1)+'" y2="'+Y(p.trigTP)+'" stroke="'+Tg+'" stroke-width="1.2" stroke-dasharray="1.5 2" opacity="'+op+'"/>'; if(p.state===1) M.lab(Y(p.trigTP),'목표 '+F(p.trigTP),Tg,true); }
+      if(p.state===1 && inR(p.trigSL)){ g+='<line data-cpg="sl" data-k="'+k+'" data-v="'+p.trigSL+'" x1="'+X(t0)+'" y1="'+Y(p.trigSL)+'" x2="'+X(n-1)+'" y2="'+Y(p.trigSL)+'" stroke="'+Gr+'" stroke-width="1" stroke-dasharray="3 2"/>'; M.lab(Y(p.trigSL),'손절 '+F(p.trigSL),Gr,false); } }
+    if(p.x2>=a0) g+='<text data-cpg="name" data-k="'+k+'" x="'+X(xa)+'" y="'+(PT+8)+'" font-size="8" fill="'+col+'" opacity="'+op+'">'+(_CND_PAT_NM[p.kind]||p.kind)+'</text>'; });
+  if(okW){ const R=Dw.R;
+    R.forms.forEach(f=>{ if(!(f.st==='live' || f.st==='up' || f.st==='dn') || !isFinite(f.top) || !isFinite(f.bot)) return; const rb=f.st==='live'?n-1:f.end; if(rb<a0) return; const xa=Math.max(a0,f.left), col=f.st==='up'?Up:(f.st==='dn'?Dn:Gr);
+      g+='<rect data-wsg="box" data-st="'+f.st+'" data-i1="'+xa+'" data-i2="'+rb+'" data-top="'+f.top+'" data-bot="'+f.bot+'" x="'+r1(X(xa)-bw/2)+'" y="'+Y(f.top)+'" width="'+r1((rb-xa+1)*bw)+'" height="'+r1(Math.max(0.8,Y(f.bot)-Y(f.top)))+'" fill="'+col+'" fill-opacity="0.12" stroke="'+col+'" stroke-opacity="0.6" stroke-width="0.8"'+(f.mixed?' stroke-dasharray="3 2"':'')+'/>';
+      if(f.st==='live'){ M.lab(Y(f.top),'위 '+F(f.top),Gr,false); M.lab(Y(f.bot),'아래 '+F(f.bot),Gr,false); } });
+    if(LS){ const t1=LS.end<0?n-1:LS.end, col=LS.d===1?Up:Dn, ln=(v,k,c,w,da)=>inR(v)?('<line data-wsg="lv" data-k="'+k+'" data-v="'+v+'" x1="'+X(LS.t)+'" y1="'+Y(v)+'" x2="'+X(t1)+'" y2="'+Y(v)+'" stroke="'+c+'" stroke-width="'+w+'"'+(da?' stroke-dasharray="'+da+'"':'')+'/>'):'';
+      g+=ln(LS.e,'e',col,1.2,'')+ln(LS.sl,'sl',Gr,1,'3 2')+ln(LS.t1,'t1',Tg,1,'1.5 2')+ln(LS.t2,'t2',Tg,1,'1.5 2')+ln(LS.t3,'t3',Tg,1.2,'1.5 2');
+      if(LS.end<0) [[LS.e,(LS.d===1?'BUY ':'SELL ')+F(LS.e),col,true],[LS.sl,'SL '+F(LS.sl),Gr,false],[LS.t1,'TP1 '+F(LS.t1),Tg,false],[LS.t2,'TP2 '+F(LS.t2),Tg,false],[LS.t3,'TP3 '+F(LS.t3),Tg,true]].forEach(a=>{ if(inR(a[0])) M.lab(Y(a[0]),a[1],a[2],a[3]); }); }
+    for(let i=a0;i<n;i++){ if(R.sigB[i] && isFinite(S.L[i])) gl+='<text data-wsg="tri" data-d="1" data-i="'+i+'" x="'+X(i)+'" y="'+r1(Y(S.L[i])+9)+'" font-size="9" text-anchor="middle" fill="'+Up+'">▲</text>';
+      if(R.sigS[i] && isFinite(S.H[i])) gl+='<text data-wsg="tri" data-d="-1" data-i="'+i+'" x="'+X(i)+'" y="'+r1(Y(S.H[i])-3)+'" font-size="9" text-anchor="middle" fill="'+Dn+'">▼</text>'; } }
+  if(isFinite(S.C[n-1])) M.lab(Y(S.C[n-1]),'종가 '+F(S.C[n-1]),'#888',false);
+  return _cndPic('pat', M.wrap(M.cd+'<g clip-path="url(#sxCndPwClip)">'+g+'</g>'+gl,'sxCndPwClip')
+    +_cndLeg(T3,'📐 패턴: 옅은 띠 = 패턴 자리 · 굵은 선 = 돌파선 · 확정 = 확정 봉 · 초록 점선 = 목표 · 회색 점선 = 무효선 · 손절선')
+    +_cndLeg(T3,'🕯️ WSB: 상자 = 꼬리 모임 상자(빨강 위로 뚫음 · 파랑 아래로 · 회색 기다림) · ▲▼ = BUY · SELL · 가장 최근 신호의 BUY · SL · TP1 ~ 3 선')); }
 function _cndCardHtml(cx){ try{
   const rows=cx.rows, n=(rows&&rows.length)||0, cur=_cndTab(), T3='var(--text3)', T2='var(--text2)', G='#059669', Rd='#dc2626', Up='#dc2626', Dn='#2563eb';   /* [S1885] ▲ 오름 = Up 빨강 · ▼ 내림 = Dn 파랑(칩 · 줄) · G · Rd 는 좋음/나쁨(✅/❌ · 취소선 깨짐)에만 (분석탭 기준표 v2 기준 2 · 사용자 2026-11-05) */
   const F=x=>(x==null || !isFinite(x))?'—':((typeof _fibFmt==='function')?_fibFmt(x):String(+(+x).toPrecision(6))), last=n?+rows[n-1].close:NaN, pc=x=>(isFinite(x) && last>0)?(((x/last-1)*100>=0?'+':'')+((x/last-1)*100).toFixed(1)+'%'):'—';
   const ago=t=>(n-1-t===0)?'마지막 봉':((n-1-t)+'봉 전'), dt=t=>{ const r=rows[t]||{}; const d=String(r.date!=null?r.date:(r.t||'')); return d.length>=8?d.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3').slice(0,16):d; };
   const wrap=b=>'<div class="anal-header-card" id="sxCndCard" style="margin-top:10px;text-align:left"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:13px;font-weight:800;color:var(--text)">🕯️ 캔들 · 차트 읽기</span><span style="font-size:9px;color:'+T3+'">봉 = 지금 분석 TF('+(cx.tfLbl||'')+')'+(n?(' · 마지막 봉 '+dt(n-1)):'')+'</span></div>'+_cndTabBar(cur)+b
-    +'<div data-cnd-note="1" style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-top:6px">'+(cur==='pat'?_CND_PAT_NOTE+_CND_WSB_NOTE /* [S1919] 📐 패턴 탭 = 원본 출처 · [S1925] WSB 출처 더함 */:'그림 자료(PDF)의 말을 숫자로 옮긴 표시 · 이 카드의 신호들은 안 쟀어요(지금 봉 패턴의 측정 배지는 그대로) · 읽기 도움 · 판정 아님'+(cur==='ma'?' · 🏃 밴드워크 자리만 잰 결과를 따로 적음':'') /* [S1920] */)+'</div></div>';
+    +'<div data-cnd-note="1" style="font-size:8.5px;color:'+T3+';line-height:1.55;margin-top:6px">'+(cur==='pat'?_CND_PAT_NOTE+_CND_WSB_NOTE /* [S1919] 📐 패턴 탭 = 원본 출처 · [S1925] WSB 출처 더함 */:'그림 자료(PDF)의 말을 숫자로 옮긴 표시 · 이 카드의 신호들은 안 쟀어요(지금 봉 패턴의 측정 배지는 그대로) · 읽기 도움 · 판정 아님'+(cur==='ma'?' · 🏃 밴드워크 자리만 잰 결과를 따로 적음':'') /* [S1920] */+(cur==='gap'?' · 🕳️ 갭 메움 · 시가 갭 하락만 잰 결과를 따로 적음':'') /* [S1928] */)+'</div></div>';
   const chip=(txt,side)=>'<span style="font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:9px;white-space:nowrap;background:'+(side>0?Up:(side<0?Dn:'#6b7280'))+'14;color:'+(side>0?Up:(side<0?Dn:'#6b7280'))+'">'+txt+'</span>';
   const line=h=>'<div style="font-size:10px;color:'+T2+';line-height:1.6;padding:4px 0;border-bottom:1px dashed var(--border)">'+h+'</div>';
   const sub=(t,h)=>'<div style="font-size:10px;font-weight:800;color:'+T2+';margin:8px 0 3px">'+t+(h?(' <span style="font-weight:500;color:'+T3+'">— '+h+'</span>'):'')+'</div>';
@@ -16312,6 +16435,7 @@ function _cndCardHtml(cx){ try{
     h+=A1.length?A1.map(one).join(''):'<div style="font-size:10px;color:'+T3+'">최근 20봉에 없음</div>';
     h+=sub('🔻 매도 쪽 봉','PDF 4쪽 · 갭 하락 마감 · 연속 양봉 뒤 첫 음봉 · 장대양봉 무효 · 신고가 뒤 첫 이탈 · 최근 20봉');
     h+=A2.length?A2.map(one).join(''):'<div style="font-size:10px;color:'+T3+'">최근 20봉에 없음</div>';
+    h+=_cndBarSvgH(rows, A1.concat(A2), { F, T3 });   /* [S1928] 🕯️ 봉 그림(두 목록 자리 · 두 글자) */
   } else if(cur==='gap'){
     const CL={ gu:{ fade:'상승 소멸갭', brk:'상승 이탈갭', meas:'상승 측정갭', comm:'보통갭(위)' }, gd:{ fade:'하락 소멸갭', brk:'하락 이탈갭', meas:'하락 측정갭', comm:'보통갭(아래)' } };
     const st=e=>{ const u=e.k==='gu';
@@ -16324,6 +16448,7 @@ function _cndCardHtml(cx){ try{
     h+=sub('🕳️ 갭','PDF 1쪽 · 최근 60봉 · 띠 = 앞 봉과 이 봉 사이 빈 곳');
     h+=gs.length?gs.map(e=>line(chip(CL[e.k][e.c], side(e))+' <span style="color:'+T3+';font-size:9.5px">'+ago(e.t)+' · '+dt(e.t)+' · 띠 '+F(e.z0)+' ~ '+F(e.z1)+'</span><br><span style="font-size:9.5px">'+st(e)+'</span>')).join(''):'<div style="font-size:10px;color:'+T3+'">최근 60봉에 갭 없음(코인은 24시간 거래라 드묾)</div>';
     if(il.length) h+=il.map(e=>line(chip('섬꼴 반전',-1)+' <span style="color:'+T3+';font-size:9.5px">'+(e.t-e.a)+'봉 섬 · '+ago(e.t)+'</span> · 갭으로 올라가 머물다 갭으로 내려옴 → 전부 판다')).join('');
+    h+=_cndGapMoreHtml(rows, gs, { F, pc, ago, dt, chip, line, sub, T2, T3, mk:cx.mk, tf:cx.tf });   /* [S1928] 🕳️ 갭 그림 · 시가 갭 하락 줄 · 잰 결과 */
   } else if(cur==='ma'){
     const row=(k,side)=>{ const L0=by(k).filter(e=>inW(e,60)), e=L0.length?L0[L0.length-1]:null, now=e && e.t===n-1, wk=(k==='v1')?by('w1').filter(q=>inW(q,60)):[], w5=by('w5').filter(q=>e && q.t===e.t);
       let x=''; if(k==='m2' && e && e.w===1) x=' <b style="color:#d97706">⚠ 60선이 안 오를 때 골든(엉킴)</b>'; if(k==='m2' && e) x+=' <span style="color:'+T3+'">· 20선과 '+((e.d>=0?'+':'')+(e.d*100).toFixed(1))+'%</span>';
@@ -16334,13 +16459,15 @@ function _cndCardHtml(cx){ try{
     const ml=()=>{ const m=E.M20[n-1]; return (m>0)?('지금 종가가 20선 '+((last/m-1)*100>=0?'+':'')+((last/m-1)*100).toFixed(1)+'%'):''; };
     h+=sub('📈 이평 신호 8','PDF 6쪽 · 5 · 20 · 60선 · '+ml());
     h+=['m1','m2','m3','m4'].map(k=>row(k,1)).join('')+['m5','m6','m7','m8'].map(k=>row(k,-1)).join('');
+    h+=_cndMaVolSvgH(rows, ev, { F, T3 });   /* [S1928] 📈 이평 · 📊 거래량 · 🏃 밴드워크 그림 하나 */
     h+=_cndBwHtml(rows, { F, ago, dt, chip, line, sub, T2, T3, mk:cx.mk, tf:cx.tf });   /* [S1920] 🏃 밴드워크 자리 */
     h+=sub('📊 거래량 신호 8','PDF 7쪽 · 평소 = 앞 20봉 평균');
     h+=['v1','v2','v3','v4'].map(k=>row(k,1)).join('')+['v5','v6','v7','v8'].map(k=>row(k,-1)).join('');
     h+='<div style="font-size:8.5px;color:'+T3+';margin-top:3px">⚠ = PDF 11쪽 거짓 신호(꼬리만 넘은 돌파 · 이평이 엉킨 골든 · 가격 없는 거래량)</div>';
   } else if(cur==='pat'){
-    h+=_cndPatHtml(rows, { F, pc, ago, dt, chip, line, sub, T2, T3 });   /* [S1919] 📐 차트 패턴 */
-    h+=_cndWsbHtml(rows, { F, pc, ago, dt, chip, line, sub, T2, T3 });   /* [S1925] 🕯️ 꼬리 연속 돌파(WSB) */
+    const Dp=_cndPatList(rows), Dw=_cndWsbData(rows), pic=_cndPatWsbSvg(Dp, Dw, F, T3);   /* [S1928] 📐 · 🕯️ 그림 하나 */
+    h+=_cndPatHtml(rows, { F, pc, ago, dt, chip, line, sub, T2, T3, Dp, pic });   /* [S1919] 📐 차트 패턴 */
+    h+=_cndWsbHtml(rows, { F, pc, ago, dt, chip, line, sub, T2, T3, Dw, noSvg:1 });   /* [S1925] 🕯️ 꼬리 연속 돌파(WSB) */
   } else {
     const rb=ev.filter(e=>e.k==='rb' && inW(e,5)).sort((a,b)=>b.t-a.t)[0];
     h+=sub('📋 폭락 뒤 반등 체크 8','PDF 2쪽');
@@ -16350,6 +16477,7 @@ function _cndCardHtml(cx){ try{
       h+=rb.ck.map((c,i)=>'<div style="font-size:10px;padding:2px 0">'+ic[c]+' '+nm[i]+'</div>').join('')+'<div style="font-size:10px;padding:2px 0">➖ ⑧ 시장과 같이 — 못 봄(이 카드엔 지수 자료가 없음)</div>';
       const ok=rb.ck.filter(c=>c==='o').length, bad=rb.ck.filter(c=>c==='x').length;
       h+='<div style="font-size:10px;font-weight:800;margin-top:4px;color:'+(ok>bad?G:(bad>ok?Rd:T2))+'">✅ '+ok+' · ❌ '+bad+' (7개 중 · ➖ 중간 · ⏳ 아직)</div>'; }
+    h+=_cndRbSvgH(rows, ev, { F, ago, T3 });   /* [S1928] 📋 반등 그림(최근 60봉의 가장 최근 반등 첫날) */
   }
   return wrap(h); }catch(_e){ return ''; } }
 function _buildCndCard(stock, indicators){ try{ const rows=(indicators&&indicators._advanced&&Array.isArray(indicators._advanced.rows))?indicators._advanced.rows:((stock&&Array.isArray(stock._lastAnalCandles))?stock._lastAnalCandles:null);
@@ -21697,7 +21825,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1927';   // [S1927] 🐢 터틀 🧱 피라미딩(종가 ≥ 마지막 매수가 + 간격 × N → 한 유닛 · 최대 유닛 · 손절 올림) · 💼 수량(전액 | 위험% ÷ N) — 손익 = 자산 대비 · 📌 · ⚖️ 같은 비율 = 평균 노출 · 실험 칩 · 안 잰 값(사용자 2026-11-12 06:01 · 06:17)
+  window.SX_BUILD='S1928';   // [S1928] 🕯️ 캔들 · 차트 읽기 — 탭마다 작은 그림 하나(🕯️ 봉 · 🕳️ 갭 · 📈 이평 · 거래량(🏃 합침) · 📋 반등 · 📐 패턴(🕯️ WSB 합침) · 신호 두 글자) + 🕳️ 시가 갭 하락 줄 · 갭 잰 결과(offline/gap) — 읽기 도움 · 판정 아님(사용자 2026-11-12 11:12 · 11:36 · 11:41 · 11:44)
+  //window.SX_BUILD='S1927';   // [S1927] 🐢 터틀 🧱 피라미딩(종가 ≥ 마지막 매수가 + 간격 × N → 한 유닛 · 최대 유닛 · 손절 올림) · 💼 수량(전액 | 위험% ÷ N) — 손익 = 자산 대비 · 📌 · ⚖️ 같은 비율 = 평균 노출 · 실험 칩 · 안 잰 값(사용자 2026-11-12 06:01 · 06:17)
   //window.SX_BUILD='S1926';   // [S1926] 🐢 터틀 진입 신호 [📏 N봉 선][🕯️ WSB ▲] · 청산 신호 [📏 N봉 선][🕯️ WSB ▼][둘 중 먼저] — 꼬리 연속 돌파(S1925 풀차트 ⑦ 계산 · 꼬리 봉 · 창만 이 탭 칸) · TP/SL = 이 탭 칩 · 실험 칩 · 안 잰 값(사용자 2026-11-11 22:02 · 2026-11-12 01:05)
   //window.SX_BUILD='S1925';   // [S1925] 풀차트 ⑦ Wick Sequence Breakout(© Uncle_the_shooter · MPL 2.0 · sx_tvind_mpl.js) + 🕯️ 캔들 · 차트 읽기 카드 📐 패턴 탭 아래 꼬리 연속 돌파 줄(기다리는 상자 · 최근 60봉 신호 셋 · 신호마다 원본 TP/SL 규칙 · 그림) · 표시용 · 읽기 도움 · 판정 아님 · 안 잰 값(사용자 2026-11-11 21:27 · 21:43 · 22:02)
   //window.SX_BUILD='S1924';   // [S1924] 🛑 SL 청산 · 🛡️ 트레일 청산(TS) — 여섯 탭 공통 칩 · 🛑 손절가 = 기준 [진입가][N봉 최저가] − 폭 [X %][스윙 평균 높이][ATR 배수](진입 봉에서 고정) · 판정 [저가 닿음][종가 마감] · 🛡️ 선 = 진입 뒤 최고 종가 − 폭 [X %][ATR 배수] · 🖼️ 그림 선 · 🎯 안내 줄 · 끄면 지금 그대로 · 실험 칩 · 안 잰 값(사용자 2026-11-11 11:23 · 11:46)
