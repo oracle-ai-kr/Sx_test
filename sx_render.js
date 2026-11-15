@@ -16057,12 +16057,26 @@ function _psPut(stock, k, val){ if(_PS.key===null || _PS.key!==_psKey(stock)) re
 function _psPaint(){ try{ const el=(typeof document!=='undefined')?document.getElementById('sxPredSum'):null; if(el && el.getAttribute('data-ps-key')===_PS.key) el.outerHTML=_psHtml(); }catch(_e){} }
 function _psGo(tab, id){ try{ if(typeof switchAnalTab==='function') switchAnalTab(tab); setTimeout(function(){ try{ const e=document.getElementById(id); if(e&&e.scrollIntoView) e.scrollIntoView({ behavior:'smooth', block:'start' }); }catch(_e1){} }, 80); }catch(_e){} }
 // 🗂 원장 — 이 종목 기록(분포 보드 · 예상 최대 손실이 띄운 예측을 원장이 기록 · 채점) · 비동기
+// [S1933] 📏 원장 보정표 — 원장 전체(모든 시장 · 종목) 채점 기록을 문항마다 '모델이 그렇다고 부른 것 중 실제 그렇게 된 몫' · '아니다고 부른 것 중 실제 그렇게 된 몫' 으로 나눠 셈 · PREREG_S1933_ledger_cal.md
+//   사용자 2026-11-15 06:43 '제안대로 해줘 / 그리고 카드가 전체적으로 너무 안길어지게 하는게 좋을거 같아' → 접힌 알약(기본 닫힘 · 펼친 상태는 _PS.calOpen 으로 기억)
+//   모델 부름 = 저장된 hit · truth 로 되짚음(hit 면 부름 = truth · 아니면 반대) · truth · hit 가 참/거짓이 아닌 기록 · 채점 전 기록은 뺌 · 읽기 도움 · 판정 아님
+function _psCal(all){ const Q=(typeof window!=='undefined'&&window.SXLedger&&SXLedger.Q)||{}, by={}; let n=0;
+  (Array.isArray(all)?all:[]).forEach(r=>{ if(!r || r.st!==1 || typeof r.truth!=='boolean' || typeof r.hit!=='boolean') return; const q=+r.q; if(!(q>0)) return;
+    const mc=r.hit?r.truth:!r.truth, b=by[q]||(by[q]={ q:q, nm:(Q[q]&&Q[q].name)||('Q'+q), y:0, yt:0, o:0, ot:0 }); n++; if(mc){ b.y++; if(r.truth) b.yt++; } else { b.o++; if(r.truth) b.ot++; } });
+  return { n:n, q:Object.keys(by).map(Number).sort((a, b)=>a-b).map(k=>by[k]) }; }
+function _psCalHtml(c){ if(!c || c.err || !c.n || !Array.isArray(c.q) || !c.q.length) return '';
+  const T2='var(--text2)', T3='var(--text3)', pc=(t, n)=>n?(Math.round(t/n*100)+'%('+n+')'):'—', td=(t, b)=>'<td style="padding:2px 4px;text-align:right;white-space:nowrap'+(b?';font-weight:800;color:var(--text)':'')+'">'+t+'</td>';
+  const rows=c.q.map(b=>{ const g=(b.y&&b.o)?Math.round((b.yt/b.y-b.ot/b.o)*100):null; return '<tr data-ps-calq="'+b.q+'" style="border-top:1px dashed var(--border)"><td style="padding:2px 4px;white-space:nowrap">'+b.nm+'</td>'+td(pc(b.yt, b.y))+td(pc(b.ot, b.o))+td(g==null?'—':((g>0?'+':'')+g), 1)+'</tr>'; }).join('');
+  return '<details data-ps-cal="'+c.n+'"'+(_PS.calOpen?' open':'')+' onclick="event.stopPropagation()" ontoggle="_PS.calOpen=this.open" style="margin-top:4px"><summary style="display:inline-block;font-size:9px;font-weight:800;padding:3px 9px;border-radius:12px;border:1px solid #0891b255;background:#0891b214;color:#0e7490;cursor:pointer;list-style:none">▸ 📏 보정표 · 원장 전체 채점 '+c.n+'건</summary>'
+    +'<div style="margin-top:4px;padding:5px 6px;border-radius:7px;background:var(--surface2);border:1px solid var(--border)"><table style="width:100%;border-collapse:collapse;font-size:9px;color:'+T2+'"><tr style="color:'+T3+';font-size:8.5px"><td style="padding:2px 4px">문항</td>'+td('\'그렇다\' 부름<br>→ 실제')+td('\'아니다\' 부름<br>→ 실제')+td('가름<br>%p')+'</tr>'+rows+'</table>'
+    +'<div style="font-size:8px;color:'+T3+';line-height:1.45;margin-top:3px">\'그렇다\' 부름 쪽 실제 몫이 \'아니다\' 쪽보다 높을수록 부름이 가른다(가름) · 괄호 = 건수 · 원장 전체(모든 시장 · 종목) · 스냅 뒤 기록이라 표본 밖 · 읽기 도움 · 판정 아님</div></div></details>'; }
 function _psLedger(stock){ try{
   const mk=(stock&&(stock._mkt||stock.market))||((typeof currentMarket!=='undefined')?currentMarket:'kr'), code=(stock&&stock.code)||'';
   if(typeof window==='undefined' || !window.SXLedger || !SXLedger.list || !code){ _PS.v.led={ none:1 }; return; }
   SXLedger.list({ mkt:mk, code:code }).then(function(all){ all=all||[]; const sc=all.filter(r=>r.st===1);
     _psPut(stock, 'led', { n:all.length, pend:all.length-sc.length, sc:sc.length, h:sc.filter(r=>r.hit).length, nh:sc.filter(r=>r.nhit).length, hn:sc.filter(r=>r.hhit!=null).length, hh:sc.filter(r=>r.hhit).length }); })
     .catch(function(){ _psPut(stock, 'led', { err:1 }); });
+  try{ SXLedger.list({}).then(function(all){ _psPut(stock, 'cal', _psCal(all)); }).catch(function(){ _psPut(stock, 'cal', { err:1 }); }); }catch(_eC){ _PS.v.cal={ err:1 }; }   /* [S1933] 📏 원장 보정표 — 원장 전체 */
 }catch(_e){ _PS.v.led={ err:1 }; } }
 var _PS_GO = { ms:[3,'sxMsCardWrap'], cp:[3,'sxCpCardWrap'], ct:[3,'sxCTCardWrap'], mx:[3,'sxMxCardWrap'], xp:[1,'sxTrendWrap'], ttm:[3,'sxTtmCardWrap'], fib:[3,'sxFibLabWrap'], led:[1,'sxDistBoardWrap'] };
 function _psHtml(){
@@ -16086,17 +16100,17 @@ function _psHtml(){
     else { const d=c.sc>=30?1:(c.sc<=-30?-1:0); tally(d); R.ct=(row('ct', d, '🧪', '캔들 전이', '다음 봉 · kNN', chip(d, (d>0?'▲ ':(d<0?'▼ ':'— '))+c.lbl),
       '양봉 비율 '+c.up+'% · 닮은 16봉 장면 '+c.k+'개 → 다음 봉 양봉 '+c.nUp+' · 음봉 '+c.nDn+(c.pool?' · 풀링 값':'')+' · 점수 '+sg(c.sc)+'(±30 넘어야 쪽)', badge('lab', '실험 칩 · 안 잰 값'))); } }
   { const x=V.xp;   // 🔮 크로스 예측 — 단기 매매 카드 D-day 예보(카드 배지 그대로)
-    if(!x) R.xp=(row('xp', null, '🔮', '크로스 예측', '단기 매매 카드', chip(0, '— 값 없음'), '단기 매매 카드 값이 없음', badge('lab', '실험 칩 · 풀 전체로는 안 잰 값')));
-    else if(x.eng!=='cross' && x.eng!=='strat') R.xp=(row('xp', null, '🔮', '크로스 예측', '단기 매매 카드', chip(0, '— 이 탭엔 없음'), '단기 매매 카드가 📈 MA크로스 · 🧪 전략 조합 탭일 때만 예보', badge('lab', '실험 칩 · 풀 전체로는 안 잰 값')));
+    if(!x) R.xp=(row('xp', null, '🔮', '크로스 예측', '단기 매매 카드', chip(0, '— 값 없음'), '단기 매매 카드 값이 없음', badge('lab', '실험 칩 · 풀 전체로는 안 잰 값')+' '+badge('meas', '잰 결과 · kNN 등급 못 가름')/* [S1933] offline/xgrade */));
+    else if(x.eng!=='cross' && x.eng!=='strat') R.xp=(row('xp', null, '🔮', '크로스 예측', '단기 매매 카드', chip(0, '— 이 탭엔 없음'), '단기 매매 카드가 📈 MA크로스 · 🧪 전략 조합 탭일 때만 예보', badge('lab', '실험 칩 · 풀 전체로는 안 잰 값')+' '+badge('meas', '잰 결과 · kNN 등급 못 가름')/* [S1933] offline/xgrade */));
     else { const d=x.dd?(x.ty==='dc'?-1:1):0; tally(d); const hit=(h, n)=>(h==null?'—':(h+'%('+n+'번)'));
       R.xp=(row('xp', d, '🔮', '크로스 예측', x.s+'×'+x.l+' · 단기 매매 카드', chip(d, x.dd?((x.ty==='dc'?'▼ 데드크로스':'▲ 골든크로스')+' D-'+x.dd+(x.pr!=null?(' · '+x.pr+'%'):'')):'— 예보 없음'),
-        (x.on&&(x.gf||x.df))?('이 종목 지난 예보 맞힘 — 골든 '+hit(x.gh, x.gf)+' · 데드 '+hit(x.dh, x.df)+' (3봉 안 실제 교차)'):'맞힘 % 는 🔮 크로스 예측 칩이 켜졌을 때 셈(단기 매매 카드)', badge('lab', '실험 칩 · 풀 전체로는 안 잰 값'))); } }
+        (x.on&&(x.gf||x.df))?('이 종목 지난 예보 맞힘 — 골든 '+hit(x.gh, x.gf)+' · 데드 '+hit(x.dh, x.df)+' (3봉 안 실제 교차)'):'맞힘 % 는 🔮 크로스 예측 칩이 켜졌을 때 셈(단기 매매 카드)', badge('lab', '실험 칩 · 풀 전체로는 안 잰 값')+' '+badge('meas', '잰 결과 · kNN 등급 못 가름')/* [S1933] offline/xgrade */)); } }
   { const c=V.cp;   // 🔮 차트예측 — 앞 기록(S670) 방향 엣지 없음 → 세지 않음 · 카드처럼 중립 표기
     if(!c) R.cp=(row('cp', null, '🔮', '차트예측', '닮은 모양', mute('— 값 없음'), '이 종목에선 카드 값이 없음', badge('meas', '앞 기록 · 방향 엣지 없음(S670) · 세지 않음')));
     else if(!c.on) R.cp=(row('cp', null, '🔮', '차트예측', '닮은 모양', mute('— '+c.why), '닮은 표본이 10개 미만', badge('meas', '앞 기록 · 방향 엣지 없음(S670) · 세지 않음')));
     else R.cp=(row('cp', null, '🔮', '차트예측', c.h+'봉 뒤 · 닮은 모양', mute('상승 비율 '+c.up+'%'), '닮은 모양 '+c.n+'개 · 중앙 '+sg(c.med)+'% · 80% 구간 '+sg(c.p10)+' ~ '+sg(c.p90)+'%'+(c.reg?(' · 레짐 필터 '+c.reg):'')+(c.hy?' · 하이브리드':''), badge('meas', '앞 기록 · 방향 엣지 없음(S670) · 세지 않음'))); }
   { const t=V.ttm;   // 🗜️ TTM — 잰 결과 방향 예측 없음(S1802) → 세지 않음
-    R.ttm=(row('ttm', null, '🗜️', 'TTM 스퀴즈', '지금 상태', mute(t?t.st:'— 값 없음'), t?('모멘텀 '+t.mt+'(종가 대비)'+(t.pct!=null?(' · 볼밴 폭 120봉 중 하위 '+t.pct+'%'):'')+' · 풀릴 때 쪽은 잰 결과로 못 맞혀 세지 않음'):'이 종목에선 카드 값이 없음(60봉 미만)', badge('meas', '잰 결과 · 방향 예측 없음(S1802 · 적중 45~54%)'))); }
+    R.ttm=(row('ttm', null, '🗜️', 'TTM 스퀴즈', '지금 상태', mute(t?t.st:'— 값 없음'), t?('모멘텀 '+t.mt+'(종가 대비)'+(t.pct!=null?(' · 볼밴 폭 120봉 중 하위 '+t.pct+'%'):'')+' · 풀릴 때 쪽은 잰 결과로 못 맞혀 세지 않음'):'이 종목에선 카드 값이 없음(60봉 미만)', badge('meas', '잰 결과 · 방향 예측 없음(S1802 · 적중 45~54%)')+' '+badge('meas', '잰 결과 · kNN(Squeeze AI)도 없음')/* [S1933] offline/sqzai */)); }
   { const m=V.mx;   // 🧪 MA크로스 전이 — 조건표(쪽 없음)
     R.mx=(row('mx', null, '🧪', 'MA크로스', m?(m.s+'×'+m.l+' · '+m.N+'봉 안'):'크로스 전이', chip(0, '— 조건표'), !m?'이 종목에선 카드 값이 없음(60봉 미만)':(m.few?('표본 부족 — '+(m.dir==='gc'?'골든':'데드')+' 가능 구간 '+m.elig+'개(10개 이상 필요)'):((m.dir==='gc'?'골든':'데드')+'크로스 '+m.N+'봉 안 기본 '+m.base+'%('+m.elig+'번)'+(m.best?(' · 가장 센 조건 '+m.best.lb+' '+m.best.hr+'%('+m.best.n+'번)'):''))), badge('lab', '실험 칩 · 안 잰 값'))); }
   { const f=V.fib;   // 🌀 피보나치 반응 — 이 종목 이력(쪽 없음) · 잰 결과 무작위 선과 구분 안 됨(S1808)
@@ -16104,7 +16118,7 @@ function _psHtml(){
   { const l=V.led;   // 🗂 예측 원장 — 이 종목 기록(표본 밖)
     const t=!l?['— 읽는 중', '원장을 읽는 중']:(l.none?['— 원장 없음', '원장을 열 수 없음(시크릿 모드 등)']:(l.err?['— 원장 오류', '원장을 읽지 못함']:(!l.n?['— 이 종목 기록 없음', '분포 보드 · 예상 최대 손실이 띄운 예측을 원장이 기록하고 지평 뒤 채점(스냅 뒤 = 표본 밖)']:
       ['기록 '+l.n+'건 · 채점 '+l.sc+'건', l.sc?('모델 맞힘 '+l.h+'/'+l.sc+' · 나이브 '+l.nh+'/'+l.sc+(l.hn?(' · 내가 찍은 '+l.hn+'건 중 맞힘 '+l.hh):'')+(l.pend?(' · 채점 전 '+l.pend+'건'):'')):('채점 전 '+l.pend+'건(지평 도달 뒤 채점)')])));
-    R.led=(row('led', null, '🗂', '예측 원장', '이 종목 기록', chip(0, t[0]), t[1], badge('own', '원장 · 표본 밖 기록'))); }
+    R.led=(row('led', null, '🗂', '예측 원장', '이 종목 기록', chip(0, t[0]), t[1], badge('own', '원장 · 표본 밖 기록')+_psCalHtml(V.cal)/* [S1933] 📏 원장 보정표 */)); }
   const M=_PS.meta||{}, dTxt=String(M.d||'').replace(/^(\d{4})-?(\d{2})-?(\d{2}).*/, '$2/$3');
   const head='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:13px;font-weight:800;color:var(--text)">🔮 예측 모아보기</span><span style="font-size:9.5px;color:'+T3+'">읽기 도움 · 판정 아님'+(M.tfl?(' · '+M.tfl):'')+(dTxt?(' · '+dTxt+' 기준'):'')+'</span></div>';
   const strip='<div data-ps-count="'+cnt.up+'/'+cnt.dn+'/'+cnt.no+'" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:2px 0 4px">'+chip(1, '▲ 오름 쪽 '+cnt.up)+chip(-1, '▼ 내림 쪽 '+cnt.dn)+chip(0, '— 쪽 없음 '+cnt.no)+'</div>'
@@ -21953,7 +21967,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1932';   // [S1932] 💼 실계좌 셈 — 📦 풀 BT 그리드 네 칸(종목복리 · MDD · 수익/MDD · 노출)을 📌 · ⚖️ 배지와 같은 봉마다 값으로 · 평가포함 자리 = 닫힌 거래만 · 예전 거래 단위 값 한 줄 · 한 줄 복사 끝 💼 묶음
+  window.SX_BUILD='S1933';   // [S1933] 📏 원장 보정표 — 🔮 예측 모아보기 🗂 줄 접힌 표(원장 전체 부름별 실제 몫) · 🗜️ · 🔮 크로스 예측 줄 kNN 잰 결과 배지
+  //window.SX_BUILD='S1932';   // [S1932] 💼 실계좌 셈 — 📦 풀 BT 그리드 네 칸(종목복리 · MDD · 수익/MDD · 노출)을 📌 · ⚖️ 배지와 같은 봉마다 값으로 · 평가포함 자리 = 닫힌 거래만 · 예전 거래 단위 값 한 줄 · 한 줄 복사 끝 💼 묶음
   //window.SX_BUILD='S1931';   // [S1931] 🔮 예측 모아보기 — 종목분석 🧭 추세 읽기 아래 · 여덟 줄(🎚️ 기울기 · 🔮 차트예측 · 🧪 캔들 전이 · 🧪 MA크로스 · 🔮 크로스 예측 · 🗜️ TTM · 🌀 피보 반응 · 🗂 원장) · 값 = 각 카드가 그린 값 · 셈 = 쪽을 말하고 '방향 없음' 기록이 없는 줄 · 읽기 도움 · 판정 아님
   //window.SX_BUILD='S1930';   // [S1930] ⚖️ 측정 기준 배지 — 최소선(🎲 무작위 대비 점수 · 67%) · 💰 수익 0 위 · 🛡️ MDD ≤ 무작위 대조 18벌 · 통과 = + 지금 규칙 · 70% 완화 대체 · 무작위 진입 벌 MDD 모음 — 잰 결과 offline/vdnull(사용자 2026-11-13 07:56 · 08:19 · 12:44 · 16:59)
   //window.SX_BUILD='S1929';   // [S1929] 📦 풀 BT 여섯 탭 — 그리드 기저 Δ · 노출보정 Δ 를 ⚖️ 배지 값(같은 비율보다 · 그냥 들고 있기보다 종목별 차이 중앙)과 맞춤 · 같은 이름 다른 셈 칸 꼬리 · 📌 표 차이 중앙 · 📈 전략 선 '최근 N봉 거울 · 판정 아님' · 🧭 구간 칩 표시 연결 — 셈 그대로 · 글자만(사용자 2026-11-12 15:56 · 16:06 · 18:47)
