@@ -4614,6 +4614,8 @@ function _poolAcct(r){ try{
  }catch(_e){ return null; } }
 // [S1932] 결과 한 줄 복사 끝 묶음 — 기존 칸 차례 · 뜻은 그대로 두고 끝에 붙임(예전 줄과 나란히 견주게) · 💼 종목복리 MDD 수익/MDD 노출(봉마다)
 function _poolAcctSeg(r){ const A=_poolAcct(r); return A?(' | 💼 '+A.sT+' '+A.mT+' '+A.rT+' '+A.fT):''; }
+// [S1938] 🎨 그리드 색 채움 — 사용자 2026-11-18 08:55 '그리드에 빠진부분 녹색, 빨강으로 색을 넣어줄수 있어?' · 15:00 '그렇게해줘' · 그리는 색만(셈 0) · PREREG_S1938_grid_color.md
+//   총 거래 30건(⚖️ 배지 ⑤ _VD_MINTR) · 손익비 1 · 닫힌 거래만 부호 · 미청산율 50% 아래 초록(S1514 문턱) · 💼 MDD · 수익/MDD = 📌 ⚖️ 같은 비율 줄 글과 견줌 · 보유봉 · 노출률 · 손절 비중은 색 없음
 function _poolGridHtml(r){
   const a=r.agg||{n:0};
   // [S1929] ⚖️ 배지 값과 맞춤 — 같은 종목 줄(r.pl.H)이 있으면 노출보정 Δ 칸 → 같은 비율보다 Δ(배지 ①) · 기저 줄 → 그냥 들고 있기 줄(Δ = 배지 '참고') · 같은 이름 다른 셈 칸에 꼬리 — 값은 _vdStat · _bhMed 그대로(새 셈 0) · 줄이 없으면 직전본 그대로
@@ -4624,12 +4626,14 @@ function _poolGridHtml(r){
   const pc=v=>((+v>=0?'+':'')+v);
   const cOf=v=>(+v>=0?'#22c55e':'#e8365a');
   const wrC=a.winRate>=55?'#22c55e':(a.winRate>=45?'#d97706':'#e8365a');
+  const _nC=(+a.n>=_VD_MINTR)?'#22c55e':'#e8365a', _pfC=(+a.n>0 && a.pf!=null && isFinite(+a.pf))?((+a.pf>=1)?'#22c55e':'#e8365a'):'var(--text)';   /* [S1938] 총 거래 = ⚖️ 배지 ⑤ 줄 · 손익비 1 = 본전 */
+  const _rf=(_ac && _pl && _pl.H)?{ R:_bhMed(_pl.H,'r'), RM:_bhMed(_pl.H,'rm') }:null, _mA=_ac?parseFloat(_ac.mT):NaN, _mB=(_rf && _rf.RM!=null && isFinite(_rf.RM))?+((_rf.RM*100).toFixed(1)):NaN, _rA=_ac?parseFloat(_ac.rT):NaN, _rB=(_rf && _rf.R!=null && _rf.RM!=null && _rf.RM>0.0005)?+((_rf.R/_rf.RM).toFixed(2)):NaN, _mdC=(!isFinite(_mA) || !isFinite(_mB) || _mA===_mB)?'var(--text)':((_mA<_mB)?'#22c55e':'#e8365a'), _rmC=(!isFinite(_rA) || !isFinite(_rB) || _rA===_rB)?'var(--text)':((_rA>_rB)?'#22c55e':'#e8365a'), _gcLeg='<span data-gc-leg="1"> · 수익 칸 0 이상 · 손익비 1 이상 · 총 거래 '+_VD_MINTR+'건 이상(⚖️ 배지 ⑤ 와 같은 줄) = 초록 · 아래 = 빨강 · 미청산율 50% 아래 = 초록'+(_ac?(' · MDD · 수익/MDD = 📌 '+(_pl.rg?'⚖️ 같은 구간 같은 비율':'⚖️ 같은 비율만 들고 있기')+' 줄보다 나으면 초록 · 못하면 빨강(같으면 색 없음)'):'')+' · 보유봉 · 노출률 · 손절 비중은 모습 값이라 색 없음</span>';   /* [S1938] 💼 MDD · 수익/MDD = 📌 같은 비율 줄 글(소수 한 자리 · 두 자리)과 견줌 · 색 규약 덧붙임 */
   // [S1512] 건강도 3종 — 오늘 손으로 세던 것을 화면이 낸다.
   //   ①미청산율=보유중/모집단 (높으면 확정 통계가 이익만 세어 부풀린다) ②괴리=평가포함−확정 (음수 클수록 부풀림)
   //   ③최다 청산사유 비중 (한 종류가 다 먹으면 다른 칩이 죽어 있다는 뜻)
   const _H=_stratPoolHealth(r);   // [S1519] 산식 SSOT(원문 그대로 이전) — 한 줄 복사와 같은 값
   const _openPct=_H.openPct, _gap=_H.gap, _xrTop=_H.xrTop, _warn=_H.warn;
-  const _openC=(_openPct>=80)?'#e8365a':(_openPct>=50?'#d97706':'var(--text)');
+  const _openC=(_openPct>=80)?'#e8365a':(_openPct>=50?'#d97706':((r.nStocks>0 && isFinite(_openPct))?'#22c55e':'var(--text)'));   /* [S1938] 50% 아래 초록 — S1514 괴리 초록 문턱 5%p 가 미청산 50% 에 대응 */
   // [S1514] ★괴리 색을 **부호에서 |값|으로** — 구판은 양수=초록이라 '양수가 좋다'로 읽혔다(사용자 질문으로 드러남).
   //   괴리는 좋고 나쁨이 아니라 **'확정 통계를 믿어도 되나'의 진단**이다. 큰 양수가 최악일 수 있다:
   //   실측 KR 본 SL_ATR 12× 단독 = 확정 −37.77 · 평가포함 +117.32 · 괴리 **+155.08** · 미청산 100%(사실상 매수후보유).
@@ -4654,21 +4658,21 @@ function _poolGridHtml(r){
   const _bhLn=_vt?('<div data-bh-line="1" style="font-size:8.5px;color:var(--text3);margin:3px 0 2px;line-height:1.5">'+(_vt.rg?'🧺 같은 구간 들고 있기(켜진 구간에 들어갈 때 사고 나올 때 팜)':'🧺 그냥 들고 있기(첫 봉 종가 매수 → 끝 봉 종가)')+' 종목복리 중앙 <b>'+((_vt.B==null || !isFinite(_vt.B))?'—':((_vt.B>=0?'+':'−')+Math.abs(_vt.B*100).toFixed(1)+'%'))+'</b> · 이 설정 Δ <b style="color:'+((_vt.b!=null && isFinite(_vt.b))?(_vt.b>=0?'#22c55e':'#e8365a'):'var(--text3)')+'">'+_pp(_vt.b)+'</b>(종목별 차이 중앙 · ⚖️ 배지 \'참고\'와 같은 값)'+_dltNote2+' — '+(_vt.rg?'같은 구간 들고 있기는 켜진 구간 내내 들고 있어':'그냥 들고 있기는 늘 100% 들고 있어')+' 덜 들어가는 설정은 이 Δ 가 낮게 나오기 쉽다 → 든 만큼만 견준 <b>같은 비율보다 Δ</b>(위 칸 · 배지 ①)를 함께 보세요</div>'):'';
   return (_ac?'<div data-ac-head="1" style="font-size:8.5px;font-weight:800;color:#2563eb;margin:0 0 4px;line-height:1.5">💼 실계좌 셈 — 파란 테 칸 = 봉마다 평가(들고 있는 동안 손익 · 끝 봉 종가 평가 · 수수료 포함) · 📌 · ⚖️ 배지와 같은 값</div>':'')   /* [S1932] 💼 실계좌 셈 */
     +`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:2px">`   /* [S1932] 💼 실계좌 셈 */
-    +box(a.n,'총 거래')+box(a.winRate+'%','승률',wrC)+box(a.pf,'손익비')
+    +box(a.n,'총 거래',_nC)+box(a.winRate+'%','승률',wrC)+box(a.pf,'손익비',_pfC)   /* [S1938] 총 거래 · 손익비 색 */
     +box(pc(a.avg)+'%','건당 평균',cOf(a.avg))+box(pc(a.med)+'%','건당 중앙',cOf(a.med))+(_ac?boxA('s',_ac.sT,'종목복리 중앙',(_ac.S==null || !isFinite(_ac.S))?'var(--text3)':(_ac.S>=0?'#22c55e':'#e8365a')):box(pc(a.stMed)+'%','종목복리 중앙'+_tl('닫힌 거래만'),cOf(a.stMed)))   /* [S1932] 💼 실계좌 셈 */
-    +(_ac?box(pc(a.stMed)+'%','닫힌 거래만'+_tl('확정 거래만 곱함'),'var(--text2)'):box((a.stMedI!=null?pc(a.stMedI)+'%':'—'),'평가포함',(a.stMedI!=null?cOf(a.stMedI):'var(--text3)')))   /* [S1932] 💼 실계좌 셈 */
+    +(_ac?box(pc(a.stMed)+'%','닫힌 거래만'+_tl('확정 거래만 곱함'),cOf(a.stMed)):box((a.stMedI!=null?pc(a.stMedI)+'%':'—'),'평가포함',(a.stMedI!=null?cOf(a.stMedI):'var(--text3)')))   /* [S1932] 💼 실계좌 셈 */   /* [S1938] 닫힌 거래만 부호 색 */
     +box((_gap!=null?pc(_gap)+'%p':'—'),'괴리(평가−확정)',_gapC)
     +box(_openPct.toFixed(0)+'%','미청산율',_openC)
-    +(_ac?boxA('m',_ac.mT,'MDD 중앙','var(--text)'):box((a.mddMed!=null?a.mddMed+'%':'—'),'MDD 중앙'+_tl('거래 사이 낙폭'),'var(--text)'))   /* [S1932] 💼 실계좌 셈 */
+    +(_ac?boxA('m',_ac.mT,'MDD 중앙',_mdC):box((a.mddMed!=null?a.mddMed+'%':'—'),'MDD 중앙'+_tl('거래 사이 낙폭'),'var(--text)'))   /* [S1932] 💼 실계좌 셈 */   /* [S1938] 📌 같은 비율 MDD 와 견준 색 */
     +box((a.barMed!=null?a.barMed+'봉':'—'),'보유봉 중앙','var(--text)')
-    +(_ac?boxA('r',_ac.rT,'수익/MDD','var(--text)'):box((_H.rMdd!=null)?_H.rMdd:'—','수익/MDD'+_tl('평가포함 ÷ 이 MDD'),'var(--text)'))   /* [S1519] SSOT · [S1932] 💼 실계좌 셈 */
+    +(_ac?boxA('r',_ac.rT,'수익/MDD',_rmC):box((_H.rMdd!=null)?_H.rMdd:'—','수익/MDD'+_tl('평가포함 ÷ 이 MDD'),'var(--text)'))   /* [S1519] SSOT · [S1932] 💼 실계좌 셈 */   /* [S1938] 📌 같은 비율 수익/MDD 와 견준 색 */
     +(_ac?boxA('f',_ac.fT,'노출률','var(--text)'):box((a.expMed!=null?a.expMed+'%':'—'),'노출률'+_tl('첫 진입부터'),'var(--text)'))   /* [S1932] 💼 실계좌 셈 */
     +(_vt?('<div data-vd-g="1" style="background:var(--surface2);border-radius:8px;padding:7px 3px;text-align:center"><div style="font-size:13px;font-weight:800;color:'+(_vt.r>=0?'#22c55e':'#e8365a')+'">'+_pp(_vt.r)+'</div><div style="font-size:8.5px;color:var(--text3)">같은 비율보다 Δ'+_tl(_vt.rg?'🧭 구간 · 배지 ①과 같은 값':'⚖️ 배지 ①과 같은 값')+'</div></div>'):box((_H.expAdj!=null)?pc(_H.expAdj)+'%p':'—','노출보정 Δ','var(--text2)'))   /* [S1929] */   /* [S1519] SSOT */
     +box((_H.slShare!=null)?(_H.slShare+'%'):'—','손절 비중','var(--text)')   /* [S1519] SSOT */
     +`</div>`
     +(_ac?('<div data-ac-old="1" style="font-size:8.5px;color:var(--text3);margin:3px 0 2px;line-height:1.5">거래 단위 셈(예전 값) — MDD 중앙 <b>'+(a.mddMed!=null?a.mddMed+'%':'—')+'</b>(거래 사이 낙폭) · 수익/MDD <b>'+((_H.rMdd!=null)?_H.rMdd:'—')+'</b>(평가포함 ÷ 거래 사이 MDD) · 노출률 <b>'+(a.expMed!=null?a.expMed+'%':'—')+'</b>(첫 진입부터) · 평가포함 <b>'+(a.stMedI!=null?pc(a.stMedI)+'%':'—')+'</b></div>'):'')   /* [S1932] 💼 실계좌 셈 */
     +(_vt?_bhLn:(a.bhMed!=null?`<div style="font-size:8.5px;color:var(--text3);margin:3px 0 2px">기저(청산 칩 없이 첫 진입 후 보유·무손절) 종목복리 중앙 <b>${pc(a.bhMed)}%</b> · 이 조합 Δ <b style="color:${_dltC}">${pc(_dlt)}%p</b>${_dltNote} — ⚠Δ 음수는 <b>정상</b>입니다(기저는 손절이 없어 위험이 무제한). 합격선이 아니라 <b>MDD·보유봉과 짝지어</b> 읽으세요. ${(a.expMed!=null&&a.expMed<80)?`⚠기저는 <b>첫 진입 후 100% 노출</b>인데 이 조합은 <b>${a.expMed}%</b>만 들어가 있습니다 — Δ 음수의 상당분이 '청산이 나빠서'가 아니라 '시장에 덜 있어서'입니다. <b>노출보정 Δ</b>를 함께 보세요`:''}</div>`:''))   /* [S1929] 줄이 있으면 그냥 들고 있기 줄 */
-    +`<div style="font-size:8px;color:var(--text3);margin:3px 0 0;line-height:1.5">색 규약 — <b style="color:#22c55e">초록</b>=믿을 만함 · <b style="color:#d97706">주황</b>=경계 · <b style="color:#e8365a">빨강</b>=확정 통계 쓰지 말 것. <b>괴리·미청산율은 0에 가까울수록 좋다</b>(괴리는 부호가 아니라 크기). ${_vt?'<b>Δ 는 0 위 = 나음</b>(⚖️ 배지와 같은 값)':"⚠<b>Δ만 반대</b> — 0 근처가 '칩 무동작' 경고다"}</div>`
+    +`<div style="font-size:8px;color:var(--text3);margin:3px 0 0;line-height:1.5">색 규약 — <b style="color:#22c55e">초록</b>=믿을 만함 · <b style="color:#d97706">주황</b>=경계 · <b style="color:#e8365a">빨강</b>=확정 통계 쓰지 말 것. <b>괴리·미청산율은 0에 가까울수록 좋다</b>(괴리는 부호가 아니라 크기). ${_vt?'<b>Δ 는 0 위 = 나음</b>(⚖️ 배지와 같은 값)':"⚠<b>Δ만 반대</b> — 0 근처가 '칩 무동작' 경고다"}${_gcLeg}</div>`   /* [S1938] 색 규약 덧붙임 */
     +(_warn.length?`<div style="font-size:9px;font-weight:800;color:#e8365a;background:#e8365a14;border:1px solid #e8365a55;border-radius:8px;padding:5px 8px;margin:4px 0 2px;line-height:1.5">⚠ 검열 신호 — ${_warn.join(' · ')} · 확정 통계를 읽지 말고 <b>평가포함</b>으로 판단하세요</div>`:'')
 }
 // [S1776] ★풀 BT 표본 주석 — 📂 스냅 모집단이면 **스냅의 poolKind** 로 고른다(사용자 지시 2026-10-10 '주석 고쳐줘' · PREREG_S1776 §1). 🧪 전략 조합·📈 MA 크로스 결과가 같이 쓴다.
@@ -22033,7 +22037,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1937';   // [S1937] 🧭 추세 읽기 — 단기 5선 · 스윙(옛 장기) 20선 · 추세(옛 큰 그림) 중기 60선 · 국면(새 줄) 장기 200선(120선 대체) · ⛩️ 레짐 따로 줄 · 띠 선 줄 넷
+  window.SX_BUILD='S1938';   // [S1938] 🎨 단기매매 그리드 색 채움 — 총 거래 · 손익비 · 닫힌 거래만 · 미청산율 · 💼 MDD · 수익/MDD(📌 같은 비율 줄과 견줌) · 색 규약 한 문장
+  //window.SX_BUILD='S1937';   // [S1937] 🧭 추세 읽기 — 단기 5선 · 스윙(옛 장기) 20선 · 추세(옛 큰 그림) 중기 60선 · 국면(새 줄) 장기 200선(120선 대체) · ⛩️ 레짐 따로 줄 · 띠 선 줄 넷
   //window.SX_BUILD='S1936';   // [S1936] 🔮 예측 모아보기 차트예측 줄 — '오른 몫'(카드와 같은 이름) · 괄호에 이 종목 아무 때 80% 구간
   //window.SX_BUILD='S1935';   // [S1935] 💥 임펄스 존(📐 패턴 탭 · 점선 상자 · 배수 칩 · 잰 결과: 방향 예측 없음 · 뒤 10봉 변동 큼) · 🔮 차트예측 이 종목 아무 때 vs 닮은 장면(80% 구간 잰 결과) · 🔮 예측 모아보기 배지
   //window.SX_BUILD='S1934';   // [S1934] 설명 접기 2 — 🌀 피보 · 🫧 민스키 · 🧪 지그재그 · 🕯️ 캔들 · 차트 읽기 카드 모든 탭의 회색 설명 · 그림 설명 · 측정 메모를 접힌 알약으로(기본 접힘 · 세션 동안 기억)
