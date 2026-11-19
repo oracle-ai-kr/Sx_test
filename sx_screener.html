@@ -12985,6 +12985,9 @@ function closeAnalHelp(){
 }
 
 function switchAnalTab(idx){
+  // [S1939] 종목 창 다른 탭(단일검증 · 교차검증 · 학습검증 · 대시보드 · 매매시뮬) = 뒤로가기 자리 하나 · 뒤로가기 → 종목분석 탭(사용자 2026-11-18 22:59 '다른탭에서는 뒤로가기를 하면 종목분석탭으로 돌아가는건 어떨까')
+  //   [S1939] 탭끼리 옮겨도 자리는 하나 · 종목분석을 눌러 오면 그 자리는 '빈 자리'(다음 뒤로가기에 한 번 더 뒤로 = 종목 나감) · ‹ 버튼은 그대로 바로 나감(closeAnalysis 가 자리를 소비)
+  try{ const _ov=document.getElementById('analOverlay'); if(_ov && _ov.classList.contains('show')){ if(idx!==0 && !window._sxAnalSub){ if(window._sxAnalSubDead) window._sxAnalSubDead=false; else history.pushState({view:'analysis', sub:1}, ''); window._sxAnalSub=true; } else if(idx===0 && window._sxAnalSub){ window._sxAnalSub=false; window._sxAnalSubDead=true; } } }catch(_eS){}   // [S1939]
   _analTabIdx = idx;
   document.querySelectorAll('#analTabs .anal-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
   for(let i=0;i<6;i++){
@@ -13115,6 +13118,7 @@ document.getElementById('presetModal').addEventListener('click',function(e){
 // 현재탭 → 이전 방문 탭 → 홈(0) → 브라우저 뒤로
 history.replaceState({view:'tab',tab:0}, '');
 window.addEventListener('popstate', function(e){
+  if(window._sxAnalPopSkip){ window._sxAnalPopSkip=false; return; }   // [S1939] ‹ 로 닫으며 우리가 부른 뒤로가기 — 안 봄
   // [S224] sxConfirm/sxAlert 모달 — 가장 위 (z-index 100000), 다른 모달보다 우선 처리
   //   _popHandler가 once:true로 자체 처리하므로 여기서는 다른 모달 처리만 차단하면 충분
   var sxModal = document.getElementById('sxModalOverlay');
@@ -13191,6 +13195,10 @@ window.addEventListener('popstate', function(e){
   //   → 최상위 UI인 분석 오버레이부터 처리
   const _overlayPre = document.getElementById('analOverlay');
   if(_overlayPre && _overlayPre.classList.contains('show')){
+    if(!(window._sxOvStack && window._sxOvStack.length)){   // [S1939] 다른 탭 → 종목분석 탭(오버레이 스택이 열려 있으면 안 함)
+      if(window._sxAnalSub){ window._sxAnalSub=false; switchAnalTab(0); return; }   // [S1939]
+      if(window._sxAnalSubDead){ window._sxAnalSubDead=false; try{ history.back(); }catch(_eB){} return; }   // [S1939] 종목분석을 눌러 온 빈 자리 — 한 번 더 뒤로(= 종목 나감)
+    }   // [S1939]
     // 인덱스에서 replaceState로 진입한 경우 (fromIdx 플래그)
     if(e.state === null || (e.state && e.state.fromIdx)){
       closeAnalysis();
