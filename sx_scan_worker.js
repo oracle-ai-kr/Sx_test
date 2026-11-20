@@ -830,8 +830,27 @@ const LATE_JUDGED_IDS = new Set([
   '_recipe_detect', '_v2_signal', '_xmat_need',                          // 엔진 판정 3종
   '_rsi_div', '_obv_div',                                                // 다이버전스 2종
   '_bt_pnl', '_bt_winrate', '_bt_trades', '_bt_mdd', '_bt_pf',
-  '_bt_buy_marker', '_bt_today_entry', '_bt_today_exit'    // BT 8종 · [S1588] `_bt_action` 철거로 −1
+  '_bt_buy_marker', '_bt_today_entry', '_bt_today_exit',   // BT 8종 · [S1588] `_bt_action` 철거로 −1 · [S1942] 뒤에 레시피 4분류 넷
+  '_rcp4_dc', '_rcp4_dcf', '_rcp4_pb', '_rcp4_pbf'         // [S1942] 🧪 레시피 4분류
 ]);
+// [S1942] 🧪 레시피 4분류 — 바닥반등 · 데드캣 · 눌림목 · 되돌림 · 마지막 봉 하나(🧪 `_stratSignalBars` 의 그 봉 값과 같은 셈 — 250봉 창 `calcAllScreener` · `_extractFeats733(ind, rows, i, true)` · 풀별 겹침 `_sxLegacyPoolCore`)
+const _RCP4 = [['_rcp4_dc', 'kDc'], ['_rcp4_dcf', 'kDcFake'], ['_rcp4_pb', 'kPb'], ['_rcp4_pbf', 'kPbFake']];   // [S1942] 조건 id · 셈 열쇠
+const _RCP4_IDS = new Set(_RCP4.map(x => x[0]));   // [S1942]
+const _RCP4_NEED = { '발생 (1+)': 1, '조짐 (2+)': 2, '유력 (3+)': 3, '강력 (4+)': 4, '발동': 1 };   // [S1942] 고른 값 → 최소 개수
+function _sxRcp4Last(mk, rows) {   // [S1942] 마지막 봉 {kPb · kDc · kPbFake · kDcFake} · 260봉 미만 · 엔진 없음 = null
+  if (!Array.isArray(rows) || rows.length < 260) return null;   // [S1942] 🧪 봉맵과 같은 하한
+  if (typeof SXE === 'undefined' || !SXE.calcAllScreener || typeof _extractFeats733 !== 'function' || typeof _ltOf !== 'function' || typeof _sxLegacyPoolCore !== 'function' || typeof RECIPES_BY_MKT === 'undefined') return null;   // [S1942]
+  const bi = rows.length - 1, ind = SXE.calcAllScreener(rows.slice(Math.max(0, bi - 249), bi + 1), 'day'); if (!ind) return null;   // [S1942]
+  const f = _extractFeats733(ind, rows, bi, true); if (!f) return null;   // [S1942]
+  const set = RECIPES_BY_MKT[(mk === 'us' || mk === 'coin') ? mk : 'kr'] || RECIPES_BY_MKT.kr;   // [S1942] 그 시장 세트(🧪 는 화면 currentMarket)
+  return _sxLegacyPoolCore(set, f, _ltOf(ind), !!(ind.maAlign && ind.maAlign.bullish));   // [S1942]
+}
+function _sxRcp4Bad(id, val, r4, why) {   // [S1942] 탈락 사유(통과면 null)
+  if (why) return id + '.' + why;   // [S1942]
+  const need = _RCP4_NEED[val]; if (!(need > 0)) return id + '.bad_value';   // [S1942]
+  const k = (_RCP4.find(x => x[0] === id) || [])[1]; if (!k || !r4) return id + '.bad_id';   // [S1942]
+  return ((r4[k] | 0) >= need) ? null : id + '.no_fire';   // [S1942]
+}
 
 //  cfg: { groupOf(id)->'and'|'or', andOn, orOn, lateOrN, stat(key) }
 function _lateLedgerNew(cfg) {
@@ -1129,6 +1148,7 @@ function checkTechConditions(ind, techFilters, getFilter) {
       case '_recipe_detect': break;   // [S895] 레시피 감지는 스캔루프(2977)에서 _rcpSig(rows有)로 필터 — checkTechConditions는 rows 없어 무시(통과)
       case '_v2_signal': break;   // [S1442] 스캔루프에서 adv+candles로 직접 필터 — 여기선 무시(통과)
       case '_xmat_need': break;   // [S1442] 동상
+      case '_rcp4_dc': case '_rcp4_dcf': case '_rcp4_pb': case '_rcp4_pbf': break;   // [S1942] 🧪 레시피 4분류 — 스캔 루프에서 봉으로 처리(여기선 통과)
       case 'ma_arrangement': {
         if (!ind.ma5 || !ind.ma20 || !ind.ma60) return false;
         if (v === '정배열 (3개)' && !(ind.ma5 > ind.ma20 && ind.ma20 > ind.ma60)) return false;
@@ -2574,7 +2594,7 @@ async function startScan(config) {
     const _BT_PRECISION_IDS = new Set(['_bt_pnl','_bt_winrate','_bt_trades','_bt_mdd','_bt_pf',
                                        '_bt_buy_marker','_bt_today_entry','_bt_today_exit']);
     const _needPrecision = techFilters.some(f => f && (f.id === 'candle_transition' || f.id === 'knn_dday'
-                                                        || _BT_PRECISION_IDS.has(f.id)));
+                                                        || _BT_PRECISION_IDS.has(f.id) || _RCP4_IDS.has(f.id)));   // [S1942] 🧪 레시피 4분류 = 🧪 봉맵과 같은 600봉
     // [S878] 레시피 지반 정렬 — 하이브리드 활성(일봉·recipeOn)이면 기본 깊이 200→400 승격(분석탭 자동확장 400과 동일 지반).
     //   근거(S877 발견): MA200·장기배열(maAlignLT)·dev200이 200봉에서 퇴화 → 스캔 recipeSig 침묵 + ltAlign 상이 = 분석탭↔스캔 판정 불일치의 근본원인.
     //   🍳 킬스위치 OFF(config.recipeOn=false)면 200 자동 복귀 — 지반 승격이 킬스위치와 연동. 정밀조건(kNN)의 600/700은 상위 유지.
@@ -3052,6 +3072,21 @@ async function startScan(config) {
               if(_lg('_xmat_need', _xmBad)) continue;
               if(!_xmBad){ try{ if(s._scanResult){ s._scanResult.xmB=_nb42; s._scanResult.xmS=_ns42; s._scanResult.xmNB=_needB; s._scanResult.xmNS=_needS; } }catch(_e42d){} }
               }
+            }
+          }
+
+          // ══ [S1942] 🧪 레시피 4분류 — 바닥반등 · 데드캣 · 눌림목 · 되돌림(🧪 전략 조합 봉맵 마지막 봉과 같은 셈) ══
+          //  S1442 와 같은 자리(BT 앞) — BT 가 실패해도 조건을 안 받고 통과하는 함정을 만들지 않는다 · 탈락은 모두 사유를 남긴다(tf_not_day · short · no_calc · no_fire) · [S1942]
+          {
+            const _r4On = _RCP4.filter(x => { const f = getFilter(x[0]); return !!(f && f.value && f.value !== '설정안함'); });   // [S1942]
+            if (_r4On.length) {   // [S1942]
+              let _r4 = null, _r4Why = null;   // [S1942]
+              if (currentTF !== 'day') _r4Why = 'tf_not_day';   // [S1942] 일봉 전용
+              else if (!(candles && candles.length >= 260)) _r4Why = 'short';   // [S1942]
+              else { try { _r4 = _sxRcp4Last(currentMarket, candles); } catch (_e42r) { _r4 = null; } if (!_r4) _r4Why = 'no_calc'; }   // [S1942]
+              let _r4Stop = false;   // [S1942] 켠 조건마다 원장에 남긴 뒤 한 번에 거름(S1442 TF 자리와 같은 꼴)
+              for (const x of _r4On) { if (_lg(x[0], _sxRcp4Bad(x[0], getFilter(x[0]).value, _r4, _r4Why))) _r4Stop = true; }   // [S1942]
+              if (_r4Stop) continue;   // [S1942] 통과한 조건은 원장(_LG.ok)이 🔎 검출(_hits)에 이름 · 고른 값으로 싣는다 — 값 따로 저장 안 함(슬림 결과에서 버려져 소비처 0이 되는 S1304 · S1443 사고 피함)
             }
           }
 
