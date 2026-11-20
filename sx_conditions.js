@@ -1,13 +1,15 @@
 // ════════════════════════════════════════════════════════════
 //  SIGNAL X — Conditions & Presets v2.3
 //  Phase 2: 기술분석 (캔들+지표 엔진)
-//  Phase 3: 검증 분석 (BT + 엔진 판정)
+//  Phase 3: 검증 분석 (BT · [S1942] 엔진 판정은 Phase 4 로)
+//  Phase 4: 단기매매 (단기매매 카드 탭별 재료 · [S1942])
 //  의존: currentMarket (글로벌)
 // ════════════════════════════════════════════════════════════
 const SX_PHASES = [
   {id:'p1', name:'기본 필터', label:'기본 필터', desc:'시장/시세/재무 기반 조건 선택',   icon:'🏗️', color:'#4a90d9'},
   {id:'p2', name:'기술 분석', label:'기술 분석', desc:'캔들+지표 엔진 기반 정밀 분석',   icon:'📊', color:'#e8a838'},
-  {id:'p3', name:'검증 분석', label:'검증 분석', desc:'BT + 엔진 판정으로 최종 검증',     icon:'🎯', color:'#50c878'},
+  {id:'p3', name:'검증 분석', label:'검증 분석', desc:'BT로 최종 검증',     icon:'🎯', color:'#50c878'},   // [S1942] 엔진 판정 폴더가 단기매매로 옮겨 감
+  {id:'p4', name:'단기매매', label:'단기매매', desc:'단기매매 카드 탭별 재료로 고르기',     icon:'⚔️', color:'#a855f7'},   // [S1942]
 ];
 
 // S164: P2(기술 분석) 서브그룹 — UI에서 공격/준비/방어/환경 4그룹으로 시각 구분
@@ -276,26 +278,7 @@ const SX_CONDITIONS = [
     ]},
   ]},
   // ── Phase 3: 검증 분석 ──
-  {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
-    {id:'ta_signal',name:'분석 판정',conditions:[
-      // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터. ⚠일봉 전용 — 다른 TF에서는 판정 불가라 전 종목 탈락(진단에 tf_not_day로 잡힘·S1442).'},
-      // [S1442] V2 어휘규칙 — 단일검증 탭 진입원 `🧬 V2 어휘규칙`과 **같은 판정**이다.
-      //   판정 SSOT = sx_exec_core.js `v2SignalAt` (칸 규칙 real-kind hit · DOWN·FAKE 매수투표 금지 · S1102 §8-3).
-      //   ⚠발굴풀 in-sample 적합 — 이 조건으로 뜨는 것은 검증이 아니라 재현이다(SX_CELL_DATA.meta.caveat).
-      {id:'_v2_signal',name:'V2 어휘규칙 🧬',type:'select',options:['설정안함','발동 (real)','강신호만 (strict)','일반신호 (soft)'],default:'설정안함',source:'calc_candle',desc:'3×3 칸 규칙(SX_CELL_DATA)의 real-kind 히트 종목. 단일검증 탭 진입원 v2와 동일 판정(sx_exec_core v2SignalAt). strict=강한 신호·soft=일반 신호. ⚠발굴풀 in-sample이라 재현이지 검증이 아님 · 일봉 전용.',recommend:'강신호만 → 시즌2 v2 진입 후보 선점'},
-      // [S1442] 재료 [충족] 배지 — 분석탭 `🧪 재료 카운트` 카드가 쓰는 **그 자·그 창**을 그대로 쓴다.
-      //   설정 출처 = 단일검증 탭 저장값(SX_XMAT_{시장}) · 재료 목록·요구 개수·창을 거기서 바꾸면 이 조건도 따라 바뀐다.
-      //   ⚠워커는 localStorage 미접근이라 메인이 스캔 시작 시 동봉한다(S309 선례).
-      {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
-    ]},
-    {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
-      // [S1574] 단기추세 신호(trend_cross) 철거 — 사용자 요청. 조건 정의만 뺐다(엔진 판정 5→4개 · 검증 분석 13→12개).
-      //   정의가 없으면 findCondMeta가 null이라 techFilters에 못 들어간다 ⇒ 워커 case·html 모달 분기는 도달 불가 사문(남겨 둠).
-      //   저장본에 남은 값은 sx_screener.html `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(조용히 통과 방지).
-      {id:'knn_dday',name:'kNN 크로스 임박 (D-day)',type:'select',options:['설정안함','골든크로스 임박','데드크로스 임박'],default:'설정안함',source:'calc_candle',desc:'kNN+MA수렴으로 골든/데드 크로스가 3봉 내 임박(과거 유사패턴 적중 50%↑)한 종목. 분석탭 단기추세 D-day와 동일 엔진 · MA는 단기추세매매 설정(cfg.s×cfg.l) 동기화 · 룩어헤드 차단. [S633/S634]',recommend:'골든크로스 임박 → 곧 진입 신호 나올 후보 선점'},
-    ]},
-  ]},
+  // [S1942] 엔진 판정(engine_verdict) 폴더 → ⚔️ 단기매매(p4) 🧪 전략 조합 · 📈 MA 크로스 로 옮김
   {id:'backtest',name:'백테스트',phase:'p3',groups:[
     {id:'ta_bt',name:'백테스트 (실시간)',conditions:[
       {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'백테스트 총수익률(600봉·분석탭/단일검증과 동일 창) - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
@@ -310,6 +293,34 @@ const SX_CONDITIONS = [
       {axis4:'buy',id:'_bt_buy_marker',name:'BT 매수마커',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 매수 신호를 낸 종목 - 차트에 ▲마커 표시된 상태 (_isBuySignal=true)',recommend:'매수마커 있음 → 당일 신규 매수 진입 신호 종목만 필터'},
       {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
       {id:'_bt_today_exit',name:'오늘 청산 신호',type:'select',options:['설정안함','오늘 청산'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 청산 신호를 낸 종목 (state=sell_signal · exec_core 이중ATR/MA데드 청산) - 오늘 매수진입의 매도 짝',recommend:'오늘 청산 → 당일 exec_core 청산 신호 종목만 필터'},  // [S1023] exec_core 청산 추적
+    ]},
+  ]},
+  // [S1942] ⚔️ 단기매매(p4) — 엔진 판정 폴더(engine_verdict)의 네 조건을 단기매매 카드 탭별 폴더로 옮김(id · 정의 글자 그대로 · 저장 필터는 condId 폴백 S68 로 그대로 찾음) + 🧪 레시피 4분류 새 조건 넷
+  {id:'st_strat',name:'🧪 전략 조합',phase:'p4',groups:[   // [S1942]
+    {id:'ta_signal',name:'레시피 · 칸',conditions:[   // [S1942] 묶음 id 는 옛 '분석 판정' 그대로
+      // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
+      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터. ⚠일봉 전용 — 다른 TF에서는 판정 불가라 전 종목 탈락(진단에 tf_not_day로 잡힘·S1442).'},
+      // [S1442] V2 어휘규칙 — 단일검증 탭 진입원 `🧬 V2 어휘규칙`과 **같은 판정**이다.
+      //   판정 SSOT = sx_exec_core.js `v2SignalAt` (칸 규칙 real-kind hit · DOWN·FAKE 매수투표 금지 · S1102 §8-3).
+      //   ⚠발굴풀 in-sample 적합 — 이 조건으로 뜨는 것은 검증이 아니라 재현이다(SX_CELL_DATA.meta.caveat).
+      {id:'_v2_signal',name:'V2 어휘규칙 🧬',type:'select',options:['설정안함','발동 (real)','강신호만 (strict)','일반신호 (soft)'],default:'설정안함',source:'calc_candle',desc:'3×3 칸 규칙(SX_CELL_DATA)의 real-kind 히트 종목. 단일검증 탭 진입원 v2와 동일 판정(sx_exec_core v2SignalAt). strict=강한 신호·soft=일반 신호. ⚠발굴풀 in-sample이라 재현이지 검증이 아님 · 일봉 전용.',recommend:'강신호만 → 시즌2 v2 진입 후보 선점'},
+      // [S1942] 🧪 레시피 4분류 — 워커가 마지막 봉 하나를 셈(`_sxRcp4Last` · 🧪 `_stratSignalBars` 의 그 봉 값과 같은 셈 · 배터리가 스냅 종목으로 대조)
+      {id:'_rcp4_dc',name:'바닥반등',type:'select',options:['설정안함','발생 (1+)','조짐 (2+)','유력 (3+)','강력 (4+)'],default:'설정안함',source:'calc_candle',desc:'역배열 · 단기약세 풀의 진짜반등 레시피가 오늘 봉에 같이 뜬 개수(발생 1 · 조짐 2 · 유력 3 · 강력 4 이상) — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+      {id:'_rcp4_dcf',name:'데드캣',type:'select',options:['설정안함','발동'],default:'설정안함',source:'calc_candle',desc:'역배열 · 단기약세 풀의 가짜반등(함정) 레시피가 오늘 봉에 떴는지 — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+      {id:'_rcp4_pb',name:'눌림목',type:'select',options:['설정안함','발생 (1+)','조짐 (2+)','유력 (3+)','강력 (4+)'],default:'설정안함',source:'calc_candle',desc:'정배열 · 단기조정 풀의 진짜눌림목 레시피가 오늘 봉에 같이 뜬 개수(발생 1 · 조짐 2 · 유력 3 · 강력 4 이상) — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+      {id:'_rcp4_pbf',name:'되돌림',type:'select',options:['설정안함','발동'],default:'설정안함',source:'calc_candle',desc:'정배열 · 단기조정 풀의 가짜되돌림(함정) 레시피가 오늘 봉에 떴는지 — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+    ]},
+  ]},
+  {id:'st_cross',name:'📈 MA 크로스',phase:'p4',groups:[   // [S1942]
+    {id:'pat_trend',name:'재료 · 크로스 임박',conditions:[   // [S1942] 묶음 id 는 옛 '단기추세 매매 (실험)' 그대로
+      // [S1442] 재료 [충족] 배지 — 분석탭 `🧪 재료 카운트` 카드가 쓰는 **그 자·그 창**을 그대로 쓴다.
+      //   설정 출처 = 단일검증 탭 저장값(SX_XMAT_{시장}) · 재료 목록·요구 개수·창을 거기서 바꾸면 이 조건도 따라 바뀐다.
+      //   ⚠워커는 localStorage 미접근이라 메인이 스캔 시작 시 동봉한다(S309 선례).
+      {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
+      // [S1574] 단기추세 신호(trend_cross) 철거 — 사용자 요청. 조건 정의만 뺐다(엔진 판정 5→4개 · 검증 분석 13→12개).
+      //   정의가 없으면 findCondMeta가 null이라 techFilters에 못 들어간다 ⇒ 워커 case·html 모달 분기는 도달 불가 사문(남겨 둠).
+      //   저장본에 남은 값은 sx_screener.html `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(조용히 통과 방지).
+      {id:'knn_dday',name:'kNN 크로스 임박 (D-day)',type:'select',options:['설정안함','골든크로스 임박','데드크로스 임박'],default:'설정안함',source:'calc_candle',desc:'kNN+MA수렴으로 골든/데드 크로스가 3봉 내 임박(과거 유사패턴 적중 50%↑)한 종목. 분석탭 단기추세 D-day와 동일 엔진 · MA는 단기추세매매 설정(cfg.s×cfg.l) 동기화 · 룩어헤드 차단. [S633/S634]',recommend:'골든크로스 임박 → 곧 진입 신호 나올 후보 선점'},
     ]},
   ]},
 ];
@@ -505,26 +516,7 @@ const COIN_CONDITIONS = [
     ]},
   ]},
   // ── Phase 3 ──
-  {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
-    {id:'ta_signal',name:'분석 판정',conditions:[
-      // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터. ⚠일봉 전용 — 다른 TF에서는 판정 불가라 전 종목 탈락(진단에 tf_not_day로 잡힘·S1442).'},
-      // [S1442] V2 어휘규칙 — 단일검증 탭 진입원 `🧬 V2 어휘규칙`과 **같은 판정**이다.
-      //   판정 SSOT = sx_exec_core.js `v2SignalAt` (칸 규칙 real-kind hit · DOWN·FAKE 매수투표 금지 · S1102 §8-3).
-      //   ⚠발굴풀 in-sample 적합 — 이 조건으로 뜨는 것은 검증이 아니라 재현이다(SX_CELL_DATA.meta.caveat).
-      {id:'_v2_signal',name:'V2 어휘규칙 🧬',type:'select',options:['설정안함','발동 (real)','강신호만 (strict)','일반신호 (soft)'],default:'설정안함',source:'calc_candle',desc:'3×3 칸 규칙(SX_CELL_DATA)의 real-kind 히트 종목. 단일검증 탭 진입원 v2와 동일 판정(sx_exec_core v2SignalAt). strict=강한 신호·soft=일반 신호. ⚠발굴풀 in-sample이라 재현이지 검증이 아님 · 일봉 전용.',recommend:'강신호만 → 시즌2 v2 진입 후보 선점'},
-      // [S1442] 재료 [충족] 배지 — 분석탭 `🧪 재료 카운트` 카드가 쓰는 **그 자·그 창**을 그대로 쓴다.
-      //   설정 출처 = 단일검증 탭 저장값(SX_XMAT_{시장}) · 재료 목록·요구 개수·창을 거기서 바꾸면 이 조건도 따라 바뀐다.
-      //   ⚠워커는 localStorage 미접근이라 메인이 스캔 시작 시 동봉한다(S309 선례).
-      {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
-    ]},
-    {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
-      // [S1574] 단기추세 신호(trend_cross) 철거 — 사용자 요청. 조건 정의만 뺐다(엔진 판정 5→4개 · 검증 분석 13→12개).
-      //   정의가 없으면 findCondMeta가 null이라 techFilters에 못 들어간다 ⇒ 워커 case·html 모달 분기는 도달 불가 사문(남겨 둠).
-      //   저장본에 남은 값은 sx_screener.html `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(조용히 통과 방지).
-      {id:'knn_dday',name:'kNN 크로스 임박 (D-day)',type:'select',options:['설정안함','골든크로스 임박','데드크로스 임박'],default:'설정안함',source:'calc_candle',desc:'kNN+MA수렴으로 골든/데드 크로스가 3봉 내 임박(과거 유사패턴 적중 50%↑)한 종목. 분석탭 단기추세 D-day와 동일 엔진 · MA는 단기추세매매 설정(cfg.s×cfg.l) 동기화 · 룩어헤드 차단. [S633/S634]',recommend:'골든크로스 임박 → 곧 진입 신호 나올 후보 선점'},
-    ]},
-  ]},
+  // [S1942] 엔진 판정(engine_verdict) 폴더 → ⚔️ 단기매매(p4) 🧪 전략 조합 · 📈 MA 크로스 로 옮김
   {id:'backtest',name:'백테스트',phase:'p3',groups:[
     {id:'ta_bt',name:'백테스트 (실시간)',conditions:[
       {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'백테스트 총수익률(600봉·분석탭/단일검증과 동일 창) - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
@@ -541,6 +533,34 @@ const COIN_CONDITIONS = [
       {axis4:'buy',id:'_bt_buy_marker',name:'BT 매수마커',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 매수 신호를 낸 종목 - 차트에 ▲마커 표시된 상태 (_isBuySignal=true)',recommend:'매수마커 있음 → 당일 신규 매수 진입 신호 종목만 필터'},
       {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
       {id:'_bt_today_exit',name:'오늘 청산 신호',type:'select',options:['설정안함','오늘 청산'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 청산 신호를 낸 종목 (state=sell_signal · exec_core 이중ATR/MA데드 청산) - 오늘 매수진입의 매도 짝',recommend:'오늘 청산 → 당일 exec_core 청산 신호 종목만 필터'},  // [S1023] exec_core 청산 추적
+    ]},
+  ]},
+  // [S1942] ⚔️ 단기매매(p4) — 엔진 판정 폴더(engine_verdict)의 네 조건을 단기매매 카드 탭별 폴더로 옮김(id · 정의 글자 그대로 · 저장 필터는 condId 폴백 S68 로 그대로 찾음) + 🧪 레시피 4분류 새 조건 넷
+  {id:'st_strat',name:'🧪 전략 조합',phase:'p4',groups:[   // [S1942]
+    {id:'ta_signal',name:'레시피 · 칸',conditions:[   // [S1942] 묶음 id 는 옛 '분석 판정' 그대로
+      // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
+      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터. ⚠일봉 전용 — 다른 TF에서는 판정 불가라 전 종목 탈락(진단에 tf_not_day로 잡힘·S1442).'},
+      // [S1442] V2 어휘규칙 — 단일검증 탭 진입원 `🧬 V2 어휘규칙`과 **같은 판정**이다.
+      //   판정 SSOT = sx_exec_core.js `v2SignalAt` (칸 규칙 real-kind hit · DOWN·FAKE 매수투표 금지 · S1102 §8-3).
+      //   ⚠발굴풀 in-sample 적합 — 이 조건으로 뜨는 것은 검증이 아니라 재현이다(SX_CELL_DATA.meta.caveat).
+      {id:'_v2_signal',name:'V2 어휘규칙 🧬',type:'select',options:['설정안함','발동 (real)','강신호만 (strict)','일반신호 (soft)'],default:'설정안함',source:'calc_candle',desc:'3×3 칸 규칙(SX_CELL_DATA)의 real-kind 히트 종목. 단일검증 탭 진입원 v2와 동일 판정(sx_exec_core v2SignalAt). strict=강한 신호·soft=일반 신호. ⚠발굴풀 in-sample이라 재현이지 검증이 아님 · 일봉 전용.',recommend:'강신호만 → 시즌2 v2 진입 후보 선점'},
+      // [S1942] 🧪 레시피 4분류 — 워커가 마지막 봉 하나를 셈(`_sxRcp4Last` · 🧪 `_stratSignalBars` 의 그 봉 값과 같은 셈 · 배터리가 스냅 종목으로 대조)
+      {id:'_rcp4_dc',name:'바닥반등',type:'select',options:['설정안함','발생 (1+)','조짐 (2+)','유력 (3+)','강력 (4+)'],default:'설정안함',source:'calc_candle',desc:'역배열 · 단기약세 풀의 진짜반등 레시피가 오늘 봉에 같이 뜬 개수(발생 1 · 조짐 2 · 유력 3 · 강력 4 이상) — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+      {id:'_rcp4_dcf',name:'데드캣',type:'select',options:['설정안함','발동'],default:'설정안함',source:'calc_candle',desc:'역배열 · 단기약세 풀의 가짜반등(함정) 레시피가 오늘 봉에 떴는지 — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+      {id:'_rcp4_pb',name:'눌림목',type:'select',options:['설정안함','발생 (1+)','조짐 (2+)','유력 (3+)','강력 (4+)'],default:'설정안함',source:'calc_candle',desc:'정배열 · 단기조정 풀의 진짜눌림목 레시피가 오늘 봉에 같이 뜬 개수(발생 1 · 조짐 2 · 유력 3 · 강력 4 이상) — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+      {id:'_rcp4_pbf',name:'되돌림',type:'select',options:['설정안함','발동'],default:'설정안함',source:'calc_candle',desc:'정배열 · 단기조정 풀의 가짜되돌림(함정) 레시피가 오늘 봉에 떴는지 — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+    ]},
+  ]},
+  {id:'st_cross',name:'📈 MA 크로스',phase:'p4',groups:[   // [S1942]
+    {id:'pat_trend',name:'재료 · 크로스 임박',conditions:[   // [S1942] 묶음 id 는 옛 '단기추세 매매 (실험)' 그대로
+      // [S1442] 재료 [충족] 배지 — 분석탭 `🧪 재료 카운트` 카드가 쓰는 **그 자·그 창**을 그대로 쓴다.
+      //   설정 출처 = 단일검증 탭 저장값(SX_XMAT_{시장}) · 재료 목록·요구 개수·창을 거기서 바꾸면 이 조건도 따라 바뀐다.
+      //   ⚠워커는 localStorage 미접근이라 메인이 스캔 시작 시 동봉한다(S309 선례).
+      {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
+      // [S1574] 단기추세 신호(trend_cross) 철거 — 사용자 요청. 조건 정의만 뺐다(엔진 판정 5→4개 · 검증 분석 13→12개).
+      //   정의가 없으면 findCondMeta가 null이라 techFilters에 못 들어간다 ⇒ 워커 case·html 모달 분기는 도달 불가 사문(남겨 둠).
+      //   저장본에 남은 값은 sx_screener.html `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(조용히 통과 방지).
+      {id:'knn_dday',name:'kNN 크로스 임박 (D-day)',type:'select',options:['설정안함','골든크로스 임박','데드크로스 임박'],default:'설정안함',source:'calc_candle',desc:'kNN+MA수렴으로 골든/데드 크로스가 3봉 내 임박(과거 유사패턴 적중 50%↑)한 종목. 분석탭 단기추세 D-day와 동일 엔진 · MA는 단기추세매매 설정(cfg.s×cfg.l) 동기화 · 룩어헤드 차단. [S633/S634]',recommend:'골든크로스 임박 → 곧 진입 신호 나올 후보 선점'},
     ]},
   ]},
 ];
@@ -731,26 +751,7 @@ const US_CONDITIONS = [
     ]},
   ]},
   // ── Phase 3 ──
-  {id:'engine_verdict',name:'엔진 판정',phase:'p3',groups:[
-    {id:'ta_signal',name:'분석 판정',conditions:[
-      // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
-      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터. ⚠일봉 전용 — 다른 TF에서는 판정 불가라 전 종목 탈락(진단에 tf_not_day로 잡힘·S1442).'},
-      // [S1442] V2 어휘규칙 — 단일검증 탭 진입원 `🧬 V2 어휘규칙`과 **같은 판정**이다.
-      //   판정 SSOT = sx_exec_core.js `v2SignalAt` (칸 규칙 real-kind hit · DOWN·FAKE 매수투표 금지 · S1102 §8-3).
-      //   ⚠발굴풀 in-sample 적합 — 이 조건으로 뜨는 것은 검증이 아니라 재현이다(SX_CELL_DATA.meta.caveat).
-      {id:'_v2_signal',name:'V2 어휘규칙 🧬',type:'select',options:['설정안함','발동 (real)','강신호만 (strict)','일반신호 (soft)'],default:'설정안함',source:'calc_candle',desc:'3×3 칸 규칙(SX_CELL_DATA)의 real-kind 히트 종목. 단일검증 탭 진입원 v2와 동일 판정(sx_exec_core v2SignalAt). strict=강한 신호·soft=일반 신호. ⚠발굴풀 in-sample이라 재현이지 검증이 아님 · 일봉 전용.',recommend:'강신호만 → 시즌2 v2 진입 후보 선점'},
-      // [S1442] 재료 [충족] 배지 — 분석탭 `🧪 재료 카운트` 카드가 쓰는 **그 자·그 창**을 그대로 쓴다.
-      //   설정 출처 = 단일검증 탭 저장값(SX_XMAT_{시장}) · 재료 목록·요구 개수·창을 거기서 바꾸면 이 조건도 따라 바뀐다.
-      //   ⚠워커는 localStorage 미접근이라 메인이 스캔 시작 시 동봉한다(S309 선례).
-      {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
-    ]},
-    {id:'pat_trend',name:'단기추세 매매 (실험)',conditions:[
-      // [S1574] 단기추세 신호(trend_cross) 철거 — 사용자 요청. 조건 정의만 뺐다(엔진 판정 5→4개 · 검증 분석 13→12개).
-      //   정의가 없으면 findCondMeta가 null이라 techFilters에 못 들어간다 ⇒ 워커 case·html 모달 분기는 도달 불가 사문(남겨 둠).
-      //   저장본에 남은 값은 sx_screener.html `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(조용히 통과 방지).
-      {id:'knn_dday',name:'kNN 크로스 임박 (D-day)',type:'select',options:['설정안함','골든크로스 임박','데드크로스 임박'],default:'설정안함',source:'calc_candle',desc:'kNN+MA수렴으로 골든/데드 크로스가 3봉 내 임박(과거 유사패턴 적중 50%↑)한 종목. 분석탭 단기추세 D-day와 동일 엔진 · MA는 단기추세매매 설정(cfg.s×cfg.l) 동기화 · 룩어헤드 차단. [S633/S634]',recommend:'골든크로스 임박 → 곧 진입 신호 나올 후보 선점'},
-    ]},
-  ]},
+  // [S1942] 엔진 판정(engine_verdict) 폴더 → ⚔️ 단기매매(p4) 🧪 전략 조합 · 📈 MA 크로스 로 옮김
   {id:'backtest',name:'백테스트',phase:'p3',groups:[
     {id:'ta_bt',name:'백테스트 (실시간)',conditions:[
       {id:'_bt_pnl',name:'BT 수익률',type:'range',unit:'%',min:-100,max:200,default:{min:null,max:null},source:'calc_candle',desc:'백테스트 총수익률(600봉·분석탭/단일검증과 동일 창) - 0↑=수익, 10↑=양호',recommend:'10↑ (양호) / 30↑ (우수)'},
@@ -767,6 +768,34 @@ const US_CONDITIONS = [
       {axis4:'buy',id:'_bt_buy_marker',name:'BT 매수마커',type:'select',options:['설정안함','매수마커 있음'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 매수 신호를 낸 종목 - 차트에 ▲마커 표시된 상태 (_isBuySignal=true)',recommend:'매수마커 있음 → 당일 신규 매수 진입 신호 종목만 필터'},
       {axis4:'buy',id:'_bt_today_entry',name:'오늘 매수진입',type:'select',options:['설정안함','오늘 진입'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 실제 매수 진입한 종목 (_isBuySignal=true) - BT 매수마커보다 엄격한 필터',recommend:'오늘 진입 → 실시간 BT 매수 신호 종목만 필터 (매수마커의 하위집합)'},
       {id:'_bt_today_exit',name:'오늘 청산 신호',type:'select',options:['설정안함','오늘 청산'],default:'설정안함',source:'calc_candle',desc:'BT엔진이 오늘 청산 신호를 낸 종목 (state=sell_signal · exec_core 이중ATR/MA데드 청산) - 오늘 매수진입의 매도 짝',recommend:'오늘 청산 → 당일 exec_core 청산 신호 종목만 필터'},  // [S1023] exec_core 청산 추적
+    ]},
+  ]},
+  // [S1942] ⚔️ 단기매매(p4) — 엔진 판정 폴더(engine_verdict)의 네 조건을 단기매매 카드 탭별 폴더로 옮김(id · 정의 글자 그대로 · 저장 필터는 condId 폴백 S68 로 그대로 찾음) + 🧪 레시피 4분류 새 조건 넷
+  {id:'st_strat',name:'🧪 전략 조합',phase:'p4',groups:[   // [S1942]
+    {id:'ta_signal',name:'레시피 · 칸',conditions:[   // [S1942] 묶음 id 는 옛 '분석 판정' 그대로
+      // [S585] 분석탭 전광판 '추세·구조' 도넛 3종 — 4축 아님(일반 점수형). 워커 s._indicators(=분석탭 indicators)에서 도넛과 동일 공식으로 평가.
+      {id:'_recipe_detect',name:'레시피 감지 🎯',type:'select',options:['설정안함','발동(겹침1+)','순수발동','겹침3+','겹침4+'],default:'설정안함',source:'calc_candle',desc:'레시피(재료패턴) 발동 종목 스캔 - 순수=fake 미동반(혼재없음)·겹침N=동시발동 레시피 수. 정밀 신호감지 필터. ⚠일봉 전용 — 다른 TF에서는 판정 불가라 전 종목 탈락(진단에 tf_not_day로 잡힘·S1442).'},
+      // [S1442] V2 어휘규칙 — 단일검증 탭 진입원 `🧬 V2 어휘규칙`과 **같은 판정**이다.
+      //   판정 SSOT = sx_exec_core.js `v2SignalAt` (칸 규칙 real-kind hit · DOWN·FAKE 매수투표 금지 · S1102 §8-3).
+      //   ⚠발굴풀 in-sample 적합 — 이 조건으로 뜨는 것은 검증이 아니라 재현이다(SX_CELL_DATA.meta.caveat).
+      {id:'_v2_signal',name:'V2 어휘규칙 🧬',type:'select',options:['설정안함','발동 (real)','강신호만 (strict)','일반신호 (soft)'],default:'설정안함',source:'calc_candle',desc:'3×3 칸 규칙(SX_CELL_DATA)의 real-kind 히트 종목. 단일검증 탭 진입원 v2와 동일 판정(sx_exec_core v2SignalAt). strict=강한 신호·soft=일반 신호. ⚠발굴풀 in-sample이라 재현이지 검증이 아님 · 일봉 전용.',recommend:'강신호만 → 시즌2 v2 진입 후보 선점'},
+      // [S1942] 🧪 레시피 4분류 — 워커가 마지막 봉 하나를 셈(`_sxRcp4Last` · 🧪 `_stratSignalBars` 의 그 봉 값과 같은 셈 · 배터리가 스냅 종목으로 대조)
+      {id:'_rcp4_dc',name:'바닥반등',type:'select',options:['설정안함','발생 (1+)','조짐 (2+)','유력 (3+)','강력 (4+)'],default:'설정안함',source:'calc_candle',desc:'역배열 · 단기약세 풀의 진짜반등 레시피가 오늘 봉에 같이 뜬 개수(발생 1 · 조짐 2 · 유력 3 · 강력 4 이상) — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+      {id:'_rcp4_dcf',name:'데드캣',type:'select',options:['설정안함','발동'],default:'설정안함',source:'calc_candle',desc:'역배열 · 단기약세 풀의 가짜반등(함정) 레시피가 오늘 봉에 떴는지 — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+      {id:'_rcp4_pb',name:'눌림목',type:'select',options:['설정안함','발생 (1+)','조짐 (2+)','유력 (3+)','강력 (4+)'],default:'설정안함',source:'calc_candle',desc:'정배열 · 단기조정 풀의 진짜눌림목 레시피가 오늘 봉에 같이 뜬 개수(발생 1 · 조짐 2 · 유력 3 · 강력 4 이상) — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+      {id:'_rcp4_pbf',name:'되돌림',type:'select',options:['설정안함','발동'],default:'설정안함',source:'calc_candle',desc:'정배열 · 단기조정 풀의 가짜되돌림(함정) 레시피가 오늘 봉에 떴는지 — 🧪 전략 조합 봉맵(진입원이 쓰는 그 봉 값)의 마지막 봉 · 풀별 겹침 셈 · 교차검증 탭 배지 인벤토리 단계와 같은 개수 선(인벤토리 화면은 최근 0~5봉 관찰중 개수라 다를 수 있음). 성적 주장 없음 · 일봉 전용 · 260봉 이상(모자라면 탈락 · 사유 남김).',recommend:'읽기 도움 · 판정 아님'},   // [S1942]
+    ]},
+  ]},
+  {id:'st_cross',name:'📈 MA 크로스',phase:'p4',groups:[   // [S1942]
+    {id:'pat_trend',name:'재료 · 크로스 임박',conditions:[   // [S1942] 묶음 id 는 옛 '단기추세 매매 (실험)' 그대로
+      // [S1442] 재료 [충족] 배지 — 분석탭 `🧪 재료 카운트` 카드가 쓰는 **그 자·그 창**을 그대로 쓴다.
+      //   설정 출처 = 단일검증 탭 저장값(SX_XMAT_{시장}) · 재료 목록·요구 개수·창을 거기서 바꾸면 이 조건도 따라 바뀐다.
+      //   ⚠워커는 localStorage 미접근이라 메인이 스캔 시작 시 동봉한다(S309 선례).
+      {id:'_xmat_need',name:'재료 충족 🧪',type:'select',options:['설정안함','매수 재료 충족','매도 재료 충족','매수 충족 · 매도 미달','매수·매도 모두 충족'],default:'설정안함',source:'calc_candle',desc:'분석탭 재료 카운트 카드의 [충족] 배지와 같은 판정 — 단일검증 탭에 켜둔 재료가 요구 개수 이상 떠 있는 종목. 재료·요구개수·창은 단일검증 탭 설정을 그대로 읽는다. ⚠창이 2봉 이상이면 봉마다 지표를 다시 계산하므로 스캔이 느려진다(창1봉=추가비용 거의 없음) · 일봉 전용.',recommend:'매수 충족 · 매도 미달 → 진입 쪽 재료만 켜진 상태'},
+      // [S1574] 단기추세 신호(trend_cross) 철거 — 사용자 요청. 조건 정의만 뺐다(엔진 판정 5→4개 · 검증 분석 13→12개).
+      //   정의가 없으면 findCondMeta가 null이라 techFilters에 못 들어간다 ⇒ 워커 case·html 모달 분기는 도달 불가 사문(남겨 둠).
+      //   저장본에 남은 값은 sx_screener.html `_REMOVED_FILTER_IDS_BY_MARKET`가 로드 때 뺀다(조용히 통과 방지).
+      {id:'knn_dday',name:'kNN 크로스 임박 (D-day)',type:'select',options:['설정안함','골든크로스 임박','데드크로스 임박'],default:'설정안함',source:'calc_candle',desc:'kNN+MA수렴으로 골든/데드 크로스가 3봉 내 임박(과거 유사패턴 적중 50%↑)한 종목. 분석탭 단기추세 D-day와 동일 엔진 · MA는 단기추세매매 설정(cfg.s×cfg.l) 동기화 · 룩어헤드 차단. [S633/S634]',recommend:'골든크로스 임박 → 곧 진입 신호 나올 후보 선점'},
     ]},
   ]},
 ];
