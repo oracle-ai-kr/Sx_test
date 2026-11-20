@@ -22232,7 +22232,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1941';   // [S1941] 🚫 열외 종목 게이트(6탭 · N건 이상 · 적중률 < W% · 복리 ≤ R% · 기본 = 시즌2 10 · 50 · −10)
+  window.SX_BUILD='S1942';   // [S1942] ⚔️ 조건검색 단기매매 카테고리 · 엔진 판정 네 조건 옮김 · 🧪 레시피 4분류(바닥반등 · 데드캣 · 눌림목 · 되돌림)
+  //window.SX_BUILD='S1941';   // [S1941] 🚫 열외 종목 게이트(6탭 · N건 이상 · 적중률 < W% · 복리 ≤ R% · 기본 = 시즌2 10 · 50 · −10)
   //window.SX_BUILD='S1940';   // [S1940] 📐 이평 기울기 게이트(6탭 · 20 · 60 · 120 · 200선 · 끔 → ↗ → ↘)
   //window.SX_BUILD='S1939';   // [S1939] 🐢 📐 돌파 뒤 눌림 실험 칩 · ⚓ 📦 상자 셋 · 🔮 ↕️ 전고 · 전저 줄 · 종목 창 다른 탭 뒤로가기 → 종목분석
   //window.SX_BUILD='S1938';   // [S1938] 🎨 단기매매 그리드 색 채움 — 총 거래 · 손익비 · 닫힌 거래만 · 미청산율 · 💼 MDD · 수익/MDD(📌 같은 비율 줄과 견줌) · 색 규약 한 문장
