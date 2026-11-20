@@ -25,7 +25,7 @@
 <script src="sx_tvind_mpl.js?v=5"></script><!-- [S1866] Supertrend ANY INDICATOR(wbburgin) — MPL 2.0 · 판 번호 v=2 = 3단계 지표가 더해진 틀 · 지표 파일 · [S1870] 🎯 ICT 오더블록(앱 정의) · MSB-OB(EmreKb) · Power Order Blocks(ChartPrime) — MPL 2.0 · 판 번호 v=2 · [S1871] ICT Killzones & Pivots(tradeforopp) 주 · 월 기준선 · v=3 · [S1919] Auto Chart Patterns 2(mbedaiwi2) 패턴 계산(🕯️ 카드 📐 패턴 탭) · v=4 · [S1925] Wick Sequence Breakout(Uncle_the_shooter) 풀차트 지표 ⑦ · 🕯️ 카드 📐 탭 줄 · v=5 -->
 <script src="sx_tvread.js?v=1"></script><!-- [S1872] 풀차트 지표 읽기 한 줄(앱 자체 · 라이선스 없음 · 계산 파일 뒤) -->
 <script src="sx_tvind_bbset.js?v=4"></script><!-- [S1873] 볼린저 풀세트 아래 칸 넷(%B · BandWidth · BBTrend = TV 내장 식 · BBImpulse = LazyBear · 라이선스 없는 둘 · 읽기 글 포함 · 읽기 파일 뒤) · [S1878] 차트 위 〰️ 볼린저 구역 배지(앱 자체 정의 · 탭과 같은 계산 함수 · 선 없음) · [S1879] 배지 색 = 트리플 선 자리 · [S1882] 셋 구역 이름 = 🧭 〰️ 위치 이름 · 판 번호 v=4 -->
-<script src="sx_conditions.js?v=26"></script><!-- [S1841] 6개월 강세 항목 · [S1893] EOM 조건 이름 · 설명 앱식 · 판 번호 v=26 -->
+<script src="sx_conditions.js?v=27"></script><!-- [S1841] 6개월 강세 항목 · [S1893] EOM 조건 이름 · 설명 앱식 · [S1942] ⚔️ 단기매매 카테고리 · 판 번호 v=27 -->
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
 <script src="sx_storage.js?v=9"></script>
@@ -331,6 +331,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .phase-p1 .phase-label{color:#4a90d9}
 .phase-p2 .phase-label{color:#e8a838}
 .phase-p3 .phase-label{color:#50c878}
+.phase-p4 .phase-label{color:#a855f7}   /* [S1942] ⚔️ 단기매매 */
 
 /* ── S68: Phase별 프리셋 그룹 ── */
 .preset-phase-group{margin-bottom:6px}
@@ -339,6 +340,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .preset-phase-tag.p1{background:#4a90d9}
 .preset-phase-tag.p2{background:#e8a838}
 .preset-phase-tag.p3{background:#50c878}
+.preset-phase-tag.p4{background:#a855f7}   /* [S1942] 조건 카드 P4 꼬리표 */
 .preset-phase-chips{display:flex;gap:4px;flex-wrap:wrap}
 /* S164: P2 서브그룹 (공격/준비/방어/환경) */
 .preset-subgroup{margin-bottom:4px;padding-left:6px;border-left:2px solid var(--border);border-radius:0 0 0 3px}
@@ -2832,6 +2834,13 @@ function _migrateLegacyFilterIds(filters, market){
       const newId = _LEGACY_FILTER_ID_MAP[f.id];
       if(!newId) return f;
       return { ...f, id: newId, value: '설정안함' };
+    })
+    // 3) [S1942] 엔진 판정(engine_verdict) 폴더가 ⚔️ 단기매매 폴더로 옮겨 감 — 저장본 카드의 폴더 이름 · P 꼬리표도 새 폴더로(조건 id · 값은 그대로)
+    .map(f => {
+      if(!f || f.catId !== 'engine_verdict') return f;   // [S1942]
+      try{ const T = market==='coin' ? COIN_CONDITIONS : market==='us' ? US_CONDITIONS : SX_CONDITIONS;   // [S1942]
+        for(const cat of T){ for(const g of cat.groups){ if(g.conditions.some(x=>x.id===f.id)) return { ...f, catId: cat.id, catName: cat.name }; } } }catch(_e42){}   // [S1942]
+      return f;
     });
 }
 
@@ -4672,7 +4681,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=29');   /* [S1901] 상대강도 같은 날짜끼리 */   /* [S1841] 6개월 강세 스캔 앞 순위 */   // [S1201] exec_core·cell_data [S1204] _srcBreak [S1206] BT필터=정밀모드600
+    _scanWorker = new Worker('sx_scan_worker.js?v=30');   /* [S1942] 🧪 레시피 4분류 */   /* [S1901] 상대강도 같은 날짜끼리 */   /* [S1841] 6개월 강세 스캔 앞 순위 */   // [S1201] exec_core·cell_data [S1204] _srcBreak [S1206] BT필터=정밀모드600
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -5263,6 +5272,8 @@ async function _startScanLegacy(){
           {
             const _v2Lg = getFilter('_v2_signal'), _xmLg = getFilter('_xmat_need');
             const _onLg = (_v2Lg && _v2Lg.value && _v2Lg.value!=='설정안함') || (_xmLg && _xmLg.value && _xmLg.value!=='설정안함');
+            const _r4Lg = ['_rcp4_dc','_rcp4_dcf','_rcp4_pb','_rcp4_pbf'].some(id=>{ const f=getFilter(id); return !!(f && f.value && f.value!=='설정안함'); });   // [S1942] 🧪 레시피 4분류도 워커 경로 전용
+            if(_r4Lg && !window._s1942LegacyWarned){ window._s1942LegacyWarned=true; if(typeof toast==='function') toast('⚠ 레시피 4분류 조건은 레거시 경로에서 산출 불가 — 조건을 무시하고 통과시킵니다'); }   // [S1942]
             if(_onLg && !window._s1442LegacyWarned){ window._s1442LegacyWarned=true; if(typeof toast==='function') toast('⚠ V2 어휘규칙·재료 충족 조건은 레거시 경로에서 산출 불가 — 조건을 무시하고 통과시킵니다'); }
           }
           // 레시피 감지 [S894]
@@ -8172,6 +8183,7 @@ function checkTechConditions(ind, techFilters, getFilter){
       case '_recipe_detect': break;
       case '_v2_signal': break;   // [S1442] 스캔 루프에서 rows 있는 자리에서 처리 — 여기선 무시(통과)
       case '_xmat_need': break;   // [S1442] 동상
+      case '_rcp4_dc': case '_rcp4_dcf': case '_rcp4_pb': case '_rcp4_pbf': break;   // [S1942] 🧪 레시피 4분류 — 워커 스캔 루프에서 처리(여기선 통과)
       case '_bt_pnl': break;
       case '_bt_winrate': break;
       case '_bt_trades': break;
