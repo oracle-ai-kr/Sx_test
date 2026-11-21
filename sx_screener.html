@@ -25,7 +25,7 @@
 <script src="sx_tvind_mpl.js?v=5"></script><!-- [S1866] Supertrend ANY INDICATOR(wbburgin) — MPL 2.0 · 판 번호 v=2 = 3단계 지표가 더해진 틀 · 지표 파일 · [S1870] 🎯 ICT 오더블록(앱 정의) · MSB-OB(EmreKb) · Power Order Blocks(ChartPrime) — MPL 2.0 · 판 번호 v=2 · [S1871] ICT Killzones & Pivots(tradeforopp) 주 · 월 기준선 · v=3 · [S1919] Auto Chart Patterns 2(mbedaiwi2) 패턴 계산(🕯️ 카드 📐 패턴 탭) · v=4 · [S1925] Wick Sequence Breakout(Uncle_the_shooter) 풀차트 지표 ⑦ · 🕯️ 카드 📐 탭 줄 · v=5 -->
 <script src="sx_tvread.js?v=1"></script><!-- [S1872] 풀차트 지표 읽기 한 줄(앱 자체 · 라이선스 없음 · 계산 파일 뒤) -->
 <script src="sx_tvind_bbset.js?v=4"></script><!-- [S1873] 볼린저 풀세트 아래 칸 넷(%B · BandWidth · BBTrend = TV 내장 식 · BBImpulse = LazyBear · 라이선스 없는 둘 · 읽기 글 포함 · 읽기 파일 뒤) · [S1878] 차트 위 〰️ 볼린저 구역 배지(앱 자체 정의 · 탭과 같은 계산 함수 · 선 없음) · [S1879] 배지 색 = 트리플 선 자리 · [S1882] 셋 구역 이름 = 🧭 〰️ 위치 이름 · 판 번호 v=4 -->
-<script src="sx_conditions.js?v=27"></script><!-- [S1841] 6개월 강세 항목 · [S1893] EOM 조건 이름 · 설명 앱식 · [S1942] ⚔️ 단기매매 카테고리 · 판 번호 v=27 -->
+<script src="sx_conditions.js?v=28"></script><!-- [S1841] 6개월 강세 항목 · [S1893] EOM 조건 이름 · 설명 앱식 · [S1942] ⚔️ 단기매매 카테고리 · 판 번호 v=27 · [S1943] 탭 폴더 · 2단계 조건 v=28 -->
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
 <script src="sx_storage.js?v=9"></script>
@@ -68,7 +68,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=532"></script><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
+<script src="sx_render.js?v=533"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
 <script src="sx_ict_flux.js?v=1"></script><!-- [S1847] 🎯 ICT 🧪 실험 셋업 엔진(MPL 2.0 · Flux Charts 원본에서 옮김) -->
 <script src="sx_sig_lab.js?v=1"></script><!-- [S1854] 🧪 신호 실험 칩(TradingView 공개 스크립트 17가지 → JS · 출처는 그 파일 머리) -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
@@ -3868,7 +3868,8 @@ function addCondition(){
 
   const idx = activeFilters.findIndex(f=>f.id===c.id);
   // [S652] 신규 등록=현재 추가모드(_filterAddMode)로 그룹 태깅 / 기존 편집=원래 그룹 보존(편집 중 그룹이 바뀌지 않게)
-  const entry = {id:c.id, name:c.name, catName, catId:modalCatId, value, displayValue, group: idx>=0 ? _fGroup(activeFilters[idx]) : _filterAddMode};
+  const entry = {id:c.id, name:c.name, catName, catId:modalCatId, value, displayValue, group: _SX_TAB2_IDS[c.id] ? 'and' : (idx>=0 ? _fGroup(activeFilters[idx]) : _filterAddMode)};   // [S1943] 2단계 조건은 AND 로만
+  if(_SX_TAB2_IDS[c.id] && _filterAddMode==='or' && idx<0) toast('⚔️ 단기매매 탭 조건(2단계)은 AND 로만 — AND 로 넣었어요');   // [S1943]
   if(idx>=0) activeFilters[idx] = entry;
   else activeFilters.push(entry);
 
@@ -4438,6 +4439,48 @@ function updateScanUI(){
   }
 }
 
+// [S1943] ⚔️ 조건검색 2단계 — 단기매매 카드 탭 조건(오늘 상태 · 진입원 칩 · 게이트) · 셈 = sx_render.js _sxTab2One(카드 · 풀과 같은 함수) — PREREG_S1943_tab2.md §1
+//   워커엔 안 보냄(워커 switch 는 모르는 id 를 통과시켜 OR 묶음을 거저 채움) · 1단계 통과 앞 130 만 · 맨 위 AND 로만 · 일봉 전용   [S1943]
+const _SX_TAB2_IDS = (function(){ const o={}; ['cross','strat','turtle','ict','st','sr'].forEach(function(t){ ['st','src','gate'].forEach(function(k){ o['_tab_'+t+'_'+k]={ tab:t, k:k }; }); }); return o; })();   // [S1943]
+const _SX_TAB2_CAP = 130;   // [S1943] 탭 풀 상한(_TREND_BATCH_CAP · 🧪 풀 CAP)과 같은 수
+const _SX_TAB2_NM = { cross:'📈', strat:'🧪', turtle:'🐢', ict:'🎯', st:'🚦', sr:'⚓' };   // [S1943]
+function _sxTab2Is(f){ return !!(f && _SX_TAB2_IDS[f.id]); }   // [S1943]
+function _sxTab2On(f){ return _sxTab2Is(f) && !!f.value && f.value!=='설정안함'; }   // [S1943]
+function _sxTab2Pass(f, R){ if(!R || !R.ok) return false; const v=f.value, k=_SX_TAB2_IDS[f.id].k, s=R.st;   // [S1943]
+  if(k==='st') return ({ '오늘 신호 · 체결':s.sig||s.fill, '오늘 신호 (다음 봉 시가)':s.sig, '지정가 대기 · 오늘 체결':s.lim||s.fill, '지정가 대기':s.lim, '오늘 체결':s.fill, '보유 중':s.hold, '오늘 청산':s.exit })[v]===true;   // [S1943]
+  if(k==='src') return !!R.src && _sxTab2ChipLbl(R.tab, R.src)===v;   // [S1943]
+  if(k==='gate') return (v==='오늘 열림')?(R.gate.blk.length===0):((v==='오늘 막힘')?(R.gate.blk.length>0):false);   // [S1943] 켠 게이트가 없으면 열림
+  return false; }   // [S1943]
+function _sxTab2HitV(f, R){ const k=_SX_TAB2_IDS[f.id].k, gl=function(a){ return a.map(function(x){ return _SX_TAB2_GATE_LBL[x]||x; }).join(' · '); };   // [S1943] 🔎 검출 글
+  if(k==='st') return f.value+(R.src?(' · '+_sxTab2ChipLbl(R.tab, R.src)):'');   // [S1943]
+  if(k==='src') return f.value;   // [S1943]
+  return f.value+' ('+(R.gate.on.length?(R.gate.blk.length?('막음 '+gl(R.gate.blk)):gl(R.gate.on)):'켠 게이트 없음')+')'; }   // [S1943]
+function _sxTab2Line(html){ try{ const P=document.getElementById('scanProgress'); if(!P) return; let d=document.getElementById('sxTab2Line'); if(!d){ d=document.createElement('div'); d.id='sxTab2Line'; d.style.cssText='font-size:10px;color:var(--text3);margin-top:3px;line-height:1.5'; P.appendChild(d); } d.innerHTML=html; d.style.display=html?'':'none'; }catch(_){} }   // [S1943]
+async function _sxTab2Run(results, mk, tf){   // [S1943] 1단계 결과 → 2단계 통과만(순서 그대로) · cnt = 빠진 까닭
+  const F=activeFilters.filter(_sxTab2On), tabs=[]; F.forEach(function(f){ const t=_SX_TAB2_IDS[f.id].tab; if(tabs.indexOf(t)<0) tabs.push(t); });   // [S1943]
+  const N=results.length, use=results.slice(0, _SX_TAB2_CAP), out=[], cnt={ pass:0, cond:0, short:0, fetch:0, other:0, tf:0 }; let seen=0;   // [S1943]
+  if(tf!=='day'){ cnt.tf=use.length; return { results:out, N:N, used:use.length, seen:0, cnt:cnt, aborted:false }; }   // [S1943] 일봉 전용 — 다른 봉이면 모두 빠짐(사유)
+  const lbl='⚔️ 2단계 · '+tabs.map(function(t){ return _SX_TAB2_NM[t]; }).join('')+' 오늘 상태';   // [S1943]
+  _sxTab2Line('1단계 통과 <b style="color:var(--text2)">'+N+'</b>종목 → 앞 <b style="color:#a855f7">'+use.length+'</b>종목만 2단계'+(N>use.length?('('+(N-use.length)+' 잘림 · 탭 풀과 같은 상한)'):''));   // [S1943]
+  for(let i=0;i<use.length;i++){ if(scanAbort) break; const s=use[i]; seen=i+1;   // [S1943]
+    try{ updateScanProgress(i+1, use.length, lbl+' — '+(s.name||s.code)); }catch(_){}   // [S1943]
+    await new Promise(function(r){ setTimeout(r, 0); });   // [S1943]
+    let rows=null; try{ rows=await SXCandleBT.fetchRows600(mk, 'day', s.code); }catch(_){ rows=null; }   // [S1943] 탭 풀과 같은 봉 불러오기
+    if(!Array.isArray(rows) || !rows.length){ cnt.fetch++; continue; }   // [S1943]
+    const RS={}; let bad='';   // [S1943]
+    for(const t of tabs){ let R=null; try{ R=await _sxTab2One(t, mk, s.code, rows); }catch(e){ R=null; } RS[t]=R; if(!R || !R.ok){ bad=(R && R.why)||'err'; break; } }   // [S1943]
+    if(bad){ if(bad==='short') cnt.short++; else cnt.other++; continue; }   // [S1943]
+    if(!F.every(function(f){ return _sxTab2Pass(f, RS[_SX_TAB2_IDS[f.id].tab]); })){ cnt.cond++; continue; }   // [S1943] 맨 위 AND
+    const hits=Array.isArray(s._hits)?s._hits.slice():[];   // [S1943]
+    F.forEach(function(f){ const t=_SX_TAB2_IDS[f.id].tab; hits.push({ i:f.id, n:_SX_TAB2_NM[t]+' '+(f.name||f.id), v:_sxTab2HitV(f, RS[t]), g:'and' }); });   // [S1943]
+    out.push(Object.assign({}, s, { _hits:hits })); cnt.pass++; }   // [S1943]
+  return { results:out, N:N, used:use.length, seen:seen, cnt:cnt, aborted:!!scanAbort }; }   // [S1943]
+function _sxTab2Sum(r){ const c=r.cnt||{}, w=[];   // [S1943] 끝 줄 — 빠진 까닭
+  if(c.cond) w.push('조건 안 맞음 '+c.cond); if(c.short) w.push('봉 모자람(260봉 미만) '+c.short); if(c.fetch) w.push('봉 불러오기 실패 '+c.fetch); if(c.other) w.push('셈 못 함 '+c.other); if(c.tf) w.push('일봉 아님(2단계는 일봉 전용) '+c.tf);   // [S1943]
+  return (r.aborted?('⏹ 멈춤 — '+r.seen+' / '+r.used+' 까지 · '):'')+'1단계 통과 '+r.N+' → 앞 '+r.used+(r.N>r.used?(' (잘림 '+(r.N-r.used)+')'):'')+' · ⚔️ 2단계 통과 <b style="color:#a855f7">'+(c.pass||0)+'</b>'+(w.length?(' · 빠짐: '+w.join(' · ')):'')+(r.err?(' · ⚠ '+r.err):''); }   // [S1943]
+function _sxTab2Done(r, m, h){ _sxTab2Line(_sxTab2Sum(r));   // [S1943] 걸러진 결과를 워커 done 과 같은 길로 다시 넣음
+  if(r.aborted || !h){ searchResults=r.results||[]; try{ applySort(); renderResults(); if(typeof saveSearchResults==='function') saveSearchResults(); }catch(_){} return; }   // [S1943] 멈춤 = 본 데까지
+  h.call(null, { data:Object.assign({}, m, { results:r.results||[], rejectDiag:null, message:'완료 · ⚔️ 2단계 통과 '+((r.cnt&&r.cnt.pass)||0), _tab2Done:true }) }); }   // [S1943]
 function updateScanProgress(current, total, name){
   scanCurrent = current; scanTotal = total;
   const pct = total>0 ? (current/total*100) : 0;
@@ -4527,7 +4570,7 @@ function _buildScanConfig(){
     WORKER_BASE, currentMarket, currentTF, scanMarket,
     recipeOn: (typeof globalThis!=='undefined') ? !!globalThis.SX_RECIPE_REBOUND : true, // [S877] 🍳 킬스위치 전파(메인→워커)
     trendMa: (function(){ try{ var _m=(typeof currentMarket!=='undefined')?currentMarket:'kr'; var _o=JSON.parse(localStorage.getItem('SX_TREND_'+_m)||'{}'); var s=+_o.s, l=+_o.l; return (s>=1&&l>s)?{s:s,l:l}:{s:5,l:9}; }catch(_){ return {s:5,l:9}; } })(), // [S634] kNN 디데이가 분석탭 단기추세매매 MA 따라가게
-    activeFilters: JSON.parse(JSON.stringify(activeFilters)),
+    activeFilters: JSON.parse(JSON.stringify(activeFilters.filter(function(f){ return !_sxTab2Is(f); }))),   // [S1943] 2단계 조건은 워커에 안 보냄
     kisEnabled: !!window._kisEnabled,
     kisConfig,
     kisToken: null, kisTokenExp: 0,
@@ -4618,6 +4661,8 @@ async function startScan(){
   //   기존 [S341] hasUserFilters 가드는 차단했지만, 최근 N봉만으로도 전체 종목 풀에서
   //   부가 정보(BT 결과 등) 채운 리스트가 반환되어 종목 탐색 용도로 유용.
   if(!activeFilters.length){ toast('조건을 1개 이상 추가해주세요.'); return; }
+  if(activeFilters.some(function(f){ return _sxTab2On(f) && _fGroup(f)==='or'; })){ toast('⚔️ 단기매매 탭 조건(2단계)은 AND 로만 — OR 묶음에서 빼고 다시 검색해 주세요'); return; }   // [S1943]
+  window._sxTab2Active = activeFilters.some(_sxTab2On); _sxTab2Line('');   // [S1943] ⚔️ 2단계 켬 · 앞 판 끝 줄 지움
   _sxVib(20); // S103: 검색 시작
   try{ const _sci=document.getElementById('scanCandleInfo'); if(_sci) _sci.textContent=''; }catch(_){} // [S660] 이전 스캔 잔상 제거
 
@@ -4702,6 +4747,7 @@ async function startScan(){
         updateScanRangeMax(msg.value);
         break;
       case 'result_batch':
+        if(window._sxTab2Active) break;   // [S1943] 2단계 켬 — 거르기 전 종목은 안 그림(진행은 progress 로)
         // S74: Worker가 보내는 results는 누적 전체 → 그대로 교체
         {
           const prevLen = searchResults.length;
@@ -4720,6 +4766,9 @@ async function startScan(){
         try{ if(typeof saveSearchResults==='function') saveSearchResults(); }catch(e){}
         break;
       case 'done':
+        if(window._sxTab2Active && !msg._tab2Done){ const _m=msg, _h=_scanWorker && _scanWorker.onmessage; window._sxTab2Active=false;   // [S1943] ⚔️ 2단계 — 1단계 결과를 걸러 같은 길로 다시 넣음
+          _sxTab2Run(_m.results||[], currentMarket, currentTF).then(function(r){ _sxTab2Done(r, _m, _h); }).catch(function(e){ _sxTab2Done({ results:[], N:(_m.results||[]).length, used:0, seen:0, cnt:{}, aborted:false, err:String(e && e.message || e) }, _m, _h); });   // [S1943]
+          break; }   // [S1943]
         // 최종 결과로 교체
         searchResults = msg.results || [];
         // [S275] 미국 시장 결과 시세 보강
@@ -5274,6 +5323,7 @@ async function _startScanLegacy(){
             const _onLg = (_v2Lg && _v2Lg.value && _v2Lg.value!=='설정안함') || (_xmLg && _xmLg.value && _xmLg.value!=='설정안함');
             const _r4Lg = ['_rcp4_dc','_rcp4_dcf','_rcp4_pb','_rcp4_pbf'].some(id=>{ const f=getFilter(id); return !!(f && f.value && f.value!=='설정안함'); });   // [S1942] 🧪 레시피 4분류도 워커 경로 전용
             if(_r4Lg && !window._s1942LegacyWarned){ window._s1942LegacyWarned=true; if(typeof toast==='function') toast('⚠ 레시피 4분류 조건은 레거시 경로에서 산출 불가 — 조건을 무시하고 통과시킵니다'); }   // [S1942]
+            if(activeFilters.some(_sxTab2On) && !window._s1943LegacyWarned){ window._s1943LegacyWarned=true; if(typeof toast==='function') toast('⚠ 단기매매 탭 조건(2단계)은 레거시 경로에서 산출 불가 — 조건을 무시하고 통과시킵니다'); }   // [S1943]
             if(_onLg && !window._s1442LegacyWarned){ window._s1442LegacyWarned=true; if(typeof toast==='function') toast('⚠ V2 어휘규칙·재료 충족 조건은 레거시 경로에서 산출 불가 — 조건을 무시하고 통과시킵니다'); }
           }
           // 레시피 감지 [S894]
