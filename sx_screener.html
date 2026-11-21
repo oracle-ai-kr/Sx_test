@@ -25,7 +25,7 @@
 <script src="sx_tvind_mpl.js?v=5"></script><!-- [S1866] Supertrend ANY INDICATOR(wbburgin) — MPL 2.0 · 판 번호 v=2 = 3단계 지표가 더해진 틀 · 지표 파일 · [S1870] 🎯 ICT 오더블록(앱 정의) · MSB-OB(EmreKb) · Power Order Blocks(ChartPrime) — MPL 2.0 · 판 번호 v=2 · [S1871] ICT Killzones & Pivots(tradeforopp) 주 · 월 기준선 · v=3 · [S1919] Auto Chart Patterns 2(mbedaiwi2) 패턴 계산(🕯️ 카드 📐 패턴 탭) · v=4 · [S1925] Wick Sequence Breakout(Uncle_the_shooter) 풀차트 지표 ⑦ · 🕯️ 카드 📐 탭 줄 · v=5 -->
 <script src="sx_tvread.js?v=1"></script><!-- [S1872] 풀차트 지표 읽기 한 줄(앱 자체 · 라이선스 없음 · 계산 파일 뒤) -->
 <script src="sx_tvind_bbset.js?v=4"></script><!-- [S1873] 볼린저 풀세트 아래 칸 넷(%B · BandWidth · BBTrend = TV 내장 식 · BBImpulse = LazyBear · 라이선스 없는 둘 · 읽기 글 포함 · 읽기 파일 뒤) · [S1878] 차트 위 〰️ 볼린저 구역 배지(앱 자체 정의 · 탭과 같은 계산 함수 · 선 없음) · [S1879] 배지 색 = 트리플 선 자리 · [S1882] 셋 구역 이름 = 🧭 〰️ 위치 이름 · 판 번호 v=4 -->
-<script src="sx_conditions.js?v=28"></script><!-- [S1841] 6개월 강세 항목 · [S1893] EOM 조건 이름 · 설명 앱식 · [S1942] ⚔️ 단기매매 카테고리 · 판 번호 v=27 · [S1943] 탭 폴더 · 2단계 조건 v=28 -->
+<script src="sx_conditions.js?v=29"></script><!-- [S1841] 6개월 강세 항목 · [S1893] EOM 조건 이름 · 설명 앱식 · [S1942] ⚔️ 단기매매 카테고리 · 판 번호 v=27 · [S1943] 탭 폴더 · 2단계 조건 v=28 · [S1944] 단기 매매 띄움 v=29 -->
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
 <script src="sx_storage.js?v=9"></script>
@@ -68,7 +68,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=533"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
+<script src="sx_render.js?v=534"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
 <script src="sx_ict_flux.js?v=1"></script><!-- [S1847] 🎯 ICT 🧪 실험 셋업 엔진(MPL 2.0 · Flux Charts 원본에서 옮김) -->
 <script src="sx_sig_lab.js?v=1"></script><!-- [S1854] 🧪 신호 실험 칩(TradingView 공개 스크립트 17가지 → JS · 출처는 그 파일 머리) -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
@@ -263,6 +263,10 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .select-chip{padding:6px 12px;border-radius:18px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:11px;cursor:pointer;transition:.15s}
 .select-chip.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 .select-chip:active{transform:scale(.95)}
+.select-chip .sx-t2n{display:block;font-size:9.5px;font-weight:500;color:var(--text3);margin-top:2px;line-height:1.25}   /* [S1944] 칩 곁 글 */
+.select-chip.active .sx-t2n{color:rgba(255,255,255,.88)}   /* [S1944] */
+.select-chip.sx-t2off{opacity:.5;border-style:dashed}   /* [S1944] 지금 설정으로는 안 나옴(골라도 됨) */
+.sx-t2hdr{font-size:10px;color:var(--text3);line-height:1.5;margin:-2px 0 8px}   /* [S1944] */
 /* [S348] 코인 스캐너 TF 칩 — 대상 칩(파랑)과 구분되는 녹색 바탕 */
 .scan-tf-chip{padding:4px 8px;border-radius:18px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:10px;cursor:pointer;transition:.15s;margin-left:2px}
 .scan-tf-chip.active{background:#16a34a;border-color:#16a34a;color:#fff;font-weight:600}
@@ -1597,7 +1601,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
         <div style="font-size:11px;font-weight:700;color:var(--text);margin-top:12px">🟢🔴 녹/적 마커</div>
         <div id="chartGreenRedSeg" style="display:flex;gap:6px;margin-top:6px">
           <span class="cm-seg" data-v="R" onclick="setChartMarker('greenred','R')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">백테스트 R</span>
-          <span class="cm-seg" data-v="S" onclick="setChartMarker('greenred','S')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">단기매매 S</span>
+          <span class="cm-seg" data-v="S" onclick="setChartMarker('greenred','S')" style="flex:1;text-align:center;padding:7px 0;border-radius:7px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--text2)">단기 매매 S</span><!-- [S1944] '단기 매매' 띄움 -->
         </div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;line-height:1.5"><b>R</b>: 단일검증 탭 <b>백테스트</b>의 매매 목록 — 진입▲ · 청산▼ (BT를 안 돌렸으면 마커 없음) · <b>S</b>: 단일검증 탭 <b>단기 매매 전략</b> 카드 — <b>보고 있는 탭</b>을 따라간다(📈 MA 크로스 = 골든/데드 · 🧪 전략 조합 = 레시피·칸 진입). MA 기간은 그 카드에서 설정. [S1436]</div>
       </div>
@@ -3646,6 +3650,7 @@ function openCondModal(catId, condId){
     `;
   } else if(c.type==='select'){
     const cur = val || c.default;
+    const _t2 = (typeof _sxTab2Note==='function')?_sxTab2Note(c.id):null;   // [S1944] ⚔️ 단기 매매 탭 조건이면 곁 글(그 외 조건은 null — 예전 그대로)
     // S74: MA 크로스 커스텀 입력 지원
     const allOptions = [...c.options];
     let customMAHTML = '';
@@ -3671,9 +3676,9 @@ function openCondModal(catId, condId){
     }
     body.innerHTML = `
       <div class="modal-section">
-        <div class="modal-label">선택</div>
+        <div class="modal-label">선택</div>${(_t2 && _t2.hdr)?`\n        <div class="sx-t2hdr">${_t2.hdr}</div>`:'' /* [S1944] 기준 글 — 없으면 빈 글(그 외 조건은 HTML 글자 그대로) */}
         <div class="select-wrap" id="mSelect">
-          ${allOptions.map(o=>`<div class="select-chip${o===cur?' active':''}" onclick="selectChip(this,'${o}')">${o}</div>`).join('')}
+          ${_t2 ? allOptions.map(o=>{ const a=_t2.of(o), sub=a?(a.on?(a.n?`<span class="sx-t2n">${a.n}</span>`:''):`<span class="sx-t2n">지금 안 나옴 · ${a.why}</span>`):''; return `<div class="select-chip${o===cur?' active':''}${(a&&!a.on)?' sx-t2off':''}" data-v="${o}" onclick="selectChip(this,'${o}')">${o}${sub}</div>`; }).join('') /* [S1944] 곁 글 · 값 = data-v(칩 이름 그대로) */ : allOptions.map(o=>`<div class="select-chip${o===cur?' active':''}" onclick="selectChip(this,'${o}')">${o}</div>`).join('') /* [S1944] 그 외 조건 = 예전 글 그대로 */}
         </div>
         ${customMAHTML}
       </div>
@@ -3828,7 +3833,7 @@ function addCondition(){
     displayValue = (mn!==null?mn+u:'') + ' ~ ' + (mx!==null?mx+u:'무제한');
   } else if(c.type==='select'){
     const sel = document.querySelector('#mSelect .select-chip.active');
-    value = sel ? sel.textContent.trim() : c.default;
+    value = sel ? (sel.getAttribute('data-v') || sel.textContent.trim()) : c.default;   // [S1944] 곁 글이 붙은 칩은 data-v(칩 이름 그대로) · 그 외는 예전 그대로
     if(value==='설정안함'||value==='전체'){
       activeFilters = activeFilters.filter(f=>f.id!==c.id);
       saveState(); closeCondModal(); refreshMarks(); updateBadge(); renderFilterList();
@@ -3869,7 +3874,7 @@ function addCondition(){
   const idx = activeFilters.findIndex(f=>f.id===c.id);
   // [S652] 신규 등록=현재 추가모드(_filterAddMode)로 그룹 태깅 / 기존 편집=원래 그룹 보존(편집 중 그룹이 바뀌지 않게)
   const entry = {id:c.id, name:c.name, catName, catId:modalCatId, value, displayValue, group: _SX_TAB2_IDS[c.id] ? 'and' : (idx>=0 ? _fGroup(activeFilters[idx]) : _filterAddMode)};   // [S1943] 2단계 조건은 AND 로만
-  if(_SX_TAB2_IDS[c.id] && _filterAddMode==='or' && idx<0) toast('⚔️ 단기매매 탭 조건(2단계)은 AND 로만 — AND 로 넣었어요');   // [S1943]
+  if(_SX_TAB2_IDS[c.id] && _filterAddMode==='or' && idx<0) toast('⚔️ 단기 매매 탭 조건(2단계)은 AND 로만 — AND 로 넣었어요');   // [S1943] · [S1944] '단기 매매' 띄움
   if(idx>=0) activeFilters[idx] = entry;
   else activeFilters.push(entry);
 
@@ -4444,6 +4449,11 @@ function updateScanUI(){
 const _SX_TAB2_IDS = (function(){ const o={}; ['cross','strat','turtle','ict','st','sr'].forEach(function(t){ ['st','src','gate'].forEach(function(k){ o['_tab_'+t+'_'+k]={ tab:t, k:k }; }); }); return o; })();   // [S1943]
 const _SX_TAB2_CAP = 130;   // [S1943] 탭 풀 상한(_TREND_BATCH_CAP · 🧪 풀 CAP)과 같은 수
 const _SX_TAB2_NM = { cross:'📈', strat:'🧪', turtle:'🐢', ict:'🎯', st:'🚦', sr:'⚓' };   // [S1943]
+function _sxTab2Note(condId){ const t=_SX_TAB2_IDS[condId]; if(!t || t.k==='gate' || typeof _sxTab2ChipInfo!=='function') return null; let I=null; try{ I=_sxTab2ChipInfo(t.tab, currentMarket); }catch(_){ I=null; } if(!I) return null;   // [S1944] 조건 창 곁 글 — 열 때마다 render 가 그 탭 저장 설정(일봉)을 읽음
+  const L={}; Object.keys(I.src).forEach(function(k){ L[_sxTab2ChipLbl(t.tab, k)]=I.src[k]; });   // [S1944] 선택지 글자 = 카드 칩 표 글자(_sxTab2ChipLbl)
+  const of=function(o){ if(t.k==='src') return L[o]||null; if(t.k==='st' && I.sig && o.indexOf('(다음 봉 시가)')>=0) return { on:I.sig.on, n:'', why:I.sig.why }; return null; };   // [S1944]
+  const hdr=(t.k==='src')?('지금 '+I.mkn+' '+I.tabn+' 설정 기준 · 흐린 칩 = 지금 설정으로는 안 나옴(골라도 됨) · 카드에서 바꾸면 다음에 열 때 바뀜'):((I.sig && !I.sig.on)?('지금 '+I.mkn+' '+I.tabn+' 설정 기준 · 다음봉 시가가 꺼져 있어 오늘 신호는 안 나옴(신호 봉 종가에 바로 체결)'):'');   // [S1944]
+  return { k:t.k, tab:t.tab, I:I, of:of, hdr:hdr }; }   // [S1944]
 function _sxTab2Is(f){ return !!(f && _SX_TAB2_IDS[f.id]); }   // [S1943]
 function _sxTab2On(f){ return _sxTab2Is(f) && !!f.value && f.value!=='설정안함'; }   // [S1943]
 function _sxTab2Pass(f, R){ if(!R || !R.ok) return false; const v=f.value, k=_SX_TAB2_IDS[f.id].k, s=R.st;   // [S1943]
@@ -4452,8 +4462,8 @@ function _sxTab2Pass(f, R){ if(!R || !R.ok) return false; const v=f.value, k=_SX
   if(k==='gate') return (v==='오늘 열림')?(R.gate.blk.length===0):((v==='오늘 막힘')?(R.gate.blk.length>0):false);   // [S1943] 켠 게이트가 없으면 열림
   return false; }   // [S1943]
 function _sxTab2HitV(f, R){ const k=_SX_TAB2_IDS[f.id].k, gl=function(a){ return a.map(function(x){ return _SX_TAB2_GATE_LBL[x]||x; }).join(' · '); };   // [S1943] 🔎 검출 글
-  if(k==='st') return f.value+(R.src?(' · '+_sxTab2ChipLbl(R.tab, R.src)):'');   // [S1943]
-  if(k==='src') return f.value;   // [S1943]
+  if(k==='st') return f.value+(R.src?(' · '+_sxTab2ChipLbl(R.tab, R.src)+(R.srcN?(' · '+R.srcN):'')):'');   // [S1943] · [S1944] 이 검색에 쓴 값
+  if(k==='src') return f.value+(R.srcN?(' · '+R.srcN):'');   // [S1943] · [S1944] 이 검색에 쓴 값(조건 창 곁 글과 같은 함수)
   return f.value+' ('+(R.gate.on.length?(R.gate.blk.length?('막음 '+gl(R.gate.blk)):gl(R.gate.on)):'켠 게이트 없음')+')'; }   // [S1943]
 function _sxTab2Line(html){ try{ const P=document.getElementById('scanProgress'); if(!P) return; let d=document.getElementById('sxTab2Line'); if(!d){ d=document.createElement('div'); d.id='sxTab2Line'; d.style.cssText='font-size:10px;color:var(--text3);margin-top:3px;line-height:1.5'; P.appendChild(d); } d.innerHTML=html; d.style.display=html?'':'none'; }catch(_){} }   // [S1943]
 async function _sxTab2Run(results, mk, tf){   // [S1943] 1단계 결과 → 2단계 통과만(순서 그대로) · cnt = 빠진 까닭
@@ -4661,7 +4671,7 @@ async function startScan(){
   //   기존 [S341] hasUserFilters 가드는 차단했지만, 최근 N봉만으로도 전체 종목 풀에서
   //   부가 정보(BT 결과 등) 채운 리스트가 반환되어 종목 탐색 용도로 유용.
   if(!activeFilters.length){ toast('조건을 1개 이상 추가해주세요.'); return; }
-  if(activeFilters.some(function(f){ return _sxTab2On(f) && _fGroup(f)==='or'; })){ toast('⚔️ 단기매매 탭 조건(2단계)은 AND 로만 — OR 묶음에서 빼고 다시 검색해 주세요'); return; }   // [S1943]
+  if(activeFilters.some(function(f){ return _sxTab2On(f) && _fGroup(f)==='or'; })){ toast('⚔️ 단기 매매 탭 조건(2단계)은 AND 로만 — OR 묶음에서 빼고 다시 검색해 주세요'); return; }   // [S1943] · [S1944] '단기 매매' 띄움
   window._sxTab2Active = activeFilters.some(_sxTab2On); _sxTab2Line('');   // [S1943] ⚔️ 2단계 켬 · 앞 판 끝 줄 지움
   _sxVib(20); // S103: 검색 시작
   try{ const _sci=document.getElementById('scanCandleInfo'); if(_sci) _sci.textContent=''; }catch(_){} // [S660] 이전 스캔 잔상 제거
@@ -5323,7 +5333,7 @@ async function _startScanLegacy(){
             const _onLg = (_v2Lg && _v2Lg.value && _v2Lg.value!=='설정안함') || (_xmLg && _xmLg.value && _xmLg.value!=='설정안함');
             const _r4Lg = ['_rcp4_dc','_rcp4_dcf','_rcp4_pb','_rcp4_pbf'].some(id=>{ const f=getFilter(id); return !!(f && f.value && f.value!=='설정안함'); });   // [S1942] 🧪 레시피 4분류도 워커 경로 전용
             if(_r4Lg && !window._s1942LegacyWarned){ window._s1942LegacyWarned=true; if(typeof toast==='function') toast('⚠ 레시피 4분류 조건은 레거시 경로에서 산출 불가 — 조건을 무시하고 통과시킵니다'); }   // [S1942]
-            if(activeFilters.some(_sxTab2On) && !window._s1943LegacyWarned){ window._s1943LegacyWarned=true; if(typeof toast==='function') toast('⚠ 단기매매 탭 조건(2단계)은 레거시 경로에서 산출 불가 — 조건을 무시하고 통과시킵니다'); }   // [S1943]
+            if(activeFilters.some(_sxTab2On) && !window._s1943LegacyWarned){ window._s1943LegacyWarned=true; if(typeof toast==='function') toast('⚠ 단기 매매 탭 조건(2단계)은 레거시 경로에서 산출 불가 — 조건을 무시하고 통과시킵니다'); }   // [S1943] · [S1944] '단기 매매' 띄움
             if(_onLg && !window._s1442LegacyWarned){ window._s1442LegacyWarned=true; if(typeof toast==='function') toast('⚠ V2 어휘규칙·재료 충족 조건은 레거시 경로에서 산출 불가 — 조건을 무시하고 통과시킵니다'); }
           }
           // 레시피 감지 [S894]
@@ -11125,7 +11135,7 @@ function setChartMarker(group, val){
   _renderChartMarkerSeg();
   // 현재 분석탭 미니차트 즉시 갱신 (풀차트는 다음 openFull에서 반영). 차트 없으면 가드로 noop.
   try { if(typeof _trendRedrawChart==='function') _trendRedrawChart(); } catch(_){}
-  var lbl={ purple:{A:'진입타이밍 A', C:'안전제동 C'}, greenred:{R:'백테스트 R', S:'단기매매 S'} };   // [S1436] 라벨=사실
+  var lbl={ purple:{A:'진입타이밍 A', C:'안전제동 C'}, greenred:{R:'백테스트 R', S:'단기 매매 S'} };   // [S1436] 라벨=사실 · [S1944] '단기 매매' 띄움
   toast('차트 마커: '+(group==='purple'?'보라':'녹/적')+' → '+(lbl[group][val]||val));
 }
 if(typeof window!=='undefined'){ window.setChartMarker=setChartMarker; window._renderChartMarkerSeg=_renderChartMarkerSeg; }
