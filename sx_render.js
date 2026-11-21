@@ -2104,6 +2104,53 @@ function _sxTfHasOwn(prefix, mk){ try{ return _sxTfSplitOn(mk) && localStorage.g
 //   ★일봉 화면 값 = 로더를 일봉으로 한 번 돌린 값(일봉 저장이 없으면 일봉 기본값·프리셋) — 원문 문자열을 베끼면 기본값 보정·검증을 건너뛴다.
 //   ⚠일봉 저장소·범위 밖 키·다른 저장소는 쓰지 않는다. MA 줄(common)은 크로스·전략조합이 같이 쓴다(리셋과 같은 사실).
 function _sxTfAsDay(fn){ let t0; try{ t0=_analTF; }catch(_){ return fn(); } try{ _analTF='day'; return fn(); } finally { _analTF=t0; } }
+// [S1943] ⚔️ 조건검색 2단계 — 단기매매 카드 여섯 탭의 '오늘 상태 · 진입원 · 게이트'를 종목 하나에 셈 — PREREG_S1943_tab2.md §1
+//   카드 · 풀과 같은 함수 · 그 탭에 지금 저장된 설정 그대로 · 일봉(_sxTfAsDay) · 화면 쪽 전용(워커는 이 파일을 못 부름) · 셈만 하고 아무것도 안 씀   [S1943]
+//   스크리너 _sxTab2Run 이 1단계 통과 종목 앞 130 에 부른다(탭 풀 상한 _TREND_BATCH_CAP 과 같은 수)   [S1943]
+const _SX_TAB2_TABS = ['cross', 'strat', 'turtle', 'ict', 'st', 'sr'];   // [S1943]
+const _SX_TAB2_GATE_LBL = { rg:'🧭 구간', msl:'📐 기울기', xcl:'🚫 열외', ax:'🧩' };   // [S1943]
+function _ttSrcOf(t){ if(!t) return ''; return (t.xo?('xo_'+(t.em||'brk')):(t.e2?'de':(t.ws?'ws':t.pb?'pb':(t.fail55?'fail':(t.em==='dip'?'dip':'brk'))))); }   // [S1943] 🐢 진입원 — 풀 거래 목록 식(S1801 · S1832 · S1926 · S1939)과 같은 꼴 · 풀 보유중 목록도 이것으로(옛 식은 🪢 진입2 를 빠뜨림)
+function _ttPendSrcOf(p, c){ if(!p) return ''; return p.xo?('xo_'+((c && c.xoDip)?'dip':'brk')):(p.e2?'de':(p.ws?'ws':p.pb?'pb':(p.fail55?'fail':((c && c.enDip)?'dip':'brk')))); }   // [S1943] 🐢 오늘 신호(T.pend)의 진입원 — BT 가 진입 때 붙이는 em(enDip · xoDip) 규칙과 같은 꼴
+function _sxTab2Cfg(tab, mk){ return ({ cross:_trendCfg, strat:_stratCfg, turtle:_turtleCfg, ict:_ictCfg, st:_stCfg, sr:_srCfg })[tab](mk); }   // [S1943] 게이트 칸이 든 설정 = 그 탭 BT 가 게이트를 만드는 그 객체
+function _sxTab2ChipLbl(tab, src){ if(!src) return ''; if(tab==='cross' && src==='pred') return '🔮kNN진입'; const L=({ cross:_TREND_SRC_LBL, strat:_STRAT_SRC_LBL, turtle:_TURTLE_SRC_LBL, ict:_ICT_SRC_LBL, st:_ST_SRC_LBL, sr:_SR_SRC_LBL })[tab]; return (L && L[src]) || src; }   // [S1943] 조건 선택지 글자(카드 칩 표 그대로 · 📈 🔮 칩만 조건 쪽 이름)
+async function _sxTab2XmFire(code, mk, rows){ let bc=[], scc=[], nb=1, ns=1, wb=1, ws=1, sig='';   // [S1943] 🧪 재료 개수 맵 — 📈 크로스 풀(S1412 · S1413)과 같은 부름
+  try{ const st=_xmatStore(mk); bc=_xmatConds(st,'buy'); scc=_xmatConds(st,'sell'); nb=_xmatNeed(st,'buy',bc.length); ns=_xmatNeed(st,'sell',scc.length); wb=_xmatWin(st,'buy'); ws=_xmatWin(st,'sell'); sig=_xmatSig(bc,scc,nb,ns,_xmatMode(st,'buy'),_xmatMode(st,'sell'),wb,ws); }catch(_){ return { on:false, fire:null }; }   // [S1943]
+  if(!(bc.length || scc.length)) return { on:false, fire:null };   // [S1943]
+  if(!(window.SXRecipeSignal && SXRecipeSignal.customCondBars && typeof _xmatCountBars==='function')) return { on:true, fire:null };   // [S1943]
+  let r=null; try{ r=await _xmatCountBars(code+'|'+mk, rows, mk, bc, scc, wb, ws); }catch(_){ r=null; }   // [S1943]
+  return { on:true, fire:r?{ sig:sig, buy:(r.buy||null), sell:(r.sell||null), needB:nb, needS:ns }:null }; }   // [S1943]
+async function _sxTab2One(tab, mk, code, rows){   // [S1943] → { ok, why, st:{ sig · lim · fill · hold · exit }, src(오늘 신호 · 지정가 · 체결의 진입원), srcOpen, gate:{ on, blk } }
+  const R={ tab:tab, ok:false, why:'', st:{ sig:false, lim:false, fill:false, hold:false, exit:false }, src:'', srcOpen:'', gate:{ on:[], blk:[] } };   // [S1943]
+  if(_SX_TAB2_TABS.indexOf(tab)<0){ R.why='bad_tab'; return R; }   // [S1943]
+  if(!Array.isArray(rows) || rows.length<260){ R.why='short'; return R; }   // [S1943] 260봉 미만은 빠짐(🧪 · S1942 와 같은 하한 · 여섯 탭 같은 수)
+  const li=rows.length-1; let c=null, bt=null;   // [S1943]
+  try{ c=_sxTfAsDay(function(){ return _sxTab2Cfg(tab, mk); }); }catch(e){ R.why='cfg_err'; return R; }   // [S1943]
+  try{   // [S1943] 풀 본문과 같은 부름(📈 _trendBatchRun · 🧪 _stratPoolRun · 🐢 _turtlePoolRun · 🎯 🚦 ⚓ _xxBtFor)
+    if(tab==='strat'){ const sig=await _stratSigFor(code, mk, rows, '', null); if(!sig){ R.why='no_sig'; return R; }   // [S1943]
+      bt=_sxTfAsDay(function(){ const cc=(typeof _cbCtxBuild==='function')?_cbCtxBuild(mk, sig):undefined; return _stratBt(rows, sig, _trendCfg(mk), _stratCfg(mk), null, cc, true); }); }   // [S1943]
+    else if(tab==='cross' || tab==='turtle'){ let xf=null;   // [S1943]
+      if(tab==='cross' || c.xm){ const X=await _sxTab2XmFire(code, mk, rows); if(X.on && !X.fire){ R.why='xm_fail'; return R; } xf=X.fire; }   // [S1943] 재료를 켰는데 못 태우면 빠짐(풀과 같음 — 조건 없이 돈 결과를 섞지 않음)
+      bt=_sxTfAsDay(function(){ if(tab==='turtle') return _turtleBtFor(rows, mk, xf||undefined);   // [S1943]
+        const _pe=_trendEngine, _pa=window._xmatApply; _trendEngine='cross'; window._xmatApply=true; try{ return _trendBt(rows, _trendCfg(mk), _trendBbParams(mk), xf, true); } finally { _trendEngine=_pe; window._xmatApply=_pa; } }); }   // [S1943]
+    else bt=_sxTfAsDay(function(){ return ({ ict:_ictBtFor, st:_stBtFor, sr:_srBtFor })[tab](rows, mk); });   // [S1943]
+  }catch(e){ R.why='bt_err'; R.err=String(e && e.message || e).slice(0, 120); return R; }   // [S1943]
+  if(!bt){ R.why='no_bt'; return R; }   // [S1943]
+  if(bt._xmatPending){ R.why='xm_fail'; return R; }   // [S1943]
+  const o=bt.open||null, T=(tab==='turtle')?(bt.turtle||null):null, I=(tab==='ict' || tab==='st' || tab==='sr')?(bt[tab]||null):null;   // [S1943]
+  R.st.hold=!!o; R.st.fill=!!(o && o.bars===0);   // [S1943] 카드 상태줄 '보유 중 · 오늘 진입(체결)'
+  if(tab==='turtle') R.st.sig=!!(T && T.pend); else if(tab==='cross' || tab==='strat') R.st.sig=!!bt.pendSig;   // [S1943] 🟢 오늘 신호 — 다음 봉 시가 매수 예정
+  if(!o && tab==='ict') R.st.lim=!!(I && I.pend);   // [S1943] 🟡 지정가 대기(보유 없을 때만 — 카드와 같음)
+  if(!o && tab==='sr') R.st.lim=!!(I && I.levels && Array.isArray(I.levels[c.line]) && I.levels[c.line].some(function(z){ return z.armed && !z.hit; }));   // [S1943]
+  if(tab==='cross' || tab==='strat') R.st.exit=(bt.trades||[]).some(function(t){ return t.exitIdx===li; }); else { const X=(tab==='turtle')?T:I; R.st.exit=!!(X && X.exitToday); }   // [S1943] 🔴 오늘 청산
+  if(o) R.srcOpen=(tab==='cross')?_trendTradeSrc(o):((tab==='strat')?(o.src||''):((tab==='turtle')?_ttSrcOf(o):(o.kind||'')));   // [S1943] 풀 보유중 목록과 같은 진입원
+  if(R.st.fill) R.src=R.srcOpen;   // [S1943]
+  else if(R.st.sig) R.src=(tab==='turtle')?_ttPendSrcOf(T.pend, c):((tab==='cross')?_trendTradeSrc(bt.pendSig):(bt.pendSig.src||''));   // [S1943]
+  else if(R.st.lim) R.src=(tab==='ict')?(I.pend.kind||''):(c.line||'');   // [S1943]
+  const G=[['rg', function(){ const f=_sxRgGate(rows, c.rgUp, c.rgDn); return f?f(li):null; }], ['msl', function(){ const f=_sxMslGate(rows, c); return f?f(li):null; }], ['xcl', function(){ const f=_sxXclGate(c); return f?f(li, bt.trades||[]):null; }]]   // [S1943] 공통 게이트 — 각 탭 BT 가 진입 봉에 거는 그 함수(🧪 엔 🧩 없음)
+    .concat((tab==='strat')?[]:[['ax', function(){ const f=_sxAxGate(rows, c, tab); return f?f(li):null; }]]);   // [S1943]
+  G.forEach(function(g){ let v=null; try{ v=_sxTfAsDay(g[1]); }catch(_){ v=null; } if(v!=null){ R.gate.on.push(g[0]); if(!v) R.gate.blk.push(g[0]); } });   // [S1943] 참(1) = 진입 허용 · 끈 게이트 = null
+  R.ok=true; return R; }   // [S1943]
+if(typeof window!=='undefined'){ window._sxTab2One=_sxTab2One; window._sxTab2ChipLbl=_sxTab2ChipLbl; window._ttSrcOf=_ttSrcOf; }   // [S1943]
 function _tfStoreLine(lb, own, tab){   // 💾 저장소 안내 + 📥 버튼 — 세 탭이 같은 문구를 쓴다(S1682 문구 그대로)
   const btn=`<span onclick="_sxVib(9);window._tfImportDay&&_tfImportDay('${tab}')" title="일봉에서 이 탭 값을 불러와 ${lb} 전용 저장소에 씁니다(일봉 값과 다른 탭은 그대로)" style="font-size:9.5px;font-weight:800;padding:4px 10px;border-radius:12px;cursor:pointer;background:var(--surface);color:#0891b2;border:1px solid #0891b2;white-space:nowrap">📥 일봉 설정 불러오기</span>`;
   return own
@@ -4030,6 +4077,7 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx, noDday, X){   /* [S1852] X =
   const _rgA=_sxRgGate(rows, sc.rgUp, sc.rgDn); let _rgBlk=0;   /* [S1862] 🧭 진입 구간 칩 */
   const _msA=_sxMslGate(rows, sc); let _msBlk=0;   /* [S1940] 📐 이평 기울기 칩(켰을 때만 · 없으면 null) */
   const _xcA=_sxXclGate(sc); let _xcBlk=0;   /* [S1941] 🚫 열외 종목(켰을 때만 · 없으면 null) */
+  let _pendSig=null;   /* [S1943] ⏭️ 다음봉 시가 · 마지막 봉 신호 — 진입은 그대로 보류 · 기록만(조건검색 2단계 '오늘 신호') */
   const _swW=_sxSwOf(rows, sc);   /* [S1863] 📉 추세전환 청산(켰을 때만 · 없으면 null) */
   const _tqW=_sxTqOf(rows, sc);   /* [S1917] 💰 TP 청산(켰을 때만 · 없으면 null) */
   const _scW=_sxScOf(rows, sc), _tcW=_sxTcOf(rows, sc);   /* [S1924] 🛑 SL · 🛡️ TS 청산(켰을 때만 · 없으면 null) */
@@ -4263,7 +4311,7 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx, noDday, X){   /* [S1852] X =
       if(enter && _msA && !_msA(i)){ _msBlk++; enter=null; }   /* [S1940] 📐 켠 선이 다 맞지 않으면 새 진입 없음(eH 길은 _xJ 에서) */
       if(enter && _xcA && !_xcA(i, trades)){ _xcBlk++; enter=null; }   /* [S1941] 🚫 열외 — 새 진입 없음(eH 길은 _xJ 에서) */
       if(enter){
-        if(_nextOpen){ const j=i+1; if(j<n && _opens[j]>0){ pos={entry:_opens[j], entryIdx:j, src:enter, bk:(_cc?_bk:undefined), cellKey:(_cc&&_cc.cellOf[i])||'', entryATR:(_a2Infra&&_atr14&&_atr14[j]>0)?_atr14[j]:0, peak:_opens[j]}; if(_mz){ pos.tz=_mz[i]||'na'; if(_tpAtrMz) pos.tpM=_tpMOf(i); if(_slMzOn) pos.slM=_slMOf(i); if(_trMzOn) pos.trM=_trMOf(i); }   /* [S1743] SL·트레일도 신호 봉 구간으로 */   /* [S1740] 신호 봉 i 의 구간 */ if(_pl>0){ pos.pred=true; pos.sigIdx=i; pos.predLead=_pl; } } }
+        if(_nextOpen){ const j=i+1; if(j>=n) _pendSig={ sigIdx:i, src:enter };   /* [S1943] 기록만 */ if(j<n && _opens[j]>0){ pos={entry:_opens[j], entryIdx:j, src:enter, bk:(_cc?_bk:undefined), cellKey:(_cc&&_cc.cellOf[i])||'', entryATR:(_a2Infra&&_atr14&&_atr14[j]>0)?_atr14[j]:0, peak:_opens[j]}; if(_mz){ pos.tz=_mz[i]||'na'; if(_tpAtrMz) pos.tpM=_tpMOf(i); if(_slMzOn) pos.slM=_slMOf(i); if(_trMzOn) pos.trM=_trMOf(i); }   /* [S1743] SL·트레일도 신호 봉 구간으로 */   /* [S1740] 신호 봉 i 의 구간 */ if(_pl>0){ pos.pred=true; pos.sigIdx=i; pos.predLead=_pl; } } }
         else if(close[i]>0){ pos={entry:close[i], entryIdx:i, src:enter, bk:(_cc?_bk:undefined), cellKey:(_cc&&_cc.cellOf[i])||'', entryATR:(_a2Infra&&_atr14&&_atr14[i]>0)?_atr14[i]:0, peak:close[i]}; if(_mz){ pos.tz=_mz[i]||'na'; if(_tpAtrMz) pos.tpM=_tpMOf(i); if(_slMzOn) pos.slM=_slMOf(i); if(_trMzOn) pos.trM=_trMOf(i); }   /* [S1743] SL·트레일도 신호 봉 구간으로 */   /* [S1740] */ if(_pl>0){ pos.pred=true; pos.sigIdx=i; pos.predLead=_pl; } }
       }
     } else {
@@ -4376,7 +4424,7 @@ function _stratBt(rows, sig, cfg, sc, bbP, cellCtx, noDday, X){   /* [S1852] X =
   }
   const _ltr=trades.length?trades[trades.length-1]:null;
   const predExitNow=!!(_ltr && _ltr.predExit && _ltr.exitIdx===n-1);
-  return { winRate, pf, totalPnl, totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, heldSkipGc:_heldSkipGc, ...(_rgA?{ rg:{ up:_rgA.up, dn:_rgA.dn, blk:_rgBlk } }:{}), ...(_msA?{ msl:_sxMslRes(_msA, _msBlk) }:{}) /* [S1940] 📐 켰을 때만 */, ...(_xcA?{ xcl:_sxXclRes(_xcA, _xcBlk) }:{}) /* [S1941] 🚫 켰을 때만 */ /* [S1862] 🧭 게이트 있을 때만 */, ...(_swW?{ sw:_sxSwRes(_swW, trades) }:{}) /* [S1863] 📉 켰을 때만 */, ...(_tqW?{ tq:_sxTqRes(_tqW, trades) }:{}) /* [S1917] 💰 켰을 때만 */, ...(_scW?{ slc:_sxScRes(_scW, trades) }:{}), ...(_tcW?{ trc:_sxTcRes(_tcW, trades) }:{}) /* [S1924] 🛑 · 🛡️ 켰을 때만 */, lastClose:close[n-1],
+  return { winRate, pf, totalPnl, totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, ...(_pendSig?{ pendSig:_pendSig }:{}) /* [S1943] 있을 때만 */, heldSkipGc:_heldSkipGc, ...(_rgA?{ rg:{ up:_rgA.up, dn:_rgA.dn, blk:_rgBlk } }:{}), ...(_msA?{ msl:_sxMslRes(_msA, _msBlk) }:{}) /* [S1940] 📐 켰을 때만 */, ...(_xcA?{ xcl:_sxXclRes(_xcA, _xcBlk) }:{}) /* [S1941] 🚫 켰을 때만 */ /* [S1862] 🧭 게이트 있을 때만 */, ...(_swW?{ sw:_sxSwRes(_swW, trades) }:{}) /* [S1863] 📉 켰을 때만 */, ...(_tqW?{ tq:_sxTqRes(_tqW, trades) }:{}) /* [S1917] 💰 켰을 때만 */, ...(_scW?{ slc:_sxScRes(_scW, trades) }:{}), ...(_tcW?{ trc:_sxTcRes(_tcW, trades) }:{}) /* [S1924] 🛑 · 🛡️ 켰을 때만 */, lastClose:close[n-1],
     predHit, predFires:_predFires, predDcHit, predDcFires:_predDcFires, predDday, predDdayProb, predDdayType, predExitNow, feePct:_feeP, _strat:true };
 }
 // 진입원별·청산사유 분해 — 조합 연구의 핵심 표시(어느 블록이 벌고 어느 블록이 까먹나)
@@ -6109,6 +6157,7 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
   const _tqW=_sxTqOf(rows, cfg);   /* [S1917] 💰 TP 청산(켰을 때만 · 없으면 null) */
   const _scW=_sxScOf(rows, cfg), _tcW=_sxTcOf(rows, cfg);   /* [S1924] 🛑 SL · 🛡️ TS 청산(켰을 때만 · 없으면 null) */
   const _axA=_sxAxGate(rows, cfg, 'cross'); let _axBlk=0; const _axX=_sxAxXGate(rows, cfg, 'cross');   /* [S1875] 🧩 보조 거름(진입 · 🧭 와 같은 봉) · 청산 스위치(📉 와 같은 자리) — 켰을 때만 · 없으면 null */
+  let _pendSig=null;   /* [S1943] ⏭️ 다음봉 시가 · 마지막 봉 신호 — 진입은 그대로 보류(BT 미반영) · 기록만(조건검색 2단계 '오늘 신호') */
   const _mkPos=(i,re)=>{
     if(_rgA && !_rgA(i)){ _rgBlk++; return null; }   /* [S1862] 막힌 구간 — 새 진입 없음(_mkPos = 진입 전용 한 목) */
     if(_msA && !_msA(i)){ _msBlk++; return null; }   /* [S1940] 📐 켠 선이 다 맞지 않으면 새 진입 없음 */
@@ -6117,7 +6166,7 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
     if(_bbz && !_bbz.ok(i)){ _bbzBlk++; return null; }   /* [S1876] 〰️ 과열 · 폭락 · 과열 이탈 잠금이면 새 진입 없음 */
     let _p;
     if(_nextOpen){
-      const j=i+1; if(j>=n) return null;
+      const j=i+1; if(j>=n){ _pendSig={ sigIdx:i, re:!!re }; return null; }   /* [S1943] 기록만 — 반환은 그대로 null */
       const o=_opens[j]; if(!(o>0)) return null;
       _p={ entry:o, entryIdx:j, re:!!re };
     } else {
@@ -6201,7 +6250,7 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
     if(X){ if(pos==null){ if((!_rgA || _rgA(i)) && (!_msA || _msA(i)) /* [S1940] */ && (!_xcA || _xcA(i, trades)) /* [S1941] */ && (!_axA || _axA(i)) /* [S1875] */ && (!_bbz || _bbz.ok(i)) /* [S1876] */){ X.nF=(X.nF||0)+1; if(X.eH){ if(X.eH(i)){ const p=_mkPos(i,false); if(p) pos=p; } continue; } } else if(X.eH) continue; } }   /* [S1862] 막힌 봉은 🎲 판단 봉으로 안 셈 */   /* [S1851] 🎲 진입 판단 봉 세기 · X.eH = 진입 판단 전부를 무작위 하나로(청산은 아래 그대로) — X 없으면 무영향 */
     if(pos==null){
       const _pl = (_predOn && !_noXB /* [S1781] · [S1782] 진입 쪽 */) ? _predGc(i) : 0;   // [S624] 0=안함 / 1·2=유효 선행봉
-      if(_pl>0 && auxOk(i)){ const p=_mkPos(i,false); if(p){ p.pred=true; p.sigIdx=i; p.predLead=_pl; pos=p; } } // [S623/S624] 예측 선행 진입
+      if(_pl>0 && auxOk(i)){ const p=_mkPos(i,false); if(p){ p.pred=true; p.sigIdx=i; p.predLead=_pl; pos=p; } else if(_pendSig && _pendSig.sigIdx===i) _pendSig.pred=true; /* [S1943] */ } // [S623/S624] 예측 선행 진입
       else if(gc && !_noXB /* [S1781] · [S1782] 진입 쪽 */ && auxOk(i)){ const p=_mkPos(i,false); if(p){ if(_bbz) p.bbzL=_bbz.lineAt(i); /* [S1876] 돌파한 선 */ pos=p; } } // [S581] 진입가/진입idx는 _mkPos가 결정
       // [S570] 재진입 — 실제 청산 이력(_lastExitIdx>=0) + 정배열 유지(maS>maL) + 청산 후 1봉 대기 + 매도조건 해제 + 매수조건 재충족
       else if(!_noXB /* [S1781] 재진입=재진입 골든크로스 · [S1782] 진입 쪽 */ && _reOn && _lastExitIdx>=0 && maS[i]>maL[i] && (maReS&&maReL&&maReS[i]!=null&&maReL[i]!=null&&maReS[i-1]!=null&&maReL[i-1]!=null&&maReS[i]>maReL[i]&&maReS[i-1]<=maReL[i-1]) && (i-_lastExitIdx>1) && !sellHit(i) && auxOk(i)){ const p=_mkPos(i,true); if(p) pos=p; }   // [S822] 재진입 = 정배열 유지 + 재진입 골든크로스 발생 + 매도해제 + 매수조건
@@ -6215,12 +6264,12 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
            ⚠`slopeEntry`는 그대로 둔다 — 헛바운스 컷(_slopeFail)·확정 추적(confirmed)이 그 플래그를 본다. */
         p.preSlope=!!(cfg.entrySlope && maS[i]>maS[i-1] && maS[i-1]<=maS[i-2]);
         p.preRsi=!!(cfg.entryRsi && rsi && rsiSig && rsi[i]!=null && rsiSig[i]!=null && rsi[i]>rsiSig[i]);
-        pos=p; } }
+        pos=p; } else if(_pendSig && _pendSig.sigIdx===i){ _pendSig.slopeEntry=true; _pendSig.preSlope=!!(cfg.entrySlope && maS[i]>maS[i-1] && maS[i-1]<=maS[i-2]); _pendSig.preRsi=!!(cfg.entryRsi && rsi && rsiSig && rsi[i]!=null && rsiSig[i]!=null && rsi[i]>rsiSig[i]); } }   /* [S1943] 같은 깃발 — 위 두 줄 식 그대로 */
       // [S1413] 🧪 재료 **OR 모드** — 재료 N개 이상이면 크로스 없이도 진입한다(제5 진입원).
       //   ⚠기존 네 분기는 한 글자도 안 바꿨다. 이 분기는 modeBuy='or'일 때만 열린다(기본은 'and'라 닫혀 있다).
       //   ⚠쿨다운(i-_lastExitIdx>1)과 구 조건칩(auxOk)은 다른 진입원과 동일하게 요구한다.
       else if(_xmB && (_xmMb==='or' || _noXB /* [S1781] 크로스 제외면 재료가 유일한 진입원 · [S1782] 진입 쪽 */) && (_xmB[i]||0) >= _xmNb && (i-_lastExitIdx>1) && auxOk(i)){
-        const p=_mkPos(i,false); if(p){ p.xmatEntry=true; pos=p; } }
+        const p=_mkPos(i,false); if(p){ p.xmatEntry=true; pos=p; } else if(_pendSig && _pendSig.sigIdx===i) _pendSig.xmatEntry=true; }   /* [S1943] */
     }
     else {
       // [S623] 예측 진입 실패 손절 — 유효 선행봉(predLead) 지나도 실제 골든크로스 미확정(maS≤maL) → 청산(헛신호 컷)
@@ -6309,7 +6358,7 @@ function _trendBt(rows,cfg,bbP,xmFire,noDday,X){   /* [S1796] noDday = 풀 BT(D-
   let eq=1,peak=1,mdd=0;
   trades.forEach(t=>{ eq*=(1+t.pnl/100); if(eq>peak)peak=eq; const dd=peak>0?(peak-eq)/peak:0; if(dd>mdd)mdd=dd; });
   const totalPnl=+((eq-1)*100).toFixed(2);
-  return { winRate, pf, totalPnl, totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, feePct:_feeP, heldSkipGc:_heldSkipGc, ...(_rgA?{ rg:{ up:_rgA.up, dn:_rgA.dn, blk:_rgBlk } }:{}), ...(_msA?{ msl:_sxMslRes(_msA, _msBlk) }:{}) /* [S1940] 📐 켰을 때만 */, ...(_xcA?{ xcl:_sxXclRes(_xcA, _xcBlk) }:{}) /* [S1941] 🚫 켰을 때만 */ /* [S1862] 🧭 게이트 있을 때만 */, ...(_swW?{ sw:_sxSwRes(_swW, trades) }:{}) /* [S1863] 📉 켰을 때만 */, ...(_tqW?{ tq:_sxTqRes(_tqW, trades) }:{}) /* [S1917] 💰 켰을 때만 */, ...(_scW?{ slc:_sxScRes(_scW, trades) }:{}), ...(_tcW?{ trc:_sxTcRes(_tcW, trades) }:{}) /* [S1924] 🛑 · 🛡️ 켰을 때만 */, ...(_axA?{ bj:_sxAxRes(_axA, _axBlk) }:{}), ...(_axX?{ bjx:{ ids:_axX.ids.slice(), mode:_axX.mode, hit:trades.filter(t=>t && t.ax===true).length } }:{}) /* [S1875] 🧩 켰을 때만 */, ...(_bbz?{ bbz:{ blk:_bbzBlk, ks:_bbz.ks.slice(), e:_bbz.q.E, x:_bbz.q.x, ox:_bbz.q.ox, bs:_bbz.q.bs } }:{}) /* [S1876] */, lastClose:close[n-1], predHit, predFires:_predFires, predDcHit, predDcFires:_predDcFires, predDday, predDdayProb, predDdayType, predExitNow };
+  return { winRate, pf, totalPnl, totalTrades:nT, avgWin, avgLoss, mdd:+(mdd*100).toFixed(2), expectancy, trades, open, ...(_pendSig?{ pendSig:_pendSig }:{}) /* [S1943] 있을 때만 */, feePct:_feeP, heldSkipGc:_heldSkipGc, ...(_rgA?{ rg:{ up:_rgA.up, dn:_rgA.dn, blk:_rgBlk } }:{}), ...(_msA?{ msl:_sxMslRes(_msA, _msBlk) }:{}) /* [S1940] 📐 켰을 때만 */, ...(_xcA?{ xcl:_sxXclRes(_xcA, _xcBlk) }:{}) /* [S1941] 🚫 켰을 때만 */ /* [S1862] 🧭 게이트 있을 때만 */, ...(_swW?{ sw:_sxSwRes(_swW, trades) }:{}) /* [S1863] 📉 켰을 때만 */, ...(_tqW?{ tq:_sxTqRes(_tqW, trades) }:{}) /* [S1917] 💰 켰을 때만 */, ...(_scW?{ slc:_sxScRes(_scW, trades) }:{}), ...(_tcW?{ trc:_sxTcRes(_tcW, trades) }:{}) /* [S1924] 🛑 · 🛡️ 켰을 때만 */, ...(_axA?{ bj:_sxAxRes(_axA, _axBlk) }:{}), ...(_axX?{ bjx:{ ids:_axX.ids.slice(), mode:_axX.mode, hit:trades.filter(t=>t && t.ax===true).length } }:{}) /* [S1875] 🧩 켰을 때만 */, ...(_bbz?{ bbz:{ blk:_bbzBlk, ks:_bbz.ks.slice(), e:_bbz.q.E, x:_bbz.q.x, ox:_bbz.q.ox, bs:_bbz.q.bs } }:{}) /* [S1876] */, lastClose:close[n-1], predHit, predFires:_predFires, predDcHit, predDcFires:_predDcFires, predDday, predDdayProb, predDdayType, predExitNow };
 }
 
 // ── 현재 상태 라벨 ──
@@ -7089,7 +7138,7 @@ async function _turtlePoolRun(mk, tf, onProgress){
     if(_vc) _vdCtlAdd(_vc, rows, bt, _vx, s.code, X=>_turtleBt(rows, tc, fee, xm, htf||undefined, X));   /* [S1851] 🎲 무작위 진입 9벌 */
     if(xm && rows[_TURTLE_XM_WARM]) _xmD.push(String(rows[_TURTLE_XM_WARM].date||rows[_TURTLE_XM_WARM].t||''));   /* [S1795] */
     (bt.trades||[]).forEach(t=>{ allTrades.push({ code:s.code, name:s.name, src:(t.xo?('xo_'+(t.em||'brk')):(t.e2?'de':(t.ws?'ws' /* [S1926] */:t.pb?'pb' /* [S1939] */:(t.fail55?'fail':(t.em==='dip'?'dip':'brk'))))) /* [S1801] · [S1832] 🪢 */, xr:t.stop?'stop':(t.ch?'ch':t.wx?'wx' /* [S1926] */:(t.ch2?'ch2':t.tln?'tln' /* [S1911] */:(t.xm?'xm':(t.rg?'rg':(t.trl?'trl':(t.nb?'nb':(t.tpS?'tpS':(t.tpA?'tpA':(t.tpF?'tpF':(t.slc?'slc':(t.trc?'trc' /* [S1924] */:(t.tq?'tq' /* [S1917] */:(t.sw?'sw':'' /* [S1863] */))))))))))))) /* [S1787] · [S1788] · [S1791] · [S1793] · [S1832] 🪢 */, pnl:t.pnl, bars:t.bars, ed:t.entryDate||'', xd:t.exitDate||'' }); });
-    if(bt.open) openList.push({ name:s.name, src:(bt.open.xo?('xo_'+(bt.open.em||'brk')):(bt.open.ws?'ws' /* [S1926] */:bt.open.pb?'pb' /* [S1939] */:(bt.open.fail55?'fail':(bt.open.em==='dip'?'dip':'brk')))) /* [S1801] */, pnl:bt.open.pnl, bars:bt.open.bars });
+    if(bt.open) openList.push({ name:s.name, src:_ttSrcOf(bt.open) /* [S1943] 🪢 진입2 도 거래 목록과 같이 가름(옛 식: e2 빠짐 → 돌파 · 이탈로 찍힘) */, pnl:bt.open.pnl, bars:bt.open.bars });
     if((bt.trades||[]).length){ let _L=null; try{ _L=_turtleRgLabels(rows, tc); }catch(e){ _L=null; }   /* [S1792] 확정 거래만 · 신호 봉 라벨 */
       if(!_L) _rgFail++; else bt.trades.forEach(function(t){ _rgN++; _rgK.forEach(function(k){ ['st','iv'].forEach(function(md){ const A=_L[k][md], B=_rgAcc[k][md]; if(!A || !B) return; const v=A[t.sigIdx]; B[v===1?'in':(v===0?'out':'na')].push(t.pnl); }); }); }); }
     const _ex=_poolStockExtras(bt, rows);
@@ -22232,7 +22281,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1942';   // [S1942] ⚔️ 조건검색 단기매매 카테고리 · 엔진 판정 네 조건 옮김 · 🧪 레시피 4분류(바닥반등 · 데드캣 · 눌림목 · 되돌림)
+  window.SX_BUILD='S1943';   // [S1943] ⚔️ 조건검색 2단계 — 단기매매 카드 여섯 탭 오늘 상태 · 진입원 칩 · 게이트(설정 그대로 · 앞 130 · AND 만) · 📈 🧪 오늘 신호 기록 칸 · 🐢 풀 보유중 진입원(🪢 진입2) 고침
+  //window.SX_BUILD='S1942';   // [S1942] ⚔️ 조건검색 단기매매 카테고리 · 엔진 판정 네 조건 옮김 · 🧪 레시피 4분류(바닥반등 · 데드캣 · 눌림목 · 되돌림)
   //window.SX_BUILD='S1941';   // [S1941] 🚫 열외 종목 게이트(6탭 · N건 이상 · 적중률 < W% · 복리 ≤ R% · 기본 = 시즌2 10 · 50 · −10)
   //window.SX_BUILD='S1940';   // [S1940] 📐 이평 기울기 게이트(6탭 · 20 · 60 · 120 · 200선 · 끔 → ↗ → ↘)
   //window.SX_BUILD='S1939';   // [S1939] 🐢 📐 돌파 뒤 눌림 실험 칩 · ⚓ 📦 상자 셋 · 🔮 ↕️ 전고 · 전저 줄 · 종목 창 다른 탭 뒤로가기 → 종목분석
