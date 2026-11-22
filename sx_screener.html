@@ -68,7 +68,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=534"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
+<script src="sx_render.js?v=535"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 · [S1945] 💼 손익비 · 수량 v=535 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
 <script src="sx_ict_flux.js?v=1"></script><!-- [S1847] 🎯 ICT 🧪 실험 셋업 엔진(MPL 2.0 · Flux Charts 원본에서 옮김) -->
 <script src="sx_sig_lab.js?v=1"></script><!-- [S1854] 🧪 신호 실험 칩(TradingView 공개 스크립트 17가지 → JS · 출처는 그 파일 머리) -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
@@ -4483,7 +4483,8 @@ async function _sxTab2Run(results, mk, tf){   // [S1943] 1단계 결과 → 2단
     if(!F.every(function(f){ return _sxTab2Pass(f, RS[_SX_TAB2_IDS[f.id].tab]); })){ cnt.cond++; continue; }   // [S1943] 맨 위 AND
     const hits=Array.isArray(s._hits)?s._hits.slice():[];   // [S1943]
     F.forEach(function(f){ const t=_SX_TAB2_IDS[f.id].tab; hits.push({ i:f.id, n:_SX_TAB2_NM[t]+' '+(f.name||f.id), v:_sxTab2HitV(f, RS[t]), g:'and' }); });   // [S1943]
-    out.push(Object.assign({}, s, { _hits:hits })); cnt.pass++; }   // [S1943]
+    const rrs=tabs.map(function(t){ return RS[t] && RS[t].rr; }).filter(Boolean);   // [S1945] 💼 탭마다 한 줄(조건에 든 탭 차례)
+    out.push(Object.assign({}, s, rrs.length?{ _hits:hits, _rr:rrs }:{ _hits:hits })); cnt.pass++; }   // [S1943] · [S1945]
   return { results:out, N:N, used:use.length, seen:seen, cnt:cnt, aborted:!!scanAbort }; }   // [S1943]
 function _sxTab2Sum(r){ const c=r.cnt||{}, w=[];   // [S1943] 끝 줄 — 빠진 까닭
   if(c.cond) w.push('조건 안 맞음 '+c.cond); if(c.short) w.push('봉 모자람(260봉 미만) '+c.short); if(c.fetch) w.push('봉 불러오기 실패 '+c.fetch); if(c.other) w.push('셈 못 함 '+c.other); if(c.tf) w.push('일봉 아님(2단계는 일봉 전용) '+c.tf);   // [S1943]
