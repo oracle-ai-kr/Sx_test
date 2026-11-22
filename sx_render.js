@@ -206,6 +206,7 @@ function _renderResultsCore(){
         ${_nameQ?`<span onclick="_clearResultNameFilter()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--text3);cursor:pointer;padding:2px 6px;line-height:1">✕</span>`:''}
       </div>
       ${_nameQ?`<span style="font-size:9px;color:var(--text3);white-space:nowrap" id="resultNameFilterCount">${displayed.length}/${stageFiltered.length}</span>`:''}
+      ${(typeof _sxRrAllOn==='function' && filtered.some(x=>Array.isArray(x._rr) && x._rr.length))?`<span data-rr-all="1" onclick="_sxVib(9);_sxRrAllTg()" style="font-size:9.5px;font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid #93c5fd;background:#3b82f614;color:var(--text2);white-space:nowrap;cursor:pointer;flex-shrink:0">💼 ${_sxRrAllOn()?'모두 접기':'모두 펼치기'}</span>`:'' /* [S1946] 💼 줄 있는 결과만 */}
     </div>
     <div class="result-header">
       <span class="rh-name">종목명</span>
@@ -424,7 +425,7 @@ function _renderStockRow(s){
       + `<span style="font-size:8.5px;color:var(--text3);flex-shrink:0">🔎</span>${_H.map(_chip).join('')}</div>`;
   })();
 
-  const _rrHtml = (Array.isArray(s._rr) && s._rr.length && typeof _sxRrLineHtml==='function') ? s._rr.map(_sxRrLineHtml).join('') : '';   // [S1945] 💼 ⚔️ 2단계 결과만(검색 때 값)
+  const _rrHtml = (Array.isArray(s._rr) && s._rr.length && typeof _sxRrFoldHtml==='function') ? _sxRrFoldHtml(s) : '';   // [S1945] 💼 ⚔️ 2단계 결과만(검색 때 값) · [S1946] 기본 접힘(알약)
 
   // 안전필터 차단 이유
   const reasonsHtml = s._reasons&&s._reasons.length ? `<div class="sr-reasons">${s._reasons.join(' ')}</div>` : '';
@@ -3964,6 +3965,19 @@ function _sxRrLineHtml(x){ try{ if(!x || typeof x!=='object') return ''; const E
   h+='<span>· 손익비 '+((rr===rr)?((rr>0)?('<b style="color:var(--text)">1 : '+rr.toFixed(2)+'</b>'+((rr<1)?' <span style="color:#b45309">⚠ 1 미만</span>':'')):'이익 없음'):'—')+'</span>';   // [S1945]
   if(q===q) h+='<span>· <b style="color:var(--text)">'+_sxRrQf(mk, q)+'</b>'+((q>0 && cost===cost)?(' '+_sxRrFa(mk, cost)):'')+(x.cap?' (계좌 전액 상한)':'')+'</span>';   // [S1945]
   return h+'</div>'; }catch(_e){ return ''; } }   // [S1945]
+// [S1946] 💼 결과 줄 기본 접기 — 사용자 2026-11-22 06:38 '혹시 결과탭에 보여주는 파란 네모칸은 기본접기가 가능할가?' · 시안 → 06:51 '접었을때 알약을 남겨줘' — PREREG_S1946_rrfold.md §1
+//   접힘(기본) = 🔎 아래 알약 하나(탭마다 그림 글자 · 손익비 · 수량 ▸) · 알약을 누르면 그 종목만 펼침(💼 접기 ▾ + S1945 줄 그대로) · 누름은 종목 줄로 안 올라감(종목분석 안 열림)   [S1946]
+//   결과 머리 '💼 모두 펼치기 / 모두 접기' = SX_RR_ALL('1' = 펼침 · 이 기기에 기억) · 한 종목 펼침 · 접힘은 이 화면 상태만(window._sxRrOpen · 새로 고침하면 다시 기본) · 줄 값 · 셈 · 저장 그대로   [S1946]
+function _sxRrAllOn(){ try{ return localStorage.getItem('SX_RR_ALL')==='1'; }catch(_){ return false; } }   // [S1946]
+function _sxRrPill(x){ const nm=v=>(v!=null && v!=='' && isFinite(+v))?+v:NaN, rr=nm(x && x.rr), q=nm(x && x.q); return (_SX_RR_ICO[x && x.t]||'')+' <b style="color:var(--text)">'+((rr===rr && rr>0)?('1 : '+rr.toFixed(2)):'—')+'</b> · '+((q===q)?_sxRrQf(x.m, q):'—'); }   // [S1946] 알약 한 탭
+function _sxRrFoldHtml(s){ try{ const L=(s && Array.isArray(s._rr))?s._rr.filter(x=>x && typeof x==='object'):[]; if(!L.length) return ''; const k=String(s.code||''), O=(typeof window!=='undefined' && window._sxRrOpen)||{}, op=Object.prototype.hasOwnProperty.call(O, k)?!!O[k]:_sxRrAllOn();   // [S1946]
+  return '<div data-rr-box="'+_sxXgEsc(k)+'" style="min-width:0"><div data-rr-pill="1" data-open="'+(op?1:0)+'" onclick="event.stopPropagation();_sxVib(8);_sxRrTg(this)" style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:1px 3px;margin-top:3px;font-size:8.5px;color:var(--text2);line-height:1.45;border:1px solid #93c5fd;background:#3b82f614;border-radius:999px;padding:1px 8px;cursor:pointer;max-width:100%">'   // [S1946]
+    +'<span data-rr-c="1" style="display:'+(op?'none':'inline')+'">💼 '+L.map(_sxRrPill).join(' &nbsp;|&nbsp; ')+' &nbsp;▸</span><span data-rr-o="1" style="display:'+(op?'inline':'none')+'">💼 접기 ▾</span></div>'   // [S1946]
+    +'<div data-rr-lines="1" style="display:'+(op?'block':'none')+'">'+L.map(_sxRrLineHtml).join('')+'</div></div>'; }catch(_e){ return ''; } }   // [S1946] 펼친 줄 = S1945 줄 글자 그대로
+function _sxRrTg(el){ try{ const box=el && el.parentNode; if(!box) return; const k=box.getAttribute('data-rr-box')||'', op=el.getAttribute('data-open')!=='1', W=window._sxRrOpen=window._sxRrOpen||{}; W[k]=op;   // [S1946] 그 종목만 · 다시 그리지 않음(스크롤 그대로)
+  el.setAttribute('data-open', op?'1':'0'); const c=el.querySelector('[data-rr-c]'), o=el.querySelector('[data-rr-o]'), ln=box.querySelector('[data-rr-lines]'); if(c) c.style.display=op?'none':'inline'; if(o) o.style.display=op?'inline':'none'; if(ln) ln.style.display=op?'block':'none'; }catch(_){} }   // [S1946]
+function _sxRrAllTg(){ const on=!_sxRrAllOn(); try{ if(on) localStorage.setItem('SX_RR_ALL', '1'); else localStorage.removeItem('SX_RR_ALL'); }catch(_){} window._sxRrOpen={}; try{ renderResults(); }catch(_){} }   // [S1946] 모두 펼치기 · 접기(한 종목 상태는 비움)
+if(typeof window!=='undefined'){ window._sxRrTg=_sxRrTg; window._sxRrAllTg=_sxRrAllTg; }   // [S1946]
 // [S1865] 🧩 보조 재료 — 🎯 ICT · 🚦 슈퍼트렌드 · 🐢 터틀(⚓ 은 재료가 만들어지는 다음 단계) · 사용자 2026-11-02 07:06 · 07:53 · 07:57 · PREREG_S1865_aux.md §1
 // [S1867] 2단계 — 재료 넷 더함(풀차트 3단계 S1866 계산): 🎯 + Volume Profile(종가 > 롤링 POC · 창 200) · Vix Fix(직전 N봉 안 라임) · 🚦 + WaveTrend [Krypt](시그널 > MA) · ⚓ 줄 새로(WaveTrend · Volume Profile) · 🐢 + WaveTrend · Supertrend ANY(방향 위) · PREREG_S1867_aux2.md §1
 // [S1869] 3단계 — Smart Money Concepts(풀차트 4단계 S1868 smcCalc · 기본 입력) 칩 둘: SMC 내부(내부 구조 5봉) · SMC 스윙(스윙 구조 50봉) — 그 봉까지 마지막 구조 깨짐이 위(BOS↑ 또는 CHoCH↑ = 추세 bias 상승) · 🎯 ICT · ⚓ 지지/저항 줄 끝에 · ⚠ 는 재료마다(그 지표가 SXTV 에 없으면) · PREREG_S1869_axsmc.md §1
@@ -22406,7 +22420,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1945';   // [S1945] 💼 손익비 · 수량 — 단기 매매 카드 청산 칸 맨 끝 · ⚔️ 조건검색 2단계 결과 줄 · 셈만 함
+  window.SX_BUILD='S1946';   // [S1946] 💼 결과 줄 기본 접기 — 알약 · 누르면 그 종목만 펼침 · 모두 펼치기(이 기기 기억)
+  //window.SX_BUILD='S1945';   // [S1945] 💼 손익비 · 수량 — 단기 매매 카드 청산 칸 맨 끝 · ⚔️ 조건검색 2단계 결과 줄 · 셈만 함
   //window.SX_BUILD='S1944';   // [S1944] ⚔️ 조건 창 곁 글 — 진입원 칩 · 오늘 상태에 카드 저장 설정의 값 · 지금 안 나옴 · 🔎 곁 글 · '단기 매매' 띄움
   //window.SX_BUILD='S1943';   // [S1943] ⚔️ 조건검색 2단계 — 단기매매 카드 여섯 탭 오늘 상태 · 진입원 칩 · 게이트(설정 그대로 · 앞 130 · AND 만) · 📈 🧪 오늘 신호 기록 칸 · 🐢 풀 보유중 진입원(🪢 진입2) 고침
   //window.SX_BUILD='S1942';   // [S1942] ⚔️ 조건검색 단기매매 카테고리 · 엔진 판정 네 조건 옮김 · 🧪 레시피 4분류(바닥반등 · 데드캣 · 눌림목 · 되돌림)
