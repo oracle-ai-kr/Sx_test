@@ -10644,7 +10644,7 @@ function _buildTransitionCard(stock, indicators){
   }
   const _wl = [];
   if(r.warn) _wl.push(`<span style="color:#ef4444">⚠️ ${r.warn}</span>`);
-  if(_whip) _wl.push(`<span style="color:#d97706">🔀 ${_whip}</span>`);
+  if(_whip) _wl.push(`<span style="color:#d97706">🔀 ${_whip}</span>` + ((typeof _sxWhipCtNote==='function')?_sxWhipCtNote():''));   // [S1947] 〰 잰 것 · 못 가름 줄
   const warnHtml = _wl.length ? `<div style="font-size:11px;margin:7px 0;padding:6px 9px;background:#ef444412;border-radius:7px;line-height:1.7">${_wl.join('<br>')}</div>` : '';
   const reasonsHtml = (r.reasons && r.reasons.length) ? `<div style="font-size:11px;color:var(--text2);line-height:1.75;margin-top:6px">${_useKnn?'<span style="font-size:9px;color:var(--text3);font-weight:700">📋 룰 해설 (보조 맥락)</span><br>':''}${r.reasons.map(x=>`· ${x}`).join('<br>')}</div>` : '';
   const note = `<div style="font-size:9px;color:var(--text3);margin-top:9px;border-top:1px solid var(--border);padding-top:6px">${_useKnn?'메인 = 자기유사도 kNN(검증) · 아래 캔들/해설은 보조 · ':''}실험 지표 · 정식 판정과 무관 · <b>유사 패턴 중 양봉이던 비율(서술 통계) · 방향예측 아님</b></div>`;
@@ -16554,6 +16554,94 @@ function _buildPredSumCard(stock, indicators){ try{
 if(typeof window!=='undefined'){ window._psGo=_psGo; }
 function _buildTrdCard(stock, indicators){ try{ const rows=(indicators&&indicators._advanced&&Array.isArray(indicators._advanced.rows))?indicators._advanced.rows:((stock&&Array.isArray(stock._lastAnalCandles))?stock._lastAnalCandles:null); if(!rows || !rows.length) return '';
   const tf=(typeof _analTF!=='undefined'&&_analTF)?_analTF:'day', mk=(stock&&(stock._mkt||stock.market))||(typeof currentMarket!=='undefined'?currentMarket:'kr'); return _trdCardHtml({ rows, tf, mk, tfLbl:(typeof _poolTfLbl==='function'?_poolTfLbl(tf):tf) }); }catch(_e){ return ''; } }
+// [S1947] 📐 구조 위치 — 🧭 추세 읽기 꼴로 다시 짬 · 🧭 바로 아래 · 사용자 2026-11-22 18:24 '구조위치 카드를 추세읽기카드 처럼 개편 · 이격도 · 기울기를 그림으로' · 19:02 '🧭 쪽에 맞추자 · 아래' · 19:08 '기울기에 각도' — PREREG_S1947_strucpos.md §1
+//   선 = 5 · 20 · 60 · 200선(203봉 미만이면 120선 · 200봉 대체) · 기울기 = 3봉 차이(🧭 선 배지 _trdMaNow 그대로) · 이격 = 종가 ÷ 선 − 1 · 셈은 이 카드가 봉에서 직접(다른 카드 값 안 읽음)   [S1947]
+//   그림 셋: 🖼️ 가격 · 평균선(최근 90봉) · 📏 이격(탭 5 · 20 · 60 · 200 · ±10 · 20 · 30% 선은 이 종목이 닿은 적 있는 선만) · 📐 기울기(바늘 = arctan(%/봉) 각도 · 1%/봉 = 45°)   [S1947]
+//   지금 자리 설명 · 앞날 방향 아님 · 드문 이격은 되돌아올 자리 아님(Q&A q_s1168_005 ⚫) · 🔗 카드 대조는 접어 둠(글 그대로)   [S1947]
+var _SP_COL = { 5:'#f59e0b', 20:'#ec4899', 60:'#10b981', 120:'#7c3aed', 200:'#7c3aed' }, _SP_LV = [-30, -20, -10, 10, 20, 30];   // [S1947]
+function _spSg(x, d){ const r=+(+x).toFixed(d); return (r>0?'+':(r<0?'−':''))+Math.abs(r).toFixed(d); }   // [S1947] 부호 · 빼기 글자 −
+function _spPct(x){ return (x>0 && x<1)?'1% 미만':(Math.round(x)+'%'); }   // [S1947] 몫 글자
+function _spSer(rows){ const n=rows.length, g=k=>rows.map(r=>_fibNum(r[k]!=null?r[k]:r[k.charAt(0)])), C=g('close'), O=g('open'), H=g('high'), L=g('low'), cs=_trdMaCs(C), p2=(n>=203)?200:120, P=[5,20,60,p2];   // [S1947]
+  const sm=(t,p)=>(t>=p-1)?(cs[t+1]-cs[t+1-p])/p:null, M={}, D={}; P.forEach(p=>{ M[p]=new Array(n).fill(null); D[p]=new Array(n).fill(null); for(let t=p-1;t<n;t++){ const m=sm(t,p); if(m!=null && isFinite(m) && m>0){ M[p][t]=m; if(isFinite(C[t])) D[p][t]=(C[t]/m-1)*100; } } });   // [S1947]
+  return { n, C, O, H, L, cs, p2, P, M, D }; }   // [S1947]
+function _spSlHist(cs, p, i){ const sm=t=>(t>=p-1)?(cs[t+1]-cs[t+1-p])/p:null, o=[]; for(let t=p+2;t<i;t++){ const a=sm(t), b=sm(t-3); if(a==null||b==null||!(b>0)||!isFinite(a)) continue; o.push(Math.abs((a-b)/b*100/3)); } return o; }   // [S1947] 지난 봉 3봉 기울기 크기(%/봉 · 지금 봉 뺌)
+function _spPriceSvg(S, rows){ const n=S.n, K=Math.min(90,n), s0=n-K, W=360, Hh=150, lp=4, rp=64, tp=8, bp=14; let lo=Infinity, hi=-Infinity;   // [S1947] 🖼️ 캔들 + 선 넷
+  for(let j=s0;j<n;j++){ if(isFinite(S.L[j])) lo=Math.min(lo,S.L[j]); if(isFinite(S.H[j])) hi=Math.max(hi,S.H[j]); S.P.forEach(p=>{ const m=S.M[p][j]; if(m!=null){ lo=Math.min(lo,m); hi=Math.max(hi,m); } }); }   // [S1947]
+  if(!(hi>lo)) return ''; const pad=(hi-lo)*0.06; lo-=pad; hi+=pad; const cw=(W-lp-rp)/K, x=j=>lp+(j-s0+0.5)*cw, y=v=>tp+(hi-v)/(hi-lo)*(Hh-tp-bp), f1=v=>v.toFixed(1); let g='';   // [S1947]
+  [0.25,0.5,0.75].forEach(q=>{ const yy=tp+q*(Hh-tp-bp); g+='<line x1="'+lp+'" x2="'+(W-rp)+'" y1="'+f1(yy)+'" y2="'+f1(yy)+'" style="stroke:var(--border)" stroke-width="0.6"/>'; });   // [S1947]
+  for(let j=s0;j<n;j++){ const o=S.O[j], h=S.H[j], l=S.L[j], c=S.C[j]; if(![o,h,l,c].every(isFinite)) continue; const col=c>=o?'#dc2626':'#2563eb', a=Math.min(y(o),y(c)), b=Math.max(y(o),y(c));   // [S1947]
+    g+='<line x1="'+f1(x(j))+'" x2="'+f1(x(j))+'" y1="'+f1(y(h))+'" y2="'+f1(y(l))+'" stroke="'+col+'" stroke-width="0.8"/><rect x="'+f1(x(j)-cw*0.32)+'" y="'+f1(a)+'" width="'+f1(cw*0.64)+'" height="'+f1(Math.max(0.8,b-a))+'" fill="'+col+'"/>'; }   // [S1947]
+  const lab=[]; S.P.forEach(p=>{ let seg=[]; const out=()=>{ if(seg.length>1) g+='<polyline data-sp-ma="'+p+'" points="'+seg.join(' ')+'" fill="none" stroke="'+_SP_COL[p]+'" stroke-width="1.6" stroke-linejoin="round"/>'; seg=[]; };   // [S1947]
+    for(let j=s0;j<n;j++){ const m=S.M[p][j]; if(m==null){ out(); continue; } seg.push(f1(x(j))+','+f1(y(m))); } out(); const m=S.M[p][n-1], d=S.D[p][n-1]; if(m!=null && d!=null) lab.push([y(m), p, d]); });   // [S1947]
+  lab.sort((a,b)=>a[0]-b[0]); for(let k=1;k<lab.length;k++) if(lab[k][0]-lab[k-1][0]<10) lab[k][0]=lab[k-1][0]+10;   // [S1947]
+  lab.forEach(([yy,p,d])=>{ g+='<text data-sp-lab="'+p+'" x="'+(W-rp+3)+'" y="'+f1(yy+3)+'" font-size="8.5" font-weight="700" fill="'+_SP_COL[p]+'">'+p+'선 '+_spSg(d,1)+'%</text>'; });   // [S1947]
+  const yc=y(S.C[n-1]); if(isFinite(yc)) g+='<line x1="'+lp+'" x2="'+(W-rp)+'" y1="'+f1(yc)+'" y2="'+f1(yc)+'" style="stroke:var(--text2)" stroke-dasharray="2 2" stroke-width="0.8"/>';   // [S1947]
+  g+='<text x="'+lp+'" y="'+(Hh-2)+'" font-size="8" style="fill:var(--text3)">'+_fibDate(rows,s0)+'</text><text x="'+(W-rp)+'" y="'+(Hh-2)+'" font-size="8" style="fill:var(--text3)" text-anchor="end">'+_fibDate(rows,n-1)+'</text>';   // [S1947]
+  return '<svg data-sp-price="1" viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:auto;display:block">'+g+'</svg>'; }   // [S1947]
+function _spDispNow(S, p){ const n=S.n, i=n-1, D=S.D[p], cur=D[i]; if(cur==null) return null; const all=D.filter(v=>v!=null), past=D.slice(0,i).filter(v=>v!=null);   // [S1947] 이격 지금 · 선 · 드문 정도
+  const lines=_SP_LV.filter(L=>all.some(v=>L<0?v<=L:v>=L)).map(L=>({ L, sh:100*all.filter(v=>L<0?v<=L:v>=L).length/all.length }));   // [S1947]
+  const beyond=(past.length>=20)?100*past.filter(v=>cur<0?v<cur:v>cur).length/past.length:null; return { p, cur, lines, nPast:past.length, beyond }; }   // [S1947]
+function _spDispSvg(S, p, o){ const n=S.n, K=Math.min(90,n), s0=n-K, W=360, Hh=112, lp=4, rp=70, tp=6, bp=6, D=S.D[p], f1=v=>v.toFixed(1); let lo=0, hi=0;   // [S1947] 📏 이격 띠
+  for(let j=s0;j<n;j++){ const v=D[j]; if(v!=null){ lo=Math.min(lo,v); hi=Math.max(hi,v); } } o.lines.forEach(z=>{ lo=Math.min(lo,z.L); hi=Math.max(hi,z.L); }); const pad=(hi-lo)*0.08||1; lo-=pad; hi+=pad;   // [S1947]
+  const cw=(W-lp-rp)/K, x=j=>lp+(j-s0+0.5)*cw, y=v=>tp+(hi-v)/(hi-lo)*(Hh-tp-bp), LC={ '-10':'#93c5fd', '-20':'#3b82f6', '-30':'#1d4ed8', '10':'#fca5a5', '20':'#ef4444', '30':'#b91c1c' };   // [S1947]
+  let g='<line x1="'+lp+'" x2="'+(W-rp)+'" y1="'+f1(y(0))+'" y2="'+f1(y(0))+'" style="stroke:var(--text3)" stroke-width="0.9"/><text x="'+(W-rp+3)+'" y="'+f1(y(0)+3)+'" font-size="8" style="fill:var(--text3)">0</text>';   // [S1947]
+  o.lines.forEach(z=>{ const c=LC[String(z.L)]; g+='<line data-sp-lv="'+z.L+'" x1="'+lp+'" x2="'+(W-rp)+'" y1="'+f1(y(z.L))+'" y2="'+f1(y(z.L))+'" stroke="'+c+'" stroke-dasharray="4 3" stroke-width="1"/><text x="'+(W-rp+3)+'" y="'+f1(y(z.L)+3)+'" font-size="8" font-weight="700" fill="'+c+'">'+_spSg(z.L,0)+'%<tspan font-weight="400" style="fill:var(--text3)"> · 봉 '+(z.sh<10?z.sh.toFixed(1):Math.round(z.sh))+'%</tspan></text>'; });   // [S1947]
+  let seg=[]; const out=()=>{ if(seg.length>1) g+='<polyline points="'+seg.join(' ')+'" fill="none" stroke="'+_SP_COL[p]+'" stroke-width="1.7" stroke-linejoin="round"/>'; seg=[]; };   // [S1947]
+  for(let j=s0;j<n;j++){ const v=D[j]; if(v==null){ out(); continue; } seg.push(f1(x(j))+','+f1(y(v))); } out();   // [S1947]
+  g+='<circle cx="'+f1(x(n-1))+'" cy="'+f1(y(o.cur))+'" r="3.2" fill="'+_SP_COL[p]+'" stroke="#fff" stroke-width="1.2"/>';   // [S1947]
+  return '<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:auto;display:block">'+g+'</svg>'; }   // [S1947]
+function _spGauge(S, p){ const i=S.n-1, o=_trdMaNow(S.cs, i, p===120?200:p); if(!o) return { p, o:null, svg:'', ang:null, steeper:null };   // [S1947] 📐 바늘 — 🧭 선 배지와 같은 셈
+  const v=o.flat?0:o.v, ang=Math.atan(v)*180/Math.PI, H=_spSlHist(S.cs, o.p, i), steeper=(H.length>=20)?100*H.filter(a=>a>Math.abs(v)).length/H.length:null;   // [S1947]
+  const W=88, Hh=92, cx=8, cy=46, R=40, P=(a,r)=>[cx+r*Math.cos(a*Math.PI/180), cy-r*Math.sin(a*Math.PI/180)], f1=v=>v.toFixed(1);   // [S1947]
+  const wedge=(a0,a1,col)=>{ const A=P(a0,R), B=P(a1,R); return '<path d="M'+cx+' '+cy+' L'+f1(A[0])+' '+f1(A[1])+' A'+R+' '+R+' 0 0 0 '+f1(B[0])+' '+f1(B[1])+' Z" fill="'+col+'"/>'; };   // [S1947]
+  let g=wedge(0,90,'rgba(220,38,38,0.08)')+wedge(-90,0,'rgba(37,99,235,0.08)');   // [S1947]
+  [15,30,45,60,75,-15,-30,-45,-60,-75].forEach(a=>{ const A=P(a,R-(a%30===0?5:3)), B=P(a,R); g+='<line x1="'+f1(A[0])+'" y1="'+f1(A[1])+'" x2="'+f1(B[0])+'" y2="'+f1(B[1])+'" stroke="#94a3b8" stroke-width="'+(a%30===0?1:0.6)+'"/>'; });   // [S1947]
+  [30,60,-30,-60].forEach(a=>{ const A=P(a,R+8); g+='<text x="'+f1(A[0])+'" y="'+f1(A[1]+2.5)+'" font-size="7" fill="#94a3b8" text-anchor="middle">'+Math.abs(a)+'°</text>'; });   // [S1947]
+  const Z=P(0,R), Zt=P(0,R+7); g+='<line x1="'+cx+'" y1="'+cy+'" x2="'+f1(Z[0])+'" y2="'+f1(Z[1])+'" stroke="#94a3b8" stroke-dasharray="3 2" stroke-width="0.9"/><text x="'+f1(Zt[0]+1)+'" y="'+f1(Zt[1]+2.5)+'" font-size="7" fill="#94a3b8" text-anchor="middle">0°</text>';   // [S1947]
+  const col=o.flat?'#64748b':(o.up?'#dc2626':'#2563eb'), N=P(ang,R-1); g+='<line data-sp-needle="'+f1(ang)+'" x1="'+cx+'" y1="'+cy+'" x2="'+f1(N[0])+'" y2="'+f1(N[1])+'" stroke="'+col+'" stroke-width="2.6" stroke-linecap="round"/><circle cx="'+cx+'" cy="'+cy+'" r="2.6" fill="'+_SP_COL[p]+'"/>';   // [S1947]
+  return { p, o, ang, steeper, col, svg:'<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:auto;display:block">'+g+'</svg>' }; }   // [S1947]
+function _spTab(el){ try{ const p=el.getAttribute('data-sp-tab'), box=el.closest('[data-sp-disp]'); if(!box) return; window._spTabSel=+p;   // [S1947] 이격 탭(이 화면 상태 · 다시 그려도 그대로)
+  box.querySelectorAll('[data-sp-tab]').forEach(t=>{ const on=t.getAttribute('data-sp-tab')===p, c=t.getAttribute('data-c'); t.setAttribute('data-on', on?'1':'0'); t.style.background=on?c:'transparent'; t.style.color=on?'#fff':c; });   // [S1947]
+  box.querySelectorAll('[data-sp-dp]').forEach(d=>{ d.style.display=(d.getAttribute('data-sp-dp')===p)?'block':'none'; }); }catch(_){} }   // [S1947]
+if(typeof window!=='undefined'){ window._spTab=_spTab; }   // [S1947]
+function _spCardHtml(cx){ try{ const rows=cx.rows, n=(rows&&rows.length)||0, T2='var(--text2)', T3='var(--text3)';   // [S1947] 카드 글
+  const wrap=b=>'<div class="anal-header-card" id="sxStructCard" style="margin-top:10px;text-align:left">'+b+'</div>';   // [S1947]
+  const head='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:13px;font-weight:800;color:var(--text)">📐 구조 위치</span><span style="font-size:9.5px;color:'+T3+'">지금 자리 설명 · 앞날 방향 아님 · 봉 = 지금 분석 TF('+(cx.tfLbl||'')+')</span></div>';   // [S1947]
+  if(n<60) return wrap(head+'<div style="font-size:10.5px;color:'+T3+'">봉이 부족해요(60봉 이상 필요 · 지금 '+n+'봉)</div>');   // [S1947]
+  const S=_spSer(rows), i=n-1, c=S.C[i], P=S.P.filter(p=>S.M[p][i]!=null), ab=P.filter(p=>S.D[p][i]>=0), be=P.filter(p=>S.D[p][i]<0), jn=a=>a.join('·')+'선';   // [S1947]
+  const px=cx.us?((typeof fmtUsPrice==='function')?fmtUsPrice(c):_fibFmt(c)):(_fibFmt(c)+'원');   // [S1947]
+  const sum=!P.length?'평균선이 아직 없어요':(!ab.length?(jn(P)+' 모두 <b>아래</b>'):(!be.length?(jn(P)+' 모두 <b>위</b>'):(jn(ab)+' <b>위</b>, '+jn(be)+' <b>아래</b>')));   // [S1947]
+  const m5=S.M[5][i], m20=S.M[20][i], m60=S.M[60][i], arr=(m5!=null&&m20!=null&&m60!=null)?(m5>m20&&m20>m60?'정배열':(m5<m20&&m20<m60?'역배열':'혼조')):null, spr=(arr&&c>0)?Math.abs(m5-m60)/c*100:null, sp=spr==null?'':(spr>=8?' · 벌어짐':(spr<=3?' · 모임':''));   // [S1947]
+  const chip=(t,bg,fg,k)=>'<span data-sp-chip="'+k+'" style="display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:9px;background:'+bg+';color:'+fg+';margin-right:4px">'+t+'</span>';   // [S1947]
+  const d2=S.D[S.p2][i];   // [S1947]
+  let h=head+'<div data-sp-sum="1" style="font-size:11.5px;font-weight:800;color:var(--text);line-height:1.55;margin:2px 0 6px">현재가 '+px+' — '+sum+'</div><div style="margin-bottom:4px">'   // [S1947]
+    +(arr?chip(arr+sp, arr==='정배열'?'#dc2626':(arr==='역배열'?'#2563eb':'#64748b'), '#fff', 'arr'):'')+(d2!=null?chip(S.p2+'선 '+_spSg(d2,1)+'%'+(S.p2===120?'(200봉 대체)':''), 'rgba(124,58,237,0.12)', '#7c3aed', 'p2'):'')+'</div>';   // [S1947]
+  const row=(ico,ttl,sub,body,k)=>'<div data-sp-row="'+k+'" style="padding:7px 0 4px;border-top:1px dashed var(--border)"><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;flex-wrap:wrap"><span style="font-size:10.5px;font-weight:800;color:var(--text)">'+ico+' '+ttl+'</span><span style="font-size:8.5px;color:'+T3+'">'+sub+'</span></div>'+body+'</div>';   // [S1947]
+  const leg=S.P.map(p=>'<span style="display:inline-flex;align-items:center;gap:3px;margin-right:8px"><span style="width:10px;height:2.5px;background:'+_SP_COL[p]+';display:inline-block;border-radius:2px"></span>'+p+'선</span>').join('')+'<span>┄ 현재가</span>';   // [S1947]
+  h+=row('🖼️','가격 · 평균선','최근 '+Math.min(90,n)+'봉 · 오른쪽 = 지금 이격','<div style="font-size:8.5px;color:'+T2+';margin-bottom:2px">'+leg+'</div>'+_spPriceSvg(S, rows),'price');   // [S1947]
+  const sel=(S.P.indexOf(+window._spTabSel)>=0)?+window._spTabSel:((S.P.indexOf(120)>=0 && +window._spTabSel===200)?120:20);   // [S1947]
+  let tabs='', panes=''; S.P.forEach(p=>{ const on=p===sel, C=_SP_COL[p], o=_spDispNow(S,p);   // [S1947]
+    tabs+='<span data-sp-tab="'+p+'" data-c="'+C+'" data-on="'+(on?1:0)+'" onclick="_sxVib(8);_spTab(this)" style="display:inline-block;font-size:9.5px;font-weight:800;padding:1px 8px;border-radius:9px;margin-right:3px;cursor:pointer;border:1.5px solid '+C+';background:'+(on?C:'transparent')+';color:'+(on?'#fff':C)+'">'+p+'선</span>';   // [S1947]
+    const txt=o?(p+'선 이격 <b style="color:'+(o.cur>0?'#dc2626':(o.cur<0?'#2563eb':T2))+'">'+_spSg(o.cur,1)+'%</b>'+(o.beyond!=null?(' · 지난 '+o.nPast+'봉 중 이보다 더 '+(o.cur<0?'아래':'위')+'였던 봉 '+_spPct(o.beyond)):'')+' · 점선 = ±10 · 20 · 30% 선(이 종목이 닿은 적 있는 선만 · \'봉 %\' = 그 선 너머에 있던 봉의 몫)'):(p+'선이 아직 없어요');   // [S1947]
+    panes+='<div data-sp-dp="'+p+'" style="display:'+(on?'block':'none')+'">'+(o?_spDispSvg(S,p,o):'')+'<div style="font-size:9.5px;color:'+T2+';line-height:1.5;margin-top:3px">'+txt+'</div></div>'; });   // [S1947]
+  const qa='<div data-sp-qa="1" style="font-size:9px;color:#b45309;line-height:1.5;margin-top:2px">⚠ 드문 이격 ≠ 되돌아올 자리 — Q&amp;A ‘이격 회귀’ ⚫ no(2026-08-02 · 일봉 20선): 벌어진 뒤 이격이 줄어든 건 대부분 평균선이 따라온 몫이었어요</div>';   // [S1947]
+  h+='<div data-sp-disp="1">'+row('📏','이격','종가 − 평균선 · %','<div style="margin-bottom:3px">'+tabs+'</div>'+panes+qa,'disp')+'</div>';   // [S1947]
+  const G=S.P.map(p=>_spGauge(S,p)).map(z=>{ const o=z.o, C=_SP_COL[z.p];   // [S1947]
+    if(!o) return '<div data-sp-g="'+z.p+'" style="flex:1;min-width:0;text-align:center"><div style="font-size:10px;font-weight:800;color:'+C+'">'+z.p+'선</div><div style="font-size:8.5px;color:'+T3+';margin-top:30px">봉이 모자라요</div></div>';   // [S1947]
+    const dir=o.flat?'→':(o.up?'↗':'↘');   // [S1947]
+    return '<div data-sp-g="'+z.p+'" data-ang="'+z.ang.toFixed(1)+'" style="flex:1;min-width:0;text-align:center"><div style="font-size:10px;font-weight:800;color:'+C+'">'+o.p+'선 '+dir+(o.alt?'<div style="font-weight:500;font-size:8px">(200봉 대체)</div>':'')+'</div>'+z.svg   // [S1947]
+      +'<div style="font-size:12px;font-weight:800;color:'+z.col+';line-height:1.2">'+_spSg(z.ang,1)+'°</div><div style="font-size:8.5px;color:'+T2+';line-height:1.4">'+(o.flat?'0.00%/봉<br>3봉 전과 같음':(_spSg(o.v,2)+'%/봉<br>'+(o.up?'오름':'내림')+' '+o.run+'봉째'))+'<br>'+(z.steeper!=null?('더 가파른<br>지난 봉 '+_spPct(z.steeper)):'지난 봉이<br>적어요(20봉 미만)')+'</div></div>'; }).join('');   // [S1947]
+  h+=row('📐','기울기','3봉 기울기 · 🧭 선 배지와 같은 셈','<div style="display:flex;gap:4px">'+G+'</div><div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-top:3px">바늘 각도 = 3봉 기울기(%/봉)를 각도로 바꾼 값(1%/봉 = 45° · 0° = 평평) · 눈금 15° 마다 · 위 = 오름 · 아래 = 내림</div>','slope');   // [S1947]
+  const cc=cx.cross||''; if(cc) h+='<details data-sp-cross="1" style="padding-top:6px;border-top:1px dashed var(--border)"><summary style="font-size:10px;font-weight:700;color:'+T2+';cursor:pointer">🔗 카드 대조 <span style="font-weight:500;color:'+T3+'">(각 카드가 하는 말 그대로)</span></summary>'+cc+'</details>';   // [S1947]
+  h+='<div style="margin-top:6px;font-size:8.5px;color:'+T3+';line-height:1.5">읽기 도움 · 판정 아님 · 이격 = 종가와 평균선 거리 · 기울기 = 평균선 3봉 차이(%/봉) · 각도 = arctan(%/봉)</div>';   // [S1947]
+  return wrap(h); }catch(_e){ return ''; } }   // [S1947]
+function _buildStructCard(stock, indicators, qs){ try{ const rows=(indicators&&indicators._advanced&&Array.isArray(indicators._advanced.rows))?indicators._advanced.rows:((stock&&Array.isArray(stock._lastAnalCandles))?stock._lastAnalCandles:null); if(!rows || !rows.length) return '';   // [S1947] 봉 = 🧭 와 같은 자리
+  const tf=(typeof _analTF!=='undefined'&&_analTF)?_analTF:'day', cross=(typeof _sxCrossCards==='function')?_sxCrossCards(indicators, qs, stock):'';   // [S1947]
+  return _spCardHtml({ rows, tf, tfLbl:(typeof _poolTfLbl==='function'?_poolTfLbl(tf):tf), us:(typeof _isUsStock==='function' && _isUsStock(stock)), cross }); }catch(_e){ return ''; } }   // [S1947]
+// [S1947] 〰 휩소 자리 잰 것 · 못 가름 — 분석탭 'VWAP 공방' · '스퀴즈 (수축)' 꼬리표 펼친 칸 · 🔀 전환 카드 휩소 주의 줄 밑 한 줄 · 근거 offline/whip(2026-11-22 · 9판 · 따로 검산) · 사용자 19:02 '(나)로 가자'
+function _sxWhipNote(lbl){ if(lbl!=='VWAP 공방' && lbl!=='스퀴즈 (수축)') return '';   // [S1947]
+  return '<div data-whip-note="1" style="margin-top:3px;font-size:8.5px;line-height:1.5;color:var(--text3)">〰 휩소 자리로 잰 것 · 못 가름 — '+(lbl==='VWAP 공방'?'여기서 산 뒤 −1 ATR 에 먼저 닿는 몫 · 10봉 안에 위아래 ±1 ATR 을 다 건드리는 몫이':'스퀴즈에서 산 자리 · 🐢 돌파 가운데 스퀴즈 돌파 모두 −1 ATR 에 먼저 닿는 몫이')+' 다른 자리와 뚜렷이 다르지 않았어요(일봉 9판 · 2026-11-22) · 휩소 주의 표시 아님</div>'; }   // [S1947]
+function _sxWhipCtNote(){ return '<div data-whip-note="ct" style="font-size:8.5px;line-height:1.5;color:var(--text3);margin:1px 0 2px">〰 잰 것 · 못 가름 — 이 줄이 켜진 자리와 꺼진 자리의 10봉 안 위아래 ±1 ATR 을 다 건드리는 몫이 뚜렷이 다르지 않았어요(일봉 9판 · 2026-11-22) · kNN 과 룰이 엇갈린다는 설명으로만 읽어요</div>'; }   // [S1947] 🔀 휩소 주의 줄 밑
 // [S1846] ★🕯️ 캔들 · 차트 읽기 카드 — 기존 '캔들 패턴' 칸(S1285 · S1311 · 엔진 38종 · 마지막 봉)을 옮겨 오고 PDF 자료(사용자 2026-10-29)의 봉 · 갭 · 이평 · 거래량 · 반등 체크를 숫자로 옮겨 보이기만 한다 · PREREG_S1846_candle_card.md §1
 //   정보 표시(읽기 도움 · 판정 아님) — 이 카드의 신호들은 안 쟀다(지금 봉 패턴의 측정 배지는 그대로). 봉 = 지금 분석 TF 의 봉.
 //   `_cndEvents(rows)` = 봉마다 사건(봉 t 의 값은 0 ~ t 봉 · '확인'만 t+1 봉) — 배터리가 따로 짠 파이썬(offline/stockind/s1846/cnd_ref.py)과 전 봉 대조.
@@ -22420,7 +22508,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1946';   // [S1946] 💼 결과 줄 기본 접기 — 알약 · 누르면 그 종목만 펼침 · 모두 펼치기(이 기기 기억)
+  window.SX_BUILD='S1947';   // [S1947] 📐 구조 위치 다시 짬 — 🧭 추세 읽기 아래 · 가격 · 평균선 · 이격 탭(±10 · 20 · 30% 선) · 기울기 각도 · 〰 휩소 잰 것 줄
+  //window.SX_BUILD='S1946';   // [S1946] 💼 결과 줄 기본 접기 — 알약 · 누르면 그 종목만 펼침 · 모두 펼치기(이 기기 기억)
   //window.SX_BUILD='S1945';   // [S1945] 💼 손익비 · 수량 — 단기 매매 카드 청산 칸 맨 끝 · ⚔️ 조건검색 2단계 결과 줄 · 셈만 함
   //window.SX_BUILD='S1944';   // [S1944] ⚔️ 조건 창 곁 글 — 진입원 칩 · 오늘 상태에 카드 저장 설정의 값 · 지금 안 나옴 · 🔎 곁 글 · '단기 매매' 띄움
   //window.SX_BUILD='S1943';   // [S1943] ⚔️ 조건검색 2단계 — 단기매매 카드 여섯 탭 오늘 상태 · 진입원 칩 · 게이트(설정 그대로 · 앞 130 · AND 만) · 📈 🧪 오늘 신호 기록 칸 · 🐢 풀 보유중 진입원(🪢 진입2) 고침
@@ -27708,7 +27797,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       let row = `<div class="anal-row itp-row"><span class="al">${label}</span><span class="ar ${_valCls(label, valCls, itpObj)}">${dispVal}</span>`;
       if(itpObj){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
-        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpObj)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}</div>`;
+        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpObj)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}${(typeof _sxWhipNote==='function')?_sxWhipNote(itpObj.label):''}</div>`;   // [S1947] 〰 휩소 잰 것 줄
       } else { row += `</div>`; }
       return row;
     };
@@ -27803,7 +27892,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge_inline:''}</span><span class="ar ${_valCls(label, valCls, itpObj)}">${dispVal}</span>`;
       if(itpObj){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
-        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpObj)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}</div>`;
+        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpObj)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}${(typeof _sxWhipNote==='function')?_sxWhipNote(itpObj.label):''}</div>`;   // [S1947] 〰 휩소 잰 것 줄
       } else { row += `</div>`; }
       return row;
     };
@@ -27887,7 +27976,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge:''}</span><span class="ar ${_valCls(label, valCls, itpData)}">${val}</span>`;
       if(itpData){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
-        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpData)}">${itpData.label}</span>${_itpBadge(label)}<div>${itpData.text}</div>${_itpNote(label)}</div>`;   // [S1284] 배지 주입(세 번째 경로)
+        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpData)}">${itpData.label}</span>${_itpBadge(label)}<div>${itpData.text}</div>${_itpNote(label)}${(typeof _sxWhipNote==='function')?_sxWhipNote(itpData.label):''}</div>`;   // [S1284] 배지 주입(세 번째 경로) · [S1947] 〰 휩소 잰 것 줄
       } else {
         row += `</div>`;
       }
@@ -28344,6 +28433,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
 
     ${(()=>{ try{ return _buildFibCard(stock, indicators); }catch(_eFib1808){ console.warn('[S1808] 피보나치 카드 실패', _eFib1808); return ''; } })()}<!-- [S1808] 🌀 피보나치 · 엘리어트 카드(보여주기) — 레시피 해석 위 -->
     ${(()=>{ try{ return _buildTrdCard(stock, indicators); }catch(_eTrd1811){ console.warn('[S1811] 추세 읽기 카드 실패', _eTrd1811); return ''; } })()}<!-- [S1811] 🧭 추세 읽기 카드(보여주기) — 피보 카드 아래 -->
+    ${(()=>{ try{ return _buildStructCard(stock, indicators, qs); }catch(_eSp1947){ console.warn('[S1947] 구조 위치 카드 실패', _eSp1947); return ''; } })()}<!-- [S1947] 📐 구조 위치 — 🧭 추세 읽기 바로 아래(옛 자리에서 옮김) -->
     ${(()=>{ try{ return _buildPredSumCard(stock, indicators); }catch(_ePs1931){ console.warn('[S1931] 예측 모아보기 카드 실패', _ePs1931); return ''; } })()}<!-- [S1931] 🔮 예측 모아보기(읽기 도움 · 판정 아님) — 추세 읽기 카드 아래 · 값 = 각 카드가 그린 값 -->
     ${(()=>{ try{ return _buildCndCard(stock, indicators); }catch(_eCnd1846){ console.warn('[S1846] 캔들 · 차트 읽기 카드 실패', _eCnd1846); return ''; } })()}<!-- [S1846] 🕯️ 캔들 · 차트 읽기 카드(보여주기 · 옛 캔들 패턴 칸 병합) — 추세 읽기 카드 아래 -->
     <div class="anal-header-card" style="margin-top:10px">
@@ -28648,82 +28738,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       return `<div class="disc-card-rendered ${toneCls}">${inner}</div>`;
     })()}
 
-    ${(()=>{
-      // [S981] 종합해석 = 구조적 위치 지도 — 현재가 vs 각 MA(5/20/60/120) 이격·기울기·배열. 순수 좌표(판정·저항지지·레시피·행동 없음. 저항/지지는 미검증이라 뺌).
-      const _i = indicators;   // [S983] 가격·MA값·closes는 indicators(엔진 전체출력)에 있음
-      if(!_i || _i.last==null) return '';
-      const _maSrc = (qs && qs.ind) ? qs.ind : null;   // maAlign은 qs.ind에만 있음
-      const _px = _i.last;
-      const _cl = Array.isArray(_i.closes) ? _i.closes : null;
-      function _slp(period){ if(!_cl || _cl.length < period+10) return null; var sma=function(end,p){var s=0;for(var j=end-p;j<end;j++)s+=_cl[j];return s/p;}; var now=sma(_cl.length,period), prev=sma(_cl.length-10,period); return (prev>0)?(now-prev)/prev*100:null; }
-      function _arrow(sl){ return sl==null?'—':sl>0.5?'<span style="color:#dc2626">↑</span>':sl<-0.5?'<span style="color:#2563eb">↓</span>':'<span style="color:#64748b">→</span>'; }
-      const MAS = [ {n:'5일', v:_i.ma5, p:5}, {n:'20일', v:_i.ma20, p:20}, {n:'60일', v:_i.ma60, p:60}, {n:'120일', v:_i.ma120, p:120} ];
-      const _trows = MAS.filter(m=>m.v!=null).map(function(m){
-        var disp=(_px/m.v-1)*100, sl=_slp(m.p), dc=Math.abs(disp)<1?'#64748b':disp>0?'#dc2626':'#2563eb';
-        return '<tr><td style="padding:4px 8px;font-size:10px;color:var(--text2)">'+m.n+'</td><td style="padding:4px 8px;text-align:right;font-size:10px;color:var(--text)">'+(+m.v.toFixed(0)).toLocaleString()+'</td><td style="padding:4px 8px;text-align:right;font-size:10.5px;font-weight:700;color:'+dc+'">'+(disp>=0?'+':'')+disp.toFixed(1)+'%</td><td style="padding:4px 8px;text-align:center;font-size:11px">'+_arrow(sl)+'</td></tr>';
-      }).join('');
-      var above=0, valid=0;
-      MAS.forEach(function(m){ if(m.v!=null){ valid++; if(_px>=m.v) above++; } });
-      var below=valid-above, d60=(_i.ma60!=null)?(_px/_i.ma60-1)*100:null;
-      //  [S1309] ★헤더 요약이 **개수만으로 구조를 추측**했다 — 어느 선이 위/아래인지 안 보고 문구를 골랐다.
-      //    실사례(삼성전자 274,500): 위=60일(중기) 하나 · 아래=5·20·120일 → above=3>below=1이라
-      //    '단기선 위, 장기선 부근'이 나갔는데 **장기선(120일)은 부근이 아니라 +9.1% 아래**였다.
-      //    같은 카드의 아래 문장은 "위에 남은 평균선은 60일 하나"라고 정확히 말한다 — 헤더만 틀렸다.
-      //  ⇒ 추측을 걷고 **실제로 위/아래인 선을 이름으로 나열**한다. 사실만 · 저점권/상단권 같은 해석어도 뺀다.
-      var _upN = MAS.filter(function(m){ return m.v!=null && _px <  m.v; }).map(function(m){ return m.n; });
-      var _dnN = MAS.filter(function(m){ return m.v!=null && _px >= m.v; }).map(function(m){ return m.n; });
-      var _strip = function(a){ return a.map(function(x){ return x.replace('일',''); }).join('·') + '일선'; };
-      var _sumTxt = (valid && below===valid) ? '모든 이동평균선 <b>아래</b>'
-        : (valid && above===valid) ? '모든 이동평균선 <b>위</b>'
-        : (_strip(_dnN)+' <b>위</b>, '+_strip(_upN)+' <b>아래</b>');
-      if(d60!=null && Math.abs(d60)>=20) _sumTxt += ' (60일선 '+(d60>=0?'+':'')+d60.toFixed(0)+'%)';
-      var _sa = (_maSrc && _maSrc.maAlign) ? (_maSrc.maAlign.bullish?'정배열 (강세)':_maSrc.maAlign.bearish?'역배열 (약세)':'혼조') : '—';
-      var _spread = (_i.ma5!=null&&_i.ma60!=null&&_px>0) ? Math.abs(_i.ma5-_i.ma60)/_px*100 : null;
-      var _sp = _spread==null?'':_spread>=8?' 발산':_spread<=3?' 수렴':'';
-      // [S984] 서술 문장 (저항/지지 예측 없이 사실만: 60MA 기울기·배열·위쪽 평균선 위치)
-      var _sl60=_slp(60);
-      var _n1 = _sl60==null?'':(_sl60<-0.5?'60일선이 <b>하락 기울기</b>라 상승 구조가 꺾이는 중이고, ':_sl60>0.5?'60일선이 <b>상승 기울기</b>라 상승 구조가 살아있고, ':'60일선은 <b>평탄</b>하고, ');
-      var _n2 = (_sa.indexOf('역배열')>=0?'5·20·60선이 위→아래로 <b>역배열</b>':_sa.indexOf('정배열')>=0?'5·20·60선이 아래→위로 <b>정배열</b>':'5·20·60선이 <b>혼조</b>') + (_sp.indexOf('발산')>=0?' 발산 중이에요.':_sp.indexOf('수렴')>=0?' 수렴 중이에요.':'이에요.');
-      var _aboveMAs = MAS.filter(function(m){return m.v!=null && _px<m.v;}).sort(function(a,b){return a.v-b.v;});
-      var _belowMAs = MAS.filter(function(m){return m.v!=null && _px>=m.v;}).sort(function(a,b){return b.v-a.v;});
-      //  [S1308] ★분기 공백 수정 — `_aboveMAs.length === 1`이 어느 분기에도 안 걸려
-      //    **머리 위 평균선이 딱 하나일 때 그 하나가 문장에서 통째로 빠졌다.**
-      //    실사례(삼성전자 274,500): 위=60일(290,500) 하나 · 아래=5·20·120일 셋 → below>=2 분기를 타
-      //    "현재가 아래로는 5일·120일 평균선이 있어요"로 끝나고, 정작 **머리 위 60일선을 말하지 않았다.**
-      //    같은 카드가 바로 앞 문장에서 "60일선이 하락 기울기라 상승 구조가 꺾이는 중"이라고 해놓고서다.
-      //    ⚠하필 above가 적을수록 그 선이 **더 중요한 정보**다(돌파 남은 선이 하나뿐이라는 뜻).
-      //    ⇒ above를 먼저·전부 말하고, 아래는 그 다음에 덧붙인다. 위치 사실만 — 저항/지지 예측 없음(S981).
-      var _n3 = '';
-      var _fmt = function(arr, k){ return arr.slice(0, k).map(function(m){ return m.n+'('+(+m.v.toFixed(0)).toLocaleString()+')'; }).join('·'); };
-      if(_aboveMAs.length===0){ _n3=' 현재가가 모든 평균선 위에 있어요.'; }
-      else if(_aboveMAs.length===1){ _n3=' 현재가 위에 남은 평균선은 '+_fmt(_aboveMAs,1)+' 하나예요.'; }
-      else if(_aboveMAs.length===MAS.length){ _n3=' 현재가가 모든 평균선 아래에 있어요.'; }
-      else { _n3=' 현재가 위로는 '+_fmt(_aboveMAs,2)+(_aboveMAs.length>2?' 등':'')+' 평균선이 자리해 있어요.'; }
-      if(_aboveMAs.length>0 && _belowMAs.length>0){
-        _n3 += ' 아래로는 '+_fmt(_belowMAs,2)+(_belowMAs.length>2?' 등':'')+'이 있고요.';
-      }
-      var _narrTxt = _n1 + _n2 + _n3;
-      return `<div class="itp-card show unified-narrative-card" style="margin:0 0 12px;padding:12px 14px;border-left:4px solid #64748b;background:#64748b0F;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.03)">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
-          ${/* [S1307] 카드명 '종합해석' → '구조 위치' — 이름이 내용을 잘못 설명했다.
-                S981이 이 카드를 "순수 좌표(판정·저항지지·행동 없음)"로 정의했는데 이름만 '종합해석'이라
-                종합 판단을 기대하게 만들었다. 실제로 하는 일은 현재가 vs MA 좌표 + 카드 간 대조다.
-                ⚠'종합'을 뗀 것은 축소가 아니라 정정이다 — 이 카드는 원래 종합 판단을 하지 않는다. */''}
-          <span style="font-size:11px;font-weight:800;color:#475569">📐 구조 위치</span>
-          <span style="font-size:9px;color:var(--text3)">· MA 배열 좌표 + 카드 대조</span>
-        </div>
-        <div style="font-size:11.5px;line-height:1.55;color:var(--text);margin-bottom:7px">현재가 <b>${(+_px.toFixed(0)).toLocaleString()}원</b> — ${_sumTxt}.</div>
-        <table style="width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">
-          <tr style="background:var(--surface2)"><td style="padding:4px 8px;font-size:8px;color:var(--text3)">이평선</td><td style="padding:4px 8px;text-align:right;font-size:8px;color:var(--text3)">값</td><td style="padding:4px 8px;text-align:right;font-size:8px;color:var(--text3)">이격</td><td style="padding:4px 8px;text-align:center;font-size:8px;color:var(--text3)">기울기</td></tr>
-          ${_trows}
-        </table>
-        <div style="font-size:11.5px;line-height:1.6;color:var(--text);margin-top:8px">${_narrTxt}</div>
-        ${/* [S1306] 카드 대조 — 다른 카드들이 하는 말을 그대로 옮겨 나란히 놓는다.
-              ★새 방향 주장은 만들지 않는다(S981의 "순수 좌표" 제약 유지). 엇갈리면 판정하지 않는다(S1296 문법). */''}
-        ${(typeof _sxCrossCards==='function') ? _sxCrossCards(indicators, qs, stock) : ''}
-        <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);font-size:9.5px;color:var(--text3)">단기(5·20·60) <b>${_sa}</b>${_sp} · 이격=현재가와 각 평균선 거리 · 기울기=최근 10봉 방향 — 측정된 위치만 (판정·저항지지 아님)</div>
-      </div>`;
-    })()}
+    ${''/* [S1947] 옛 📐 구조 위치 카드(S981 · 표 · 글)는 걷고 🧭 추세 읽기 아래 _buildStructCard 로 옮김 · 🔗 카드 대조는 새 카드 안에 접어 둠 */}
 
     <div class="anal-fold">
       <div class="anal-fold-hdr" onclick="_sxVib(8);this.parentElement.classList.toggle('fold-open')"><span class="anal-fold-arrow">▶</span> 부문별 점수<span data-ktag="read" style="margin-left:auto;font-size:8.5px;font-weight:500;color:var(--text3);white-space:nowrap">읽기 도움 · 판정 아님</span>${''/* [S1888] 성격 꼬리표 (분석탭 기준표 v5 기준 4 · 사용자 2026-11-05 22:41) — 글 · 계산 · 배지 그대로 */}</div>
