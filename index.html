@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0"><!-- [S1952] 두 손가락 화면 확대 허용(maximum-scale · user-scalable=no 뺌) -->
 <title>SIGNAL X</title>
 <meta property="og:title" content="SIGNAL X — AI 종목 분석">
 <meta property="og:description" content="AI 기반 실시간 매매 시그널 · 종합 점수 · 행동 가이드">
@@ -1921,7 +1921,7 @@ function _sxSfModalHtml(st, view){
 /* ═══ [S1838] 🔗 BTC 사이클 — 2년 이동평균 배수 · Pi Cycle Top · Hash Ribbons · Puell Multiple + 코인베이스 프리미엄(₿ 코인 창) · 읽기 도움 · 판정 아님 · 정의 = PREREG_S1838_btc_cycle.md §1 ═══
    자료는 폰에서 바로 부른다(업비트 · mempool.space · blockchain.com · 코인베이스 · 바이낸스 공개 미러 — 모두 CORS 열림 · 워커 무변경).
    계산 함수는 DOM 을 안 만진다(배터리가 고정 자료로 따로 짠 파이썬과 대조 · offline/btccycle/calc_ref.py). */
-window.SX_INDEX_BUILD='S1860';   // [S1860] 🗺️ 섹터 흐름 카드 더함 · 앞 각인 S1840(🔗 NVT Signal 칸)
+window.SX_INDEX_BUILD='S1952';   // [S1952] 두 손가락 화면 확대 허용 · 로고 길게 누르기는 두 손가락이면 취소 · 앞 각인 S1860(🗺️ 섹터 흐름 카드)
 const _SX_CYC_HIST = {"ma2y":{"from":"2019-09-24","yearMax":{"2019":[1.2,"2019-10-27"],"2020":[2.97,"2020-12-31"],"2021":[4.81,"2021-02-21"],"2022":[1.66,"2022-01-01"],"2023":[1.61,"2023-12-06"],"2024":[2.65,"2024-03-13"],"2025":[2.28,"2025-01-21"],"2026":[1.17,"2026-01-14"]}},"pi":{"from":"2018-09-09","cross":["2021-04-12"],"yearMax":{"2018":[0.38,"2018-09-10"],"2019":[0.8,"2019-09-13"],"2020":[0.68,"2020-12-31"],"2021":[1.01,"2021-04-20"],"2022":[0.58,"2022-01-01"],"2023":[0.61,"2023-07-07"],"2024":[0.76,"2024-06-01"],"2025":[0.67,"2025-03-01"],"2026":[0.51,"2026-01-01"]},"top2021":["2021-04-13","2021-11-08"]},"hash":{"from":"2011-01-01","to":"2026-10-28","nCap7":26},"puell":{"n":725,"meanAbsDiff":0.02,"from":"2024-10-27","to":"2026-10-27"}};   // [S1838] offline/btccycle/hist.py → hist.json 그대로(과거 한 줄 숫자 · 읽기 도움)
 function _sxCycSmaLast(a, n, end){ end = (end == null) ? a.length : end; if(end < n) return null; let s = 0; for(let i = end - n; i < end; i++) s += a[i]; return s / n; }
 function _sxCycUtcDay(ms){ return new Date(ms).toISOString().slice(0, 10); }
@@ -6228,7 +6228,7 @@ function _sxAutoBtnSync(){
   function start(x,y){ clear(); x0=x; y0=y; t=setTimeout(function(){ t=null; try{ if(navigator.vibrate) navigator.vibrate([30,60,30]); }catch(_){} goAutotrade(); }, HOLD); }
   function bind(){
     var el=document.getElementById('tbLogo'); if(!el || el._sxHold) return; el._sxHold=true;
-    el.addEventListener('touchstart', function(e){ lastTouch=Date.now(); var p=e.touches&&e.touches[0]; start(p?p.clientX:0, p?p.clientY:0); }, {passive:true});
+    el.addEventListener('touchstart', function(e){ lastTouch=Date.now(); if(e.touches&&e.touches.length>1){ clear(); return; } var p=e.touches&&e.touches[0]; start(p?p.clientX:0, p?p.clientY:0); }, {passive:true});   // [S1952] 두 손가락(확대 동작)이면 길게 누르기 취소
     el.addEventListener('touchmove', function(e){ var p=e.touches&&e.touches[0]; if(p && (Math.abs(p.clientX-x0)>MOVE || Math.abs(p.clientY-y0)>MOVE)) clear(); }, {passive:true});
     el.addEventListener('touchend', clear); el.addEventListener('touchcancel', clear);
     el.addEventListener('mousedown', function(e){ if(Date.now()-lastTouch<800) return; start(e.clientX, e.clientY); });   // 터치 뒤 따라오는 호환 마우스 이벤트는 무시
