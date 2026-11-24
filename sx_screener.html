@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1"><!-- [S1952] 두 손가락 화면 확대 허용(maximum-scale · user-scalable=no 뺌) -->
 <title>SX Screener</title>
 <script>const WORKER_BASE = 'https://stock-signal-proxy.cheaheechang.workers.dev';</script>
 <script>/* [S1608] 첫 오류 배너 — 폰엔 콘솔이 없어 스크립트 파싱 실패·초기화 예외가 '검색 결과 없음' 같은 정적 화면으로만 보였다(실기기 2026-09-13). 오류가 없으면 아무 것도 안 그린다 · 최대 3건 · 배너 탭=닫기 · 파일명:줄:칸 + 메시지 · 프라미스는 프로그래밍 오류(TypeError·ReferenceError·SyntaxError·RangeError)만 */
@@ -13170,11 +13170,11 @@ function analGoNext(){
   overlay.addEventListener('touchstart',function(e){
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
-    swiping = true;
+    swiping = (e.touches.length === 1) && !(window.visualViewport && visualViewport.scale > 1.01);   // [S1952] 두 손가락(확대 동작)이거나 확대 중이면 밀기 안 함
   },{passive:true});
   overlay.addEventListener('touchend',function(e){
     if(!swiping) return;
-    swiping = false;
+    swiping = false; if(window.visualViewport && visualViewport.scale > 1.01) return;   // [S1952] 확대한 채 끌면 종목 안 넘김
     const dx = e.changedTouches[0].clientX - sx;
     const dy = e.changedTouches[0].clientY - sy;
     if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)*1.5){
