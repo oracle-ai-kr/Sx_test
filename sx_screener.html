@@ -68,7 +68,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=538"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 · [S1945] 💼 손익비 · 수량 v=535 · [S1946] 💼 기본 접기 v=536 · [S1947] 📐 구조 위치 v=537 · [S1949] 카드 안 작은 고침 v=538 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
+<script src="sx_render.js?v=539"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 · [S1945] 💼 손익비 · 수량 v=535 · [S1946] 💼 기본 접기 v=536 · [S1947] 📐 구조 위치 v=537 · [S1949] 카드 안 작은 고침 v=538 · [S1950] 카드 글자색 = 테마 v=539 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
 <script src="sx_ict_flux.js?v=1"></script><!-- [S1847] 🎯 ICT 🧪 실험 셋업 엔진(MPL 2.0 · Flux Charts 원본에서 옮김) -->
 <script src="sx_sig_lab.js?v=1"></script><!-- [S1854] 🧪 신호 실험 칩(TradingView 공개 스크립트 17가지 → JS · 출처는 그 파일 머리) -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
@@ -129,6 +129,11 @@ body.sx-white{
 /* [S1650] 시간외 줄 뱃지 색(sx_render.js _SX_EXT_BADGE) — 기본(다크)·블랙은 밝은 톤, 화이트·크림은 진한 톤 · 빨강·파랑 계열 없음(등락색과 구분) */
 :root{--sxb-krx:#64748b;--sxb-nxt:#0f766e;--sxb-reg:#4ade80;--sxb-pre:#fbbf24;--sxb-after:#c084fc;--sxb-int:#e879f9}
 body.sx-white,body.sx-cream{--sxb-krx:#475569;--sxb-nxt:#0f766e;--sxb-reg:#15803d;--sxb-pre:#b45309;--sxb-after:#6d28d9;--sxb-int:#a21caf}
+/* [S1950] 📐 · 🧭 카드 글자색(sx_render.js _spTc · 띠 · 바늘 · 이격 · 선 배지) — 테마마다 카드 바탕 대비 4.5 : 1 이상 · 기본(다크) · 블랙은 밝은 쪽 · 화이트 · 크림은 진한 쪽 · 이미 넘던 색은 그대로 · 선 · 칸 색은 안 바꿈 · --sxc-bno = 🧭 띠 평소 칸(어두운 테마에서 바탕보다 한 단계) */
+:root{--sxc-up:#f87171;--sxc-dn:#60a5fa;--sxc-l5:#f59e0b;--sxc-l20:#f472b6;--sxc-l60:#10b981;--sxc-l200:#c4b5fd;--sxc-warn:#fbbf24;--sxc-bno:#3e3e45}   /* [S1950] 차콜(기본) */
+body.sx-black{--sxc-up:#ef4444;--sxc-dn:#3b82f6;--sxc-l20:#ec4899;--sxc-l200:#a78bfa;--sxc-bno:#141414}   /* [S1950] 블랙(5 · 60선 · ⚠ 는 차콜과 같음) */
+body.sx-white{--sxc-up:#dc2626;--sxc-dn:#2563eb;--sxc-l5:#b45309;--sxc-l20:#db2777;--sxc-l60:#047857;--sxc-l200:#7c3aed;--sxc-warn:#b45309;--sxc-bno:#e5e7eb}   /* [S1950] 화이트 */
+body.sx-cream{--sxc-up:#b91c1c;--sxc-dn:#1d4ed8;--sxc-l5:#92400e;--sxc-l20:#be185d;--sxc-l60:#047857;--sxc-l200:#6d28d9;--sxc-warn:#92400e;--sxc-bno:#e5e7eb}   /* [S1950] 크림 */
 
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100dvh;-webkit-tap-highlight-color:transparent}
