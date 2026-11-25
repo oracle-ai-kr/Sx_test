@@ -68,7 +68,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=540"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 · [S1945] 💼 손익비 · 수량 v=535 · [S1946] 💼 기본 접기 v=536 · [S1947] 📐 구조 위치 v=537 · [S1949] 카드 안 작은 고침 v=538 · [S1950] 카드 글자색 = 테마 v=539 · [S1951] 색 칩 글자색 v=540 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
+<script src="sx_render.js?v=541"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 · [S1945] 💼 손익비 · 수량 v=535 · [S1946] 💼 기본 접기 v=536 · [S1947] 📐 구조 위치 v=537 · [S1949] 카드 안 작은 고침 v=538 · [S1950] 카드 글자색 = 테마 v=539 · [S1951] 색 칩 글자색 v=540 · [S1954] 작은 회색 글 v=541 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
 <script src="sx_ict_flux.js?v=1"></script><!-- [S1847] 🎯 ICT 🧪 실험 셋업 엔진(MPL 2.0 · Flux Charts 원본에서 옮김) -->
 <script src="sx_sig_lab.js?v=1"></script><!-- [S1854] 🧪 신호 실험 칩(TradingView 공개 스크립트 17가지 → JS · 출처는 그 파일 머리) -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
@@ -87,7 +87,7 @@
 :root{
   --bg:#28282e;--surface:#333339;--surface2:#3e3e45;--surface3:#4a4a52;
   --accent:#2563eb;--accent2:#3b82f6;--accent-glow:rgba(37,99,235,.12);
-  --text:#f0f0f3;--text2:#a0a0a8;--text3:#6e6e78;
+  --text:#f0f0f3;--text2:#cdcdd5;--text3:#b2b2bc;   /* [S1954] 차콜 2단 · 3단 글 = 바탕 · 카드 · 안쪽 칸 대비 4.5 : 1 이상 · 본문 > 2단 > 3단(전 #a0a0a8 · #6e6e78) */
   --border:rgba(255,255,255,.07);
   --buy:#22c55e;--buy-bg:rgba(34,197,94,.1);--buy-border:rgba(34,197,94,.25);
   --hold:#f59e0b;--hold-bg:rgba(245,158,11,.1);--hold-border:rgba(245,158,11,.25);
@@ -101,7 +101,7 @@
 }
 body.sx-black{
   --bg:#000000;--surface:#0a0a0a;--surface2:#141414;--surface3:#1e1e1e;
-  --text:#f5f5f5;--text2:#a0a0a8;--text3:#6a6a72;
+  --text:#f5f5f5;--text2:#a0a0a8;--text3:#85858f;   /* [S1954] 블랙 3단 작은 글 4.5 : 1 이상(전 #6a6a72) */
   --border:rgba(255,255,255,.08);
   --buy-bg:rgba(34,197,94,.08);--buy-border:rgba(34,197,94,.2);
   --hold-bg:rgba(245,158,11,.08);--hold-border:rgba(245,158,11,.2);
@@ -109,7 +109,7 @@ body.sx-black{
 }
 body.sx-cream{
   --bg:#e8dfcf;--surface:#f2ebe0;--surface2:#ddd4c4;--surface3:#d0c5b3;
-  --text:#12100c;--text2:#46403a;--text3:#706458;
+  --text:#12100c;--text2:#46403a;--text3:#5f554a;   /* [S1954] 크림 3단 작은 글 4.5 : 1 이상(전 #706458) */
   --border:rgba(0,0,0,.06);
   --accent-glow:rgba(37,99,235,.06);
   --buy-bg:rgba(34,197,94,.06);--buy-border:rgba(34,197,94,.18);
@@ -118,7 +118,7 @@ body.sx-cream{
 }
 body.sx-white{
   --bg:#f3f4f6;--surface:#ffffff;--surface2:#f0f1f4;--surface3:#e6e8ec;
-  --text:#0a0f1a;--text2:#4b5563;--text3:#6b7280;
+  --text:#0a0f1a;--text2:#4b5563;--text3:#616774;   /* [S1954] 화이트 3단 작은 글 4.5 : 1 이상(전 #6b7280) */
   --border:rgba(0,0,0,.06);
   --accent-glow:rgba(37,99,235,.06);
   --buy-bg:rgba(34,197,94,.06);--buy-border:rgba(34,197,94,.18);
@@ -239,7 +239,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .tree-leaf .added-mark{color:var(--buy);font-size:12px;font-weight:700}
 .kis-locked{opacity:.45;pointer-events:auto}
 .kis-locked .tree-leaf-name,.kis-locked .tree-grp-name{color:var(--text3)}
-.kis-off-badge{display:inline-block;font-size:7px;font-weight:700;color:var(--text3);background:var(--surface3);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:middle;letter-spacing:-.2px}
+.kis-off-badge{display:inline-block;font-size:7px;font-weight:700;color:var(--text2);background:var(--surface3);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:middle;letter-spacing:-.2px}   /* [S1954] 한 단 밝은 바탕(surface3) 위 작은 배지 — 3단 글로는 4.5 : 1 에 모자라 2단 글색(테마 넷 5.5 이상) */
 .axis4-badge{display:inline-block;font-size:7px;font-weight:700;color:#a78bfa;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:middle;letter-spacing:-.2px}
 .buy-badge{display:inline-block;font-size:7px;font-weight:700;color:#f472b6;background:rgba(244,114,182,0.12);border:1px solid rgba(244,114,182,0.3);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:middle;letter-spacing:-.2px}
 .sell-badge{display:inline-block;font-size:7px;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:middle;letter-spacing:-.2px}
@@ -759,7 +759,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .ax-raw{font-size:11px;color:var(--text);font-weight:600;text-align:right;min-width:64px}
 .ax-q{font-size:12px;font-weight:800;text-align:right;min-width:28px}
 .ax-badge{font-size:8px;padding:1px 4px;border-radius:4px;font-weight:700;white-space:nowrap}
-.ax-badge.ax-desc{color:var(--text3);background:var(--border)}
+.ax-badge.ax-desc{color:var(--text2);background:var(--border)}   /* [S1954] 반투명 칩 바탕 위 작은 배지 — 3단 글로는 4.5 : 1 에 모자라 2단 글색(테마 넷 5.4 이상) */
 .ax-badge.ax-rev{color:#ea580c;background:#ea580c1A}
 .ax-badge.ax-pass{color:#16a34a;background:#16a34a1A}
 .ax-foot{font-size:10px;color:var(--text3);margin-top:6px;padding-top:5px;border-top:1px solid var(--border)}
@@ -1024,7 +1024,7 @@ body{font-family:'Noto Sans KR','Outfit',sans-serif;background:var(--bg);color:v
 .bt-paper-result{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px}
 
 /* ── 미니 캔들차트 (S31) ── */
-.mini-chart-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;margin-bottom:8px;overflow:hidden}
+.mini-chart-wrap{background:#fff;--text2:#4b5563;--text3:#616774;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;margin-bottom:8px;overflow:hidden}   /* [S1954] 흰 상자(테마와 상관없이 흰 바탕) — 안 회색 글 = 화이트 테마 값으로 고정(최근 60봉 이름 글) */
 .mini-chart-wrap canvas{width:100%;height:160px;display:block}
 .mini-chart-title{font-size:10px;font-weight:600;color:var(--text2);margin-bottom:4px}
 
