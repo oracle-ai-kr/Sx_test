@@ -22510,7 +22510,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1951';   // [S1951] 📐 · 🧭 색 칩 글자색 = 칩 바탕 대비 4.5 : 1 이상(🧭 칩 다섯 · 📐 눌린 탭 셋 → 진한 글 · 바탕색 그대로)
+  window.SX_BUILD='S1954';   // [S1954] 작은 회색 글(--text3) · 차콜 2단 글 = 테마 바탕 · 카드 · 안쪽 칸 대비 4.5 : 1 이상(홈 · 스크리너 · 시즌2 같은 값) · 흰 상자 둘 안 회색 글 고정
+  //window.SX_BUILD='S1951';   // [S1951] 📐 · 🧭 색 칩 글자색 = 칩 바탕 대비 4.5 : 1 이상(🧭 칩 다섯 · 📐 눌린 탭 셋 → 진한 글 · 바탕색 그대로)
   //window.SX_BUILD='S1950';   // [S1950] 📐 · 🧭 카드 글자색 = 테마별(카드 바탕 대비 4.5 : 1 이상) · 🧭 띠 평소 칸 = 어두운 테마에서 낮춤
   //window.SX_BUILD='S1949';   // [S1949] 📐 · 🧭 카드 안 작은 고침 — 누름 칸 24px · 이격 탭 버튼 · 그림 이름 · 빈 칸 색 = 테마 · 그림 글 8.5px 이상
   //window.SX_BUILD='S1947';   // [S1947] 📐 구조 위치 다시 짬 — 🧭 추세 읽기 아래 · 가격 · 평균선 · 이격 탭(±10 · 20 · 30% 선) · 기울기 각도 · 〰 휩소 잰 것 줄
@@ -23604,7 +23605,7 @@ function _buildR1S1Card(stock, indicators){
   const _rk = _ps.res ? _ps.res.k : 'R1';
   const _sk = _ps.sup ? _ps.sup.k : 'S1';
   if(!_r1 && !_s1) return '';
-  return `<div style="margin:0 0 8px;padding:8px 12px;background:#fff;border:1px solid var(--border);border-radius:10px;display:flex;justify-content:space-between;align-items:center">
+  return `<div style="margin:0 0 8px;padding:8px 12px;background:#fff;--text3:#616774;border:1px solid var(--border);border-radius:10px;display:flex;justify-content:space-between;align-items:center">${''/* [S1954] 흰 상자(테마와 상관없이 흰 바탕) — 안 회색 글 = 화이트 테마 값으로 고정(저항 / 지지 줄 가운데 이름 글) */}
     <span style="font-size:11px;color:#f97316;font-weight:700">저항 ${_r1 ? fmt(_r1) : '—'}</span>
     <span style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.3px;text-align:center">${_rk} · ${_sk}<span data-ktag="disp" style="display:block;font-size:8px;font-weight:500;letter-spacing:0">표시 전용</span></span>${''/* [S1888] 성격 꼬리표 (분석탭 기준표 v5 기준 4 · 사용자 2026-11-05 22:41) — 글 · 계산 · 배지 그대로 */}
     <span style="font-size:11px;color:#3b82f6;font-weight:700">지지 ${_s1 ? fmt(_s1) : '—'}</span>
