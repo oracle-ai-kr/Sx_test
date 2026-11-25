@@ -42,6 +42,10 @@ const R1 = {
   pob(R, p, rows) { const c = closeOf(rows); if (!fin(c)) return null; const al = R.blocks.filter(b => b.gone < 0 && fin(b.top) && fin(b.btm)), bu = al.filter(b => b.d === 1), be = al.filter(b => b.d === -1);
     const dn = bu.filter(b => b.top < c).sort((a, b) => b.top - a.top)[0], up = be.filter(b => b.btm > c).sort((a, b) => a.btm - b.btm)[0];
     return { t: '남은 블록 상승 ' + bu.length + ' · 하락 ' + be.length + (dn ? ' · 아래 상승 블록 위끝까지 ' + pct(dn.top, c) : '') + (up ? ' · 위 하락 블록 아래끝까지 ' + pct(up.btm, c) : ''), ok: null }; },
+  ichi(R, p, rows) { const li = rows.length - 1, ps = R.pos[li], k = R.k; if (!ps || li - k < 0) return null; const a = R.A[li - k], b = R.B[li - k], na = R.A[li], nb = R.B[li];   // [S1956] ☁️ 일목 — 캔들 아래 구름 · 26봉 뒤 구름 · 전환 / 기준 · 마지막 ▲▼
+    const ib = lastI(R.ib, li), is = lastI(R.is, li), cb = lastI(R.cb, li), cs = lastI(R.cs, li), ki = Math.max(ib, is), kc = Math.max(cb, cs);   // [S1956]
+    return { t: '캔들 아래 구름 ' + (ps === 1 ? '위' : ps === -1 ? '아래' : '안') + '(' + (a > b ? '양운' : a < b ? '음운' : '같음') + ')' + ((fin(na) && fin(nb)) ? ' · ' + R.len[3] + '봉 뒤 구름 ' + (na > nb ? '양운' : na < nb ? '음운' : '같음') : '') + ' · 전환선 ' + (R.conv[li] > R.base[li] ? '>' : '≤') + ' 기준선'   // [S1956]
+      + (ki >= 0 ? ' · 마지막 ' + (ki === ib ? '일목▲' : '일목▼') + ' ' + ago(li, ki) : '') + (kc >= 0 ? ' · ' + (kc === cb ? '구름▲' : '구름▼') + ' ' + ago(li, kc) : ''), ok: null }; },   // [S1956]
   kzp(R, p, rows) { const c = closeOf(rows); if (!fin(c)) return null; const z = (tf, nm) => { const h = R.lines.find(l => l.tf === tf && l.k === 'H' && fin(l.y)), l = R.lines.find(l => l.tf === tf && l.k === 'L' && fin(l.y)); if (!h || !l) return ''; return nm + ' ' + (c > h.y ? '고가 위' : c < l.y ? '저가 아래' : '범위 안'); };
     const s = [z('W', '지난 주'), z('M', '지난 달')].filter(Boolean); return s.length ? { t: '종가가 ' + s.join(' · '), ok: null } : null; }
 };
