@@ -22,8 +22,8 @@
   --accent2:#3b82f6;
   --accent-glow:rgba(37,99,235,.12);
   --text:#f0f0f3;
-  --text2:#a0a0a8;
-  --text3:#6e6e78;
+  --text2:#cdcdd5;   /* [S1954] 차콜 2단 글 — 3단 글을 올린 만큼 같이 올려 본문 > 2단 > 3단 순서 지킴(전 #a0a0a8) */
+  --text3:#b2b2bc;   /* [S1954] 차콜 3단 작은 글 = 바탕 · 카드 · 안쪽 칸 대비 4.5 : 1 이상(전 #6e6e78) */
   --border:rgba(255,255,255,.07);
   --buy:#22c55e;--buy-bg:rgba(34,197,94,.1);--buy-border:rgba(34,197,94,.25);
   --hold:#f59e0b;--hold-bg:rgba(245,158,11,.1);--hold-border:rgba(245,158,11,.25);
@@ -40,7 +40,7 @@
 /* 블랙 (black) — OLED 순흑 */
 body.sx-black{
   --bg:#000000;--surface:#0a0a0a;--surface2:#141414;--surface3:#1e1e1e;
-  --text:#f5f5f5;--text2:#a0a0a8;--text3:#6a6a72;
+  --text:#f5f5f5;--text2:#a0a0a8;--text3:#85858f;   /* [S1954] 블랙 3단 작은 글 4.5 : 1 이상(전 #6a6a72) */
   --border:rgba(255,255,255,.08);
   --buy-bg:rgba(34,197,94,.08);--buy-border:rgba(34,197,94,.2);
   --hold-bg:rgba(245,158,11,.08);--hold-border:rgba(245,158,11,.2);
@@ -49,7 +49,7 @@ body.sx-black{
 /* 크림 (cream) — 진한 베이지 */
 body.sx-cream{
   --bg:#e8dfcf;--surface:#f2ebe0;--surface2:#ddd4c4;--surface3:#d0c5b3;
-  --text:#12100c;--text2:#46403a;--text3:#706458;
+  --text:#12100c;--text2:#46403a;--text3:#5f554a;   /* [S1954] 크림 3단 작은 글 4.5 : 1 이상(전 #706458) */
   --border:rgba(0,0,0,.06);
   --accent-glow:rgba(37,99,235,.06);
   --buy-bg:rgba(34,197,94,.06);--buy-border:rgba(34,197,94,.18);
@@ -59,7 +59,7 @@ body.sx-cream{
 /* 화이트 (white) — 쿨한 라이트 */
 body.sx-white{
   --bg:#f3f4f6;--surface:#ffffff;--surface2:#f0f1f4;--surface3:#e6e8ec;
-  --text:#0a0f1a;--text2:#4b5563;--text3:#6b7280;
+  --text:#0a0f1a;--text2:#4b5563;--text3:#616774;   /* [S1954] 화이트 3단 작은 글 4.5 : 1 이상(전 #6b7280) */
   --border:rgba(0,0,0,.06);
   --accent-glow:rgba(37,99,235,.06);
   --buy-bg:rgba(34,197,94,.06);--buy-border:rgba(34,197,94,.18);
@@ -1921,7 +1921,7 @@ function _sxSfModalHtml(st, view){
 /* ═══ [S1838] 🔗 BTC 사이클 — 2년 이동평균 배수 · Pi Cycle Top · Hash Ribbons · Puell Multiple + 코인베이스 프리미엄(₿ 코인 창) · 읽기 도움 · 판정 아님 · 정의 = PREREG_S1838_btc_cycle.md §1 ═══
    자료는 폰에서 바로 부른다(업비트 · mempool.space · blockchain.com · 코인베이스 · 바이낸스 공개 미러 — 모두 CORS 열림 · 워커 무변경).
    계산 함수는 DOM 을 안 만진다(배터리가 고정 자료로 따로 짠 파이썬과 대조 · offline/btccycle/calc_ref.py). */
-window.SX_INDEX_BUILD='S1952';   // [S1952] 두 손가락 화면 확대 허용 · 로고 길게 누르기는 두 손가락이면 취소 · 앞 각인 S1860(🗺️ 섹터 흐름 카드)
+window.SX_INDEX_BUILD='S1954';   // [S1954] 작은 회색 글(--text3) · 차콜 2단 글 = 테마별 대비 4.5 : 1 이상 · 앞 각인 S1952(두 손가락 화면 확대 허용)
 const _SX_CYC_HIST = {"ma2y":{"from":"2019-09-24","yearMax":{"2019":[1.2,"2019-10-27"],"2020":[2.97,"2020-12-31"],"2021":[4.81,"2021-02-21"],"2022":[1.66,"2022-01-01"],"2023":[1.61,"2023-12-06"],"2024":[2.65,"2024-03-13"],"2025":[2.28,"2025-01-21"],"2026":[1.17,"2026-01-14"]}},"pi":{"from":"2018-09-09","cross":["2021-04-12"],"yearMax":{"2018":[0.38,"2018-09-10"],"2019":[0.8,"2019-09-13"],"2020":[0.68,"2020-12-31"],"2021":[1.01,"2021-04-20"],"2022":[0.58,"2022-01-01"],"2023":[0.61,"2023-07-07"],"2024":[0.76,"2024-06-01"],"2025":[0.67,"2025-03-01"],"2026":[0.51,"2026-01-01"]},"top2021":["2021-04-13","2021-11-08"]},"hash":{"from":"2011-01-01","to":"2026-10-28","nCap7":26},"puell":{"n":725,"meanAbsDiff":0.02,"from":"2024-10-27","to":"2026-10-27"}};   // [S1838] offline/btccycle/hist.py → hist.json 그대로(과거 한 줄 숫자 · 읽기 도움)
 function _sxCycSmaLast(a, n, end){ end = (end == null) ? a.length : end; if(end < n) return null; let s = 0; for(let i = end - n; i < end; i++) s += a[i]; return s / n; }
 function _sxCycUtcDay(ms){ return new Date(ms).toISOString().slice(0, 10); }
