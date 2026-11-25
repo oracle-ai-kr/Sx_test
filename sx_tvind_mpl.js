@@ -9,6 +9,7 @@
 //     ⑤ [S1871] ICT Killzones & Pivots [TFO] — © tradeforopp · MPL 2.0 · 원본 = offline/tvchart/"ICT Killzones & Pivots.txt"(파인 v6) · 지난 주 · 월 고가 · 저가 · 중간선만(킬존 · 일 · 시가 · 표 등은 뺌 · 30분 봉 문턱 안 봄)
 //     ⑥ [S1919] Auto Chart Patterns 2 — © mbedaiwi2 · MPL 2.0 · v4.5.1 · 원본 = offline/cpat/src_acp2.pine · 감지 · 겹침 정리 · 확정 · BUY/SELL 신호(그림 · 대시보드 · 성적 셈은 안 옮김) · 🕯️ 카드 📐 패턴 탭 표시용(풀차트 지표 아님)
 //     ⑦ [S1925] Wick Sequence Breakout — © Uncle_the_shooter · MPL 2.0 · 파인 v6 · 원본 = offline/tvchart/"Wick Sequence Breakout.txt"(273c7e35f64f · 사용자 2026-11-11 첨부) · 꼬리 · 흡수 봉 모임 상자 · 거래량 몫(추정) · 돌파 ▲▼ · TP/SL 그림 · 🕯️ 카드 📐 패턴 탭도 부름
+//     ⑧ [S1956] Ichimoku Cloud - Alerts — © pune3tghai · MPL 2.0 · 파인 v4 · 원본 = offline/tvchart/"Ichimoku Cloud - Alerts.txt"(사용자 2026-11-25 첨부) · 구름 · 선 · Ichi / Cloud ▲▼ · 묶음 20 · 60 · 120 · 30 = Ichimoku Cloud Enhanced For Crypto(ChrisMoody · Tom Ashley(TensorTom) · 2018 · 라이선스 표기 없음 · 값만) · 🧭 🔄 전환 줄 · 분석 창 캔들 아래 구름 줄이 같은 계산(sx_render.js _sxIchiNow)
 //   봉마다 파인 그대로 계산한다(전체 봉 · 그 봉까지 자료만). 앱이 더한 설정은 이름에 '앱' 을 단다.
 (function(){
 'use strict';
@@ -569,5 +570,64 @@ TV.reg({
       if (R.sigS[i]) { const yy = y(R.hi[i]) - 4; ctx.fillStyle = WSB_COL.be; ctx.beginPath(); ctx.moveTo(xi, yy); ctx.lineTo(xi - 4, yy - 7); ctx.lineTo(xi + 4, yy - 7); ctx.fill(); } }
     ctx.restore(); }
 });
-if (typeof module !== 'undefined' && module.exports) module.exports = { staCalc, stAny, atrAny, rngfilt, smoothrng, srcOf, ictObCalc, msbCalc, pobCalc, kzpCalc, acp2: CP_ACP2, wsbCalc };   // [S1919] ⑥ · [S1925] ⑦
+// ── ⑧ [S1956] Ichimoku Cloud - Alerts — © pune3tghai · MPL 2.0 · 파인 v4 · 원본 = offline/tvchart/"Ichimoku Cloud - Alerts.txt"(사용자 2026-11-25 첨부) ──
+//   원본: donchian(len) = avg(lowest(len), highest(len)) · 전환선 = donchian(9) · 기준선 = donchian(26) · 선행A = avg(전환, 기준) · 선행B = donchian(52)   // [S1956]
+//         그림: 선행A · B 는 offset 이동 − 1(=25)칸 오른쪽 · 후행스팬 = 종가 offset −이동 + 1 · 구름 색 = 선행A > 선행B 초록 · 아니면 빨강(fill 기본 투명 90)   // [S1956]
+//         Ichi Buy = close > high[25] and 전환 > 기준 and close · low > 선행A[25] · 선행B[25](= 지금 캔들 아래 구름) · 처음 봉만(buymem — idealsell 이 나오면 풀림)   // [S1956]
+//         Ichi Sell = close < low[25] and 전환 < 기준 and close < 선행B[25](원본에 선행B 두 번 · 선행A 빠짐 — high 조건이 선행A 를 거르니 결과 같음 · 원본 그대로) and high < 선행A[25] · 선행B[25] · 처음 봉만(sellmem)   // [S1956]
+//         Cloud Buy = crossover(선행A, 선행B)(= 26봉 뒤에 그려질 구름이 양운으로 바뀜) and low > 선행A[25] · 선행B[25] · Cloud Sell = crossunder 와 high < 둘 — 거울   // [S1956]
+//         원본의 plot(spanA[25]) · plot(spanB[25])(주황 · 노랑)은 구름 가장자리와 같은 값이라 안 그림 · alertcondition 은 안 옮김   // [S1956]
+//   앱이 더한 것(이름에 '앱'): 묶음 고르기 — 9 · 26 · 52 · 26(원본 기본) / 20 · 60 · 120 · 30(Ichimoku Cloud Enhanced For Crypto — ChrisMoody · Tom Ashley(TensorTom) · 2018 · 라이선스 표기 없음 · 24시간 7일 장이라 두 배 · 값만 씀) / 직접   // [S1956]
+//         원본 조건의 25 는 이동 26 일 때 값 — 앱은 '이동 − 1' 로 씀(이동 26 이면 원본과 같음) · 선 · 구름 · 표시 하나씩 끄기   // [S1956]
+//         일목▲▼ · 구름▲▼ 표시 기본 끔(원본은 늘 그림 · 120봉 폰 차트에서 겹치고 잰 적 없는 표시라 · ⚙️ 에서 켬 · 사용자 2026-11-25 22:11 '추천대로해줘') · 구름 칠 투명 80(원본 fill 기본 투명 90 · 폰에서 옅어서 · 같은 날 같은 답)   // [S1956]
+//   구름 = 이전 구름(이동 − 1 봉 전에 계산 · 지금 캔들 아래) — 차트에 그림 · 새 구름(지금 계산 · 이동 − 1 봉 뒤에 그려질 구름)은 차트 오른쪽에 자리가 없어 읽기 한 줄에 글로   // [S1956]
+const ICHI_SET = { std: [9, 26, 52, 26], x2: [20, 60, 120, 30] };   // [S1956]
+function ichiLen(p) { return p.set === 'custom' ? [p.conv, p.base, p.spanB, p.disp] : (ICHI_SET[p.set] || ICHI_SET.std); }   // [S1956]
+function ichiCalc(rows, p) { const { n, H, L, C } = cols(rows), [cp, bp, sp, dp] = ichiLen(p), k = dp - 1;   // [S1956]
+  const don = m => { const hh = T.highest(H, m), ll = T.lowest(L, m), o = new Float64Array(n); for (let t = 0; t < n; t++) o[t] = (hh[t] + ll[t]) / 2; return o; };   // 파인 avg(lowest(len), highest(len)) · na 가 끼면 na   // [S1956]
+  const conv = don(cp), base = don(bp), A = new Float64Array(n), B = don(sp);   // [S1956]
+  for (let t = 0; t < n; t++) A[t] = (conv[t] + base[t]) / 2;   // [S1956]
+  const at = (a, t) => t >= 0 ? a[t] : NaN;   // a[k] — 앞에 봉이 없으면 na   // [S1956]
+  const ib = new Int8Array(n), is = new Int8Array(n), cb = new Int8Array(n), cs = new Int8Array(n), pos = new Int8Array(n); let bm = false, sm = false;   // [S1956]
+  for (let t = 0; t < n; t++) { const a = at(A, t - k), b = at(B, t - k), hk = at(H, t - k), lk = at(L, t - k);   // 비교에 na 가 끼면 거짓   // [S1956]
+    const ideB = C[t] > hk && conv[t] > base[t] && C[t] > a && C[t] > b && L[t] > a && L[t] > b;   // [S1956]
+    const ideS = C[t] < lk && conv[t] < base[t] && C[t] < b && C[t] < b && H[t] < a && H[t] < b;   // [S1956]
+    if (ideB && !bm) ib[t] = 1; if (ideS && !sm) is[t] = 1;   // [S1956]
+    bm = ideB ? true : (ideS ? false : bm); sm = ideS ? true : (ideB ? false : sm);   // [S1956]
+    if (t > 0) { const up = A[t] > B[t] && A[t - 1] <= B[t - 1], dn = A[t] < B[t] && A[t - 1] >= B[t - 1];   // 파인 crossover(a, b) = a > b and a[1] <= b[1]   // [S1956]
+      if (up && L[t] > a && L[t] > b) cb[t] = 1; if (dn && H[t] < a && H[t] < b) cs[t] = 1; }   // [S1956]
+    pos[t] = (!fin(a) || !fin(b) || !fin(C[t])) ? 0 : (C[t] > Math.max(a, b) ? 1 : (C[t] < Math.min(a, b) ? -1 : 2)); }   // 앱 읽기용 — 1 위 · 2 안 · −1 아래(이전 구름)   // [S1956]
+  return { n, k, conv, base, A, B, C, ib, is, cb, cs, pos, len: [cp, bp, sp, dp] }; }   // [S1956]
+const ICHI_COL = { conv: '#0496ff', base: '#991515', lag: '#459915', a: '#4caf50', b: '#ff5252', up: 'rgba(76,175,80,0.20)', dn: 'rgba(255,82,82,0.20)' };   // 원본 색 · 구름 = color.green · color.red · 칠은 앱 투명 80(원본 90)   // [S1956]
+TV.reg({   // [S1956]
+  id: 'ichi', place: 'over', name: 'Ichimoku Cloud - Alerts', short: 'Ichimoku', kname: '☁️ 일목균형표',   // [S1956]
+  author: 'pune3tghai', license: 'MPL 2.0', srcFile: 'Ichimoku Cloud - Alerts.txt',   // [S1956]
+  inputs: [   // [S1956]
+    { k: 'set', nm: '기간 묶음(앱)', o: '— · 20 · 60 · 120 · 30 = Ichimoku Cloud Enhanced For Crypto(ChrisMoody · TensorTom)', t: 'sel', d: 'std', opts: ['std', 'x2', 'custom'], optNm: { std: '9 · 26 · 52 · 26(기본)', x2: '20 · 60 · 120 · 30(코인 두 배)', custom: '직접(아래 넷)' }, app: true },   // [S1956]
+    { k: 'conv', nm: '전환선 기간(직접일 때)', o: 'Conversion Line Periods', t: 'int', d: 9, min: 1, max: 500 },   // [S1956]
+    { k: 'base', nm: '기준선 기간(직접일 때)', o: 'Base Line Periods', t: 'int', d: 26, min: 1, max: 500 },   // [S1956]
+    { k: 'spanB', nm: '선행스팬B 기간(직접일 때)', o: 'Lagging Span 2 Periods', t: 'int', d: 52, min: 1, max: 500 },   // [S1956]
+    { k: 'disp', nm: '이동(직접일 때)', o: 'Displacement', t: 'int', d: 26, min: 2, max: 200 },   // [S1956]
+    { k: 'lnConv', nm: '전환선 보이기(앱)', o: '—', t: 'bool', d: true, app: true },   // [S1956]
+    { k: 'lnBase', nm: '기준선 보이기(앱)', o: '—', t: 'bool', d: true, app: true },   // [S1956]
+    { k: 'lnLag', nm: '후행스팬 보이기(앱)', o: '—', t: 'bool', d: true, app: true },   // [S1956]
+    { k: 'cloud', nm: '구름 보이기(앱)', o: '—', t: 'bool', d: true, app: true },   // [S1956]
+    { k: 'sigI', nm: '일목▲▼ 표시(Ichi Buy · Sell · 앱 기본 끔)', o: 'plotshape Ichi Buy / Ichi Sell', t: 'bool', d: false, app: true },   // [S1956]
+    { k: 'sigC', nm: '구름▲▼ 표시(Cloud Buy · Sell · 앱 기본 끔)', o: 'plotshape Cloud Buy / Cloud Sell', t: 'bool', d: false, app: true }   // [S1956]
+  ],   // [S1956]
+  legend: p => 'Ichimoku ' + ichiLen(p).join(' '),   // [S1956]
+  calc: ichiCalc,   // [S1956]
+  range(R, s, e, p, out) { for (let i = s; i < e; i++) { if (p.cloud) { const t = i - R.k; if (t >= 0) { if (fin(R.A[t])) out.push(R.A[t]); if (fin(R.B[t])) out.push(R.B[t]); } }   // [S1956]
+    if (p.lnConv && fin(R.conv[i])) out.push(R.conv[i]); if (p.lnBase && fin(R.base[i])) out.push(R.base[i]); } },   // [S1956]
+  draw(ctx, R, G, p) { const k = R.k, ln = (val, col, w) => { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); let on = false; for (let i = G.s; i < G.e; i++) { const v = val(i); if (!fin(v)) { on = false; continue; } const x = G.x(i), y = G.y(v); if (!on) { ctx.moveTo(x, y); on = true; } else ctx.lineTo(x, y); } ctx.stroke(); ctx.restore(); };   // [S1956]
+    if (p.cloud) { const a = i => (i - k >= 0) ? R.A[i - k] : NaN, b = i => (i - k >= 0) ? R.B[i - k] : NaN;   // [S1956]
+      ctx.save(); for (let i = Math.max(G.s + 1, 1); i < G.e; i++) { const a0 = a(i - 1), a1 = a(i), b0 = b(i - 1), b1 = b(i); if (![a0, a1, b0, b1].every(fin)) continue;   // [S1956]
+        ctx.fillStyle = a1 > b1 ? ICHI_COL.up : ICHI_COL.dn; ctx.beginPath(); ctx.moveTo(G.x(i - 1), G.y(a0)); ctx.lineTo(G.x(i), G.y(a1)); ctx.lineTo(G.x(i), G.y(b1)); ctx.lineTo(G.x(i - 1), G.y(b0)); ctx.closePath(); ctx.fill(); }   // 원본 fill 색 = 그 자리 선행A > 선행B   // [S1956]
+      ctx.restore(); ln(a, ICHI_COL.a, 1); ln(b, ICHI_COL.b, 1); }   // [S1956]
+    if (p.lnConv) ln(i => R.conv[i], ICHI_COL.conv, 1.2); if (p.lnBase) ln(i => R.base[i], ICHI_COL.base, 1.2);   // [S1956]
+    if (p.lnLag) ln(i => (i + k < R.n) ? R.C[i + k] : NaN, ICHI_COL.lag, 1);   // 후행스팬 = 종가를 이동 − 1 칸 왼쪽에   // [S1956]
+    for (let i = G.s; i < G.e; i++) { if (p.sigI) { if (R.ib[i]) G.label(i, '일목▲', '#16a34a', false); if (R.is[i]) G.label(i, '일목▼', '#dc2626', true); }   // [S1956]
+      if (p.sigC) { if (R.cb[i]) G.label(i, '구름▲', '#16a34a', false); if (R.cs[i]) G.label(i, '구름▼', '#dc2626', true); } } }   // [S1956]
+});   // [S1956]
+if (typeof module !== 'undefined' && module.exports) module.exports = { staCalc, stAny, atrAny, rngfilt, smoothrng, srcOf, ictObCalc, msbCalc, pobCalc, kzpCalc, acp2: CP_ACP2, wsbCalc, ichiCalc };   // [S1919] ⑥ · [S1925] ⑦ · [S1956] ⑧
 })();
