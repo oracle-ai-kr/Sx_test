@@ -3107,9 +3107,10 @@ function _trGDead(sc, cfg, which){
   return r;
 }
 function _stratDefaults(){ return { _ver:_STRAT_VER, cross:true, pb:false, dc:true, cell:false, bb:true, grid3:true, pure:false, rgGate:false, xSplit:false, exDead:true, exFake:true, exDown:false, exCellFake:false, deadGrace:0, deadGraceLast:10, minK:1, exNBars:0, exNBarsLast:10,   /* [S1685] 유예 기억칸 — 칩을 껐다 켜면 마지막 값으로 돌아온다(`exNBarsLast`와 같은 규약). ⚠`_STRAT_RESET_SCOPE.strat=null`(전건)이라 리셋 사정거리에 **자동으로** 든다 — 손 목록 신설 없음(S1272). */ fee:false, feePct:0.2, xGate3:false, slOn:true, slMult:null, trOn:true, trMult:null, trArm:0, trHigh:false /* [S1848] ⤒ 트레일 기준점 = 장중 고가(기본 끔 · _STRAT_BOOL_KEYS 밖) */, slPctOn:false, slPct:10, tpFromEntry:false, slFromEntry:false, tpPctOn:false, tpPct:30, tpAtrOn:false, tpAtrMult:3, tpFixOn:false, tpFixPct:10, mGate:false, tpFixMg:false, exMa5:false, coinSlope:false, maTrGate:false, trixTrGate:false, maTrGateS:10, maTrGateL:60, txTrGateS:10, txTrGateL:60, emTrGate:false, emTrGateS:9, emTrGateL:26 /* [S1796] 〽️ EMA 게이트(끔 · 사용자 16:12) */, exDeadX:false, tpAtrMz:false, tpAtrUp:6, tpAtrMid:4, tpAtrDn:2, slAtrMz:false, slAtrUp:null, slAtrMid:null, slAtrDn:null, trAtrMz:false, trAtrUp:null, trAtrMid:null, trAtrDn:null, psarG:false, psarX:false, psarAf:0.02, psarMax:0.2, psarGMask:96, bbEnt:0, bbWait:5, bbPsAf:0.02, bbPsMax:0.2, bbExPb:0.5, bbExCap:20, bvReg:1, bvBase:0, bvOsc:73.31, bvVr:389.41 /* [S1753] 🔊 bullVol 묶음 — 국면 비트(1 하락 · 2 혼조 · 4 정배열/상승 · 기본 1 = 하락장만) · 기준 0 = 60·120·200 / 1 = 60·120 · 급증 73.31 · VR 389.41 (전부 종전 동작) */, bbSolo:false, bbNoSelf:false /* [S1751] 자체 청산 끔(= 청산 줄만) — 기본 false */ /* [S1749] 🌀 BB회귀 모듈 — 진입 방식 0 바로·1 첫 반등 봉·2 PSAR 상승 전환 · 대기 5봉 · 전용 PSAR 0.02/0.2 · 청산 %B 0.5·캡 20봉 · 자체 청산만 OFF (전부 종전 동작) */ /* [S1746] 🔵 PSAR 게이트(격자)·하락청산 — 기본 OFF · 가속 0.02·최대 0.2 · 격자 96 = 하락 중 진입 2칸(크로스·다른 진입원) 금지 · S1745 의 psarA/psarB/psarBMask 는 없앴다(저장본에 남아 있어도 안 읽는다) */ /* [S1743] 📅 구간별 SL·트레일 — 기본 OFF · 3칸 null = 단일 배수를 따른다 */ /* [S1740] 📅 구간별 TP_ATR — 기본 OFF · 배수 3칸(상승·혼조·하락) */ }; }   /* [S1700] 🔗 데드=크로스만 기본 OFF — 켜지 않으면 종전과 동치 */   /* [S1694] ★쌍을 칩별로 갈랐다(S1692는 `trGateS`/`trGateL` 한 쌍 공유) — 사용자가 두 게이트를 다른 주기로 쓰려고. 구 키는 defaults에서 뺐지만 **로더가 옛 저장본을 옮겨 심고** `_trGPair`도 폴백으로 읽는다(S1412 저장값 보존). */   /* [S1692] 🧭 추세 게이트 2종 기본 OFF · 공유쌍 10×60. ⚠`_stratPreset`은 bool만 일괄 OFF하고 숫자는 `_stratDefaults()` 값이 그대로 남는다 — 10×60이 곧 프리셋 중립값이라 `deadGrace`/`exNBars`처럼 손으로 되돌릴 줄이 필요 없다. */   /* [S1678] 🪙 COIN 부속 2종 기본 OFF — 시즌2 워커에 둘 다 없다(확인함) */   // [S1600] · [S1599] 📅 월봉게이트 OFF · [S1592] 🎯TP고정 OFF·10 · 기본=하이브리드 재현 · [S1117] minK=real 겹침 임계·exNBars=보유 N봉 컷·exCellFake=칸 fake 청산·fee=왕복 마찰
+function _sxFeeDef(market){ return (market==='kr')?0.2:0.1; }   // [S1955] 왕복 마찰 기본 한 곳 — S1117 값 그대로(KR 0.2 · US · 코인 0.1) · 🧪 _stratCfg 와 🧮 포지션 계산이 같이 씀
 function _stratCfg(market){
   let sc=_stratDefaults();
-  sc.feePct=(market==='kr')?0.2:0.1;   // [S1117] 왕복 마찰 기본: KR 0.2%(수수료 왕복+거래세 근사)·US/COIN 0.1% — 근사치·입력으로 조정
+  sc.feePct=_sxFeeDef(market);   // [S1117] 왕복 마찰 기본: KR 0.2%(수수료 왕복+거래세 근사)·US/COIN 0.1% — 근사치·입력으로 조정 · [S1955] 값은 _sxFeeDef 한 곳
   // [S1563] 시장별 프리셋 — **S1117 `feePct` 분기 뒤**에 둔다.
   //   ⚠앞에 두면 그 분기가 프리셋 `feePct`(3시장 전부 0.2)를 US·COIN에서 0.1로 덮어쓴다(초판이 그랬고 배터리가 잡았다).
   //   ⚠**저장값보다는 위에 있지 않다** — 아래 로더가 저장값으로 다시 덮으므로 사용자 설정이 여전히 이긴다.
@@ -3913,11 +3914,14 @@ function _sxRrCalc(tab, mk, rows, c, bt, cc){ const n=(rows && rows.length)||0; 
   const pg=pick(_SX_RR_TP, G, T0.g), tg=pg.k?G[pg.k].v:NaN, fee=(bt && isFinite(+bt.feePct) && +bt.feePct>0)?+bt.feePct:0, h=fee/200, acct=_sxRrAcct(O, mk), risk=_sxRrV(O,'r');   // [S1945]
   const R={ tab, mk, en, S, G, X, sl:{ k:ps.k, v:sl, fb:ps.fb }, tg:{ k:pg.k, v:tg, fb:pg.fb }, fee, h, acct, risk, sp, gr, gp, ls:NaN, gn:NaN, rr:NaN, q:NaN, cap:false, cost:NaN, lossAmt:NaN, gainAmt:NaN, why:'' };   // [S1945]
   if(!(sl===sl)){ R.why='sl'; return R; }   // [S1945]
-  R.ls=en*(1+h)-sl*(1-h); if(tg===tg){ R.gn=tg*(1-h)-en*(1+h); R.rr=(R.ls>0)?R.gn/R.ls:NaN; }   // [S1945]
-  if(!(R.ls>0)){ R.why='ls'; return R; }   // [S1945]
-  const p=Math.pow(10, (mk==='coin')?4:0), raw=acct*risk/100/R.ls, capQ=acct/(en*(1+h));   // [S1945]
-  R.cap=raw>capQ; R.q=Math.floor((R.cap?capQ:raw)*p+1e-9)/p; R.cost=R.q*en; R.lossAmt=R.q*R.ls; if(R.gn===R.gn) R.gainAmt=R.q*R.gn;   // [S1945]
+  { const M=_sxRrMath(mk, en, sl, tg, fee, acct, risk); R.ls=M.ls; R.gn=M.gn; R.rr=M.rr; if(M.why){ R.why=M.why; return R; } R.cap=M.cap; R.q=M.q; R.cost=M.cost; R.lossAmt=M.lossAmt; R.gainAmt=M.gainAmt; }   // [S1945] · [S1955] 셈 = _sxRrMath 한 곳(옛 넷 줄 식 그대로 옮김 · 🧮 포지션 계산도 씀)
   return R; }   // [S1945]
+function _sxRrMath(mk, en, sl, tg, fee, acct, risk){ const h=fee/200, R={ ls:NaN, gn:NaN, rr:NaN, q:NaN, cap:false, cost:NaN, lossAmt:NaN, gainAmt:NaN, why:'' };   // [S1955] 💼 · 🧮 같은 셈 — 한 주 손실 · 이익(비용 = 왕복 % 를 매수 · 매도에 반씩) · 손익비 · 수량
+  R.ls=en*(1+h)-sl*(1-h); if(tg===tg){ R.gn=tg*(1-h)-en*(1+h); R.rr=(R.ls>0)?R.gn/R.ls:NaN; }   // [S1955] 옛 _sxRrCalc 줄 그대로
+  if(!(R.ls>0)){ R.why='ls'; return R; }   // [S1955]
+  const p=Math.pow(10, (mk==='coin')?4:0), raw=acct*risk/100/R.ls, capQ=acct/(en*(1+h));   // [S1955] 수량 = 내림(계좌 × 위험 % ÷ 한 주 손실) · 계좌 전액 상한 · 코인 소수 넷째 자리
+  R.cap=raw>capQ; R.q=Math.floor((R.cap?capQ:raw)*p+1e-9)/p; R.cost=R.q*en; R.lossAmt=R.q*R.ls; if(R.gn===R.gn) R.gainAmt=R.q*R.gn;   // [S1955]
+  return R; }   // [S1955]
 function _sxRrFa(mk, v){ if(!(v===v && isFinite(v))) return '—'; const a=Math.abs(v); return (mk==='us')?('$'+(+a.toFixed(2)).toLocaleString(undefined, { minimumFractionDigits:2, maximumFractionDigits:2 })):(Math.round(a).toLocaleString()+'원'); }   // [S1945] 금액(부호 따로)
 function _sxRrQf(mk, q){ return (mk==='coin')?((+(+q).toFixed(4)).toLocaleString(undefined, { maximumFractionDigits:4 })+'개'):(Math.round(+q).toLocaleString()+'주'); }   // [S1945]
 function _sxRrPc(v, en){ const x=(v/en-1)*100; return ((x<0)?'−':'+')+Math.abs(x).toFixed(1)+'%'; }   // [S1945]
@@ -3945,9 +3949,10 @@ function _sxRrRowHtml(tab, mk, rows, bt){ try{ const c=_sxRgCfgOf(tab, mk); if(!
   const fb=(R.sl.fb?(' · 고른 '+CN(R.sl.fb)+' 이 지금 흐려('+E(R.S[R.sl.fb].why)+') '+CN(sk)+' 로 셈'):'')+(R.tg.fb?(' · 고른 '+CN(R.tg.fb)+' 이 지금 흐려('+E(R.G[R.tg.fb].why)+') '+CN(gk)+' 로 셈'):'');   // [S1945]
   h+='<div data-rr-foot="1" style="font-size:9px;color:var(--text3);margin-top:5px;line-height:1.45">'+sw+(gw?(' · '+gw):'')+fb+' · 흐린 칩 = 꺼져 있거나 지금 봉에서 셀 수 없음 · 수량 = 내림(계좌 × 위험 % ÷ 한 '+((mk==='coin')?'개':'주')+' 손실)'+((tab==='turtle')?' · 🐢 💼 수량 칩(유닛 = 자산 1% ÷ N)과는 따로 셈만 함':'')+' · 계좌 · 위험 % · 고른 칩은 ⚔️ 조건검색 결과 💼 줄도 같이 씀 · 실제 체결가 · 미끄러짐은 다름 · 성적 주장 없음</div></div>';   // [S1945]
   return h; }catch(_e){ return ''; } }   // [S1945]
+function _sxRrPutAR(O, k, v){ if(k==='a'){ const x=+String(v).replace(/[^0-9.]/g, ''); if(isFinite(x) && x>0) O.a=Math.min(1e13, x); else delete O.a; }   // [S1955] 계좌 · 위험 % 저장 한 곳(옛 _sxRrSet 두 줄 그대로 · 💼 · 🧮)
+  else if(k==='r'){ const x=_sxRrV({ r:v }, 'r'); if(x!==_SX_RR_K.r[2]) O.r=x; else delete O.r; } }   // [S1955] 기본 = 키 지움
 function _sxRrSet(tab, k, v){ const ctx=(typeof window!=='undefined')?window._sxTrendCtx:null; if(!ctx) return; const m=ctx.market, O=_sxRrLoad(m);   // [S1945] 칩 · 칸 → SX_RRQ_<시장> 만 씀
-  if(k==='a'){ const x=+String(v).replace(/[^0-9.]/g, ''); if(isFinite(x) && x>0) O.a=Math.min(1e13, x); else delete O.a; }   // [S1945]
-  else if(k==='r'){ const x=_sxRrV({ r:v }, 'r'); if(x!==_SX_RR_K.r[2]) O.r=x; else delete O.r; }   // [S1945] 기본 = 키 지움
+  if(k==='a' || k==='r') _sxRrPutAR(O, k, v);   // [S1945] · [S1955] 계좌 · 위험 % = _sxRrPutAR 한 곳(옛 두 줄 그대로 옮김 · 🧮 포지션 계산도 씀)
   else { if(!_SX_RR_SL[tab]) return; if(!O.t || typeof O.t!=='object' || Array.isArray(O.t)) O.t={}; const T=(O.t[tab] && typeof O.t[tab]==='object' && !Array.isArray(O.t[tab]))?O.t[tab]:(O.t[tab]={});   // [S1945]
     if(k==='s'){ if(_SX_RR_SL[tab].indexOf(v)<0) return; T.s=v; } else if(k==='g'){ if(_SX_RR_TP.indexOf(v)<0) return; T.g=v; }   // [S1945]
     else if(k==='nk'){ const o={}; o[k]=v; T.nk=_sxRrV(o, k); }   // [S1945] 🐢 N 배수 = 고친 값 그대로 둠(안 고쳤으면 🐢 손절 배수를 따름)
@@ -17171,6 +17176,72 @@ function _buildCndCard(stock, indicators){ try{ const rows=(indicators&&indicato
   if((!rows || !rows.length) && !nowHtml) return '';
   const cx={ rows:rows||[], tf, nowHtml, tfLbl:(typeof _poolTfLbl==='function'?_poolTfLbl(tf):tf), mk:String((stock && (stock._mkt||stock.market)) || (typeof currentMarket!=='undefined'?currentMarket:'')).toLowerCase() /* [S1920] 🏃 잰 결과 시장 */ }; try{ window._sxCndCtx=cx; }catch(_){} return _cndCardHtml(cx); }catch(_e){ return ''; } }
 if(typeof window!=='undefined'){ window._cndSetTab=_cndSetTab; }
+// [S1955] 🧮 포지션 계산 — 종목 분석 창 🕯️ 캔들 · 차트 읽기 아래 · 계산만 · 판정 아님 · 매수(현물)만 — PREREG_S1955 §1
+//   사용자 2026-11-25 12:36 '손절가와 목표가는 단기매매 탭의 손절 칩과 💰 TP 칩 말고 분석탭에 입력칸을 추가해 줄수 있어? 단기매매는 전략을 찾다보면 값이 계속 흔들리게 돼서' · 14:41 자리 · 기본값 '괜찮아'   [S1955]
+//   셈 = 💼 손익비 · 수량 함수(_sxRrMath) · 계좌 · 위험 % = 💼 저장(SX_RRQ_<시장> a · r · _sxRrPutAR) · 진입 · 손절 · 목표 = 이 카드 칸(종목마다 SX_PC_<시장> s) · 비용 = 왕복 % 칸(SX_PC_<시장> f · 기본 _sxFeeDef)   [S1955]
+//   본전 적중률 = 한 주 손실 ÷ (한 주 손실 + 한 주 이익) — 비용 빼면 손절 폭 ÷ (손절 폭 + 목표 폭) = 1 ÷ (1 + 손익비) · 식 참고: TradingView 위험 계산기 류(LunqFX · ActiveQuants · Anonycryptous · odnac · MPL 2.0) — 코드는 옮기지 않음   [S1955]
+const _PC_MKS=['kr','us','coin'], _PC_KEEP=300;   // [S1955] 시장 · 종목별 저장 상한(넘으면 오래 안 고친 것부터 지움)
+function _pcLoad(mk){ let o=null; try{ o=JSON.parse(localStorage.getItem('SX_PC_'+mk)||'null'); }catch(_){ o=null; } return (o && typeof o==='object' && !Array.isArray(o))?o:{}; }   // [S1955]
+function _pcSave(mk, o){ try{ localStorage.setItem('SX_PC_'+mk, JSON.stringify(o)); }catch(_){} }   // [S1955]
+function _pcNum(s){ const x=parseFloat(String(s==null?'':s).replace(/[^0-9.]/g, '')); return (isFinite(x) && x>0)?x:NaN; }   // [S1955] 칸 글 → 수(쉼표 · 기호 뗌 · 0 이하 = 빈칸)
+function _pcFee(O, mk){ const v=(O && O.f!=null)?+O.f:NaN; return (isFinite(v) && v>=0 && v<=5)?v:_sxFeeDef(mk); }   // [S1955] 왕복 %(0 ~ 5 · 밖이면 기본)
+function _pcVals(cx){ const O=_pcLoad(cx.mk), Q=_sxRrLoad(cx.mk), s=(O.s && O.s[cx.code] && typeof O.s[cx.code]==='object')?O.s[cx.code]:{}, e=+s.e;   // [S1955] 지금 칸 값(저장 → 없으면 기본 · 진입 = 현재가)
+  return { acct:_sxRrAcct(Q, cx.mk), risk:_sxRrV(Q, 'r'), en:(e>0)?e:cx.px, enSet:(e>0), sl:(+s.s>0)?+s.s:NaN, tg:(+s.t>0)?+s.t:NaN, fee:_pcFee(O, cx.mk) }; }   // [S1955]
+function _pcCalc(mk, v){ const en=v.en, sl=v.sl, tg=v.tg;   // [S1955] → { why · M(💼 셈) · d 손절 폭 · t 목표 폭 · rr0 · be0(비용 빼고) · be(비용 넣고) }
+  if(!(en>0)) return { why:'en' }; if(!(sl===sl)) return { why:'sl' }; if(!(sl<en)) return { why:'slhi' };   // [S1955]
+  const tOk=(tg===tg) && tg>en, M=_sxRrMath(mk, en, sl, tOk?tg:NaN, v.fee, v.acct, v.risk), d=en-sl, t=tOk?(tg-en):NaN;   // [S1955]
+  if(M.why) return { why:M.why };   // [S1955]
+  return { why:'', M, d, t, tgBad:(tg===tg) && !tOk, rr0:tOk?t/d:NaN, be0:tOk?d/(d+t):NaN, be:(tOk && M.gn>0)?M.ls/(M.ls+M.gn):NaN, beNo:tOk && !(M.gn>0) }; }   // [S1955]
+function _pcRkTxt(mk, v){ return '% · 한 번에 '+_sxRrFa(mk, v.acct*v.risk/100)+'까지'; }   // [S1955]
+function _pcRel(x, en){ return (x===x && x>0 && en>0)?_sxRrPc(x, en):''; }   // [S1955] 진입가 대비 %(💼 와 같은 글꼴)
+function _pcOutHtml(cx, v){ const mk=cx.mk, C=_pcCalc(mk, v), T2='var(--text2)', T3='var(--text3)', UP='var(--sxc-up,#dc2626)', DN='var(--sxc-dn,#2563eb)', fa=x=>_sxRrFa(mk, x);   // [S1955] 셈 칸(손익 색 = 🧭 · 📐 테마 색 S1950)
+  const pa=x=>((x<0)?'−':((x>0)?'+':''))+Math.abs(x).toFixed(Math.abs(x)<10?2:1)+'%', pp=x=>Math.abs(x).toFixed(Math.abs(x)<10?2:1)+'%';   // [S1955]
+  const row=(k, val, sub, dk)=>'<div data-pc-row="'+dk+'" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:3px 0"><span style="font-size:10.5px;color:'+T2+';white-space:nowrap">'+k+'</span><span style="text-align:right;font-size:12px;font-weight:700;color:var(--text)">'+val+(sub?('<br><span style="font-size:9.5px;font-weight:400;color:'+T3+'">'+sub+'</span>'):'')+'</span></div>';   // [S1955]
+  const msg=(s, dk)=>'<div data-pc-msg="'+dk+'" style="font-size:10.5px;color:'+T2+';padding:6px 0">'+s+'</div>';   // [S1955]
+  if(C.why==='en') return msg('진입가를 넣어 주세요', 'en'); if(C.why==='sl') return msg('손절가를 넣으면 살 수량 · 손익비를 셈해요', 'sl');   // [S1955]
+  if(C.why==='slhi') return msg('손절가가 진입가보다 높거나 같아요 — 매수(현물)만 셈해요', 'slhi'); if(C.why) return msg('셀 수 없어요', 'x');   // [S1955]
+  const M=C.M, unit=(mk==='coin')?'개':'주', one=(mk==='coin')?'0.0001개':'1주'; let h='';   // [S1955]
+  if(!(M.q>0)) h+=msg(one+' 값이 감당할 위험('+fa(v.acct*v.risk/100)+')보다 커요 — 0'+unit+' · 손절을 좁히거나 위험 % 를 올려야 해요', 'q0');   // [S1955]
+  else { h+=row('살 수량', _sxRrQf(mk, M.q), M.cap?('계좌 금액까지로 잘랐어요 — 이때 손절 손실은 계좌의 '+pp(M.lossAmt/v.acct*100)):('위험 금액 '+fa(v.acct*v.risk/100)+' ÷ 한 '+unit+' 손실 '+fa(M.ls)+'(비용 포함)'), 'q');   // [S1955]
+    h+=row('투입 금액', fa(M.cost), '계좌의 '+pp(M.cost/v.acct*100), 'cost');   // [S1955]
+    h+=row('손절에 걸리면', '<span style="color:'+DN+'">−'+fa(M.lossAmt)+'</span>', '계좌 '+pa(-M.lossAmt/v.acct*100)+' · 비용 빼면 −'+fa(M.q*C.d), 'loss'); }   // [S1955]
+  if(C.tgBad) h+=msg('목표가가 진입가보다 낮거나 같아요 — 손익비 · 본전 적중률은 빼요', 'tgbad');   // [S1955]
+  else if(!(C.t===C.t)) h+=msg('목표가를 넣으면 손익비 · 본전 적중률도 셈해요', 'tg');   // [S1955]
+  else { if(M.q>0) h+=row('목표에 닿으면', '<span style="color:'+((M.gainAmt<0)?DN:UP)+'">'+((M.gainAmt<0)?'−':'+')+fa(M.gainAmt)+'</span>', '계좌 '+pa(M.gainAmt/v.acct*100)+' · 비용 빼면 +'+fa(M.q*C.t), 'gain');   // [S1955]
+    h+=row('손익비', '1 : '+C.rr0.toFixed(2), (M.rr===M.rr)?('비용 넣으면 1 : '+M.rr.toFixed(2)):'', 'rr');   // [S1955]
+    if(C.beNo) h+=row('본전 적중률', (C.be0*100).toFixed(1)+'%', '비용이 목표 폭보다 커서 비용 넣으면 목표에 닿아도 본전이 안 돼요', 'be');   // [S1955]
+    else { const b=C.be*100; h+=row('본전 적중률', (C.be0*100).toFixed(1)+'% → '+b.toFixed(1)+'%', '비용 넣은 값 · 열 번 중 '+(b/10).toFixed(1)+'번 넘게 목표에 닿아야 본전', 'be');   // [S1955]
+      h+='<div style="position:relative;height:6px;border-radius:3px;background:var(--surface3);margin:2px 0 4px;overflow:hidden"><div data-pc-bar="1" style="position:absolute;left:0;top:0;bottom:0;width:'+Math.max(0, Math.min(100, b)).toFixed(1)+'%;background:var(--text3)"></div></div>'; } }   // [S1955]
+  return h; }   // [S1955]
+function _pcCardHtml(cx){ const mk=cx.mk, v=_pcVals(cx), T2='var(--text2)', T3='var(--text3)', U=(mk==='us')?'$':'원', un=(mk==='coin')?'개':'주';   // [S1955] 카드 — 칸 여섯 + 셈 칸 + 아래 글
+  const fv=x=>(x===x && x>0)?_turtleFmt(x):'', av=(mk==='us')?(+v.acct.toFixed(2)).toLocaleString(undefined, { maximumFractionDigits:2 }):Math.round(v.acct).toLocaleString();   // [S1955]
+  const inp=(k, val, w)=>'<input data-pc="'+k+'" type="text" inputmode="decimal" autocomplete="off" value="'+val+'" oninput="_pcIn(this)" style="width:'+w+'px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:12px;font-weight:700;text-align:right">';   // [S1955]
+  const line=(lb, body, tail, tid)=>'<div style="display:flex;align-items:center;gap:6px;padding:3px 0"><span style="flex:0 0 58px;font-size:10.5px;color:'+T2+'">'+lb+'</span>'+body+'<span'+(tid?(' id="'+tid+'"'):'')+' style="font-size:10px;color:'+T3+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tail+'</span></div>';   // [S1955]
+  let h='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:13px;font-weight:800;color:var(--text)">🧮 포지션 계산</span><span style="font-size:9.5px;color:'+T3+'">계산만 · 판정 아님 · 매수(현물)만</span></div>';   // [S1955]
+  h+=line('계좌 금액', inp('a', av, 112), U)+line('위험', inp('r', String(v.risk), 44), _pcRkTxt(mk, v), 'sxPcRk');   // [S1955]
+  h+=line('진입가', inp('e', fv(v.en), 96), '<span data-pc-cur="1" onclick="_pcCur()" style="color:var(--text2);font-weight:700;border:1px solid var(--border);border-radius:999px;padding:1px 7px;cursor:pointer;white-space:nowrap">↺ 현재가</span>');   // [S1955]
+  h+=line('손절가', inp('s', fv(v.sl), 96), _pcRel(v.sl, v.en), 'sxPcSp')+line('목표가', inp('t', fv(v.tg), 96), _pcRel(v.tg, v.en), 'sxPcTp');   // [S1955]
+  h+=line('비용(왕복)', inp('f', String(v.fee), 44), '% · 기본 '+_sxFeeDef(mk));   // [S1955]
+  h+='<div id="sxPcOut" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)">'+_pcOutHtml(cx, v)+'</div>';   // [S1955]
+  h+='<div style="margin-top:6px;font-size:8.5px;color:'+T3+';line-height:1.5">읽기 도움 · 판정 아님 · 수량 = 계좌 × 위험 % ÷ 한 '+un+' 손실(비용 포함) · 계좌 전액이 상한 · '+((mk==='coin')?'소수 넷째 자리':'1주 단위')+'로 내림 · 비용 = 왕복 % 를 매수 · 매도에 반씩(기본 KR 0.2 · US · 코인 0.1 — 🧪 전략조합 프리셋은 3시장 0.2 · 다르면 칸에서 고쳐요) · 갭이 나면 손절가보다 더 밀릴 수 있어요<br>계좌 · 위험 % 는 단기매매 💼 줄과 같은 값(한쪽에서 바꾸면 같이 바뀜) · 진입 · 손절 · 목표 · 비용은 이 카드 칸(진입 · 손절 · 목표는 종목마다) · 이 기기에만 저장 · 단기매매 칩 값과 따로<br>식 참고: TradingView 위험 계산기 류(LunqFX · ActiveQuants · Anonycryptous · odnac) — 코드는 옮기지 않음</div>';   // [S1955]
+  return '<div class="anal-header-card" id="sxPcCard" data-mk="'+mk+'" style="margin-top:10px;text-align:left">'+h+'</div>'; }   // [S1955]
+function _pcPaint(){ try{ const cx=window._sxPcCtx, c=document.getElementById('sxPcCard'); if(!cx || !c) return; const v=_pcVals(cx);   // [S1955] 저장값으로 다시 셈 — 칸 글은 안 건드림(쓰는 중 커서 그대로)
+  const o=document.getElementById('sxPcOut'); if(o) o.innerHTML=_pcOutHtml(cx, v); const rk=document.getElementById('sxPcRk'); if(rk) rk.textContent=_pcRkTxt(cx.mk, v);   // [S1955]
+  const sp=document.getElementById('sxPcSp'); if(sp) sp.textContent=_pcRel(v.sl, v.en); const tp=document.getElementById('sxPcTp'); if(tp) tp.textContent=_pcRel(v.tg, v.en); }catch(_){} }   // [S1955]
+function _pcIn(el){ try{ const cx=window._sxPcCtx; if(!cx || !el) return; const k=el.getAttribute('data-pc'), raw=el.value, mk=cx.mk;   // [S1955] 칸을 고칠 때마다 저장 → 셈 칸 · 곁 글만 다시 그림
+  if(k==='a' || k==='r'){ const Q=_sxRrLoad(mk); _sxRrPutAR(Q, k, raw); try{ localStorage.setItem('SX_RRQ_'+mk, JSON.stringify(Q)); }catch(_){} }   // [S1955] 💼 와 같은 저장 · 같은 함수
+  else if(k==='f'){ const O=_pcLoad(mk), x=parseFloat(String(raw).replace(/[^0-9.]/g, '')); if(isFinite(x) && x>=0 && x<=5 && x!==_sxFeeDef(mk)) O.f=x; else delete O.f; _pcSave(mk, O); }   // [S1955] 기본 = 키 지움
+  else if(k==='e' || k==='s' || k==='t'){ const O=_pcLoad(mk); if(!O.s || typeof O.s!=='object' || Array.isArray(O.s)) O.s={}; const S=(O.s[cx.code] && typeof O.s[cx.code]==='object')?O.s[cx.code]:{}; delete O.s[cx.code];   // [S1955] 고친 종목을 맨 뒤로
+    const x=_pcNum(raw); if(x===x) S[k]=x; else delete S[k]; if(Object.keys(S).length) O.s[cx.code]=S; const ks=Object.keys(O.s); for(let i=0;i<ks.length-_PC_KEEP;i++) delete O.s[ks[i]]; _pcSave(mk, O); }   // [S1955]
+  else return; _pcPaint(); }catch(_){} }   // [S1955]
+function _pcCur(){ try{ const cx=window._sxPcCtx; if(!cx) return; const O=_pcLoad(cx.mk); if(O.s && O.s[cx.code]){ delete O.s[cx.code].e; if(!Object.keys(O.s[cx.code]).length) delete O.s[cx.code]; _pcSave(cx.mk, O); }   // [S1955] ↺ 진입가 = 현재가(저장 지움)
+  const el=document.querySelector('#sxPcCard input[data-pc="e"]'); if(el) el.value=_turtleFmt(cx.px); if(typeof _sxVib==='function') _sxVib(8); _pcPaint(); }catch(_){} }   // [S1955]
+function _buildPcCard(stock, indicators){ try{ const mk=String((stock && (stock._mkt||stock.market)) || (typeof currentMarket!=='undefined'?currentMarket:'')).toLowerCase();   // [S1955] 🕯️ 카드와 같은 시장 읽기
+  if(_PC_MKS.indexOf(mk)<0 || !stock || !stock.code) return '';   // [S1955]
+  const rows=(indicators && indicators._advanced && Array.isArray(indicators._advanced.rows))?indicators._advanced.rows:(Array.isArray(stock._lastAnalCandles)?stock._lastAnalCandles:[]), lr=rows.length?rows[rows.length-1]:null;   // [S1955]
+  const px=(+stock.price>0)?+stock.price:(lr?+((lr.close!=null)?lr.close:lr.c):NaN); if(!(px>0)) return '';   // [S1955] 진입 기본 = 현재가(없으면 마지막 봉 종가)
+  const cx={ mk, code:String(stock.code), px }; try{ window._sxPcCtx=cx; }catch(_){} return _pcCardHtml(cx); }catch(_e){ return ''; } }   // [S1955]
+if(typeof window!=='undefined'){ window._pcIn=_pcIn; window._pcCur=_pcCur; }   // [S1955]
 function _buildPredictLab(inner){
   return '<div id="sxPredLab" style="margin:14px 0 10px;padding:10px 8px 0;border-radius:14px;border:1px solid #7c3aed55;background:#7c3aed0a">'
     + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 4px">'
@@ -22510,7 +22581,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1954';   // [S1954] 작은 회색 글(--text3) · 차콜 2단 글 = 테마 바탕 · 카드 · 안쪽 칸 대비 4.5 : 1 이상(홈 · 스크리너 · 시즌2 같은 값) · 흰 상자 둘 안 회색 글 고정
+  window.SX_BUILD='S1955';   // [S1955] 🧮 포지션 계산(종목 분석 창 · 💼 셈 한 곳 _sxRrMath) · 시즌2 🛑 손절선 · 열린 위험
+  //window.SX_BUILD='S1954';   // [S1954] 작은 회색 글(--text3) · 차콜 2단 글 = 테마 바탕 · 카드 · 안쪽 칸 대비 4.5 : 1 이상(홈 · 스크리너 · 시즌2 같은 값) · 흰 상자 둘 안 회색 글 고정
   //window.SX_BUILD='S1951';   // [S1951] 📐 · 🧭 색 칩 글자색 = 칩 바탕 대비 4.5 : 1 이상(🧭 칩 다섯 · 📐 눌린 탭 셋 → 진한 글 · 바탕색 그대로)
   //window.SX_BUILD='S1950';   // [S1950] 📐 · 🧭 카드 글자색 = 테마별(카드 바탕 대비 4.5 : 1 이상) · 🧭 띠 평소 칸 = 어두운 테마에서 낮춤
   //window.SX_BUILD='S1949';   // [S1949] 📐 · 🧭 카드 안 작은 고침 — 누름 칸 24px · 이격 탭 버튼 · 그림 이름 · 빈 칸 색 = 테마 · 그림 글 8.5px 이상
@@ -28442,6 +28514,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
     ${(()=>{ try{ return _buildStructCard(stock, indicators, qs); }catch(_eSp1947){ console.warn('[S1947] 구조 위치 카드 실패', _eSp1947); return ''; } })()}<!-- [S1947] 📐 구조 위치 — 🧭 추세 읽기 바로 아래(옛 자리에서 옮김) -->
     ${(()=>{ try{ return _buildPredSumCard(stock, indicators); }catch(_ePs1931){ console.warn('[S1931] 예측 모아보기 카드 실패', _ePs1931); return ''; } })()}<!-- [S1931] 🔮 예측 모아보기(읽기 도움 · 판정 아님) — 추세 읽기 카드 아래 · 값 = 각 카드가 그린 값 -->
     ${(()=>{ try{ return _buildCndCard(stock, indicators); }catch(_eCnd1846){ console.warn('[S1846] 캔들 · 차트 읽기 카드 실패', _eCnd1846); return ''; } })()}<!-- [S1846] 🕯️ 캔들 · 차트 읽기 카드(보여주기 · 옛 캔들 패턴 칸 병합) — 추세 읽기 카드 아래 -->
+    ${(()=>{ try{ return _buildPcCard(stock, indicators); }catch(_ePc1955){ console.warn('[S1955] 포지션 계산 카드 실패', _ePc1955); return ''; } })()}<!-- [S1955] 🧮 포지션 계산(계산만 · 판정 아님 · 매수(현물)만) — 🕯️ 캔들 · 차트 읽기 아래 -->
     <div class="anal-header-card" style="margin-top:10px">
       <!-- [S969→S970] 레시피 해석 카드 — 구 점수축 카드2(threeStageReport 판정) + S69 실전가이드(_pgShared) 대체.
            설계: SIGNALX_시즌1_해석전환_설계.md. 시즌1 = "레시피의 구도적 해석기"(판정 아님).
