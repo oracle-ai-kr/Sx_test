@@ -134,8 +134,8 @@ const SX_CONDITIONS = [
       {id:'recent_n_change',name:'최근 N봉 대비 상승률',type:'range',unit:'%',min:-50,max:100,default:{min:null,max:null},source:'calc_candle',desc:'(현재가-N봉전 시작가)÷N봉전×100. max 15~25% 설정 시 단기 급등 추격 방어. N봉수는 _recent_n_bars(기본 5봉)에서 조정',recommend:'~15 (단기 급등 방어) / 20↑ (강한 모멘텀)'},
     ]},
     {id:'ta_ichimoku',name:'일목균형표',conditions:[
-      {id:'ichimoku_cloud',name:'구름 위치',type:'select',options:['설정안함','구름 위 (강세)','구름 안 (중립)','구름 아래 (약세)'],default:'설정안함',source:'calc_candle',desc:'가격 vs 구름대 - 구름 위=강세 추세, 안=불확실, 아래=약세'},
-      {id:'ichimoku_twist',name:'구름 전환',type:'select',options:['설정안함','양운 전환 (상승)','음운 전환 (하락)'],default:'설정안함',source:'calc_candle',desc:'미래 구름 색상 변화 - 양운 전환=대전환 신호, 음운 전환=하락 신호'},
+      {id:'ichimoku_cloud',name:'구름 위치',type:'select',options:['설정안함','구름 위 (강세)','구름 안 (중립)','구름 아래 (약세)'],default:'설정안함',source:'calc_candle',desc:'가격 vs 26봉 뒤 구름(오늘 계산 · 차트에선 오른쪽 빈 곳에 그려지는 구름 — 지금 캔들 아래 구름 아님) - 구름 위=강세 추세, 안=불확실, 아래=약세'},   // [S1956] 설명 글만 · 셈 그대로
+      {id:'ichimoku_twist',name:'구름 전환',type:'select',options:['설정안함','양운 전환 (상승)','음운 전환 (하락)'],default:'설정안함',source:'calc_candle',desc:'26봉 뒤 구름 색 변화(오늘 계산 · 차트에선 오른쪽 빈 곳) - 양운 전환=대전환 신호, 음운 전환=하락 신호'},   // [S1956] 설명 글만 · 셈 그대로
     ]},
     {id:'ta_volume',name:'거래량 지표',conditions:[
       {id:'obv_trend',name:'OBV 추세',type:'select',options:['설정안함','상승 추세','하락 추세','OBV 다이버전스 (가격↓ OBV↑)'],default:'설정안함',source:'calc_candle',desc:'누적 거래량 - OBV 다이버전스=세력 매집 신호 (강력)'},
