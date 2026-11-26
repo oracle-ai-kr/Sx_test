@@ -1,3 +1,4 @@
+// [S1859] 🧪 신호 실험 칩 44(31 + 새 13 · 안 잰 스크립트) — 조립 = offline/mlsig3/gen_lab3.js · 정의 = offline/bat/PREREG_S1859_siglab3.md §0 · 새 칩 출처 = offline/mlsig3/sources3.md · 앞 31칩 = 아래 S1858 조립 바이트 그대로(9ba9064b61ae)
 // [S1858] 🧪 신호 실험 칩 31(17 + 새 14) — 조립 = offline/mlsig2/gen_lab2.js · 정의 = offline/bat/PREREG_S1858_siglab2.md §0 · 새 칩 출처 = offline/mlsig2/sources2.md · 앞 17칩 = 아래 S1854 조립 바이트 그대로(b0321cf1c503)
 // sx_sig_lab.js — [S1854] 🧪 신호 실험 칩 — 매수 · 매도 신호 34개(TradingView 공개 스크립트 17가지 → JS · 봉마다 파인 그대로) + 카드 셈
 //   읽기 도움 · 판정 아님 · 실험 도구 — 정의 = offline/bat/PREREG_S1854_siglab.md §0 · §1 · 출처 = offline/mlsig/sources.md
@@ -798,6 +799,508 @@ function labChips2(rows, intra) { const R = labChips(rows, intra); R.info.err = 
   for (const id of ["zl","ht","gtf","rswb","st3x","jst","strv","stx","vwst","src","srlr","bn","lg","mlr"]) { let r = null; try { r = NEW_FN[id](rows, intra, T_); } catch (e) { r = null; R.info.err[id] = String(e && e.message || e); }
     R.buy[id] = (r && r.B) ? r.B : new Uint8Array(rows.length); R.sell[id] = (r && r.S) ? r.S : new Uint8Array(rows.length); }
   return R; }
-if(typeof window!=='undefined') window.SXSigLab = { CHIP_IDS: CHIP_IDS2, chips: labChips2, card: (typeof labCard==='function')?labCard:null, comb: (typeof labComb==='function')?labComb:null };
-if(typeof module!=='undefined' && module.exports) module.exports = { CHIP_IDS: CHIP_IDS2, CHIP_IDS17: CHIP_IDS, labChips: labChips2, labChips17: labChips, NEW_FN, astDir, mlmiPred, knnsSig, logrSig, labCard, labComb };
+// ── chips_h1.js(991a2f29cd6b) 글자 그대로 — module.exports 한 줄만 뺌 ──
+const H1 = (function(){
+// chips_h1.js — 묶음 h1 · 🧪 신호 실험 카드 새 칩 다섯(dcema · dcbo · dcatr · dctr · knnh) · S1859 준비 · 측정 전용 · 2026-11-01
+//   원문: TradingView 공개 스크립트(src/ 다섯 파일 · 정의 = defs_h1.md) · 다섯 모두 앞에서 잰 적 없음(칩 꼬리표 "안 잼")
+//   약속: <id>Sig(rows, intra, T) → { B, S, info } · B · S = Uint8Array(n) · 1 = 그 봉에 신호 · T = offline/_pta.js 함수 묶음(fin · sma · ema · atr · highest · lowest · rsi 만 씀)
+//   이미 칩이 된 같은 꼴 계산은 글자 그대로(줄 앞 빈칸까지) 칩 함수 **안에** 넣었다(이름 겹침 없게) — 자리마다 원본 경로 · 줄 · md5(앞 12자리, 줄 묶음 끝 줄바꿈 뺌).
+//     /home/claude/work/offline/mlsig/lab_chips.js(56b2ece6d132) 2줄 wma(df28e3a79bc3) · 3~4줄 xUnder · xOver(59d62f7abcd9) · 6줄 dayKey(98fd92965e32) · 9줄 hma(8cda187be73f)
+//     /home/claude/work/offline/mlsig2/chips_g1b.js(9400671e185c) 15~20줄 pineST(24139b10471d · = offline/fluxpv/meas_pv.js 93~98줄)
+//   na = NaN · na 와의 비교는 거짓 · 봉 t 의 신호는 0 … t 봉만 씀.
+
+// ── 시각 읽기(dcbo · dcatr 각자 · 이름 앞에 칩 id) — dayKey 와 같은 읽기: 10~13자리 숫자 = 유닉스(초 · 밀리초) · 그 밖 글자 = 한국 시각(−9시간) · 8자리 'YYYYMMDD'(dcbo 만) = 그날 00:00 UTC
+function dcbo_ms(d) { const z = String(d); if (/^\d{8}$/.test(z)) return Date.UTC(+z.slice(0, 4), +z.slice(4, 6) - 1, +z.slice(6, 8)); if (/^\d{10,13}$/.test(z)) return +z < 1e12 ? +z * 1000 : +z; const ms = new Date(z.slice(0, 19) + 'Z').getTime(); return Number.isFinite(ms) ? ms - 9 * 3600e3 : NaN; }
+// 차트 틀(분) = 이웃 봉 시각 차(> 0)의 중앙값(짝수 개면 위쪽 가운데) · 못 읽으면 NaN
+function dcbo_tfMin(rows) { const g = []; for (let t = 1; t < rows.length; t++) { const a = dcbo_ms(rows[t - 1].date), b = dcbo_ms(rows[t].date); if (Number.isFinite(a) && Number.isFinite(b) && b > a) g.push((b - a) / 60000); } if (!g.length) return NaN; g.sort((x, y) => x - y); return g[g.length >> 1]; }
+function dcatr_ms(d) { const z = String(d); if (/^\d{10,13}$/.test(z)) return +z < 1e12 ? +z * 1000 : +z; const ms = new Date(z.slice(0, 19) + 'Z').getTime(); return Number.isFinite(ms) ? ms - 9 * 3600e3 : NaN; }
+
+// ── dcema · Custom Donchian Channel Breakout with EMA Filter (원문 8fa2778d7ead · 전략 · 작성자 · 라이선스 머리 없음) ──
+//   longCondition = ta.crossover(close, ta.highest(high[1], 20)) and close > ta.ema(close, 200)
+//   원문 진입이 `longCondition and strategy.position_size == 0` 이고 청산 손절가가 진입 때 정해져 포지션 상태에 기대므로 포지션을 흉내 낸다(BRIEF 예외 규칙).
+//   매수 = 빈 손일 때 longCondition 인 봉(= strategy.entry 가 나가는 봉) · 매도 = 들고 있을 때 close < 손절가 인 봉(= strategy.close 가 나가는 봉)
+//   주문은 다음 봉 시가에 체결(process_orders_on_close 기본 false) · 손절가 = 진입 신호 봉 close − 2 × ATR14 · 들고 있는 봉마다 max(손절가, ta.lowest(low[1], 20))
+function dcemaSig(rows, intra, T) {
+  const n = rows.length, H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close), fin = T.fin;
+  // ↓ 글자 그대로: /home/claude/work/offline/mlsig/lab_chips.js (56b2ece6d132) 3~4줄 — xUnder · xOver 59d62f7abcd9
+const xUnder = (a, b, t) => t > 0 && fin(a[t]) && fin(b[t]) && fin(a[t - 1]) && fin(b[t - 1]) && a[t] < b[t] && a[t - 1] >= b[t - 1];
+const xOver = (a, b, t) => t > 0 && fin(a[t]) && fin(b[t]) && fin(a[t - 1]) && fin(b[t - 1]) && a[t] > b[t] && a[t - 1] <= b[t - 1];
+  const H1 = H.map((v, t) => t > 0 ? H[t - 1] : NaN), L1 = L.map((v, t) => t > 0 ? L[t - 1] : NaN);   // high[1] · low[1](첫 봉 na)
+  const up = T.highest(H1, 20), lo = T.lowest(L1, 20), E = T.ema(C, 200), A = T.atr(H, L, C, 14);
+  const B = new Uint8Array(n), S = new Uint8Array(n), info = { rawB: 0, entries: 0, exits: 0, openAtEnd: 0 };
+  let pos = 0, pendE = false, pendX = false, sl = NaN;
+  for (let t = 0; t < n; t++) {
+    if (pendE) { pos = 1; pendE = false; }   // 앞 봉 종가에 낸 주문 → 이 봉 시가 체결
+    if (pendX) { pos = 0; pendX = false; }
+    const lc = xOver(C, up, t) && C[t] > E[t];
+    if (lc) info.rawB++;
+    if (lc && pos === 0) { B[t] = 1; pendE = true; sl = C[t] - (A[t] * 2.0); info.entries++; }   // 원문 30~32줄
+    if (pos > 0) { sl = Math.max(sl, lo[t]); if (C[t] < sl) { S[t] = 1; pendX = true; info.exits++; } }   // 원문 36~41줄
+  }
+  info.openAtEnd = (pos > 0 || pendE) && !pendX ? 1 : 0;
+  return { B, S, info };
+}
+
+// ── dcbo · Donchian Breakout (millerrh · Revision 4 · 원문 f2fefc6190c3 · 전략 · 라이선스 머리 없음) ──
+//   기본 'Execute Trades On…' = 'Wick': strategy.entry('Long', stop = ta.highest(high, 20)) 를 봉마다 내고 · strategy.exit(stop = ta.lowest(low, 10)) 를 봉마다 냄
+//   매수 = 앞 봉에 낸 진입 스톱이 이 봉에서 닿음: high ≥ dcUpper[t−1] 이고 앞 봉 주문이 살아 있음(= 원문 변수 buySignal_close 의 Wick 꼴 · 주문 체결 · 포지션 상태 없이)
+//   매도 = 원문 변수 sellSignal = low ≤ stop[1](Wick · useTightStop 기본 false → stop = dcLower) = 앞 봉에 낸 청산 스톱이 이 봉에서 닿음(포지션 상태 없이)
+//   앞 봉 주문이 살아 있음 = buyConditions(기본값에선 기간 조건뿐 · 자료가 모두 2019-01-01 06:00 UTC 뒤라 늘 참으로 둠) 이고 그 봉에 strategy.cancel 이 안 남
+//   strategy.cancel('Long', when = not maRising and nz(maRising[1])) 은 기울기 거름이 꺼져 있어도 늘 돈다(원문 176줄) → 그 봉에 낸 진입 스톱이 지워져 다음 봉엔 진입 주문이 없음
+//   maRising = request.security(D, ta.rising(request.security(D, ta.sma(close, 5)), 1)) · 차트 틀 ≥ 1일이면 차트 봉 값 · 1일보다 짧으면 dayKey 하루로 묶은 '지금까지의 부분 봉' 값(lookahead_off)
+function dcboSig(rows, intra, T) {
+  const n = rows.length, H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close), fin = T.fin;
+  // ↓ 글자 그대로: /home/claude/work/offline/mlsig/lab_chips.js (56b2ece6d132) 6줄 — dayKey 98fd92965e32
+const dayKey = (d, intra) => { if (!intra) return d; const z = String(d); if (/^\d{10,13}$/.test(z)) { const ms = +z < 1e12 ? +z * 1000 : +z; return new Date(ms).toISOString().slice(0, 10); } const ms = new Date(z.slice(0, 19) + 'Z').getTime(); return fin(ms) ? new Date(ms - 9 * 3600e3).toISOString().slice(0, 10) : z.slice(0, 10); };   // 한국 시각 글자(업비트) → −9시간 · 숫자(유닉스 시각) → UTC 날짜 · 못 읽으면 앞 10자 — 하루 경계 = 한국 09:00
+  const up = T.highest(H, 20), dn = T.lowest(L, 10), tfMin = dcbo_tfMin(rows), htf = tfMin < 1440, rising = new Uint8Array(n);
+  if (!htf) { const m5 = T.sma(C, 5); for (let t = 1; t < n; t++) rising[t] = m5[t] > m5[t - 1] ? 1 : 0; }   // D ≤ 차트 틀 → 차트 봉 값
+  else { const dc = []; let k0 = null;   // dc = 끝난 하루들의 종가(그날 마지막 봉 종가) · 지금 하루 종가 = 지금 봉 종가
+    for (let t = 0; t < n; t++) { const k = dayKey(rows[t].date, true); if (t > 0 && k !== k0) dc.push(C[t - 1]); k0 = k; const d = dc.length;
+      if (d >= 5) { let a = 0, b = 0; for (let j = d - 4; j < d; j++) a += dc[j]; a += C[t]; for (let j = d - 5; j < d; j++) b += dc[j]; rising[t] = a / 5 > b / 5 ? 1 : 0; } } }
+  const cancel = new Uint8Array(n); for (let t = 1; t < n; t++) cancel[t] = !rising[t] && rising[t - 1] ? 1 : 0;   // na = 거짓
+  const B = new Uint8Array(n), S = new Uint8Array(n), info = { tfMin, htf, nCancel: 0, cancelDrop: 0, overlap: 0 };
+  for (let t = 1; t < n; t++) {
+    if (cancel[t]) info.nCancel++;
+    if (fin(up[t - 1]) && H[t] >= up[t - 1]) { if (!cancel[t - 1]) B[t] = 1; else info.cancelDrop++; }
+    if (fin(dn[t - 1]) && L[t] <= dn[t - 1]) S[t] = 1;
+    if (B[t] && S[t]) info.overlap++;
+  }
+  return { B, S, info };
+}
+
+// ── dcatr · BTC BTCUSD · capital.com · Trailing v3 FINAL(파일 이름 'Donchian Breakout with ATR Trailing Stop (Trend Following)' · 원문 a63e0ea088af · 전략 v6 · 작성자 · 라이선스 머리 없음) ──
+//   매수 = 원문 plotshape(longSignal, "Long breakout") = close > ta.highest(high, 20)[1] and close > ta.ema(close, 200) and not isWkndClose(포지션 상태 없이)
+//   매도 = 숏이 기본 꺼짐(allowShort = false) → 원문 청산 = 롱 포지션이 닫히는 봉(ATR 따라가는 스톱 · 금요일 20시 UTC 뒤 close_all) — 포지션을 흉내 냄
+//   process_orders_on_close = true: 시장가 주문(진입 · close_all)은 그 봉 종가 · 스톱은 낸 봉 종가에 한 번(종가 ≤ 스톱) 보고 다음 봉부터 봉 안(저가 ≤ 스톱)
+//   isWkndClose = dayofweek(time, UTC) 금요일 그리고 hour(time, UTC) ≥ 20 · time = 봉 시작 시각 · 일봉(intra = false)은 늘 거짓(KRX 일봉 시작 09:00 KST = 00시 UTC)
+function dcatrSig(rows, intra, T) {
+  const n = rows.length, H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close), fin = T.fin;
+  const hh = T.highest(H, 20), E = T.ema(C, 200), A = T.atr(H, L, C, 14), wk = new Uint8Array(n);
+  if (intra) for (let t = 0; t < n; t++) { const ms = dcatr_ms(rows[t].date); if (fin(ms)) { const dt = new Date(ms); if (dt.getUTCDay() === 5 && dt.getUTCHours() >= 20) wk[t] = 1; } }
+  const B = new Uint8Array(n), S = new Uint8Array(n), info = { wkBars: 0, entries: 0, exitStopBar: 0, exitStopClose: 0, exitWknd: 0, overlap: 0, openAtEnd: 0 };
+  let pos = 0, avg = NaN, tDist = NaN, tStop = NaN, xStop = NaN, pScr = 0;   // pScr = 앞 봉 스크립트 때 position_size(> 0 → 1)
+  for (let t = 0; t < n; t++) {
+    if (wk[t]) info.wkBars++;
+    const ue = t > 0 ? hh[t - 1] : NaN, slD = A[t] * 2.5;
+    const ls = C[t] > ue && C[t] > E[t] && !wk[t];   // 원문 68줄(allowLong 참 · useTrendFilt 참)
+    if (ls) B[t] = 1;
+    // (가) 봉 안: 앞 봉에 낸(그리고 앞 봉 종가에 안 닿은) 청산 스톱 — 시가가 스톱 밑이어도 저가 ≤ 스톱
+    if (pos > 0 && fin(xStop) && L[t] <= xStop) { pos = 0; S[t] = 1; info.exitStopBar++; }
+    xStop = NaN;
+    // (나) 스크립트(종가 때)
+    const psz = pos; let mkEntry = false, mkClose = false;
+    if (ls && psz === 0 && slD > 0) mkEntry = true;   // 원문 81줄 · not na(qty) ⇔ slDist > 0(자본 > 0 으로 봄)
+    const justIn = psz > 0 && pScr <= 0;
+    if (justIn) { tDist = slD; tStop = avg - tDist; } else if (psz > 0) tStop = Math.max(tStop, H[t] - tDist);   // 원문 93~97줄
+    if (psz > 0) xStop = tStop;   // 원문 105~106줄
+    if (psz === 0) { tDist = NaN; tStop = NaN; }   // 원문 110~112줄
+    if (wk[t] && psz !== 0) mkClose = true;   // 원문 115~116줄
+    pScr = psz;
+    // (다) 종가 처리(process_orders_on_close): 진입(빈 손일 때만) · close_all · 스톱(종가 ≤ 스톱)
+    if (mkEntry) { pos = 1; avg = C[t]; info.entries++; }
+    else if (psz > 0) { if (mkClose) { pos = 0; S[t] = 1; xStop = NaN; info.exitWknd++; } else if (fin(xStop) && C[t] <= xStop) { pos = 0; S[t] = 1; xStop = NaN; info.exitStopClose++; } }
+    if (B[t] && S[t]) info.overlap++;
+  }
+  info.openAtEnd = pos > 0 ? 1 : 0;
+  return { B, S, info };
+}
+
+// ── dctr · Donchian Trend Ranges [AlgoAlpha] (원문 4091b6f3fb2c · 지표 v5 · 작성자 · 라이선스 머리 없음) ──
+//   매수 = alertcondition(ta.crossover(close, fbasis), "Bullish Trend Shift") · 매도 = alertcondition(ta.crossunder(close, fbasis), "Bearish Trend Shift")
+//   basis = (ta.highest(high, 50) + ta.lowest(low, 50)) / 2 · fbasis := basis == basis[1] ? basis : fbasis[1](처음 na · 납작한 봉에서만 새 값)
+function dctrSig(rows, intra, T) {
+  const n = rows.length, H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close), fin = T.fin;
+  // ↓ 글자 그대로: /home/claude/work/offline/mlsig/lab_chips.js (56b2ece6d132) 3~4줄 — xUnder · xOver 59d62f7abcd9
+const xUnder = (a, b, t) => t > 0 && fin(a[t]) && fin(b[t]) && fin(a[t - 1]) && fin(b[t - 1]) && a[t] < b[t] && a[t - 1] >= b[t - 1];
+const xOver = (a, b, t) => t > 0 && fin(a[t]) && fin(b[t]) && fin(a[t - 1]) && fin(b[t - 1]) && a[t] > b[t] && a[t - 1] <= b[t - 1];
+  const u = T.highest(H, 50), l = T.lowest(L, 50), bs = new Float64Array(n), fb = new Float64Array(n), info = { fbFirst: -1, fbChanges: 0 };
+  for (let t = 0; t < n; t++) { bs[t] = (u[t] + l[t]) / 2; fb[t] = (t > 0 && bs[t] === bs[t - 1]) ? bs[t] : (t > 0 ? fb[t - 1] : NaN);
+    if (fin(fb[t]) && info.fbFirst < 0) info.fbFirst = t; if (t > 0 && fin(fb[t]) && fb[t] !== fb[t - 1]) info.fbChanges++; }
+  const B = new Uint8Array(n), S = new Uint8Array(n);
+  for (let t = 1; t < n; t++) { if (xOver(C, fb, t)) B[t] = 1; if (xUnder(C, fb, t)) S[t] = 1; }
+  return { B, S, info };
+}
+
+// ── knnh · KNN Supertrend Horizon [LuxAlgo] (원문 acee1c552e1d · 지표 v6 · CC BY-NC-SA 4.0 · © LuxAlgo) ──
+//   매수 = mlBullish 거짓 → 참(선 · 막대 · 띠 색이 상승으로 바뀐 봉) · 매도 = 참 → 거짓 · 원문엔 alertcondition 이 없다
+//   mlProb = bar_index > 500 일 때만 kNN(k 10 · 창 500 · 특징 rsi(hma(close, 10), 14) · atr(14) / src × 100 · 이웃 표지 = ta.supertrend(3, 10) 방향) · 그 전 50
+//   smoothedProb = ta.ema(mlProb, 20) · > 55 → 참 · < 45 → 거짓 · 그 밖 그대로(처음 거짓)
+//   'Bull/Bear Rejection' 방울(두 번째 신호 꼴)은 칩에 안 씀(defs 에 적음)
+function knnhSig(rows, intra, T) {
+  const T_ = T, n = rows.length, H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close);
+  // ↓ 글자 그대로: /home/claude/work/offline/mlsig/lab_chips.js (56b2ece6d132) 2줄 wma df28e3a79bc3 · 9줄 hma 8cda187be73f
+function wma(src, n) { const N = src.length, o = new Float64Array(N), den = n * (n + 1) / 2; for (let t = 0; t < N; t++) { if (t < n - 1) { o[t] = NaN; continue; } let s = 0; for (let i = 0; i < n; i++) s += (n - i) * src[t - i]; o[t] = s / den; } return o; }
+function hma(src, n) { const a = wma(src, Math.floor(n / 2)), b = wma(src, n), x = new Float64Array(src.length); for (let t = 0; t < src.length; t++) x[t] = 2 * a[t] - b[t]; return wma(x, Math.floor(Math.sqrt(n))); }
+  // ↓ 글자 그대로: /home/claude/work/offline/mlsig2/chips_g1b.js (9400671e185c) 15~20줄 — pineST 24139b10471d(= offline/fluxpv/meas_pv.js 93~98줄 · 파인 ta.supertrend)
+function pineST(H, L, Cc, P, M) { const n = Cc.length, atr = T_.atr(H, L, Cc, P), d = new Float64Array(n), u = new Float64Array(n), st = new Float64Array(n), pd = new Int8Array(n);
+  for (let t = 0; t < n; t++) { const src = (H[t] + L[t]) / 2, ur = src + M * atr[t], dr = src - M * atr[t], pD = (t > 0 && isFinite(d[t - 1])) ? d[t - 1] : 0, pU = (t > 0 && isFinite(u[t - 1])) ? u[t - 1] : 0, c1 = t > 0 ? Cc[t - 1] : NaN;
+    d[t] = (dr > pD || c1 < pD) ? dr : pD; u[t] = (ur < pU || c1 > pU) ? ur : pU;
+    if (t === 0 || !isFinite(atr[t - 1])) pd[t] = 1; else if (st[t - 1] === pU) pd[t] = Cc[t] > u[t] ? -1 : 1; else pd[t] = Cc[t] < d[t] ? 1 : -1;
+    st[t] = pd[t] === -1 ? d[t] : u[t]; }
+  return { st, pd, atr }; }
+  const K = 10, W = 500, src = hma(C, 10), f1 = T.rsi(src, 14), A14 = T.atr(H, L, C, 14), f2 = new Float64Array(n);
+  for (let t = 0; t < n; t++) f2[t] = (A14[t] / src[t]) * 100;
+  const pd = pineST(H, L, C, 10, 3.0).pd, prob = new Float64Array(n), D = new Float64Array(W), info = { knnBars: 0, flips: 0 };
+  let mp = 50.0;
+  for (let t = 0; t < n; t++) {
+    if (t > W) {   // 원문 109~125줄 · 거리 줄 차례 = 지연 1 … 500 · 정렬은 오름차순 · na 는 맨 뒤(Float64Array 정렬)
+      for (let i = 1; i <= W; i++) D[i - 1] = Math.sqrt(Math.pow(f1[t] - f1[t - i], 2) + Math.pow(f2[t] - f2[t - i], 2));
+      const SD = D.slice().sort(), thr = SD[Math.min(K - 1, W - 1)];
+      let bu = 0, be = 0; for (let j = 0; j < W; j++) if (D[j] <= thr) { if ((pd[t - (j + 1)] < 0 ? 1 : -1) > 0) bu += 1; else be += 1; }
+      mp = (bu / (bu + be)) * 100; info.knnBars++;
+    }
+    prob[t] = mp;
+  }
+  const sp = T.ema(prob, 20), B = new Uint8Array(n), S = new Uint8Array(n);
+  let bull = false;
+  for (let t = 0; t < n; t++) { const pv = bull; if (sp[t] > 50 + 5.0) bull = true; else if (sp[t] < 50 - 5.0) bull = false;
+    if (t > 0 && bull !== pv) { info.flips++; if (bull) B[t] = 1; else S[t] = 1; } }
+  return { B, S, info };
+}
+return { dcemaSig, dcboSig, dcatrSig, dctrSig, knnhSig };
+})();
+// ── chips_h2.js(60db8df7ce61) 글자 그대로 — module.exports 한 줄만 뺌 ──
+const H2 = (function(){
+// chips_h2.js — 🧪 신호 실험 칩 묶음 h2(스크립트 다섯 × 매수 · 매도) — S1859 준비 · 측정 전용 · 읽기 도움 · 판정 아님 · 실험 도구(성적 주장 없음) · 안 잰 스크립트
+//   정의 = offline/mlsig3/defs_h2.md · 원문 = offline/mlsig3/src/ · 파인 약속 = offline/_pta.js(fe4a960e2934 · 객체 T 로 받음 · 이 파일 안에서 require 안 함)
+//   꼴: <id>Sig(rows, intra, T) → { B, S, info } · B · S = Uint8Array(n) · 1 = 그 봉에 신호 · 봉 t 의 신호는 0 … t 봉만 씀(피벗은 확정 봉에 찍음)
+//   출처(작성자 · 라이선스 · 우리 앱은 유료화 안 함 · 출처 밝힘):
+//     snd   = Supply and Demand Zones | Flux Charts · © fluxchart · MPL 2.0
+//     srmtf = Support & Resistance (MTF) | Flux Charts · © fluxchart · MPL 2.0
+//     srch2 = Support Resistance Channels('SRchannel' · 옛 판 · Dynamic v2 아님) · © LonesomeTheBlue · MPL 2.0
+//     masr  = Moving Averages as Support Resistance MTF('MtfMaSR') · © LonesomeTheBlue · MPL 2.0
+//     srpro = Support & Resistance Pro Toolkit [LuxAlgo] · © LuxAlgo · CC BY-NC-SA 4.0
+//   앞에서 잰 적 없음(S1859 '안 잼') → 앞 측정 함수 복사 없음. 이미 칩이 된 같은 꼴 계산도 없어(srch2 의 채널 식은 mlsig2 src 와 다름) 모두 _pta 약속으로 새로 짰다.
+//   도우미는 칩 함수 안에 넣었다(조립 때 칩 함수 글자만 떠 붙여도 되게 · 이름이 바깥으로 새지 않게).
+//   날짜를 쓰는 칩: srmtf(봉 시각 · 차트 틀 길이 — 원문이 time 으로 알림 창을 정함) · masr(위 시간 틀 묶기). intra 는 다섯 칩 모두 안 쓴다(날짜 글자 꼴로 읽음).
+'use strict';
+const H2_IDS = ['snd', 'srmtf', 'srch2', 'masr', 'srpro'];
+
+// ── snd · Supply and Demand Zones | Flux Charts — 매수 = 'Bullish Retest' 또는 'Bullish Breakout' · 매도 = 'Bearish Retest' 또는 'Bearish Breakout' ──
+//   기본값 Swing Period 30 · Lookback 2000 · Retest Cooldown 3 · (const) WICK_AVG_BARS 5 · MAX_ZONES 500 · Show · Rank By · Min Held · 그림은 신호와 무관(알림은 보이는 구역만이 아니라 살아 있는 모든 구역)
+function sndSig(rows, intra, T) {
+  const n = rows.length, O = rows.map(r => r.open), H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close), fin = Number.isFinite;
+  const LEN = 30, LOOKBACK = 2000, COOL = 3, WICK = 5, MAXZ = 500, PH = T.pivotHigh(H, LEN, LEN), PL = T.pivotLow(L, LEN, LEN);
+  const sup = [], dem = [], B = new Uint8Array(n), S = new Uint8Array(n), info = { zones: 0, overlapSkip: 0, bullRetest: 0, bearRetest: 0, bullBreakout: 0, bearBreakout: 0 };
+  function sndBounds(t, isSup) { const c = t - LEN; let sw = 0; for (let k = 0; k < WICK; k++) { const j = c - k; sw += isSup ? (H[j] - Math.max(O[j], C[j])) : (Math.min(O[j], C[j]) - L[j]); } const aw = sw / WICK; return isSup ? [H[c], H[c] - aw] : [L[c] + aw, L[c]]; }
+  function sndOverlap(t, top, bot, arr) { for (const z of arr) if (z.active && t - z.cb <= LOOKBACK && bot <= z.top && top >= z.bot) return true; return false; }
+  function sndAdd(t, isSup) { const [top, bot] = sndBounds(t, isSup), ov = sndOverlap(t, top, bot, sup) || sndOverlap(t, top, bot, dem);
+    if (!fin(top) || !fin(bot)) return; if (ov) { info.overlapSkip++; return; }
+    const arr = isSup ? sup : dem; arr.push({ top, bot, cb: t - LEN, last: -1, isSup, active: true, pend: false }); info.zones++; if (arr.length > MAXZ) arr.shift(); }
+  function sndUpdate(t, arr, ev) { const c = C[t], h = H[t], l = L[t];
+    for (const z of arr) {
+      if (z.active && t - z.cb > LOOKBACK) z.active = false;
+      if (!z.active) continue;
+      const thru = (z.isSup && c > z.top) || (!z.isSup && c < z.bot), back = (z.isSup && c < z.bot) || (!z.isSup && c > z.top);
+      let flipped = false, handled = false;
+      if (z.pend && thru) { if (z.isSup) ev.bullB = true; else ev.bearB = true; z.isSup = !z.isSup; flipped = true; z.pend = false; handled = true; }
+      if (z.pend && back) { z.last = t; if (z.isSup) ev.bearR = true; else ev.bullR = true; z.pend = false; handled = true; }
+      if (!handled && !z.pend && thru) z.pend = true;
+      if (z.active && !flipped && !z.pend && !handled && t > z.cb && t - z.last >= COOL) {
+        const reacted = z.isSup ? (h >= z.bot && c < z.bot) : (l <= z.top && c > z.top);
+        if (reacted) { z.last = t; if (z.isSup) ev.bearR = true; else ev.bullR = true; } } } }
+  for (let t = 0; t < n; t++) {
+    if (fin(PH[t])) sndAdd(t, true);
+    if (fin(PL[t])) sndAdd(t, false);
+    const ev = { bullR: false, bearR: false, bullB: false, bearB: false };
+    sndUpdate(t, sup, ev); sndUpdate(t, dem, ev);
+    if (ev.bullR || ev.bullB) B[t] = 1; if (ev.bearR || ev.bearB) S[t] = 1;
+    info.bullRetest += ev.bullR; info.bearRetest += ev.bearR; info.bullBreakout += ev.bullB; info.bearBreakout += ev.bearB; }
+  return { B, S, info }; }
+
+// ── srmtf · Support & Resistance (MTF) | Flux Charts — 매수 = 'New Break' 중 저항선 깨짐 또는 'New Retest' 중 지지선 되시험 · 매도 = 지지선 깨짐 또는 저항선 되시험 ──
+//   기본값 Pivot Length 15 · Strength 1 · Invalidation Close · 시간 틀 1 = 차트("" · 켬) · 2(D) · 3(W) 꺼짐 → 위 시간 틀 없음 · Avoid False Breaks 끔 · Inverse Color 끔 · Show Breaks/Retests 켬 · Show Invalidated 켬
+//   원문 알림은 방향 말이 없다(그 봉에 'B' · 'R' 표가 새로 걸린 선이 있으면 참) — 선 종류(저항 · 지지)로 나눔. 원문 시각 셈(time ± 차트 틀 길이)을 그대로 따른다.
+//   opt(4번째 · 시험 전용 · 운영은 안 넘김): opt.keepX = 지운 표의 x 를 그대로 읽는 판(파인 '지운 label 의 get_x' 가 값을 돌려준다고 볼 때) — smoke 에서 두 판이 같은지 견줌.
+function srmtfSig(rows, intra, T, opt) {
+  const n = rows.length, H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close), fin = Number.isFinite, keepX = !!(opt && opt.keepX);
+  function srmtfTime(d) { const s = String(d); if (/^\d{8}$/.test(s)) return Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)); if (/^\d{10,13}$/.test(s)) return +s < 1e12 ? +s * 1000 : +s;
+    if (/(Z|[+-]\d\d:?\d\d)$/.test(s) && /T/.test(s)) return Date.parse(s); const m = s.match(/^(\d{4})-(\d\d)-(\d\d)(?:[T ](\d\d):(\d\d)(?::(\d\d))?)?/); if (!m) return NaN;
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) - (m[4] != null ? 9 * 3600e3 : 0); }   // 8자리 · 날짜만 = 그날 0시 UTC · 시각 붙은 글자(오프셋 없음) = 한국 시각(업비트) · 숫자 = 유닉스 시각
+  function srmtfTfMs(tm, rs) { const g = []; for (let t = 1; t < tm.length; t++) { const d = tm[t] - tm[t - 1]; if (d > 0) g.push(d); } if (!g.length) return 864e5; g.sort((a, b) => a - b); const med = g[(g.length - 1) >> 1];
+    const daily = rs.every(r => /^(\d{8}|\d{4}-\d\d-\d\d)$/.test(String(r.date))); if (daily) { const dd = med / 864e5; return dd <= 4 ? 864e5 : dd < 25 ? 7 * 864e5 : 2628003e3; } return Math.max(60e3, Math.round(med / 60e3) * 60e3); }   // 차트 틀 = 날짜 간격 중앙값(짝수 개면 아래 중앙)
+  const tm = rows.map(r => srmtfTime(r.date)), MS = srmtfTfMs(tm, rows);
+  const LEN = 15, MAXINFO = 10, MAXBI = 3000, TOOCLOSE = 1.0 / 8.0, MINSIZE = 5, COOL = 3;
+  const A = T.atr(H, L, C, 20), PH = T.pivotHigh(H, LEN, LEN), PL = T.pivotLow(L, LEN, LEN), B = new Uint8Array(n), S = new Uint8Array(n);
+  const infos = [], srs = [], info = { tfMin: MS / 60e3, srObj: 0, brkR: 0, brkS: 0, brkRepeat: 0, rtS: 0, rtR: 0, rtRec: 0 };
+  // findValRtnTime — barInfoList(지금 봉 포함 최근 3000봉)에서 time ∈ [lo, hi) 인 봉을 오래된 것부터
+  function srmtfFind(t, val, src, mode, lo, hi, def) { const a0 = Math.max(0, t - MAXBI + 1); let a = t; while (a >= a0 && tm[a] >= lo) a--; a++;
+    let rtn = def, minD = NaN;
+    for (let j = a; j <= t; j++) { if (!(tm[j] >= lo && tm[j] < hi)) continue; const x = src === 'L' ? L[j] : src === 'H' ? H[j] : C[j];
+      if (mode === 'N') { const d = Math.abs(val - x); if (!fin(minD)) { rtn = tm[j]; minD = d; } else if (d <= minD) { minD = d; rtn = tm[j]; } }
+      else if (mode === 'U') { if (x >= val) return tm[j]; } else { if (x <= val) return tm[j]; } }
+    return rtn; }
+  function srmtfFix(sr, t) { const f = sr.info;
+    if (!sr.sf) { f.st = srmtfFind(t, f.price, f.R ? 'H' : 'L', 'N', f.st - MS, f.st + MS, f.st); sr.sf = true; }
+    if (fin(f.brk) && !sr.bf) { f.brk = srmtfFind(t, f.price, 'C', f.R ? 'U' : 'D', f.brk - MS, f.brk + MS, f.brk); sr.bf = true; } }
+  for (let t = 0; t < n; t++) {
+    const time = tm[t], tol = A[t] * TOOCLOSE;
+    let bR = false, bS = false, rS = false, rR = false;
+    // ① 새 지지 · 저항(원문 'Find Supports' · 'Find Resistances' — 저항 쪽 '너무 가까움' 검사도 pivotLow 와 견줌 · 원문 그대로)
+    if (fin(PL[t])) { let ok = true; for (const f of infos) if (Math.abs(f.price - PL[t]) < tol && !fin(f.brk)) { ok = false; break; }
+      if (ok) { infos.unshift({ st: tm[t - LEN], price: PL[t], R: false, brk: NaN }); while (infos.length > MAXINFO) infos.pop(); } }
+    if (fin(PH[t])) { let ok = true; for (const f of infos) if (Math.abs(f.price - PL[t]) < tol && !fin(f.brk)) { ok = false; break; }
+      if (ok) { infos.unshift({ st: tm[t - LEN], price: PH[t], R: true, brk: NaN }); if (infos.length > MAXINFO) infos.pop(); } }
+    // ② 깨짐(종가) — 목록의 깨지지 않은 선마다
+    for (const f of infos) if (!fin(f.brk)) { if (f.R && C[t] > f.price) f.brk = time; else if (!f.R && C[t] < f.price) f.brk = time; }
+    // ③ handleTF("" = 차트 틀) — request.security 가 돌려준 목록은 복사본
+    for (const g of infos) { const cur = { st: g.st, price: g.price, R: g.R, brk: g.brk }; let sr = null;
+      for (const s of srs) if (s.info.price === cur.price && s.info.R === cur.R) { sr = s; break; }
+      if (sr) { if (sr.sf) cur.st = sr.info.st; if (sr.bf) cur.brk = sr.info.brk; sr.info = cur; if (!sr.bf) srmtfFix(sr, t); }
+      else { sr = { info: cur, sf: false, bf: false, rend: false, rt: [], lx: NaN }; srmtfFix(sr, t); srs.unshift(sr); info.srObj++; } }
+    // ④ 그리기 고리(알림은 그리기 안에서만) — 너무 가까움: 앞 번호는 이번 봉 그림 상태 · 뒤 번호는 지난 봉 그림 상태
+    for (let i = 0; i < srs.length; i++) { const sr = srs[i], f = sr.info; sr.rend = false; let tooClose = false;
+      for (let j = 0; j < srs.length; j++) { const c = srs[j]; if (c.rend && Math.abs(c.info.price - f.price) <= tol && c.info.R === f.R) { tooClose = true; break; } }
+      if (!(!fin(f.brk) || (f.brk - f.st) >= MINSIZE * MS) || tooClose) continue;
+      sr.rend = true;
+      if (fin(f.brk) && time - MS <= f.brk && time + MS >= f.brk) { if (f.R) { bR = true; info.brkR++; } else { bS = true; info.brkS++; } if (f.brk < time) info.brkRepeat++; }
+      let last = keepX ? sr.lx : NaN;   // retestLabels[0] — 지난 봉에 만든 표는 이미 지워짐(get_x = na 로 봄 · keepX 판은 그 x)
+      for (let k = 0; k < sr.rt.length; k++) { const r = sr.rt[k];   // 오래된 것부터(원문 retestTimes 뒤에서 앞으로)
+        const cool = !(fin(last) && Math.abs(last - r) < MS * COOL);
+        if (cool && r >= f.st && (!fin(f.brk) || r < f.brk)) { if (time - MS <= r && time >= r) { if (f.R) { rR = true; info.rtR++; } else { rS = true; info.rtS++; } } last = r; } }
+      if (keepX) sr.lx = last; }
+    // ⑤ 차트 틀 되시험 기록(그리기 다음 · 다음 봉 그리기에서 알림)
+    for (const sr of srs) { const f = sr.info; if (fin(f.brk) || !(time > f.st)) continue;
+      const hit = f.R ? (H[t] >= f.price && C[t] <= f.price) : (L[t] <= f.price && C[t] >= f.price);
+      if (hit) { const lr = sr.rt.length ? sr.rt[sr.rt.length - 1] : 0; if (lr !== time) { sr.rt.push(time); info.rtRec++; } } }
+    if (bR || rS) B[t] = 1; if (bS || rR) S[t] = 1; }
+  return { B, S, info }; }
+
+// ── srch2 · Support Resistance Channels('SRchannel' · 옛 판) — 매수 = 'Resistance Broken' · 매도 = 'Support Broken' ──
+//   기본값 Pivot Period 10 · Source High/Low · 최대 채널 폭 5% · Minimum Strength 1 · Maximum Number of S/R 6(→ 0 … 5) · Loopback 290 · MA 둘 꺼짐(그림만)
+//   mlsig2 src(Dynamic v2)와 채널 식이 다르다(폭 = cpp ≤ hi ? hi − cpp : cpp − lo · 강도 = 피벗 20점 + 290봉 닿은 수 · 강한 순 고르기) → 새로 짬. 피벗은 T.pivotHigh/Low(= mlsig2 pivAt 와 같은 정의).
+function srch2Sig(rows, intra, T) {
+  const n = rows.length, H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close), fin = Number.isFinite;
+  const PRD = 10, CHW = 5, MINSTR = 1, MAXNUMSR = 6 - 1, LOOP = 290, PH = T.pivotHigh(H, PRD, PRD), PL = T.pivotLow(L, PRD, PRD), HH = T.highest(H, 300), LL = T.lowest(L, 300);
+  const pv = [], loc = [], sr = new Float64Array(20), B = new Uint8Array(n), S = new Uint8Array(n), info = { recalc: 0, inChannel: 0 }, NX = Math.min(9, MAXNUMSR);
+  function srch2Vals(ind, cw) { let lo = pv[ind], hi = lo, num = 0;
+    for (let y = 0; y < pv.length; y++) { const c = pv[y], w = c <= hi ? hi - c : c - lo; if (w <= cw) { if (c <= hi) lo = Math.min(lo, c); else hi = Math.max(hi, c); num += 20; } }
+    return [hi, lo, num]; }
+  for (let t = 0; t < n; t++) {
+    const isP = fin(PH[t]) || fin(PL[t]);
+    if (isP) { pv.unshift(fin(PH[t]) ? PH[t] : PL[t]); loc.unshift(t); while (pv.length && t - loc[pv.length - 1] > LOOP) { pv.pop(); loc.pop(); }
+      const cw = (HH[t] - LL[t]) * CHW / 100, P = pv.length, sp = new Array(P * 3), st = new Float64Array(10);
+      for (let x = 0; x < P; x++) { const [hi, lo, s] = srch2Vals(x, cw); sp[x * 3] = s; sp[x * 3 + 1] = hi; sp[x * 3 + 2] = lo; }
+      for (let x = 0; x < P; x++) { const h = sp[x * 3 + 1], l = sp[x * 3 + 2]; let s = 0;
+        for (let y = 0; y <= LOOP && t - y >= 0; y++) { const j = t - y; if ((H[j] <= h && H[j] >= l) || (L[j] <= h && L[j] >= l)) s++; }
+        sp[x * 3] += s; }
+      sr.fill(0); let src = 0;
+      for (let x = 0; x < P; x++) { let stv = -1, stl = -1;
+        for (let y = 0; y < P; y++) if (sp[y * 3] > stv && sp[y * 3] >= MINSTR * 20) { stv = sp[y * 3]; stl = y; }
+        if (stl >= 0) { const hh = sp[stl * 3 + 1], ll = sp[stl * 3 + 2]; sr[src * 2] = hh; sr[src * 2 + 1] = ll; st[src] = sp[stl * 3];
+          for (let y = 0; y < P; y++) if ((sp[y * 3 + 1] <= hh && sp[y * 3 + 1] >= ll) || (sp[y * 3 + 2] <= hh && sp[y * 3 + 2] >= ll)) sp[y * 3] = -1;
+          src++; if (src >= 10) break; } }
+      for (let x = 0; x <= 8; x++) for (let y = x + 1; y <= 9; y++) if (st[y] > st[x]) { st[y] = st[x];   // 원문 정렬 그대로(stren[x] 에 tmp 를 다시 안 넣음)
+        let tmp = sr[y * 2]; sr[y * 2] = sr[x * 2]; sr[x * 2] = tmp; tmp = sr[y * 2 + 1]; sr[y * 2 + 1] = sr[x * 2 + 1]; sr[x * 2 + 1] = tmp; }
+      info.recalc++; }
+    let notIn = true; for (let x = 0; x <= NX; x++) if (C[t] <= sr[x * 2] && C[t] >= sr[x * 2 + 1]) notIn = false;
+    if (!notIn) { info.inChannel++; continue; }
+    if (t >= 1) for (let x = 0; x <= NX; x++) { if (C[t - 1] <= sr[x * 2] && C[t] > sr[x * 2]) B[t] = 1; if (C[t - 1] >= sr[x * 2 + 1] && C[t] < sr[x * 2 + 1]) S[t] = 1; } }
+  return { B, S, info }; }
+
+// ── masr · Moving Averages as Support Resistance MTF('MtfMaSR' · v4) — 매수 = 'Resistance Broken' · 매도 = 'Support Broken' ──
+//   기본값 SMA · 길이 50 · 100 · 150 · 200 · 위 틀 1 = 240분 · 위 틀 2 = D · 지금 틀도 씀 · 'Show MA'(D · 200) 끔(그림만) · 합친 알림 'Resistance or Support Broken' 안 씀
+//   위 틀 값 = security(…, sma(close, len)[1], lookahead = true) = 그 틀의 '바로 앞 다 끝난 봉'까지 SMA. 위 틀 > 차트 틀이면 rows 를 그 틀로 묶어 다 끝난 묶음만 · ≤ 차트 틀이면 차트 봉 sma(close, len)[1].
+function masrSig(rows, intra, T) {
+  const n = rows.length, O = rows.map(r => r.open), C = rows.map(r => r.close), fin = Number.isFinite;
+  function masrTime(d) { const s = String(d); if (/^\d{8}$/.test(s)) return Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)); if (/^\d{10,13}$/.test(s)) return +s < 1e12 ? +s * 1000 : +s;
+    if (/(Z|[+-]\d\d:?\d\d)$/.test(s) && /T/.test(s)) return Date.parse(s); const m = s.match(/^(\d{4})-(\d\d)-(\d\d)(?:[T ](\d\d):(\d\d)(?::(\d\d))?)?/); if (!m) return NaN;
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) - (m[4] != null ? 9 * 3600e3 : 0); }   // srmtf 의 srmtfTime 과 같은 글자
+  function masrTfMs(tm, rs) { const g = []; for (let t = 1; t < tm.length; t++) { const d = tm[t] - tm[t - 1]; if (d > 0) g.push(d); } if (!g.length) return 864e5; g.sort((a, b) => a - b); const med = g[(g.length - 1) >> 1];
+    const daily = rs.every(r => /^(\d{8}|\d{4}-\d\d-\d\d)$/.test(String(r.date))); if (daily) { const dd = med / 864e5; return dd <= 4 ? 864e5 : dd < 25 ? 7 * 864e5 : 2628003e3; } return Math.max(60e3, Math.round(med / 60e3) * 60e3); }   // srmtf 의 srmtfTfMs 와 같은 글자
+  const tm = rows.map(r => masrTime(r.date)), MS = masrTfMs(tm, rows), LENS = [50, 100, 150, 200], HTF = [{ ms: 240 * 60e3, key: x => Math.floor(x / (240 * 60e3)) }, { ms: 864e5, key: x => Math.floor(x / 864e5) }];   // 4시간 · 하루 = UTC 경계(업비트 일봉 = 한국 09:00 · dayKey 와 같음)
+  const MA = [], info = { tfMin: MS / 60e3, htfGrouped: 0 };
+  for (const len of LENS) MA.push(T.sma(C, len));
+  for (const tf of HTF) {
+    if (tf.ms > MS) { info.htfGrouped++; const gi = new Int32Array(n), gc = []; let cur = null;   // 위 틀이 더 큼 → 묶음(차례대로 같은 키) · 묶음 종가 = 그 묶음 마지막 봉 종가
+      for (let t = 0; t < n; t++) { const k = tf.key(tm[t]); if (k !== cur) { cur = k; gc.push(C[t]); } else gc[gc.length - 1] = C[t]; gi[t] = gc.length - 1; }
+      for (const len of LENS) { const hs = T.sma(gc, len), v = new Float64Array(n); for (let t = 0; t < n; t++) v[t] = gi[t] >= 1 ? hs[gi[t] - 1] : NaN; MA.push(v); } }
+    else for (const len of LENS) { const cs = T.sma(C, len), v = new Float64Array(n); for (let t = 0; t < n; t++) v[t] = t >= 1 ? cs[t - 1] : NaN; MA.push(v); } }   // 위 틀 ≤ 차트 틀 → 차트 봉 sma[1]
+  const mh = new Float64Array(n), mhi = new Int32Array(n), ml = new Float64Array(n), mli = new Int32Array(n), B = new Uint8Array(n), S = new Uint8Array(n);
+  for (let t = 0; t < n; t++) { const hi = Math.max(O[t], C[t]), lo = Math.min(O[t], C[t]); let a = NaN, ai = -1, b = NaN, bi = -1;
+    for (let x = 0; x < 12; x++) { const v = MA[x][t];
+      if (v >= hi) { if (!fin(a)) { a = v; ai = x; } else if (a > v) { a = v; ai = x; } }
+      if (v <= lo) { if (!fin(b)) { b = v; bi = x; } else if (b < v) { b = v; bi = x; } } }
+    mh[t] = a; mhi[t] = ai; ml[t] = b; mli[t] = bi;
+    if (t >= 1) { if (fin(mh[t - 1]) && C[t] > mh[t - 1] && mhi[t] !== mhi[t - 1]) B[t] = 1; if (fin(ml[t - 1]) && C[t] < ml[t - 1] && mli[t] !== mli[t - 1]) S[t] = 1; } }
+  return { B, S, info }; }
+
+// ── srpro · Support & Resistance Pro Toolkit [LuxAlgo] — 매수 = 저항 깨짐 ✖(close > 구역 위) · 매도 = 지지 깨짐 ✖(close < 구역 아래) ──
+//   원문에 알림 없음 · 표시만(깨짐 ✖ · 쓸기 ● · 스윙 ▲▼). 깨짐 ✖ 만 씀(Highlight Breakouts 켬 · 보이는 구역만이 아니라 목록의 모든 구역). 쓸기 · 스윙 · 대시보드 안 씀.
+//   기본값 Detection Donchian · Swing Sensitivity 10 · ATR 200 · Zone Depth 0.5 ATR · Breakout Buffer 0 · Overlap = Hide Overlapping(Oldest Precedence) · Max Active 5(그림만) · 최소 요건 모두 0
+function srproSig(rows, intra, T) {
+  const n = rows.length, H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close), fin = Number.isFinite;
+  const SENS = 10, ATRP = 200, ZMULT = 0.5, SMULT = 0.0, MAXLV = 100, A = T.atr(H, L, C, ATRP), DH = T.highest(H, SENS), DL = T.lowest(L, SENS);
+  const lv = [], B = new Uint8Array(n), S = new Uint8Array(n), info = { resLv: 0, supLv: 0, overlapSkip: 0 };
+  let cum = 0, os = 0, osPrev = NaN, dv = NaN;
+  function srproAdd(top, btm, isSup) { for (let i = lv.length - 1; i >= 0; i--) { const l = lv[i]; if (!l.mit && l.sup === isSup && Math.max(btm, l.btm) < Math.min(top, l.top)) return false; }
+    lv.unshift({ top, btm, sup: isSup, mit: false }); return true; }
+  for (let t = 0; t < n; t++) {
+    cum += Math.abs(H[t] - L[t]); const atr = fin(A[t]) ? A[t] : cum / (t + 1);   // get_atr(): ta.atr(200) 이 na 면 누적 범위 ÷ (bar_index + 1)
+    let ph = NaN, pl = NaN;
+    os = (t >= 1 && DH[t] > DH[t - 1]) ? 1 : (t >= 1 && DL[t] < DL[t - 1]) ? -1 : os;
+    if (fin(osPrev) && os !== osPrev) { if (os === 1) { pl = dv; dv = H[t]; } else { ph = dv; dv = L[t]; } }   // t = 0 은 os[1] = na → 비교 거짓 → else 쪽
+    else { if (os === 1) { if (H[t] >= (fin(dv) ? dv : -1.0e10)) dv = H[t]; } else if (os === -1) { if (L[t] <= (fin(dv) ? dv : 1.0e10)) dv = L[t]; } }
+    osPrev = os;
+    if (fin(ph)) { if (srproAdd(ph + atr * SMULT, ph - atr * ZMULT, false)) info.resLv++; else info.overlapSkip++; }
+    if (fin(pl)) { if (srproAdd(pl + atr * ZMULT, pl - atr * SMULT, true)) info.supLv++; else info.overlapSkip++; }
+    if (lv.length > MAXLV) lv.pop();
+    for (const l of lv) { if (l.mit) continue; if (l.sup) { if (C[t] < l.btm) { l.mit = true; S[t] = 1; } } else if (C[t] > l.top) { l.mit = true; B[t] = 1; } } }
+  return { B, S, info }; }
+return { sndSig, srmtfSig, srch2Sig, masrSig, srproSig };
+})();
+// ── chips_h3.js(5299e6f1c8d4) 글자 그대로 — module.exports 한 줄만 뺌 ──
+const H3 = (function(){
+// chips_h3.js — 묶음 h3 · 🧪 신호 실험 카드 새 칩 셋(lrc · srult · mlma) · S1859 준비 · 측정 전용 · 안 잰 스크립트 · 2026-11-01
+//   약속: <id>Sig(rows, intra, T) → { B, S, info } · B · S = Uint8Array(n) · 1 = 그 봉에 신호 · T = offline/_pta.js 함수 묶음(fin · rma · sma · stdev · pivotHigh · pivotLow 만 씀)
+//   정의 = defs_h3.md · 앞 칩 파일(mlsig/lab_chips.js · mlsig2/chips_*.js)에 같은 계산이 없어 모두 새로 짰다(복사 없음).
+//   세 칩 모두 하루 경계 · 세션 · 날짜를 쓰지 않는다(intra 안 씀). 위 시간 틀 없음(srult 의 MTF 는 원문 기본값이 꺼짐).
+//   호가 단위(syminfo.mintick)는 모름 → mintick 항은 0 으로 두고 round_to_mintick 은 안 한다(앞 칩 g2 와 같은 선택 · srult 만 해당).
+
+// ── lrc · Linear Regression Channel (ChartPrime · MPL 2.0 · 원문 a653465ff19c) ──
+//   매수 = 원문 condition1 '◆'(아래 · col_up 하늘색) = ta.pivotlow(3, 3) and close < lower
+//   매도 = 원문 condition2 '◆'(위 · col_dn 빨강)   = ta.pivothigh(3, 3) and close > upper
+//   mid = 원문 linear_regression(close, 150) 의 intercept + slope(= 지금 봉의 회귀 값) · upper/lower = mid ± ta.rma(high − low, 150) × 3
+//   (원문 dev(잔차 표준편차)는 띠에 안 쓰인다 — 띠는 '봉 폭 RMA × 3' 이다) · 기본 bands = true · channel = false → 위 식 그대로
+//   피벗은 확정 봉 t(가운데 t − 3)에 · 종가 · 띠는 확정 봉 t 의 값(원문이 그 봉에 plotchar)
+function lrcSig(rows, intra, T) {
+  const n = rows.length, H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close), W = 150, DEV = 3;
+  const mid = new Float64Array(n).fill(NaN), rng = new Float64Array(n);
+  for (let t = 0; t < n; t++) rng[t] = H[t] - L[t];
+  for (let t = W - 1; t < n; t++) {   // 원문 49 ~ 60줄 · i = 0 이 지금 봉 · x = i + 1 · 더하는 차례도 원문대로(i = 0 → 149)
+    let sx = 0, sy = 0, sxy = 0, sxx = 0;
+    for (let i = 0; i <= W - 1; i++) { const v = C[t - i]; sx += i + 1; sy += v; sxy += (i + 1) * v; sxx += Math.pow(i + 1, 2); }
+    const slope = (W * sxy - sx * sy) / (W * sxx - Math.pow(sx, 2)), icpt = (sy - slope * sx) / W;
+    mid[t] = icpt + slope; }   // 원문 77줄 mid = y2 + slope(y2 = intercept)
+  const rr = T.rma(rng, W), pl = T.pivotLow(L, 3, 3), ph = T.pivotHigh(H, 3, 3);
+  const B = new Uint8Array(n), S = new Uint8Array(n), info = { nPivL: 0, nPivH: 0, firstBand: -1 };
+  for (let t = 0; t < n; t++) {
+    const up = mid[t] + rr[t] * DEV, lo = mid[t] - rr[t] * DEV;   // 원문 78 · 79줄
+    if (info.firstBand < 0 && T.fin(up) && T.fin(lo)) info.firstBand = t;
+    const pL = T.fin(pl[t]) && pl[t] !== 0, pH = T.fin(ph[t]) && ph[t] !== 0;   // 파인 v5: 값(float) → bool = na · 0 이면 거짓
+    if (pL) info.nPivL++; if (pH) info.nPivH++;
+    if (pL && T.fin(lo) && C[t] < lo) B[t] = 1;   // 원문 162줄
+    if (pH && T.fin(up) && C[t] > up) S[t] = 1; } // 원문 163줄
+  return { B, S, info }; }
+
+// ── srult · Support & Resistance Ultra Toolkit [AlgoAlpha] (MPL 2.0 · 원문 3350e55d5675) ──
+//   매수 = alertcondition(bullRejection, 'Bullish Support Rejection') · 매도 = alertcondition(bearRejection, 'Bearish Resistance Rejection')
+//   기본값: Detection Mode = Pivots · Pivot Length 7 · Max Gap 100 · Match Tolerance 1.0 × stdev(close, 40) · Zone Expiry 500 · Stop on Break 켬
+//           · Higher Timeframe 꺼짐(useMTF = false → higherTF = false → request.security 안 탐 · 구역은 차트 봉에서)
+//   봉 시각(time) 대신 봉 번호를 쓴다(시각이 늘 오름이라 견줌이 같음). 모든 봉을 확정 봉(barstate.isconfirmed)으로 본다(마지막 덜 된 봉은 부르는 쪽이 뺌).
+//   원문 firstAllowedBar = max(0, last_bar_index − 4999)(마지막 봉 위치 = 미래에 기댐)는 안 씀 — histLimit(넷째 인수 · 생략 = false)가 참이면 원문대로 n − 5000 앞 봉은 구역을 안 들임(참고용).
+//   mintick = 0: tolerance = max(stdev × 1, 0) · 두께 = max(maxDist, 0) · round_to_mintick 안 함 → 두께 0 이면 top = bottom 이라 구역이 안 섬(원문은 1틱 두께로 섬).
+function srult_bounds(p1, p2, isRes, tol) {   // 원문 97 ~ 115줄 zoneThickness · zoneBounds(p1 = 앞 피벗 · p2 = 지금 피벗)
+  const edge = isRes ? Math.max(p1.h, p2.h) : Math.min(p1.l, p2.l); let md = Math.abs(p1.price - p2.price);
+  const vals = [p1.o, p1.h, p1.l, p1.c, p2.o, p2.h, p2.l, p2.c];
+  for (let k = 0; k < 8; k++) { const d = isRes ? edge - vals[k] : vals[k] - edge; md = (d >= 0.0 && d <= tol) ? Math.max(md, d) : md; }
+  const th = Math.max(md, 0);   // math.max(maxDist, syminfo.mintick) · mintick = 0
+  return isRes ? [edge, edge - th] : [edge + th, edge]; }
+function srult_pair(mem, cur, isRes, tol, gapMax) {   // 원문 117 ~ 138줄 pairPivot · mem[0] = 가장 최근(unshift) · 맨 끝 = 가장 오래됨
+  let out = null;
+  while (mem.length > 0) { const oldest = mem[mem.length - 1]; if (cur.idx - oldest.idx > gapMax) mem.pop(); else break; }
+  if (Number.isFinite(tol) && mem.length > 0)
+    for (let i = 0; i <= mem.length - 1; i++) { const prev = mem[i], gap = cur.idx - prev.idx;
+      if (gap > 0 && gap <= gapMax && Math.abs(cur.price - prev.price) <= tol) { const bd = srult_bounds(prev, cur, isRes, tol); out = { top: bd[0], bottom: bd[1], origin: prev.idx }; break; } }
+  mem.unshift(cur);
+  return out; }
+function srultSig(rows, intra, T, histLimit) {
+  const n = rows.length, O = rows.map(r => r.open), H = rows.map(r => r.high), L = rows.map(r => r.low), C = rows.map(r => r.close);
+  const PL = 7, GAP = 100, MM = 1.0, VOLN = 40, EXP = 500, ZMAX = 500;
+  const ph = T.pivotHigh(H, PL, PL), pl = T.pivotLow(L, PL, PL), vol = T.stdev(C, VOLN);
+  const first = histLimit ? Math.max(0, (n - 1) - 5000 + 1) : 0;
+  const highs = [], lows = [], zones = [], B = new Uint8Array(n), S = new Uint8Array(n);
+  const info = { pivH: 0, pivL: 0, pairRes: 0, pairSup: 0, zoneRes: 0, zoneSup: 0, thinSkip: 0, notIntact: 0, overlapSkip: 0, capSkip: 0, breaks: 0, expired: 0, rejBull: 0, rejBear: 0, rejOffTouch: 0, hidBull: 0, hidBear: 0 };
+  const mkPiv = (t, price) => { const c = t - PL; return { idx: c, price, o: O[c], h: H[c], l: L[c], c: C[c] }; };
+  for (let t = 0; t < n; t++) {
+    // 1) 차트 봉 구역 찾기(원문 141 ~ 183줄 sourceZones · Pivots 갈래)
+    const tol = Number.isFinite(vol[t]) ? Math.max(vol[t] * MM, 0) : NaN;
+    let res = null, sup = null;
+    if (Number.isFinite(ph[t])) { info.pivH++; res = srult_pair(highs, mkPiv(t, ph[t]), true, tol, GAP); if (res) info.pairRes++; }
+    if (Number.isFinite(pl[t])) { info.pivL++; sup = srult_pair(lows, mkPiv(t, pl[t]), false, tol, GAP); if (sup) info.pairSup++; }
+    // 2) 있는 구역 돌보기(원문 301 ~ 387줄 · 만든 차례대로 · 늘어나는 구역만)
+    let bull = false, bear = false, drawB = false, drawS = false;   // draw = 원문 그림 ▲ · ▼ 가 서는가(같은 구역이 그 봉에 쓸림(swept)이면 거절 그림은 안 그림 · 알림은 뜸)
+    for (let i = 0; i < zones.length; i++) { const z = zones[i]; if (!z.ext) continue;
+      const age = t - z.born;
+      if (age > 0 && age <= EXP && z.breakAge === null) {
+        const touched = H[t] >= z.bottom && L[t] <= z.top, newVisit = touched && !z.wasTouch;
+        if (newVisit) { z.visitOpen = true; z.rejV = false; z.swV = false; }
+        const through = z.sup ? C[t] < z.bottom : C[t] > z.top;
+        if (through) { z.breakAge = age; info.breaks++; }
+        else {
+          const safe = z.sup ? C[t] > z.top : C[t] < z.bottom;
+          const wick = touched && (z.sup ? (L[t] < z.bottom && Math.min(O[t], C[t]) >= z.bottom) : (H[t] > z.top && Math.max(O[t], C[t]) <= z.top));
+          const swept = wick && !z.swV, rejected = z.visitOpen && safe && !z.rejV;
+          if (swept) z.swV = true;
+          if (rejected) { z.rejV = true; if (z.sup) { bull = true; info.rejBull++; if (!swept) drawB = true; } else { bear = true; info.rejBear++; if (!swept) drawS = true; } if (!touched) info.rejOffTouch++; }
+          if (!touched) { z.visitOpen = false; z.rejV = false; z.swV = false; } }
+        z.wasTouch = touched; }
+      const expired = age >= EXP, stopBrk = z.breakAge !== null;   // stopOnBreak = true
+      if (expired || stopBrk) { z.ext = false; z.right = t; if (expired) info.expired++; } }
+    // 3) 구역 들이기(원문 390 ~ 396줄 · 지지 먼저 · 그다음 저항 · sourceStamp = time 이 봉마다 새로움 → 늘 들어옴)
+    if (t >= first) {
+      const newZone = (zz, isSup) => {   // 원문 206 ~ 217줄 newZone · 195 ~ 204줄 isOverlapping
+        if (!zz) return; const top = zz.top, bottom = zz.bottom, origin = zz.origin;
+        if (!(Number.isFinite(top) && Number.isFinite(bottom) && Number.isFinite(origin) && top > bottom)) { info.thinSkip++; return; }
+        if (!(zones.length < ZMAX)) { info.capSkip++; return; }
+        const intact = isSup ? C[t] >= bottom : C[t] <= top; if (!intact) { info.notIntact++; return; }
+        for (let i = 0; i < zones.length; i++) { const it = zones[i], right = it.ext ? t : it.right;
+          if (origin <= right && t >= it.left && bottom <= it.top && top >= it.bottom) { info.overlapSkip++; return; } }
+        zones.push({ top, bottom, sup: isSup, born: t, left: origin, right: t, ext: true, breakAge: null, wasTouch: false, visitOpen: false, rejV: false, swV: false });
+        if (isSup) info.zoneSup++; else info.zoneRes++; };
+      newZone(sup, true); newZone(res, false); }
+    if (bull) B[t] = 1; if (bear) S[t] = 1; if (bull && !drawB) info.hidBull++; if (bear && !drawS) info.hidBear++; }
+  info.zones = zones.length; info.capHit = zones.length >= ZMAX;
+  return { B, S, info }; }
+
+// ── mlma · Machine Learning Moving Average [LuxAlgo] (CC BY-NC-SA 4.0 · 원문 f6da6dde72cb) ──
+//   원문에 alertcondition 은 없다. 신호 = 상태 os 가 바뀐 봉에 그리는 동그라미(plot.style_circles · 'Circle')
+//   매수 = os 0 → 1(동그라미 색 bullCss #3179f5) · 매도 = os 1 → 0(bearCss #e91e63) · os 처음 0(var os = 0)
+//   os := close > upper and out > out[1] ? 1 : close < lower and out < out[1] ? 0 : os
+//   out = 가우스 과정 회귀 끝점(RBF · 길이 척도 = window 100 · 잡음 sigma 0.01 · forecast 0) · 무게 K_row 는 첫 봉에 한 번 계산(고정)
+//   upper/lower = out ± ta.sma(|close − out|, 100) × 2
+function mlma_inv(A) {   // 정사각 역행렬(가우스-조르당 · 부분 피벗) — 원문 Ktrain.pinv() · 대칭 양정치(σ² > 0)라 pinv = inv(파인 문서: 정칙 정사각이면 matrix.inv)
+  const m = A.length, M = A.map(r => Float64Array.from(r)), I = A.map((_, i) => { const r = new Float64Array(m); r[i] = 1; return r; });
+  for (let c = 0; c < m; c++) { let p = c, best = Math.abs(M[c][c]); for (let r = c + 1; r < m; r++) if (Math.abs(M[r][c]) > best) { best = Math.abs(M[r][c]); p = r; }
+    if (p !== c) { let x = M[p]; M[p] = M[c]; M[c] = x; x = I[p]; I[p] = I[c]; I[c] = x; }
+    const d = M[c][c]; for (let j = 0; j < m; j++) { M[c][j] /= d; I[c][j] /= d; }
+    for (let r = 0; r < m; r++) { if (r === c) continue; const f = M[r][c]; if (f === 0) continue; for (let j = 0; j < m; j++) { M[r][j] -= f * M[c][j]; I[r][j] -= f * I[c][j]; } } }
+  return I; }
+const mlma_CACHE = {};   // K_row 는 입력값(W · FC · SIG)만으로 정해진다 → 한 번 셈(원문도 첫 봉에 한 번) · 값은 같음
+function mlma_krow(W, FC, SIG) {   // 원문 45 ~ 68줄 · xtrain = 0 … W−1 · xtest = 0 … W+FC−1 · K_row = (K_starᵀ · K_inv) 의 W+FC−1 번째 줄
+  const key = W + '|' + FC + '|' + SIG; if (mlma_CACHE[key]) return mlma_CACHE[key];
+  const rbf = (x1, x2, l) => Math.exp(-Math.pow(x1 - x2, 2) / (2.0 * Math.pow(l, 2)));
+  const Kt = []; for (let i = 0; i < W; i++) { const r = new Float64Array(W); for (let j = 0; j < W; j++) r[j] = rbf(i, j, W) + (i === j ? 1 : 0) * (SIG * SIG); Kt.push(r); }
+  const Ki = mlma_inv(Kt), col = W + FC - 1, row = new Float64Array(W);
+  for (let i = 0; i < W; i++) { let s = 0; for (let k = 0; k < W; k++) s += rbf(k, col, W) * Ki[k][i]; row[i] = s; }
+  mlma_CACHE[key] = row; return row; }
+function mlmaSig(rows, intra, T) {
+  const n = rows.length, C = rows.map(r => r.close), W = 100, FC = 0, SIG = 0.01, MULT = 2;
+  const Kr = mlma_krow(W, FC, SIG), mean = T.sma(C, W), out = new Float64Array(n).fill(NaN);
+  for (let t = 0; t < n; t++) { if (!(t > W)) continue;   // 원문 80줄 if bar_index > window
+    let dot = 0.; for (let i = 0; i <= W - 1; i++) dot += Kr[i] * (C[t - (W - 1 - i)] - mean[t]);
+    out[t] = dot + mean[t]; }
+  const ad = new Float64Array(n); for (let t = 0; t < n; t++) ad[t] = Math.abs(C[t] - out[t]);   // na 는 NaN 으로 남음
+  const mae = T.sma(ad, W), os = new Uint8Array(n), B = new Uint8Array(n), S = new Uint8Array(n), info = { firstOut: W + 1, firstBand: -1, kSum: 0, kNow: Kr[W - 1] };
+  for (let i = 0; i < W; i++) info.kSum += Kr[i];
+  let st = 0;
+  for (let t = 0; t < n; t++) {
+    const m2 = mae[t] * MULT, up = out[t] + m2, lo = out[t] - m2;   // 원문 89 ~ 91줄
+    if (info.firstBand < 0 && Number.isFinite(up)) info.firstBand = t;
+    const o1 = t > 0 ? out[t - 1] : NaN;
+    st = (C[t] > up && out[t] > o1) ? 1 : (C[t] < lo && out[t] < o1) ? 0 : st;   // na 와의 견줌은 거짓
+    os[t] = st;
+    if (t > 0 && os[t] !== os[t - 1]) { if (os[t] === 1) B[t] = 1; else S[t] = 1; } }   // 원문 100줄 os != os[1]
+  return { B, S, info }; }
+return { lrcSig, srultSig, mlmaSig };
+})();
+// ── [S1859] 새 칩 13 붙이기(안 잰 스크립트) — 앞 31칩 셈(labChips2)은 그대로 · 새 칩은 T_(파인 약속 17이름)로 ──
+const CHIP_IDS3 = CHIP_IDS2.concat(["dctr","knnh","mlma","dcema","dcbo","dcatr","snd","srmtf","srch2","masr","srpro","lrc","srult"]);
+const NEW_FN3 = { dctr: H1.dctrSig, knnh: H1.knnhSig, mlma: H3.mlmaSig, dcema: H1.dcemaSig, dcbo: H1.dcboSig, dcatr: H1.dcatrSig, snd: H2.sndSig, srmtf: H2.srmtfSig, srch2: H2.srch2Sig, masr: H2.masrSig, srpro: H2.srproSig, lrc: H3.lrcSig, srult: H3.srultSig };
+function labChips3(rows, intra) { const R = labChips2(rows, intra);
+  for (const id of ["dctr","knnh","mlma","dcema","dcbo","dcatr","snd","srmtf","srch2","masr","srpro","lrc","srult"]) { let r = null; try { r = NEW_FN3[id](rows, intra, T_); } catch (e) { r = null; R.info.err[id] = String(e && e.message || e); }
+    R.buy[id] = (r && r.B) ? r.B : new Uint8Array(rows.length); R.sell[id] = (r && r.S) ? r.S : new Uint8Array(rows.length); }
+  return R; }
+if(typeof window!=='undefined') window.SXSigLab = { CHIP_IDS: CHIP_IDS3, chips: labChips3, card: (typeof labCard==='function')?labCard:null, comb: (typeof labComb==='function')?labComb:null };
+if(typeof module!=='undefined' && module.exports) module.exports = { CHIP_IDS: CHIP_IDS3, CHIP_IDS31: CHIP_IDS2, CHIP_IDS17: CHIP_IDS, labChips: labChips3, labChips31: labChips2, labChips17: labChips, NEW_FN, NEW_FN3, astDir, mlmiPred, knnsSig, logrSig, labCard, labComb };
 })();
