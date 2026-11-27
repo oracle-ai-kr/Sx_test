@@ -17260,6 +17260,32 @@ function _pcOutHtml(cx, v){ const mk=cx.mk, C=_pcCalc(mk, v), T2='var(--text2)',
     else { const b=C.be*100; h+=row('본전 적중률', (C.be0*100).toFixed(1)+'% → '+b.toFixed(1)+'%', '비용 넣은 값 · 열 번 중 '+(b/10).toFixed(1)+'번 넘게 목표에 닿아야 본전', 'be');   // [S1955]
       h+='<div style="position:relative;height:6px;border-radius:3px;background:var(--surface3);margin:2px 0 4px;overflow:hidden"><div data-pc-bar="1" style="position:absolute;left:0;top:0;bottom:0;width:'+Math.max(0, Math.min(100, b)).toFixed(1)+'%;background:var(--text3)"></div></div>'; } }   // [S1955]
   return h; }   // [S1955]
+const _PC_NZ_NS=[5,10,20], _PC_NZ_TFN={ '60m':'60분봉', '240m':'4시간봉', day:'일봉', week:'주봉', month:'월봉' };   // [S1961] 〰️ 보통 흔들림 — 보유 봉 칩 · 지금 분석 TF 이름
+const _PC_NZ_W={ in:['흔들림 안쪽','var(--sxc-up,#dc2626)'], tight:['빠듯','var(--sxc-warn,#b45309)'], out:['흔들림 바깥','var(--sxc-l60,#047857)'] };   // [S1961] 갈래 글 · 점 색(원본 verdict 50 · 20 · 빨강 · 주황 · 초록 = 테마 색)
+function _pcNzN(mk){ const n=+_pcLoad(mk).n; return (_PC_NZ_NS.indexOf(n)>=0)?n:10; }   // [S1961] 보유 봉(시장마다 SX_PC_<시장>.n · 기본 10 = 키 없음)
+function _pcNzR(cx){ try{ const S=(typeof window!=='undefined' && window.SXTV && window.SXTV.svn)?window.SXTV.svn:null; if(!S || !Array.isArray(cx.rows) || cx.rows.length<3) return null;   // [S1961] 계산 = sx_tvind_mpl.js ⑨(Stop vs Noise Check · SignalCheckerHQ · MPL 2.0)
+  const N=_pcNzN(cx.mk); if(!cx._nz) cx._nz={}; if(!cx._nz[N]) cx._nz[N]=S.calc(cx.rows, N, 1000, 14); return { S, R:cx._nz[N], N }; }catch(_){ return null; } }   // [S1961] 볼 진입 1000 · ATR 14 = 원본 기본 · 보유 봉마다 한 번 셈
+function _pcNzHtml(cx, v){ const z=_pcNzR(cx); if(!z) return '';   // [S1961] 상자 안 — 머리(보유 칩) · 갈래 줄 · ATR 배 · 버틴 폭 · 눈금 막대 · 아래 글
+  const S=z.S, R=z.R, N=z.N, T2='var(--text2)', T3='var(--text3)', tf=_PC_NZ_TFN[(typeof _analTF!=='undefined')?_analTF:'day']||'봉', f=x=>(x===x)?x.toFixed(1)+'%':'—';   // [S1961]
+  const chip=n=>'<span data-pc-nz="'+n+'" onclick="_pcNzSet('+n+')" style="display:inline-block;padding:1px 8px;margin-left:3px;border-radius:999px;font-size:9.5px;font-weight:700;border:1px solid var(--border);cursor:pointer;'+((n===N)?'background:var(--surface3);color:var(--text)':'color:var(--text2)')+'">'+n+'</span>';   // [S1961]
+  let h='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:10.5px;font-weight:800;color:var(--text)">〰️ 보통 흔들림</span><span style="font-size:9.5px;color:'+T2+'">'+tf+' 보유'+_PC_NZ_NS.map(chip).join('')+' 봉</span></div>';   // [S1961]
+  if(!(R.cnt>0)) return h+'<div data-pc-nz-msg="few" style="font-size:10px;color:'+T2+';margin-top:2px">봉이 모자라요 — '+N+'봉 보유를 셀 지난 봉이 없어요</div>';   // [S1961]
+  const p50=S.pr(R, 50), p80=S.pr(R, 80), p90=S.pr(R, 90), st=(v.en>0 && v.sl===v.sl && v.sl<v.en)?(v.en-v.sl)/v.en*100:NaN;   // [S1961] 손절 폭 % = (진입 − 손절) ÷ 진입(이 카드 칸)
+  if(st===st){ const H=S.hit(R, st), k=S.verdict(H.rate), w=_PC_NZ_W[k];   // [S1961]
+    h+='<div data-pc-nz-row="hit" style="font-size:10.5px;color:var(--text);line-height:1.55;margin-top:2px"><span data-pc-nz-v="'+k+'" style="display:inline-block;font-size:9.5px;font-weight:800;color:var(--text);background:var(--surface3);border-radius:4px;padding:0 5px;margin-right:4px"><span style="color:'+w[1]+'">●</span> '+w[0]+'</span>이 손절 −'+st.toFixed(1)+'% · '+N+'봉 안 지난 진입 '+R.cnt+'번 중 <b>'+H.rate.toFixed(1)+'%</b>('+H.hits+'번)가 걸렸을 폭</div>';   // [S1961]
+    h+='<div data-pc-nz-row="atr" style="font-size:9.5px;color:'+T2+';line-height:1.55">손절 폭 = ATR('+R.atrLen+') '+((R.atrPct>0)?(st/R.atrPct).toFixed(1)+'배':'—')+' · ATR 지금 '+f(R.atrPct)+'</div>'; }   // [S1961] 원본 'x ATR' · 'ATR now % of price'
+  else h+='<div data-pc-nz-msg="nosl" style="font-size:10px;color:'+T2+';margin-top:2px">손절가를 넣으면 이 종목 보통 흔들림과 견줘요</div>';   // [S1961]
+  h+='<div data-pc-nz-row="pr" style="font-size:9.5px;color:'+T2+';line-height:1.55">지난 진입이 버틴 손절 폭(넓을수록 덜 걸림) — 절반 '+f(p50)+' · 80% '+f(p80)+((v.en>0 && p80===p80)?('('+_sxRrFa(cx.mk, v.en*(1-p80/100))+')'):'')+' · 90% '+f(p90)+'</div>';   // [S1961] 원본 50 · 80 · 90% · 80% 자리 = 진입가 기준 값
+  const mx=Math.max(p90*1.25, (st===st)?st*1.1:0, 1), X=x=>Math.max(0, Math.min(100, x/mx*100)).toFixed(1)+'%';   // [S1961] 막대 끝 = 90% 폭의 1.25배(손절이 더 넓으면 손절의 1.1배)
+  h+='<div data-pc-nz-bar="1" style="position:relative;height:16px;margin:12px 0 2px"><div style="position:absolute;left:0;right:0;top:7px;height:3px;border-radius:2px;background:var(--surface3)"></div><div style="position:absolute;left:0;width:'+X(p50)+';top:7px;height:3px;border-radius:2px;background:var(--text3)"></div>'   // [S1961]
+    +[[p50,'50'],[p80,'80'],[p90,'90']].map(q=>'<div data-pc-nz-tick="'+q[1]+'" style="position:absolute;left:'+X(q[0])+';top:3px;width:1px;height:11px;background:var(--text3)"></div><div style="position:absolute;left:'+X(q[0])+';top:-10px;transform:translateX(-50%);font-size:8.5px;color:'+T3+'">'+q[1]+'</div>').join('')   // [S1961]
+    +((st===st)?('<div data-pc-nz-st="1" style="position:absolute;left:'+X(st)+';top:1px;transform:translateX(-50%);font-size:11px;line-height:14px;color:var(--text)">▼</div>'):'')+'</div>'   // [S1961]
+    +'<div style="display:flex;justify-content:space-between;gap:6px;font-size:8.5px;color:'+T3+'"><span>0%</span><span style="text-align:right">'+((st===st)?'▼ 이 손절 · ':'')+'눈금 = 지난 진입이 버틴 폭 50 · 80 · 90%</span></div>';   // [S1961]
+  h+='<div style="font-size:8.5px;color:'+T3+';line-height:1.5;margin-top:3px">지난 봉만 · 앞날 아님 · 성적 아님 — 닫힌 봉마다 그 봉 종가에 샀다 치고 다음 '+N+'봉 안 가장 낮은 저가까지 내려간 폭(지금 봉은 안 씀) · 갈래 = 걸린 몫 50% 이상 흔들림 안쪽 · 20% 이상 빠듯 · 그 아래 흔들림 바깥 · 식 = TradingView Stop vs Noise Check(SignalCheckerHQ · MPL 2.0 · 원본 기본 볼 진입 1000 · ATR 14)</div>';   // [S1961]
+  return h; }   // [S1961]
+function _pcNzBox(cx, v){ const h=_pcNzHtml(cx, v); return h?('<div id="sxPcNz" style="margin:2px 0 4px;padding:6px 8px;border-radius:8px;background:var(--surface2);border:1px solid var(--border)">'+h+'</div>'):''; }   // [S1961] 계산 파일 · 봉 없으면 상자 없음(카드 = 직전본)
+function _pcNzSet(n){ try{ const cx=window._sxPcCtx; if(!cx || _PC_NZ_NS.indexOf(n)<0) return; const O=_pcLoad(cx.mk); if(n===10) delete O.n; else O.n=n; _pcSave(cx.mk, O); if(typeof _sxVib==='function') _sxVib(8); _pcPaint(); }catch(_){} }   // [S1961] 보유 칩 → 시장마다 저장(10 = 키 지움) → 다시 그림
+if(typeof window!=='undefined'){ window._pcNzSet=_pcNzSet; }   // [S1961]
 function _pcCardHtml(cx){ const mk=cx.mk, v=_pcVals(cx), T2='var(--text2)', T3='var(--text3)', U=(mk==='us')?'$':'원', un=(mk==='coin')?'개':'주';   // [S1955] 카드 — 칸 여섯 + 셈 칸 + 아래 글
   const fv=x=>(x===x && x>0)?_turtleFmt(x):'', av=(mk==='us')?(+v.acct.toFixed(2)).toLocaleString(undefined, { maximumFractionDigits:2 }):Math.round(v.acct).toLocaleString();   // [S1955]
   const inp=(k, val, w)=>'<input data-pc="'+k+'" type="text" inputmode="decimal" autocomplete="off" value="'+val+'" oninput="_pcIn(this)" style="width:'+w+'px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:12px;font-weight:700;text-align:right">';   // [S1955]
@@ -17267,13 +17293,14 @@ function _pcCardHtml(cx){ const mk=cx.mk, v=_pcVals(cx), T2='var(--text2)', T3='
   let h='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:13px;font-weight:800;color:var(--text)">🧮 포지션 계산</span><span style="font-size:9.5px;color:'+T3+'">계산만 · 판정 아님 · 매수(현물)만</span></div>';   // [S1955]
   h+=line('계좌 금액', inp('a', av, 112), U)+line('위험', inp('r', String(v.risk), 44), _pcRkTxt(mk, v), 'sxPcRk');   // [S1955]
   h+=line('진입가', inp('e', fv(v.en), 96), '<span data-pc-cur="1" onclick="_pcCur()" style="color:var(--text2);font-weight:700;border:1px solid var(--border);border-radius:999px;padding:1px 7px;cursor:pointer;white-space:nowrap">↺ 현재가</span>');   // [S1955]
-  h+=line('손절가', inp('s', fv(v.sl), 96), _pcRel(v.sl, v.en), 'sxPcSp')+line('목표가', inp('t', fv(v.tg), 96), _pcRel(v.tg, v.en), 'sxPcTp');   // [S1955]
+  h+=line('손절가', inp('s', fv(v.sl), 96), _pcRel(v.sl, v.en), 'sxPcSp')+_pcNzBox(cx, v)+line('목표가', inp('t', fv(v.tg), 96), _pcRel(v.tg, v.en), 'sxPcTp');   // [S1955] · [S1961] 〰️ 보통 흔들림 상자(손절가 줄 바로 뒤)
   h+=line('비용(왕복)', inp('f', String(v.fee), 44), '% · 기본 '+_sxFeeDef(mk));   // [S1955]
   h+='<div id="sxPcOut" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)">'+_pcOutHtml(cx, v)+'</div>';   // [S1955]
   h+='<div style="margin-top:6px;font-size:8.5px;color:'+T3+';line-height:1.5">읽기 도움 · 판정 아님 · 수량 = 계좌 × 위험 % ÷ 한 '+un+' 손실(비용 포함) · 계좌 전액이 상한 · '+((mk==='coin')?'소수 넷째 자리':'1주 단위')+'로 내림 · 비용 = 왕복 % 를 매수 · 매도에 반씩(기본 KR 0.2 · US · 코인 0.1 — 🧪 전략조합 프리셋은 3시장 0.2 · 다르면 칸에서 고쳐요) · 갭이 나면 손절가보다 더 밀릴 수 있어요<br>계좌 · 위험 % 는 단기매매 💼 줄과 같은 값(한쪽에서 바꾸면 같이 바뀜) · 진입 · 손절 · 목표 · 비용은 이 카드 칸(진입 · 손절 · 목표는 종목마다) · 이 기기에만 저장 · 단기매매 칩 값과 따로<br>식 참고: TradingView 위험 계산기 류(LunqFX · ActiveQuants · Anonycryptous · odnac) — 코드는 옮기지 않음</div>';   // [S1955]
   return '<div class="anal-header-card" id="sxPcCard" data-mk="'+mk+'" style="margin-top:10px;text-align:left">'+h+'</div>'; }   // [S1955]
 function _pcPaint(){ try{ const cx=window._sxPcCtx, c=document.getElementById('sxPcCard'); if(!cx || !c) return; const v=_pcVals(cx);   // [S1955] 저장값으로 다시 셈 — 칸 글은 안 건드림(쓰는 중 커서 그대로)
   const o=document.getElementById('sxPcOut'); if(o) o.innerHTML=_pcOutHtml(cx, v); const rk=document.getElementById('sxPcRk'); if(rk) rk.textContent=_pcRkTxt(cx.mk, v);   // [S1955]
+  const nz=document.getElementById('sxPcNz'); if(nz) nz.innerHTML=_pcNzHtml(cx, v);   // [S1961] 〰️ 상자도 다시 그림(진입 · 손절 칸 · 보유 칩)
   const sp=document.getElementById('sxPcSp'); if(sp) sp.textContent=_pcRel(v.sl, v.en); const tp=document.getElementById('sxPcTp'); if(tp) tp.textContent=_pcRel(v.tg, v.en); }catch(_){} }   // [S1955]
 function _pcIn(el){ try{ const cx=window._sxPcCtx; if(!cx || !el) return; const k=el.getAttribute('data-pc'), raw=el.value, mk=cx.mk;   // [S1955] 칸을 고칠 때마다 저장 → 셈 칸 · 곁 글만 다시 그림
   if(k==='a' || k==='r'){ const Q=_sxRrLoad(mk); _sxRrPutAR(Q, k, raw); try{ localStorage.setItem('SX_RRQ_'+mk, JSON.stringify(Q)); }catch(_){} }   // [S1955] 💼 와 같은 저장 · 같은 함수
@@ -17287,7 +17314,7 @@ function _buildPcCard(stock, indicators){ try{ const mk=String((stock && (stock.
   if(_PC_MKS.indexOf(mk)<0 || !stock || !stock.code) return '';   // [S1955]
   const rows=(indicators && indicators._advanced && Array.isArray(indicators._advanced.rows))?indicators._advanced.rows:(Array.isArray(stock._lastAnalCandles)?stock._lastAnalCandles:[]), lr=rows.length?rows[rows.length-1]:null;   // [S1955]
   const px=(+stock.price>0)?+stock.price:(lr?+((lr.close!=null)?lr.close:lr.c):NaN); if(!(px>0)) return '';   // [S1955] 진입 기본 = 현재가(없으면 마지막 봉 종가)
-  const cx={ mk, code:String(stock.code), px }; try{ window._sxPcCtx=cx; }catch(_){} return _pcCardHtml(cx); }catch(_e){ return ''; } }   // [S1955]
+  const cx={ mk, code:String(stock.code), px, rows }; try{ window._sxPcCtx=cx; }catch(_){} return _pcCardHtml(cx); }catch(_e){ return ''; } }   // [S1955] · [S1961] rows = 〰️ 보통 흔들림 계산(지금 분석 TF 봉)
 if(typeof window!=='undefined'){ window._pcIn=_pcIn; window._pcCur=_pcCur; }   // [S1955]
 function _buildPredictLab(inner){
   return '<div id="sxPredLab" style="margin:14px 0 10px;padding:10px 8px 0;border-radius:14px;border:1px solid #7c3aed55;background:#7c3aed0a">'
@@ -22628,7 +22655,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1960';   // [S1960] 🔖 증권앱 견줌 배지(조건검색 · 조건 창 · 분석 창 줄 · 📋 배지 인벤토리 묶음 · SSOT = S1959)
+  window.SX_BUILD='S1961';   // [S1961] 🧮 포지션 계산 〰️ 보통 흔들림(Stop vs Noise Check · SignalCheckerHQ MPL · 손절가 줄 뒤 상자 · 보유 칩 5 · 10 · 20)
+  //window.SX_BUILD='S1960';   // [S1960] 🔖 증권앱 견줌 배지(조건검색 · 조건 창 · 분석 창 줄 · 📋 배지 인벤토리 묶음 · SSOT = S1959)
   //window.SX_BUILD='S1958';   // [S1958] 이름 · 설명 바로잡기(조건검색 설명 글 아홉 · 연중 신고가 · 신저가 1월 1일부터 · 분석 창 'VWAP 20봉' 줄)
   //window.SX_BUILD='S1956';   // [S1956] 풀차트 ☁️ 일목(pune3tghai MPL) · 분석 창 일목 줄 둘(26봉 뒤 구름 · 캔들 아래 구름) · 🧭 🔄 전환 줄(슈퍼트렌드 10 × 3 · 일목)
   //window.SX_BUILD='S1955';   // [S1955] 🧮 포지션 계산(종목 분석 창 · 💼 셈 한 곳 _sxRrMath) · 시즌2 🛑 손절선 · 열린 위험
