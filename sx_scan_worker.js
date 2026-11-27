@@ -1140,6 +1140,14 @@ function _spMaOrderOk(closes, cfg){
   if(!Number.isFinite(m1) || !Number.isFinite(m2)) return false;
   return m1 > m2;
 }
+function _sxYtd1958(rows, hi) {   // [S1958] 연중 신고가 · 신저가 = 올해 1월 1일부터(스크리너 new_high_low 와 같은 식) · 1월 1일이 불러온 봉 밖이면 null(옛 식 쪽으로)
+  if (!rows || !rows.length) return null;   // [S1958]
+  const yr = r => { const m = String(r && r.date != null ? r.date : '').match(/^(\d{4})/); return m ? m[1] : null; };   // [S1958] 봉 날짜 앞 네 자리 = 해
+  let s = rows.length - 1; const y = yr(rows[s]); while (y && s > 0 && yr(rows[s - 1]) === y) s--; if (!y || s === 0) return null;   // [S1958] 뒤에서 거슬러 올해 첫 봉 · 맨 앞 봉도 올해 = 1월 1일이 봉 밖
+  const C = rows.map(r => +r.close).filter(x => x > 0), X = rows.map(r => +(hi ? r.high : r.low)).filter(x => x > 0);   // [S1958] 스크리너와 같은 거름(값 > 0)
+  const w = X.slice(-Math.min(C.length, rows.length - s)), last = X[X.length - 1] || 0;   // [S1958] 올해 봉 수만큼 뒤에서
+  return hi ? last >= Math.max(...w) : last <= Math.min(...w);   // [S1958]
+}   // [S1958]
 function checkTechConditions(ind, techFilters, getFilter) {
   for (const f of techFilters) {
     const v = f.value;
@@ -1242,7 +1250,7 @@ function checkTechConditions(ind, techFilters, getFilter) {
       case 'swing_structure': { if (v === '설정안함') break; const ss = ind.swingStruct || ind._advanced?.swingStructLegacy; if (!ss) break; if (v === 'Higher High (고점 상승)' && !ss.higherHighs) return false; if (v === 'HH+HL (상승구조)' && !(ss.higherHighs && !ss.lowerLows)) return false; if (v === 'Lower Low (저점 하락)' && !ss.lowerLows) return false; break; }
       case 'vwap_position': { if (v === '설정안함') break; const vw = ind.vwap || ind._advanced?.vwapLegacy; if (!vw || !vw.position) break; if (v === 'VWAP 위 (강세)' && !(vw.position === 'above' || vw.position === 'above_far')) return false; if (v === 'VWAP 근처 (±1%)' && vw.position !== 'near') return false; if (v === 'VWAP 아래 (약세)' && !(vw.position === 'below' || vw.position === 'below_far')) return false; break; }
       case 'gap_type': { if (v === '설정안함') break; const pa = ind.priceAction; if (!pa) break; if (v === '상승갭 종목' && pa.gap !== 'up') return false; if (v === '하락갭 종목' && pa.gap !== 'down') return false; if (v === '갭상승 후 지지') { if (pa.gap !== 'up') return false; if (!(pa.gapPct > 0 && pa.consecutiveDays >= 1)) return false; } if (v === '갭하락 후 저항') { if (pa.gap !== 'down') return false; if (!(pa.gapPct > 0 && pa.consecutiveDays <= -1)) return false; } if (v === '상승갭 제외' && pa.gap === 'up') return false; break; }
-      case 'new_high_low': { if (v === '설정안함') break; const pa = ind.priceAction; if (!pa) break; if ((v === '52주 신고가' || v === '연중 신고가') && !pa.newHigh52) return false; if ((v === '52주 신저가' || v === '연중 신저가') && !pa.newLow52) return false; if (v === '20일 신고가' && !pa.newHighN) return false; if (v === '20일 신저가' && !pa.newLowN) return false; break; }
+      case 'new_high_low': { if (v === '설정안함') break; const pa = ind.priceAction; if (!pa) break; if (v === '52주 신고가' && !pa.newHigh52) return false; if (v === '52주 신저가' && !pa.newLow52) return false; if (v === '연중 신고가' || v === '연중 신저가') { const hi = v === '연중 신고가', y = _sxYtd1958(ind.candles || (ind._advanced && ind._advanced.rows), hi); if (y === null ? !(hi ? pa.newHigh52 : pa.newLow52) : !y) return false; } if (v === '20일 신고가' && !pa.newHighN) return false; if (v === '20일 신저가' && !pa.newLowN) return false; break; }   // [S1958] 연중 = 올해 1월 1일부터(_sxYtd1958) · 1월 1일이 봉 밖이면 옛 식(priceAction 250봉) · 52주 · 20일 그대로
       case 'volume_avg20_ratio': { const vp = ind.volPattern || ind._advanced?.volPattern; if (!vp || vp.volRatio == null) break; const ratioPct = vp.volRatio * 100; if (typeof v === 'object' && v !== null) { if (v.min !== null && ratioPct < v.min) return false; if (v.max !== null && ratioPct > v.max) return false; } break; }
       // ── S161-2: 2회차 잠복 버그 수정 — KR 방어 프리셋이 참조하던 누락 case 3개 ──
       case 'intraday_range': { const pa = ind.priceAction; if (!pa || pa.intradayRange == null) break; if (typeof v === 'object' && v !== null) { if (v.min !== null && pa.intradayRange < v.min) return false; if (v.max !== null && pa.intradayRange > v.max) return false; } break; }
