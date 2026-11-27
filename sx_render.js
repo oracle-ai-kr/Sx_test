@@ -22609,7 +22609,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1956';   // [S1956] 풀차트 ☁️ 일목(pune3tghai MPL) · 분석 창 일목 줄 둘(26봉 뒤 구름 · 캔들 아래 구름) · 🧭 🔄 전환 줄(슈퍼트렌드 10 × 3 · 일목)
+  window.SX_BUILD='S1958';   // [S1958] 이름 · 설명 바로잡기(조건검색 설명 글 아홉 · 연중 신고가 · 신저가 1월 1일부터 · 분석 창 'VWAP 20봉' 줄)
+  //window.SX_BUILD='S1956';   // [S1956] 풀차트 ☁️ 일목(pune3tghai MPL) · 분석 창 일목 줄 둘(26봉 뒤 구름 · 캔들 아래 구름) · 🧭 🔄 전환 줄(슈퍼트렌드 10 × 3 · 일목)
   //window.SX_BUILD='S1955';   // [S1955] 🧮 포지션 계산(종목 분석 창 · 💼 셈 한 곳 _sxRrMath) · 시즌2 🛑 손절선 · 열린 위험
   //window.SX_BUILD='S1954';   // [S1954] 작은 회색 글(--text3) · 차콜 2단 글 = 테마 바탕 · 카드 · 안쪽 칸 대비 4.5 : 1 이상(홈 · 스크리너 · 시즌2 같은 값) · 흰 상자 둘 안 회색 글 고정
   //window.SX_BUILD='S1951';   // [S1951] 📐 · 🧭 색 칩 글자색 = 칩 바탕 대비 4.5 : 1 이상(🧭 칩 다섯 · 📐 눌린 탭 셋 → 진한 글 · 바탕색 그대로)
@@ -27067,7 +27068,7 @@ const _ITP_DIR_SKIP = {};   // [S1890] '시장 환경' 뺌 — 강세 · 약세 
 function _itpCls(label, o){ const t = _itpTone(label, o && o.tone); return ((t === 'bullish' || t === 'bearish') && o && !_ITP_DIR_SKIP[label] && _ITP_DIR[o.label]) ? _ITP_DIR[o.label] : t; }
 // [S1886] 지표 분석 줄 값 숫자 색 (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46) — 방향 줄은 강세 → up(빨강) · 약세 → down(파랑) · 꼬리표 따라가는 줄은 그 줄 꼬리표와 같은 색(같은 톤일 때) · 그 밖(ADX · 시장 환경 · 맥락 분석 · 눌림신호 · OBV 다이버전스 · 심리적 가격대 · 구조 위치 …)은 그대로 → [S1890] 시장 환경 = 방향 줄 · OBV 다이버전스 = 꼬리표 따라가는 줄 (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32)
 const _VAL_DIR_ROWS = { 'RSI (14)':1, 'MACD':1, 'Stoch %K/%D':1, 'RS (20일)':1, 'CCI (20)':1, 'MFI (14)':1, 'OBV 방향':1, 'SAR':1, 'Stoch 다이버전스':1, 'RSI 다이버전스':1, '스윙 구조':1, '20봉 가격 변화율':1, '시장 환경':1 };   // [S1890] 시장 환경
-const _VAL_TAG_ROWS = { 'VWAP':1, '일목 26봉 뒤 구름':1, '일목 캔들 아래 구름':1 /* [S1956] 옛 '일목균형표' 줄 이름 · 새 줄 */, '가격채널':1, '피벗':1, 'MA 이격도':1, '거래량 MA':1, 'A/D (수급)':1, 'EOM':1, 'VHF':1, '심리도':1, 'Chaikin (수급)':1, 'AB Ratio':1, 'OBV 다이버전스':1 };   // [S1890] OBV 다이버전스
+const _VAL_TAG_ROWS = { 'VWAP 20봉':1 /* [S1958] 옛 'VWAP' 줄 이름 */, '일목 26봉 뒤 구름':1, '일목 캔들 아래 구름':1 /* [S1956] 옛 '일목균형표' 줄 이름 · 새 줄 */, '가격채널':1, '피벗':1, 'MA 이격도':1, '거래량 MA':1, 'A/D (수급)':1, 'EOM':1, 'VHF':1, '심리도':1, 'Chaikin (수급)':1, 'AB Ratio':1, 'OBV 다이버전스':1 };   // [S1890] OBV 다이버전스
 function _valCls(label, c, o){ if(c !== 'bullish' && c !== 'bearish') return c || ''; if(_VAL_DIR_ROWS[label]) return (c === 'bullish') ? 'up' : 'down'; if(_VAL_TAG_ROWS[label] && o && o.tone === c && _ITP_DIR[o.label]) return _ITP_DIR[o.label]; return c; }
 // [S1886] ℹ️ 참고사항 핵심 이유 · 위험 요소 상자 색 (분석탭 기준표 v3 기준 2 · 사용자 2026-11-05 12:46) — 강세 · 약세 상자만 제목으로 가른다: 오름 · 침체에서 반전 → up · 침체 · 내림 → down · 표에 없는 상자(좋음 · 나쁨 · 공시 · 공매도 …)는 그대로 → [S1890] 수급 상자 여섯(매수세 · 매집 = 오름 · 매도세 = 내림)도 표로 (분석탭 기준표 v7 기준 2 · 사용자 2026-11-06 06:32)
 const _CMP_DIR = {
@@ -28036,7 +28037,7 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       ${stochDivHTML}
       ${psychHTML}
       ${ctxHTML}
-      ${_itp_inline.vwap?advItpRowKis('VWAP', indicators.vwap?.position==='above'||indicators.vwap?.position==='above_far'?'위':indicators.vwap?.position==='below'||indicators.vwap?.position==='below_far'?'아래':'근처', _itp_inline.vwap.tone, _itp_inline.vwap):''}
+      ${_itp_inline.vwap?advItpRowKis('VWAP 20봉', indicators.vwap?.position==='above'||indicators.vwap?.position==='above_far'?'위':indicators.vwap?.position==='below'||indicators.vwap?.position==='below_far'?'아래':'근처', _itp_inline.vwap.tone, Object.assign({}, _itp_inline.vwap, { text:'<b>기준 = 최근 20봉 거래량 가중 평균</b> — 증권앱 · TV 차트의 당일 VWAP(하루 시작부터 쌓는 값)이 아니에요. '+(_itp_inline.vwap.text||'') })):''}   <!-- [S1958] 옛 'VWAP' 줄 · 값 · 셈 · 해석 글 그대로 · 이름 · 기준 한 줄 -->
       ${_itp_inline.ichimoku?advItpRowKis('일목 26봉 뒤 구름', _itp_inline.ichimoku.label, _itp_inline.ichimoku.tone, Object.assign({}, _itp_inline.ichimoku, { text:'<b>기준 = 26봉 뒤 구름</b> — 오늘 계산해 차트에선 오른쪽 빈 곳에 그려지는 구름이에요(지금 캔들 아래 구름이 아님 · 아래 줄). '+(_itp_inline.ichimoku.text||'') })):''}   <!-- [S1956] 옛 '일목균형표' 줄 · 값 · 셈 그대로 · 이름 · 기준 한 줄 -->
       ${(()=>{ try{ return _sxIchiRowHtml(stock, indicators, advItpRowKis); }catch(_eIc1956){ return ''; } })()}   <!-- [S1956] 일목 캔들 아래 구름(새 줄 · 풀차트 ☁️ 일목과 같은 계산) -->
       ${_itp_inline.priceChannel?advItpRowKis('가격채널', (()=>{const pc=indicators.priceChannel||indicators._advanced?.priceChannel||{}; return pc.position==='breakout_up'?'상단돌파':pc.position==='breakout_down'?'하단이탈':pc.position==='upper_half'?'상단권':'하단권';})(), _itp_inline.priceChannel.tone, _itp_inline.priceChannel):''}
