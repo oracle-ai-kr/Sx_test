@@ -14315,6 +14315,23 @@ var SX_BADGE_DEFS = {
 };
 var SX_BADGE_ORDER = ['bottom','deadcat','pullback','retrace'];
 if(typeof window!=='undefined'){ window.SX_BADGE_DEFS = SX_BADGE_DEFS; window.SX_BADGE_ORDER = SX_BADGE_ORDER; }
+// [S1960] 🔖 증권앱 견줌 배지 SSOT — S1959 판정 실행(스냅 일봉 · 시장마다 앱과 증권앱 · TV 결과가 같은 봉 몫 · 95% 아래 = 증권앱과 다름 · 95% 이상 = 배지 없음 · 식이 달라 견줄 수 없음 = 계산공식 다름 · 사용자 2026-11-26 08:06 · 19:31) · 읽기 도움 · 판정 아님 · 조건검색 · 분석 창 배지가 여기서 가져다 씀
+var SX_DEFDIFF = {   // [S1960]
+  ichimoku_cloud: { name:'일목 구름 위치', badge:'증권앱과 다름', conds:['ichimoku_cloud'], rows:['일목 26봉 뒤 구름'], vs:'앱 = 26봉 뒤 구름 · 차트 = 지금 캔들 아래 구름', pct:{ kr:68.7, us:72.0, coin:76.0 } },   // [S1960]
+  ichimoku_twist: { name:'일목 구름 전환', badge:'', conds:[], rows:[], vs:'앱 양운 · 음운 전환 · TV 선행 끝 구름 색 바뀜', pct:{ kr:96.3, us:96.4, coin:95.5 } },   // [S1960]
+  sonar: { name:'Sonar 모멘텀', badge:'증권앱과 다름', conds:['sonar_trend'], rows:[], vs:'앱 = 5봉 − 20봉 등락률 · 키움 SONAR(14) · 시그널(9)', pct:{ kr:38.2, us:39.2, coin:42.5 } },   // [S1960]
+  pivot: { name:'피봇 레벨', badge:'증권앱과 다름', conds:['pivot_level'], rows:['피벗'], vs:'앱 = 직전 봉 클래식 피봇 · TV Pivot Points Standard 기본(일봉 = 지난달)', pct:{ kr:26.6, us:25.6, coin:30.4 } },   // [S1960]
+  td: { name:'Demark TD Setup ≥9', badge:'증권앱과 다름', conds:['demark_setup'], rows:[], vs:'앱 ≥9 켜진 봉 · 차트 TD 9', pct:{ kr:24.3, us:24.8, coin:24.5 } },   // [S1960]
+  nhl52: { name:'52주 신고가 · 신저가', badge:'', conds:[], rows:[], vs:'앱 250봉 · 날짜 52주', pct:{ kr:99.9, us:100.0, coin:99.9 } },   // [S1960]
+  supertrend: { name:'슈퍼트렌드 10 × 3', badge:'', conds:[], rows:[], vs:'앱 · TV 도움말 식', pct:{ kr:100.0, us:100.0, coin:99.9 } },   // [S1960]
+  vwap: { name:'VWAP 20봉', badge:'계산공식 다름', conds:['vwap_position'], rows:['VWAP 20봉'], vs:'앱 = 최근 20봉 거래량 가중 · 증권앱 · TV = 당일 분봉', pct:null }   // [S1960]
+};   // [S1960]
+var SX_DEFDIFF_ORDER = ['ichimoku_cloud', 'ichimoku_twist', 'sonar', 'pivot', 'td', 'nhl52', 'supertrend', 'vwap'];   // [S1960]
+var _SX_DDIFF_MK = { kr:'KR', us:'US', coin:'코인' };   // [S1960]
+function _sxDdiffOf(kind, key){ for(var i = 0; i < SX_DEFDIFF_ORDER.length; i++){ var d = SX_DEFDIFF[SX_DEFDIFF_ORDER[i]]; if(d.badge && (kind === 'cond' ? d.conds : d.rows).indexOf(key) >= 0) return d; } return null; }   // [S1960] 조건 id · 분석 창 줄 이름 → 배지 있는 항목(없으면 null)
+function _sxDdiffBadge(d, fs, lead){ return (d && d.badge) ? '<span class="sx-ddiff-badge" style="display:inline-block;font-size:' + (fs || 8) + 'px;font-weight:700;color:var(--text2);background:var(--surface3);border-radius:3px;padding:0 4px;margin:' + (lead ? '0 4px 0 0' : '0 0 0 4px') + ';vertical-align:middle;letter-spacing:-.2px;white-space:nowrap">' + d.badge + '</span>' : ''; }   // [S1960] '장중 미확정' 배지와 같은 색(2단 글 · 한 단 밝은 바탕)
+function _sxDdiffLine(d, mk){ if(!d || !d.badge) return ''; var m = _SX_DDIFF_MK[mk] ? mk : 'kr'; var t = d.pct ? ('증권앱 · TV 와 결과가 같은 봉 ' + d.pct[m].toFixed(1) + '% (' + _SX_DDIFF_MK[m] + ' 스냅 일봉 · S1959) — ' + d.vs) : ('식이 달라 견줄 수 없음 — ' + d.vs); return '<div class="sx-ddiff-line" style="font-size:9px;color:var(--text2);line-height:1.5;margin-top:4px">' + _sxDdiffBadge(d, 8, true) + t + '</div>'; }   // [S1960] 조건 창 · 펼친 칸 한 줄(그 시장 숫자)
+if(typeof window!=='undefined'){ window.SX_DEFDIFF = SX_DEFDIFF; window.SX_DEFDIFF_ORDER = SX_DEFDIFF_ORDER; window._sxDdiffOf = _sxDdiffOf; window._sxDdiffBadge = _sxDdiffBadge; window._sxDdiffLine = _sxDdiffLine; }   // [S1960]
 
 
 // ════════ [S889] C 2.0 축 재접지 — 순수 점수함수(Stage 1·미배선·검증용). 스트립(S882)의 검증된 로직(준비=완성률/전환=겹침/전이=발동후궤적)을 0~100 점수화. 집계 준비:전환:전이=2:5:3(전환 주도). 라이브 verdict 무영향 — 스트립에 점수만 표시. 개념: 준비=사전예고·전환=완성및강도·전이=유지및관찰.
@@ -14611,7 +14628,9 @@ function _buildBadgeInventoryCard(stock, indicators){
   var titleHtml = '<span style="font-size:13px;font-weight:800;color:var(--text)">📋 배지 인벤토리</span><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text3);border:1px solid var(--border)">실험</span>';
   var rightHtml = '<span id="sxBadgeInvCount" style="font-size:9.5px;font-weight:700;color:var(--text3)">평가 중…</span>';
   var desc = '<div style="font-size:8.5px;color:var(--text3);line-height:1.5;margin-bottom:4px">신호 배지 <b style="color:var(--text2)">시제품 보관소(SSOT)</b> — 다른 배지가 가져다 씁니다. <b>4종</b>: 역배열 바닥반등·데드캣 / 정배열 눌림목·되돌림. <b>단계 = 현재봉 발동 개수</b>. 정배·역배 동일: <b>1/2/3/4+ → 발생/조짐/유력/강력</b>. 정배 N10 검증(적중 61/62/68%) · 역배 N15 검증(3+ 실전+4.4%·4+ +5.1%·2~3주 긴호흡, 1-2는 미검증). <b style="color:var(--text2)">회색=풀 불일치 또는 발동 0</b>.</div>';
-  return _sxExpCard('sxBadgeInvWrap', 'sxBadgeInvWrap_b', titleHtml, rightHtml, desc + rowsHtml);
+  var _ddRows = SX_DEFDIFF_ORDER.map(function(k){ var d = SX_DEFDIFF[k]; var p = d.pct ? ['kr', 'us', 'coin'].map(function(m){ return _SX_DDIFF_MK[m] + ' ' + d.pct[m].toFixed(1) + '%'; }).join(' · ') : '견줄 수 없음'; var bd = d.badge ? _sxDdiffBadge(d, 8) : '<span style="font-size:8px;color:var(--text2);margin-left:4px">배지 없음</span>'; return '<div class="sx-ddiff-row" style="padding:6px 0;border-top:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--text)">' + d.name + bd + '</div><div style="font-size:9px;color:var(--text2);line-height:1.5">' + (d.pct ? '결과가 같은 봉 ' : '식이 달라 ') + p + '</div><div style="font-size:8.5px;color:var(--text2);line-height:1.5">' + d.vs + '</div></div>'; }).join('');   // [S1960] 🔖 여덟 줄(SX_DEFDIFF)
+  var _ddBox = '<div id="sxDdiffBox" style="padding:9px 10px;margin:10px 0 6px;border-radius:9px;background:var(--surface2);border:1px solid var(--border)"><div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:2px">🔖 증권앱 견줌 배지 <span style="font-size:8.5px;font-weight:600;color:var(--text2)">S1959 · 정의만 견줌 · 읽기 도움 · 판정 아님</span></div><div style="font-size:8.5px;color:var(--text2);line-height:1.5;margin-bottom:2px">앱과 증권앱 · TV 결과가 같은 봉 몫(스냅 일봉 · 시장마다) — 95% 아래 = <b>증권앱과 다름</b> · 95% 이상 = 배지 없음 · 식이 달라 견줄 수 없으면 <b>계산공식 다름</b> · 조건검색 · 분석 창 배지가 여기서 가져다 씀</div>' + _ddRows + '</div>';   // [S1960]
+  return _sxExpCard('sxBadgeInvWrap', 'sxBadgeInvWrap_b', titleHtml, rightHtml, desc + rowsHtml + _ddBox);   // [S1960] 🔖 묶음 더함
 }
 // 비동기 — fetchRows600(레시피카드와 동일 캐시) → 현재봉 정렬(풀일치용) + _pendingByCat(관찰중 집계) → 행 갱신 (토큰 가드)
 async function _sxBadgeAsyncRender(token, mk, code){
@@ -22609,7 +22628,8 @@ if(typeof window!=='undefined'){
 if(typeof window!=='undefined'){
   // [S868] 레시피 하이브리드 커밋 — 기본 ON(미정의 시). 🍳 pill=비교 킬스위치(세션). 워커/조건검색은 recipeSig 미전달=레거시(알려진 비대칭 — 코어 분리 아크에서 해소).
   if(typeof globalThis!=='undefined' && typeof globalThis.SX_RECIPE_REBOUND==='undefined') globalThis.SX_RECIPE_REBOUND=true;
-  window.SX_BUILD='S1958';   // [S1958] 이름 · 설명 바로잡기(조건검색 설명 글 아홉 · 연중 신고가 · 신저가 1월 1일부터 · 분석 창 'VWAP 20봉' 줄)
+  window.SX_BUILD='S1960';   // [S1960] 🔖 증권앱 견줌 배지(조건검색 · 조건 창 · 분석 창 줄 · 📋 배지 인벤토리 묶음 · SSOT = S1959)
+  //window.SX_BUILD='S1958';   // [S1958] 이름 · 설명 바로잡기(조건검색 설명 글 아홉 · 연중 신고가 · 신저가 1월 1일부터 · 분석 창 'VWAP 20봉' 줄)
   //window.SX_BUILD='S1956';   // [S1956] 풀차트 ☁️ 일목(pune3tghai MPL) · 분석 창 일목 줄 둘(26봉 뒤 구름 · 캔들 아래 구름) · 🧭 🔄 전환 줄(슈퍼트렌드 10 × 3 · 일목)
   //window.SX_BUILD='S1955';   // [S1955] 🧮 포지션 계산(종목 분석 창 · 💼 셈 한 곳 _sxRrMath) · 시즌2 🛑 손절선 · 열린 위험
   //window.SX_BUILD='S1954';   // [S1954] 작은 회색 글(--text3) · 차콜 2단 글 = 테마 바탕 · 카드 · 안쪽 칸 대비 4.5 : 1 이상(홈 · 스크리너 · 시즌2 같은 값) · 흰 상자 둘 안 회색 글 고정
@@ -27997,10 +28017,11 @@ function renderAnalysisResult(stock, scores, indicators, qs, analTime, sectorItp
       const id = 'adv_' + Math.random().toString(36).slice(2,8);
       const dispVal = _toneKr[val] || val;
       const dimCls = kisOff ? ' kis-dimmed' : '';
-      let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge_inline:''}</span><span class="ar ${_valCls(label, valCls, itpObj)}">${dispVal}</span>`;
+      const _dd = _sxDdiffOf('row', label), _ddMk = ((typeof currentMarket !== 'undefined' && currentMarket) || 'kr');   // [S1960] 🔖 증권앱 견줌 배지(SX_DEFDIFF · 그 시장 숫자)
+      let row = `<div class="anal-row itp-row${dimCls}"><span class="al">${label}${kisOff?_kisOffBadge_inline:''}${_sxDdiffBadge(_dd, 7)}</span><span class="ar ${_valCls(label, valCls, itpObj)}">${dispVal}</span>`;   // [S1960] 접힌 줄 이름 뒤 배지
       if(itpObj){
         row += `<span class="itp-toggle" id="${id}t" onclick="_sxVib(8);toggleItp('${id}')">▶</span>`;
-        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpObj)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_itpNote(label)}${(typeof _sxWhipNote==='function')?_sxWhipNote(itpObj.label):''}</div>`;   // [S1947] 〰 휩소 잰 것 줄
+        row += `</div><div class="itp-card" id="${id}"><span class="itp-label ${_itpCls(label, itpObj)}">${itpObj.label||''}</span>${_itpBadge(label)}<div>${itpObj.text||''}</div>${_sxDdiffLine(_dd, _ddMk)}${_itpNote(label)}${(typeof _sxWhipNote==='function')?_sxWhipNote(itpObj.label):''}</div>`;   // [S1947] 〰 휩소 잰 것 줄 · [S1960] 🔖 본문 아래 한 줄
       } else { row += `</div>`; }
       return row;
     };
