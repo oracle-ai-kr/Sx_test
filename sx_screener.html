@@ -68,7 +68,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=544"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 · [S1945] 💼 손익비 · 수량 v=535 · [S1946] 💼 기본 접기 v=536 · [S1947] 📐 구조 위치 v=537 · [S1949] 카드 안 작은 고침 v=538 · [S1950] 카드 글자색 = 테마 v=539 · [S1951] 색 칩 글자색 v=540 · [S1954] 작은 회색 글 v=541 · [S1955] 🧮 포지션 계산 v=542 · [S1956] ☁️ 일목 · 🔄 전환 v=543 · [S1958] VWAP 20봉 줄 v=544 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
+<script src="sx_render.js?v=545"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 · [S1945] 💼 손익비 · 수량 v=535 · [S1946] 💼 기본 접기 v=536 · [S1947] 📐 구조 위치 v=537 · [S1949] 카드 안 작은 고침 v=538 · [S1950] 카드 글자색 = 테마 v=539 · [S1951] 색 칩 글자색 v=540 · [S1954] 작은 회색 글 v=541 · [S1955] 🧮 포지션 계산 v=542 · [S1956] ☁️ 일목 · 🔄 전환 v=543 · [S1958] VWAP 20봉 줄 v=544 · [S1960] 🔖 증권앱 견줌 배지 v=545 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
 <script src="sx_ict_flux.js?v=1"></script><!-- [S1847] 🎯 ICT 🧪 실험 셋업 엔진(MPL 2.0 · Flux Charts 원본에서 옮김) -->
 <script src="sx_sig_lab.js?v=1"></script><!-- [S1854] 🧪 신호 실험 칩(TradingView 공개 스크립트 17가지 → JS · 출처는 그 파일 머리) -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
@@ -3518,10 +3518,11 @@ function renderCategories(){
             : c.axis4
               ? '<span class="axis4-badge">4축판정</span>'
               : '';
+          const ddBadge = (typeof _sxDdiffOf === 'function') ? _sxDdiffBadge(_sxDdiffOf('cond', c.id), 7) : '';   // [S1960] 🔖 증권앱 견줌 배지(SX_DEFDIFF · 이름 뒤)
           return `
           <div class="tree-leaf${cLocked?' kis-locked':''}" onclick="${cLocked?'showKisGuide()':'openCondModal(\''+cat.id+'\',\''+c.id+'\')'}">
             <span class="tree-ico tree-ico-file">${cLocked?'🔒':'📄'}</span>
-            <span class="tree-leaf-name">${c.name}${axis4Badge}${badge}${c.unit?' <span class="tree-leaf-unit">'+c.unit+'</span>':''}</span>
+            <span class="tree-leaf-name">${c.name}${axis4Badge}${badge}${ddBadge}${c.unit?' <span class="tree-leaf-unit">'+c.unit+'</span>':''}</span>${/* [S1960] 🔖 배지 */''}
             <span class="added-mark" id="mark_${c.id}" style="display:none">✓</span>
           </div>
         `}).join('');
@@ -3624,6 +3625,7 @@ function openCondModal(catId, condId){
     const _curPeriod = _periodMap[localStorage.getItem('SX_DISC_PERIOD')||'3m'] || '최근 3개월';
     _descText = `${_descText}<br>📅 조회 기간: <b>${_curPeriod}</b> (해제·종결 공시 자동 반영)`;
   }
+  if(typeof _sxDdiffOf === 'function'){ const _dd1960 = _sxDdiffOf('cond', condId); if(_dd1960) _descText += _sxDdiffLine(_dd1960, currentMarket); }   // [S1960] 🔖 조건 창 한 줄(그 시장 숫자)
   document.getElementById('mDesc').innerHTML = _descText;
 
   const existing = activeFilters.find(f=>f.id===condId);
