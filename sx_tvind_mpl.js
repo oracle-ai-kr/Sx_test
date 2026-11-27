@@ -10,6 +10,7 @@
 //     ⑥ [S1919] Auto Chart Patterns 2 — © mbedaiwi2 · MPL 2.0 · v4.5.1 · 원본 = offline/cpat/src_acp2.pine · 감지 · 겹침 정리 · 확정 · BUY/SELL 신호(그림 · 대시보드 · 성적 셈은 안 옮김) · 🕯️ 카드 📐 패턴 탭 표시용(풀차트 지표 아님)
 //     ⑦ [S1925] Wick Sequence Breakout — © Uncle_the_shooter · MPL 2.0 · 파인 v6 · 원본 = offline/tvchart/"Wick Sequence Breakout.txt"(273c7e35f64f · 사용자 2026-11-11 첨부) · 꼬리 · 흡수 봉 모임 상자 · 거래량 몫(추정) · 돌파 ▲▼ · TP/SL 그림 · 🕯️ 카드 📐 패턴 탭도 부름
 //     ⑧ [S1956] Ichimoku Cloud - Alerts — © pune3tghai · MPL 2.0 · 파인 v4 · 원본 = offline/tvchart/"Ichimoku Cloud - Alerts.txt"(사용자 2026-11-25 첨부) · 구름 · 선 · Ichi / Cloud ▲▼ · 묶음 20 · 60 · 120 · 30 = Ichimoku Cloud Enhanced For Crypto(ChrisMoody · Tom Ashley(TensorTom) · 2018 · 라이선스 표기 없음 · 값만) · 🧭 🔄 전환 줄 · 분석 창 캔들 아래 구름 줄이 같은 계산(sx_render.js _sxIchiNow)
+//     ⑨ [S1961] Stop vs Noise Check — © SignalCheckerHQ · MPL 2.0 · 파인 v6 · 원본 = offline/tvchart/"Stop vs Noise Check.txt"(09012c37653e · 사용자 2026-11-25 첨부 tradingview-scripts-main) · 🧮 포지션 계산 '〰️ 보통 흔들림' 상자 계산(풀차트 지표 아님 · 원본 표 · 선 그림은 안 옮김 · 마지막 봉에서만 셈)   // [S1961]
 //   봉마다 파인 그대로 계산한다(전체 봉 · 그 봉까지 자료만). 앱이 더한 설정은 이름에 '앱' 을 단다.
 (function(){
 'use strict';
@@ -629,5 +630,21 @@ TV.reg({   // [S1956]
     for (let i = G.s; i < G.e; i++) { if (p.sigI) { if (R.ib[i]) G.label(i, '일목▲', '#16a34a', false); if (R.is[i]) G.label(i, '일목▼', '#dc2626', true); }   // [S1956]
       if (p.sigC) { if (R.cb[i]) G.label(i, '구름▲', '#16a34a', false); if (R.cs[i]) G.label(i, '구름▼', '#dc2626', true); } } }   // [S1956]
 });   // [S1956]
-if (typeof module !== 'undefined' && module.exports) module.exports = { staCalc, stAny, atrAny, rngfilt, smoothrng, srcOf, ictObCalc, msbCalc, pobCalc, kzpCalc, acp2: CP_ACP2, wsbCalc, ichiCalc };   // [S1919] ⑥ · [S1925] ⑦ · [S1956] ⑧
+// ════════ [S1961] ⑨ Stop vs Noise Check — © SignalCheckerHQ · MPL 2.0 · 파인 v6 · 원본 = offline/tvchart/"Stop vs Noise Check.txt"(09012c37653e) · 🧮 포지션 계산 '〰️ 보통 흔들림' 상자가 씀
+//   원본 = 마지막 봉에서만 셈 · Long 쪽만 옮김(🧮 = 매수(현물)만) · 입력 = 보유 봉 holdBars(원본 'Within the next N bars' 기본 24) · 볼 진입 lookback(원본 기본 1000) · ATR 길이(원본 기본 14) · 손절 폭 %(svnHit)   // [S1961]
+//   진입 = 마지막 봉에서 o 봉 전 종가(o = holdBars + 1 ~ holdBars + n · n = min(lookback, 마지막 봉 번호 − holdBars − 1)) · 가장 나쁜 = 그 뒤 holdBars 봉 저가 중 최소(원본 low[o − 1] 부터) · 하락 % = max((진입 − 최소) ÷ 진입 × 100, 0) · 지금 봉은 안 씀   // [S1961]
+//   걸린 몫 = 하락 % ≥ 손절 % 인 진입 ÷ 진입 × 100 · 50 · 80 · 90% = array.percentile_nearest_rank(오름차순 · 순위 = 올림(p ÷ 100 × 개수)) · ATR % = ta.atr(길이) ÷ 종가 × 100(마지막 봉) · 갈래 = 50 이상 · 20 이상 · 그 아래(원본 verdict)   // [S1961]
+//   앱이 정한 것(원본에 없음 · 숨기지 않음): 진입가나 그 뒤 저가에 na 가 낀 진입은 뺌(원본은 na 를 배열에 넣음 · 파인 문서에 na 순위 규칙 없음)   // [S1961]
+function svnCalc(rows, holdBars, lookback, atrLen) { const { n, H, L, C } = cols(rows), last = n - 1, adv = [];   // [S1961]
+  const avail = last - holdBars - 1, m = Math.min(lookback, avail);   // [S1961]
+  for (let o = holdBars + 1; o <= holdBars + m; o++) { const ep = C[last - o]; let worst = L[last - (o - 1)];   // [S1961]
+    for (let j = 1; j <= holdBars; j++) worst = Math.min(worst, L[last - (o - j)]);   // [S1961]
+    const a = (ep - worst) / ep * 100; if (fin(a)) adv.push(Math.max(a, 0)); }   // [S1961]
+  const at = n > 1 ? T.atr(H, L, C, atrLen) : null, ap = at ? at[last] / C[last] * 100 : NaN;   // [S1961]
+  return { adv, cnt: adv.length, sorted: adv.slice().sort((x, y) => x - y), atrPct: fin(ap) ? ap : NaN, holdBars, lookback, atrLen }; }   // [S1961]
+function svnHit(R, stopPct) { let h = 0; for (const x of R.adv) if (x >= stopPct) h++; return { hits: h, rate: R.cnt > 0 ? h / R.cnt * 100 : NaN }; }   // [S1961] 원본 hits · hitRate
+function svnPr(R, p) { if (!(R.cnt > 0)) return NaN; const k = Math.ceil(p / 100 * R.cnt); return R.sorted[Math.min(Math.max(k - 1, 0), R.cnt - 1)]; }   // [S1961] percentile_nearest_rank
+function svnVerdict(rate) { return !fin(rate) ? 'na' : (rate >= 50 ? 'in' : (rate >= 20 ? 'tight' : 'out')); }   // [S1961] 원본 verdict 갈래(Inside the noise · Tight · Outside most of the noise)
+TV.svn = { calc: svnCalc, hit: svnHit, pr: svnPr, verdict: svnVerdict };   // [S1961]
+if (typeof module !== 'undefined' && module.exports) module.exports = { staCalc, stAny, atrAny, rngfilt, smoothrng, srcOf, ictObCalc, msbCalc, pobCalc, kzpCalc, acp2: CP_ACP2, wsbCalc, ichiCalc, svnCalc, svnHit, svnPr, svnVerdict };   // [S1919] ⑥ · [S1925] ⑦ · [S1956] ⑧ · [S1961] ⑨
 })();
