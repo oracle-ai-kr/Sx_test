@@ -68,7 +68,7 @@ const SX_CONDITIONS = [
       {id:'intraday_range',name:'당일 변동폭',type:'range',unit:'%',min:0,max:30,default:{min:null,max:null},source:'calc_candle',desc:'(고가-저가)/전일종가 - 당일 변동성 크기'},
       {id:'period_change',name:'N일간 주가변동폭',type:'range',unit:'%',min:-80,max:200,default:{min:null,max:null},source:'calc_candle',desc:'5일간 등락률 - 단기 추세 강도'},
       {id:'gap_type',name:'갭 발생',type:'select',options:['설정안함','상승갭 종목','하락갭 종목','갭상승 후 지지','갭하락 후 저항','상승갭 제외'],default:'설정안함',source:'calc_candle',desc:'시가갭 발생 여부 (상승갭 제외 = 오늘 상승갭 발생 종목 회피)'},
-      {id:'new_high_low',name:'신고가/신저가',type:'select',options:['설정안함','52주 신고가','52주 신저가','연중 신고가','연중 신저가','20일 신고가','20일 신저가'],default:'설정안함',source:'calc_candle',desc:'52주/연중/20일 신고가/신저가 발생 여부'},
+      {id:'new_high_low',name:'신고가/신저가',type:'select',options:['설정안함','52주 신고가','52주 신저가','연중 신고가','연중 신저가','20일 신고가','20일 신저가'],default:'설정안함',source:'calc_candle',desc:'52주 = 최근 250봉 · 연중 = 올해 1월 1일부터(불러온 봉에 1월 1일이 없으면 최근 250봉) · 20일 = 최근 20봉 — 그 봉 고가(신저가는 저가) 기준'},   // [S1958] 설명 글 · 연중 셈은 스크리너 new_high_low · 스캔 워커 _sxYtd1958
     ]},
     {id:'volume_cond',name:'거래량/거래대금',conditions:[
       {id:'volume_min',name:'거래량 (당일)',type:'range',unit:'주',min:0,max:null,default:{min:50000,max:null},source:'kis_price',desc:'오늘 거래된 주식 수 - 작으면 거래 부진',recommend:'50,000↑ (활발) / 500,000↑ (매우 활발)'},
@@ -127,7 +127,7 @@ const SX_CONDITIONS = [
       {id:'bb_width',name:'볼린저 밴드 폭',type:'select',options:['설정안함','스퀴즈 (수축)','확장중'],default:'설정안함',source:'calc_candle',desc:'BB 폭 - 스퀴즈=변동성 폭발 임박, 확장중=추세 진행'},
       {id:'band_pctb',name:'Band %b',type:'range',unit:'',min:-0.5,max:1.5,default:{min:null,max:null},source:'calc_candle',desc:'BB 내 위치 (0=하단, 0.5=중심, 1=상단)',recommend:'0↓ (하단 이탈) / 1↑ (상단 돌파)'},
       {id:'envelope_position',name:'엔벨로프 위치',type:'select',options:['설정안함','상단 돌파','상단 근접','중심선 위','중심선 아래','하단 근접','하단 이탈'],default:'설정안함',source:'calc_candle',desc:'고정 % 채널 위치 - BB와 유사하나 변동성 무관'},
-      {id:'pivot_level',name:'피봇 레벨',type:'select',options:['설정안함','R2 이상','R1~R2','P~R1','S1~P','S1~S2','S2 이하'],default:'설정안함',source:'calc_candle',desc:'전일 H/L/C 기반 지지/저항 - R=저항, S=지지, P=피봇'},
+      {id:'pivot_level',name:'피봇 레벨',type:'select',options:['설정안함','R2 이상','R1~R2','P~R1','S1~P','S1~S2','S2 이하'],default:'설정안함',source:'calc_candle',desc:'직전 봉(일봉이면 전일) 고 · 저 · 종으로 낸 클래식 피봇 대비 종가 자리(R=저항 · S=지지 · P=피봇) · TV Pivot Points Standard 기본(일봉 차트 = 지난달)과 다름'},   // [S1958] 설명 글만 · 셈 그대로
       {id:'price_channel',name:'가격채널 (N일)',type:'select',options:['설정안함','상단 돌파','상단 반','하단 반','하단 이탈'],default:'설정안함',source:'calc_candle',desc:'N일 최고/최저가 채널 - 상단 돌파=신고가, 하단 이탈=신저가'},
       {id:'ma_disparity',name:'MA 이격도',type:'select',options:['설정안함','MA20 +5%↑ 과열','MA20 -5%↓ 침체','MA60 +10%↑ 과열','MA60 -10%↓ 침체','MA20 근접 (±2%)','MA60 근접 (±2%)'],default:'설정안함',source:'calc_candle',desc:'이동평균선 대비 거리 - 과열=조정 가능, 침체=반등 가능, 근접=추세 추종'},
       {id:'recent_high_proximity',name:'최근 N봉 고점 근접도',type:'range',unit:'%',min:0,max:100,default:{min:null,max:null},source:'calc_candle',desc:'현재가÷최근N봉 고가×100. 95%↑=고점 근접 → max 90~95로 설정 시 추격 방어. N봉수는 _recent_n_bars(기본 20봉)에서 조정',recommend:'~90 (고점 추격 방어) / 95↑ (신고가 돌파)'},
@@ -150,12 +150,12 @@ const SX_CONDITIONS = [
       {id:'price_osc_value',name:'Price Oscillator',type:'select',options:['설정안함','양수 (상승추세)','음수 (하락추세)'],default:'설정안함',source:'calc_candle',desc:'단기-장기 MA 차이 - MACD와 유사하나 % 표시'},
     ]},
     {id:'ta_other',name:'기타 지표',conditions:[
-      {id:'demark_setup',name:'Demark TD Setup',type:'select',options:['설정안함','매수셋업 ≥9 (하락소진)','매도셋업 ≥9 (상승소진)','매수셋업 진행중','매도셋업 진행중'],default:'설정안함',source:'calc_candle',desc:'TD Sequential 추세소진 - 9 완성=반전 임박 (매수/매도 정점)'},
+      {id:'demark_setup',name:'Demark TD Setup',type:'select',options:['설정안함','매수셋업 ≥9 (하락소진)','매도셋업 ≥9 (상승소진)','매수셋업 진행중','매도셋업 진행중'],default:'설정안함',source:'calc_candle',desc:'오늘부터 거꾸로 센, 4봉 전 종가보다 낮은(매수) · 높은(매도) 연속 봉 수(최대 13 · 진행중 = 3 이상) · 차트 TD 9 · 13과 다름(≥9는 9 ~ 13봉째 내내 켜짐)'},   // [S1958] 설명 글만 · 셈 그대로
       {id:'three_line_break',name:'삼선전환도',type:'select',options:['설정안함','상승 전환','하락 전환','상승 지속','하락 지속'],default:'설정안함',source:'calc_candle',desc:'Three Line Break - 전환=추세 변경 시점, 지속=현재 추세 유지'},
       {id:'binary_wave',name:'Binary Wave',type:'select',options:['설정안함','풀 매수 (5/5)','강한 매수 (4/5)','풀 매도 (0/5)','강한 매도 (1/5)'],default:'설정안함',source:'calc_candle',desc:'5개 지표 합산 - 풀 매수=모든 지표 매수 신호'},
-      {id:'sonar_trend',name:'Sonar 모멘텀',type:'select',options:['설정안함','가속 (단기>장기)','감속 (단기<장기)'],default:'설정안함',source:'calc_candle',desc:'단기/장기 모멘텀 비교 - 가속=상승 추세 시작, 감속=하락 추세 시작'},
+      {id:'sonar_trend',name:'Sonar 모멘텀',type:'select',options:['설정안함','가속 (단기>장기)','감속 (단기<장기)'],default:'설정안함',source:'calc_candle',desc:'5봉 등락률 − 20봉 등락률(+1%p 넘으면 가속 · −1%p 아래면 감속) · 키움 SONAR(지수이평 차)와 다른 식'},   // [S1958] 설명 글만 · 셈 그대로
       {id:'mass_index',name:'Mass Index',type:'select',options:['설정안함','Reversal Bulge (반전신호)','Setup (MI>27)','안정 (MI<26.5)'],default:'설정안함',source:'calc_candle',desc:'변동성 확장/수축 - Reversal Bulge=반전 임박 강력 신호'},
-      {id:'vwap_position',name:'VWAP 위치',type:'select',options:['설정안함','VWAP 위 (강세)','VWAP 근처 (±1%)','VWAP 아래 (약세)'],default:'설정안함',source:'calc_candle',desc:'거래량 가중 평균가 - 위=매수 평균 우위, 아래=매도 평균 우위 (기관 기준선)'},
+      {id:'vwap_position',name:'VWAP 위치',type:'select',options:['설정안함','VWAP 위 (강세)','VWAP 근처 (±1%)','VWAP 아래 (약세)'],default:'설정안함',source:'calc_candle',desc:'최근 20봉 거래량 가중 평균가 대비 종가 자리(±1% 안 = 근처) · 증권앱 당일 VWAP 아님 — 당일 기준은 \'분봉 VWAP 위치\''},   // [S1958] 설명 글만 · 셈 그대로
       {id:'swing_structure',name:'구조 패턴 (HH/HL)',type:'select',options:['설정안함','Higher High (고점 상승)','HH+HL (상승구조)','Lower Low (저점 하락)'],default:'설정안함',source:'calc_candle',desc:'스윙 구조 - HH+HL=상승 추세 확정, LL=하락 추세'},
     ]},
   ]},
@@ -389,7 +389,7 @@ const COIN_CONDITIONS = [
       // S161-2: 코인 방어 프리셋(추격매수/극단변동성)용 조건 추가 — KR과 스펙 동일, 범위만 코인 변동성 반영
       {id:'consecutive_up_down',name:'연속 상승/하락',type:'range',unit:'일',min:-20,max:20,default:{min:null,max:null},source:'calc_candle',desc:'양수=상승, 음수=하락'},
       {id:'gap_type',name:'갭 발생',type:'select',options:['설정안함','상승갭 종목','하락갭 종목','갭상승 후 지지','갭하락 후 저항','상승갭 제외'],default:'설정안함',source:'calc_candle',desc:'시가갭 발생 여부 (상승갭 제외 = 오늘 상승갭 발생 종목 회피)'},
-      {id:'new_high_low',name:'신고가/신저가',type:'select',options:['설정안함','52주 신고가','52주 신저가','연중 신고가','연중 신저가','20일 신고가','20일 신저가'],default:'설정안함',source:'calc_candle',desc:'52주/연중/20일 신고가/신저가 발생 여부'},
+      {id:'new_high_low',name:'신고가/신저가',type:'select',options:['설정안함','52주 신고가','52주 신저가','연중 신고가','연중 신저가','20일 신고가','20일 신저가'],default:'설정안함',source:'calc_candle',desc:'52주 = 최근 250봉(코인은 주말에도 봉이 있어 ≈ 36주) · 연중 = 올해 1월 1일부터(불러온 봉에 1월 1일이 없으면 최근 250봉) · 20일 = 최근 20봉 — 그 봉 고가(신저가는 저가) 기준'},   // [S1958] 설명 글 · 연중 셈은 스크리너 new_high_low · 스캔 워커 _sxYtd1958
       {id:'intraday_range',name:'당일 변동폭',type:'range',unit:'%',min:0,max:50,default:{min:null,max:null},source:'calc_candle',desc:'(고가-저가)/전일종가 — 코인은 변동성 큼'},
       {id:'period_change',name:'N일간 주가변동폭',type:'range',unit:'%',min:-80,max:300,default:{min:null,max:null},source:'calc_candle',desc:'5일간 등락률'},
     ]},
@@ -442,7 +442,7 @@ const COIN_CONDITIONS = [
       {id:'ad_trend',name:'A/D선 추세',type:'select',options:['설정안함','상승 추세','하락 추세','다이버전스 (가격↓ AD↑)'],default:'설정안함',source:'calc_candle',desc:'누적 분산선 - 다이버전스=가격 하락에도 매집 (반전 신호)'},
       {id:'_rsi_div',name:'RSI 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔RSI 괴리 - 강세 다이버전스=상승 반전 신호 (강력)'},
       {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
-      {id:'vwap_position',name:'VWAP 위치',type:'select',options:['설정안함','VWAP 위 (강세)','VWAP 근처 (±1%)','VWAP 아래 (약세)'],default:'설정안함',source:'calc_candle',desc:'거래량 가중 평균가 - 위=매수 평균 우위, 아래=매도 평균 우위 (기관 기준선)'},
+      {id:'vwap_position',name:'VWAP 위치',type:'select',options:['설정안함','VWAP 위 (강세)','VWAP 근처 (±1%)','VWAP 아래 (약세)'],default:'설정안함',source:'calc_candle',desc:'최근 20봉 거래량 가중 평균가 대비 종가 자리(±1% 안 = 근처) · 증권앱 · TV 당일 VWAP 아님'},   // [S1958] 설명 글만 · 셈 그대로
       {id:'swing_structure',name:'구조 패턴 (HH/HL)',type:'select',options:['설정안함','Higher High (고점 상승)','HH+HL (상승구조)','Lower Low (저점 하락)'],default:'설정안함',source:'calc_candle',desc:'스윙 구조 - HH+HL=상승 추세 확정, LL=하락 추세'},
     ]},
   ]},
@@ -662,7 +662,7 @@ const US_CONDITIONS = [
       {id:'week52_low_ratio',name:'52주 최저가 대비',type:'range',unit:'%',min:0,max:500,default:{min:null,max:null},source:'yahoo_fundamental',desc:'현재가÷52주최저-1'},
       {id:'consecutive_up_down',name:'연속 상승/하락',type:'range',unit:'일',min:-20,max:20,default:{min:null,max:null},source:'calc_candle',desc:'양수=상승, 음수=하락'},
       {id:'gap_type',name:'갭 발생',type:'select',options:['설정안함','상승갭 종목','하락갭 종목','갭상승 후 지지','갭하락 후 저항','상승갭 제외'],default:'설정안함',source:'calc_candle',desc:'시가갭 발생 여부 (상승갭 제외 = 오늘 상승갭 발생 종목 회피)'},
-      {id:'new_high_low',name:'신고가/신저가',type:'select',options:['설정안함','52주 신고가','52주 신저가','연중 신고가','연중 신저가','20일 신고가','20일 신저가'],default:'설정안함',source:'calc_candle',desc:'52주/연중/20일 신고가/신저가 발생 여부'},
+      {id:'new_high_low',name:'신고가/신저가',type:'select',options:['설정안함','52주 신고가','52주 신저가','연중 신고가','연중 신저가','20일 신고가','20일 신저가'],default:'설정안함',source:'calc_candle',desc:'52주 = 최근 250봉 · 연중 = 올해 1월 1일부터(불러온 봉에 1월 1일이 없으면 최근 250봉) · 20일 = 최근 20봉 — 그 봉 고가(신저가는 저가) 기준'},   // [S1958] 설명 글 · 연중 셈은 스크리너 new_high_low · 스캔 워커 _sxYtd1958
       {id:'intraday_range',name:'당일 변동폭',type:'range',unit:'%',min:0,max:30,default:{min:null,max:null},source:'calc_candle',desc:'(고가-저가)/전일종가'},
       {id:'period_change',name:'N일간 주가변동폭',type:'range',unit:'%',min:-80,max:200,default:{min:null,max:null},source:'calc_candle',desc:'5일간 등락률'},
     ]},
@@ -720,7 +720,7 @@ const US_CONDITIONS = [
       {id:'ad_trend',name:'A/D선 추세',type:'select',options:['설정안함','상승 추세','하락 추세','다이버전스 (가격↓ AD↑)'],default:'설정안함',source:'calc_candle',desc:'누적 분산선 - 다이버전스=가격 하락에도 매집 (반전 신호)'},
       {id:'_rsi_div',name:'RSI 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔RSI 괴리 - 강세 다이버전스=상승 반전 신호 (강력)'},
       {id:'_obv_div',name:'OBV 다이버전스',type:'select',options:['설정안함','강세 다이버전스','약세 다이버전스'],default:'설정안함',source:'calc_candle',desc:'가격↔OBV 괴리 - 거래량 기반 반전 신호 (RSI보다 강력)'},
-      {id:'vwap_position',name:'VWAP 위치',type:'select',options:['설정안함','VWAP 위 (강세)','VWAP 근처 (±1%)','VWAP 아래 (약세)'],default:'설정안함',source:'calc_candle',desc:'거래량 가중 평균가 - 위=매수 평균 우위, 아래=매도 평균 우위 (기관 기준선)'},
+      {id:'vwap_position',name:'VWAP 위치',type:'select',options:['설정안함','VWAP 위 (강세)','VWAP 근처 (±1%)','VWAP 아래 (약세)'],default:'설정안함',source:'calc_candle',desc:'최근 20봉 거래량 가중 평균가 대비 종가 자리(±1% 안 = 근처) · 증권앱 · TV 당일 VWAP 아님'},   // [S1958] 설명 글만 · 셈 그대로
       {id:'swing_structure',name:'구조 패턴 (HH/HL)',type:'select',options:['설정안함','Higher High (고점 상승)','HH+HL (상승구조)','Lower Low (저점 하락)'],default:'설정안함',source:'calc_candle',desc:'스윙 구조 - HH+HL=상승 추세 확정, LL=하락 추세'},
     ]},
   ]},
