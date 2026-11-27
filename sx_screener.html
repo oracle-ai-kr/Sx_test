@@ -25,7 +25,7 @@
 <script src="sx_tvind_mpl.js?v=6"></script><!-- [S1866] Supertrend ANY INDICATOR(wbburgin) — MPL 2.0 · 판 번호 v=2 = 3단계 지표가 더해진 틀 · 지표 파일 · [S1870] 🎯 ICT 오더블록(앱 정의) · MSB-OB(EmreKb) · Power Order Blocks(ChartPrime) — MPL 2.0 · 판 번호 v=2 · [S1871] ICT Killzones & Pivots(tradeforopp) 주 · 월 기준선 · v=3 · [S1919] Auto Chart Patterns 2(mbedaiwi2) 패턴 계산(🕯️ 카드 📐 패턴 탭) · v=4 · [S1925] Wick Sequence Breakout(Uncle_the_shooter) 풀차트 지표 ⑦ · 🕯️ 카드 📐 탭 줄 · v=5 · [S1956] ☁️ 일목(pune3tghai) ⑧ v=6 -->
 <script src="sx_tvread.js?v=2"></script><!-- [S1872] 풀차트 지표 읽기 한 줄(앱 자체 · 라이선스 없음 · 계산 파일 뒤) · [S1956] ☁️ 일목 줄 v=2 -->
 <script src="sx_tvind_bbset.js?v=4"></script><!-- [S1873] 볼린저 풀세트 아래 칸 넷(%B · BandWidth · BBTrend = TV 내장 식 · BBImpulse = LazyBear · 라이선스 없는 둘 · 읽기 글 포함 · 읽기 파일 뒤) · [S1878] 차트 위 〰️ 볼린저 구역 배지(앱 자체 정의 · 탭과 같은 계산 함수 · 선 없음) · [S1879] 배지 색 = 트리플 선 자리 · [S1882] 셋 구역 이름 = 🧭 〰️ 위치 이름 · 판 번호 v=4 -->
-<script src="sx_conditions.js?v=30"></script><!-- [S1841] 6개월 강세 항목 · [S1893] EOM 조건 이름 · 설명 앱식 · [S1942] ⚔️ 단기매매 카테고리 · 판 번호 v=27 · [S1943] 탭 폴더 · 2단계 조건 v=28 · [S1944] 단기 매매 띄움 v=29 · [S1956] 일목 구름 설명 글 v=30 -->
+<script src="sx_conditions.js?v=31"></script><!-- [S1841] 6개월 강세 항목 · [S1893] EOM 조건 이름 · 설명 앱식 · [S1942] ⚔️ 단기매매 카테고리 · 판 번호 v=27 · [S1943] 탭 폴더 · 2단계 조건 v=28 · [S1944] 단기 매매 띄움 v=29 · [S1956] 일목 구름 설명 글 v=30 · [S1958] 신고가 · VWAP · Sonar · TD · 피봇 설명 글 v=31 -->
 <script src="sx_oracle.js?v=1"></script>
 <script src="sx_modal.js?v=1"></script>
 <script src="sx_storage.js?v=9"></script>
@@ -68,7 +68,7 @@
 <script src="sx_project_c.js?v=11"></script>
 <script src="sx_verdict_val.js?v=15"></script>
 <script src="sx_validator.js?v=18"></script>
-<script src="sx_render.js?v=543"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 · [S1945] 💼 손익비 · 수량 v=535 · [S1946] 💼 기본 접기 v=536 · [S1947] 📐 구조 위치 v=537 · [S1949] 카드 안 작은 고침 v=538 · [S1950] 카드 글자색 = 테마 v=539 · [S1951] 색 칩 글자색 v=540 · [S1954] 작은 회색 글 v=541 · [S1955] 🧮 포지션 계산 v=542 · [S1956] ☁️ 일목 · 🔄 전환 v=543 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
+<script src="sx_render.js?v=544"></script><!-- [S1943] 2단계 셈 · 판 번호 v=533 · [S1944] 칩 곁 글 v=534 · [S1945] 💼 손익비 · 수량 v=535 · [S1946] 💼 기본 접기 v=536 · [S1947] 📐 구조 위치 v=537 · [S1949] 카드 안 작은 고침 v=538 · [S1950] 카드 글자색 = 테마 v=539 · [S1951] 색 칩 글자색 v=540 · [S1954] 작은 회색 글 v=541 · [S1955] 🧮 포지션 계산 v=542 · [S1956] ☁️ 일목 · 🔄 전환 v=543 · [S1958] VWAP 20봉 줄 v=544 --><!-- [S1207] 분석탭 첫 fetch=목표봉수 [S1208] 미달 5% 허용 --><!-- [S1179] 그리드 어휘 화력 -->
 <script src="sx_ict_flux.js?v=1"></script><!-- [S1847] 🎯 ICT 🧪 실험 셋업 엔진(MPL 2.0 · Flux Charts 원본에서 옮김) -->
 <script src="sx_sig_lab.js?v=1"></script><!-- [S1854] 🧪 신호 실험 칩(TradingView 공개 스크립트 17가지 → JS · 출처는 그 파일 머리) -->
 <script src="sx_recipe_signal.js?v=56"></script><!-- [S1120] cellOf -->
@@ -4742,7 +4742,7 @@ async function startScan(){
   searchResults.forEach((s,i)=>{ existMap[s.code] = i; });
 
   try{
-    _scanWorker = new Worker('sx_scan_worker.js?v=30');   /* [S1942] 🧪 레시피 4분류 */   /* [S1901] 상대강도 같은 날짜끼리 */   /* [S1841] 6개월 강세 스캔 앞 순위 */   // [S1201] exec_core·cell_data [S1204] _srcBreak [S1206] BT필터=정밀모드600
+    _scanWorker = new Worker('sx_scan_worker.js?v=31');   /* [S1958] 연중 신고가 1월 1일부터 */   /* [S1942] 🧪 레시피 4분류 */   /* [S1901] 상대강도 같은 날짜끼리 */   /* [S1841] 6개월 강세 스캔 앞 순위 */   // [S1201] exec_core·cell_data [S1204] _srcBreak [S1206] BT필터=정밀모드600
   }catch(e){
     console.warn('[S74] Worker 생성 실패 — 레거시 모드 실행', e);
     return _startScanLegacy();
@@ -8111,7 +8111,9 @@ function checkTechConditions(ind, techFilters, getFilter){
         const lastL = lows[lows.length-1]||0;
         const n52 = Math.min(closes.length, 250);
         const n20 = Math.min(closes.length, 20);
-        const nYear = Math.min(closes.length, 250);
+        const _yr1958 = r => { const m = String(r && r.date != null ? r.date : '').match(/^(\d{4})/); return m ? m[1] : null; };   // [S1958] 봉 날짜 앞 네 자리 = 해
+        let _s1958 = rows.length - 1; const _y1958 = _s1958 >= 0 ? _yr1958(rows[_s1958]) : null; while(_y1958 && _s1958 > 0 && _yr1958(rows[_s1958 - 1]) === _y1958) _s1958--;   // [S1958] 뒤에서 거슬러 올해 첫 봉
+        const nYear = (_y1958 && _s1958 > 0) ? Math.min(closes.length, rows.length - _s1958) : Math.min(closes.length, 250);   // [S1958] 연중 = 올해 1월 1일부터 · 1월 1일이 불러온 봉 밖이면 옛 식(최근 250봉)
         const sliceH = (n)=>Math.max(...highs.slice(-n));
         const sliceL = (n)=>Math.min(...lows.slice(-n));
         let pass = false;
